@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<!-- interactive-widget=resizes-content: on browsers that support it (Chrome/
+     Android 108+), shrinks the layout viewport when the on-screen keyboard
+     opens instead of just overlaying it — keeps the Grid/Blitz/Silhouette
+     text inputs (and the "Submit"/"Add" buttons right next to them) from
+     ending up hidden underneath the keyboard. Unsupported browsers just
+     ignore the unknown value and fall back to their normal behavior. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0c110d" />
+<title>Reads – NFL & CFB Football Trivia</title>
+<meta name="description" content="Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating." />
+<meta name="author" content="Reads" />
+<link rel="canonical" href="https://getreads.netlify.app/" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Reads" />
+<meta property="og:url" content="https://getreads.netlify.app/" />
+<meta property="og:title" content="Reads – NFL & CFB Football Trivia" />
+<meta property="og:description" content="12 game modes across NFL and College Football trivia — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft. Live shared leaderboard, adaptive Football Rating." />
+<meta property="og:image" content="https://getreads.netlify.app/assets/brand/reads-logo-square.jpg" />
+<meta property="og:image:alt" content="Reads — NFL & CFB Football Trivia logo" />
+
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Reads – NFL & CFB Football Trivia" />
+<meta name="twitter:description" content="12 game modes across NFL and College Football trivia, a live shared leaderboard, and an adaptive Football Rating." />
+<meta name="twitter:image" content="https://getreads.netlify.app/assets/brand/reads-logo-square.jpg" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="assets/brand/icon-192.png" />
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png" />
+
+<!-- iOS home-screen launch splash — Safari shows a blank white screen on
+     launch unless given an exact-pixel-match static image per device size
+     (Android/Chrome instead auto-builds one from manifest.json's icon +
+     background_color, no extra work needed there). Covers the common modern
+     iPhone/iPad size classes, not the full historical device list. -->
+<link rel="apple-touch-startup-image" href="assets/brand/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+<link rel="apple-touch-startup-image" href="assets/brand/splash/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+<link rel="apple-touch-startup-image" href="assets/brand/splash/splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+<link rel="apple-touch-startup-image" href="assets/brand/splash/splash-1536x2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+<link rel="apple-touch-startup-image" href="assets/brand/splash/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="styles.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Reads",
+  "alternateName": "Reads – NFL & CFB Football Trivia",
+  "url": "https://getreads.netlify.app/",
+  "description": "Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any (runs in any modern web browser)",
+  "image": "https://getreads.netlify.app/assets/brand/reads-logo-square.jpg",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+</head>
+<body>
+  <div id="splash-screen">
+    <img src="assets/brand/reads-logo.jpg" alt="Reads" class="splash-logo" />
+    <div class="splash-welcome">Welcome to Reads</div>
+    <div class="splash-sub">Loading your football trivia experience…</div>
+  </div>
+  <header id="top-bar">
+    <div class="brand"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="brand-logo" /></div>
+    <nav id="top-nav" aria-label="Main">
+      <button class="nav-btn active" data-go="home"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg> Home</button>
+      <button class="nav-btn" data-league-toggle="nfl" aria-haspopup="true" aria-expanded="false" aria-controls="mode-sheet"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-40 12 12)"/><path d="M8.5 15.5 15.5 8.5M9.8 14.2h1M10.6 13h1.2M11.5 11.7h1.2M12.3 10.5h1"/></svg> NFL <span class="caret">▾</span></button>
+      <button class="nav-btn" data-league-toggle="cfb" aria-haspopup="true" aria-expanded="false" aria-controls="mode-sheet"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9 12 4l10 5-10 5-10-5Z"/><path d="M6 11.5V17c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/><path d="M22 9v6"/></svg> CFB <span class="caret">▾</span></button>
+      <button class="nav-btn" data-go="leaderboard"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4"/><path d="M17 5h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4"/><path d="M12 14v3"/><path d="M8 21h8"/><path d="M9.5 17h5l1 4h-7l1-4Z"/></svg> Leaderboard</button>
+    </nav>
+    <button id="rating-badge" title="Your adaptive Football Rating — tap for a category breakdown" aria-label="Your adaptive Football Rating — tap for a category breakdown" style="display:none;"></button>
+    <button id="team-picker-toggle" title="Pick your favorite teams" aria-label="Pick your favorite teams"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9a1.7 1.7 0 0 0 1.56 1.04H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.04Z"/></svg></button>
+    <button id="help-toggle" title="How this app works" aria-label="How this app works"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.1.9-1.1 1.9"/><path d="M12 17h.01"/></svg></button>
+    <button id="mute-toggle" title="Sound on (click to mute)" aria-label="Sound on, click to mute" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a9 9 0 0 1 0 12"/></svg></button>
+    <div id="sync-status" title="Connecting…" role="status" aria-live="polite"><span id="sync-dot" class="sync-dot-connecting" aria-hidden="true"></span><span id="sync-label">Connecting…</span></div>
+  </header>
+  <audio id="bg-music" preload="none"></audio>
+
+  <div id="mode-sheet-backdrop" aria-hidden="true"></div>
+  <div id="mode-sheet" role="dialog" aria-modal="true" aria-labelledby="mode-sheet-title">
+    <div id="mode-sheet-handle"></div>
+    <div id="mode-sheet-header">
+      <span id="mode-sheet-title"></span>
+      <button id="mode-sheet-close" aria-label="Close menu"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="mode-sheet-items"></div>
+  </div>
+
+  <div id="onboarding-backdrop" aria-hidden="true"></div>
+  <div id="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <button id="onboarding-skip" aria-label="Skip introduction">Skip</button>
+    <div id="onboarding-body"></div>
+    <div id="onboarding-footer">
+      <div id="onboarding-dots" aria-hidden="true"></div>
+      <button id="onboarding-next" class="btn-primary">Next</button>
+    </div>
+  </div>
+
+  <div id="share-backdrop" aria-hidden="true"></div>
+  <div id="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div id="share-header">
+      <span id="share-title">Share your result</span>
+      <button id="share-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="share-body">
+      <div id="share-format-row" class="chip-row">
+        <button class="chip-toggle active" data-share-format="square">Square (X)</button>
+        <button class="chip-toggle" data-share-format="story">Story (Instagram)</button>
+      </div>
+      <img id="share-preview" alt="Your result card" />
+      <div id="share-actions">
+        <button id="share-download" class="btn-primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg> Download Image</button>
+        <button id="share-x" class="btn-secondary">Share to X</button>
+        <button id="share-facebook" class="btn-secondary">Share App to Facebook</button>
+        <button id="share-copy" class="btn-secondary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg> Copy Text Summary</button>
+      </div>
+      <p class="mode-desc">For Instagram, or to post the actual image to Facebook: download it above, then upload it there yourself — neither platform lets a website post on your behalf directly.</p>
+    </div>
+  </div>
+
+  <div id="report-backdrop" aria-hidden="true"></div>
+  <div id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div id="report-header">
+      <span id="report-title">Report a problem</span>
+      <button id="report-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="report-body">
+      <p class="mode-desc" id="report-context"></p>
+      <div class="chip-row" id="report-category-row">
+        <button class="chip-toggle active" data-report-category="Wrong answer">Wrong answer</button>
+        <button class="chip-toggle" data-report-category="Confusing / unclear">Confusing / unclear</button>
+        <button class="chip-toggle" data-report-category="Other">Other</button>
+      </div>
+      <label for="report-note">Details (optional)</label>
+      <textarea id="report-note" rows="3" placeholder="What's wrong, if you want to say more…"></textarea>
+      <button id="report-submit" class="btn-primary">Send Report</button>
+      <p class="mode-desc" id="report-confirm" style="display:none;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6"/></svg> Thanks — sent for review.</p>
+    </div>
+  </div>
+
+  <div id="rating-backdrop" aria-hidden="true"></div>
+  <div id="rating-modal" role="dialog" aria-modal="true" aria-labelledby="rating-title">
+    <div id="rating-header">
+      <span id="rating-title">Your Football Rating</span>
+      <button id="rating-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="rating-body">
+      <div id="rating-modal-summary"></div>
+      <p class="mode-desc">Your rating is one number that drifts with every mode you play — here's how each one is going.</p>
+      <div id="rating-modal-breakdown" class="profile-mode-grid"></div>
+    </div>
+  </div>
+
+  <div id="team-picker-backdrop" aria-hidden="true"></div>
+  <div id="team-picker-modal" role="dialog" aria-modal="true" aria-labelledby="team-picker-title">
+    <div id="team-picker-header">
+      <span id="team-picker-title">Your Teams</span>
+      <button id="team-picker-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="team-picker-body"></div>
+  </div>
+
+  <nav id="bottom-nav" aria-label="Main">
+    <button class="bottom-nav-btn active" data-go="home"><span class="bn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span><span class="bn-label">Home</span></button>
+    <button class="bottom-nav-btn" data-league-toggle="nfl" aria-haspopup="true" aria-expanded="false" aria-controls="mode-sheet"><span class="bn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="6" transform="rotate(-40 12 12)"/><path d="M8.5 15.5 15.5 8.5M9.8 14.2h1M10.6 13h1.2M11.5 11.7h1.2M12.3 10.5h1"/></svg></span><span class="bn-label">NFL</span></button>
+    <button class="bottom-nav-btn" data-league-toggle="cfb" aria-haspopup="true" aria-expanded="false" aria-controls="mode-sheet"><span class="bn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9 12 4l10 5-10 5-10-5Z"/><path d="M6 11.5V17c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/><path d="M22 9v6"/></svg></span><span class="bn-label">CFB</span></button>
+    <button class="bottom-nav-btn" data-go="leaderboard"><span class="bn-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4"/><path d="M17 5h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4"/><path d="M12 14v3"/><path d="M8 21h8"/><path d="M9.5 17h5l1 4h-7l1-4Z"/></svg></span><span class="bn-label">Board</span></button>
+  </nav>
+
+  <!-- Static pre-render fallback: renderHome() in app.js overwrites this
+       entire block via innerHTML on first render (state.screen starts as
+       'home'), so this markup is never seen by anyone with JS running —
+       it exists purely for search crawlers, link-unfurlers, and the brief
+       pre-JS paint window. Keep the mode list here in sync with
+       LEAGUE_MODES in app.js if modes are added/renamed/removed. -->
+  <main id="app" tabindex="-1">
+    <div class="hero">
+      <img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />
+      <h1 class="hero-tagline">NFL &amp; College Football trivia, 12 ways to play.</h1>
+      <p>One adaptive Football Rating tracks how good you actually are — across every mode, every device. Free to play, no account required, live cross-device leaderboard.</p>
+    </div>
+    <section>
+      <h2 class="mode-section-title">NFL Modes</h2>
+      <ul class="mode-grid" style="list-style:none;padding:0;">
+        <li class="mode-card"><b class="mode-title">NFL Quiz</b><p class="mode-desc">482 multiple-choice questions across 16 categories.</p></li>
+        <li class="mode-card"><b class="mode-title">NFL Grid</b><p class="mode-desc">A freshly generated 3x3 Immaculate Grid every round.</p></li>
+        <li class="mode-card"><b class="mode-title">NFL Blitz</b><p class="mode-desc">Sporcle-style: type every correct answer before the clock runs out.</p></li>
+        <li class="mode-card"><b class="mode-title">NFL Speed</b><p class="mode-desc">Rapid-fire multiple choice against the clock.</p></li>
+        <li class="mode-card"><b class="mode-title">NFL Silhouette</b><p class="mode-desc">Guess the player from a silhouette and a ladder of clues.</p></li>
+        <li class="mode-card"><b class="mode-title">NFL IQ Test</b><p class="mode-desc">25 questions, no feedback until the end — get a Football IQ score.</p></li>
+        <li class="mode-card"><b class="mode-title">17-0</b><p class="mode-desc">Draft a 7-player team from real players' real seasons and see if it grades out perfect.</p></li>
+      </ul>
+    </section>
+    <section>
+      <h2 class="mode-section-title">College Football Modes</h2>
+      <ul class="mode-grid" style="list-style:none;padding:0;">
+        <li class="mode-card"><b class="mode-title">College Football Quiz</b><p class="mode-desc">456 CFB questions across 10 categories — Heisman, rivalries, coaches, bowls, and more.</p></li>
+        <li class="mode-card"><b class="mode-title">CFB Immaculate Grid</b><p class="mode-desc">A freshly generated 3x3 grid of schools and All-America/Heisman criteria.</p></li>
+        <li class="mode-card"><b class="mode-title">CFB Blitz</b><p class="mode-desc">Sporcle-style college football, type every correct answer before time runs out.</p></li>
+        <li class="mode-card"><b class="mode-title">CFB Speed Round</b><p class="mode-desc">Rapid-fire college football multiple choice against the clock.</p></li>
+        <li class="mode-card"><b class="mode-title">College Football IQ Test</b><p class="mode-desc">The IQ Test format, college edition.</p></li>
+        <li class="mode-card"><b class="mode-title">CFB 12-0</b><p class="mode-desc">Draft an 8-player college roster and see how your 12-game regular season plays out — and where it lands you in the postseason.</p></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-links">
+      <button class="footer-link" data-go="about">About &amp; how the questions are made</button>
+      <span class="footer-link-sep">&middot;</span>
+      <button class="footer-link" data-go="privacy">Privacy Policy</button>
+    </div>
+    <p>Local play always works offline. Live cross-device leaderboard needs this folder served over http(s). Silhouette pictogram: "American Football Player" icon by Delapouite (game-icons.net), CC BY 3.0.</p>
+    <p class="footer-version" id="footer-version"></p>
+  </footer>
+
+  <!-- Only quiz.js + cfb.js load eagerly (needed immediately by the intro
+       test and the Quiz/Speed/IQ modes that reuse them). Every other data
+       file — grid, blitz, silhouette, legends, cfb-speed, cfb-blitz,
+       cfb-grid — loads lazily on first entry into its mode; see
+       MODE_DATA_FILES / loadScript() / goToMode() in app.js. -->
+  <script src="data/quiz.js"></script>
+  <script src="data/cfb.js"></script>
+  <script src="sound.js"></script>
+  <script src="app.js"></script>
+  <script type="module" src="firebase-sync.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+.netlify/
+.DS_Store
+*.log
+
+# Reference photos used to design the Learn tab icons (HOF Jacket, Heisman,
+# CFP Trophy, Lombardi Trophy) — replaced with hand-drawn SVG icons for
+# copyright reasons; keeping them out of the repo entirely rather than just
+# unreferenced in it.
+Heisman-Trophy.jpeg
+CFP-National-Championship-Trophy.jpeg
+HOF-Jacket.jpeg
+Lombardi-Trophy.jpeg
+Brain.jpeg

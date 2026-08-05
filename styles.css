@@ -1,0 +1,1207 @@
+:root {
+  /* Premium dark field-green/charcoal palette, metallic gold (NFL) + silver
+     (CFB) accents — replaces the old navy/orange scheme. --accent/--accent-2
+     stay the same two token NAMES the whole app already keys its NFL-vs-CFB
+     theming off of (mode-section bars, card top-borders, confetti, etc. —
+     see the "accent-2" usage note further down), so this is a repaint via
+     token values, not a rearchitecture: ~275 rules already read these
+     variables instead of hardcoding colors, so changing the values here
+     cascades everywhere automatically. */
+  --bg: #0c110d;
+  --bg-elevated: #151d16;
+  --bg-card: #1a231b;
+  --border: #313f31;
+  --text: #f4f7f1;
+  --text-dim: #a2b19f;
+  --accent: #d9a63c;
+  --accent-2: #a9b4bd;
+  --good: #22c55e;
+  --bad: #ef4444;
+  --radius: 12px;
+  --radius-sm: 8px;
+  /* Spacing scale for the home screen's vertical rhythm — replaces ad hoc
+     margin values (10px/22px/24px mixed with no clear relationship) with a
+     consistent 1.5x step scale so blocks read as intentionally grouped
+     rather than arbitrarily spaced. */
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  /* White text on accent-orange background measures ~2.9:1 contrast — fails WCAG
+     AA's 4.5:1 minimum for normal text in both themes (it doesn't depend on the
+     surrounding page background at all, since it's white directly on the orange
+     itself). This dedicated always-dark color passes at ~6.5:1+ instead. Deliberately
+     NOT overridden in the light-theme block below, since it needs to stay dark
+     regardless of theme — unlike --text/--bg, which intentionally flip per theme. */
+  --accent-text: #231a05;
+  /* Home-screen theming — defaults to the brand gold (matching --accent),
+     overridden below by body.home-fav-theme once a favorite team is set.
+     Keeping these as variables (rather than leaving rgba(217,166,60,..)
+     hardcoded all over the Home section) is what lets one class toggle
+     re-skin the whole screen instead of needing a parallel rule for every
+     element. */
+  --home-glow-rgb: 217, 166, 60;
+  --home-glow-rgb-2: 217, 166, 60;
+  --home-accent: var(--accent);
+  --home-accent-2: var(--accent);
+}
+body.home-fav-theme {
+  --home-glow-rgb: var(--fav-team-color-rgb);
+  --home-glow-rgb-2: var(--fav-team-color-2-rgb);
+  /* --*-readable (lightened just enough to stay legible on this app's
+     near-black background — see readableOnDark() in app.js), NOT the raw
+     team color, since --home-accent doubles as icon/ring/text-on-dark-bg
+     color in several spots (rating ring stroke, recommended-mode icons, the
+     greeting text) where a true navy/black team color would go invisible.
+     The team-picker swatches/badge intentionally read straight from
+     t.color/t.color2 instead of this token, so the picker itself always
+     shows a team's true, unmodified colors. */
+  --home-accent: var(--fav-team-color-readable);
+  --home-accent-2: var(--fav-team-color-2-readable);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f7f1;
+    --bg-elevated: #ffffff;
+    --bg-card: #ffffff;
+    --border: #dbe3d6;
+    --text: #141a14;
+    --text-dim: #57654f;
+    /* The dark-theme --accent (#d9a63c) measures well under WCAG AA's 4.5:1
+       against white — same "brighten for dark bg, deepen for light bg"
+       problem the old orange had. This deeper shade of the same gold hue
+       passes ~4.7:1 on white, so every existing accent-as-text usage
+       (iq-score, legends-grade, blitz-timer, bottom-nav active state, etc.)
+       passes without needing to touch each rule individually. */
+    --accent: #8a6a1e;
+    --accent-2: #4e5b63;
+  }
+}
+
+/* prefers-contrast: more — an explicit OS/browser accessibility setting
+   (distinct from prefers-color-scheme), so this only kicks in for people who
+   asked for it. Brightens --text-dim and --border further apart from --bg in
+   each theme; every rule that already uses those tokens (which is most of
+   the app's text/border colors) picks this up automatically, no per-rule
+   changes needed. Also thickens the visible focus ring for keyboard nav. */
+@media (prefers-contrast: more) {
+  :root {
+    --text-dim: #c3ccdf;
+    --border: #55688f;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --text-dim: #33405c;
+      --border: #96a3bf;
+    }
+  }
+  :focus-visible { outline-width: 3px; }
+}
+
+/* Respect the OS-level "reduce motion" setting — collapses every animation/
+   transition/scroll-animation on the page to near-instant rather than fully
+   removing them, so nothing that depends on a transition actually completing
+   (e.g. the splash screen's fade-then-hide) breaks; it just happens instantly
+   instead of animating. */
+/* Shared micro-interaction keyframes for answer feedback (quiz options, grid
+   squares, blitz matched-chips, silhouette reveal). Every element that uses
+   these is a brand-new DOM node on the render that adds the correct/wrong
+   class (renderAll() rebuilds screens from innerHTML strings, it never
+   mutates existing nodes in place), so a CSS animation tied directly to the
+   class plays automatically on insertion — no JS trigger needed. */
+@keyframes pop-feedback {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+@keyframes shake-feedback {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+/* Stronger versions for the main per-question answer feedback (quiz options,
+   grid squares) — a bit more scale/glow than the shared pop/shake above,
+   which stay as-is for smaller secondary feedback (blitz chips, silhouette
+   reveal) where a big pop would be distracting rather than satisfying. */
+@keyframes pop-feedback-strong {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  35% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+@keyframes shake-feedback-strong {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  15% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+/* A small ring of dots (box-shadow, not real elements) fanning outward and
+   fading — the "confetti" for a correct answer, layered on top of the
+   existing pop-feedback-strong scale/glow rather than replacing it. Pure
+   CSS: no extra DOM nodes, no JS trigger needed (same reasoning as every
+   other feedback animation in this file — a fresh render adds the .correct
+   class to a brand-new node, so the animation just plays on insertion). */
+@keyframes confetti-burst {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.2); }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+#splash-screen {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: var(--bg);
+  opacity: 1; transition: opacity 0.5s ease;
+}
+#splash-screen.splash-hidden { opacity: 0; pointer-events: none; }
+.splash-logo { width: 96px; height: 96px; object-fit: contain; border-radius: 18px; animation: splash-pulse 1.6s ease-in-out infinite; }
+.splash-welcome { font-size: 22px; font-weight: 800; color: var(--text); }
+.splash-sub { font-size: 14px; color: var(--text-dim); }
+@keyframes splash-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  position: relative;
+  /* "Field/grass texture and light grain": alternating diagonal light/dark
+     bands (mowed-turf stripes) plus a fractal-noise grain (inline SVG
+     feTurbulence, no image request), baked directly into body's own
+     background rather than a separate ::before/::after layer — an earlier
+     pass used a fixed pseudo-element with mix-blend-mode: overlay, which
+     mathematically crushes to near-invisible on a background this dark
+     (overlay behaves like multiply for base colors below ~50% lightness),
+     so it silently did nothing. Plain alpha-composited color, no blend
+     mode, is what actually shows up on a near-black background. */
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.032) 0, rgba(255,255,255,0.032) 46px, rgba(0,0,0,0.05) 46px, rgba(0,0,0,0.05) 92px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/></svg>"),
+    var(--bg);
+  background-size: auto, 140px 140px, auto;
+}
+@media (prefers-color-scheme: light) {
+  body {
+    background:
+      repeating-linear-gradient(115deg, rgba(0,0,0,0.02) 0, rgba(0,0,0,0.02) 46px, rgba(255,255,255,0.03) 46px, rgba(255,255,255,0.03) 92px),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.25'/></svg>"),
+      var(--bg);
+    background-size: auto, 140px 140px, auto;
+  }
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url('assets/brand/reads-logo.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(60vw, 440px);
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: -1;
+}
+@media (prefers-color-scheme: light) {
+  body::before { opacity: 0.06; }
+}
+/* Inline SVG icon set (see ICON_PATHS/icon() in app.js) — sized in em so it
+   tracks the font-size of whatever button/label it's dropped into, matching
+   how the emoji it replaced used to scale. Explicit pixel sizes below are
+   only for the handful of spots where the icon isn't sitting next to text
+   at a deliberate font-size (mode-card icons, badge icons). */
+.icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex-shrink: 0; }
+.icon-lg { width: 28px; height: 28px; }
+.icon-xl { width: 36px; height: 36px; }
+
+button, input, select { font-family: inherit; }
+/* Every interactive element in this app is a real <button>/<input>/<select>
+   (no click-handler-on-a-div anywhere), so keyboard operability (Tab + Enter/
+   Space) already works natively with zero JS needed. This just makes the
+   focus ring itself match the app's look instead of the browser default —
+   nothing here removes or weakens the outline (:focus-visible only styles
+   the case browsers already restrict to real keyboard/AT navigation). */
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+  box-shadow: inset 0 3px 0 0 transparent;
+  transition: box-shadow 0.2s ease;
+}
+/* --fav-team-color / --fav-team-color-rgb are set/cleared on :root by
+   applyFavoriteTeamAccent() in app.js (based on getFavoriteTeams()).
+   body.has-fav-team drives the always-on header accent bar (below); the
+   fuller Home-screen re-skin lives further down (search "home-fav-theme") —
+   it overrides --home-glow-rgb/--home-accent so the daily-challenge glow,
+   the continue/recommended/h2h/learn quick-action cards, and a soft
+   background wash behind the whole page all pick up the team color, instead
+   of just one small accent bar. Scoped to state.screen === 'home' only (see
+   applyFavoriteTeamAccent) — every other screen keeps the app's normal
+   orange/teal branding untouched. */
+/* border-image (not box-shadow, which can't render a gradient) so a
+   two-tone team like Auburn shows navy AND orange across the header bar,
+   not just whichever one color a single box-shadow could hold. */
+body.has-fav-team #top-bar {
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--fav-team-color-readable), var(--fav-team-color-2-readable)) 1;
+}
+.brand { font-weight: 800; font-size: 18px; white-space: nowrap; display: flex; align-items: center; }
+.brand-logo { height: 44px; width: auto; object-fit: contain; display: block; }
+#top-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.nav-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+  flex-shrink: 0;
+}
+.nav-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.nav-btn .caret { font-size: 10px; opacity: 0.7; }
+.nav-btn[data-league-toggle].sheet-open { background: var(--bg-card); border-color: var(--accent); color: var(--text); }
+#sync-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+#sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #eab308; transition: background-color .2s ease; flex-shrink: 0; }
+#sync-dot.sync-dot-live { background: var(--good); box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+#sync-dot.sync-dot-offline { background: var(--bad); }
+#sync-dot.sync-dot-connecting { background: #eab308; animation: sync-pulse 1.2s ease-in-out infinite; }
+@keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+#rating-badge {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 800; font-family: inherit; color: var(--text);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px 4px 4px; white-space: nowrap; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+#rating-badge:hover, #rating-badge:focus-visible { border-color: var(--fav-team-color-readable, var(--accent)); }
+.rating-ring { width: 22px; height: 22px; flex-shrink: 0; transform: rotate(-90deg); }
+.rating-ring-track { fill: none; stroke: var(--border); stroke-width: 3; }
+.rating-ring-fill {
+  fill: none; stroke: var(--fav-team-color-readable, var(--accent)); stroke-width: 3; stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.rating-badge-text { display: inline-flex; align-items: center; gap: 4px; }
+#rating-badge.rating-pulse { animation: rating-pulse 0.5s ease; }
+@keyframes rating-pulse {
+  0% { transform: scale(1); border-color: var(--border); }
+  35% { transform: scale(1.12); border-color: var(--accent); }
+  100% { transform: scale(1); border-color: var(--border); }
+}
+/* The floating +N/-N chip that appears above the rating badge for ~1.3s
+   whenever a round moves the score — makes the drift visible in the moment
+   it happens, not just as a number that silently changed since last look. */
+.rating-delta-pop {
+  position: absolute; left: 50%; top: -6px; transform: translate(-50%, 0);
+  font-size: 12px; font-weight: 800; padding: 2px 7px; border-radius: 999px;
+  pointer-events: none; white-space: nowrap;
+  animation: rating-delta-float 1.3s ease forwards;
+}
+.rating-delta-pop.up { background: rgba(34, 197, 94, 0.9); color: #06210f; }
+.rating-delta-pop.down { background: rgba(239, 68, 68, 0.9); color: #2a0808; }
+@keyframes rating-delta-float {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.85); }
+  15% { opacity: 1; transform: translate(-50%, -8px) scale(1); }
+  75% { opacity: 1; transform: translate(-50%, -22px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -30px) scale(0.9); }
+}
+#help-toggle, #mute-toggle, #team-picker-toggle { background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; width: 34px; height: 34px; color: var(--text-dim); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+#help-toggle .icon, #mute-toggle .icon, #team-picker-toggle .icon { width: 17px; height: 17px; }
+#help-toggle:hover, #mute-toggle:hover, #team-picker-toggle:hover { color: var(--text); border-color: var(--accent); }
+
+/* onboarding — a short, centered, dismissible modal (see openOnboarding in
+   app.js). Shown once automatically, reopenable any time via #help-toggle. */
+#onboarding-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#onboarding-backdrop.open { opacity: 1; pointer-events: auto; }
+#onboarding-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(80vh, 560px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 20px 22px 18px;
+}
+#onboarding-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#onboarding-skip {
+  align-self: flex-end; background: transparent; border: none; color: var(--text-dim);
+  font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 8px; margin-bottom: 2px; min-height: 30px;
+}
+#onboarding-skip:hover { color: var(--text); }
+#onboarding-body { flex: 1; overflow-y: auto; margin: 2px 0 16px; }
+.onboarding-step-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+.onboarding-step-body { color: var(--text-dim); font-size: 14.5px; line-height: 1.55; }
+.onboarding-step-body b { color: var(--text); }
+.onboarding-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.onboarding-mode-chip { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--text); }
+#onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+#onboarding-dots { display: flex; gap: 6px; }
+.onboarding-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+.onboarding-dot.active { background: var(--accent); }
+#onboarding-next { min-width: 110px; }
+
+/* share — desktop/unsupported-browser fallback for shareResultCard() in
+   app.js. On devices with the Web Share API (mostly mobile), the native OS
+   share sheet is used instead and this modal never opens. Same centered-
+   dialog pattern as #onboarding-modal. */
+#share-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#share-backdrop.open { opacity: 1; pointer-events: auto; }
+#share-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(85vh, 640px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#share-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#share-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#share-title { font-size: 18px; font-weight: 800; }
+#share-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#share-close:hover { background: var(--bg-elevated); }
+#share-body { overflow-y: auto; }
+/* max-height/object-fit keep the taller 1080x1920 story format from turning
+   the modal into a very long scroll — it still renders at full quality when
+   downloaded (the <img> is just a scaled-down preview of the real canvas). */
+#share-preview { width: 100%; max-height: 70vh; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block; margin-bottom: 14px; background: var(--bg); }
+#share-actions { display: flex; flex-direction: column; gap: 8px; }
+#share-actions button { width: 100%; }
+
+/* report — same dialog pattern as onboarding/share modals */
+#report-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#report-backdrop.open { opacity: 1; pointer-events: auto; }
+#report-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(85vh, 560px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#report-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#report-title { font-size: 18px; font-weight: 800; }
+#report-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#report-close:hover { background: var(--bg-elevated); }
+#report-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+#report-body label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; margin-top: 6px; }
+#report-body textarea {
+  width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px; color: var(--text); font-size: 15px; font-family: inherit; resize: vertical; margin-bottom: 12px;
+}
+#report-submit { width: 100%; }
+#report-confirm { color: var(--good); display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+#report-context { color: var(--text-dim); font-size: 13px; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 10px; }
+
+/* rating breakdown — tapping #rating-badge opens this; same dialog pattern
+   as onboarding/share/report, just wider to fit the mode-card grid. */
+#rating-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#rating-backdrop.open { opacity: 1; pointer-events: auto; }
+#rating-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(85vh, 720px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#rating-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#rating-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#rating-title { font-size: 18px; font-weight: 800; }
+#rating-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#rating-close:hover { background: var(--bg-elevated); }
+#rating-body { overflow-y: auto; }
+#rating-modal-breakdown.profile-mode-grid { margin-top: 10px; }
+
+/* favorite-team picker — tapping #team-picker-toggle opens this; same dialog
+   pattern as the others above. */
+#team-picker-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#team-picker-backdrop.open { opacity: 1; pointer-events: auto; }
+#team-picker-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(85vh, 640px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#team-picker-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#team-picker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#team-picker-title { font-size: 18px; font-weight: 800; }
+#team-picker-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#team-picker-close:hover { background: var(--bg-elevated); }
+#team-picker-body { overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+.team-picker-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; overflow-y: auto; max-height: 320px; }
+.team-picker-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 9px 12px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; min-height: 40px;
+}
+.team-picker-row:hover, .team-picker-row:focus-visible { border-color: var(--accent); }
+.team-picker-row.active { border-color: var(--accent); background: rgba(217, 166, 60, 0.08); }
+.team-picker-row .icon { margin-left: auto; width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+.team-picker-row-text { display: flex; flex-direction: column; min-width: 0; }
+.team-picker-chant { font-size: 11.5px; font-weight: 600; color: var(--text-dim); margin-top: 1px; }
+.team-picker-swatch { width: 16px; height: 16px; border-radius: 999px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.2); }
+.team-picker-actions { margin-top: 14px; flex-wrap: wrap; }
+.team-picker-tabs { display: flex; gap: 6px; margin-bottom: 10px; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 4px; }
+.team-picker-tab {
+  flex: 1; background: transparent; border: none; border-radius: 6px; cursor: pointer;
+  color: var(--text-dim); font-size: 13.5px; font-weight: 700; padding: 8px; min-height: 36px;
+}
+.team-picker-tab.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.team-picker-tab:hover:not(.active) { color: var(--text); }
+
+main#app { flex: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 18px 16px 40px; }
+/* The "entire home screen" wash — a soft glow behind the hero/cards, using
+   the same --home-glow-rgb this whole section already shares. Only ever
+   active on Home (home-fav-theme is scoped there in applyFavoriteTeamAccent),
+   so it can safely live on the shared #app element without leaking onto any
+   other screen. */
+body.home-fav-theme main#app {
+  background:
+    radial-gradient(ellipse 700px 460px at 32% 0%, rgba(var(--home-glow-rgb), 0.14), transparent 70%),
+    radial-gradient(ellipse 700px 460px at 68% 0%, rgba(var(--home-glow-rgb-2), 0.14), transparent 70%);
+}
+
+/* Shared NFL/CFB mode picker — an anchored dropdown panel on desktop/tablet,
+   a slide-up bottom sheet on mobile (see the mobile media query below). Same
+   markup either way; only positioning/animation changes per breakpoint. */
+#mode-sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 19;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#mode-sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+#mode-sheet {
+  position: fixed; z-index: 20;
+  top: 64px; right: max(16px, env(safe-area-inset-right));
+  width: 260px; max-height: min(70vh, 520px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  opacity: 0; transform: translateY(-8px) scale(0.98);
+  pointer-events: none; transition: opacity 0.16s ease, transform 0.16s ease;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#mode-sheet.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+#mode-sheet-handle { display: none; }
+#mode-sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+#mode-sheet-title { font-weight: 800; font-size: 15px; }
+#mode-sheet-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#mode-sheet-close:hover { background: var(--bg-elevated); }
+#mode-sheet-items { overflow-y: auto; padding: 6px; }
+.mode-sheet-item {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; background: transparent; border: none;
+  color: var(--text); font-size: 14px; font-weight: 600; padding: 11px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; min-height: 44px;
+}
+.mode-sheet-item:hover, .mode-sheet-item:focus-visible { background: var(--bg-elevated); }
+.mode-sheet-item .msi-icon { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; color: var(--accent); }
+.mode-sheet-item .msi-icon .icon { width: 20px; height: 20px; }
+.mode-sheet-item .msi-text { display: block; min-width: 0; }
+.mode-sheet-item .msi-desc { display: block; font-size: 12px; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
+.mode-sheet-your-team {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--bg-elevated); border: none; border-radius: var(--radius-sm);
+  color: var(--text-dim); font-size: 12.5px; font-weight: 700; padding: 9px 10px; margin-bottom: 4px; min-height: 36px;
+}
+.mode-sheet-your-team:hover, .mode-sheet-your-team:focus-visible { color: var(--text); }
+
+/* Mobile bottom nav — hidden by default (desktop uses the top-bar dropdowns),
+   shown fixed-to-bottom under the mobile breakpoint instead. */
+#bottom-nav { display: none; }
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+footer p { margin: 6px 0 0; }
+.footer-links { margin-bottom: 4px; }
+.footer-link { background: transparent; border: none; color: var(--accent-2); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 4px 8px; min-height: 30px; }
+.footer-link:hover { text-decoration: underline; }
+.footer-link-sep { color: var(--text-dim); font-size: 12px; }
+.link-btn { background: transparent; border: none; color: var(--accent-2); font-size: inherit; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
+.privacy-list { margin: 0; padding-left: 20px; color: var(--text-dim); font-size: 13.5px; line-height: 1.6; }
+.privacy-list li { margin-bottom: 4px; }
+.contact-email-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.contact-email {
+  color: var(--accent-2); font-size: 17px; font-weight: 700; text-decoration: none;
+  background: rgba(169, 180, 189, 0.1); border: 1px solid rgba(169, 180, 189, 0.3);
+  border-radius: var(--radius-sm); padding: 8px 14px;
+}
+.contact-email:hover { text-decoration: underline; }
+.footer-version { font-variant-numeric: tabular-nums; opacity: 0.75; }
+
+/* about page */
+.about-section { margin-bottom: var(--space-lg); }
+.about-section:last-child { margin-bottom: 0; }
+.about-heading { font-size: 15px; font-weight: 800; margin: 0 0 var(--space-xs); color: var(--text); }
+.about-section .mode-desc { line-height: 1.55; }
+.settings-ranked-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.settings-ranked-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; }
+.settings-ranked-row span { font-size: 13.5px; font-weight: 700; }
+.settings-ranked-row .chip-row { margin: 0; }
+.settings-clear-confirm { background: rgba(239, 68, 68, 0.08); border: 1px solid var(--bad); border-radius: var(--radius-sm); padding: 12px; margin-top: 8px; }
+
+/* On narrow screens, the top nav (Home/NFL/CFB/Leaderboard buttons) disappears
+   entirely in favor of a fixed bottom tab bar — the standard mobile game-app
+   pattern, and much easier to reach one-handed than a top-of-screen row. The
+   mode picker becomes a full-width slide-up bottom sheet instead of a small
+   anchored dropdown. */
+@media (max-width: 640px) {
+  #top-bar { gap: 8px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .brand { font-size: 16px; }
+  #top-nav { display: none; }
+  #sync-label { display: none; }
+
+  #bottom-nav {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 18;
+    background: var(--bg-elevated); border-top: 1px solid var(--border);
+    padding: 6px max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+  .bottom-nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: transparent; border: none; color: var(--text-dim); cursor: pointer;
+    min-height: 52px; border-radius: var(--radius-sm); padding: 4px;
+  }
+  .bottom-nav-btn.active, .bottom-nav-btn.sheet-open { color: var(--accent); }
+  .bn-icon { display: flex; }
+  .bn-icon .icon { width: 21px; height: 21px; }
+  .bn-label { font-size: 10px; font-weight: 700; }
+
+  main#app { padding-bottom: calc(40px + 64px + env(safe-area-inset-bottom)); }
+  /* The boilerplate attribution/version text is genuinely redundant once the
+     bottom nav is the persistent chrome, but footer-links (About/Privacy
+     Policy) is the ONLY way to reach those pages — there's no other link to
+     them anywhere in the app. Hiding the whole <footer> here used to make
+     both pages completely unreachable on mobile. Keep the footer, just drop
+     the low-value parts down to something compact. */
+  footer { padding: 10px 14px; padding-bottom: calc(10px + 64px + env(safe-area-inset-bottom)); }
+  footer p { display: none; }
+
+  #mode-sheet {
+    top: auto; right: 0; left: 0; bottom: 0; width: auto;
+    max-height: 75vh; border-radius: 16px 16px 0 0; border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(100%);
+  }
+  #mode-sheet.open { transform: translateY(0); }
+  #mode-sheet-handle { display: block; width: 36px; height: 4px; border-radius: 999px; background: var(--border); margin: 10px auto 0; flex-shrink: 0; }
+}
+
+/* name bar */
+.name-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.name-bar input {
+  flex: 1;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  color: var(--text);
+  font-size: 16px;
+}
+
+/* buttons */
+.btn-primary, .btn-secondary {
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  min-height: 44px;
+}
+.btn-primary { background: var(--accent); color: var(--accent-text); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-secondary { background: transparent; border-color: var(--border); color: var(--text); }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.mode-toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
+.practice-pill {
+  display: inline-block; background: rgba(217, 166, 60, 0.14); border: 1px solid rgba(217, 166, 60, 0.4);
+  color: var(--text); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; margin-bottom: 10px;
+}
+.btn-tiny {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 999px; padding: 8px 13px; font-size: 12px; font-weight: 600; cursor: pointer;
+  min-height: 36px;
+}
+.btn-tiny:hover { color: var(--text); border-color: var(--accent); }
+
+/* home — see --space-* tokens above for the rhythm this all shares */
+.hero { text-align: center; margin: var(--space-sm) 0 var(--space-lg); }
+.hero-logo { height: 150px; width: auto; max-width: 90vw; object-fit: contain; margin: 0 auto var(--space-sm); display: block; }
+.hero-tagline { font-size: 19px; font-weight: 800; color: var(--text); margin: 0 0 var(--space-xs); }
+.fav-team-greeting { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--fav-team-color-readable, var(--accent)); margin: 0 0 var(--space-xs); }
+.fav-team-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; letter-spacing: 0.03em; color: #fff;
+  padding: 3px 9px; border-radius: 6px; text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.hero p { color: var(--text-dim); margin: 0; font-size: 14.5px; }
+/* Section title gets a small colored dot matching that league's accent
+   (--accent for NFL, --accent-2 for CFB) — same two tokens the mode cards
+   below use for their top-edge accent stripe, so the two leagues read as
+   two distinct color families at a glance rather than one undifferentiated
+   grid of 13 identical cards. */
+.mode-section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin: 0 0 var(--space-sm); display: flex; align-items: center; gap: 7px; }
+.mode-section-title::before { content: ''; width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+.mode-section-title-nfl::before { background: var(--accent); }
+.mode-section-title-cfb::before { background: var(--accent-2); }
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-md); margin-bottom: var(--space-lg); }
+.mode-card {
+  position: relative;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  cursor: pointer;
+  color: var(--text);
+  transition: transform .12s ease, border-color .12s ease;
+  animation: card-enter 0.32s ease both;
+}
+.mode-grid-nfl .mode-card { border-top-width: 3px; border-top-color: var(--accent); }
+.mode-grid-cfb .mode-card { border-top-width: 3px; border-top-color: var(--accent-2); }
+.mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.mode-icon { font-size: 28px; margin-bottom: 8px; }
+.mode-icon img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; vertical-align: middle; }
+.mode-title { font-weight: 800; font-size: 17px; margin-bottom: 6px; }
+.mode-desc { color: var(--text-dim); font-size: 13.5px; line-height: 1.4; }
+.mode-difficulty {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 3px 7px; border-radius: 999px;
+  background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-dim);
+}
+.mode-difficulty-casual { color: var(--good); border-color: var(--good); }
+.mode-difficulty-competitive { color: #eab308; border-color: #eab308; }
+.mode-difficulty-hardcore { color: var(--bad); border-color: var(--bad); }
+
+/* Staggered entrance — .mode-card is a brand-new DOM node every render()
+   (this app rebuilds screens from innerHTML strings, never mutates nodes in
+   place), so a plain CSS animation-on-insertion plays automatically with no
+   JS trigger needed, same pattern as the quiz/grid/blitz feedback animations
+   above. nth-child delays (rather than a JS-threaded index) so this applies
+   uniformly to every .mode-card grid — home, Learn, Profile — for free.
+   prefers-reduced-motion already collapses all of this to ~instant, see the
+   global rule near the top of this file. */
+@keyframes card-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.mode-grid .mode-card:nth-child(1) { animation-delay: 0.02s; }
+.mode-grid .mode-card:nth-child(2) { animation-delay: 0.06s; }
+.mode-grid .mode-card:nth-child(3) { animation-delay: 0.10s; }
+.mode-grid .mode-card:nth-child(4) { animation-delay: 0.14s; }
+.mode-grid .mode-card:nth-child(5) { animation-delay: 0.18s; }
+.mode-grid .mode-card:nth-child(6) { animation-delay: 0.22s; }
+.mode-grid .mode-card:nth-child(7) { animation-delay: 0.26s; }
+
+/* Flagship modes (Quiz/Grid/IQ per league) get a visually heavier treatment —
+   bigger icon/title and a subtle accent-tinted border — so the home screen
+   has a clear "start here" hierarchy instead of 12 identical-weight buttons. */
+.mode-card.featured {
+  padding: var(--space-lg) var(--space-md);
+  /* Right/bottom/left only (not the shorthand) — top stays whatever the
+     league-accent rules above set it to, so a featured card still shows its
+     league's own accent color on top instead of this orange overriding it. */
+  border-right-color: rgba(217, 166, 60, 0.35);
+  border-bottom-color: rgba(217, 166, 60, 0.35);
+  border-left-color: rgba(217, 166, 60, 0.35);
+  background: linear-gradient(160deg, var(--bg-card), rgba(217, 166, 60, 0.06));
+}
+.mode-card.featured .mode-icon { font-size: 36px; }
+.mode-card.featured .mode-title { font-size: 19px; }
+.mode-card.featured:hover { border-color: var(--accent); }
+.leaderboard-link { display: block; margin: var(--space-sm) auto 0; }
+
+/* The one home-screen card that isn't a mode picker — the Daily Challenge is
+   NFL+CFB blended (doesn't belong under either league toggle) and unique per
+   day, so it deliberately outranks every mode card and the "featured" tier
+   above it: a solid (not translucent) accent border, a bigger glow, a
+   circular icon badge instead of a bare glyph, and a slow ambient pulse on
+   the glow so it's the thing your eye lands on first for a returning user —
+   not just "one more card in the stack." */
+.daily-card {
+  position: relative;
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--home-accent), var(--home-accent-2)) 1;
+  background: linear-gradient(135deg, var(--bg-card), rgba(var(--home-glow-rgb), 0.16), rgba(var(--home-glow-rgb-2), 0.12));
+  box-shadow: 0 10px 34px rgba(var(--home-glow-rgb), 0.22);
+  animation: daily-glow 3.2s ease-in-out infinite;
+}
+@keyframes daily-glow {
+  0%, 100% { box-shadow: 0 10px 34px rgba(var(--home-glow-rgb), 0.22); }
+  50% { box-shadow: 0 10px 40px rgba(var(--home-glow-rgb), 0.38); }
+}
+.daily-card-eyebrow {
+  display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--home-accent); background: rgba(var(--home-glow-rgb), 0.14); border-radius: 999px; padding: 3px 10px; margin-bottom: var(--space-sm);
+}
+.daily-card-title { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 21px; margin-bottom: var(--space-sm); }
+.daily-flame-badge {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2)); color: var(--fav-team-text, var(--accent-text));
+}
+.daily-flame-badge .icon { width: 20px; height: 20px; }
+.daily-card .mode-desc { margin-bottom: var(--space-md); font-size: 14.5px; }
+.daily-card .btn-primary { width: 100%; font-size: 16px; padding: 14px 16px; }
+.continue-card {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  text-align: left; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-lg); cursor: pointer; color: var(--text);
+}
+.continue-card:hover { border-color: var(--home-accent); }
+body.home-fav-theme .continue-card { border-left: 3px solid var(--home-accent); }
+.continue-card-label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
+.continue-card-mode { font-size: 15.5px; font-weight: 800; }
+.continue-card-label, .continue-card-mode { display: block; }
+
+.recommend-card {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  text-align: left; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-lg); cursor: pointer; color: var(--text);
+}
+.recommend-card:hover { border-color: var(--accent-2); }
+body.home-fav-theme .recommend-card:hover { border-color: var(--home-accent); }
+body.home-fav-theme .recommend-card { border-left: 3px solid var(--home-accent); }
+.recommend-card-icon {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; background: rgba(169, 180, 189, 0.14); color: var(--accent-2);
+}
+body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb), 0.14); color: var(--home-accent); }
+.recommend-card-icon .icon { width: 18px; height: 18px; }
+.recommend-card-label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
+.recommend-card-mode { font-size: 15.5px; font-weight: 800; }
+.recommend-card-label, .recommend-card-mode { display: block; }
+
+/* generic panel */
+.panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.panel-title { font-weight: 800; font-size: 19px; margin: 0 0 14px; }
+.loading-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px 20px; }
+.loading-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: loading-spin 0.8s linear infinite; }
+.loading-text { color: var(--text-dim); font-size: 14px; font-weight: 600; }
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+.field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.field-row label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-dim); flex: 1; min-width: 160px; }
+.field-row select {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px; color: var(--text); font-size: 16px; min-height: 44px;
+}
+.learn-filter-input {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px; color: var(--text); font-size: 16px; min-height: 44px; width: 100%; margin-bottom: var(--space-md);
+}
+.learn-pill {
+  display: inline-block; background: rgba(217, 166, 60, 0.14); color: var(--accent);
+  border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; margin-right: 4px;
+}
+.learn-chip-row { margin-top: -4px; }
+.learn-pos-tag { color: var(--text-dim); font-size: 12px; font-weight: 600; }
+.learn-fact-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+.learn-fact-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: var(--space-md);
+}
+.learn-fact-q { font-weight: 700; margin: 6px 0 4px; line-height: 1.35; }
+.learn-fact-a { color: var(--accent); font-weight: 700; margin-bottom: 2px; }
+.learn-fact-notes { color: var(--text-dim); font-size: 13px; line-height: 1.4; }
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.chip-toggle {
+  background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  border-radius: 999px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  min-height: 40px;
+}
+.chip-toggle.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+/* quiz */
+.quiz-progress { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+.quiz-question { font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.35; }
+.quiz-options { display: grid; gap: 10px; margin-bottom: 6px; }
+.quiz-option {
+  position: relative;
+  text-align: left; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-sm); padding: 12px 14px; font-size: 15px; cursor: pointer; min-height: 44px;
+}
+.quiz-option:disabled { cursor: default; opacity: .85; }
+.quiz-option.correct { border-color: var(--good); background: rgba(34,197,94,.14); animation: pop-feedback-strong 0.4s ease; }
+.quiz-option.correct::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; z-index: 2;
+  box-shadow: 0 -26px 0 -1px var(--good), 18px -18px 0 -1px var(--accent), 26px 0 0 -1px var(--accent-2), 18px 18px 0 -1px var(--good),
+    0 26px 0 -1px var(--accent), -18px 18px 0 -1px var(--accent-2), -26px 0 0 -1px var(--good), -18px -18px 0 -1px var(--accent);
+  opacity: 0; animation: confetti-burst 0.6s ease-out; }
+.quiz-option.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); animation: shake-feedback-strong 0.45s ease; }
+.quiz-feedback { margin: 14px 0 4px; font-weight: 700; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.feedback-good, .feedback-bad { display: inline-flex; align-items: center; gap: 6px; }
+.feedback-good { color: var(--good); }
+.feedback-bad { color: var(--bad); }
+.feedback-good .icon, .feedback-bad .icon { width: 18px; height: 18px; }
+.summary-score { font-size: 26px; font-weight: 800; margin: 6px 0; font-variant-numeric: tabular-nums; }
+.summary-note { color: var(--text-dim); font-size: 13.5px; }
+.streak-saved-note { color: var(--good); font-weight: 600; margin-top: 4px; }
+
+/* grid mode */
+.grid-table { display: grid; grid-template-columns: 110px repeat(3, 1fr); gap: 6px; margin: 12px 0; }
+.grid-cell { border-radius: var(--radius-sm); }
+.grid-corner { background: transparent; }
+.grid-header {
+  background: var(--bg-elevated); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 4px;
+  justify-content: center; text-align: center; font-weight: 700; font-size: 11.5px; padding: 8px 4px; line-height: 1.2;
+}
+.team-badge {
+  width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 10.5px; border: 2px solid rgba(255,255,255,.5); flex-shrink: 0;
+}
+.grid-square {
+  position: relative;
+  aspect-ratio: 1 / 1; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  cursor: pointer; font-size: 12px; padding: 4px; text-align: center;
+}
+.grid-square.active { border-color: var(--accent); border-width: 2px; }
+.grid-square.correct { background: rgba(34,197,94,.16); border-color: var(--good); animation: pop-feedback-strong 0.4s ease; }
+.grid-square.correct::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; z-index: 2;
+  box-shadow: 0 -22px 0 -1px var(--good), 15px -15px 0 -1px var(--accent), 22px 0 0 -1px var(--accent-2), 15px 15px 0 -1px var(--good),
+    0 22px 0 -1px var(--accent), -15px 15px 0 -1px var(--accent-2), -22px 0 0 -1px var(--good), -15px -15px 0 -1px var(--accent);
+  opacity: 0; animation: confetti-burst 0.6s ease-out; }
+.grid-square.wrong { background: rgba(239,68,68,.16); border-color: var(--bad); animation: shake-feedback-strong 0.45s ease; }
+.grid-hint { color: var(--text-dim); font-size: 11px; }
+.grid-answer { font-weight: 700; font-size: 12px; }
+.grid-points { font-size: 11px; color: var(--text-dim); }
+.grid-answer-box { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+/* The input used to be a direct flex child of .grid-answer-box; it's now
+   wrapped in .typeahead-wrap (position: relative, so the dropdown below can
+   anchor to just the input, not the whole button row) — flex: 1/min-width
+   move to the wrapper so the layout is unchanged, the input itself just
+   fills its wrapper. */
+.typeahead-wrap { position: relative; flex: 1; min-width: 160px; }
+.grid-answer-box input {
+  width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 10px; color: var(--text); font-size: 16px;
+}
+.grid-error { width: 100%; color: var(--bad); font-size: 13px; }
+/* Custom typeahead dropdown — see the "typeahead" section of app.js for why
+   this replaces the browser's native <input list> datalist (can't be
+   restyled at all in Safari/Firefox). Anchored to .typeahead-wrap, appears
+   only once renderTypeahead() populates it with matches. */
+.typeahead-list {
+  display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  max-height: 260px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.typeahead-list.open { display: block; }
+.typeahead-row {
+  display: block; width: 100%; text-align: left; background: transparent; border: none;
+  color: var(--text); padding: 10px 12px; font-size: 14.5px; cursor: pointer; min-height: 40px;
+}
+.typeahead-row + .typeahead-row { border-top: 1px solid var(--border); }
+.typeahead-row.active, .typeahead-row:hover { background: rgba(217, 166, 60, 0.14); }
+.typeahead-row mark { background: transparent; color: var(--accent); font-weight: 800; }
+.grid-recap { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.grid-recap-row { border-radius: var(--radius-sm); padding: 10px 12px; background: var(--bg-elevated); border: 1px solid var(--border); font-size: 13.5px; }
+.grid-recap-row.correct { border-color: var(--good); }
+.grid-recap-row.wrong { border-color: var(--bad); }
+.grid-recap-pool { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+/* Rarity tiers — same 4-band split as gridRarityTier() in app.js, ordered
+   loosest-pool to tightest so the color ramp (gray -> good-green -> gold ->
+   a richer, slightly saturated gold) reads as "climbing toward special"
+   without introducing a whole new color outside this app's existing
+   good/accent palette. */
+.grid-rarity {
+  display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle;
+}
+.grid-rarity.rarity-common { background: rgba(255,255,255,0.08); color: var(--text-dim); }
+.grid-rarity.rarity-uncommon { background: rgba(34,197,94,0.16); color: var(--good); }
+.grid-rarity.rarity-rare { background: rgba(217,166,60,0.18); color: var(--accent); }
+.grid-rarity.rarity-legendary { background: rgba(217,166,60,0.28); color: var(--accent); box-shadow: 0 0 0 1px rgba(217,166,60,0.4); }
+/* The one-off "you went 9/9" banner — bigger and louder than the routine
+   per-square correct-answer confetti (.grid-square.correct::after), since
+   this only fires once per round at most and should feel like it. */
+.grid-immaculate-banner {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 22px; font-weight: 900; letter-spacing: 0.02em; text-align: center;
+  color: var(--accent-text); background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-radius: var(--radius); padding: 16px; margin: 4px 0 var(--space-md);
+  animation: pop-feedback-strong 0.5s ease;
+  overflow: hidden;
+}
+.grid-immaculate-banner .icon { width: 26px; height: 26px; }
+.grid-immaculate-confetti {
+  position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 -60px 0 -1px #fff, 42px -42px 0 -1px var(--good), 60px 0 0 -1px #fff, 42px 42px 0 -1px var(--good),
+    0 60px 0 -1px #fff, -42px 42px 0 -1px var(--good), -60px 0 0 -1px #fff, -42px -42px 0 -1px var(--good);
+  opacity: 0; animation: confetti-burst 0.9s ease-out;
+}
+
+/* blitz mode */
+.blitz-list-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.blitz-list-card {
+  text-align: left; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-sm); padding: 14px; cursor: pointer;
+}
+.blitz-list-card:hover { border-color: var(--accent); }
+.blitz-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.blitz-title { font-weight: 800; font-size: 17px; }
+.blitz-timer { font-weight: 800; font-size: 22px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.blitz-progress { color: var(--text-dim); font-size: 13px; margin-bottom: 12px; }
+.blitz-input-row { display: flex; gap: 8px; }
+.blitz-input-row input {
+  flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px; color: var(--text); font-size: 16px;
+}
+.blitz-feedback { margin-top: 8px; font-size: 13px; font-weight: 600; }
+.blitz-feedback.wrong { color: var(--bad); }
+.blitz-matched { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.blitz-chip { background: rgba(34,197,94,.16); border: 1px solid var(--good); border-radius: 999px; padding: 5px 10px; font-size: 12.5px; animation: pop-feedback 0.28s ease; }
+.blitz-missed { margin-top: 14px; color: var(--text-dim); font-size: 13.5px; line-height: 1.5; }
+
+/* quiz-style missed-question review (Quiz/CFB Quiz/Daily Challenge summaries) */
+.quiz-missed-review { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.quiz-missed-review-title { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
+.quiz-missed-row { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+.quiz-missed-question { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.quiz-missed-answer { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.quiz-missed-answer .icon { width: 15px; height: 15px; flex-shrink: 0; }
+.quiz-missed-answer.wrong { color: var(--bad); }
+.quiz-missed-answer.correct { color: var(--good); }
+
+/* speed round */
+.speed-header { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+.speed-qbar { height: 6px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+.speed-qbar-fill { height: 100%; background: var(--accent); transition: width .18s linear; }
+
+/* silhouette mode */
+.silhouette-stage { position: relative; display: flex; align-items: center; justify-content: center; height: 210px; margin-bottom: 14px; }
+.silhouette-svg { height: 100%; width: auto; }
+.silhouette-photo {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  /* Crush every real photo to a flat black silhouette (brightness(0) zeroes RGB but
+     keeps the alpha channel from the background-removed cutout) so jersey color,
+     number, and team logo never leak through and give the answer away. The soft
+     white drop-shadow is just an edge glow so the black shape reads against the
+     dark theme's navy panels; it carries no color information about the player. */
+  filter: brightness(0) drop-shadow(0 0 5px rgba(255,255,255,0.14));
+}
+@media (prefers-color-scheme: light) {
+  .silhouette-photo { filter: brightness(0) drop-shadow(0 0 3px rgba(0,0,0,0.12)); }
+}
+.silhouette-clues { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.silhouette-clue { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 14px; }
+.silhouette-reveal { text-align: center; font-size: 20px; font-weight: 800; margin: 6px 0 16px; animation: pop-feedback 0.34s ease; }
+
+/* football iq test */
+.iq-score { text-align: center; font-size: 56px; font-weight: 800; color: var(--accent); line-height: 1; margin: 10px 0 2px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.iq-title { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+.iq-insight { text-align: center; font-size: 13.5px; color: var(--text-dim); margin-bottom: 4px; }
+.iq-insight b { color: var(--text); }
+.iq-breakdown { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+.iq-breakdown-row {
+  display: flex; justify-content: space-between; background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13.5px;
+}
+
+/* 17-0 legends draft */
+.legends-roll { text-align: center; font-size: 20px; margin-bottom: 14px; }
+.legends-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.legends-slot { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; text-align: center; }
+.legends-slot.filled { border-color: var(--good); }
+.legends-slot-name { font-size: 11px; color: var(--text-dim); font-weight: 700; text-transform: uppercase; }
+.legends-slot-player { font-size: 12px; font-weight: 700; margin-top: 3px; }
+.legends-slot-empty { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+.legends-options { display: grid; gap: 8px; margin-bottom: 14px; }
+.legends-option {
+  text-align: left; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-sm); padding: 10px 14px; cursor: pointer; min-height: 48px;
+}
+.legends-option:disabled { opacity: .4; cursor: default; }
+.legends-option-name { font-weight: 700; }
+.legends-option-meta { font-size: 12.5px; color: var(--text-dim); }
+.legends-grade { text-align: center; font-size: 64px; font-weight: 800; color: var(--accent); line-height: 1; margin: 8px 0 0; letter-spacing: -0.02em; }
+.legends-roster { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; }
+.legends-roster-row {
+  display: grid; grid-template-columns: 60px 1fr auto; gap: 10px; align-items: center;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13.5px;
+}
+.legends-roster-slot { font-weight: 700; color: var(--text-dim); font-size: 11px; text-transform: uppercase; }
+.legends-roster-player i { color: var(--text-dim); font-style: normal; font-size: 12px; }
+.legends-roster-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.legends-chem-log { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; }
+.legends-chem-row { color: var(--text-dim); margin-top: 4px; }
+
+/* leaderboard */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 12px; }
+.leaderboard-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.leaderboard-table th, .leaderboard-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.leaderboard-table th { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.leaderboard-range-row { margin-top: 10px; }
+.leaderboard-row-me td { background: rgba(217, 166, 60, 0.1); font-weight: 700; }
+.leaderboard-you-tag { display: inline-block; background: var(--accent); color: var(--accent-text); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.leaderboard-my-rank { margin-top: 10px; padding: 10px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13.5px; color: var(--text-dim); }
+.leaderboard-my-rank b { color: var(--text); }
+.leaderboard-top-of-week {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 14px;
+  background: linear-gradient(135deg, var(--bg-card), rgba(217, 166, 60, 0.14));
+  border: 1px solid var(--accent); border-radius: var(--radius-sm); font-size: 13.5px; color: var(--text-dim);
+}
+.leaderboard-top-of-week .icon { color: var(--accent); flex-shrink: 0; }
+.leaderboard-top-of-week b { color: var(--text); }
+.leaderboard-activity { margin-top: var(--space-lg); }
+.leaderboard-activity-row { font-size: 13px; color: var(--text-dim); padding: 6px 0; border-bottom: 1px solid var(--border); }
+.leaderboard-activity-row:last-child { border-bottom: none; }
+.leaderboard-activity-row b { color: var(--text); }
+.leaderboard-activity-time { float: right; color: var(--text-dim); font-size: 12px; }
+
+/* mode-popularity stats (hidden #stats route) */
+.stats-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.stats-bar-row { display: grid; grid-template-columns: 130px 1fr 34px; align-items: center; gap: 10px; }
+.stats-bar-label { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+.stats-bar-track { height: 10px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; }
+.stats-bar-fill { height: 100%; background: var(--accent-2); border-radius: 999px; }
+.stats-bar-value { font-size: 13px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+  .stats-bar-row { grid-template-columns: 92px 1fr 30px; }
+  .stats-bar-label { font-size: 12px; }
+}
+
+/* head-to-head */
+.h2h-code {
+  text-align: center; font-size: 40px; font-weight: 800; letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums; margin: 10px 0; color: var(--accent-2);
+}
+.h2h-players { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+.h2h-player-row {
+  display: flex; justify-content: space-between; align-items: center; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; font-weight: 600;
+}
+.h2h-result-banner { text-align: center; font-size: 24px; font-weight: 800; margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.h2h-result-win { color: var(--good); }
+.h2h-result-loss { color: var(--bad); }
+.h2h-result-tie { color: var(--text-dim); }
+.h2h-recent-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.h2h-error { color: var(--bad); }
+
+/* reported questions (hidden #reports route) */
+.reports-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.report-row { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13.5px; }
+.report-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.report-row-cat { font-size: 11.5px; font-weight: 700; color: var(--accent); background: rgba(217, 166, 60, 0.14); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.report-row-question { color: var(--text); margin-bottom: 4px; }
+.report-row-note { color: var(--text-dim); font-style: italic; margin-bottom: 4px; }
+.report-row-meta { color: var(--text-dim); font-size: 11.5px; }
+
+/* profile */
+.profile-headline-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.profile-headline { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; flex: 1; min-width: 140px; text-align: center; }
+.profile-headline-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.profile-headline-label { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
+.profile-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.profile-mode-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.profile-mode-title { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+.profile-mode-stat { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); padding: 3px 0; }
+.profile-mode-stat b { color: var(--text); font-variant-numeric: tabular-nums; }
+.rating-sparkline { display: block; width: 100%; height: 28px; margin-top: 6px; color: var(--accent); }
+.profile-badges-title { font-weight: 800; font-size: 14px; margin: 20px 0 10px; }
+.profile-badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.profile-badge { text-align: center; padding: 10px 6px; border-radius: var(--radius-sm); background: var(--bg-elevated); border: 1px solid var(--border); opacity: 0.45; }
+.profile-badge.earned { opacity: 1; border-color: rgba(217, 166, 60, 0.4); background: linear-gradient(160deg, var(--bg-elevated), rgba(217, 166, 60, 0.08)); }
+.profile-badge-icon { font-size: 24px; margin-bottom: 4px; }
+.profile-badge-title { font-size: 10.5px; font-weight: 700; color: var(--text-dim); line-height: 1.25; }
+.profile-badge.earned .profile-badge-title { color: var(--text); }
+
+@media (max-width: 520px) {
+  main#app { padding: 14px 12px 32px; }
+  .panel { padding: 16px; }
+  .grid-table { grid-template-columns: 70px repeat(3, 1fr); gap: 5px; }
+  .hero-logo { height: 110px; width: auto; }
+  .hero-tagline { font-size: 16px; }
+  .hero p { font-size: 13.5px; }
+  .legends-grade, .iq-score { font-size: 48px; }
+  .quiz-question { font-size: 18px; }
+}
+
+@media (max-width: 360px) {
+  .grid-table { grid-template-columns: 58px repeat(3, 1fr); gap: 4px; }
+  .team-badge { width: 28px; height: 28px; font-size: 9px; }
+  .btn-row { gap: 8px; }
+  .btn-primary, .btn-secondary { padding: 11px 14px; font-size: 14px; }
+}

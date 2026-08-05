@@ -1,0 +1,34 @@
+Unlike the Silhouette photos, sound.js does NOT look for generic names like
+"correct.mp3" — the actual filenames are hardcoded in sound.js's SFX_FILES and
+MUSIC_PLAYLIST constants, matching whatever real files got dropped in here.
+Current mapping (edit sound.js directly to change any of this):
+
+BACKGROUND MUSIC — MUSIC_PLAYLIST array, shuffled with no back-to-back repeats,
+auto-advances to the next track when one ends, only plays on the Home screen:
+  bg-astronautflute-the-marching-band-536193.mp3
+  bg-luis-humanoide-marching-band-317665.mp3
+  bg-nesrality-marching-music-*-by-john-philip-sousa-*.mp3  (13 tracks — public
+    domain, Sousa died 1932, so zero licensing concern on these specifically)
+  bg-stereo-color-marching-band-485958.mp3
+  bg-tech-oasis-marching-band-sound-marching-together-222550.mp3
+
+SOUND EFFECTS — SFX_FILES map in sound.js:
+  correct  -> bg-vishiv-crowd-cheering-in-stadium-435357.mp3
+  wrong    -> bg-framptones-referee-whistle-coach-whistle-sports-whistle-291816.mp3
+  complete -> bg-stadium-chant-377307.mp3
+
+CLICK — plays on every button press. Tries assets/audio/click.mp3 first; if
+that file doesn't exist (it doesn't right now), sound.js synthesizes a short
+click tone with the Web Audio API instead, so this always works with zero
+files required. Drop a real click.mp3 here anytime to override the synth one.
+
+NOT USED — bg-horror-house-music-police-whistle-fx-1-566726.mp3 is sitting in
+this folder but isn't wired to anything (the "horror" in the filename suggests
+it was grabbed for a different project by mistake). Delete it or repurpose it
+by adding it to SFX_FILES/MUSIC_PLAYLIST in sound.js.
+
+Volume constants (also in sound.js): SFX_VOLUME 0.6, BG_MUSIC_VOLUME 0.32,
+CLICK_VOLUME 0.5. The 🔊/🔇 header toggle mutes everything at once.
+
+To add more marching band tracks later: drop the file in this folder and add
+its path to the MUSIC_PLAYLIST array in sound.js — one line, no other changes.

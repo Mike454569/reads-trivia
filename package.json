@@ -1,0 +1,9 @@
+{
+  "name": "reads-trivia",
+  "private": true,
+  "description": "Netlify Functions backend for Reads (push notifications, scheduled social drafts). The site itself (index.html/app.js/styles.css) is plain static files with no build step — this package.json exists only so Netlify's build runs `npm install` for the functions in netlify/functions/.",
+  "dependencies": {
+    "web-push": "^3.6.7",
+    "@netlify/blobs": "^8.1.0"
+  }
+}

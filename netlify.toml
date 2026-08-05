@@ -1,0 +1,18 @@
+[functions]
+  directory = "netlify/functions"
+
+# 14:15 and 22:15 UTC ≈ 9:15am / 5:15pm US Central during the football
+# season (CDT, UTC-5, roughly Aug-early Nov). After the November DST
+# shift back to CST (UTC-6) this drifts an hour earlier local time
+# (8:15am/4:15pm) until DST resumes in spring — Netlify's scheduled
+# functions run on fixed UTC cron, so a single schedule can't track DST.
+# Adjust the hours below if that drift matters to you.
+[functions."social-draft"]
+  schedule = "15 14,22 * * *"
+
+# 15:07 UTC ≈ 10:07am US Central (CDT). The Daily Challenge itself rolls
+# over at each individual user's own local midnight (see todayStr() in
+# app.js), so there's no single server time that lines up with everyone's
+# reset — this just picks a reasonable "most people are up" broadcast time.
+[functions."send-daily-push"]
+  schedule = "7 15 * * *"
