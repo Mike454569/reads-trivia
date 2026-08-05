@@ -15,6 +15,8 @@
 //   window.__fbSync.watchMatch(code, cb)            <- defined here, called by app.js (returns unsubscribe)
 //   window.__fbSync.pushProfile(nameSlug, data)     <- defined here, called by app.js
 //   window.__fbSync.getProfile(nameSlug)            <- defined here, called by app.js (Promise)
+//   window.__fbSync.getNamePin(nameSlug)            <- defined here, called by app.js (Promise)
+//   window.__fbSync.setNamePin(nameSlug, pinHash)   <- defined here, called by app.js
 //   window.__fbSync.status                        <- 'connecting' | 'live' | 'offline'
 //
 // pushProfile/getProfile back cross-device sync for per-mode stats/badges/
@@ -33,6 +35,15 @@
 // (a handful of friends), two people racing to join the same open slot in
 // the same instant isn't a real risk, and a transaction would be a lot of
 // complexity for a scenario that won't happen in practice.
+//
+// getNamePin/setNamePin back the lightweight "claim your name with a PIN"
+// deterrent (see saveName() in app.js): one doc per name slug holding a weak
+// client-side hash of a 4-digit PIN, not a real password. This is an honest
+// soft deterrent, not real security — nothing here is enforced by Firestore
+// rules, so anyone determined enough to open devtools could still write
+// under a claimed name. It exists to stop the actual reported problem
+// (someone casually typing a friend's name in the UI to mess with their
+// leaderboard score), not a motivated attacker.
 //
 // logPlay() is the whole "analytics" story for this app, by deliberate
 // choice over a third-party tool (Plausible/GA): one shared Firestore doc
@@ -87,7 +98,9 @@ window.__fbSync = {
   setMatch: function () { return Promise.reject(new Error('Not connected')); },
   watchMatch: function () { return function () {}; },
   pushProfile: function () { /* no-op until Firebase finishes initializing below */ },
-  getProfile: function () { return Promise.reject(new Error('Not connected')); }
+  getProfile: function () { return Promise.reject(new Error('Not connected')); },
+  getNamePin: function () { return Promise.reject(new Error('Not connected')); },
+  setNamePin: function () { /* no-op until Firebase finishes initializing below */ }
 };
 setStatus('connecting');
 
@@ -104,6 +117,18 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     var reportsCol = collection(db, 'games', GAME_ID, 'reports');
     var matchesCol = collection(db, 'games', GAME_ID, 'matches');
     var profilesCol = collection(db, 'games', GAME_ID, 'profiles');
+    var namePinsCol = collection(db, 'games', GAME_ID, 'namePins');
+
+    window.__fbSync.getNamePin = function (nameSlug) {
+      return getDoc(doc(namePinsCol, nameSlug)).then(function (snap) {
+        return snap.exists() ? snap.data().pinHash : null;
+      });
+    };
+    window.__fbSync.setNamePin = function (nameSlug, pinHash) {
+      setDoc(doc(namePinsCol, nameSlug), { pinHash: pinHash, updatedAt: serverTimestamp() }).catch(function (err) {
+        console.error('Name PIN save failed', err);
+      });
+    };
 
     window.__fbSync.pushProfile = function (nameSlug, data) {
       var payload = Object.assign({}, data, { updatedAt: serverTimestamp() });

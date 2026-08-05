@@ -448,6 +448,39 @@ body.has-fav-team #top-bar {
 #report-confirm { color: var(--good); display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 #report-context { color: var(--text-dim); font-size: 13px; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 10px; }
 
+/* name PIN — opened from saveName() when a name is new (claim) or already
+   taken (verify); same dialog pattern as report/rating above. */
+#pin-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#pin-backdrop.open { opacity: 1; pointer-events: auto; }
+#pin-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(85vh, 420px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#pin-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#pin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#pin-title { font-size: 18px; font-weight: 800; }
+#pin-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#pin-close:hover { background: var(--bg-elevated); }
+#pin-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+#pin-body label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; margin-top: 6px; }
+#pin-input {
+  width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px; color: var(--text); font-size: 22px; letter-spacing: 10px; text-align: center;
+  font-family: inherit; margin: 6px 0 12px;
+}
+#pin-error { color: var(--bad); font-size: 13px; margin: -4px 0 10px; }
+#pin-submit { width: 100%; margin-bottom: 8px; }
+#pin-skip { width: 100%; }
+
 /* rating breakdown — tapping #rating-badge opens this; same dialog pattern
    as onboarding/share/report, just wider to fit the mode-card grid. */
 #rating-backdrop {

@@ -900,9 +900,31 @@ function setRankedPref(mode, ranked) {
   renderAll();
 }
 
+// Lightweight "claim your name with a PIN" deterrent — see the comment above
+// getNamePin/setNamePin in firebase-sync.js for what this is and isn't. hashStr
+// is the same non-cryptographic hash already used to seed the daily-greeting
+// RNG elsewhere in this file; good enough for "don't store the PIN in plain
+// text next to it", not good enough to call this real security.
+function pinHash(slug, pin) { return String(hashStr('reads-pin-v1:' + slug + ':' + pin)); }
+function pinCacheKey(slug) { return 'nflTriviaPin__' + slug; }
+var pendingNamePin = null; // { name, slug, mode: 'claim'|'verify' } while the PIN modal is open
 function saveName(name) {
   name = (name || '').trim();
   if (!name) return;
+  if (!window.__fbSync || !window.__fbSync.getNamePin) { finishSaveName(name); return; }
+  var slug = slugify(name);
+  var cached = lsGet(pinCacheKey(slug), null);
+  window.__fbSync.getNamePin(slug).then(function (remoteHash) {
+    if (!remoteHash) { openPinModal(name, slug, 'claim'); return; }
+    if (cached && cached === remoteHash) { finishSaveName(name); return; }
+    openPinModal(name, slug, 'verify');
+  }).catch(function () {
+    // Offline / sync unavailable — fall back to the old no-PIN behavior so
+    // solo/offline play still works exactly like before this feature existed.
+    finishSaveName(name);
+  });
+}
+function finishSaveName(name) {
   state.name = name;
   lsSet('nflTriviaName', name);
   // The leaderboard snapshot (state.leaderboardData) almost always arrives
@@ -919,6 +941,79 @@ function saveName(name) {
   if (!consumePendingLiveJoin()) renderAll();
 }
 function changeName() { state.name = ''; lsSet('nflTriviaName', ''); didInitialProfilePull = false; renderAll(); }
+
+/* ============================== name PIN modal ============================== */
+var pinTriggerEl = null;
+function openPinModal(name, slug, mode) {
+  pendingNamePin = { name: name, slug: slug, mode: mode };
+  pinTriggerEl = document.activeElement;
+  var titleEl = document.getElementById('pin-title');
+  var contextEl = document.getElementById('pin-context');
+  var inputEl = document.getElementById('pin-input');
+  var errorEl = document.getElementById('pin-error');
+  var skipBtn = document.getElementById('pin-skip');
+  var submitBtn = document.getElementById('pin-submit');
+  if (mode === 'claim') {
+    if (titleEl) titleEl.textContent = 'Protect this name';
+    if (contextEl) contextEl.textContent = '"' + name + '" is open. Set a 4-digit PIN so nobody else can play under your name and touch your leaderboard score — you\'ll enter it again next time you use this name on a new device.';
+    if (skipBtn) skipBtn.style.display = '';
+    if (submitBtn) submitBtn.textContent = 'Set PIN & Continue';
+  } else {
+    if (titleEl) titleEl.textContent = 'Enter PIN';
+    if (contextEl) contextEl.textContent = '"' + name + '" already has a PIN set. Enter it to continue, or use a different name.';
+    if (skipBtn) skipBtn.style.display = 'none';
+    if (submitBtn) submitBtn.textContent = 'Continue';
+  }
+  if (inputEl) inputEl.value = '';
+  if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+  var modal = document.getElementById('pin-modal');
+  var backdrop = document.getElementById('pin-backdrop');
+  if (modal) modal.classList.add('open');
+  if (backdrop) backdrop.classList.add('open');
+  setTimeout(function () { if (inputEl) inputEl.focus(); }, 0);
+}
+function closePinModal() {
+  var modal = document.getElementById('pin-modal');
+  var backdrop = document.getElementById('pin-backdrop');
+  if (modal) modal.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
+  if (pinTriggerEl && document.contains(pinTriggerEl)) pinTriggerEl.focus();
+  pinTriggerEl = null;
+  pendingNamePin = null;
+}
+function pinModalError(msg) {
+  var errorEl = document.getElementById('pin-error');
+  if (errorEl) { errorEl.textContent = msg; errorEl.style.display = ''; }
+}
+function pinModalSubmit() {
+  if (!pendingNamePin) return;
+  var inputEl = document.getElementById('pin-input');
+  var pin = inputEl ? inputEl.value.trim() : '';
+  if (!/^\d{4}$/.test(pin)) { pinModalError('Enter a 4-digit PIN.'); return; }
+  var p = pendingNamePin;
+  var hash = pinHash(p.slug, pin);
+  if (p.mode === 'claim') {
+    if (window.__fbSync && window.__fbSync.setNamePin) window.__fbSync.setNamePin(p.slug, hash);
+    lsSet(pinCacheKey(p.slug), hash);
+    closePinModal();
+    finishSaveName(p.name);
+    return;
+  }
+  // verify mode
+  window.__fbSync.getNamePin(p.slug).then(function (remoteHash) {
+    if (remoteHash !== hash) { pinModalError('Wrong PIN. Try again, or use a different name.'); return; }
+    lsSet(pinCacheKey(p.slug), hash);
+    var name = p.name;
+    closePinModal();
+    finishSaveName(name);
+  }).catch(function () { pinModalError('Could not check that PIN — try again.'); });
+}
+function pinModalSkip() {
+  if (!pendingNamePin) return;
+  var name = pendingNamePin.name;
+  closePinModal();
+  finishSaveName(name);
+}
 
 function nameBarHtml() {
   return '<div class="name-bar">' +
@@ -2920,13 +3015,22 @@ function renderSpeedScreen() {
 }
 
 /* ============================== higher or lower ==============================
-   Real career honors (Pro Bowls + All-Pro selections — both already tracked
-   per-player in GRID_PLAYERS, same field the Learn tab's "Pro Bowl &
-   All-Pro Selections" section reads) as the comparison stat. Classic
-   "guess if the next one is higher or lower" format, endless streak until
-   a miss — built specifically because this is one of the most viral,
-   shareable trivia formats around, and this app already has real per-
-   player numbers that support it honestly.
+   Real career honors already tracked per-player in GRID_PLAYERS — same
+   fields the Learn tab's "Pro Bowl & All-Pro Selections" section reads, plus
+   the 4 boolean "signature moment" flags every entry already carries.
+   Classic "guess if the next one is higher or lower" format, endless streak
+   until a miss — built specifically because this is one of the most viral,
+   shareable trivia formats around, and this app already has real per-player
+   numbers that support it honestly.
+
+   Four selectable stat categories (HIGHER_LOWER_STATS below) rather than one
+   fixed comparison — every one is either a real counted stat already on the
+   data, or (Signature Moments) a plainly-labeled sum of four specific real
+   boolean facts (MVP / Super Bowl win / Super Bowl MVP / Hall of Fame), not
+   an invented or hidden formula. Picked once at the setup screen and fixed
+   for the whole streak-run, same reasoning as not switching Quiz categories
+   mid-round: comparing against a moving target isn't "higher or lower"
+   anymore, it's a different game each time.
 
    CFB deliberately does NOT get a version of this: CFB_GRID_PLAYERS has no
    comparable numeric stat with real spread (years.length, the closest
@@ -2934,22 +3038,39 @@ function renderSpeedScreen() {
    almost every comparison would be a coin-flip tie). This only exists
    where a real stat actually supports it, not invented to make the mode
    symmetric across leagues. */
-function higherLowerPool() {
-  return GRID_PLAYERS.filter(function (p) { return ((p.proBowls || 0) + (p.allPro || 0)) > 0; });
+var HIGHER_LOWER_STATS = [
+  { id: 'combined', label: 'Career Pro Bowl + All-Pro selections', scoreFn: function (p) { return (p.proBowls || 0) + (p.allPro || 0); } },
+  { id: 'proBowls', label: 'Career Pro Bowl selections', scoreFn: function (p) { return p.proBowls || 0; } },
+  { id: 'allPro', label: 'Career All-Pro selections', scoreFn: function (p) { return p.allPro || 0; } },
+  { id: 'moments', label: 'Signature career moments (MVP + Super Bowl win + Super Bowl MVP + Hall of Fame)', scoreFn: function (p) { return (p.mvp ? 1 : 0) + (p.sbChamp ? 1 : 0) + (p.sbMVP ? 1 : 0) + (p.hof ? 1 : 0); } }
+];
+function higherLowerStatConfig(statId) {
+  return HIGHER_LOWER_STATS.find(function (s) { return s.id === statId; }) || HIGHER_LOWER_STATS[0];
 }
-function higherLowerScore(p) { return (p.proBowls || 0) + (p.allPro || 0); }
-function higherLowerDrawPlayer(usedNames) {
-  var pool = higherLowerPool().filter(function (p) { return usedNames.indexOf(p.name) === -1; });
-  // Pool exhausted (651 players — a genuinely absurd streak to reach) —
-  // allow repeats rather than dead-end an otherwise-still-going run.
-  if (!pool.length) pool = higherLowerPool();
+function higherLowerPool(statId) {
+  var cfg = higherLowerStatConfig(statId);
+  return GRID_PLAYERS.filter(function (p) { return cfg.scoreFn(p) > 0; });
+}
+function higherLowerScore(p, statId) { return higherLowerStatConfig(statId).scoreFn(p); }
+function higherLowerDrawPlayer(statId, usedNames) {
+  var pool = higherLowerPool(statId).filter(function (p) { return usedNames.indexOf(p.name) === -1; });
+  // Pool exhausted (334-651 players depending on the stat — a genuinely
+  // absurd streak to reach any of those) — allow repeats rather than
+  // dead-end an otherwise-still-going run.
+  if (!pool.length) pool = higherLowerPool(statId);
   return pool[Math.floor(Math.random() * pool.length)];
 }
+// Remembered for the session (not persisted across visits) so re-starting
+// after a loss defaults back to whatever stat you were just playing, same
+// convenience as Quiz remembering its last round size.
+var higherLowerStatPref = 'combined';
+function setHigherLowerStat(statId) { higherLowerStatPref = statId; renderAll(); }
 function startHigherLower() {
-  var first = higherLowerDrawPlayer([]);
-  var second = higherLowerDrawPlayer([first.name]);
+  var statId = higherLowerStatPref;
+  var first = higherLowerDrawPlayer(statId, []);
+  var second = higherLowerDrawPlayer(statId, [first.name]);
   state.higherLower = {
-    screen: 'playing', current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
+    screen: 'playing', stat: statId, current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
     usedNames: [first.name, second.name], ranked: state.rankedPref.higherLower !== false
   };
   state.screen = 'higherLower';
@@ -2958,7 +3079,7 @@ function startHigherLower() {
 function submitHigherLowerGuess(direction) {
   var s = state.higherLower;
   if (!s || s.screen !== 'playing') return;
-  var curScore = higherLowerScore(s.current), nextScore = higherLowerScore(s.next);
+  var curScore = higherLowerScore(s.current, s.stat), nextScore = higherLowerScore(s.next, s.stat);
   // A tie always counts as correct — standard house rule for this format,
   // and the honest one: nothing in "higher or lower" was violated by a
   // dead-even comparison, so it shouldn't end the run either direction.
@@ -2974,7 +3095,7 @@ function higherLowerContinue() {
   var s = state.higherLower;
   if (!s || s.screen !== 'reveal') return;
   s.current = s.next;
-  s.next = higherLowerDrawPlayer(s.usedNames);
+  s.next = higherLowerDrawPlayer(s.stat, s.usedNames);
   s.usedNames.push(s.next.name);
   s.revealedScore = null;
   s.lastCorrect = null;
@@ -3001,7 +3122,10 @@ function higherLowerPlayerLine(p) {
 function renderHigherLowerSetup() {
   return '<div class="panel">' +
     '<h2 class="panel-title">Higher or Lower</h2>' +
-    '<p class="mode-desc">Two real NFL players, one real stat: career Pro Bowl + All-Pro selections. See one player\'s total, guess whether the next player has more or fewer. Keep going until you miss — how long a streak can you build?</p>' +
+    '<p class="mode-desc">Two real NFL players, one real stat — see one player\'s total, guess whether the next player has more or fewer. Keep going until you miss — how long a streak can you build?</p>' +
+    '<div class="chip-row">' +
+    HIGHER_LOWER_STATS.map(function (st) { return '<button class="chip-toggle' + (higherLowerStatPref === st.id ? ' active' : '') + '" data-hl-stat="' + st.id + '">' + esc(st.label) + '</button>'; }).join('') +
+    '</div>' +
     rankedToggleHtml('higherLower') +
     '<button class="btn-primary" data-hl-start>Start</button>' +
     '</div>';
@@ -3009,13 +3133,14 @@ function renderHigherLowerSetup() {
 function renderHigherLowerPlaying() {
   var s = state.higherLower;
   var revealing = s.screen === 'reveal';
+  var statLabel = higherLowerStatConfig(s.stat).label;
   return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
     '<h2 class="panel-title">Higher or Lower &middot; Streak: ' + s.streak + '</h2>' +
     '<div class="hl-card hl-card-current">' +
     '<div class="hl-name">' + esc(s.current.name) + '</div>' +
     '<div class="hl-line">' + higherLowerPlayerLine(s.current) + '</div>' +
-    '<div class="hl-score">' + higherLowerScore(s.current) + '</div>' +
-    '<div class="hl-score-label">Career Pro Bowl + All-Pro selections</div>' +
+    '<div class="hl-score">' + higherLowerScore(s.current, s.stat) + '</div>' +
+    '<div class="hl-score-label">' + esc(statLabel) + '</div>' +
     '</div>' +
     '<div class="hl-vs">vs</div>' +
     '<div class="hl-card hl-card-next' + (revealing ? (s.lastCorrect ? ' correct' : ' wrong') : '') + '">' +
@@ -3042,7 +3167,7 @@ function renderHigherLowerOver() {
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
     '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
     '<div class="hl-score">' + s.revealedScore + '</div>' +
-    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScore(s.current) + '</div>' +
+    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScore(s.current, s.stat) + '</div>' +
     '</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
@@ -6910,7 +7035,7 @@ document.addEventListener('click', function (e) {
     '[data-grid-start], [data-grid-cell], [data-grid-submit], [data-grid-again], ' +
     '[data-blitz-list], [data-blitz-start], [data-blitz-submit], [data-blitz-setup], ' +
     '[data-speed-start], [data-speed-answer], [data-leaderboard-mode], [data-leaderboard-range], ' +
-    '[data-hl-start], [data-hl-guess], [data-hl-continue], ' +
+    '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
@@ -6926,6 +7051,7 @@ document.addEventListener('click', function (e) {
     '[data-share], #share-close, #share-backdrop, #share-download, #share-x, #share-facebook, #share-copy, [data-share-format], ' +
     '[data-report], #report-close, #report-backdrop, #report-submit, [data-report-category], [data-copy-email], ' +
     '#rating-badge, #rating-close, #rating-backdrop, ' +
+    '#pin-close, #pin-backdrop, #pin-submit, #pin-skip, ' +
     '#team-picker-toggle, #team-picker-close, #team-picker-backdrop, [data-team-tab], [data-team-pick], [data-team-clear], [data-team-done], [data-team-picker-toggle], [data-team-prompt-dismiss], ' +
     '[data-settings-mute-toggle], [data-settings-push-toggle], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
     '[data-h2h-go-create], [data-h2h-go-join], [data-h2h-back-menu], [data-h2h-roundsize], [data-h2h-create], ' +
@@ -6961,6 +7087,9 @@ document.addEventListener('click', function (e) {
   if (t.id === 'report-submit') { submitReport(); return; }
   if (t.id === 'rating-badge') { openRatingModal(); return; }
   if (t.id === 'rating-close' || t.id === 'rating-backdrop') { closeRatingModal(); return; }
+  if (t.id === 'pin-close' || t.id === 'pin-backdrop') { closePinModal(); return; }
+  if (t.id === 'pin-submit') { pinModalSubmit(); return; }
+  if (t.id === 'pin-skip') { pinModalSkip(); return; }
   if (t.id === 'team-picker-toggle' || t.dataset.teamPickerToggle !== undefined) { openTeamPicker(); return; }
   if (t.dataset.teamPromptDismiss !== undefined) { dismissTeamPrompt(); return; }
   if (t.dataset.settingsMuteToggle !== undefined) { toggleMute(); renderAll(); return; }
@@ -7070,6 +7199,7 @@ document.addEventListener('click', function (e) {
 
   if (t.dataset.speedStart !== undefined) { startSpeedRound(parseInt(t.dataset.speedStart, 10)); return; }
   if (t.dataset.speedAnswer !== undefined) { registerSpeedAnswer(parseInt(t.dataset.speedAnswer, 10)); return; }
+  if (t.dataset.hlStat !== undefined) { setHigherLowerStat(t.dataset.hlStat); return; }
   if (t.dataset.hlStart !== undefined) { startHigherLower(); return; }
   if (t.dataset.hlGuess !== undefined) { submitHigherLowerGuess(t.dataset.hlGuess); return; }
   if (t.dataset.hlContinue !== undefined) { higherLowerContinue(); return; }
@@ -7190,6 +7320,7 @@ document.addEventListener('keydown', function (e) {
   var reportModalEl = document.getElementById('report-modal');
   var ratingModalEl = document.getElementById('rating-modal');
   var teamPickerModalEl = document.getElementById('team-picker-modal');
+  var pinModalEl = document.getElementById('pin-modal');
   if (e.key === 'Escape' && TYPEAHEAD_CONFIGS[e.target.id] && typeaheadListEl(e.target.id) && typeaheadListEl(e.target.id).classList.contains('open')) {
     closeTypeahead(e.target.id);
     return;
@@ -7200,6 +7331,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && reportModalEl && reportModalEl.classList.contains('open')) { closeReportModal(); return; }
   if (e.key === 'Escape' && ratingModalEl && ratingModalEl.classList.contains('open')) { closeRatingModal(); return; }
   if (e.key === 'Escape' && teamPickerModalEl && teamPickerModalEl.classList.contains('open')) { closeTeamPicker(); return; }
+  if (e.key === 'Escape' && pinModalEl && pinModalEl.classList.contains('open')) { closePinModal(); return; }
   if (e.key === 'Tab') {
     if (modeSheetEl && modeSheetEl.classList.contains('open')) { trapTabKey(e, modeSheetEl); return; }
     if (onboardingModalEl && onboardingModalEl.classList.contains('open')) { trapTabKey(e, onboardingModalEl); return; }
@@ -7207,6 +7339,7 @@ document.addEventListener('keydown', function (e) {
     if (reportModalEl && reportModalEl.classList.contains('open')) { trapTabKey(e, reportModalEl); return; }
     if (ratingModalEl && ratingModalEl.classList.contains('open')) { trapTabKey(e, ratingModalEl); return; }
     if (teamPickerModalEl && teamPickerModalEl.classList.contains('open')) { trapTabKey(e, teamPickerModalEl); return; }
+    if (pinModalEl && pinModalEl.classList.contains('open')) { trapTabKey(e, pinModalEl); return; }
     return;
   }
   if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && TYPEAHEAD_CONFIGS[e.target.id]) {
@@ -7220,6 +7353,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.target.id === 'cfb-blitz-input') { submitCfbBlitzGuess(); }
   else if (e.target.id === 'silhouette-input') { if (!typeaheadPickActive('silhouette-input')) submitSilhouetteGuess(); }
   else if (e.target.id === 'name-input') { saveName(e.target.value); }
+  else if (e.target.id === 'pin-input') { pinModalSubmit(); }
   else if (e.target.id === 'friend-name-input') { addFriend(e.target.value); }
 });
 

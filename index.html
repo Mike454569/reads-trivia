@@ -147,6 +147,22 @@
     </div>
   </div>
 
+  <div id="pin-backdrop" aria-hidden="true"></div>
+  <div id="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pin-title">
+    <div id="pin-header">
+      <span id="pin-title">Protect this name</span>
+      <button id="pin-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="pin-body">
+      <p class="mode-desc" id="pin-context"></p>
+      <label for="pin-input">4-digit PIN</label>
+      <input id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" />
+      <p class="mode-desc" id="pin-error" style="display:none;"></p>
+      <button id="pin-submit" class="btn-primary">Continue</button>
+      <button id="pin-skip" class="btn-secondary">Skip — don't set a PIN</button>
+    </div>
+  </div>
+
   <div id="rating-backdrop" aria-hidden="true"></div>
   <div id="rating-modal" role="dialog" aria-modal="true" aria-labelledby="rating-title">
     <div id="rating-header">
