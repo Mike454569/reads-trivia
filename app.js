@@ -107,6 +107,17 @@ var CFB_SPEED = window.CFB_SPEED_DATA || [];
 var CFB_BLITZ_LISTS = window.CFB_BLITZ_LISTS || [];
 var CFB_GRID_PLAYERS = window.CFB_GRID_PLAYERS || [];
 var CFB_GRID_CRITERIA = window.CFB_GRID_CRITERIA || { team: [], stat: [], all: [] };
+var HL_PASSING = window.HL_PASSING || [];
+var HL_RUSHING = window.HL_RUSHING || [];
+var HL_RECEIVING = window.HL_RECEIVING || [];
+var HL_TACKLES = window.HL_TACKLES || [];
+var HL_INTERCEPTIONS = window.HL_INTERCEPTIONS || [];
+var HL_FUMBLES = window.HL_FUMBLES || [];
+var HL_FIELDGOALS = window.HL_FIELDGOALS || [];
+var HL_PUNTING = window.HL_PUNTING || [];
+var HL_RETURNS = window.HL_RETURNS || [];
+var HL_CONTRACTS = window.HL_CONTRACTS || [];
+var HL_STADIUMS = window.HL_STADIUMS || [];
 
 var DEFAULT_STATS = {
   quiz: { correctTotal: 0, questionsTotal: 0, roundsPlayed: 0, bestPct: 0 },
@@ -780,7 +791,7 @@ function resetModeState(mode) {
    it) loads on first entry into that specific mode instead. */
 var MODE_DATA_FILES = {
   grid: ['data/grid.js'],
-  higherLower: ['data/grid.js'],
+  higherLower: ['data/grid.js', 'data/higher-lower-extra.js'],
   cfbGrid: ['data/cfb-grid.js'],
   blitz: ['data/blitz.js'],
   cfbBlitz: ['data/cfb-blitz.js'],
@@ -824,6 +835,17 @@ function refreshDataAliases() {
   CFB_LEGENDS_TEAMS = window.CFB_LEGENDS_TEAMS || CFB_LEGENDS_TEAMS;
   CFB_PLAYER_META = window.CFB_PLAYER_META || CFB_PLAYER_META;
   CFB_LEGENDS_DUOS = window.CFB_LEGENDS_DUOS || CFB_LEGENDS_DUOS;
+  HL_PASSING = window.HL_PASSING || HL_PASSING;
+  HL_RUSHING = window.HL_RUSHING || HL_RUSHING;
+  HL_RECEIVING = window.HL_RECEIVING || HL_RECEIVING;
+  HL_TACKLES = window.HL_TACKLES || HL_TACKLES;
+  HL_INTERCEPTIONS = window.HL_INTERCEPTIONS || HL_INTERCEPTIONS;
+  HL_FUMBLES = window.HL_FUMBLES || HL_FUMBLES;
+  HL_FIELDGOALS = window.HL_FIELDGOALS || HL_FIELDGOALS;
+  HL_PUNTING = window.HL_PUNTING || HL_PUNTING;
+  HL_RETURNS = window.HL_RETURNS || HL_RETURNS;
+  HL_CONTRACTS = window.HL_CONTRACTS || HL_CONTRACTS;
+  HL_STADIUMS = window.HL_STADIUMS || HL_STADIUMS;
 }
 function enterMode(mode) {
   // Leaving an in-progress head-to-head match for anywhere else — stop its
@@ -3027,62 +3049,201 @@ function renderSpeedScreen() {
 }
 
 /* ============================== higher or lower ==============================
-   Real career honors already tracked per-player in GRID_PLAYERS — same
-   fields the Learn tab's "Pro Bowl & All-Pro Selections" section reads, plus
-   the 4 boolean "signature moment" flags every entry already carries.
    Classic "guess if the next one is higher or lower" format, endless streak
-   until a miss — built specifically because this is one of the most viral,
-   shareable trivia formats around, and this app already has real per-player
-   numbers that support it honestly.
+   until a miss — one of the most viral, shareable trivia formats around.
 
-   Four selectable stat categories (HIGHER_LOWER_STATS below) rather than one
-   fixed comparison — every one is either a real counted stat already on the
-   data, or (Signature Moments) a plainly-labeled sum of four specific real
-   boolean facts (MVP / Super Bowl win / Super Bowl MVP / Hall of Fame), not
-   an invented or hidden formula. Picked once at the setup screen and fixed
-   for the whole streak-run, same reasoning as not switching Quiz categories
-   mid-round: comparing against a moving target isn't "higher or lower"
-   anymore, it's a different game each time.
+   HL_CATEGORIES is a two-level pool structure: pick a CATEGORY first (which
+   entities you're comparing — career-honors players, 2025 season stat
+   leaders by unit, contracts, or CFB stadiums), then a STAT within that
+   category (which number). Every category besides the original "Career
+   Accolades" pulls from data/higher-lower-extra.js (real 2025 regular-season
+   leaders from NFL.com, real current contracts from Over The Cap, and real
+   FBS stadium capacities) — lazy-loaded the same way data/grid.js already is
+   for this mode, see MODE_DATA_FILES.higherLower.
 
-   CFB deliberately does NOT get a version of this: CFB_GRID_PLAYERS has no
-   comparable numeric stat with real spread (years.length, the closest
-   thing, tops out around 2-3 even for the best multi-time All-Americans —
-   almost every comparison would be a coin-flip tie). This only exists
-   where a real stat actually supports it, not invented to make the mode
-   symmetric across leagues. */
-var HIGHER_LOWER_STATS = [
+   Each category's `pool` is a function (not a plain array) so categories
+   whose raw data needs reshaping — Stadium Capacity's source rows use
+   `stadium`/`school` fields, not the `name` every other pool's entities
+   already have — can normalize once per draw instead of needing a special
+   case threaded through every render/compare call site. `filterZero` is the
+   ONE thing kept from the original design: Career Accolades' GRID_PLAYERS
+   pool is huge (1144 players) and most have zero of any given accolade, so
+   that category alone excludes zero-scores per stat to keep comparisons
+   meaningful; every new category is already a pre-filtered leaderboard (top
+   ~24, or every FBS stadium), so nothing there needs that filter.
+
+   CFB still doesn't get a "Career Accolades" equivalent of its own —
+   CFB_GRID_PLAYERS has no comparable numeric stat with real spread — but
+   the new Stadium Capacity category is a genuine, entirely real CFB pool
+   (138 FBS programs), so Higher or Lower isn't NFL-only anymore. */
+function hlFmtCommas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function hlFmtMoney(n) { return '$' + n + 'M'; }
+function hlFmtPct(n) { return n + '%'; }
+var HIGHER_LOWER_ACCOLADE_STATS = [
   { id: 'combined', label: 'Career Pro Bowl + All-Pro selections', scoreFn: function (p) { return (p.proBowls || 0) + (p.allPro || 0); } },
   { id: 'proBowls', label: 'Career Pro Bowl selections', scoreFn: function (p) { return p.proBowls || 0; } },
   { id: 'allPro', label: 'Career All-Pro selections', scoreFn: function (p) { return p.allPro || 0; } },
   { id: 'moments', label: 'Signature career moments (MVP + Super Bowl win + Super Bowl MVP + Hall of Fame)', scoreFn: function (p) { return (p.mvp ? 1 : 0) + (p.sbChamp ? 1 : 0) + (p.sbMVP ? 1 : 0) + (p.hof ? 1 : 0); } }
 ];
-function higherLowerStatConfig(statId) {
-  return HIGHER_LOWER_STATS.find(function (s) { return s.id === statId; }) || HIGHER_LOWER_STATS[0];
+function higherLowerPlayerLine(p) {
+  return esc(p.position || '') + (p.college ? ' &middot; ' + esc(p.college) : '') + (p.teams && p.teams.length ? ' &middot; ' + esc(p.teams.join('/')) : '');
 }
-function higherLowerPool(statId) {
-  var cfg = higherLowerStatConfig(statId);
-  return GRID_PLAYERS.filter(function (p) { return cfg.scoreFn(p) > 0; });
+function hl2025Line(p) { return '2025 season &middot; ' + esc(p.team); }
+var HL_CATEGORIES = [
+  {
+    id: 'accolades', label: 'Career Accolades', entityLabel: 'player', filterZero: true,
+    pool: function () { return GRID_PLAYERS; }, lineFn: higherLowerPlayerLine, stats: HIGHER_LOWER_ACCOLADE_STATS
+  },
+  {
+    id: 'passing', label: '2025 Passing', entityLabel: 'player',
+    pool: function () { return HL_PASSING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'passYds', label: 'Passing Yards', scoreFn: function (p) { return p.passYds; } },
+      { id: 'passTD', label: 'Passing Touchdowns', scoreFn: function (p) { return p.passTD; } },
+      { id: 'passInt', label: 'Interceptions Thrown', scoreFn: function (p) { return p.passInt; } },
+      { id: 'passRating', label: 'Passer Rating', scoreFn: function (p) { return p.passRating; } },
+      { id: 'passSacks', label: 'Times Sacked', scoreFn: function (p) { return p.passSacks; } }
+    ]
+  },
+  {
+    id: 'rushing', label: '2025 Rushing', entityLabel: 'player',
+    pool: function () { return HL_RUSHING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'rushYds', label: 'Rushing Yards', scoreFn: function (p) { return p.rushYds; } },
+      { id: 'rushTD', label: 'Rushing Touchdowns', scoreFn: function (p) { return p.rushTD; } },
+      { id: 'rushLng', label: 'Longest Rush', scoreFn: function (p) { return p.rushLng; } }
+    ]
+  },
+  {
+    id: 'receiving', label: '2025 Receiving', entityLabel: 'player',
+    pool: function () { return HL_RECEIVING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'rec', label: 'Receptions', scoreFn: function (p) { return p.rec; } },
+      { id: 'recYds', label: 'Receiving Yards', scoreFn: function (p) { return p.recYds; } },
+      { id: 'recTD', label: 'Receiving Touchdowns', scoreFn: function (p) { return p.recTD; } }
+    ]
+  },
+  {
+    id: 'tackles', label: '2025 Tackles', entityLabel: 'player',
+    pool: function () { return HL_TACKLES; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'tklCombined', label: 'Combined Tackles', scoreFn: function (p) { return p.tklCombined; } },
+      { id: 'tklSolo', label: 'Solo Tackles', scoreFn: function (p) { return p.tklSolo; } },
+      { id: 'tklAssists', label: 'Assisted Tackles', scoreFn: function (p) { return p.tklAssists; } },
+      { id: 'tklSacks', label: 'Sacks', scoreFn: function (p) { return p.tklSacks; } }
+    ]
+  },
+  {
+    id: 'interceptions', label: '2025 Interceptions', entityLabel: 'player',
+    pool: function () { return HL_INTERCEPTIONS; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'int', label: 'Interceptions', scoreFn: function (p) { return p.int; } },
+      { id: 'intYds', label: 'Interception Return Yards', scoreFn: function (p) { return p.intYds; } }
+    ]
+  },
+  {
+    id: 'fumbles', label: '2025 Forced Fumbles', entityLabel: 'player',
+    pool: function () { return HL_FUMBLES; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'forcedFum', label: 'Forced Fumbles', scoreFn: function (p) { return p.forcedFum; } },
+      { id: 'fumRec', label: 'Fumble Recoveries', scoreFn: function (p) { return p.fumRec; } }
+    ]
+  },
+  {
+    id: 'fieldgoals', label: '2025 Field Goals', entityLabel: 'player',
+    pool: function () { return HL_FIELDGOALS; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'fgMade', label: 'Field Goals Made', scoreFn: function (p) { return p.fgMade; } },
+      { id: 'fgAtt', label: 'Field Goal Attempts', scoreFn: function (p) { return p.fgAtt; } },
+      { id: 'fgPct', label: 'Field Goal %', scoreFn: function (p) { return p.fgPct; }, fmt: hlFmtPct },
+      { id: 'fgLng', label: 'Longest Field Goal', scoreFn: function (p) { return p.fgLng; } }
+    ]
+  },
+  {
+    id: 'punting', label: '2025 Punting', entityLabel: 'player',
+    pool: function () { return HL_PUNTING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'puntAvg', label: 'Punting Average', scoreFn: function (p) { return p.puntAvg; } },
+      { id: 'puntYds', label: 'Punting Yards', scoreFn: function (p) { return p.puntYds; } }
+    ]
+  },
+  {
+    id: 'returns', label: '2025 Kick/Punt Returns', entityLabel: 'player',
+    pool: function () { return HL_RETURNS; }, lineFn: function (p) { return esc(p.returnType) + ' return &middot; 2025 season &middot; ' + esc(p.team); },
+    stats: [
+      { id: 'returnAvg', label: 'Return Average', scoreFn: function (p) { return p.returnAvg; } },
+      { id: 'returnYds', label: 'Return Yards', scoreFn: function (p) { return p.returnYds; } }
+    ]
+  },
+  {
+    id: 'contracts', label: 'Contract Value', entityLabel: 'player',
+    pool: function () { return HL_CONTRACTS; }, lineFn: function (p) { return esc(p.pos) + ' &middot; ' + esc(p.team); },
+    stats: [
+      { id: 'totalValue', label: 'Total Contract Value', scoreFn: function (p) { return p.totalValue; }, fmt: hlFmtMoney },
+      { id: 'apy', label: 'Average Per Year', scoreFn: function (p) { return p.apy; }, fmt: hlFmtMoney },
+      { id: 'totalGtd', label: 'Total Guaranteed', scoreFn: function (p) { return p.totalGtd; }, fmt: hlFmtMoney },
+      { id: 'pctGtd', label: '% of Contract Guaranteed', scoreFn: function (p) { return p.pctGtd; }, fmt: hlFmtPct }
+    ]
+  },
+  {
+    id: 'stadiums', label: 'CFB Stadium Capacity', entityLabel: 'stadium',
+    pool: function () {
+      return HL_STADIUMS.map(function (st) { return { name: st.stadium, school: st.school, nickname: st.nickname, conf: st.conf, city: st.city, capacity: st.capacity }; });
+    },
+    lineFn: function (p) { return esc(p.school) + ' ' + esc(p.nickname) + ' &middot; ' + esc(p.conf) + ' &middot; ' + esc(p.city); },
+    stats: [
+      { id: 'capacity', label: 'Stadium Capacity', scoreFn: function (p) { return p.capacity; }, fmt: hlFmtCommas }
+    ]
+  }
+];
+function hlCategoryConfig(catId) { return HL_CATEGORIES.find(function (c) { return c.id === catId; }) || HL_CATEGORIES[0]; }
+function hlStatConfig(catId, statId) {
+  var cat = hlCategoryConfig(catId);
+  return cat.stats.find(function (s) { return s.id === statId; }) || cat.stats[0];
 }
-function higherLowerScore(p, statId) { return higherLowerStatConfig(statId).scoreFn(p); }
-function higherLowerDrawPlayer(statId, usedNames) {
-  var pool = higherLowerPool(statId).filter(function (p) { return usedNames.indexOf(p.name) === -1; });
-  // Pool exhausted (334-651 players depending on the stat — a genuinely
-  // absurd streak to reach any of those) — allow repeats rather than
-  // dead-end an otherwise-still-going run.
-  if (!pool.length) pool = higherLowerPool(statId);
+function higherLowerPool(catId, statId) {
+  var cat = hlCategoryConfig(catId);
+  var cfg = hlStatConfig(catId, statId);
+  var pool = cat.pool();
+  if (cat.filterZero) pool = pool.filter(function (p) { return cfg.scoreFn(p) > 0; });
+  return pool;
+}
+function higherLowerScore(p, catId, statId) { return hlStatConfig(catId, statId).scoreFn(p); }
+function higherLowerScoreDisplay(p, catId, statId) {
+  var cfg = hlStatConfig(catId, statId);
+  var v = cfg.scoreFn(p);
+  return cfg.fmt ? cfg.fmt(v) : v;
+}
+function higherLowerDrawPlayer(catId, statId, usedNames) {
+  var pool = higherLowerPool(catId, statId).filter(function (p) { return usedNames.indexOf(p.name) === -1; });
+  // Pool exhausted — allow repeats rather than dead-end an otherwise-still-
+  // going run (career-accolade pools run 334-651 deep, but a few new
+  // categories like Fumbles/Punting/Returns only have ~18-20 entries and a
+  // real streak CAN reach that).
+  if (!pool.length) pool = higherLowerPool(catId, statId);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 // Remembered for the session (not persisted across visits) so re-starting
-// after a loss defaults back to whatever stat you were just playing, same
-// convenience as Quiz remembering its last round size.
-var higherLowerStatPref = 'combined';
-function setHigherLowerStat(statId) { higherLowerStatPref = statId; renderAll(); }
+// after a loss defaults back to whatever you were just playing, same
+// convenience as Quiz remembering its last round size. Stat prefs are kept
+// PER CATEGORY (not one shared value) since a stat id from one category
+// (e.g. 'combined') isn't valid in another (e.g. 'passing') — switching
+// categories always needs to land on one of ITS OWN stats.
+var higherLowerCategoryPref = 'accolades';
+var higherLowerStatPrefByCategory = { accolades: 'combined' };
+function setHigherLowerCategory(catId) {
+  higherLowerCategoryPref = catId;
+  if (!higherLowerStatPrefByCategory[catId]) higherLowerStatPrefByCategory[catId] = hlCategoryConfig(catId).stats[0].id;
+  renderAll();
+}
+function setHigherLowerStat(statId) { higherLowerStatPrefByCategory[higherLowerCategoryPref] = statId; renderAll(); }
 function startHigherLower() {
-  var statId = higherLowerStatPref;
-  var first = higherLowerDrawPlayer(statId, []);
-  var second = higherLowerDrawPlayer(statId, [first.name]);
+  var catId = higherLowerCategoryPref;
+  var statId = higherLowerStatPrefByCategory[catId] || hlCategoryConfig(catId).stats[0].id;
+  var first = higherLowerDrawPlayer(catId, statId, []);
+  var second = higherLowerDrawPlayer(catId, statId, [first.name]);
   state.higherLower = {
-    screen: 'playing', stat: statId, current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
+    screen: 'playing', category: catId, stat: statId, current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
     usedNames: [first.name, second.name], ranked: state.rankedPref.higherLower !== false
   };
   state.screen = 'higherLower';
@@ -3091,7 +3252,7 @@ function startHigherLower() {
 function submitHigherLowerGuess(direction) {
   var s = state.higherLower;
   if (!s || s.screen !== 'playing') return;
-  var curScore = higherLowerScore(s.current, s.stat), nextScore = higherLowerScore(s.next, s.stat);
+  var curScore = higherLowerScore(s.current, s.category, s.stat), nextScore = higherLowerScore(s.next, s.category, s.stat);
   // A tie always counts as correct — standard house rule for this format,
   // and the honest one: nothing in "higher or lower" was violated by a
   // dead-even comparison, so it shouldn't end the run either direction.
@@ -3107,7 +3268,7 @@ function higherLowerContinue() {
   var s = state.higherLower;
   if (!s || s.screen !== 'reveal') return;
   s.current = s.next;
-  s.next = higherLowerDrawPlayer(s.stat, s.usedNames);
+  s.next = higherLowerDrawPlayer(s.category, s.stat, s.usedNames);
   s.usedNames.push(s.next.name);
   s.revealedScore = null;
   s.lastCorrect = null;
@@ -3128,15 +3289,17 @@ function finishHigherLower() {
   completeDailyChallengeFrom('higherLower', s.streak + ' streak', Math.min(100, s.streak * 10));
   h2hSubmitModeResult('higherLower', s.streak, null);
 }
-function higherLowerPlayerLine(p) {
-  return esc(p.position || '') + (p.college ? ' &middot; ' + esc(p.college) : '') + (p.teams && p.teams.length ? ' &middot; ' + esc(p.teams.join('/')) : '');
-}
 function renderHigherLowerSetup() {
+  var cat = hlCategoryConfig(higherLowerCategoryPref);
+  var statPref = higherLowerStatPrefByCategory[higherLowerCategoryPref] || cat.stats[0].id;
   return '<div class="panel">' +
     '<h2 class="panel-title">Higher or Lower</h2>' +
-    '<p class="mode-desc">Two real NFL players, one real stat — see one player\'s total, guess whether the next player has more or fewer. Keep going until you miss — how long a streak can you build?</p>' +
+    '<p class="mode-desc">Two real numbers, one real stat — see one, guess whether the next is higher or lower. Keep going until you miss — how long a streak can you build?</p>' +
     '<div class="chip-row">' +
-    HIGHER_LOWER_STATS.map(function (st) { return '<button class="chip-toggle' + (higherLowerStatPref === st.id ? ' active' : '') + '" data-hl-stat="' + st.id + '">' + esc(st.label) + '</button>'; }).join('') +
+    HL_CATEGORIES.map(function (c) { return '<button class="chip-toggle' + (higherLowerCategoryPref === c.id ? ' active' : '') + '" data-hl-category="' + c.id + '">' + esc(c.label) + '</button>'; }).join('') +
+    '</div>' +
+    '<div class="chip-row">' +
+    cat.stats.map(function (st) { return '<button class="chip-toggle' + (statPref === st.id ? ' active' : '') + '" data-hl-stat="' + st.id + '">' + esc(st.label) + '</button>'; }).join('') +
     '</div>' +
     rankedToggleHtml('higherLower') +
     '<button class="btn-primary" data-hl-start>Start</button>' +
@@ -3145,25 +3308,26 @@ function renderHigherLowerSetup() {
 function renderHigherLowerPlaying() {
   var s = state.higherLower;
   var revealing = s.screen === 'reveal';
-  var statLabel = higherLowerStatConfig(s.stat).label;
+  var cat = hlCategoryConfig(s.category);
+  var statLabel = hlStatConfig(s.category, s.stat).label;
   return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
     '<h2 class="panel-title">Higher or Lower &middot; Streak: ' + s.streak + '</h2>' +
     '<div class="hl-card hl-card-current">' +
     '<div class="hl-name">' + esc(s.current.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.current) + '</div>' +
-    '<div class="hl-score">' + higherLowerScore(s.current, s.stat) + '</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.current) + '</div>' +
+    '<div class="hl-score">' + higherLowerScoreDisplay(s.current, s.category, s.stat) + '</div>' +
     '<div class="hl-score-label">' + esc(statLabel) + '</div>' +
     '</div>' +
     '<div class="hl-vs">vs</div>' +
     '<div class="hl-card hl-card-next' + (revealing ? (s.lastCorrect ? ' correct' : ' wrong') : '') + '">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
     (revealing
-      ? '<div class="hl-score">' + s.revealedScore + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
+      ? '<div class="hl-score">' + higherLowerScoreDisplay(s.next, s.category, s.stat) + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
       : '<div class="hl-score hl-score-hidden">?</div><div class="hl-score-label">More or fewer than ' + esc(s.current.name) + '?</div>') +
     '</div>' +
     (revealing
-      ? '<button class="btn-primary hl-continue" data-hl-continue>Next Player</button>'
+      ? '<button class="btn-primary hl-continue" data-hl-continue>Next ' + (cat.entityLabel === 'stadium' ? 'Stadium' : 'Player') + '</button>'
       : '<div class="hl-guess-row">' +
         '<button class="hl-guess-btn hl-lower" data-hl-guess="lower">' + icon('arrowDown') + ' Lower</button>' +
         '<button class="hl-guess-btn hl-higher" data-hl-guess="higher">' + icon('arrowUp') + ' Higher</button>' +
@@ -3172,14 +3336,15 @@ function renderHigherLowerPlaying() {
 }
 function renderHigherLowerOver() {
   var s = state.higherLower;
+  var cat = hlCategoryConfig(s.category);
   return '<div class="panel">' +
     '<h2 class="panel-title">Streak Over</h2>' +
     '<div class="summary-score">Final streak: ' + s.streak + '</div>' +
     '<div class="hl-card hl-card-next wrong">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
-    '<div class="hl-score">' + s.revealedScore + '</div>' +
-    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScore(s.current, s.stat) + '</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
+    '<div class="hl-score">' + higherLowerScoreDisplay(s.next, s.category, s.stat) + '</div>' +
+    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScoreDisplay(s.current, s.category, s.stat) + '</div>' +
     '</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
@@ -5449,9 +5614,11 @@ function shareConfigFor(mode) {
   }
   if (mode === 'higherLower') {
     var hl = state.higherLower;
+    var hlCat = hlCategoryConfig(hl.category);
+    var hlNoun = hlCat.entityLabel === 'stadium' ? 'stadium' : 'player';
     var rlHl = shareRatingLine(hl.ratingDelta);
-    return { title: 'Higher or Lower', headline: String(hl.streak), sub: hl.streak === 1 ? 'player' : 'players', detail: rlHl,
-      shareText: 'I built a ' + hl.streak + '-player streak on Higher or Lower in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
+    return { title: 'Higher or Lower — ' + hlCat.label, headline: String(hl.streak), sub: hl.streak === 1 ? hlNoun : hlNoun + 's', detail: rlHl,
+      shareText: 'I built a ' + hl.streak + '-' + hlNoun + ' streak on Higher or Lower (' + hlCat.label + ') in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
   }
   if (mode === 'iq' || mode === 'cfbIq') {
     var iq = state[mode];
@@ -7104,7 +7271,7 @@ document.addEventListener('click', function (e) {
     '[data-grid-start], [data-grid-cell], [data-grid-submit], [data-grid-again], ' +
     '[data-blitz-list], [data-blitz-start], [data-blitz-submit], [data-blitz-setup], ' +
     '[data-speed-start], [data-speed-answer], [data-leaderboard-mode], [data-leaderboard-range], ' +
-    '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], ' +
+    '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], [data-hl-category], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
@@ -7268,6 +7435,7 @@ document.addEventListener('click', function (e) {
 
   if (t.dataset.speedStart !== undefined) { startSpeedRound(parseInt(t.dataset.speedStart, 10)); return; }
   if (t.dataset.speedAnswer !== undefined) { registerSpeedAnswer(parseInt(t.dataset.speedAnswer, 10)); return; }
+  if (t.dataset.hlCategory !== undefined) { setHigherLowerCategory(t.dataset.hlCategory); return; }
   if (t.dataset.hlStat !== undefined) { setHigherLowerStat(t.dataset.hlStat); return; }
   if (t.dataset.hlStart !== undefined) { startHigherLower(); return; }
   if (t.dataset.hlGuess !== undefined) { submitHigherLowerGuess(t.dataset.hlGuess); return; }
