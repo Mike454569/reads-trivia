@@ -8,7 +8,7 @@
 // (solo play keeps working offline, only the shared leaderboard needs a
 // connection). Bump CACHE_VERSION when shipping a change worth force-clearing
 // old installs' caches for.
-var CACHE_VERSION = 'reads-v10';
+var CACHE_VERSION = 'reads-v12';
 var CORE_ASSETS = [
   './', './index.html', './styles.css', './app.js', './sound.js', './firebase-sync.js', './manifest.json',
   './data/quiz.js', './data/grid.js', './data/blitz.js', './data/silhouette.js',

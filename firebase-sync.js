@@ -13,7 +13,18 @@
 //   window.__fbSync.getMatch(code)                 <- defined here, called by app.js (Promise)
 //   window.__fbSync.setMatch(code, data, merge)     <- defined here, called by app.js
 //   window.__fbSync.watchMatch(code, cb)            <- defined here, called by app.js (returns unsubscribe)
+//   window.__fbSync.pushProfile(nameSlug, data)     <- defined here, called by app.js
+//   window.__fbSync.getProfile(nameSlug)            <- defined here, called by app.js (Promise)
 //   window.__fbSync.status                        <- 'connecting' | 'live' | 'offline'
+//
+// pushProfile/getProfile back cross-device sync for per-mode stats/badges/
+// streak (see pushProfileSnapshot()/pullProfileSnapshot() in app.js) — the
+// same "one doc per name, no password" idea the rating sync above already
+// used, just extended to the rest of state.stats. One doc per name (not
+// per-device, unlike the leaderboard), fetched once (not a live listener —
+// unlike the leaderboard, nobody else needs to watch your stats update in
+// real time) and merged field-by-field client-side, taking whichever
+// device's value is further along for each stat independently.
 //
 // getMatch/setMatch/watchMatch back the async Head-to-Head mode (see the
 // "head-to-head" section of app.js): one Firestore doc per match, keyed by
@@ -74,7 +85,9 @@ window.__fbSync = {
   submitReport: function () { console.warn('Report not sent — not connected.'); },
   getMatch: function () { return Promise.reject(new Error('Not connected')); },
   setMatch: function () { return Promise.reject(new Error('Not connected')); },
-  watchMatch: function () { return function () {}; }
+  watchMatch: function () { return function () {}; },
+  pushProfile: function () { /* no-op until Firebase finishes initializing below */ },
+  getProfile: function () { return Promise.reject(new Error('Not connected')); }
 };
 setStatus('connecting');
 
@@ -90,6 +103,19 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     var analyticsDoc = doc(db, 'games', GAME_ID, 'analytics', 'playCounts');
     var reportsCol = collection(db, 'games', GAME_ID, 'reports');
     var matchesCol = collection(db, 'games', GAME_ID, 'matches');
+    var profilesCol = collection(db, 'games', GAME_ID, 'profiles');
+
+    window.__fbSync.pushProfile = function (nameSlug, data) {
+      var payload = Object.assign({}, data, { updatedAt: serverTimestamp() });
+      setDoc(doc(profilesCol, nameSlug), payload).catch(function (err) {
+        console.error('Profile push failed', err);
+      });
+    };
+    window.__fbSync.getProfile = function (nameSlug) {
+      return getDoc(doc(profilesCol, nameSlug)).then(function (snap) {
+        return snap.exists() ? snap.data() : null;
+      });
+    };
 
     window.__fbSync.getMatch = function (code) {
       return getDoc(doc(matchesCol, code)).then(function (snap) {

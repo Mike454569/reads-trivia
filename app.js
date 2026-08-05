@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '2.0.0';
+var APP_VERSION = '2.2.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://getreads.netlify.app/';
 
@@ -52,9 +52,12 @@ var ICON_PATHS = {
   sync: '<path d="M4 10a8 8 0 0 1 13.7-5.7L20 6.5"/><path d="M20 4v3.5h-3.5"/><path d="M20 14a8 8 0 0 1-13.7 5.7L4 17.5"/><path d="M4 20v-3.5h3.5"/>',
   flag: '<path d="M5 21V4"/><path d="M5 4h13l-3 4.5L18 13H5"/>',
   versus: '<circle cx="8" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.5-6.2 5.5-6.2s5.5 2.6 5.5 6.2"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.2 20c.3-2.9 1.9-5 4.3-5.8"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   hofJacket: '<path d="M6 6H18V21H6Z"/><path d="M6 6 11 12"/><path d="M18 6 13 12"/><circle cx="9" cy="15" r="1.1"/>',
   cfpTrophy: '<path d="M12 3 8 9 12 15 16 9Z"/><path d="M10 15h4v3h-4Z"/><rect x="7" y="18" width="10" height="3" rx="1"/>',
   lombardiTrophy: '<ellipse cx="12" cy="6" rx="4" ry="2.6" transform="rotate(-25 12 6)"/><path d="M12 8.5v2.5"/><path d="M9 11h6l3 10H6Z"/>',
+  arrowUp: '<path d="M12 20V4"/><path d="M5 11l7-7 7 7"/>',
+  arrowDown: '<path d="M12 4v16"/><path d="M5 13l7 7 7-7"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
@@ -113,6 +116,7 @@ var DEFAULT_STATS = {
   silhouette: { bestScore: 0, roundsPlayed: 0, bestQuick: 0 },
   iq: { bestIQ: 0, testsTaken: 0 },
   legends: { bestWins: 0, bestScore: 0, bestGrade: '', gamesPlayed: 0 },
+  higherLower: { bestStreak: 0, gamesPlayed: 0 },
   cfbQuiz: { correctTotal: 0, questionsTotal: 0, roundsPlayed: 0, bestPct: 0 },
   cfbIq: { bestIQ: 0, testsTaken: 0 },
   cfbSpeed: { bestScore: 0, bestStreak: 0, sessionsPlayed: 0 },
@@ -140,6 +144,7 @@ var state = {
   silhouette: null,
   iq: null,
   legends: null,
+  higherLower: null,
   cfbQuiz: { screen: 'setup', category: '', difficulty: '', roundSize: 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] },
   cfbIq: null,
   cfbSpeed: null,
@@ -148,6 +153,7 @@ var state = {
   daily: null,
   cfbLegends: null,
   h2h: null,
+  h2hLive: null,
   study: null,
   learn: null,
   introTest: null,
@@ -217,6 +223,115 @@ function reconcileRating(list) {
     window.__fbSync.pushScore(ratingDocId(), { name: state.name, mode: 'rating', score: local.score, games: local.games || 0 });
   }
 }
+// Cross-device sync for per-mode stats/badges/streak — the same "one doc
+// per name, no password" idea reconcileRating() above already used for
+// Football Rating, extended to the rest of state.stats. Unlike rating
+// (one number, "more games played" is unambiguously more advanced), stats
+// is ~17 mode objects with their own bests/counts — merged field-by-field,
+// taking whichever device's value is further along for each field
+// independently, so playing on two devices never LOSES progress on either
+// one. bestGrade (a letter, not a number) needs its own rank table since
+// Math.max() on 'S' vs 'A+' doesn't mean anything.
+var STAT_GRADE_RANK = { S: 11, 'A+': 10, A: 9, 'A-': 8, 'B+': 7, B: 6, 'B-': 5, 'C+': 4, C: 3, D: 2, F: 1 };
+function betterGrade(a, b) { return (STAT_GRADE_RANK[b] || 0) > (STAT_GRADE_RANK[a] || 0) ? b : (a || ''); }
+function mergeStats(local, cloud) {
+  if (!cloud) return local;
+  var merged = {};
+  Object.keys(DEFAULT_STATS).forEach(function (mode) {
+    var l = local[mode] || {}, c = cloud[mode] || {}, out = {};
+    Object.keys(DEFAULT_STATS[mode]).forEach(function (field) {
+      out[field] = field === 'bestGrade' ? betterGrade(l[field], c[field]) : Math.max(Number(l[field]) || 0, Number(c[field]) || 0);
+    });
+    merged[mode] = out;
+  });
+  return merged;
+}
+// Streak isn't a running total like the stats above — it's inherently tied
+// to actual calendar dates (miss a day, it resets), so "bigger number" and
+// "more advanced" aren't the same thing here. Whichever device played most
+// recently is the authoritative one; only fall back to comparing counts if
+// they somehow played on the exact same date.
+function mergeStreak(local, cloud) {
+  if (!cloud || !cloud.lastPlayedDate) return local;
+  if (!local.lastPlayedDate || cloud.lastPlayedDate > local.lastPlayedDate) return cloud;
+  if (cloud.lastPlayedDate === local.lastPlayedDate && (cloud.count || 0) > (local.count || 0)) return cloud;
+  return local;
+}
+function pushProfileSnapshot() {
+  if (!state.name || !window.__fbSync || !window.__fbSync.pushProfile) return;
+  window.__fbSync.pushProfile(slugify(state.name), { name: state.name, stats: state.stats, streak: getStreak() });
+}
+// Called once whenever a name is set/entered (see saveName()) — a one-time
+// fetch-and-merge, not a live listener like the leaderboard: nobody else
+// needs to watch your personal stats update in real time, this only ever
+// needs to run at the moment a device might be "catching up."
+function pullProfileSnapshot() {
+  if (!state.name || !window.__fbSync || !window.__fbSync.getProfile) return;
+  window.__fbSync.getProfile(slugify(state.name)).then(function (cloud) {
+    if (!cloud) return;
+    var beforeStats = JSON.stringify(state.stats), beforeStreak = JSON.stringify(getStreak());
+    state.stats = mergeStats(state.stats, cloud.stats);
+    var mergedStreak = mergeStreak(getStreak(), cloud.streak);
+    lsSet('nflTriviaStats', state.stats);
+    lsSet(streakKey(), mergedStreak);
+    if (JSON.stringify(state.stats) !== beforeStats || JSON.stringify(mergedStreak) !== beforeStreak) {
+      pushProfileSnapshot(); // close the loop: cloud should reflect the merge too, not just this device
+      renderAll();
+    }
+  }).catch(function (err) { console.warn('Profile pull failed', err); });
+}
+// Friends list — deliberately just a local list of names, not another
+// synced collection: nobody needs to see who's on someone else's list, and
+// a plain localStorage array sidesteps friend-request/accept flow entirely.
+// What each friend row shows is real, already-live data pulled from systems
+// built above: their Football Rating comes straight out of the shared
+// leaderboard state.leaderboardData already keeps live via onSnapshot, and
+// their streak comes from the same per-name profiles doc pushProfileSnapshot()
+// already writes for cross-device sync — no new backend concept needed.
+var FRIENDS_KEY = 'nflTriviaFriends';
+function getFriends() { return lsGet(FRIENDS_KEY, []); }
+function setFriends(list) { lsSet(FRIENDS_KEY, list); }
+function addFriend(name) {
+  name = (name || '').trim();
+  if (!name) return;
+  var list = getFriends();
+  if (list.some(function (f) { return slugify(f) === slugify(name); })) return;
+  list.push(name);
+  setFriends(list);
+  var input = document.getElementById('friend-name-input');
+  if (input) input.value = '';
+  loadFriendsData();
+}
+function removeFriend(name) {
+  setFriends(getFriends().filter(function (f) { return slugify(f) !== slugify(name); }));
+  renderAll();
+}
+function friendRatingFromLeaderboard(name) {
+  var slug = slugify(name);
+  var entry = (state.leaderboardData || []).find(function (r) { return r.mode === 'rating' && slugify(r.name || '') === slug; });
+  return entry ? { score: entry.score, games: entry.games || 0 } : null;
+}
+// Not a live listener like the leaderboard (that would mean one Firestore
+// subscription per friend, torn down/rebuilt every time the list changes) —
+// just a one-time fetch each time the Friends screen is opened, matching how
+// pullProfileSnapshot() already treats profile docs as "check when you look,
+// not watch forever."
+var friendsProfileCache = {};
+var friendsLoading = false;
+function loadFriendsData() {
+  var friends = getFriends();
+  if (!friends.length || !window.__fbSync || !window.__fbSync.getProfile) { renderAll(); return; }
+  friendsLoading = true;
+  renderAll();
+  Promise.all(friends.map(function (name) {
+    return window.__fbSync.getProfile(slugify(name)).then(function (profile) {
+      friendsProfileCache[slugify(name)] = profile;
+    }).catch(function () { friendsProfileCache[slugify(name)] = null; });
+  })).then(function () {
+    friendsLoading = false;
+    renderAll();
+  });
+}
 // Tracks how much the last updateRatingDrift() call actually moved the
 // rating — read by each finish* function right after calling it, and shown
 // on that round's share card. Reset to null at the top of every call so a
@@ -274,8 +389,8 @@ function finishIntroTest() {
   pushRatingHistory(t.score);
   renderAll();
 }
-function skipIntroTest() { state.introTest = null; state.screen = 'home'; renderAll(); }
-function introTestDone() { state.introTest = null; state.screen = 'home'; renderAll(); }
+function skipIntroTest() { state.introTest = null; state.screen = 'home'; if (!consumePendingLiveJoin()) renderAll(); }
+function introTestDone() { state.introTest = null; state.screen = 'home'; if (!consumePendingLiveJoin()) renderAll(); }
 function retakeIntroTest() { startIntroTest(); }
 // Unlike quiz options/grid squares (fresh DOM nodes every render, so a CSS
 // animation on their class just replays automatically), #rating-badge is a
@@ -640,6 +755,7 @@ function resetModeState(mode) {
   else if (mode === 'grid') state.grid = null;
   else if (mode === 'blitz') state.blitz = null;
   else if (mode === 'speed') state.speed = null;
+  else if (mode === 'higherLower') state.higherLower = null;
   else if (mode === 'silhouette') state.silhouette = null;
   else if (mode === 'iq') state.iq = null;
   else if (mode === 'legends') state.legends = null;
@@ -651,6 +767,7 @@ function resetModeState(mode) {
   else if (mode === 'daily') state.daily = null;
   else if (mode === 'cfbLegends') state.cfbLegends = null;
   else if (mode === 'h2h') state.h2h = null;
+  else if (mode === 'h2hLive') { h2hLiveStopWatch(); state.h2hLive = null; }
   else if (mode === 'study') state.study = null;
   else if (mode === 'learn') state.learn = null;
   else if (mode === 'settings') state.settingsConfirmClear = false;
@@ -663,6 +780,7 @@ function resetModeState(mode) {
    it) loads on first entry into that specific mode instead. */
 var MODE_DATA_FILES = {
   grid: ['data/grid.js'],
+  higherLower: ['data/grid.js'],
   cfbGrid: ['data/cfb-grid.js'],
   blitz: ['data/blitz.js'],
   cfbBlitz: ['data/cfb-blitz.js'],
@@ -711,6 +829,7 @@ function enterMode(mode) {
   // Leaving an in-progress head-to-head match for anywhere else — stop its
   // live listener so it doesn't keep updating a screen nobody's looking at.
   if (state.screen === 'h2h' && mode !== 'h2h' && typeof h2hStopWatch === 'function') h2hStopWatch();
+  if (state.screen === 'h2hLive' && mode !== 'h2hLive' && typeof h2hLiveStopWatch === 'function') h2hLiveStopWatch();
   stopTimers(); resetModeState(mode); state.screen = mode; renderAll();
   // "Continue where you left off" on Home reads this back — only real game
   // modes count, not navigational screens like leaderboard/profile/daily.
@@ -719,8 +838,13 @@ function enterMode(mode) {
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
   } else if (mode === 'h2h' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('h2h');
+  } else if (mode === 'h2hLive' && window.__fbSync && window.__fbSync.logPlay) {
+    window.__fbSync.logPlay('h2hLive');
   } else if (mode === 'learn' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('learn');
+  } else if (mode === 'friends') {
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay('friends');
+    loadFriendsData();
   } else if (mode === 'study' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('study');
   }
@@ -789,10 +913,12 @@ function saveName(name) {
   // device picks up their real rating right away instead of wrongly
   // launching the intro test and needing a refresh to fix itself.
   reconcileRating(state.leaderboardData);
+  didInitialProfilePull = true;
+  pullProfileSnapshot();
   if (!getRating()) { startIntroTest(); return; }
-  renderAll();
+  if (!consumePendingLiveJoin()) renderAll();
 }
-function changeName() { state.name = ''; lsSet('nflTriviaName', ''); renderAll(); }
+function changeName() { state.name = ''; lsSet('nflTriviaName', ''); didInitialProfilePull = false; renderAll(); }
 
 function nameBarHtml() {
   return '<div class="name-bar">' +
@@ -820,7 +946,8 @@ var LEAGUE_MODES = {
     { id: 'speed', icon: 'zap', title: 'NFL Speed', desc: 'Rapid-fire multiple choice against the clock. Build a streak for bonus points.', difficulty: 'competitive' },
     { id: 'silhouette', icon: 'search', title: 'NFL Silhouette', desc: 'A generic pose silhouette and a ladder of clues — guess the player using as few hints as you can.', difficulty: 'competitive' },
     { id: 'iq', icon: 'brain', title: 'NFL IQ Test', desc: '25 questions, no feedback until the end. Get a Football IQ score and a category breakdown.', featured: true, difficulty: 'competitive' },
-    { id: 'legends', icon: 'trophy', title: '17-0', desc: 'Draft a 7-player team from real players\' real seasons (1999-2025) and see if it grades out as a perfect season.', difficulty: 'competitive' }
+    { id: 'legends', icon: 'trophy', title: '17-0', desc: 'Draft a 7-player team from real players\' real seasons (1999-2025) and see if it grades out as a perfect season.', difficulty: 'competitive' },
+    { id: 'higherLower', icon: 'arrowUp', title: 'Higher or Lower', desc: 'Two real players, one real stat — guess higher or lower than the last one. Keep going until you miss.', difficulty: 'casual' }
   ],
   cfb: [
     { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: '456 CFB questions across 10 categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
@@ -1263,6 +1390,14 @@ function learnCardHtml() {
     '<span class="continue-card-mode">' + icon('book') + ' Learn</span>' +
     '</button>';
 }
+function friendsCardHtml() {
+  var count = getFriends().length;
+  var label = count ? (count + ' friend' + (count === 1 ? '' : 's') + ' added') : 'See how they stack up';
+  return '<button class="continue-card friends-card" data-go="friends">' +
+    '<span class="continue-card-label">' + esc(label) + '</span>' +
+    '<span class="continue-card-mode">' + icon('users') + ' Friends</span>' +
+    '</button>';
+}
 function recommendedModeHtml() {
   if (!state.name) return '';
   var all = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb);
@@ -1295,7 +1430,9 @@ function renderHome() {
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
     h2hCardHtml() +
+    h2hLiveCardHtml() +
     learnCardHtml() +
+    friendsCardHtml() +
     studyCardHtml() +
     recommendedModeHtml() +
     modeSectionHtml('nfl') +
@@ -2780,6 +2917,144 @@ function renderSpeedScreen() {
   if (state.speed.screen === 'summary') return renderSpeedSummary();
   if (state.speed.screen === 'playing') return renderSpeedPlaying();
   return renderSpeedSetup();
+}
+
+/* ============================== higher or lower ==============================
+   Real career honors (Pro Bowls + All-Pro selections — both already tracked
+   per-player in GRID_PLAYERS, same field the Learn tab's "Pro Bowl &
+   All-Pro Selections" section reads) as the comparison stat. Classic
+   "guess if the next one is higher or lower" format, endless streak until
+   a miss — built specifically because this is one of the most viral,
+   shareable trivia formats around, and this app already has real per-
+   player numbers that support it honestly.
+
+   CFB deliberately does NOT get a version of this: CFB_GRID_PLAYERS has no
+   comparable numeric stat with real spread (years.length, the closest
+   thing, tops out around 2-3 even for the best multi-time All-Americans —
+   almost every comparison would be a coin-flip tie). This only exists
+   where a real stat actually supports it, not invented to make the mode
+   symmetric across leagues. */
+function higherLowerPool() {
+  return GRID_PLAYERS.filter(function (p) { return ((p.proBowls || 0) + (p.allPro || 0)) > 0; });
+}
+function higherLowerScore(p) { return (p.proBowls || 0) + (p.allPro || 0); }
+function higherLowerDrawPlayer(usedNames) {
+  var pool = higherLowerPool().filter(function (p) { return usedNames.indexOf(p.name) === -1; });
+  // Pool exhausted (651 players — a genuinely absurd streak to reach) —
+  // allow repeats rather than dead-end an otherwise-still-going run.
+  if (!pool.length) pool = higherLowerPool();
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+function startHigherLower() {
+  var first = higherLowerDrawPlayer([]);
+  var second = higherLowerDrawPlayer([first.name]);
+  state.higherLower = {
+    screen: 'playing', current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
+    usedNames: [first.name, second.name], ranked: state.rankedPref.higherLower !== false
+  };
+  state.screen = 'higherLower';
+  renderAll();
+}
+function submitHigherLowerGuess(direction) {
+  var s = state.higherLower;
+  if (!s || s.screen !== 'playing') return;
+  var curScore = higherLowerScore(s.current), nextScore = higherLowerScore(s.next);
+  // A tie always counts as correct — standard house rule for this format,
+  // and the honest one: nothing in "higher or lower" was violated by a
+  // dead-even comparison, so it shouldn't end the run either direction.
+  var correct = curScore === nextScore || (direction === 'higher' ? nextScore > curScore : nextScore < curScore);
+  s.lastCorrect = correct;
+  s.revealedScore = nextScore;
+  playSound(correct ? 'correct' : 'wrong');
+  if (correct) { s.streak++; s.screen = 'reveal'; }
+  else { s.screen = 'over'; finishHigherLower(); }
+  renderAll();
+}
+function higherLowerContinue() {
+  var s = state.higherLower;
+  if (!s || s.screen !== 'reveal') return;
+  s.current = s.next;
+  s.next = higherLowerDrawPlayer(s.usedNames);
+  s.usedNames.push(s.next.name);
+  s.revealedScore = null;
+  s.lastCorrect = null;
+  s.screen = 'playing';
+  renderAll();
+}
+function finishHigherLower() {
+  var s = state.higherLower;
+  if (s.ranked !== false) {
+    var st = state.stats.higherLower;
+    st.gamesPlayed++;
+    if (s.streak > st.bestStreak) st.bestStreak = s.streak;
+    lsSet('nflTriviaStats', state.stats);
+    updateRatingDrift(Math.min(100, s.streak * 10));
+    s.ratingDelta = lastRatingDelta;
+    pushLeaderboard('higherLower', { bestStreak: st.bestStreak, gamesPlayed: st.gamesPlayed });
+  }
+  completeDailyChallengeFrom('higherLower', s.streak + ' streak', Math.min(100, s.streak * 10));
+  h2hSubmitModeResult('higherLower', s.streak, null);
+}
+function higherLowerPlayerLine(p) {
+  return esc(p.position || '') + (p.college ? ' &middot; ' + esc(p.college) : '') + (p.teams && p.teams.length ? ' &middot; ' + esc(p.teams.join('/')) : '');
+}
+function renderHigherLowerSetup() {
+  return '<div class="panel">' +
+    '<h2 class="panel-title">Higher or Lower</h2>' +
+    '<p class="mode-desc">Two real NFL players, one real stat: career Pro Bowl + All-Pro selections. See one player\'s total, guess whether the next player has more or fewer. Keep going until you miss — how long a streak can you build?</p>' +
+    rankedToggleHtml('higherLower') +
+    '<button class="btn-primary" data-hl-start>Start</button>' +
+    '</div>';
+}
+function renderHigherLowerPlaying() {
+  var s = state.higherLower;
+  var revealing = s.screen === 'reveal';
+  return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
+    '<h2 class="panel-title">Higher or Lower &middot; Streak: ' + s.streak + '</h2>' +
+    '<div class="hl-card hl-card-current">' +
+    '<div class="hl-name">' + esc(s.current.name) + '</div>' +
+    '<div class="hl-line">' + higherLowerPlayerLine(s.current) + '</div>' +
+    '<div class="hl-score">' + higherLowerScore(s.current) + '</div>' +
+    '<div class="hl-score-label">Career Pro Bowl + All-Pro selections</div>' +
+    '</div>' +
+    '<div class="hl-vs">vs</div>' +
+    '<div class="hl-card hl-card-next' + (revealing ? (s.lastCorrect ? ' correct' : ' wrong') : '') + '">' +
+    '<div class="hl-name">' + esc(s.next.name) + '</div>' +
+    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
+    (revealing
+      ? '<div class="hl-score">' + s.revealedScore + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
+      : '<div class="hl-score hl-score-hidden">?</div><div class="hl-score-label">More or fewer than ' + esc(s.current.name) + '?</div>') +
+    '</div>' +
+    (revealing
+      ? '<button class="btn-primary hl-continue" data-hl-continue>Next Player</button>'
+      : '<div class="hl-guess-row">' +
+        '<button class="hl-guess-btn hl-lower" data-hl-guess="lower">' + icon('arrowDown') + ' Lower</button>' +
+        '<button class="hl-guess-btn hl-higher" data-hl-guess="higher">' + icon('arrowUp') + ' Higher</button>' +
+        '</div>') +
+    '</div>';
+}
+function renderHigherLowerOver() {
+  var s = state.higherLower;
+  return '<div class="panel">' +
+    '<h2 class="panel-title">Streak Over</h2>' +
+    '<div class="summary-score">Final streak: ' + s.streak + '</div>' +
+    '<div class="hl-card hl-card-next wrong">' +
+    '<div class="hl-name">' + esc(s.next.name) + '</div>' +
+    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
+    '<div class="hl-score">' + s.revealedScore + '</div>' +
+    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScore(s.current) + '</div>' +
+    '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="btn-row">' +
+    '<button class="btn-primary" data-hl-start>Play Again</button>' +
+    '<button class="btn-secondary" data-share="higherLower">' + icon('share') + ' Share</button>' +
+    '<button class="btn-secondary" data-go="home">Home</button>' +
+    '</div></div>';
+}
+function renderHigherLowerScreen() {
+  if (!state.higherLower) return renderHigherLowerSetup();
+  if (state.higherLower.screen === 'over') return renderHigherLowerOver();
+  return renderHigherLowerPlaying();
 }
 
 /* ============================== college football speed round ============================== */
@@ -4567,6 +4842,405 @@ function renderH2HScreen() {
   return renderH2HMenu();
 }
 
+/* ============================== live head-to-head ==============================
+   A second, separate H2H flow — the async version above is deliberately NOT
+   simultaneous (see its own header comment for why). This one is: two
+   players see the same question at the same moment and each other's result
+   the instant both have answered. Scoped to kind:'quiz' H2H_MODES only (NFL
+   Quiz / CFB Quiz) — those are the only modes with a discrete per-question
+   flow that a live sync point actually fits; Grid/Blitz/Silhouette/Speed/
+   Legends each run their own full-screen engine with no natural place to
+   hook a live opponent-status check.
+
+   There's no server/Cloud Function anywhere in this app, so nothing has
+   sole authority over when the match advances to the next question — both
+   clients independently watch the same Firestore match doc (same matches
+   collection, same getMatch/setMatch/watchMatch bridge the async version
+   uses, just tagged live:true) and derive the same next state from it.
+   Whichever client gets there first writes the next index (or 'finished');
+   the other, redundant write that follows is harmless — same "plain reads/
+   writes, no transaction, fine at this app's scale" tradeoff firebase-
+   sync.js already documents for matches in general. A per-question local
+   timer (LIVE_QUESTION_SECONDS) keeps a round from ever stalling forever:
+   on timeout, a client submits its own still-blank answer as "no pick" and
+   also fills in a placeholder for the OPPONENT if theirs never arrived —
+   covers a closed/backgrounded opponent tab, since nobody else could ever
+   submit on their behalf otherwise. */
+var H2H_LIVE_MODES = H2H_MODES.filter(function (m) { return m.kind === 'quiz'; });
+var LIVE_QUESTION_SECONDS = 15;
+var LIVE_REVEAL_MS = 2500;
+var h2hLiveUnsub = null;
+var h2hLiveTimerId = null;
+var h2hLiveAdvanceScheduled = -1; // guards this client scheduling the same index's advance twice
+function h2hLiveClearTimer() { if (h2hLiveTimerId) { clearTimeout(h2hLiveTimerId); h2hLiveTimerId = null; } }
+function h2hLiveStopWatch() { if (h2hLiveUnsub) { h2hLiveUnsub(); h2hLiveUnsub = null; } h2hLiveClearTimer(); }
+function h2hLiveWatch(code) {
+  h2hLiveStopWatch();
+  if (window.__fbSync && window.__fbSync.watchMatch) h2hLiveUnsub = window.__fbSync.watchMatch(code, h2hLiveOnMatchUpdate);
+}
+function h2hLiveInviteLink(code) { return SITE_URL + '#live=' + code; }
+function h2hLiveOpponentSlug(match, mySlug) {
+  var slugs = Object.keys(match.players || {});
+  return slugs.filter(function (sl) { return sl !== mySlug; })[0] || null;
+}
+function h2hLiveBackToMenu() {
+  h2hLiveStopWatch();
+  h2hLiveAdvanceScheduled = -1;
+  state.h2hLive = { screen: 'menu', mode: 'quiz', roundSize: 10, code: null, match: null, mySlug: null, error: null };
+  renderAll();
+}
+function h2hLiveSetMode(modeId) {
+  var s = state.h2hLive, m = h2hModeConfig(modeId);
+  if (!s || !m || m.kind !== 'quiz') return;
+  s.mode = modeId;
+  s.roundSize = (m.roundSizeOptions && m.roundSizeOptions[0]) || 10;
+  renderAll();
+}
+function h2hLiveSetRoundSize(n) { state.h2hLive.roundSize = n; renderAll(); }
+function h2hLiveCreateMatch() {
+  var s = state.h2hLive;
+  var code = generateH2HCode();
+  var mySlug = slugify(state.name);
+  var match = { live: true, mode: s.mode, roundSize: s.roundSize, status: 'waiting', index: 0, players: {}, answers: {} };
+  match.players[mySlug] = { name: state.name, ready: false };
+  match.answers[mySlug] = {};
+  if (!window.__fbSync || !window.__fbSync.setMatch) return;
+  window.__fbSync.setMatch(code, match, false).then(function () {
+    h2hRememberCode(code); // shares the async version's "your recent matches" list — live/async codes side by side is fine, both are just match docs
+    s.code = code;
+    s.match = match;
+    s.mySlug = mySlug;
+    s.screen = 'lobby';
+    s.error = null;
+    h2hLiveWatch(code);
+    renderAll();
+  }).catch(function (err) {
+    console.error('Create live match failed', err);
+    s.error = 'Could not create the match — check your connection and try again.';
+    renderAll();
+  });
+}
+function h2hLiveJoinMatch(codeInput) {
+  var s = state.h2hLive;
+  var code = (codeInput || '').toUpperCase().trim();
+  if (!code) return;
+  var mySlug = slugify(state.name);
+  if (!window.__fbSync || !window.__fbSync.getMatch) return;
+  window.__fbSync.getMatch(code).then(function (match) {
+    if (!match || !match.live) { s.error = 'No live match found with that code.'; s.screen = 'join'; renderAll(); return; }
+    var slugs = Object.keys(match.players || {});
+    if (slugs.indexOf(mySlug) === -1 && slugs.length >= 2) { s.error = 'That match already has two players.'; s.screen = 'join'; renderAll(); return; }
+    if (slugs.indexOf(mySlug) === -1) {
+      match.players[mySlug] = { name: state.name, ready: false };
+      match.answers = match.answers || {};
+      match.answers[mySlug] = {};
+    }
+    window.__fbSync.setMatch(code, match, false).then(function () {
+      h2hRememberCode(code);
+      s.code = code;
+      s.match = match;
+      s.mySlug = mySlug;
+      s.mode = match.mode;
+      s.roundSize = match.roundSize;
+      s.screen = 'lobby';
+      s.error = null;
+      h2hLiveWatch(code);
+      renderAll();
+    });
+  }).catch(function (err) {
+    console.error('Join live match failed', err);
+    s.error = 'Could not join — check your connection and try again.';
+    s.screen = 'join';
+    renderAll();
+  });
+}
+function h2hLiveSetReady() {
+  var s = state.h2hLive, match = s.match;
+  if (!match || !match.players[s.mySlug]) return;
+  match.players[s.mySlug].ready = true;
+  s.match = match;
+  window.__fbSync.setMatch(s.code, match, true).catch(function (err) { console.error('Ready-up failed', err); });
+  renderAll();
+}
+function h2hLiveQueue(s) { return h2hQuestionIds(s.mode, s.code, s.roundSize); }
+function h2hLiveCurrentQuestion(s) {
+  var queue = h2hLiveQueue(s);
+  var id = queue[s.match.index];
+  return h2hPool(s.mode).find(function (q) { return q.id === id; });
+}
+function h2hLiveScore(match, slug) {
+  var a = (match.answers && match.answers[slug]) || {};
+  var correct = 0, total = 0;
+  Object.keys(a).forEach(function (k) { total++; if (a[k].correct) correct++; });
+  return { correct: correct, total: total };
+}
+function h2hLivePickAnswer(i) {
+  var s = state.h2hLive, match = s.match;
+  if (!match) return;
+  var idx = match.index;
+  match.answers = match.answers || {};
+  match.answers[s.mySlug] = match.answers[s.mySlug] || {};
+  if (match.answers[s.mySlug][idx] !== undefined) return;
+  var q = h2hLiveCurrentQuestion(s);
+  var correct = !!(q && i === q.correctIndex);
+  match.answers[s.mySlug][idx] = { choice: i, correct: correct };
+  s.match = match;
+  playSound(correct ? 'correct' : 'wrong');
+  h2hLiveClearTimer();
+  window.__fbSync.setMatch(s.code, match, true).catch(function (err) { console.error('Live answer submit failed', err); });
+  renderAll();
+}
+// One local timer per question, (re)started the moment that question
+// becomes current (see h2hLiveOnMatchUpdate) — fires LIVE_QUESTION_SECONDS
+// later and force-fills any still-missing answer (mine and/or the
+// opponent's) so a slow or vanished opponent can never stall the round.
+function h2hLiveStartQuestionTimer() {
+  h2hLiveClearTimer();
+  var s = state.h2hLive;
+  var code = s.code, idx = s.match.index;
+  h2hLiveTimerId = setTimeout(function () {
+    var cs = state.h2hLive;
+    if (!cs || cs.code !== code || !cs.match || cs.match.index !== idx) return;
+    var match = cs.match;
+    match.answers = match.answers || {};
+    var oppSlug = h2hLiveOpponentSlug(match, cs.mySlug);
+    var changed = false;
+    match.answers[cs.mySlug] = match.answers[cs.mySlug] || {};
+    if (match.answers[cs.mySlug][idx] === undefined) { match.answers[cs.mySlug][idx] = { choice: -1, correct: false }; changed = true; }
+    if (oppSlug) {
+      match.answers[oppSlug] = match.answers[oppSlug] || {};
+      if (match.answers[oppSlug][idx] === undefined) { match.answers[oppSlug][idx] = { choice: -1, correct: false }; changed = true; }
+    }
+    cs.match = match;
+    renderAll();
+    if (changed) window.__fbSync.setMatch(code, match, true).catch(function (err) { console.error('Live timeout submit failed', err); });
+  }, LIVE_QUESTION_SECONDS * 1000);
+}
+// Runs on every client once both players have answered the current
+// question — schedules (once per index, per client) the write that moves
+// the match to the next question after a short reveal pause. Both clients
+// do this independently and land on the identical next value, so the
+// redundant second write is a harmless no-op rather than a conflict.
+function h2hLiveMaybeScheduleAdvance() {
+  var s = state.h2hLive, match = s.match;
+  if (!match || match.status === 'finished') return;
+  var idx = match.index;
+  if (h2hLiveAdvanceScheduled === idx) return;
+  var slugs = Object.keys(match.players || {});
+  if (slugs.length !== 2) return;
+  var bothAnswered = slugs.every(function (sl) { return match.answers && match.answers[sl] && match.answers[sl][idx] !== undefined; });
+  if (!bothAnswered) return;
+  h2hLiveAdvanceScheduled = idx;
+  var code = s.code;
+  setTimeout(function () {
+    var cs = state.h2hLive;
+    if (!cs || cs.code !== code || !cs.match || cs.match.index !== idx) return; // stale — already moved on
+    var m = cs.match;
+    var queue = h2hLiveQueue(cs);
+    if (idx + 1 >= queue.length) m.status = 'finished';
+    else m.index = idx + 1;
+    cs.match = m;
+    window.__fbSync.setMatch(code, m, true).catch(function (err) { console.error('Live advance failed', err); });
+  }, LIVE_REVEAL_MS);
+}
+function h2hLiveMaybeCountRecord() {
+  var s = state.h2hLive, match = s && s.match;
+  if (!match || match.status !== 'finished' || h2hAlreadyCounted(s.code)) return;
+  var oppSlug = h2hLiveOpponentSlug(match, s.mySlug);
+  if (!oppSlug) return;
+  var mine = h2hLiveScore(match, s.mySlug), opp = h2hLiveScore(match, oppSlug);
+  var st = state.stats.h2h;
+  st.matchesPlayed++;
+  var diff = mine.correct - opp.correct;
+  if (diff > 0) st.wins++;
+  else if (diff < 0) st.losses++;
+  else st.ties++;
+  lsSet('nflTriviaStats', state.stats);
+  pushLeaderboard('h2h', { wins: st.wins, losses: st.losses, ties: st.ties, matchesPlayed: st.matchesPlayed });
+  h2hMarkCounted(s.code);
+  // Counts toward the underlying mode's own stats/rating too, same as a
+  // normal solo round — mirrors h2hFinishRound's identical reasoning above.
+  if (mine.total > 0) {
+    var pct = Math.round(100 * mine.correct / mine.total);
+    var modeSt = state.stats[s.mode];
+    modeSt.correctTotal += mine.correct;
+    modeSt.questionsTotal += mine.total;
+    modeSt.roundsPlayed++;
+    if (pct > modeSt.bestPct) modeSt.bestPct = pct;
+    lsSet('nflTriviaStats', state.stats);
+    updateRatingDrift(pct);
+    pushLeaderboard(s.mode, { bestPct: modeSt.bestPct, correctTotal: modeSt.correctTotal, roundsPlayed: modeSt.roundsPlayed });
+  }
+}
+function h2hLiveOnMatchUpdate(match) {
+  var s = state.h2hLive;
+  if (!s || !match) return;
+  var prevIndex = s.match ? s.match.index : -1;
+  var prevStatus = s.match ? s.match.status : null;
+  s.match = match;
+  if (s.screen === 'lobby') {
+    var slugs = Object.keys(match.players || {});
+    if (slugs.length === 2 && slugs.every(function (sl) { return match.players[sl].ready; })) {
+      if (match.status !== 'active') {
+        match.status = 'active';
+        window.__fbSync.setMatch(s.code, match, true).catch(function () {});
+      }
+      s.screen = 'playing';
+    }
+  }
+  if (s.screen === 'playing') {
+    if (match.status === 'finished') {
+      h2hLiveClearTimer();
+      s.screen = 'summary';
+      h2hLiveMaybeCountRecord();
+    } else {
+      if (match.index !== prevIndex || prevStatus !== 'active') { h2hLiveAdvanceScheduled = -1; h2hLiveStartQuestionTimer(); }
+      h2hLiveMaybeScheduleAdvance();
+    }
+  }
+  renderAll();
+}
+function h2hLiveShareLink(link, btn) {
+  if (navigator.share) { navigator.share({ title: 'Reads — Live Match', text: 'Join my live trivia match on Reads:', url: link }).catch(function () {}); return; }
+  copyTextToClipboard(link, btn);
+}
+function h2hLiveCardHtml() {
+  return '<button class="continue-card h2h-live-card" data-go="h2hLive">' +
+    '<span class="continue-card-label">Both online now &middot; real-time</span>' +
+    '<span class="continue-card-mode">' + icon('versus') + ' Live Match</span>' +
+    '</button>';
+}
+function renderH2HLiveMenu() {
+  if (!state.name) {
+    return '<div class="panel">' +
+      '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+      '<h2 class="panel-title">' + icon('versus') + ' Live Match</h2>' +
+      '<p class="mode-desc">Enter a name above, then come back here to start a live match.</p>' +
+      '</div>';
+  }
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+    '<h2 class="panel-title">' + icon('versus') + ' Live Match</h2>' +
+    '<p class="mode-desc">Both of you answer the same questions at the same time and see each other’s results the instant you’re both done — needs you both online right now. For playing on your own schedule, use Head-to-Head from Home instead.</p>' +
+    '<div class="btn-row">' +
+    '<button class="btn-primary" data-h2h-live-go-create>Create Match</button>' +
+    '<button class="btn-secondary" data-h2h-live-go-join>Join Match</button>' +
+    '</div>' +
+    '</div>';
+}
+function renderH2HLiveCreate() {
+  var s = state.h2hLive, m = h2hModeConfig(s.mode) || H2H_LIVE_MODES[0];
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-h2h-live-back-menu>' + icon('close') + ' Back</button></div>' +
+    '<h2 class="panel-title">Create a Live Match</h2>' +
+    '<div class="field-row"><label>Mode<select id="h2h-live-mode">' +
+    H2H_LIVE_MODES.map(function (mm) { return '<option value="' + mm.id + '"' + (s.mode === mm.id ? ' selected' : '') + '>' + esc(mm.label) + '</option>'; }).join('') +
+    '</select></label></div>' +
+    '<div class="chip-row">' +
+    m.roundSizeOptions.map(function (n) { return '<button class="chip-toggle' + (s.roundSize === n ? ' active' : '') + '" data-h2h-live-roundsize="' + n + '">' + n + ' questions</button>'; }).join('') +
+    '</div>' +
+    (s.error ? '<p class="mode-desc h2h-error" role="alert">' + esc(s.error) + '</p>' : '') +
+    '<button class="btn-primary" data-h2h-live-create>Create &amp; Get Code</button>' +
+    '</div>';
+}
+function renderH2HLiveJoin() {
+  var s = state.h2hLive;
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-h2h-live-back-menu>' + icon('close') + ' Back</button></div>' +
+    '<h2 class="panel-title">Join a Live Match</h2>' +
+    '<div class="field-row"><label>Match code<input id="h2h-live-code-input" maxlength="4" placeholder="e.g. 7F3K" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;" /></label></div>' +
+    (s.error ? '<p class="mode-desc h2h-error" role="alert">' + esc(s.error) + '</p>' : '') +
+    '<button class="btn-primary" data-h2h-live-join>Join</button>' +
+    '</div>';
+}
+function renderH2HLiveLobby() {
+  var s = state.h2hLive, match = s.match || { players: {} };
+  var me = match.players[s.mySlug];
+  var oppSlug = h2hLiveOpponentSlug(match, s.mySlug);
+  var opp = oppSlug ? match.players[oppSlug] : null;
+  var link = h2hLiveInviteLink(s.code);
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-h2h-live-back-menu>' + icon('close') + ' Back</button></div>' +
+    '<h2 class="panel-title">Live Match &middot; ' + esc(h2hModeLabel(s.mode)) + '</h2>' +
+    '<div class="h2h-code">' + esc(s.code) + '</div>' +
+    '<p class="mode-desc">Send this link to whoever you’re playing — one tap and they’re in.</p>' +
+    '<div class="btn-row"><button class="btn-secondary" data-h2h-live-share-link="' + esc(link) + '">' + icon('share') + ' Share Invite Link</button></div>' +
+    '<div class="h2h-players">' +
+    '<div class="h2h-player-row"><span>' + esc(state.name) + ' (you)</span><span>' + (me && me.ready ? icon('check') + ' Ready' : 'Not ready') + '</span></div>' +
+    '<div class="h2h-player-row"><span>' + (opp ? esc(opp.name) : 'Waiting for opponent to join…') + '</span><span>' + (opp ? (opp.ready ? icon('check') + ' Ready' : 'Not ready') : '') + '</span></div>' +
+    '</div>' +
+    (opp && me && !me.ready ? '<button class="btn-primary" data-h2h-live-ready>I’m Ready</button>' :
+      me && me.ready ? '<p class="mode-desc">Waiting on ' + (opp ? esc(opp.name) : 'your opponent') + '…</p>' : '') +
+    '</div>';
+}
+function renderH2HLivePlaying() {
+  var s = state.h2hLive, match = s.match;
+  if (!match) return '<div class="panel loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading…</div></div>';
+  var idx = match.index;
+  var q = h2hLiveCurrentQuestion(s);
+  if (!q) return '<div class="panel loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading…</div></div>';
+  var oppSlug = h2hLiveOpponentSlug(match, s.mySlug);
+  var opp = oppSlug ? match.players[oppSlug] : null;
+  var myAnswer = match.answers && match.answers[s.mySlug] && match.answers[s.mySlug][idx];
+  var oppAnswer = oppSlug && match.answers && match.answers[oppSlug] && match.answers[oppSlug][idx];
+  var answered = myAnswer !== undefined;
+  var revealed = answered && oppAnswer !== undefined;
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-h2h-live-exit>' + icon('close') + ' Exit to Home</button></div>' +
+    '<div class="quiz-progress">Live &middot; Question ' + (idx + 1) + ' of ' + s.roundSize + '</div>' +
+    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<div class="quiz-options">' +
+    q.options.map(function (opt, i) {
+      var cls = 'quiz-option';
+      if (revealed) {
+        if (i === q.correctIndex) cls += ' correct';
+        else if (myAnswer.choice === i) cls += ' wrong';
+      } else if (answered && myAnswer.choice === i) {
+        cls += ' selected';
+      }
+      return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-h2h-live-answer="' + i + '"') + '>' +
+        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+    }).join('') +
+    '</div>' +
+    (revealed
+      ? '<div class="quiz-feedback" aria-live="polite">' + (myAnswer.correct ? '<span class="feedback-good">' + icon('check') + ' You got it!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Missed it.</span>') +
+        ' ' + esc(opp ? opp.name : 'Opponent') + (oppAnswer.correct ? ' got it too.' : ' missed it.') + '</div>'
+      : answered
+      ? '<p class="mode-desc" aria-live="polite">Waiting on ' + esc(opp ? opp.name : 'your opponent') + '…</p>'
+      : '') +
+    '</div>';
+}
+function renderH2HLiveSummary() {
+  var s = state.h2hLive, match = s.match || { players: {} };
+  var oppSlug = h2hLiveOpponentSlug(match, s.mySlug);
+  var opp = oppSlug ? match.players[oppSlug] : null;
+  var mine = h2hLiveScore(match, s.mySlug);
+  var oppScore = oppSlug ? h2hLiveScore(match, oppSlug) : { correct: 0, total: 0 };
+  var diff = mine.correct - oppScore.correct;
+  var result = diff > 0 ? 'win' : diff < 0 ? 'loss' : 'tie';
+  return '<div class="panel">' +
+    '<h2 class="panel-title">Live Match Result</h2>' +
+    '<div class="h2h-result-banner h2h-result-' + result + '">' + (result === 'win' ? icon('trophy') + ' You Won!' : result === 'loss' ? 'You Lost' : 'Tie Game') + '</div>' +
+    '<div class="h2h-players">' +
+    '<div class="h2h-player-row"><span>' + esc(state.name) + ' (you)</span><span>' + mine.correct + ' / ' + mine.total + ' correct</span></div>' +
+    '<div class="h2h-player-row"><span>' + esc(opp ? opp.name : 'Opponent') + '</span><span>' + oppScore.correct + ' / ' + oppScore.total + ' correct</span></div>' +
+    '</div>' +
+    '<div class="btn-row">' +
+    '<button class="btn-primary" data-h2h-live-back-menu>New Match</button>' +
+    '<button class="btn-secondary" data-go="home">Home</button>' +
+    '</div></div>';
+}
+function renderH2HLiveScreen() {
+  if (!state.h2hLive) state.h2hLive = { screen: 'menu', mode: 'quiz', roundSize: 10, code: null, match: null, mySlug: null, error: null };
+  var s = state.h2hLive;
+  if (s.screen === 'create') return renderH2HLiveCreate();
+  if (s.screen === 'join') return renderH2HLiveJoin();
+  if (s.screen === 'lobby') return renderH2HLiveLobby();
+  if (s.screen === 'playing') return renderH2HLivePlaying();
+  if (s.screen === 'summary') return renderH2HLiveSummary();
+  return renderH2HLiveMenu();
+}
+
 /* ============================== share cards ==============================
    One shared card-render + share pipeline for every mode's result screen,
    rather than 14 bespoke ones. Renders an offscreen canvas (text/shapes
@@ -4635,6 +5309,12 @@ function shareConfigFor(mode) {
     var rlSil = shareRatingLine(sil.ratingDelta);
     return { title: 'NFL Silhouette', headline: sil.score + ' pts', sub: silCorrectCount + ' / ' + sil.queue.length + ' guessed', detail: rlSil,
       shareText: 'I scored ' + sil.score + ' points on NFL Silhouette in Reads!' + (rlSil ? ' ' + rlSil : '') };
+  }
+  if (mode === 'higherLower') {
+    var hl = state.higherLower;
+    var rlHl = shareRatingLine(hl.ratingDelta);
+    return { title: 'Higher or Lower', headline: String(hl.streak), sub: hl.streak === 1 ? 'player' : 'players', detail: rlHl,
+      shareText: 'I built a ' + hl.streak + '-player streak on Higher or Lower in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
   }
   if (mode === 'iq' || mode === 'cfbIq') {
     var iq = state[mode];
@@ -5082,11 +5762,24 @@ function pushLeaderboard(mode, fields) {
   var docId = slugify(state.name) + '_' + getClientId() + '__' + mode;
   var payload = Object.assign({ name: state.name, mode: mode }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
+  // Every finish* function that changes state.stats already calls this
+  // right after — reusing it as the one choke point for pushProfileSnapshot()
+  // too means cross-device stats sync doesn't need its own call bolted onto
+  // all ~17 finish functions individually.
+  pushProfileSnapshot();
 }
+// True once this device has done its one-time cross-device stats/streak
+// pull for the current name — applyLeaderboard fires on every leaderboard
+// change (could be fairly often with several people playing), but the pull
+// itself only needs to happen once Firebase first actually connects, not
+// on every subsequent update. saveName() resets this so switching names
+// mid-session (Change Name) still gets its own pull.
+var didInitialProfilePull = false;
 window.__triviaSync = {
   applyLeaderboard: function (list) {
     state.leaderboardData = list;
     reconcileRating(list);
+    if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
     if (state.screen === 'leaderboard') renderAll();
   }
 };
@@ -5100,6 +5793,7 @@ var LEADERBOARD_MODES = [
   { id: 'speed', label: 'NFL Speed', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['bestStreak', 'Best Streak'], ['sessionsPlayed', 'Sessions']] },
   { id: 'silhouette', label: 'NFL Silhouette', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['bestQuick', 'Best Quick Guesses'], ['roundsPlayed', 'Rounds']] },
   { id: 'iq', label: 'NFL IQ Test', sortKey: 'bestIQ', cols: [['bestIQ', 'Best IQ'], ['testsTaken', 'Tests Taken']] },
+  { id: 'higherLower', label: 'Higher or Lower', sortKey: 'bestStreak', cols: [['bestStreak', 'Best Streak'], ['gamesPlayed', 'Runs']] },
   { id: 'legends', label: '17-0', sortKey: 'bestWins', cols: [['bestRecord', 'Best Record'], ['bestGrade', 'Best Grade'], ['gamesPlayed', 'Drafts']] },
   { id: 'cfbQuiz', label: 'CFB Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'cfbIq', label: 'CFB IQ', sortKey: 'bestIQ', cols: [['bestIQ', 'Best IQ'], ['testsTaken', 'Tests Taken']] },
@@ -5842,6 +6536,45 @@ function openLearnSection(id) {
   renderAll();
 }
 
+/* ============================== friends ==============================
+   No accounts, no requests to accept — just a local list of names you're
+   tracking, matched against the same shared leaderboard/profile data every
+   other cross-device feature this session already built (see
+   pushProfileSnapshot()/pullProfileSnapshot() above). */
+function renderFriendsScreen() {
+  var friends = getFriends();
+  var html = '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+    '<h2 class="panel-title">' + icon('users') + ' Friends</h2>' +
+    '<p class="mode-desc">Add friends by the exact name they play under to see their Football Rating and streak. No accounts — just names.</p>' +
+    '<div class="field-row"><input id="friend-name-input" placeholder="Friend’s name" autocomplete="off" maxlength="40" />' +
+    '<button class="btn-primary" data-friend-add>Add</button></div>';
+  if (!friends.length) {
+    html += '<p class="mode-desc">No friends added yet.</p>';
+  } else if (friendsLoading) {
+    html += '<div class="loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading friends…</div></div>';
+  } else {
+    html += '<div class="friends-list">' + friends.map(friendRowHtml).join('') + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+function friendRowHtml(name) {
+  var slug = slugify(name);
+  var rating = friendRatingFromLeaderboard(name);
+  var profile = friendsProfileCache[slug];
+  var streakCount = profile && profile.streak ? (profile.streak.count || 0) : 0;
+  var statsBits = [];
+  if (rating) statsBits.push(icon('football') + ' ' + rating.score + ' rating');
+  else statsBits.push('No rating yet');
+  if (streakCount > 0) statsBits.push(icon('flame') + ' ' + streakCount + '-day streak');
+  return '<div class="friend-row">' +
+    '<div class="friend-info"><div class="friend-name">' + esc(name) + '</div>' +
+    '<div class="friend-stats">' + statsBits.join(' &middot; ') + '</div></div>' +
+    '<button class="btn-tiny" data-friend-remove="' + esc(name) + '">' + icon('close') + ' Remove</button>' +
+    '</div>';
+}
+
 /* ============================== profile ==============================
    A personal stats page — state.stats has been write-only until now (every
    finish* function updates it, nothing reads it back for display). Reuses
@@ -5870,7 +6603,8 @@ var BADGES = [
   { id: 'sharpEye', icon: '🕵️', title: 'Sharp Eye', desc: '5+ quick guesses (few clues used) in one Silhouette round.', check: function (st) { return (st.silhouette.bestQuick || 0) >= 5; } },
   { id: 'onFire', icon: '🔥', title: 'On Fire', desc: 'Hit a 7-day Daily Challenge streak.', check: function (st, streak) { return streak.count >= 7; } },
   { id: 'dailyGrinder', icon: '📅', title: 'Daily Grinder', desc: 'Completed 10+ Daily Challenges.', check: function (st) { return (st.daily.completions || 0) >= 10; } },
-  { id: 'rivalry', icon: '⚔️', title: 'Got Next', desc: 'Won a Head-to-Head match against a friend.', check: function (st) { return (st.h2h.wins || 0) >= 1; } }
+  { id: 'rivalry', icon: '⚔️', title: 'Got Next', desc: 'Won a Head-to-Head match against a friend.', check: function (st) { return (st.h2h.wins || 0) >= 1; } },
+  { id: 'higherLowerStreak', icon: '📈', title: 'On a Heater', desc: 'Built a 15+ player streak in Higher or Lower.', check: function (st) { return (st.higherLower.bestStreak || 0) >= 15; } }
 ];
 function earnedBadges() {
   var st = state.stats, streak = getStreak();
@@ -6002,6 +6736,7 @@ function renderAll() {
   else if (state.screen === 'grid') html += renderGridScreen();
   else if (state.screen === 'blitz') html += renderBlitzScreen();
   else if (state.screen === 'speed') html += renderSpeedScreen();
+  else if (state.screen === 'higherLower') html += renderHigherLowerScreen();
   else if (state.screen === 'silhouette') html += renderSilhouetteScreen();
   else if (state.screen === 'iq') html += renderIQScreen();
   else if (state.screen === 'legends') html += renderLegendsScreen();
@@ -6022,6 +6757,8 @@ function renderAll() {
   else if (state.screen === 'reports') html += renderReportsScreen();
   else if (state.screen === 'h2h') html += renderH2HScreen();
   else if (state.screen === 'learn') html += renderLearnScreen();
+  else if (state.screen === 'friends') html += renderFriendsScreen();
+  else if (state.screen === 'h2hLive') html += renderH2HLiveScreen();
   else if (state.screen === 'study') html += renderStudyScreen();
   app.innerHTML = html;
   renderRatingBadge();
@@ -6173,6 +6910,7 @@ document.addEventListener('click', function (e) {
     '[data-grid-start], [data-grid-cell], [data-grid-submit], [data-grid-again], ' +
     '[data-blitz-list], [data-blitz-start], [data-blitz-submit], [data-blitz-setup], ' +
     '[data-speed-start], [data-speed-answer], [data-leaderboard-mode], [data-leaderboard-range], ' +
+    '[data-hl-start], [data-hl-guess], [data-hl-continue], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
@@ -6192,7 +6930,10 @@ document.addEventListener('click', function (e) {
     '[data-settings-mute-toggle], [data-settings-push-toggle], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
     '[data-h2h-go-create], [data-h2h-go-join], [data-h2h-back-menu], [data-h2h-roundsize], [data-h2h-create], ' +
     '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-exit], ' +
+    '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
+    '[data-h2h-live-join], [data-h2h-live-ready], [data-h2h-live-share-link], [data-h2h-live-answer], [data-h2h-live-exit], ' +
     '[data-learn-open], [data-learn-back], [data-learn-cat], ' +
+    '[data-friend-add], [data-friend-remove], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -6251,9 +6992,25 @@ document.addEventListener('click', function (e) {
   if (t.dataset.h2hAnswer !== undefined) { h2hPickAnswer(parseInt(t.dataset.h2hAnswer, 10)); return; }
   if (t.dataset.h2hNext !== undefined) { h2hNextQuestion(); return; }
   if (t.dataset.h2hExit !== undefined) { h2hStopWatch(); goToMode('home'); return; }
+  if (t.dataset.h2hLiveGoCreate !== undefined) { state.h2hLive.screen = 'create'; state.h2hLive.error = null; renderAll(); return; }
+  if (t.dataset.h2hLiveGoJoin !== undefined) { state.h2hLive.screen = 'join'; state.h2hLive.error = null; renderAll(); return; }
+  if (t.dataset.h2hLiveBackMenu !== undefined) { h2hLiveBackToMenu(); return; }
+  if (t.dataset.h2hLiveRoundsize !== undefined) { h2hLiveSetRoundSize(parseInt(t.dataset.h2hLiveRoundsize, 10)); return; }
+  if (t.dataset.h2hLiveCreate !== undefined) { h2hLiveCreateMatch(); return; }
+  if (t.dataset.h2hLiveJoin !== undefined) {
+    var h2hLiveCodeInput = document.getElementById('h2h-live-code-input');
+    h2hLiveJoinMatch(h2hLiveCodeInput ? h2hLiveCodeInput.value : '');
+    return;
+  }
+  if (t.dataset.h2hLiveReady !== undefined) { h2hLiveSetReady(); return; }
+  if (t.dataset.h2hLiveShareLink !== undefined) { h2hLiveShareLink(t.dataset.h2hLiveShareLink, t); return; }
+  if (t.dataset.h2hLiveAnswer !== undefined) { h2hLivePickAnswer(parseInt(t.dataset.h2hLiveAnswer, 10)); return; }
+  if (t.dataset.h2hLiveExit !== undefined) { h2hLiveStopWatch(); goToMode('home'); return; }
   if (t.dataset.learnOpen !== undefined) { openLearnSection(t.dataset.learnOpen); return; }
   if (t.dataset.learnBack !== undefined) { learnBackToMenu(); return; }
   if (t.dataset.learnCat !== undefined) { state.learn.category = t.dataset.learnCat; renderAll(); return; }
+  if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
+  if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
   if (t.dataset.typeaheadPick !== undefined) {
     var taListEl = t.closest('.typeahead-list');
     var taInputId = taListEl ? taListEl.id.replace(/-typeahead$/, '') : null;
@@ -6313,6 +7070,9 @@ document.addEventListener('click', function (e) {
 
   if (t.dataset.speedStart !== undefined) { startSpeedRound(parseInt(t.dataset.speedStart, 10)); return; }
   if (t.dataset.speedAnswer !== undefined) { registerSpeedAnswer(parseInt(t.dataset.speedAnswer, 10)); return; }
+  if (t.dataset.hlStart !== undefined) { startHigherLower(); return; }
+  if (t.dataset.hlGuess !== undefined) { submitHigherLowerGuess(t.dataset.hlGuess); return; }
+  if (t.dataset.hlContinue !== undefined) { higherLowerContinue(); return; }
 
   if (t.dataset.leaderboardMode !== undefined) { state.leaderboardMode = t.dataset.leaderboardMode; renderAll(); return; }
   if (t.dataset.leaderboardRange !== undefined) { state.leaderboardRange = t.dataset.leaderboardRange; renderAll(); return; }
@@ -6409,6 +7169,7 @@ document.addEventListener('change', function (e) {
   if (e.target.id === 'cfb-diff') { state.cfbQuiz.difficulty = e.target.value; return; }
   if (e.target.id === 'h2h-mode') { h2hSetMode(e.target.value); return; }
   if (e.target.id === 'h2h-list') { h2hSetList(e.target.value); return; }
+  if (e.target.id === 'h2h-live-mode') { h2hLiveSetMode(e.target.value); return; }
 });
 
 // Keeps Tab cycling inside an open modal instead of escaping to whatever's
@@ -6459,6 +7220,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.target.id === 'cfb-blitz-input') { submitCfbBlitzGuess(); }
   else if (e.target.id === 'silhouette-input') { if (!typeaheadPickActive('silhouette-input')) submitSilhouetteGuess(); }
   else if (e.target.id === 'name-input') { saveName(e.target.value); }
+  else if (e.target.id === 'friend-name-input') { addFriend(e.target.value); }
 });
 
 /* ============================== init ============================== */
@@ -6468,12 +7230,36 @@ document.addEventListener('keydown', function (e) {
 var footerVersionEl = document.getElementById('footer-version');
 if (footerVersionEl) footerVersionEl.textContent = 'Reads v' + APP_VERSION + ' · Questions last updated ' + CONTENT_UPDATED;
 
+// A live-match invite link (see h2hLiveInviteLink) looks like
+// https://getreads.netlify.app/#live=7F3K — captured and cleared from the
+// URL immediately so refreshing or re-sharing the plain page URL later
+// can't re-trigger a join. Consumed right here if this device already has a
+// name (the common case — a friend who already plays tapping another
+// friend's link), or later via consumePendingLiveJoin() from saveName()/
+// introTestDone()/skipIntroTest() if this is a brand-new visitor who still
+// has to pick a name and take the intro test first.
+var pendingLiveJoinCode = null;
+var liveHashMatch = /^#live=([A-Za-z0-9]{4})$/.exec(location.hash);
+if (liveHashMatch) {
+  pendingLiveJoinCode = liveHashMatch[1].toUpperCase();
+  history.replaceState(null, '', location.pathname + location.search);
+}
+function consumePendingLiveJoin() {
+  if (!pendingLiveJoinCode || !state.name) return false;
+  var code = pendingLiveJoinCode;
+  pendingLiveJoinCode = null;
+  state.screen = 'h2hLive';
+  state.h2hLive = { screen: 'menu', mode: 'quiz', roundSize: 10, code: null, match: null, mySlug: null, error: null };
+  h2hLiveJoinMatch(code);
+  return true;
+}
+
 var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports' };
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   renderAll();
-} else if (state.name && !getRating()) { startIntroTest(); } else { renderAll(); }
-if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false)) { openOnboarding(); }
+} else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingLiveJoin()) { renderAll(); }
+if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode) { openOnboarding(); }
 
 // Splash screen: shown by default in index.html, fades out shortly after load
 // regardless of Firebase connection state (so a slow/broken connection never

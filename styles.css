@@ -863,10 +863,11 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @keyframes loading-spin { to { transform: rotate(360deg); } }
 .field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .field-row label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-dim); flex: 1; min-width: 160px; }
-.field-row select {
+.field-row select, .field-row input {
   background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 10px; color: var(--text); font-size: 16px; min-height: 44px;
 }
+.field-row input { flex: 1; min-width: 160px; }
 .learn-filter-input {
   background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 10px; color: var(--text); font-size: 16px; min-height: 44px; width: 100%; margin-bottom: var(--space-md);
@@ -909,6 +910,10 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     0 26px 0 -1px var(--accent), -18px 18px 0 -1px var(--accent-2), -26px 0 0 -1px var(--good), -18px -18px 0 -1px var(--accent);
   opacity: 0; animation: confetti-burst 0.6s ease-out; }
 .quiz-option.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); animation: shake-feedback-strong 0.45s ease; }
+/* Live H2H only: picked, but the answer isn't revealed yet — still waiting
+   on the opponent, so this isn't correct/wrong (green/red) like a normal
+   quiz pick, just "this is what you chose." */
+.quiz-option.selected { border-color: var(--accent); background: rgba(217,166,60,.12); }
 .quiz-feedback { margin: 14px 0 4px; font-weight: 700; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
 .feedback-good, .feedback-bad { display: inline-flex; align-items: center; gap: 6px; }
 .feedback-good { color: var(--good); }
@@ -980,6 +985,30 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .grid-recap-row.correct { border-color: var(--good); }
 .grid-recap-row.wrong { border-color: var(--bad); }
 .grid-recap-pool { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+/* higher or lower */
+.hl-card {
+  background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius);
+  padding: var(--space-lg) var(--space-md); text-align: center; margin: var(--space-sm) 0;
+  transition: border-color 0.3s ease;
+}
+.hl-card-current { border-color: var(--accent); }
+.hl-card-next.correct { border-color: var(--good); animation: pop-feedback-strong 0.4s ease; }
+.hl-card-next.wrong { border-color: var(--bad); animation: shake-feedback-strong 0.45s ease; }
+.hl-name { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+.hl-line { color: var(--text-dim); font-size: 13px; margin-bottom: var(--space-sm); }
+.hl-score { font-size: 44px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--accent); line-height: 1.1; }
+.hl-score-hidden { color: var(--text-dim); }
+.hl-score-label { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+.hl-vs { text-align: center; color: var(--text-dim); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin: 2px 0; }
+.hl-guess-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-top: var(--space-md); }
+.hl-guess-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 16px; font-weight: 800; padding: 16px; cursor: pointer; min-height: 56px;
+}
+.hl-guess-btn.hl-higher:hover, .hl-guess-btn.hl-higher:focus-visible { border-color: var(--good); color: var(--good); }
+.hl-guess-btn.hl-lower:hover, .hl-guess-btn.hl-lower:focus-visible { border-color: var(--bad); color: var(--bad); }
+.hl-continue { width: 100%; margin-top: var(--space-md); }
 /* Rarity tiers — same 4-band split as gridRarityTier() in app.js, ordered
    loosest-pool to tightest so the color ramp (gray -> good-green -> gold ->
    a richer, slightly saturated gold) reads as "climbing toward special"
@@ -1159,6 +1188,15 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .h2h-result-tie { color: var(--text-dim); }
 .h2h-recent-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .h2h-error { color: var(--bad); }
+
+/* friends list */
+.friends-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.friend-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px;
+}
+.friend-name { font-size: 14.5px; font-weight: 700; }
+.friend-stats { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
 
 /* reported questions (hidden #reports route) */
 .reports-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
