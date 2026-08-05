@@ -1621,7 +1621,7 @@ function onboardingSampleQuestion() { return QUIZ.find(function (q) { return q.i
 var ONBOARDING_STEPS = [
   {
     title: 'What is Reads?',
-    body: 'NFL and College Football trivia with 12 game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round.'
+    body: 'NFL and College Football trivia with 12 game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round. It’s free, works right in your browser, and there’s no account to create — just pick a name.'
   },
   { title: 'Try a real question', type: 'sample' },
   {
@@ -1633,11 +1633,23 @@ var ONBOARDING_STEPS = [
       '<span class="onboarding-mode-chip">' + icon('zap') + ' Speed</span>' +
       '<span class="onboarding-mode-chip">' + icon('search') + ' Silhouette</span>' +
       '<span class="onboarding-mode-chip">' + icon('trophy') + ' 12-0/17-0</span>' +
-      '</div>Straight trivia, a name-the-player grid, timed challenges, and a fantasy-style roster draft — every mode exists for both NFL and College Football.'
+      '</div>Straight trivia, a name-the-player grid, timed challenges, and a fantasy-style roster draft — every mode exists for both NFL and College Football. Every one of them also has a Practice option, for when you just want to play without it touching your rating.'
+  },
+  {
+    title: 'Come back every day',
+    body: 'A <b>Daily Challenge</b> drops every day — the same one for everyone, so it doubles as its own mini leaderboard. Complete it to build your streak, and don’t stress about one bad day: a grace day every week keeps your streak alive even if you miss.'
   },
   {
     title: 'Your rating goes with you',
-    body: 'Save a name once and your Football Rating and leaderboard rank sync across every device you play on — same name, same progress, anywhere.'
+    body: 'Save a name once and your Football Rating, stats, and leaderboard rank sync across every device you play on — same name, same progress, anywhere. The leaderboard itself can be filtered to today, this week, or all-time.'
+  },
+  {
+    title: 'Save it to your Home Screen',
+    body: '<div class="onboarding-install-list">' +
+      '<div class="onboarding-install-row">' + icon('share', 'onboarding-install-icon') + '<div><b>iPhone / iPad (Safari)</b><br>Tap the Share icon, then “Add to Home Screen.”</div></div>' +
+      '<div class="onboarding-install-row">' + icon('download', 'onboarding-install-icon') + '<div><b>Android (Chrome)</b><br>Tap the ⋮ menu, then “Add to Home screen” or “Install app.”</div></div>' +
+      '<div class="onboarding-install-row">' + icon('download', 'onboarding-install-icon') + '<div><b>Desktop (Chrome/Edge)</b><br>Click the install icon in the address bar, or the ⋮ menu → “Install Reads…”</div></div>' +
+      '</div>Installed, it opens full-screen like a real app — no browser bar — and solo play still works offline.'
   }
 ];
 // A one-off single-step "walkthrough" for the contextual "?" case — see
@@ -5548,12 +5560,24 @@ function hexToRgbaString(hex, alpha) {
 function drawShareCard(ctx, cfg, format) {
   var W = 1080, H = format === 'story' ? 1920 : 1080, FONT = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
   var midY = format === 'story' ? 1000 : 500;
-  // A favorite team (if set) tints the glow/bars/headline-number — the one
-  // thing on this card that's actually personal to whoever's sharing it,
-  // rather than every card looking identical regardless of who made it. The
-  // corner "READS" brand mark deliberately stays brand-orange either way, so
-  // the card still reads as this app's no matter whose team color is on it.
-  var accent = (primaryFavoriteTeam() || {}).color || '#d9a63c';
+  // A favorite team (if set) themes the glow/bars/headline-number/team line —
+  // the one thing on this card that's actually personal to whoever's sharing
+  // it. The corner "READS" brand mark deliberately stays brand-orange either
+  // way, so the card still reads as this app's no matter whose team color
+  // is on it. rawAccent/rawAccent2 are the team's true colors (used for the
+  // bar and swatch dot, where staying faithful to the team matters more than
+  // contrast); accent/accent2 run through readableOnDark first — the same
+  // fix already applied to the on-screen rating ring/greeting text — because
+  // a dark team color (Ravens purple, Auburn navy, Saints black) used
+  // straight as the giant headline number's fill was otherwise nearly
+  // invisible against this card's own dark background. That was the actual
+  // bug behind "doesn't look like my team" — the color was there, just
+  // unreadable, not more personalized so much as broken.
+  var fav = primaryFavoriteTeam();
+  var rawAccent = fav ? fav.color : '#d9a63c';
+  var rawAccent2 = fav ? (fav.color2 || fav.color) : shadeHexColor(rawAccent, -0.2);
+  var accent = readableOnDark(rawAccent);
+  var accent2 = readableOnDark(rawAccent2);
 
   // Subtle top-to-bottom gradient instead of a flat fill — reads as a lot
   // less "placeholder" than a single flat navy rectangle.
@@ -5563,22 +5587,28 @@ function drawShareCard(ctx, cfg, format) {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // Soft spotlight glow centered behind the headline stat — the single
-  // biggest thing this pass adds: draws the eye straight to the number
-  // instead of every element competing at equal visual weight.
-  var glow = ctx.createRadialGradient(W / 2, midY, 30, W / 2, midY, 440);
-  glow.addColorStop(0, hexToRgbaString(accent, 0.20));
+  // Soft spotlight glow centered behind the headline stat — draws the eye
+  // straight to the number instead of every element competing at equal
+  // visual weight. Stronger + wider, and a touch more opaque when a favorite
+  // team is set, so the theming actually reads at a glance instead of being
+  // a barely-there tint.
+  var glow = ctx.createRadialGradient(W / 2, midY, 40, W / 2, midY, 520);
+  glow.addColorStop(0, hexToRgbaString(accent, fav ? 0.30 : 0.20));
   glow.addColorStop(1, hexToRgbaString(accent, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
+  // Two-tone bar when the team actually has a second color (Auburn's navy
+  // into orange, etc.) instead of the old single-color-faded-into-itself
+  // gradient, which flattened every two-tone team down to looking like a
+  // solid-color program.
   var barGrad = ctx.createLinearGradient(0, 0, W, 0);
-  barGrad.addColorStop(0, shadeHexColor(accent, 0.35));
-  barGrad.addColorStop(0.5, accent);
-  barGrad.addColorStop(1, shadeHexColor(accent, -0.2));
+  barGrad.addColorStop(0, shadeHexColor(rawAccent, 0.35));
+  barGrad.addColorStop(0.5, rawAccent);
+  barGrad.addColorStop(1, rawAccent2);
   ctx.fillStyle = barGrad;
-  ctx.fillRect(0, 0, W, 14);
-  ctx.fillRect(0, H - 14, W, 14);
+  ctx.fillRect(0, 0, W, 18);
+  ctx.fillRect(0, H - 18, W, 18);
 
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -5593,13 +5623,45 @@ function drawShareCard(ctx, cfg, format) {
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, 192); ctx.lineTo(W - 60, 192); ctx.stroke();
 
+  // Favorite-team identity line — a two-tone swatch dot (same visual idea as
+  // the team picker's diagonal-split swatch) plus the team's real name and,
+  // if it has one, its chant. This is the part that actually says "this is
+  // MY team's card" instead of leaving color as the only, easy-to-miss tell.
+  if (fav) {
+    var dotR = 12, dotCX = 60 + dotR, dotCY = 192 + 42;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = rawAccent; ctx.fillRect(dotCX - dotR, dotCY - dotR, dotR, dotR * 2);
+    ctx.fillStyle = rawAccent2; ctx.fillRect(dotCX, dotCY - dotR, dotR, dotR * 2);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(238,242,248,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#eef2f8';
+    ctx.font = '700 30px ' + FONT;
+    ctx.textAlign = 'left';
+    ctx.fillText(fav.name + (fav.chant ? '  ·  ' + fav.chant : ''), dotCX + dotR + 18, dotCY + 10);
+  }
+
   ctx.textAlign = 'center';
   ctx.fillStyle = '#eef2f8';
   ctx.font = '700 42px ' + FONT;
   ctx.fillText(cfg.title, W / 2, midY - 220);
+
+  // Headline number auto-shrinks if a longer value (e.g. a big Speed-round
+  // point total) would otherwise run past the card's edges — short values
+  // (percentages, grades, streak counts) still get the full, bold size this
+  // card is built around.
+  var headlineFont = 160;
+  ctx.font = '800 ' + headlineFont + 'px ' + FONT;
+  var maxHeadlineWidth = W - 160;
+  while (ctx.measureText(cfg.headline).width > maxHeadlineWidth && headlineFont > 70) {
+    headlineFont -= 8;
+    ctx.font = '800 ' + headlineFont + 'px ' + FONT;
+  }
   ctx.fillStyle = accent;
-  ctx.font = '800 160px ' + FONT;
   ctx.fillText(cfg.headline, W / 2, midY);
+
   ctx.fillStyle = '#eef2f8';
   ctx.font = '600 46px ' + FONT;
   ctx.fillText(cfg.sub, W / 2, midY + 90);
@@ -5611,13 +5673,20 @@ function drawShareCard(ctx, cfg, format) {
 
   // Footer name/date as a soft pill chip rather than bare text floating at
   // the bottom — a small thing that makes the whole card feel considered
-  // rather than assembled from four independent fillText calls.
+  // rather than assembled from four independent fillText calls. Border picks
+  // up the team's raw color at low opacity so the theming carries all the
+  // way to the bottom of the card, not just the middle.
   var footerText = (state.name ? state.name + ' — ' : '') + todayStr();
   ctx.font = '600 30px ' + FONT;
   var footerWidth = ctx.measureText(footerText).width;
+  var footerX = W / 2 - footerWidth / 2 - 28, footerY = H - 98, footerW = footerWidth + 56, footerH = 54;
   ctx.fillStyle = 'rgba(238,242,248,0.06)';
-  roundRectPath(ctx, W / 2 - footerWidth / 2 - 28, H - 98, footerWidth + 56, 54, 27);
+  roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
   ctx.fill();
+  ctx.strokeStyle = hexToRgbaString(rawAccent, 0.45);
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
+  ctx.stroke();
   ctx.fillStyle = '#c3cbdc';
   ctx.fillText(footerText, W / 2, H - 63);
 }
