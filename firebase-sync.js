@@ -15,6 +15,10 @@
 //   window.__fbSync.watchMatch(code, cb)            <- defined here, called by app.js (returns unsubscribe)
 //   window.__fbSync.pushProfile(nameSlug, data)     <- defined here, called by app.js
 //   window.__fbSync.getProfile(nameSlug)            <- defined here, called by app.js (Promise)
+//   window.__fbSync.signUp(username, password)      <- defined here, called by app.js (Promise)
+//   window.__fbSync.logIn(username, password)       <- defined here, called by app.js (Promise)
+//   window.__fbSync.logOut()                        <- defined here, called by app.js
+//   window.__triviaSync.applyAuthUser(user|null)    <- defined by app.js, called here
 //   window.__fbSync.status                        <- 'connecting' | 'live' | 'offline'
 //
 // pushProfile/getProfile back cross-device sync for per-mode stats/badges/
@@ -34,6 +38,28 @@
 // the same instant isn't a real risk, and a transaction would be a lot of
 // complexity for a scenario that won't happen in practice.
 //
+// signUp/logIn/logOut back real accounts (see the auth modal in app.js) —
+// Firebase Auth's email/password provider underneath, but nobody ever sees
+// or needs a real email: a username's own synthetic address is
+// slug(username)@reads.local, and Firebase's own uniqueness constraint on
+// that field is what makes usernames unique (auth/email-already-in-use IS
+// "that username is taken" — no separate usernames collection needed for
+// that check). The real username itself lives on the Firebase Auth user's
+// displayName field, set once at sign-up and readable instantly off
+// auth.currentUser on every later page load without an extra Firestore
+// round-trip — that's what lets a returning visitor's real session restore
+// silently before they've clicked anything (see the isAnonymous check in
+// onAuthStateChanged below).
+//
+// Everyone still gets signed in ANONYMOUSLY the moment the app loads if
+// they haven't logged in for real yet — that's what keeps the leaderboard/
+// analytics/solo-play-without-an-account experience working exactly like
+// before real accounts existed (see the app's own README on why: this is a
+// public, SEO-relevant site, and a hard login wall on first visit would be
+// a bad trade for that). Logging in for real simply swaps that anonymous
+// session out for the real one; logging out swaps back to a fresh anonymous
+// session rather than leaving the tab fully signed out.
+//
 // logPlay() is the whole "analytics" story for this app, by deliberate
 // choice over a third-party tool (Plausible/GA): one shared Firestore doc
 // with a Firestore increment() counter per mode ID, no external script, no
@@ -49,7 +75,7 @@
 // folder into Netlify) to get the real live cross-device leaderboard.
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 var FIREBASE_CONFIG = {
@@ -87,7 +113,10 @@ window.__fbSync = {
   setMatch: function () { return Promise.reject(new Error('Not connected')); },
   watchMatch: function () { return function () {}; },
   pushProfile: function () { /* no-op until Firebase finishes initializing below */ },
-  getProfile: function () { return Promise.reject(new Error('Not connected')); }
+  getProfile: function () { return Promise.reject(new Error('Not connected')); },
+  signUp: function () { return Promise.reject(new Error('Not connected')); },
+  logIn: function () { return Promise.reject(new Error('Not connected')); },
+  logOut: function () { /* no-op until Firebase finishes initializing below */ }
 };
 setStatus('connecting');
 
@@ -104,6 +133,29 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     var reportsCol = collection(db, 'games', GAME_ID, 'reports');
     var matchesCol = collection(db, 'games', GAME_ID, 'matches');
     var profilesCol = collection(db, 'games', GAME_ID, 'profiles');
+
+    // Not a real email — just a stable, uniqueness-checkable identifier
+    // Firebase's email/password provider can key off of, so "username" can
+    // be the only thing a player ever sees or types.
+    function usernameSlug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9_]/g, ''); }
+    function usernameEmail(username) { return usernameSlug(username) + '@reads.local'; }
+    window.__fbSync.signUp = function (username, password) {
+      if (!usernameSlug(username)) return Promise.reject({ code: 'auth/invalid-email' });
+      return createUserWithEmailAndPassword(auth, usernameEmail(username), password).then(function (cred) {
+        return updateProfile(cred.user, { displayName: username.trim() }).then(function () {
+          return { username: username.trim(), uid: cred.user.uid };
+        });
+      });
+    };
+    window.__fbSync.logIn = function (username, password) {
+      if (!usernameSlug(username)) return Promise.reject({ code: 'auth/invalid-email' });
+      return signInWithEmailAndPassword(auth, usernameEmail(username), password).then(function (cred) {
+        return { username: cred.user.displayName || username.trim(), uid: cred.user.uid };
+      });
+    };
+    window.__fbSync.logOut = function () {
+      return signOut(auth).then(function () { return signInAnonymously(auth); });
+    };
 
     window.__fbSync.pushProfile = function (nameSlug, data) {
       var payload = Object.assign({}, data, { updatedAt: serverTimestamp() });
@@ -158,8 +210,35 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       });
     };
 
+    // onAuthStateChanged now fires more than once per page load (logging in/
+    // out mid-session changes the signed-in user, not just the initial
+    // boot), so the collection listeners below — which don't depend on WHO
+    // is signed in, just THAT someone is — are guarded to only ever start
+    // once. Without that guard, every login/logout would stack a brand new
+    // duplicate onSnapshot listener on top of the last one.
+    var listenersStarted = false;
     onAuthStateChanged(auth, function (user) {
-      if (!user) return;
+      if (!user) {
+        // No session at all — brand new visitor, or fully signed out with
+        // nothing persisted. Anonymous keeps the leaderboard/analytics/solo
+        // play working without forcing a login (see the header comment).
+        // Deliberately NOT called unconditionally at boot like before real
+        // accounts existed — Firebase auto-restores a previously real,
+        // persisted session before this callback ever sees a null user, and
+        // calling signInAnonymously() while one of those is active would
+        // silently replace it with a brand-new anonymous session, logging
+        // out a returning real account on every single page load.
+        signInAnonymously(auth).catch(function (err) {
+          console.error('Sync auth failed', err);
+          setStatus('offline');
+        });
+        return;
+      }
+      if (window.__triviaSync && window.__triviaSync.applyAuthUser) {
+        window.__triviaSync.applyAuthUser(user.isAnonymous ? null : { username: user.displayName, uid: user.uid });
+      }
+      if (listenersStarted) return;
+      listenersStarted = true;
       onSnapshot(scoresCol, function (snap) {
         setStatus('live');
         var list = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
@@ -184,11 +263,6 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       }, function (err) {
         console.error('Reports listen failed', err);
       });
-    });
-
-    signInAnonymously(auth).catch(function (err) {
-      console.error('Sync auth failed', err);
-      setStatus('offline');
     });
 
     window.addEventListener('offline', function () { setStatus('offline'); });

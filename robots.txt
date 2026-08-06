@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://getreads.netlify.app/sitemap.xml
+Sitemap: https://reads.football/sitemap.xml

@@ -2,9 +2,9 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '2.2.0';
+var APP_VERSION = '3.0.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
-var SITE_URL = 'https://getreads.netlify.app/';
+var SITE_URL = 'https://reads.football/';
 
 /* ============================== utilities ============================== */
 function lsGet(key, fallback) {
@@ -107,6 +107,17 @@ var CFB_SPEED = window.CFB_SPEED_DATA || [];
 var CFB_BLITZ_LISTS = window.CFB_BLITZ_LISTS || [];
 var CFB_GRID_PLAYERS = window.CFB_GRID_PLAYERS || [];
 var CFB_GRID_CRITERIA = window.CFB_GRID_CRITERIA || { team: [], stat: [], all: [] };
+var HL_PASSING = window.HL_PASSING || [];
+var HL_RUSHING = window.HL_RUSHING || [];
+var HL_RECEIVING = window.HL_RECEIVING || [];
+var HL_TACKLES = window.HL_TACKLES || [];
+var HL_INTERCEPTIONS = window.HL_INTERCEPTIONS || [];
+var HL_FUMBLES = window.HL_FUMBLES || [];
+var HL_FIELDGOALS = window.HL_FIELDGOALS || [];
+var HL_PUNTING = window.HL_PUNTING || [];
+var HL_RETURNS = window.HL_RETURNS || [];
+var HL_CONTRACTS = window.HL_CONTRACTS || [];
+var HL_STADIUMS = window.HL_STADIUMS || [];
 
 var DEFAULT_STATS = {
   quiz: { correctTotal: 0, questionsTotal: 0, roundsPlayed: 0, bestPct: 0 },
@@ -707,7 +718,7 @@ function renderDailySummary() {
   return '<div class="panel">' +
     '<h2 class="panel-title">Daily Challenge Complete</h2>' +
     '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
-    '<div class="summary-note">' + icon('flame') + ' ' + getStreak().count + '-day streak. Come back tomorrow for a new challenge.' + (state.name ? '' : ' Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + icon('flame') + ' ' + getStreak().count + '-day streak. Come back tomorrow for a new challenge.' + (state.name ? '' : ' Log in above to save this to the leaderboard.') + '</div>' +
     (lastStreakGraceUsed ? '<div class="summary-note streak-saved-note">🛡️ You missed a day, but your streak survived — one grace day free every 7 days.</div>' : '') +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
@@ -780,7 +791,7 @@ function resetModeState(mode) {
    it) loads on first entry into that specific mode instead. */
 var MODE_DATA_FILES = {
   grid: ['data/grid.js'],
-  higherLower: ['data/grid.js'],
+  higherLower: ['data/grid.js', 'data/higher-lower-extra.js'],
   cfbGrid: ['data/cfb-grid.js'],
   blitz: ['data/blitz.js'],
   cfbBlitz: ['data/cfb-blitz.js'],
@@ -824,6 +835,17 @@ function refreshDataAliases() {
   CFB_LEGENDS_TEAMS = window.CFB_LEGENDS_TEAMS || CFB_LEGENDS_TEAMS;
   CFB_PLAYER_META = window.CFB_PLAYER_META || CFB_PLAYER_META;
   CFB_LEGENDS_DUOS = window.CFB_LEGENDS_DUOS || CFB_LEGENDS_DUOS;
+  HL_PASSING = window.HL_PASSING || HL_PASSING;
+  HL_RUSHING = window.HL_RUSHING || HL_RUSHING;
+  HL_RECEIVING = window.HL_RECEIVING || HL_RECEIVING;
+  HL_TACKLES = window.HL_TACKLES || HL_TACKLES;
+  HL_INTERCEPTIONS = window.HL_INTERCEPTIONS || HL_INTERCEPTIONS;
+  HL_FUMBLES = window.HL_FUMBLES || HL_FUMBLES;
+  HL_FIELDGOALS = window.HL_FIELDGOALS || HL_FIELDGOALS;
+  HL_PUNTING = window.HL_PUNTING || HL_PUNTING;
+  HL_RETURNS = window.HL_RETURNS || HL_RETURNS;
+  HL_CONTRACTS = window.HL_CONTRACTS || HL_CONTRACTS;
+  HL_STADIUMS = window.HL_STADIUMS || HL_STADIUMS;
 }
 function enterMode(mode) {
   // Leaving an in-progress head-to-head match for anywhere else — stop its
@@ -900,32 +922,140 @@ function setRankedPref(mode, ranked) {
   renderAll();
 }
 
+// Real accounts — username + password via Firebase Auth (see signUp/logIn/
+// logOut in firebase-sync.js), replacing both the old free-text name bar
+// AND the PIN-claim system that briefly stood in for real auth. Firebase
+// Auth's email/password provider is used under the hood with a synthetic
+// slug@reads.local address so nobody ever needs a real email — see
+// firebase-sync.js's header comment for the full mechanism. Everything
+// downstream (leaderboard, rating, friends, H2H, profiles) still keys off
+// slugify(state.name) exactly like it always has — a real login only
+// changes HOW state.name gets set, not what it's used for, so playing
+// under the same username you used to type picks your old stats back up.
 function saveName(name) {
   name = (name || '').trim();
   if (!name) return;
   state.name = name;
   lsSet('nflTriviaName', name);
   // The leaderboard snapshot (state.leaderboardData) almost always arrives
-  // from Firestore before someone finishes typing their name — but
-  // reconcileRating() bails out early with no name set, so a returning
-  // player's cloud rating/stats sat there unused until now. Reconcile
-  // immediately against whatever's already cached so a name typed on a new
-  // device picks up their real rating right away instead of wrongly
-  // launching the intro test and needing a refresh to fix itself.
+  // from Firestore before sign-in finishes — but reconcileRating() bails out
+  // early with no name set, so a returning player's cloud rating/stats sat
+  // there unused until now. Reconcile immediately against whatever's already
+  // cached so logging in on a new device picks up the real rating right
+  // away instead of wrongly launching the intro test and needing a refresh.
   reconcileRating(state.leaderboardData);
   didInitialProfilePull = true;
   pullProfileSnapshot();
   if (!getRating()) { startIntroTest(); return; }
   if (!consumePendingLiveJoin()) renderAll();
 }
-function changeName() { state.name = ''; lsSet('nflTriviaName', ''); didInitialProfilePull = false; renderAll(); }
+function logOut() {
+  if (window.__fbSync && window.__fbSync.logOut) window.__fbSync.logOut();
+  state.name = '';
+  lsSet('nflTriviaName', '');
+  lsSet('nflTriviaLoggedIn', false);
+  didInitialProfilePull = false;
+  renderAll();
+}
+
+/* ============================== auth modal (sign up / log in) ============================== */
+var authTriggerEl = null;
+var authModalMode = 'login'; // 'login' | 'signup'
+function openAuthModal(mode) {
+  authModalMode = mode === 'signup' ? 'signup' : 'login';
+  authTriggerEl = document.activeElement;
+  renderAuthModal();
+  var usernameEl = document.getElementById('auth-username-input');
+  var passwordEl = document.getElementById('auth-password-input');
+  if (usernameEl) usernameEl.value = '';
+  if (passwordEl) passwordEl.value = '';
+  var modal = document.getElementById('auth-modal');
+  var backdrop = document.getElementById('auth-backdrop');
+  if (modal) modal.classList.add('open');
+  if (backdrop) backdrop.classList.add('open');
+  setTimeout(function () { if (usernameEl) usernameEl.focus(); }, 0);
+}
+// Re-labels the modal's static markup for the current mode rather than
+// re-rendering it from renderAll() — this modal, like report/rating/pin
+// before it, lives outside the normal render cycle so an in-progress typed
+// username/password never gets wiped by an unrelated background re-render.
+function renderAuthModal() {
+  var titleEl = document.getElementById('auth-title');
+  var contextEl = document.getElementById('auth-context');
+  var submitBtn = document.getElementById('auth-submit');
+  var switchBtn = document.getElementById('auth-switch');
+  var errorEl = document.getElementById('auth-error');
+  var passwordEl = document.getElementById('auth-password-input');
+  if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+  if (authModalMode === 'signup') {
+    if (titleEl) titleEl.textContent = 'Sign Up';
+    if (contextEl) contextEl.textContent = 'Pick a username and password — this is a real login, so your Football Rating, stats, and friends follow you to any device. No email needed. Playing under the same name you used before picks up right where you left off.';
+    if (submitBtn) submitBtn.textContent = 'Create Account';
+    if (switchBtn) switchBtn.textContent = 'Already have an account? Log In';
+    if (passwordEl) passwordEl.autocomplete = 'new-password';
+  } else {
+    if (titleEl) titleEl.textContent = 'Log In';
+    if (contextEl) contextEl.textContent = 'Log in to sync your Football Rating, stats, and friends across every device.';
+    if (submitBtn) submitBtn.textContent = 'Log In';
+    if (switchBtn) switchBtn.textContent = 'Don’t have an account? Sign Up';
+    if (passwordEl) passwordEl.autocomplete = 'current-password';
+  }
+}
+function closeAuthModal() {
+  var modal = document.getElementById('auth-modal');
+  var backdrop = document.getElementById('auth-backdrop');
+  if (modal) modal.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
+  if (authTriggerEl && document.contains(authTriggerEl)) authTriggerEl.focus();
+  authTriggerEl = null;
+}
+function authModalSwitch() {
+  authModalMode = authModalMode === 'signup' ? 'login' : 'signup';
+  renderAuthModal();
+  var usernameEl = document.getElementById('auth-username-input');
+  if (usernameEl) usernameEl.focus();
+}
+function authModalError(msg) {
+  var errorEl = document.getElementById('auth-error');
+  if (errorEl) { errorEl.textContent = msg; errorEl.style.display = ''; }
+}
+// Firebase's own error codes, translated into the plain language this app's
+// non-technical audience needs — same spirit as authFriendlyError's only
+// caller, avoids ever surfacing a raw "auth/wrong-password" to a player.
+function authFriendlyError(err) {
+  var code = err && err.code;
+  if (code === 'auth/email-already-in-use') return 'That username is taken — try another, or log in instead.';
+  if (code === 'auth/user-not-found') return 'No account with that username.';
+  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') return 'Wrong password.';
+  if (code === 'auth/weak-password') return 'Password needs to be at least 6 characters.';
+  if (code === 'auth/invalid-email') return 'Usernames can only use letters, numbers, and underscores.';
+  return 'Something went wrong — check your connection and try again.';
+}
+function authModalSubmit() {
+  var usernameEl = document.getElementById('auth-username-input');
+  var passwordEl = document.getElementById('auth-password-input');
+  var username = usernameEl ? usernameEl.value.trim() : '';
+  var password = passwordEl ? passwordEl.value : '';
+  if (!username) { authModalError('Enter a username.'); return; }
+  if (!password) { authModalError('Enter a password.'); return; }
+  if (!window.__fbSync || !window.__fbSync.signUp || !window.__fbSync.logIn) { authModalError('Not connected — check your connection and try again.'); return; }
+  var submitBtn = document.getElementById('auth-submit');
+  if (submitBtn) submitBtn.disabled = true;
+  var action = authModalMode === 'signup' ? window.__fbSync.signUp(username, password) : window.__fbSync.logIn(username, password);
+  action.then(function (result) {
+    closeAuthModal();
+    saveName(result.username);
+  }).catch(function (err) {
+    console.error('Auth failed', err);
+    authModalError(authFriendlyError(err));
+  }).then(function () { if (submitBtn) submitBtn.disabled = false; });
+}
 
 function nameBarHtml() {
   return '<div class="name-bar">' +
     (state.name
-      ? '<span>Playing as <b>' + esc(state.name) + '</b></span><button class="btn-secondary" data-go="profile">Stats</button><button class="btn-secondary" data-change-name>Change</button>'
-      : '<input id="name-input" placeholder="Your name (for the leaderboard)" />' +
-        '<button class="btn-primary" data-save-name>Save</button>') +
+      ? '<span>Playing as <b>' + esc(state.name) + '</b></span><button class="btn-secondary" data-go="profile">Stats</button><button class="btn-secondary" data-log-out>Log Out</button>'
+      : '<button class="btn-primary" data-auth-open="login">Log In</button><button class="btn-secondary" data-auth-open="signup">Sign Up</button>') +
     '</div>';
 }
 
@@ -1526,7 +1656,7 @@ function onboardingSampleQuestion() { return QUIZ.find(function (q) { return q.i
 var ONBOARDING_STEPS = [
   {
     title: 'What is Reads?',
-    body: 'NFL and College Football trivia with 12 game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round.'
+    body: 'NFL and College Football trivia with 12 game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round. It’s free and works right in your browser — sign up with just a username and password, no email needed.'
   },
   { title: 'Try a real question', type: 'sample' },
   {
@@ -1538,11 +1668,23 @@ var ONBOARDING_STEPS = [
       '<span class="onboarding-mode-chip">' + icon('zap') + ' Speed</span>' +
       '<span class="onboarding-mode-chip">' + icon('search') + ' Silhouette</span>' +
       '<span class="onboarding-mode-chip">' + icon('trophy') + ' 12-0/17-0</span>' +
-      '</div>Straight trivia, a name-the-player grid, timed challenges, and a fantasy-style roster draft — every mode exists for both NFL and College Football.'
+      '</div>Straight trivia, a name-the-player grid, timed challenges, and a fantasy-style roster draft — every mode exists for both NFL and College Football. Every one of them also has a Practice option, for when you just want to play without it touching your rating.'
+  },
+  {
+    title: 'Come back every day',
+    body: 'A <b>Daily Challenge</b> drops every day — the same one for everyone, so it doubles as its own mini leaderboard. Complete it to build your streak, and don’t stress about one bad day: a grace day every week keeps your streak alive even if you miss.'
   },
   {
     title: 'Your rating goes with you',
-    body: 'Save a name once and your Football Rating and leaderboard rank sync across every device you play on — same name, same progress, anywhere.'
+    body: 'Log in once and your Football Rating, stats, and leaderboard rank sync across every device you play on — same account, same progress, anywhere. The leaderboard itself can be filtered to today, this week, or all-time.'
+  },
+  {
+    title: 'Save it to your Home Screen',
+    body: '<div class="onboarding-install-list">' +
+      '<div class="onboarding-install-row">' + icon('share', 'onboarding-install-icon') + '<div><b>iPhone / iPad (Safari)</b><br>Tap the Share icon, then “Add to Home Screen.”</div></div>' +
+      '<div class="onboarding-install-row">' + icon('download', 'onboarding-install-icon') + '<div><b>Android (Chrome)</b><br>Tap the ⋮ menu, then “Add to Home screen” or “Install app.”</div></div>' +
+      '<div class="onboarding-install-row">' + icon('download', 'onboarding-install-icon') + '<div><b>Desktop (Chrome/Edge)</b><br>Click the install icon in the address bar, or the ⋮ menu → “Install Reads…”</div></div>' +
+      '</div>Installed, it opens full-screen like a real app — no browser bar — and solo play still works offline.'
   }
 ];
 // A one-off single-step "walkthrough" for the contextual "?" case — see
@@ -1825,7 +1967,7 @@ function renderQuizSummary() {
   return '<div class="panel">' +
     '<h2 class="panel-title">Round Complete</h2>' +
     '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-quiz-again>Play Again</button>' +
@@ -1946,7 +2088,7 @@ function renderCfbSummary() {
   return '<div class="panel">' +
     '<h2 class="panel-title">Round Complete</h2>' +
     '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-again>Play Again</button>' +
@@ -2304,7 +2446,7 @@ function renderGridSummary() {
     '<h2 class="panel-title">Grid Complete</h2>' +
     gridImmaculateBannerHtml(correctCells) +
     '<div class="summary-score">' + correctCells + ' / 9 correct &middot; ' + g.totalScore + ' pts</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="grid-recap">';
   g.cells.forEach(function (cell) {
     var rowLabel = g.rows[cell.r].label, colLabel = g.cols[cell.c].label;
@@ -2508,7 +2650,7 @@ function renderCfbGridSummary() {
     '<h2 class="panel-title">Grid Complete</h2>' +
     gridImmaculateBannerHtml(correctCells) +
     '<div class="summary-score">' + correctCells + ' / 9 correct &middot; ' + g.totalScore + ' pts</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="grid-recap">';
   g.cells.forEach(function (cell) {
     var rowLabel = g.rows[cell.r].label, colLabel = g.cols[cell.c].label;
@@ -2642,7 +2784,7 @@ function renderBlitzResults() {
   return '<div class="panel">' +
     '<h2 class="panel-title">NFL Blitz Complete — ' + esc(b.list.title) + '</h2>' +
     '<div class="summary-score">' + b.matched.length + ' / ' + total + ' found</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (a) { return esc(a.answer); }).join(', ') + '</div>' : '<div class="blitz-missed">Clean sweep — you got every answer!</div>') +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-blitz-list="' + esc(b.listId) + '">Try Another List</button>' +
@@ -2766,7 +2908,7 @@ function renderCfbBlitzResults() {
   return '<div class="panel">' +
     '<h2 class="panel-title">Blitz Complete — ' + esc(b.list.title) + '</h2>' +
     '<div class="summary-score">' + b.matched.length + ' / ' + total + ' found</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (a) { return esc(a.answer); }).join(', ') + '</div>' : '<div class="blitz-missed">Clean sweep — you got every answer!</div>') +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-blitz-list="' + esc(b.listId) + '">Try Another List</button>' +
@@ -2905,7 +3047,7 @@ function renderSpeedSummary() {
   return '<div class="panel">' +
     '<h2 class="panel-title">NFL Speed Complete</h2>' +
     '<div class="summary-score">' + s.score + ' pts &middot; ' + s.correctCount + ' / ' + s.totalCount + ' correct &middot; best streak ' + s.bestStreak + '</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-speed-start="' + s.sessionLen + '">Play Again</button>' +
     '<button class="btn-secondary" data-share="speed">' + icon('share') + ' Share</button>' +
@@ -2920,36 +3062,201 @@ function renderSpeedScreen() {
 }
 
 /* ============================== higher or lower ==============================
-   Real career honors (Pro Bowls + All-Pro selections — both already tracked
-   per-player in GRID_PLAYERS, same field the Learn tab's "Pro Bowl &
-   All-Pro Selections" section reads) as the comparison stat. Classic
-   "guess if the next one is higher or lower" format, endless streak until
-   a miss — built specifically because this is one of the most viral,
-   shareable trivia formats around, and this app already has real per-
-   player numbers that support it honestly.
+   Classic "guess if the next one is higher or lower" format, endless streak
+   until a miss — one of the most viral, shareable trivia formats around.
 
-   CFB deliberately does NOT get a version of this: CFB_GRID_PLAYERS has no
-   comparable numeric stat with real spread (years.length, the closest
-   thing, tops out around 2-3 even for the best multi-time All-Americans —
-   almost every comparison would be a coin-flip tie). This only exists
-   where a real stat actually supports it, not invented to make the mode
-   symmetric across leagues. */
-function higherLowerPool() {
-  return GRID_PLAYERS.filter(function (p) { return ((p.proBowls || 0) + (p.allPro || 0)) > 0; });
+   HL_CATEGORIES is a two-level pool structure: pick a CATEGORY first (which
+   entities you're comparing — career-honors players, 2025 season stat
+   leaders by unit, contracts, or CFB stadiums), then a STAT within that
+   category (which number). Every category besides the original "Career
+   Accolades" pulls from data/higher-lower-extra.js (real 2025 regular-season
+   leaders from NFL.com, real current contracts from Over The Cap, and real
+   FBS stadium capacities) — lazy-loaded the same way data/grid.js already is
+   for this mode, see MODE_DATA_FILES.higherLower.
+
+   Each category's `pool` is a function (not a plain array) so categories
+   whose raw data needs reshaping — Stadium Capacity's source rows use
+   `stadium`/`school` fields, not the `name` every other pool's entities
+   already have — can normalize once per draw instead of needing a special
+   case threaded through every render/compare call site. `filterZero` is the
+   ONE thing kept from the original design: Career Accolades' GRID_PLAYERS
+   pool is huge (1144 players) and most have zero of any given accolade, so
+   that category alone excludes zero-scores per stat to keep comparisons
+   meaningful; every new category is already a pre-filtered leaderboard (top
+   ~24, or every FBS stadium), so nothing there needs that filter.
+
+   CFB still doesn't get a "Career Accolades" equivalent of its own —
+   CFB_GRID_PLAYERS has no comparable numeric stat with real spread — but
+   the new Stadium Capacity category is a genuine, entirely real CFB pool
+   (138 FBS programs), so Higher or Lower isn't NFL-only anymore. */
+function hlFmtCommas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function hlFmtMoney(n) { return '$' + n + 'M'; }
+function hlFmtPct(n) { return n + '%'; }
+var HIGHER_LOWER_ACCOLADE_STATS = [
+  { id: 'combined', label: 'Career Pro Bowl + All-Pro selections', scoreFn: function (p) { return (p.proBowls || 0) + (p.allPro || 0); } },
+  { id: 'proBowls', label: 'Career Pro Bowl selections', scoreFn: function (p) { return p.proBowls || 0; } },
+  { id: 'allPro', label: 'Career All-Pro selections', scoreFn: function (p) { return p.allPro || 0; } },
+  { id: 'moments', label: 'Signature career moments (MVP + Super Bowl win + Super Bowl MVP + Hall of Fame)', scoreFn: function (p) { return (p.mvp ? 1 : 0) + (p.sbChamp ? 1 : 0) + (p.sbMVP ? 1 : 0) + (p.hof ? 1 : 0); } }
+];
+function higherLowerPlayerLine(p) {
+  return esc(p.position || '') + (p.college ? ' &middot; ' + esc(p.college) : '') + (p.teams && p.teams.length ? ' &middot; ' + esc(p.teams.join('/')) : '');
 }
-function higherLowerScore(p) { return (p.proBowls || 0) + (p.allPro || 0); }
-function higherLowerDrawPlayer(usedNames) {
-  var pool = higherLowerPool().filter(function (p) { return usedNames.indexOf(p.name) === -1; });
-  // Pool exhausted (651 players — a genuinely absurd streak to reach) —
-  // allow repeats rather than dead-end an otherwise-still-going run.
-  if (!pool.length) pool = higherLowerPool();
+function hl2025Line(p) { return '2025 season &middot; ' + esc(p.team); }
+var HL_CATEGORIES = [
+  {
+    id: 'accolades', label: 'Career Accolades', entityLabel: 'player', filterZero: true,
+    pool: function () { return GRID_PLAYERS; }, lineFn: higherLowerPlayerLine, stats: HIGHER_LOWER_ACCOLADE_STATS
+  },
+  {
+    id: 'passing', label: '2025 Passing', entityLabel: 'player',
+    pool: function () { return HL_PASSING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'passYds', label: 'Passing Yards', scoreFn: function (p) { return p.passYds; } },
+      { id: 'passTD', label: 'Passing Touchdowns', scoreFn: function (p) { return p.passTD; } },
+      { id: 'passInt', label: 'Interceptions Thrown', scoreFn: function (p) { return p.passInt; } },
+      { id: 'passRating', label: 'Passer Rating', scoreFn: function (p) { return p.passRating; } },
+      { id: 'passSacks', label: 'Times Sacked', scoreFn: function (p) { return p.passSacks; } }
+    ]
+  },
+  {
+    id: 'rushing', label: '2025 Rushing', entityLabel: 'player',
+    pool: function () { return HL_RUSHING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'rushYds', label: 'Rushing Yards', scoreFn: function (p) { return p.rushYds; } },
+      { id: 'rushTD', label: 'Rushing Touchdowns', scoreFn: function (p) { return p.rushTD; } },
+      { id: 'rushLng', label: 'Longest Rush', scoreFn: function (p) { return p.rushLng; } }
+    ]
+  },
+  {
+    id: 'receiving', label: '2025 Receiving', entityLabel: 'player',
+    pool: function () { return HL_RECEIVING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'rec', label: 'Receptions', scoreFn: function (p) { return p.rec; } },
+      { id: 'recYds', label: 'Receiving Yards', scoreFn: function (p) { return p.recYds; } },
+      { id: 'recTD', label: 'Receiving Touchdowns', scoreFn: function (p) { return p.recTD; } }
+    ]
+  },
+  {
+    id: 'tackles', label: '2025 Tackles', entityLabel: 'player',
+    pool: function () { return HL_TACKLES; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'tklCombined', label: 'Combined Tackles', scoreFn: function (p) { return p.tklCombined; } },
+      { id: 'tklSolo', label: 'Solo Tackles', scoreFn: function (p) { return p.tklSolo; } },
+      { id: 'tklAssists', label: 'Assisted Tackles', scoreFn: function (p) { return p.tklAssists; } },
+      { id: 'tklSacks', label: 'Sacks', scoreFn: function (p) { return p.tklSacks; } }
+    ]
+  },
+  {
+    id: 'interceptions', label: '2025 Interceptions', entityLabel: 'player',
+    pool: function () { return HL_INTERCEPTIONS; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'int', label: 'Interceptions', scoreFn: function (p) { return p.int; } },
+      { id: 'intYds', label: 'Interception Return Yards', scoreFn: function (p) { return p.intYds; } }
+    ]
+  },
+  {
+    id: 'fumbles', label: '2025 Forced Fumbles', entityLabel: 'player',
+    pool: function () { return HL_FUMBLES; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'forcedFum', label: 'Forced Fumbles', scoreFn: function (p) { return p.forcedFum; } },
+      { id: 'fumRec', label: 'Fumble Recoveries', scoreFn: function (p) { return p.fumRec; } }
+    ]
+  },
+  {
+    id: 'fieldgoals', label: '2025 Field Goals', entityLabel: 'player',
+    pool: function () { return HL_FIELDGOALS; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'fgMade', label: 'Field Goals Made', scoreFn: function (p) { return p.fgMade; } },
+      { id: 'fgAtt', label: 'Field Goal Attempts', scoreFn: function (p) { return p.fgAtt; } },
+      { id: 'fgPct', label: 'Field Goal %', scoreFn: function (p) { return p.fgPct; }, fmt: hlFmtPct },
+      { id: 'fgLng', label: 'Longest Field Goal', scoreFn: function (p) { return p.fgLng; } }
+    ]
+  },
+  {
+    id: 'punting', label: '2025 Punting', entityLabel: 'player',
+    pool: function () { return HL_PUNTING; }, lineFn: hl2025Line,
+    stats: [
+      { id: 'puntAvg', label: 'Punting Average', scoreFn: function (p) { return p.puntAvg; } },
+      { id: 'puntYds', label: 'Punting Yards', scoreFn: function (p) { return p.puntYds; } }
+    ]
+  },
+  {
+    id: 'returns', label: '2025 Kick/Punt Returns', entityLabel: 'player',
+    pool: function () { return HL_RETURNS; }, lineFn: function (p) { return esc(p.returnType) + ' return &middot; 2025 season &middot; ' + esc(p.team); },
+    stats: [
+      { id: 'returnAvg', label: 'Return Average', scoreFn: function (p) { return p.returnAvg; } },
+      { id: 'returnYds', label: 'Return Yards', scoreFn: function (p) { return p.returnYds; } }
+    ]
+  },
+  {
+    id: 'contracts', label: 'Contract Value', entityLabel: 'player',
+    pool: function () { return HL_CONTRACTS; }, lineFn: function (p) { return esc(p.pos) + ' &middot; ' + esc(p.team); },
+    stats: [
+      { id: 'totalValue', label: 'Total Contract Value', scoreFn: function (p) { return p.totalValue; }, fmt: hlFmtMoney },
+      { id: 'apy', label: 'Average Per Year', scoreFn: function (p) { return p.apy; }, fmt: hlFmtMoney },
+      { id: 'totalGtd', label: 'Total Guaranteed', scoreFn: function (p) { return p.totalGtd; }, fmt: hlFmtMoney },
+      { id: 'pctGtd', label: '% of Contract Guaranteed', scoreFn: function (p) { return p.pctGtd; }, fmt: hlFmtPct }
+    ]
+  },
+  {
+    id: 'stadiums', label: 'CFB Stadium Capacity', entityLabel: 'stadium',
+    pool: function () {
+      return HL_STADIUMS.map(function (st) { return { name: st.stadium, school: st.school, nickname: st.nickname, conf: st.conf, city: st.city, capacity: st.capacity }; });
+    },
+    lineFn: function (p) { return esc(p.school) + ' ' + esc(p.nickname) + ' &middot; ' + esc(p.conf) + ' &middot; ' + esc(p.city); },
+    stats: [
+      { id: 'capacity', label: 'Stadium Capacity', scoreFn: function (p) { return p.capacity; }, fmt: hlFmtCommas }
+    ]
+  }
+];
+function hlCategoryConfig(catId) { return HL_CATEGORIES.find(function (c) { return c.id === catId; }) || HL_CATEGORIES[0]; }
+function hlStatConfig(catId, statId) {
+  var cat = hlCategoryConfig(catId);
+  return cat.stats.find(function (s) { return s.id === statId; }) || cat.stats[0];
+}
+function higherLowerPool(catId, statId) {
+  var cat = hlCategoryConfig(catId);
+  var cfg = hlStatConfig(catId, statId);
+  var pool = cat.pool();
+  if (cat.filterZero) pool = pool.filter(function (p) { return cfg.scoreFn(p) > 0; });
+  return pool;
+}
+function higherLowerScore(p, catId, statId) { return hlStatConfig(catId, statId).scoreFn(p); }
+function higherLowerScoreDisplay(p, catId, statId) {
+  var cfg = hlStatConfig(catId, statId);
+  var v = cfg.scoreFn(p);
+  return cfg.fmt ? cfg.fmt(v) : v;
+}
+function higherLowerDrawPlayer(catId, statId, usedNames) {
+  var pool = higherLowerPool(catId, statId).filter(function (p) { return usedNames.indexOf(p.name) === -1; });
+  // Pool exhausted — allow repeats rather than dead-end an otherwise-still-
+  // going run (career-accolade pools run 334-651 deep, but a few new
+  // categories like Fumbles/Punting/Returns only have ~18-20 entries and a
+  // real streak CAN reach that).
+  if (!pool.length) pool = higherLowerPool(catId, statId);
   return pool[Math.floor(Math.random() * pool.length)];
 }
+// Remembered for the session (not persisted across visits) so re-starting
+// after a loss defaults back to whatever you were just playing, same
+// convenience as Quiz remembering its last round size. Stat prefs are kept
+// PER CATEGORY (not one shared value) since a stat id from one category
+// (e.g. 'combined') isn't valid in another (e.g. 'passing') — switching
+// categories always needs to land on one of ITS OWN stats.
+var higherLowerCategoryPref = 'accolades';
+var higherLowerStatPrefByCategory = { accolades: 'combined' };
+function setHigherLowerCategory(catId) {
+  higherLowerCategoryPref = catId;
+  if (!higherLowerStatPrefByCategory[catId]) higherLowerStatPrefByCategory[catId] = hlCategoryConfig(catId).stats[0].id;
+  renderAll();
+}
+function setHigherLowerStat(statId) { higherLowerStatPrefByCategory[higherLowerCategoryPref] = statId; renderAll(); }
 function startHigherLower() {
-  var first = higherLowerDrawPlayer([]);
-  var second = higherLowerDrawPlayer([first.name]);
+  var catId = higherLowerCategoryPref;
+  var statId = higherLowerStatPrefByCategory[catId] || hlCategoryConfig(catId).stats[0].id;
+  var first = higherLowerDrawPlayer(catId, statId, []);
+  var second = higherLowerDrawPlayer(catId, statId, [first.name]);
   state.higherLower = {
-    screen: 'playing', current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
+    screen: 'playing', category: catId, stat: statId, current: first, next: second, streak: 0, revealedScore: null, lastCorrect: null,
     usedNames: [first.name, second.name], ranked: state.rankedPref.higherLower !== false
   };
   state.screen = 'higherLower';
@@ -2958,7 +3265,7 @@ function startHigherLower() {
 function submitHigherLowerGuess(direction) {
   var s = state.higherLower;
   if (!s || s.screen !== 'playing') return;
-  var curScore = higherLowerScore(s.current), nextScore = higherLowerScore(s.next);
+  var curScore = higherLowerScore(s.current, s.category, s.stat), nextScore = higherLowerScore(s.next, s.category, s.stat);
   // A tie always counts as correct — standard house rule for this format,
   // and the honest one: nothing in "higher or lower" was violated by a
   // dead-even comparison, so it shouldn't end the run either direction.
@@ -2974,7 +3281,7 @@ function higherLowerContinue() {
   var s = state.higherLower;
   if (!s || s.screen !== 'reveal') return;
   s.current = s.next;
-  s.next = higherLowerDrawPlayer(s.usedNames);
+  s.next = higherLowerDrawPlayer(s.category, s.stat, s.usedNames);
   s.usedNames.push(s.next.name);
   s.revealedScore = null;
   s.lastCorrect = null;
@@ -2995,13 +3302,18 @@ function finishHigherLower() {
   completeDailyChallengeFrom('higherLower', s.streak + ' streak', Math.min(100, s.streak * 10));
   h2hSubmitModeResult('higherLower', s.streak, null);
 }
-function higherLowerPlayerLine(p) {
-  return esc(p.position || '') + (p.college ? ' &middot; ' + esc(p.college) : '') + (p.teams && p.teams.length ? ' &middot; ' + esc(p.teams.join('/')) : '');
-}
 function renderHigherLowerSetup() {
+  var cat = hlCategoryConfig(higherLowerCategoryPref);
+  var statPref = higherLowerStatPrefByCategory[higherLowerCategoryPref] || cat.stats[0].id;
   return '<div class="panel">' +
     '<h2 class="panel-title">Higher or Lower</h2>' +
-    '<p class="mode-desc">Two real NFL players, one real stat: career Pro Bowl + All-Pro selections. See one player\'s total, guess whether the next player has more or fewer. Keep going until you miss — how long a streak can you build?</p>' +
+    '<p class="mode-desc">Two real numbers, one real stat — see one, guess whether the next is higher or lower. Keep going until you miss — how long a streak can you build?</p>' +
+    '<div class="chip-row">' +
+    HL_CATEGORIES.map(function (c) { return '<button class="chip-toggle' + (higherLowerCategoryPref === c.id ? ' active' : '') + '" data-hl-category="' + c.id + '">' + esc(c.label) + '</button>'; }).join('') +
+    '</div>' +
+    '<div class="chip-row">' +
+    cat.stats.map(function (st) { return '<button class="chip-toggle' + (statPref === st.id ? ' active' : '') + '" data-hl-stat="' + st.id + '">' + esc(st.label) + '</button>'; }).join('') +
+    '</div>' +
     rankedToggleHtml('higherLower') +
     '<button class="btn-primary" data-hl-start>Start</button>' +
     '</div>';
@@ -3009,24 +3321,26 @@ function renderHigherLowerSetup() {
 function renderHigherLowerPlaying() {
   var s = state.higherLower;
   var revealing = s.screen === 'reveal';
+  var cat = hlCategoryConfig(s.category);
+  var statLabel = hlStatConfig(s.category, s.stat).label;
   return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
     '<h2 class="panel-title">Higher or Lower &middot; Streak: ' + s.streak + '</h2>' +
     '<div class="hl-card hl-card-current">' +
     '<div class="hl-name">' + esc(s.current.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.current) + '</div>' +
-    '<div class="hl-score">' + higherLowerScore(s.current) + '</div>' +
-    '<div class="hl-score-label">Career Pro Bowl + All-Pro selections</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.current) + '</div>' +
+    '<div class="hl-score">' + higherLowerScoreDisplay(s.current, s.category, s.stat) + '</div>' +
+    '<div class="hl-score-label">' + esc(statLabel) + '</div>' +
     '</div>' +
     '<div class="hl-vs">vs</div>' +
     '<div class="hl-card hl-card-next' + (revealing ? (s.lastCorrect ? ' correct' : ' wrong') : '') + '">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
     (revealing
-      ? '<div class="hl-score">' + s.revealedScore + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
+      ? '<div class="hl-score">' + higherLowerScoreDisplay(s.next, s.category, s.stat) + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
       : '<div class="hl-score hl-score-hidden">?</div><div class="hl-score-label">More or fewer than ' + esc(s.current.name) + '?</div>') +
     '</div>' +
     (revealing
-      ? '<button class="btn-primary hl-continue" data-hl-continue>Next Player</button>'
+      ? '<button class="btn-primary hl-continue" data-hl-continue>Next ' + (cat.entityLabel === 'stadium' ? 'Stadium' : 'Player') + '</button>'
       : '<div class="hl-guess-row">' +
         '<button class="hl-guess-btn hl-lower" data-hl-guess="lower">' + icon('arrowDown') + ' Lower</button>' +
         '<button class="hl-guess-btn hl-higher" data-hl-guess="higher">' + icon('arrowUp') + ' Higher</button>' +
@@ -3035,16 +3349,17 @@ function renderHigherLowerPlaying() {
 }
 function renderHigherLowerOver() {
   var s = state.higherLower;
+  var cat = hlCategoryConfig(s.category);
   return '<div class="panel">' +
     '<h2 class="panel-title">Streak Over</h2>' +
     '<div class="summary-score">Final streak: ' + s.streak + '</div>' +
     '<div class="hl-card hl-card-next wrong">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
-    '<div class="hl-line">' + higherLowerPlayerLine(s.next) + '</div>' +
-    '<div class="hl-score">' + s.revealedScore + '</div>' +
-    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScore(s.current) + '</div>' +
+    '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
+    '<div class="hl-score">' + higherLowerScoreDisplay(s.next, s.category, s.stat) + '</div>' +
+    '<div class="hl-score-label">vs ' + esc(s.current.name) + '\'s ' + higherLowerScoreDisplay(s.current, s.category, s.stat) + '</div>' +
     '</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-hl-start>Play Again</button>' +
     '<button class="btn-secondary" data-share="higherLower">' + icon('share') + ' Share</button>' +
@@ -3177,7 +3492,7 @@ function renderCfbSpeedSummary() {
   return '<div class="panel">' +
     '<h2 class="panel-title">CFB Speed Round Complete</h2>' +
     '<div class="summary-score">' + s.score + ' pts &middot; ' + s.correctCount + ' / ' + s.totalCount + ' correct &middot; best streak ' + s.bestStreak + '</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-speed-start="' + s.sessionLen + '">Play Again</button>' +
     '<button class="btn-secondary" data-share="cfbSpeed">' + icon('share') + ' Share</button>' +
@@ -3369,7 +3684,7 @@ function renderSilhouetteSummary() {
     '<div class="summary-score">' + s.score + ' pts &middot; ' + correctCount + ' / ' + s.queue.length + ' guessed</div>' +
     (quickGuesses.length ? '<div class="iq-insight">' + icon('zap') + ' ' + quickGuesses.length + ' quick guess' + (quickGuesses.length === 1 ? '' : 'es') + ' (1 clue or less): <b>' + quickGuesses.map(function (r) { return esc(r.name); }).join(', ') + '</b></div>' : '') +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (r) { return esc(r.name); }).join(', ') + '</div>' : (s.queue.length ? '<div class="blitz-missed">Clean sweep — you got every player!</div>' : '')) +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-silhouette-start="' + s.roundSize + '">Play Again</button>' +
     '<button class="btn-secondary" data-share="silhouette">' + icon('share') + ' Share</button>' +
@@ -3489,7 +3804,7 @@ function renderIQResult() {
     '<div class="iq-score">' + s.iqScore + '</div>' +
     '<div class="iq-title">' + esc(iqTitle(s.iqScore)) + '</div>' +
     '<div class="summary-score">' + s.correct + ' / ' + s.total + ' correct</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (insight ? '<div class="iq-insight">Strongest: <b>' + esc(insight.best.category) + '</b> (' + insight.best.correct + '/' + insight.best.total + ') &middot; Weakest: <b>' + esc(insight.worst.category) + '</b> (' + insight.worst.correct + '/' + insight.worst.total + ')</div>' : '') +
     '<div class="iq-breakdown">' +
     breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span></div>'; }).join('') +
@@ -3635,7 +3950,7 @@ function renderCfbIQResult() {
     '<div class="iq-score">' + s.iqScore + '</div>' +
     '<div class="iq-title">' + esc(cfbIqTitle(s.iqScore)) + '</div>' +
     '<div class="summary-score">' + s.correct + ' / ' + s.total + ' correct</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (insight ? '<div class="iq-insight">Strongest: <b>' + esc(insight.best.category) + '</b> (' + insight.best.correct + '/' + insight.best.total + ') &middot; Weakest: <b>' + esc(insight.worst.category) + '</b> (' + insight.worst.correct + '/' + insight.worst.total + ')</div>' : '') +
     '<div class="iq-breakdown">' +
     breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span></div>'; }).join('') +
@@ -3876,7 +4191,7 @@ function renderLegendsResult() {
     '<div class="iq-title">' + esc(s.gradeLabel) + '</div>' +
     '<div class="summary-score">Projected record: ' + s.wins + '-' + s.losses + '</div>' +
     '<div class="summary-note">Base FPPG ' + s.baseTotal + ' + Chemistry = ' + s.finalTotal + ' (perfect-team ceiling: ' + s.perfectScore + ')</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="legends-roster">' +
     s.picks.map(function (p) {
       return '<div class="legends-roster-row"><span class="legends-roster-slot">' + legendsSlotLabel(p.slot) + '</span>' +
@@ -4298,7 +4613,7 @@ function renderCfbLegendsResult() {
     '<div class="summary-score">Regular season: ' + s.wins + '-' + s.losses + '</div>' +
     '<div class="summary-note">' + esc(s.postseasonLabel) + '</div>' +
     '<div class="summary-note">Base FPPG ' + s.baseTotal + ' + Chemistry = ' + s.finalTotal + ' (perfect-team ceiling: ' + s.perfectScore + ')</div>' +
-    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     '<div class="legends-roster">' +
     s.picks.map(function (p) {
       return '<div class="legends-roster-row"><span class="legends-roster-slot">' + legendsSlotLabel(p.slot) + '</span>' +
@@ -4698,7 +5013,7 @@ function renderH2HMenu() {
     return '<div class="panel">' +
       '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
       '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
-      '<p class="mode-desc">Enter a name above, then come back here to challenge a friend.</p>' +
+      '<p class="mode-desc">Log in above, then come back here to challenge a friend.</p>' +
       '</div>';
   }
   var st = state.stats.h2h || {};
@@ -5115,7 +5430,7 @@ function renderH2HLiveMenu() {
     return '<div class="panel">' +
       '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
       '<h2 class="panel-title">' + icon('versus') + ' Live Match</h2>' +
-      '<p class="mode-desc">Enter a name above, then come back here to start a live match.</p>' +
+      '<p class="mode-desc">Log in above, then come back here to start a live match.</p>' +
       '</div>';
   }
   return '<div class="panel">' +
@@ -5312,9 +5627,11 @@ function shareConfigFor(mode) {
   }
   if (mode === 'higherLower') {
     var hl = state.higherLower;
+    var hlCat = hlCategoryConfig(hl.category);
+    var hlNoun = hlCat.entityLabel === 'stadium' ? 'stadium' : 'player';
     var rlHl = shareRatingLine(hl.ratingDelta);
-    return { title: 'Higher or Lower', headline: String(hl.streak), sub: hl.streak === 1 ? 'player' : 'players', detail: rlHl,
-      shareText: 'I built a ' + hl.streak + '-player streak on Higher or Lower in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
+    return { title: 'Higher or Lower — ' + hlCat.label, headline: String(hl.streak), sub: hl.streak === 1 ? hlNoun : hlNoun + 's', detail: rlHl,
+      shareText: 'I built a ' + hl.streak + '-' + hlNoun + ' streak on Higher or Lower (' + hlCat.label + ') in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
   }
   if (mode === 'iq' || mode === 'cfbIq') {
     var iq = state[mode];
@@ -5423,12 +5740,24 @@ function hexToRgbaString(hex, alpha) {
 function drawShareCard(ctx, cfg, format) {
   var W = 1080, H = format === 'story' ? 1920 : 1080, FONT = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
   var midY = format === 'story' ? 1000 : 500;
-  // A favorite team (if set) tints the glow/bars/headline-number — the one
-  // thing on this card that's actually personal to whoever's sharing it,
-  // rather than every card looking identical regardless of who made it. The
-  // corner "READS" brand mark deliberately stays brand-orange either way, so
-  // the card still reads as this app's no matter whose team color is on it.
-  var accent = (primaryFavoriteTeam() || {}).color || '#d9a63c';
+  // A favorite team (if set) themes the glow/bars/headline-number/team line —
+  // the one thing on this card that's actually personal to whoever's sharing
+  // it. The corner "READS" brand mark deliberately stays brand-orange either
+  // way, so the card still reads as this app's no matter whose team color
+  // is on it. rawAccent/rawAccent2 are the team's true colors (used for the
+  // bar and swatch dot, where staying faithful to the team matters more than
+  // contrast); accent/accent2 run through readableOnDark first — the same
+  // fix already applied to the on-screen rating ring/greeting text — because
+  // a dark team color (Ravens purple, Auburn navy, Saints black) used
+  // straight as the giant headline number's fill was otherwise nearly
+  // invisible against this card's own dark background. That was the actual
+  // bug behind "doesn't look like my team" — the color was there, just
+  // unreadable, not more personalized so much as broken.
+  var fav = primaryFavoriteTeam();
+  var rawAccent = fav ? fav.color : '#d9a63c';
+  var rawAccent2 = fav ? (fav.color2 || fav.color) : shadeHexColor(rawAccent, -0.2);
+  var accent = readableOnDark(rawAccent);
+  var accent2 = readableOnDark(rawAccent2);
 
   // Subtle top-to-bottom gradient instead of a flat fill — reads as a lot
   // less "placeholder" than a single flat navy rectangle.
@@ -5438,22 +5767,28 @@ function drawShareCard(ctx, cfg, format) {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // Soft spotlight glow centered behind the headline stat — the single
-  // biggest thing this pass adds: draws the eye straight to the number
-  // instead of every element competing at equal visual weight.
-  var glow = ctx.createRadialGradient(W / 2, midY, 30, W / 2, midY, 440);
-  glow.addColorStop(0, hexToRgbaString(accent, 0.20));
+  // Soft spotlight glow centered behind the headline stat — draws the eye
+  // straight to the number instead of every element competing at equal
+  // visual weight. Stronger + wider, and a touch more opaque when a favorite
+  // team is set, so the theming actually reads at a glance instead of being
+  // a barely-there tint.
+  var glow = ctx.createRadialGradient(W / 2, midY, 40, W / 2, midY, 520);
+  glow.addColorStop(0, hexToRgbaString(accent, fav ? 0.30 : 0.20));
   glow.addColorStop(1, hexToRgbaString(accent, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
+  // Two-tone bar when the team actually has a second color (Auburn's navy
+  // into orange, etc.) instead of the old single-color-faded-into-itself
+  // gradient, which flattened every two-tone team down to looking like a
+  // solid-color program.
   var barGrad = ctx.createLinearGradient(0, 0, W, 0);
-  barGrad.addColorStop(0, shadeHexColor(accent, 0.35));
-  barGrad.addColorStop(0.5, accent);
-  barGrad.addColorStop(1, shadeHexColor(accent, -0.2));
+  barGrad.addColorStop(0, shadeHexColor(rawAccent, 0.35));
+  barGrad.addColorStop(0.5, rawAccent);
+  barGrad.addColorStop(1, rawAccent2);
   ctx.fillStyle = barGrad;
-  ctx.fillRect(0, 0, W, 14);
-  ctx.fillRect(0, H - 14, W, 14);
+  ctx.fillRect(0, 0, W, 18);
+  ctx.fillRect(0, H - 18, W, 18);
 
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -5468,13 +5803,45 @@ function drawShareCard(ctx, cfg, format) {
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, 192); ctx.lineTo(W - 60, 192); ctx.stroke();
 
+  // Favorite-team identity line — a two-tone swatch dot (same visual idea as
+  // the team picker's diagonal-split swatch) plus the team's real name and,
+  // if it has one, its chant. This is the part that actually says "this is
+  // MY team's card" instead of leaving color as the only, easy-to-miss tell.
+  if (fav) {
+    var dotR = 12, dotCX = 60 + dotR, dotCY = 192 + 42;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = rawAccent; ctx.fillRect(dotCX - dotR, dotCY - dotR, dotR, dotR * 2);
+    ctx.fillStyle = rawAccent2; ctx.fillRect(dotCX, dotCY - dotR, dotR, dotR * 2);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(238,242,248,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#eef2f8';
+    ctx.font = '700 30px ' + FONT;
+    ctx.textAlign = 'left';
+    ctx.fillText(fav.name + (fav.chant ? '  ·  ' + fav.chant : ''), dotCX + dotR + 18, dotCY + 10);
+  }
+
   ctx.textAlign = 'center';
   ctx.fillStyle = '#eef2f8';
   ctx.font = '700 42px ' + FONT;
   ctx.fillText(cfg.title, W / 2, midY - 220);
+
+  // Headline number auto-shrinks if a longer value (e.g. a big Speed-round
+  // point total) would otherwise run past the card's edges — short values
+  // (percentages, grades, streak counts) still get the full, bold size this
+  // card is built around.
+  var headlineFont = 160;
+  ctx.font = '800 ' + headlineFont + 'px ' + FONT;
+  var maxHeadlineWidth = W - 160;
+  while (ctx.measureText(cfg.headline).width > maxHeadlineWidth && headlineFont > 70) {
+    headlineFont -= 8;
+    ctx.font = '800 ' + headlineFont + 'px ' + FONT;
+  }
   ctx.fillStyle = accent;
-  ctx.font = '800 160px ' + FONT;
   ctx.fillText(cfg.headline, W / 2, midY);
+
   ctx.fillStyle = '#eef2f8';
   ctx.font = '600 46px ' + FONT;
   ctx.fillText(cfg.sub, W / 2, midY + 90);
@@ -5486,13 +5853,20 @@ function drawShareCard(ctx, cfg, format) {
 
   // Footer name/date as a soft pill chip rather than bare text floating at
   // the bottom — a small thing that makes the whole card feel considered
-  // rather than assembled from four independent fillText calls.
+  // rather than assembled from four independent fillText calls. Border picks
+  // up the team's raw color at low opacity so the theming carries all the
+  // way to the bottom of the card, not just the middle.
   var footerText = (state.name ? state.name + ' — ' : '') + todayStr();
   ctx.font = '600 30px ' + FONT;
   var footerWidth = ctx.measureText(footerText).width;
+  var footerX = W / 2 - footerWidth / 2 - 28, footerY = H - 98, footerW = footerWidth + 56, footerH = 54;
   ctx.fillStyle = 'rgba(238,242,248,0.06)';
-  roundRectPath(ctx, W / 2 - footerWidth / 2 - 28, H - 98, footerWidth + 56, 54, 27);
+  roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
   ctx.fill();
+  ctx.strokeStyle = hexToRgbaString(rawAccent, 0.45);
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
+  ctx.stroke();
   ctx.fillStyle = '#c3cbdc';
   ctx.fillText(footerText, W / 2, H - 63);
 }
@@ -5772,8 +6146,8 @@ function pushLeaderboard(mode, fields) {
 // pull for the current name — applyLeaderboard fires on every leaderboard
 // change (could be fairly often with several people playing), but the pull
 // itself only needs to happen once Firebase first actually connects, not
-// on every subsequent update. saveName() resets this so switching names
-// mid-session (Change Name) still gets its own pull.
+// on every subsequent update. logOut() resets this so logging into a
+// different account mid-session still gets its own pull.
 var didInitialProfilePull = false;
 window.__triviaSync = {
   applyLeaderboard: function (list) {
@@ -5781,6 +6155,26 @@ window.__triviaSync = {
     reconcileRating(list);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
     if (state.screen === 'leaderboard') renderAll();
+  },
+  // Fires from firebase-sync.js's onAuthStateChanged every time the signed-
+  // in Firebase user changes — including a plain anonymous session, which
+  // is why authUser is null in that case (not "logged out", just "never
+  // logged in for real"). Only acts on the "restore a persisted real login
+  // this device already had" case (guarded by !state.name, since an
+  // explicit Log In/Sign Up already calls saveName() itself the instant it
+  // resolves — this only needs to catch the cold-boot case where Firebase
+  // silently restores a previous session before any UI interaction at all)
+  // and the "a previously-real session unexpectedly dropped back to
+  // anonymous" case (token expired/revoked elsewhere) — anything else is a
+  // no-op.
+  applyAuthUser: function (authUser) {
+    if (authUser && authUser.username) {
+      lsSet('nflTriviaLoggedIn', true);
+      if (!state.name) saveName(authUser.username);
+    } else if (!authUser && lsGet('nflTriviaLoggedIn', false)) {
+      lsSet('nflTriviaLoggedIn', false);
+      if (state.name) { state.name = ''; lsSet('nflTriviaName', ''); renderAll(); }
+    }
   }
 };
 
@@ -6546,7 +6940,7 @@ function renderFriendsScreen() {
   var html = '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">' + icon('users') + ' Friends</h2>' +
-    '<p class="mode-desc">Add friends by the exact name they play under to see their Football Rating and streak. No accounts — just names.</p>' +
+    '<p class="mode-desc">Add friends by their exact username to see their Football Rating and streak.</p>' +
     '<div class="field-row"><input id="friend-name-input" placeholder="Friend’s name" autocomplete="off" maxlength="40" />' +
     '<button class="btn-primary" data-friend-add>Add</button></div>';
   if (!friends.length) {
@@ -6646,7 +7040,7 @@ function renderProfile() {
   var html = '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="settings">' + icon('settings') + ' Settings</button><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">Your Profile</h2>' +
-    (state.name ? '<p class="mode-desc">Playing as <b>' + esc(state.name) + '</b></p>' : '<p class="mode-desc">Enter a name above to start tracking a profile.</p>');
+    (state.name ? '<p class="mode-desc">Playing as <b>' + esc(state.name) + '</b></p>' : '<p class="mode-desc">Log in above to start tracking a profile.</p>');
   if (r) {
     var sparkline = ratingSparklineSvg(getRatingHistory());
     html += '<div class="profile-headline-row">' +
@@ -6766,8 +7160,6 @@ function renderAll() {
   if (typeof syncBgMusic === 'function') syncBgMusic();
 
   var specificFocusHandled = false;
-  var nameInput = document.getElementById('name-input');
-  if (nameInput) { nameInput.focus(); specificFocusHandled = true; }
   var gridInput = document.getElementById('grid-input');
   if (gridInput) { gridInput.focus(); gridInput.setSelectionRange(gridInput.value.length, gridInput.value.length); specificFocusHandled = true; }
   var cfbGridInput = document.getElementById('cfb-grid-input');
@@ -6904,13 +7296,13 @@ function typeaheadPickActive(inputId) {
 
 /* ============================== events ============================== */
 document.addEventListener('click', function (e) {
-  var t = e.target.closest('[data-go], [data-change-name], [data-save-name], ' +
+  var t = e.target.closest('[data-go], [data-log-out], [data-auth-open], #auth-close, #auth-backdrop, #auth-submit, #auth-switch, ' +
     '[data-quiz-roundsize], [data-quiz-start], [data-quiz-answer], [data-quiz-next], [data-quiz-again], [data-quiz-setup], ' +
     '[data-study-start], [data-study-answer], [data-study-next], ' +
     '[data-grid-start], [data-grid-cell], [data-grid-submit], [data-grid-again], ' +
     '[data-blitz-list], [data-blitz-start], [data-blitz-submit], [data-blitz-setup], ' +
     '[data-speed-start], [data-speed-answer], [data-leaderboard-mode], [data-leaderboard-range], ' +
-    '[data-hl-start], [data-hl-guess], [data-hl-continue], ' +
+    '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], [data-hl-category], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
@@ -6961,6 +7353,11 @@ document.addEventListener('click', function (e) {
   if (t.id === 'report-submit') { submitReport(); return; }
   if (t.id === 'rating-badge') { openRatingModal(); return; }
   if (t.id === 'rating-close' || t.id === 'rating-backdrop') { closeRatingModal(); return; }
+  if (t.id === 'auth-close' || t.id === 'auth-backdrop') { closeAuthModal(); return; }
+  if (t.id === 'auth-submit') { authModalSubmit(); return; }
+  if (t.id === 'auth-switch') { authModalSwitch(); return; }
+  if (t.dataset.authOpen !== undefined) { openAuthModal(t.dataset.authOpen); return; }
+  if (t.dataset.logOut !== undefined) { logOut(); return; }
   if (t.id === 'team-picker-toggle' || t.dataset.teamPickerToggle !== undefined) { openTeamPicker(); return; }
   if (t.dataset.teamPromptDismiss !== undefined) { dismissTeamPrompt(); return; }
   if (t.dataset.settingsMuteToggle !== undefined) { toggleMute(); renderAll(); return; }
@@ -7020,8 +7417,6 @@ document.addEventListener('click', function (e) {
   if (t.dataset.leagueToggle !== undefined) { toggleModeSheet(t.dataset.leagueToggle); return; }
   if (t.id === 'mode-sheet-close' || t.id === 'mode-sheet-backdrop') { closeModeSheet(); return; }
   if (t.dataset.go !== undefined) { closeModeSheet(); goToMode(t.dataset.go); return; }
-  if (t.dataset.changeName !== undefined) { changeName(); return; }
-  if (t.dataset.saveName !== undefined) { saveName(document.getElementById('name-input').value); return; }
 
   if (t.dataset.introBegin !== undefined) { beginIntroQuestions(); return; }
   if (t.dataset.introAnswer !== undefined) { answerIntroQuestion(parseInt(t.dataset.introAnswer, 10)); return; }
@@ -7070,6 +7465,8 @@ document.addEventListener('click', function (e) {
 
   if (t.dataset.speedStart !== undefined) { startSpeedRound(parseInt(t.dataset.speedStart, 10)); return; }
   if (t.dataset.speedAnswer !== undefined) { registerSpeedAnswer(parseInt(t.dataset.speedAnswer, 10)); return; }
+  if (t.dataset.hlCategory !== undefined) { setHigherLowerCategory(t.dataset.hlCategory); return; }
+  if (t.dataset.hlStat !== undefined) { setHigherLowerStat(t.dataset.hlStat); return; }
   if (t.dataset.hlStart !== undefined) { startHigherLower(); return; }
   if (t.dataset.hlGuess !== undefined) { submitHigherLowerGuess(t.dataset.hlGuess); return; }
   if (t.dataset.hlContinue !== undefined) { higherLowerContinue(); return; }
@@ -7190,6 +7587,7 @@ document.addEventListener('keydown', function (e) {
   var reportModalEl = document.getElementById('report-modal');
   var ratingModalEl = document.getElementById('rating-modal');
   var teamPickerModalEl = document.getElementById('team-picker-modal');
+  var authModalEl = document.getElementById('auth-modal');
   if (e.key === 'Escape' && TYPEAHEAD_CONFIGS[e.target.id] && typeaheadListEl(e.target.id) && typeaheadListEl(e.target.id).classList.contains('open')) {
     closeTypeahead(e.target.id);
     return;
@@ -7200,6 +7598,7 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && reportModalEl && reportModalEl.classList.contains('open')) { closeReportModal(); return; }
   if (e.key === 'Escape' && ratingModalEl && ratingModalEl.classList.contains('open')) { closeRatingModal(); return; }
   if (e.key === 'Escape' && teamPickerModalEl && teamPickerModalEl.classList.contains('open')) { closeTeamPicker(); return; }
+  if (e.key === 'Escape' && authModalEl && authModalEl.classList.contains('open')) { closeAuthModal(); return; }
   if (e.key === 'Tab') {
     if (modeSheetEl && modeSheetEl.classList.contains('open')) { trapTabKey(e, modeSheetEl); return; }
     if (onboardingModalEl && onboardingModalEl.classList.contains('open')) { trapTabKey(e, onboardingModalEl); return; }
@@ -7207,6 +7606,7 @@ document.addEventListener('keydown', function (e) {
     if (reportModalEl && reportModalEl.classList.contains('open')) { trapTabKey(e, reportModalEl); return; }
     if (ratingModalEl && ratingModalEl.classList.contains('open')) { trapTabKey(e, ratingModalEl); return; }
     if (teamPickerModalEl && teamPickerModalEl.classList.contains('open')) { trapTabKey(e, teamPickerModalEl); return; }
+    if (authModalEl && authModalEl.classList.contains('open')) { trapTabKey(e, authModalEl); return; }
     return;
   }
   if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && TYPEAHEAD_CONFIGS[e.target.id]) {
@@ -7219,7 +7619,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.target.id === 'blitz-input') { submitBlitzGuess(); }
   else if (e.target.id === 'cfb-blitz-input') { submitCfbBlitzGuess(); }
   else if (e.target.id === 'silhouette-input') { if (!typeaheadPickActive('silhouette-input')) submitSilhouetteGuess(); }
-  else if (e.target.id === 'name-input') { saveName(e.target.value); }
+  else if (e.target.id === 'auth-username-input' || e.target.id === 'auth-password-input') { authModalSubmit(); }
   else if (e.target.id === 'friend-name-input') { addFriend(e.target.value); }
 });
 

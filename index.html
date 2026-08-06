@@ -16,20 +16,20 @@
 <title>Reads – NFL & CFB Football Trivia</title>
 <meta name="description" content="Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating." />
 <meta name="author" content="Reads" />
-<link rel="canonical" href="https://getreads.netlify.app/" />
+<link rel="canonical" href="https://reads.football/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Reads" />
-<meta property="og:url" content="https://getreads.netlify.app/" />
+<meta property="og:url" content="https://reads.football/" />
 <meta property="og:title" content="Reads – NFL & CFB Football Trivia" />
 <meta property="og:description" content="12 game modes across NFL and College Football trivia — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft. Live shared leaderboard, adaptive Football Rating." />
-<meta property="og:image" content="https://getreads.netlify.app/assets/brand/reads-logo-square.jpg" />
+<meta property="og:image" content="https://reads.football/assets/brand/reads-logo-square.jpg" />
 <meta property="og:image:alt" content="Reads — NFL & CFB Football Trivia logo" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Reads – NFL & CFB Football Trivia" />
 <meta name="twitter:description" content="12 game modes across NFL and College Football trivia, a live shared leaderboard, and an adaptive Football Rating." />
-<meta name="twitter:image" content="https://getreads.netlify.app/assets/brand/reads-logo-square.jpg" />
+<meta name="twitter:image" content="https://reads.football/assets/brand/reads-logo-square.jpg" />
 
 <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="assets/brand/icon-192.png" />
@@ -54,11 +54,11 @@
   "@type": "WebApplication",
   "name": "Reads",
   "alternateName": "Reads – NFL & CFB Football Trivia",
-  "url": "https://getreads.netlify.app/",
+  "url": "https://reads.football/",
   "description": "Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating.",
   "applicationCategory": "GameApplication",
   "operatingSystem": "Any (runs in any modern web browser)",
-  "image": "https://getreads.netlify.app/assets/brand/reads-logo-square.jpg",
+  "image": "https://reads.football/assets/brand/reads-logo-square.jpg",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
 </script>
@@ -144,6 +144,24 @@
       <textarea id="report-note" rows="3" placeholder="What's wrong, if you want to say more…"></textarea>
       <button id="report-submit" class="btn-primary">Send Report</button>
       <p class="mode-desc" id="report-confirm" style="display:none;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6"/></svg> Thanks — sent for review.</p>
+    </div>
+  </div>
+
+  <div id="auth-backdrop" aria-hidden="true"></div>
+  <div id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div id="auth-header">
+      <span id="auth-title">Log In</span>
+      <button id="auth-close" aria-label="Close"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+    </div>
+    <div id="auth-body">
+      <p class="mode-desc" id="auth-context"></p>
+      <label for="auth-username-input">Username</label>
+      <input id="auth-username-input" maxlength="24" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" />
+      <label for="auth-password-input">Password</label>
+      <input id="auth-password-input" type="password" maxlength="64" autocomplete="current-password" />
+      <p class="mode-desc" id="auth-error" style="display:none;"></p>
+      <button id="auth-submit" class="btn-primary">Log In</button>
+      <button id="auth-switch" class="btn-secondary">Don’t have an account? Sign Up</button>
     </div>
   </div>
 

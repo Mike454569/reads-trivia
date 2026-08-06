@@ -379,6 +379,9 @@ body.has-fav-team #top-bar {
 .onboarding-step-body b { color: var(--text); }
 .onboarding-modes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .onboarding-mode-chip { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--text); }
+.onboarding-install-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 10px; }
+.onboarding-install-row { display: flex; align-items: flex-start; gap: 10px; }
+.onboarding-install-row .onboarding-install-icon { flex-shrink: 0; width: 19px; height: 19px; margin-top: 2px; color: var(--accent); }
 #onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
 #onboarding-dots { display: flex; gap: 6px; }
 .onboarding-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
@@ -447,6 +450,39 @@ body.has-fav-team #top-bar {
 #report-submit { width: 100%; }
 #report-confirm { color: var(--good); display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 #report-context { color: var(--text-dim); font-size: 13px; background: var(--bg-elevated); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 10px; }
+
+/* real accounts — opened from the Log In/Sign Up buttons in nameBarHtml();
+   same dialog pattern as report/rating above. */
+#auth-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+}
+#auth-backdrop.open { opacity: 1; pointer-events: auto; }
+#auth-modal {
+  position: fixed; z-index: 30; top: 50%; left: 50%;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(85vh, 460px);
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.96);
+  pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+  display: flex; flex-direction: column; padding: 18px 22px 20px;
+}
+#auth-modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+#auth-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-shrink: 0; }
+#auth-title { font-size: 18px; font-weight: 800; }
+#auth-close { background: transparent; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; }
+#auth-close:hover { background: var(--bg-elevated); }
+#auth-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+#auth-body label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; margin-top: 6px; }
+#auth-username-input, #auth-password-input {
+  width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 12px; color: var(--text); font-size: 16px;
+  font-family: inherit; margin: 6px 0 4px;
+}
+#auth-error { color: var(--bad); font-size: 13px; margin: 2px 0 10px; }
+#auth-submit { width: 100%; margin: 10px 0 8px; }
+#auth-switch { width: 100%; }
 
 /* rating breakdown — tapping #rating-badge opens this; same dialog pattern
    as onboarding/share/report, just wider to fit the mode-card grid. */
@@ -669,16 +705,6 @@ footer p { margin: 6px 0 0; }
   padding: 10px 14px;
   margin-bottom: 16px;
   flex-wrap: wrap;
-}
-.name-bar input {
-  flex: 1;
-  min-width: 160px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  color: var(--text);
-  font-size: 16px;
 }
 
 /* buttons */
