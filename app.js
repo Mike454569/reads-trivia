@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.0.0';
+var APP_VERSION = '3.1.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -408,19 +408,26 @@ function retakeIntroTest() { startIntroTest(); }
 // single persistent element that only gets its text mutated in place — so
 // retriggering its pulse animation needs an explicit class toggle + reflow.
 var lastShownRatingScore = null;
-// Ring fill approximates where a score sits in its practical range (60-160,
-// see updateRatingDrift's sessionScore = 60 + sessionPct) rather than any
-// hard min/max the score can't leave, so it reads as "progress" without
-// implying 160 is a hard ceiling. r=15.5 circumference (~97.4) at viewBox
-// 36x36 matches the classic "SVG donut" technique.
-function ratingRingSvg(score) {
-  var pct = Math.max(0, Math.min(1, (score - 60) / 100));
-  var circumference = 2 * Math.PI * 15.5;
-  var offset = circumference * (1 - pct);
-  return '<svg class="rating-ring" viewBox="0 0 36 36" aria-hidden="true">' +
-    '<circle class="rating-ring-track" cx="18" cy="18" r="15.5" />' +
-    '<circle class="rating-ring-fill" cx="18" cy="18" r="15.5" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + offset.toFixed(2) + '" />' +
-    '</svg>';
+// Named tiers over the score's practical range (60-160, see
+// updateRatingDrift's sessionScore = 60 + sessionPct) — same "approximates
+// rather than implies a hard ceiling" honesty the old ring fill already
+// had, just given real names/checkpoints instead of an unlabeled percentage.
+// Spans are even (20 points each) except the top tier, which has no "next"
+// to measure against — see ratingTierFor's handling of that case.
+var RATING_TIERS = [
+  { name: 'Rookie', min: 60 },
+  { name: 'Starter', min: 80 },
+  { name: 'Pro', min: 100 },
+  { name: 'All-Pro', min: 120 },
+  { name: 'MVP', min: 140 }
+];
+function ratingTierFor(score) {
+  var idx = 0;
+  for (var i = 0; i < RATING_TIERS.length; i++) { if (score >= RATING_TIERS[i].min) idx = i; }
+  var cur = RATING_TIERS[idx], next = RATING_TIERS[idx + 1] || null;
+  var span = next ? (next.min - cur.min) : 20;
+  var pct = next ? Math.max(0, Math.min(1, (score - cur.min) / span)) : 1;
+  return { name: cur.name, next: next ? next.name : null, ptsToNext: next ? Math.max(0, next.min - score) : 0, pct: pct };
 }
 function renderRatingBadge() {
   var el = document.getElementById('rating-badge');
@@ -428,8 +435,13 @@ function renderRatingBadge() {
   var r = getRating();
   if (!r) { el.style.display = 'none'; lastShownRatingScore = null; return; }
   el.style.display = '';
-  el.innerHTML = ratingRingSvg(r.score) + '<span class="rating-badge-text">' + icon('football') + ' ' + r.score + '</span>';
-  el.setAttribute('aria-label', 'Your Football Rating: ' + r.score);
+  var tier = ratingTierFor(r.score);
+  var subLabel = tier.next ? (tier.ptsToNext + ' to ' + tier.next) : 'Peak tier';
+  el.innerHTML =
+    '<span class="rating-badge-top">' + icon('football') + '<span class="rating-badge-score">' + r.score + '</span>' +
+    '<span class="rating-badge-tier">' + esc(tier.name) + '</span></span>' +
+    '<span class="rating-xp-track"><span class="rating-xp-fill" style="width:' + Math.round(tier.pct * 100) + '%"></span></span>';
+  el.setAttribute('aria-label', 'Your Football Rating: ' + r.score + ', ' + tier.name + ' tier, ' + subLabel);
   if (lastShownRatingScore !== null && lastShownRatingScore !== r.score) {
     el.classList.remove('rating-pulse');
     void el.offsetWidth; // force reflow so the animation restarts
@@ -1391,7 +1403,7 @@ function relativeLuminance(r, g, b) {
   var lin = function (v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
-// A team color also gets used directly AS a foreground (rating-ring stroke,
+// A team color also gets used directly AS a foreground (rating XP-bar fill,
 // recommended-mode icons, the greeting text) against this app's near-black
 // background — fine for a bright team color like Steelers gold, but a dark
 // primary (Auburn navy, Ravens purple, half the league's navy/black
@@ -7102,11 +7114,17 @@ function openRatingModal() {
   ratingModalTriggerEl = document.activeElement;
   var streak = getStreak();
   var sparkline = ratingSparklineSvg(getRatingHistory());
+  var tier = ratingTierFor(r.score);
   var summary = document.getElementById('rating-modal-summary');
   if (summary) {
     summary.innerHTML = '<div class="profile-headline-row">' +
       '<div class="profile-headline"><div class="profile-headline-value">' + icon('football') + ' ' + r.score + '</div><div class="profile-headline-label">Football Rating &middot; ' + (r.games || 0) + ' games</div>' + sparkline + '</div>' +
       '<div class="profile-headline"><div class="profile-headline-value">' + icon('flame') + ' ' + streak.count + '</div><div class="profile-headline-label">Day' + (streak.count === 1 ? '' : 's') + ' streak</div></div>' +
+      '</div>' +
+      '<div class="rating-modal-tier">' +
+      '<div class="rating-modal-tier-row"><span class="rating-modal-tier-name">' + esc(tier.name) + '</span>' +
+      (tier.next ? '<span class="rating-modal-tier-next">' + tier.ptsToNext + ' pts to ' + esc(tier.next) + '</span>' : '<span class="rating-modal-tier-next">Peak tier</span>') + '</div>' +
+      '<span class="rating-xp-track rating-xp-track-lg"><span class="rating-xp-fill" style="width:' + Math.round(tier.pct * 100) + '%"></span></span>' +
       '</div>';
   }
   var breakdown = document.getElementById('rating-modal-breakdown');
