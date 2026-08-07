@@ -98,6 +98,7 @@ function drawNoRepeat(deckKey, ids, count) {
 
 /* ============================== data + state ============================== */
 var QUIZ = window.QUIZ_DATA || [];
+var XSO = window.XSO_DATA || [];
 var GRID_PLAYERS = window.GRID_PLAYERS || [];
 var GRID_CRITERIA = window.GRID_CRITERIA || { team: [], stat: [], all: [] };
 var BLITZ_LISTS = window.BLITZ_LISTS || [];
@@ -121,6 +122,7 @@ var HL_STADIUMS = window.HL_STADIUMS || [];
 
 var DEFAULT_STATS = {
   quiz: { correctTotal: 0, questionsTotal: 0, roundsPlayed: 0, bestPct: 0 },
+  xso: { correctTotal: 0, questionsTotal: 0, roundsPlayed: 0, bestPct: 0 },
   grid: { bestScore: 0, gamesPlayed: 0, cleanSweeps: 0 },
   blitz: { bestMatched: 0, attempts: 0 },
   speed: { bestScore: 0, bestStreak: 0, sessionsPlayed: 0 },
@@ -149,6 +151,7 @@ var state = {
   leaderboardData: [],
   stats: Object.assign({}, DEFAULT_STATS, lsGet('nflTriviaStats', {})),
   quiz: { screen: 'setup', category: '', difficulty: '', roundSize: 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] },
+  xso: { screen: 'setup', category: '', difficulty: '', roundSize: 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] },
   grid: null,
   blitz: null,
   speed: null,
@@ -820,6 +823,7 @@ function resetModeState(mode) {
   if (state.dailyChallengeActive && state.dailyChallengeActive.mode === mode) state.dailyChallengeActive = null;
   if (state.h2hActive && state.h2hActive.mode === mode) state.h2hActive = null;
   if (mode === 'quiz') state.quiz = { screen: 'setup', category: '', difficulty: '', roundSize: (state.quiz && state.quiz.roundSize) || 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] };
+  else if (mode === 'xso') state.xso = { screen: 'setup', category: '', difficulty: '', roundSize: (state.xso && state.xso.roundSize) || 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] };
   else if (mode === 'grid') state.grid = null;
   else if (mode === 'blitz') state.blitz = null;
   else if (mode === 'speed') state.speed = null;
@@ -847,6 +851,7 @@ function resetModeState(mode) {
    other ~75% of the app's 51k lines of data, cfb-speed.js alone is ~39% of
    it) loads on first entry into that specific mode instead. */
 var MODE_DATA_FILES = {
+  xso: ['data/xso.js'],
   grid: ['data/grid.js'],
   higherLower: ['data/grid.js', 'data/higher-lower-extra.js'],
   cfbGrid: ['data/cfb-grid.js'],
@@ -878,6 +883,7 @@ function loadScript(src) {
 // window.* globals — plain top-level `var`s in one classic script are
 // reassignable at any point, so this is safe to call any time.
 function refreshDataAliases() {
+  XSO = window.XSO_DATA || XSO;
   GRID_PLAYERS = window.GRID_PLAYERS || GRID_PLAYERS;
   GRID_CRITERIA = window.GRID_CRITERIA || GRID_CRITERIA;
   BLITZ_LISTS = window.BLITZ_LISTS || BLITZ_LISTS;
@@ -926,11 +932,18 @@ function enterMode(mode) {
     loadFriendsData();
   } else if (mode === 'study' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('study');
+  } else if (mode === 'xso' && window.__fbSync && window.__fbSync.logPlay) {
+    window.__fbSync.logPlay('xso');
   }
 }
+// Modes that exist outside LEAGUE_MODES.nfl/.cfb (standalone Home cards,
+// not part of either league's mode grid/dropdown) but still need a real
+// label wherever modeLabelFor() is read — Report modal context text, the
+// reports screen listing, etc.
+var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's" };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
-  return m ? m.title : 'mode';
+  return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
   var files = MODE_DATA_FILES[mode];
@@ -1573,8 +1586,8 @@ function h2hCardHtml() {
 }
 function learnCardHtml() {
   return '<button class="continue-card learn-card" data-go="learn">' +
-    '<span class="continue-card-label">Facts, history &amp; Hall of Famers</span>' +
-    '<span class="continue-card-mode">' + icon('book') + ' Learn</span>' +
+    '<span class="continue-card-label">Facts, history, HOF &amp; scheme concepts</span>' +
+    '<span class="continue-card-mode">' + icon('book') + ' The Film Room</span>' +
     '</button>';
 }
 function friendsCardHtml() {
@@ -1618,6 +1631,7 @@ function renderHome() {
     continuePlayingCardHtml() +
     h2hCardHtml() +
     h2hLiveCardHtml() +
+    xsoCardHtml() +
     learnCardHtml() +
     friendsCardHtml() +
     studyCardHtml() +
@@ -2040,6 +2054,142 @@ function renderQuizScreen() {
   return renderQuizSetup();
 }
 
+/* ============================== x's & o's ==============================
+   Same engine as Quiz/CFB Quiz (data/xso.js's XSO_DATA is authored in the
+   identical {id, category, difficulty, question, options[4], correctIndex,
+   notes} shape), but the content itself is different in kind, not just
+   league: every question tests scheme/strategy (formations, coverages,
+   blocking, route concepts) instead of history/records/facts, which is why
+   this is its own mode rather than a 17th Quiz category. Deliberately not
+   part of LEAGUE_MODES.nfl/.cfb — the content isn't NFL- or CFB-specific
+   (an Under Center formation or a Cover 3 shell means the same thing in
+   both), so it gets its own standalone section on Home instead of living
+   inside either league's mode grid or dropdown picker (see xsoCardHtml()
+   and renderHome() below), same non-LEAGUE_MODES treatment Study/Friends/
+   H2H already get. Also doubles as The Film Room's Concepts Almanac
+   section content (see LEARN_SECTIONS) via the same reuse pattern QUIZ/CFB
+   already have for their own Trivia Almanacs — one data file, two uses. */
+function xsoCategories() { return Array.from(new Set(XSO.map(function (q) { return q.category; }))).sort(); }
+function xsoDifficulties() { return Array.from(new Set(XSO.map(function (q) { return q.difficulty; }))).sort(); }
+function xsoPool(category, difficulty) {
+  return XSO.filter(function (q) {
+    return (!category || q.category === category) && (!difficulty || q.difficulty === difficulty);
+  });
+}
+function currentXsoQuestion() {
+  var id = state.xso.queue[state.xso.index];
+  return XSO.find(function (q) { return q.id === id; });
+}
+function startXsoRound(category, difficulty, roundSize) {
+  var pool = xsoPool(category, difficulty);
+  var ids = drawNoRepeat('xso_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
+  state.xso = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.xso !== false };
+  renderAll();
+}
+function pickXsoAnswer(i) {
+  if (state.xso.answeredIndex !== null) return;
+  state.xso.answeredIndex = i;
+  var q = currentXsoQuestion();
+  var isCorrect = q && i === q.correctIndex;
+  if (isCorrect) state.xso.correctCount++;
+  else if (q) state.xso.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i });
+  playSound(isCorrect ? 'correct' : 'wrong');
+  renderAll();
+}
+function nextXsoQuestion() {
+  if (typeof stopSfx === 'function') stopSfx();
+  if (state.xso.index + 1 >= state.xso.queue.length) {
+    state.xso.screen = 'summary';
+    finishXsoRound();
+  } else {
+    state.xso.index++;
+    state.xso.answeredIndex = null;
+  }
+  renderAll();
+}
+function finishXsoRound() {
+  var pct = Math.round(100 * state.xso.correctCount / state.xso.queue.length);
+  if (state.xso.ranked !== false) {
+    var st = state.stats.xso;
+    st.correctTotal += state.xso.correctCount;
+    st.questionsTotal += state.xso.queue.length;
+    st.roundsPlayed++;
+    if (pct > st.bestPct) st.bestPct = pct;
+    lsSet('nflTriviaStats', state.stats);
+    updateRatingDrift(pct);
+    state.xso.ratingDelta = lastRatingDelta;
+    pushLeaderboard('xso', { correctTotal: st.correctTotal, questionsTotal: st.questionsTotal, roundsPlayed: st.roundsPlayed, bestPct: st.bestPct });
+  }
+  playSound(pct <= 60 ? 'boo' : 'complete');
+}
+function playXsoAgain() { startXsoRound(state.xso.category, state.xso.difficulty, state.xso.roundSize); }
+function xsoBackToSetup() { state.xso.screen = 'setup'; renderAll(); }
+
+function renderXsoSetup() {
+  var t = state.xso;
+  return '<div class="panel">' +
+    '<h2 class="panel-title">X\'s &amp; O\'s</h2>' +
+    '<p class="mode-desc">Formations, coverages, blocking schemes, route concepts — the actual scheme of the game, not history or records. Most of this bank is genuinely Hard, so start on Easy or Medium if you\'re newer to the X\'s and O\'s.</p>' +
+    '<div class="field-row">' +
+    '<label>Category<select id="xso-cat"><option value="">All categories</option>' +
+    xsoCategories().map(function (c) { return '<option value="' + esc(c) + '"' + (t.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
+    '</select></label>' +
+    '<label>Difficulty<select id="xso-diff"><option value="">All difficulties</option>' +
+    xsoDifficulties().map(function (d) { return '<option value="' + esc(d) + '"' + (t.difficulty === d ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('') +
+    '</select></label>' +
+    '</div>' +
+    '<div class="chip-row">' +
+    [5, 10, 20, 30].map(function (n) { return '<button class="chip-toggle' + (t.roundSize === n ? ' active' : '') + '" data-xso-roundsize="' + n + '">' + n + ' questions</button>'; }).join('') +
+    '</div>' +
+    rankedToggleHtml('xso') +
+    '<button class="btn-primary" data-xso-start>Start Round</button>' +
+    '</div>';
+}
+function renderXsoQuestion() {
+  var t = state.xso, q = currentXsoQuestion();
+  if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-xso-setup>Change Filters</button></div>';
+  var answered = t.answeredIndex !== null;
+  return '<div class="panel">' + modeToolbarHtml('xso', t.ranked) +
+    '<div class="quiz-progress">Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty) + '</div>' +
+    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<div class="quiz-options">' +
+    q.options.map(function (opt, i) {
+      var cls = 'quiz-option';
+      if (answered) {
+        if (i === q.correctIndex) cls += ' correct';
+        else if (i === t.answeredIndex) cls += ' wrong';
+      }
+      return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-xso-answer="' + i + '"') + '>' +
+        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+    }).join('') +
+    '</div>' +
+    (answered
+      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
+        '<button class="btn-primary" data-xso-next>' + (t.index + 1 >= t.queue.length ? 'See Results' : 'Next Question') + '</button>'
+      : '') +
+    '</div>';
+}
+function renderXsoSummary() {
+  var t = state.xso, pct = Math.round(100 * t.correctCount / t.queue.length);
+  return '<div class="panel">' +
+    '<h2 class="panel-title">Round Complete</h2>' +
+    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
+    '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
+    quizMissedReviewHtml(t.missed) +
+    '<div class="btn-row">' +
+    '<button class="btn-primary" data-xso-again>Play Again</button>' +
+    '<button class="btn-secondary" data-share="xso">' + icon('share') + ' Share</button>' +
+    '<button class="btn-secondary" data-xso-setup>Change Filters</button>' +
+    '<button class="btn-secondary" data-go="home">Home</button>' +
+    '</div></div>';
+}
+function renderXsoScreen() {
+  var t = state.xso;
+  if (t.screen === 'question') return renderXsoQuestion();
+  if (t.screen === 'summary') return renderXsoSummary();
+  return renderXsoSetup();
+}
+
 /* ============================== college football quiz ============================== */
 function cfbCategories() { return Array.from(new Set(CFB.map(function (q) { return q.category; }))).sort(); }
 function cfbDifficulties() { return Array.from(new Set(CFB.map(function (q) { return q.difficulty; }))).sort(); }
@@ -2279,6 +2429,19 @@ function renderStudyScreen() {
   if (state.study.screen === 'summary') return renderStudySummary();
   if (state.study.screen === 'question') return renderStudyQuestion();
   return renderStudySetup();
+}
+// Standalone Home card for X's & O's — not part of LEAGUE_MODES.nfl/.cfb
+// since the content itself (formations, coverages, blocking schemes) isn't
+// NFL- or CFB-specific, same "own card, own screen, not in either league's
+// mode grid" treatment Study/Friends/H2H already get. Always visible
+// (unlike studyCardHtml(), which only shows once there's something to
+// review) since this is a real standalone mode from the first visit on,
+// not a follow-up nudge.
+function xsoCardHtml() {
+  return '<button class="continue-card xso-card" data-go="xso">' +
+    '<span class="continue-card-label">Formations, coverages &amp; blocking schemes</span>' +
+    '<span class="continue-card-mode">' + icon('target') + ' X\'s &amp; O\'s</span>' +
+    '</button>';
 }
 function studyCardHtml() {
   if (!state.name) return '';
@@ -5634,10 +5797,10 @@ function shareRatingLine(delta) {
   return '🏈 Rating ' + (delta > 0 ? '+' : '') + delta + ' (now ' + r.score + ')';
 }
 function shareConfigFor(mode) {
-  if (mode === 'quiz' || mode === 'cfbQuiz') {
+  if (mode === 'quiz' || mode === 'cfbQuiz' || mode === 'xso') {
     var t = state[mode];
     var pct = Math.round(100 * t.correctCount / t.queue.length);
-    var label = mode === 'quiz' ? 'NFL Quiz' : 'CFB Quiz';
+    var label = mode === 'quiz' ? 'NFL Quiz' : mode === 'cfbQuiz' ? 'CFB Quiz' : "X's & O's";
     var rl = shareRatingLine(t.ratingDelta);
     return { title: label, headline: pct + '%', sub: t.correctCount + ' / ' + t.queue.length + ' correct', detail: rl,
       shareText: 'I scored ' + pct + '% on ' + label + ' in Reads! 🏈' + (rl ? ' ' + rl : '') };
@@ -6011,7 +6174,7 @@ function closeShareModal() {
 var CURRENT_QUESTION_GETTERS = {
   quiz: currentQuizQuestion, cfbQuiz: currentCfbQuestion, daily: currentDailyQuestion,
   speed: currentSpeedQuestion, cfbSpeed: currentCfbSpeedQuestion,
-  iq: currentIQQuestion, cfbIq: currentCfbIQQuestion, study: currentStudyQuestion
+  iq: currentIQQuestion, cfbIq: currentCfbIQQuestion, study: currentStudyQuestion, xso: currentXsoQuestion
 };
 function currentQuestionContext(mode) {
   var getter = CURRENT_QUESTION_GETTERS[mode];
@@ -6248,6 +6411,7 @@ var LEADERBOARD_MODES = [
   { id: 'rating', label: 'Football Rating', sortKey: 'score', cols: [['score', 'Rating'], ['games', 'Games Played']] },
   { id: 'daily', label: 'Daily Challenge', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
   { id: 'quiz', label: 'NFL Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
+  { id: 'xso', label: "X's & O's", sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'grid', label: 'NFL Grid', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['cleanSweeps', 'Clean Sweeps'], ['gamesPlayed', 'Games']] },
   { id: 'blitz', label: 'NFL Blitz', sortKey: 'bestMatched', cols: [['bestMatched', 'Best Matched'], ['attempts', 'Attempts']] },
   { id: 'speed', label: 'NFL Speed', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['bestStreak', 'Best Streak'], ['sessionsPlayed', 'Sessions']] },
@@ -6685,7 +6849,12 @@ var LEARN_SECTIONS = [
   { id: 'cfbTrivia', league: 'cfb', icon: 'brain', title: 'CFB Trivia Almanac',
     desc: '456 real facts across Heisman history, coaches, rivalries, and more.', dataFiles: [] },
   { id: 'nflTrivia', league: 'nfl', icon: 'lombardiTrophy', title: 'NFL Trivia Almanac',
-    desc: '482 real facts across Super Bowl history, records, and more.', dataFiles: [] }
+    desc: '482 real facts across Super Bowl history, records, and more.', dataFiles: [] },
+  { id: 'xsoAlmanac', league: 'both', icon: 'versus', title: "X's & O's Almanac",
+    // dataFiles listed (unlike the two Trivia Almanacs above) because XSO,
+    // unlike QUIZ/CFB, isn't a core asset loaded via <script> tag — it's
+    // lazy-loaded the same way every other mode-specific data file is.
+    desc: '700 scheme/strategy facts across formations, coverages, blocking, and more.', dataFiles: ['data/xso.js'] }
 ];
 function learnSectionById(id) { return LEARN_SECTIONS.find(function (s) { return s.id === id; }); }
 function learnMatchesFilter(filter, searchBlob) {
@@ -6851,6 +7020,11 @@ function renderLearnNflTrivia() {
   return '<p class="mode-desc">' + rows.length + ' NFL facts across Super Bowl history, franchise records, coaches, and more — search by team, player, or topic.</p>' +
     renderLearnTriviaCards(rows);
 }
+function renderLearnXso() {
+  var rows = learnTriviaRows(XSO);
+  return '<p class="mode-desc">' + rows.length + ' scheme/strategy facts across formations, coverages, blocking, route concepts, and more — search by term or topic. The X\'s &amp; O\'s mode is the quiz version of this same bank.</p>' +
+    renderLearnTriviaCards(rows);
+}
 
 function learnNflHofPool() { return GRID_PLAYERS.filter(function (p) { return p.hof === true; }); }
 function learnNflHofCategories() {
@@ -6912,7 +7086,8 @@ function learnSectionCategories(id) {
     id === 'nflHof' ? learnNflHofCategories() :
     id === 'nflDecorated' ? learnNflDecoratedCategories() :
     id === 'cfbTrivia' ? learnTriviaCategories(CFB) :
-    id === 'nflTrivia' ? learnTriviaCategories(QUIZ) : [];
+    id === 'nflTrivia' ? learnTriviaCategories(QUIZ) :
+    id === 'xsoAlmanac' ? learnTriviaCategories(XSO) : [];
 }
 function learnSectionCardHtml(s) {
   return '<button class="mode-card" data-learn-open="' + s.id + '">' +
@@ -6924,8 +7099,8 @@ function learnSectionCardHtml(s) {
 function renderLearnMenu() {
   return '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-    '<h2 class="panel-title">Learn</h2>' +
-    '<p class="mode-desc">Browse real NFL and College Football facts pulled straight from this app\'s own verified player data — Hall of Famers, Heisman winners, national champions, and more.</p>' +
+    '<h2 class="panel-title">The Film Room</h2>' +
+    '<p class="mode-desc">Browse real NFL and College Football facts pulled straight from this app\'s own verified player data — Hall of Famers, Heisman winners, national champions, scheme concepts, and more.</p>' +
     '<div class="mode-grid">' + LEARN_SECTIONS.map(learnSectionCardHtml).join('') + '</div>' +
     '</div>';
 }
@@ -6940,7 +7115,8 @@ function renderLearnSectionDetail() {
     s.id === 'nflHof' ? renderLearnNflHof() :
     s.id === 'nflDecorated' ? renderLearnNflDecorated() :
     s.id === 'cfbTrivia' ? renderLearnCfbTrivia() :
-    s.id === 'nflTrivia' ? renderLearnNflTrivia() : '';
+    s.id === 'nflTrivia' ? renderLearnNflTrivia() :
+    s.id === 'xsoAlmanac' ? renderLearnXso() : '';
   return '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Back</button></div>' +
     '<h2 class="panel-title">' + esc(s.title) + '</h2>' +
@@ -7199,6 +7375,7 @@ function renderAll() {
   var html = nameBarHtml();
   if (state.screen === 'home') html += renderHome();
   else if (state.screen === 'quiz') html += renderQuizScreen();
+  else if (state.screen === 'xso') html += renderXsoScreen();
   else if (state.screen === 'grid') html += renderGridScreen();
   else if (state.screen === 'blitz') html += renderBlitzScreen();
   else if (state.screen === 'speed') html += renderSpeedScreen();
@@ -7370,6 +7547,7 @@ function typeaheadPickActive(inputId) {
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-go], [data-log-out], [data-auth-open], #auth-close, #auth-backdrop, #auth-submit, #auth-switch, ' +
     '[data-quiz-roundsize], [data-quiz-start], [data-quiz-answer], [data-quiz-next], [data-quiz-again], [data-quiz-setup], ' +
+    '[data-xso-roundsize], [data-xso-start], [data-xso-answer], [data-xso-next], [data-xso-again], [data-xso-setup], ' +
     '[data-study-start], [data-study-answer], [data-study-next], ' +
     '[data-grid-start], [data-grid-cell], [data-grid-submit], [data-grid-again], ' +
     '[data-blitz-list], [data-blitz-start], [data-blitz-submit], [data-blitz-setup], ' +
@@ -7519,6 +7697,16 @@ document.addEventListener('click', function (e) {
   if (t.dataset.studyNext !== undefined) { nextStudyQuestion(); return; }
   if (t.dataset.quizAgain !== undefined) { playQuizAgain(); return; }
   if (t.dataset.quizSetup !== undefined) { quizBackToSetup(); return; }
+  if (t.dataset.xsoRoundsize !== undefined) { state.xso.roundSize = parseInt(t.dataset.xsoRoundsize, 10); renderAll(); return; }
+  if (t.dataset.xsoStart !== undefined) {
+    var xsoCat = document.getElementById('xso-cat'), xsoDiff = document.getElementById('xso-diff');
+    startXsoRound(xsoCat ? xsoCat.value : '', xsoDiff ? xsoDiff.value : '', state.xso.roundSize);
+    return;
+  }
+  if (t.dataset.xsoAnswer !== undefined) { pickXsoAnswer(parseInt(t.dataset.xsoAnswer, 10)); return; }
+  if (t.dataset.xsoNext !== undefined) { nextXsoQuestion(); return; }
+  if (t.dataset.xsoAgain !== undefined) { playXsoAgain(); return; }
+  if (t.dataset.xsoSetup !== undefined) { xsoBackToSetup(); return; }
 
   if (t.dataset.gridStart !== undefined) { startGridRound(); return; }
   if (t.dataset.gridCell !== undefined) { selectGridCell(parseInt(t.dataset.gridCell, 10)); return; }
@@ -7634,6 +7822,8 @@ document.addEventListener('input', function (e) {
 document.addEventListener('change', function (e) {
   if (e.target.id === 'quiz-cat') { state.quiz.category = e.target.value; return; }
   if (e.target.id === 'quiz-diff') { state.quiz.difficulty = e.target.value; return; }
+  if (e.target.id === 'xso-cat') { state.xso.category = e.target.value; return; }
+  if (e.target.id === 'xso-diff') { state.xso.difficulty = e.target.value; return; }
   if (e.target.id === 'cfb-cat') { state.cfbQuiz.category = e.target.value; return; }
   if (e.target.id === 'cfb-diff') { state.cfbQuiz.difficulty = e.target.value; return; }
   if (e.target.id === 'h2h-mode') { h2hSetMode(e.target.value); return; }
