@@ -7640,7 +7640,7 @@ var footerVersionEl = document.getElementById('footer-version');
 if (footerVersionEl) footerVersionEl.textContent = 'Reads v' + APP_VERSION + ' · Questions last updated ' + CONTENT_UPDATED;
 
 // A live-match invite link (see h2hLiveInviteLink) looks like
-// https://getreads.netlify.app/#live=7F3K — captured and cleared from the
+// https://reads.football/#live=7F3K — captured and cleared from the
 // URL immediately so refreshing or re-sharing the plain page URL later
 // can't re-trigger a join. Consumed right here if this device already has a
 // name (the common case — a friend who already plays tapping another
