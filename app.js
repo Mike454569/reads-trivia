@@ -6175,6 +6175,15 @@ window.__triviaSync = {
       lsSet('nflTriviaLoggedIn', false);
       if (state.name) { state.name = ''; lsSet('nflTriviaName', ''); renderAll(); }
     }
+  },
+  // Fires on every live update to the analytics play-count doc (see
+  // renderStatsScreen) — without this, the hidden #stats page only ever
+  // showed whatever counts were current the moment you loaded it, since
+  // nothing told it to redraw when fresher numbers arrived in the
+  // background. Same "only re-render if you're actually looking at the
+  // screen this data feeds" guard as applyLeaderboard above.
+  applyPlayCounts: function () {
+    if (state.screen === 'stats') renderAll();
   }
 };
 

@@ -249,6 +249,7 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       });
       onSnapshot(analyticsDoc, function (snap) {
         window.__fbSync.playCounts = snap.data() || {};
+        if (window.__triviaSync && window.__triviaSync.applyPlayCounts) window.__triviaSync.applyPlayCounts();
       }, function (err) {
         console.error('Play-count listen failed', err);
       });
