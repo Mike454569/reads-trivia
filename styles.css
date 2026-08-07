@@ -172,6 +172,50 @@ body.home-fav-theme {
 .splash-sub { font-size: 14px; color: var(--text-dim); }
 @keyframes splash-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
+/* Rating-move toast — fires from updateRatingDrift() in app.js after EVERY
+   round that moves the rating, not just tier crossings (see
+   showRatingMoveToast's comment for why). Purely imperative (classList
+   toggle + a timer + direct style writes on the fill bar), not part of the
+   innerHTML render tree, so it can pop up over ANY mode's result screen
+   without that screen needing to know about it. tier-toast-milestone (a
+   genuine tier change) gets a gold gradient + longer dwell time; an
+   ordinary same-tier move gets a quieter neutral card. */
+#tier-up-toast {
+  position: fixed; z-index: 40; left: 50%; top: max(64px, calc(env(safe-area-inset-top) + 56px));
+  width: min(300px, calc(100vw - 32px));
+  transform: translate(-50%, -16px) scale(0.92);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#tier-up-toast.show {
+  opacity: 1; transform: translate(-50%, 0) scale(1);
+  animation: tier-up-pop 0.55s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes tier-up-pop {
+  0% { transform: translate(-50%, -16px) scale(0.7); }
+  55% { transform: translate(-50%, 5px) scale(1.06); }
+  100% { transform: translate(-50%, 0) scale(1); }
+}
+#tier-up-toast-inner {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 12px 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+}
+.tier-toast-milestone #tier-up-toast-inner {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent; color: #1a1400;
+}
+.tier-toast-milestone #tier-up-toast-label { opacity: .8; }
+#tier-up-toast-icon { font-size: 24px; line-height: 1; flex-shrink: 0; }
+#tier-up-toast-body { flex: 1; min-width: 0; }
+#tier-up-toast-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+#tier-up-toast-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
+#tier-up-toast-delta { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+#tier-up-toast-delta.tier-up-toast-delta-up { color: var(--good); }
+#tier-up-toast-delta.tier-up-toast-delta-down { color: var(--bad); }
+#tier-up-toast-tier { font-size: 15px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }

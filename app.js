@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.1.0';
+var APP_VERSION = '3.2.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -355,6 +355,7 @@ function updateRatingDrift(sessionPct) {
   var r = getRating();
   if (!r) return;
   var before = r.score;
+  var tierBefore = ratingTierFor(before);
   sessionPct = Math.max(0, Math.min(100, sessionPct));
   var sessionScore = 60 + sessionPct;
   r.score = Math.round(r.score * (1 - RATING_DRIFT_ALPHA) + sessionScore * RATING_DRIFT_ALPHA);
@@ -362,6 +363,50 @@ function updateRatingDrift(sessionPct) {
   setRating(r);
   lastRatingDelta = r.score - before;
   pushRatingHistory(r.score);
+  showRatingMoveToast(tierBefore, ratingTierFor(r.score), r.score, lastRatingDelta);
+}
+// Fires after EVERY round that moves the rating (not just tier crossings)
+// — the bar animates from where it sat before this round to where it sits
+// now, so "your progress visibly moving" is something you see on every
+// result, not just the rare moment you cross a tier line. A genuine tier
+// change gets its own bigger/longer treatment (see the 'tier-toast-
+// milestone' class) since a same-tier move and "you just became All-Pro"
+// aren't the same size of moment. No sound here deliberately — this fires
+// from inside updateRatingDrift(), which every finish* function calls
+// immediately BEFORE its own playSound(); stacking a second sound here
+// would just get cut off by that one a beat later (playSound() stops
+// whatever's currently playing before starting the next clip).
+var tierUpToastTimer = null;
+function showRatingMoveToast(tierBefore, tierAfter, score, delta) {
+  var el = document.getElementById('tier-up-toast');
+  var fillEl = document.getElementById('tier-up-toast-fill');
+  var tierEl = document.getElementById('tier-up-toast-tier');
+  var deltaEl = document.getElementById('tier-up-toast-delta');
+  var labelEl = document.getElementById('tier-up-toast-label');
+  var iconEl = document.getElementById('tier-up-toast-icon');
+  if (!el || !fillEl || !tierEl || !deltaEl) return;
+  var tierChanged = tierAfter.min !== tierBefore.min;
+  var wentUp = tierAfter.min > tierBefore.min;
+  tierEl.textContent = tierAfter.name;
+  deltaEl.textContent = (delta > 0 ? '+' : '') + delta + ' · ' + score;
+  deltaEl.className = delta > 0 ? 'tier-up-toast-delta-up' : delta < 0 ? 'tier-up-toast-delta-down' : '';
+  if (labelEl) labelEl.textContent = tierChanged ? (wentUp ? 'Tier Up!' : 'Tier Down') : 'Rating Update';
+  if (iconEl) iconEl.textContent = tierChanged ? (wentUp ? '🎉' : '📉') : '🏈';
+  el.classList.toggle('tier-toast-milestone', tierChanged);
+  // Animate the fill FROM where it sat before TO where it sits now. A tier
+  // change has no shared 0-100 scale between two different tiers to slide
+  // across, so that case just fills up from empty into the new tier instead
+  // of a meaningless cross-tier jump.
+  fillEl.style.transition = 'none';
+  fillEl.style.width = (tierChanged ? 0 : Math.round(tierBefore.pct * 100)) + '%';
+  void fillEl.offsetWidth;
+  fillEl.style.transition = '';
+  fillEl.style.width = Math.round(tierAfter.pct * 100) + '%';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  if (tierUpToastTimer) clearTimeout(tierUpToastTimer);
+  tierUpToastTimer = setTimeout(function () { el.classList.remove('show'); }, tierChanged ? 3800 : 2200);
 }
 function introTestPool() {
   var half = Math.floor(INTRO_TEST_SIZE / 2);
@@ -427,7 +472,7 @@ function ratingTierFor(score) {
   var cur = RATING_TIERS[idx], next = RATING_TIERS[idx + 1] || null;
   var span = next ? (next.min - cur.min) : 20;
   var pct = next ? Math.max(0, Math.min(1, (score - cur.min) / span)) : 1;
-  return { name: cur.name, next: next ? next.name : null, ptsToNext: next ? Math.max(0, next.min - score) : 0, pct: pct };
+  return { name: cur.name, min: cur.min, next: next ? next.name : null, ptsToNext: next ? Math.max(0, next.min - score) : 0, pct: pct };
 }
 function renderRatingBadge() {
   var el = document.getElementById('rating-badge');
