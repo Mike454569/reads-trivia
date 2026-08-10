@@ -25,6 +25,26 @@ var ENABLE_PLAYER_FROM_CLUES_V01 = true;
 // static baseline is never modified or replaced by this flag.
 var ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 = false;
 
+// Director v0.7/v1.2 pilot flag. Default OFF (Part 33) -- when true, the
+// hidden #draftpilot route renders a NEW mode that fetches a real,
+// engine-generated NFL Draft question LIVE from the Gateway's public API
+// (/v1/public/game, /v1/public/game/answer -- no admin token anywhere in
+// this file, by construction: those routes don't require one) instead of
+// reading from a local data/*.js file. This is the first Reads mode that
+// depends on a network round-trip for its actual game content -- every
+// other mode, including the ENABLE_ENGINE_QUIZ_DRAFT-merged "NFL Draft
+// History" Quiz category below, remains 100% local/offline. When OFF, or
+// if the Gateway is unreachable while ON, this mode falls back to that
+// exact existing "NFL Draft History" Quiz category -- a real, already-
+// working, hand-authored-plus-engine-static equivalent, not a placeholder.
+var ENABLE_ENGINE_DRAFT_PILOT_V01 = false; // default OFF (Part 33) -- flip true locally to test against a running Gateway
+// Local-dev-only value (see gateway/Dockerfile's documented internal port
+// 8850) -- a real deployment would need a real reachable Gateway URL here,
+// not this. Never hardcode a machine-specific filesystem path here; this
+// is a network origin, not a path, and is meant to be edited per
+// environment the same way SITE_URL above already is.
+var ENGINE_GATEWAY_BASE_URL = 'http://localhost:8850';
+
 /* ============================== utilities ============================== */
 function lsGet(key, fallback) {
   try { var v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
@@ -218,6 +238,7 @@ var state = {
   speed: null,
   silhouette: null,
   playerClues: null,
+  enginePilot: null,
   iq: null,
   legends: null,
   higherLower: null,
@@ -892,6 +913,7 @@ function resetModeState(mode) {
   else if (mode === 'higherLower') state.higherLower = null;
   else if (mode === 'silhouette') state.silhouette = null;
   else if (mode === 'playerClues') state.playerClues = null;
+  else if (mode === 'enginePilot') state.enginePilot = null;
   else if (mode === 'iq') state.iq = null;
   else if (mode === 'legends') state.legends = null;
   else if (mode === 'cfbQuiz') state.cfbQuiz = { screen: 'setup', category: '', difficulty: '', roundSize: (state.cfbQuiz && state.cfbQuiz.roundSize) || 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] };
@@ -4176,6 +4198,162 @@ function renderPlayerCluesScreen() {
   if (!state.playerClues) return renderPlayerCluesSetup();
   if (state.playerClues.screen === 'summary') return renderPlayerCluesSummary();
   return renderPlayerCluesRound();
+}
+
+/* ============================== engine draft pilot (v1.2) ==============================
+   The ONLY mode in this file that fetches its actual game content over the
+   network instead of reading a local data/*.js file -- see
+   ENABLE_ENGINE_DRAFT_PILOT_V01's comment above for the full picture. The
+   Gateway's public API (gateway/services/public_game.py) is the
+   authoritative source of both the question AND the answer: this file
+   never receives, stores, or compares against a correct answer locally --
+   pickEnginePilotAnswer() below sends the player's pick to
+   POST /v1/public/game/answer and renders whatever the server says, the
+   same trust boundary every other client-authoritative mode here
+   deliberately does NOT have. */
+var ENGINE_PILOT_ROUNDSIZE = 10;
+
+function enginePilotFetchJson(path, options) {
+  return fetch(ENGINE_GATEWAY_BASE_URL + path, options).then(function (res) {
+    if (!res.ok) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        var err = new Error((body.error && body.error.message) || ('HTTP ' + res.status));
+        err.code = body.error && body.error.code;
+        throw err;
+      });
+    }
+    return res.json();
+  });
+}
+function startEnginePilotRound() {
+  state.enginePilot = { screen: 'loading', roundIndex: 0, roundSize: ENGINE_PILOT_ROUNDSIZE, correctCount: 0, seenGameIds: [], current: null, error: null };
+  state.screen = 'enginePilot';
+  renderAll();
+  loadNextEnginePilotQuestion();
+}
+function enginePilotFallbackToQuiz() {
+  // Real fallback, not a placeholder (Part 20): "NFL Draft History" is an
+  // existing, already-working Quiz category backed by real engine-exported
+  // content (data/quiz-engine-draft-production.js, merged into QUIZ when
+  // ENABLE_ENGINE_QUIZ_DRAFT is on) -- conceptually the same game, playable
+  // with zero network dependency.
+  // A real bug caught by actually clicking this in a browser, not assumed
+  // from reading the code: startQuizRound() does NOT set state.screen
+  // itself (every other caller reaches it via goToMode('quiz') first,
+  // which does) -- omitting this line left renderAll() still dispatching
+  // to the (now-null) enginePilot screen after a real fallback.
+  state.enginePilot = null;
+  state.screen = 'quiz';
+  startQuizRound('NFL Draft History', '', 10);
+}
+function loadNextEnginePilotQuestion() {
+  var s = state.enginePilot;
+  if (!s) return;
+  s.screen = 'loading';
+  s.error = null;
+  renderAll();
+  var exclude = s.seenGameIds.slice(-20).join(',');
+  enginePilotFetchJson('/v1/public/game?mode=draft_guess' + (exclude ? '&exclude=' + encodeURIComponent(exclude) : ''))
+    .then(function (game) {
+      if (state.enginePilot !== s) return; // player navigated away while this was in flight
+      s.current = game;
+      s.pickedOption = null;
+      s.answerResult = null;
+      s.screen = 'question';
+      renderAll();
+    })
+    .catch(function (err) {
+      if (state.enginePilot !== s) return;
+      s.screen = 'error';
+      s.error = (err && err.message) || 'The live engine is unavailable right now.';
+      renderAll();
+    });
+}
+function pickEnginePilotAnswer(optionIndex) {
+  var s = state.enginePilot;
+  if (!s || s.screen !== 'question' || s.pickedOption !== null) return;
+  var game = s.current;
+  var chosenLabel = game.payload.options[optionIndex];
+  s.pickedOption = optionIndex;
+  s.screen = 'answering';
+  renderAll();
+  enginePilotFetchJson('/v1/public/game/answer', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game_id: game.game_id, answer: chosenLabel }),
+  }).then(function (result) {
+    if (state.enginePilot !== s) return;
+    s.answerResult = result;
+    s.seenGameIds.push(game.game_id);
+    if (result.correct) s.correctCount++;
+    playSound(result.correct ? 'correct' : 'wrong');
+    s.screen = 'answered';
+    renderAll();
+  }).catch(function (err) {
+    if (state.enginePilot !== s) return;
+    s.screen = 'error';
+    s.error = (err && err.message) || 'Could not validate that answer right now.';
+    renderAll();
+  });
+}
+function advanceEnginePilot() {
+  var s = state.enginePilot;
+  if (!s) return;
+  if (s.roundIndex + 1 >= s.roundSize) { s.screen = 'summary'; renderAll(); return; }
+  s.roundIndex++;
+  loadNextEnginePilotQuestion();
+}
+function enginePilotToolbarHtml() {
+  return '<div class="mode-toolbar">' +
+    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
+    '</div>';
+}
+function renderEnginePilotScreen() {
+  if (!ENABLE_ENGINE_DRAFT_PILOT_V01) return renderHome();
+  var s = state.enginePilot;
+  if (!s) {
+    return '<div class="panel">' +
+      '<h2 class="panel-title">NFL Draft History (Live Engine Pilot)</h2>' +
+      '<p class="mode-desc">Same idea as NFL Draft History in Quiz, except every question is generated live by the Reads Football Engine right now, not read from a pre-built file.</p>' +
+      '<div class="btn-row"><button class="btn-primary" data-pilot-start>Start</button></div>' +
+      '</div>';
+  }
+  if (s.screen === 'loading') {
+    return '<div class="panel">' + enginePilotToolbarHtml() + '<p class="mode-desc">Asking the engine for a question&hellip;</p></div>';
+  }
+  if (s.screen === 'error') {
+    return '<div class="panel">' + enginePilotToolbarHtml() +
+      '<p class="mode-desc">' + esc(s.error) + '</p>' +
+      '<div class="btn-row">' +
+      '<button class="btn-primary" data-pilot-retry>Try Again</button>' +
+      '<button class="btn-secondary" data-pilot-fallback>Play NFL Draft History (Quiz) Instead</button>' +
+      '</div></div>';
+  }
+  if (s.screen === 'summary') {
+    return '<div class="panel">' + enginePilotToolbarHtml() +
+      '<h2 class="panel-title">Round Complete</h2>' +
+      '<p class="mode-desc">' + s.correctCount + ' / ' + s.roundSize + ' correct.</p>' +
+      '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button></div></div>';
+  }
+  var game = s.current, answered = s.screen === 'answered';
+  return '<div class="panel">' + enginePilotToolbarHtml() +
+    '<div class="quiz-progress">Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || '') + '</div>' +
+    '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+    '<div class="quiz-options">' +
+    game.payload.options.map(function (opt, i) {
+      var cls = 'quiz-option';
+      if (answered) {
+        if (opt === s.answerResult.canonical_answer) cls += ' correct';
+        else if (i === s.pickedOption) cls += ' wrong';
+      }
+      return '<button class="' + cls + '" ' + (s.screen === 'question' ? 'data-pilot-answer="' + i + '"' : 'disabled') + '>' +
+        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+    }).join('') +
+    '</div>' +
+    (answered
+      ? '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (s.answerResult.notes ? ' ' + esc(s.answerResult.notes) : '') + '</div>' +
+        '<button class="btn-primary" data-pilot-next>' + (s.roundIndex + 1 >= s.roundSize ? 'See Results' : 'Next Question') + '</button>'
+      : '') +
+    '</div>';
 }
 
 /* ============================== football iq test ============================== */
@@ -7665,6 +7843,7 @@ function renderAll() {
   else if (state.screen === 'h2hLive') html += renderH2HLiveScreen();
   else if (state.screen === 'study') html += renderStudyScreen();
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
+  else if (state.screen === 'enginePilot') html += renderEnginePilotScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
@@ -7824,6 +8003,7 @@ document.addEventListener('click', function (e) {
     '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], [data-hl-category], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
+    '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -8015,6 +8195,12 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cluesGiveup !== undefined) { givePlayerCluesUp(); return; }
   if (t.dataset.cluesNext !== undefined) { advancePlayerClues(); return; }
 
+  if (t.dataset.pilotStart !== undefined) { startEnginePilotRound(); return; }
+  if (t.dataset.pilotAnswer !== undefined) { pickEnginePilotAnswer(parseInt(t.dataset.pilotAnswer, 10)); return; }
+  if (t.dataset.pilotNext !== undefined) { advanceEnginePilot(); return; }
+  if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
+  if (t.dataset.pilotFallback !== undefined) { enginePilotFallbackToQuiz(); return; }
+
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
   if (t.dataset.iqAnswer !== undefined) { answerIQQuestion(parseInt(t.dataset.iqAnswer, 10)); return; }
 
@@ -8196,6 +8382,7 @@ function consumePendingLiveJoin() {
 initPlayerCluesPackage();
 var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports' };
 if (ENABLE_PLAYER_FROM_CLUES_V01) HIDDEN_ROUTES['#clues'] = 'playerClues';
+if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   renderAll();

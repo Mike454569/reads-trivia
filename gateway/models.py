@@ -75,6 +75,21 @@ class GridValidateRequest(BaseModel):
     season: Optional[int] = Field(default=None, ge=1920, le=2100)
 
 
+class PublicAnswerRequest(BaseModel):
+    """POST /v1/public/game/answer (v1.2). game_id is the opaque package_id
+    the matching GET /v1/public/game response returned -- see
+    gateway/services/public_game.py's docstring for why reusing the
+    existing content-addressed package_id scheme (rather than inventing a
+    new session token) is enough to make guessing a valid, unissued game_id
+    impractical without new cryptography. answer is free text (matches the
+    existing Reads Quiz UX -- a picked option's label), resolved against the
+    stored package's real answer server-side, never trusted from the client."""
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: str = Field(min_length=1, max_length=64)
+    answer: str = Field(min_length=1, max_length=200)
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

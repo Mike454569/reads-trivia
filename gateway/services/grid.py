@@ -1,10 +1,11 @@
 """Reads Engine Gateway -- Grid (Immaculate Grid) roster/eligibility service
 (v0.7 content-pipeline port, Grid roster merge phase).
 
-Content-pipeline model (confirmed with the user before building this): the
-Gateway is admin-only, private, staging-scoped (see gateway/config.py's
-DEV_CORS_ORIGINS / PRODUCTION_ORIGIN_DOCUMENTED_NOT_ENABLED and every route's
-require_admin gate). The LIVE frontend's Grid mode is NOT changed by this
+Content-pipeline model (confirmed with the user before building this): this
+module's routes are admin-only (see every route's require_admin gate) --
+v1.2 opened a SEPARATE, new public-gameplay route family
+(gateway/services/public_game.py, /v1/public/*) for one pilot mode, but
+did not touch Grid's admin-only status. The LIVE frontend's Grid mode is NOT changed by this
 module and keeps working exactly as it does today: 100% client-side, offline
 (file://)-capable, instant validation, reading data/grid.js. This service is
 the admin-only tool content ops uses to VERIFY/QA specific data/grid.js

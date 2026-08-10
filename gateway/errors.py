@@ -33,6 +33,17 @@ ERROR_CODES = frozenset({
                       # frequency limit, checked before the concurrency guard is ever reached.
     "SERVICE_UNAVAILABLE",  # Director v0.7, Part L -- readiness failed (DB missing/unreadable,
                              # package directory unavailable) -- distinct from an ordinary 500.
+    "INVALID_MODE",       # v1.2 public gameplay -- requested mode isn't a recognized string at all.
+    "MODE_UNAVAILABLE",   # v1.2 -- a recognized mode, but not on the public allow-list (e.g. admin-only
+                           # Director capabilities that were never vetted for direct public delivery).
+    "NO_ELIGIBLE_GAME",   # v1.2 -- generation ran but produced no QA-passed question (distinct from a
+                           # genuine infra failure -- GENERATION_FAILED already covers that).
+    "INVALID_GAME_ID",    # v1.2 -- game_id doesn't resolve to a real, stored package (malformed or
+                           # simply unknown -- never distinguished to the client, same reasoning
+                           # packages.load_package's docstring already gives for PACKAGE_NOT_FOUND).
+    "GAME_EXPIRED",       # v1.2 -- reserved for a future TTL on public game sessions; not enforced yet
+                           # (packages are retained indefinitely, same as admin-generated ones), but the
+                           # code exists now so a client's error-handling switch statement is future-proof.
 })
 
 # HTTP status per code -- kept alongside the code itself so a raise site
@@ -51,6 +62,11 @@ STATUS_FOR_CODE = {
     "INTERNAL_ERROR": 500,
     "RATE_LIMITED": 429,
     "SERVICE_UNAVAILABLE": 503,
+    "INVALID_MODE": 400,
+    "MODE_UNAVAILABLE": 404,
+    "NO_ELIGIBLE_GAME": 503,
+    "INVALID_GAME_ID": 404,
+    "GAME_EXPIRED": 410,
 }
 
 

@@ -62,30 +62,40 @@ def admin_token_weak_reason(token: str) -> str | None:
 
 # --- CORS (Part J) -------------------------------------------------------
 ALLOWED_ORIGINS_ENV_VAR = "READS_ENGINE_ALLOWED_ORIGINS"
-# Local development origins only -- used when READS_ENGINE_ALLOWED_ORIGINS
-# is unset, preserving v0.6's exact local-dev behavior. NOT a wildcard, and
-# nothing resembling a production origin is enabled here -- see
-# READS_ENGINE_HOSTING_READINESS.md for why https://reads.football is
-# documented, not configured.
+# Local development origins -- used when READS_ENGINE_ALLOWED_ORIGINS is
+# unset. NOT a wildcard, never inferred from the request itself.
 DEV_CORS_ORIGINS = [
     "http://localhost:8934",
     "http://127.0.0.1:8934",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
-PRODUCTION_ORIGIN_DOCUMENTED_NOT_ENABLED = "https://reads.football"
+# v0.7-v1.1 left this documented-but-not-enabled (the comment here used to
+# cite READS_ENGINE_HOSTING_READINESS.md for the reasoning -- re-checked
+# this phase and that file doesn't actually contain CORS-specific reasoning,
+# just disk/memory sizing; noted honestly rather than left mis-cited).
+# v1.2 explicitly authorizes connecting the real Reads frontend to the
+# Gateway (this phase's stated objective), so the production origin is now
+# enabled BY DEFAULT for the NEW public gameplay routes specifically --
+# admin routes remain unaffected in practice since they're still gated by
+# the bearer token regardless of which origin the request comes from; CORS
+# only controls which origins can read the response, not who can guess the
+# right token. Still not a wildcard, still env-overridable.
+PRODUCTION_READS_ORIGIN = "https://reads.football"
+DEFAULT_CORS_ORIGINS = DEV_CORS_ORIGINS + [PRODUCTION_READS_ORIGIN]
 
 
 def allowed_origins() -> list[str]:
     """Comma-separated list from READS_ENGINE_ALLOWED_ORIGINS, falling back
-    to DEV_CORS_ORIGINS when unset -- never a wildcard, never inferred from
-    the request itself (Part J: 'do not automatically trust arbitrary
-    origins'). Validated at startup (see app.py's startup check) -- an
-    entry that isn't a well-formed http(s) origin is rejected loudly rather
-    than silently allowed through."""
+    to DEFAULT_CORS_ORIGINS (dev origins + the real production Reads origin,
+    as of v1.2) when unset -- never a wildcard, never inferred from the
+    request itself (Part J: 'do not automatically trust arbitrary origins').
+    Validated at startup (see app.py's startup check) -- an entry that isn't
+    a well-formed http(s) origin is rejected loudly rather than silently
+    allowed through."""
     raw = os.environ.get(ALLOWED_ORIGINS_ENV_VAR)
     if not raw:
-        return list(DEV_CORS_ORIGINS)
+        return list(DEFAULT_CORS_ORIGINS)
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 
@@ -145,3 +155,24 @@ GRID_LOOKUP_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_GRID_LOOKUP_RATE_L
 GRID_LOOKUP_RATE_LIMIT_WINDOW_SECONDS = 60.0
 GRID_BOARD_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_GRID_BOARD_RATE_LIMIT", "15"))
 GRID_BOARD_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+# --- Public gameplay (v1.2, Part 17) --------------------------------------
+# Deliberately much more generous than every admin limiter above -- this is
+# real end-user gameplay traffic, not internal/QA tooling. /v1/public/game
+# calls generation.generate() (the same single-slot-concurrency-guarded
+# Director pipeline /v1/games/generate uses -- Part 9: no competing
+# generator), so its limit is still meaningfully tighter than the answer
+# limiter (a real player submits many more answers than fresh-game
+# requests in a session). /v1/public/game/answer is a cheap package lookup
+# + string comparison (no generation), so it can be looser.
+PUBLIC_GAME_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_GAME_RATE_LIMIT", "20"))
+PUBLIC_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
+PUBLIC_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_ANSWER_RATE_LIMIT", "60"))
+PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+# Only draft-guessing is public-safe as of v1.2 (Part 3: explicit mode
+# allow-list, never "every registered Director capability is now public").
+# Keyed by the public-facing mode id (NOT the internal (mechanic, domain,
+# predicate) tuple) so the public contract's vocabulary stays independent
+# of internal registry naming.
+PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess"})

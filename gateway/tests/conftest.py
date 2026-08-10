@@ -35,6 +35,7 @@ config.OPERATIONAL_LOG_PATH = config.GATEWAY_AUDIT_LOG_DIR / "test_gateway_opera
 from gateway.app import (  # noqa: E402
     app, generate_limiter, graph_limiter, graph_path_limiter,
     grid_board_limiter, grid_lookup_limiter, preview_limiter,
+    public_answer_limiter, public_game_limiter,
 )
 
 
@@ -62,6 +63,8 @@ def _reset_rate_limiters():
     graph_path_limiter.reset()
     grid_lookup_limiter.reset()
     grid_board_limiter.reset()
+    public_game_limiter.reset()
+    public_answer_limiter.reset()
     yield
 
 

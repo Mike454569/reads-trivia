@@ -8,7 +8,7 @@
 // (solo play keeps working offline, only the shared leaderboard needs a
 // connection). Bump CACHE_VERSION when shipping a change worth force-clearing
 // old installs' caches for.
-var CACHE_VERSION = 'reads-v18';
+var CACHE_VERSION = 'reads-v19';
 var CORE_ASSETS = [
   './', './index.html', './styles.css', './app.js', './sound.js', './firebase-sync.js', './manifest.json',
   './data/quiz.js', './data/quiz-engine-draft-production.js', './data/grid.js', './data/blitz.js', './data/silhouette.js',
@@ -49,6 +49,19 @@ self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
   // Firebase/Firestore traffic (leaderboard sync) — never intercept, always hit the network.
   if (event.request.url.indexOf('firestore.googleapis.com') !== -1 || event.request.url.indexOf('gstatic.com') !== -1) return;
+  // v1.2 Reads Engine Gateway public gameplay pilot (app.js's
+  // ENGINE_GATEWAY_BASE_URL + /v1/public/*) — real bug found by actually
+  // testing the Gateway-unavailable fallback path in a browser, not
+  // assumed: without this exclusion, a failed GET /v1/public/game request
+  // fell into the catch() below and silently resolved with the cached
+  // ./index.html HTML page instead of a real network error, so
+  // enginePilotFetchJson()'s res.json() call failed on the HTML with a
+  // confusing "Unexpected token '<'" instead of a clean, real "can't
+  // reach the engine" error. A live game/answer response must also never
+  // be served from a stale cache on a LATER request — every reason
+  // Part 21 warned about applies here. Excluded by path, not origin, so
+  // this doesn't accidentally widen to unrelated cross-origin requests.
+  if (event.request.url.indexOf('/v1/public/') !== -1) return;
 
   event.respondWith(
     fetch(event.request)
