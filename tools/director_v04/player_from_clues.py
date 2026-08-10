@@ -92,7 +92,10 @@ QA_CHECKS_PERFORMED = [
 def safety_check(c) -> dict:
     return {
         "NFL_DRAFT": safety.check_domain_coverage_safety(c, "NFL_DRAFT"),
-        "canonical_players": safety.check_table_wide_safety(c, "canonical_players", "NFLVERSE_DATA"),
+        # v0.8: canonical_players now legitimately spans two approved sources --
+        # NFLVERSE_DATA's original 2006-2019 rows and NFLVERSE_ROSTERS' 2020-2026
+        # extension (see Reads_Football_Data_Engine_v4.0/import_modern_rosters_v08.py).
+        "canonical_players": safety.check_table_wide_safety(c, "canonical_players", ["NFLVERSE_DATA", "NFLVERSE_ROSTERS"]),
         "canonical_roster_seasons": safety.check_table_wide_safety(
             c, "canonical_roster_seasons", "NFLVERSE_DATA", where_extra="games > 0"
         ),

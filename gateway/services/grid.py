@@ -16,42 +16,60 @@ gateway/services/graph.py already documents. Grid eligibility RULES are
 copied 1:1 from data/grid.js's real GRID_CRITERIA (read in full before
 writing this file) -- this module does not invent new gameplay.
 
---- REAL, MEASURED COVERAGE RESTRICTION (read before trusting this module) ---
-graph_edges' PLAYED_FOR predicate -- the only roster-membership source this
-module has -- covers seasons 2006-2019 ONLY (verified via
-`SELECT MIN(season_start), MAX(season_start) ... WHERE predicate='PLAYED_FOR'`
-against the real rebuilt database: 7,277 players, 34 raw team codes, zero
-seasons before 2006 or after 2019). This is narrower than data/grid.js's
-existing "every player, current 2024/2025 rosters" scope in BOTH directions:
-nothing before 2006, nothing from 2020 onward. This module is therefore a
-QA/verification tool for the 2006-2019 window, not a replacement data source
-for data/grid.js -- see the v0.7 report's "coverage restrictions" section.
+--- v0.8 UPDATE: roster coverage extended 2006-2026 (was 2006-2019 in v0.7) ---
+v0.8's import_modern_rosters_v08.py added real nflverse-data "rosters"
+release rows for 2020-2026 on top of the v0.7-era 2006-2019 import (both
+now live in the same canonical_roster_seasons table / PLAYED_FOR predicate
+-- two source_ids, NFLVERSE_DATA and NFLVERSE_ROSTERS, both approved in the
+`sources` registry). Verified post-import via the same MIN/MAX query as
+before: 2006-2026, 12,245 players, real. Known real limitation carried over
+from the source format (not a v0.8 bug): the 2020-2026 rows are one row per
+(season, player) as nflverse-data provides them, so a same-season
+mid-season trade only shows the player's final team that year -- the
+2006-2019 rows (from an older, weekly-granular source) capture 806 such
+cases as two rows; 2020-2026 cannot. `games`/`starts`/`av` are also not in
+the new release format and are left NULL for 2020-2026 rows rather than
+copied from the unrelated 2006-2019 convention or fabricated.
+
+--- v0.8 UPDATE: draft ROUND is real (v0.7 undersold this) ---
+v0.7's audit only checked graph_edges/graph_nodes and correctly found no
+round column there -- but never checked the database's other 223 tables.
+v0.8's Part 1 audit found `draft_facts` (12,253 rows, NFLVERSE_DATA,
+1980-2024, draft_round 100% populated, 0 nulls) sitting right there,
+unused by this module. draft_r1/draft_day2plus are now real, SQL-backed
+criteria (see _players_matching's draft_facts branch) -- no new data
+imported, just a real existing table finally wired up. draft_undrafted
+stays unsupported: 6,669 of 12,245 roster players (54.5%) have no
+draft_facts row at all, which is far too high to be genuine UDFA
+players -- absence here means "no identity match found," not "confirmed
+undrafted" (exactly the risk Part 6 of the v0.8 spec warned about), so it
+is not asserted.
 
 --- REAL, MEASURED CRITERION-TYPE COVERAGE ---
-Of data/grid.js's 32 team + 21 stat GRID_CRITERIA entries, only these are
-graph-backed (checked against the real schema, not assumed):
-  - team_<CODE> (roster membership via PLAYED_FOR, 2006-2019 window, with a
-    3-entry franchise-relocation alias map -- see FRANCHISE_ALIASES)
-  - the 8 position-group criteria (via PLAYED_POSITION)
-  - multi_team / one_team (distinct-team COUNT via PLAYED_FOR)
+Of data/grid.js's 32 team + 21 stat GRID_CRITERIA entries, these are now
+real-data-backed (checked against the live schema, not assumed):
+  - team_<CODE> (roster membership via PLAYED_FOR, 2006-2026, with a
+    5-entry franchise-code alias map -- see FRANCHISE_ALIASES; LA/AZ added
+    in v0.8 after the new nflverse-data rosters release turned out to use
+    different raw codes than the historical file for the Rams/Cardinals)
+  - the 8 position-group criteria (via PLAYED_POSITION, 2006-2026)
+  - multi_team / one_team (distinct-team COUNT via PLAYED_FOR, 2006-2026)
   - sb_champ (DERIVED: PLAYED_FOR(player,team,season) join
-    PLAYOFF_RESULT(team,season)='WonSB' -- a real, source-backed team-season
-    fact, same derivation pattern the DB's own PRODUCTION_SAFE_DERIVED
-    verification_status already uses elsewhere)
-NOT graph-backed, confirmed absent from the schema (no fabricated whitelist
-guessing -- checked graph_nodes.node_type and graph_edges.predicate directly):
-  - draft round (draft_r1/draft_undrafted/draft_day2plus) -- graph_edges has
-    DRAFTED_BY/DRAFTED_IN with season+team only, no round column anywhere.
+    PLAYOFF_RESULT(team,season)='WonSB')
+  - draft_r1 / draft_day2plus (v0.8: via draft_facts.draft_round, 1980-2024)
+NOT backed, confirmed absent from the ENTIRE database (v0.8 checked all 225
+tables, not just graph_*/canonical_*, via
+`SELECT m.name,p.name FROM sqlite_master m JOIN pragma_table_info(m.name) p
+WHERE p.name LIKE '%hof%' OR ...'%award%' OR ...`  -- only CFB Heisman-era
+award tables matched, nothing NFL-level):
+  - draft_undrafted (see above -- real data exists, coverage is just too
+    incomplete to safely assert absence)
   - hof, mvp, sb_mvp, roty, probowl_5plus, probowl_10plus, allpro_3plus --
-    no NFL-level award/honor data in the graph at all. The only award-shaped
-    data (award_fact/WON_AWARD, 91 rows) is pre-1950s college Heisman-era
-    CFB awards (subject_type='cfb_player'), not NFL accolades.
-  - college/school (ATTENDED_BEFORE_DRAFT exists but covers only 204 of
-    12,253 drafted players -- 1.7% -- too sparse to serve safely; also not
-    currently a GRID_CRITERIA type in data/grid.js at all, so it stays out
-    of CRITERIA_REGISTRY per "don't add gameplay to make integration
-    easier" -- exposed here only as UNSUPPORTED_CRITERIA_REASONS' honest
-    documentation, not as a live criterion.
+    genuinely no NFL-level award/honor table or column anywhere in the
+    database, confirmed both in v0.7 (graph only) and v0.8 (whole schema).
+  - college/school (ATTENDED_BEFORE_DRAFT covers only 204 of 12,253 drafted
+    players -- 1.7% -- too sparse; also never a GRID_CRITERIA type in
+    data/grid.js, so stays out of the live registry either way)
 Unsupported criteria are never guessed at -- see resolve_intersection's
 UNDERSTOOD_BUT_UNSUPPORTED branch (spec: "if a requested relationship is not
 production-safe, the cell should be unavailable rather than guessed").
@@ -88,12 +106,19 @@ def _ensure_engine_importable() -> None:
 # validation is exactly the kind of place a false positive would be worst.
 SAFE_STATUS_SQL = "verification_status NOT IN ('AUTO_REVIEW','CONFLICT')"
 
-# Verified via graph_edges: OAK's PLAYED_FOR rows stop at season_start=2019
-# (Raiders' last Oakland season) with zero rows for 'LV'; SD stops at 2016
-# with LAC starting 2017; STL stops at 2015 with LAR starting 2017. Three
-# real relocations, not a guess -- checked season ranges per code before
-# writing this map.
-FRANCHISE_ALIASES = {"OAK": "LV", "SD": "LAC", "STL": "LAR"}
+# Verified via graph_edges/team_aliases: OAK's PLAYED_FOR rows stop at
+# season_start=2019 (Raiders' last Oakland season); SD stops at 2016 with
+# LAC starting 2017; STL stops at 2015 with LAR starting 2017 -- three real
+# relocations, checked season ranges per code (v0.7). v0.8 added two more
+# after the new nflverse-data "rosters" release (2020-2026) turned out to
+# use different raw codes than the historical file for the same real
+# teams: 'LA' for the Rams (the existing team_aliases table already maps
+# both 'LA' and 'STL' to franchise_id FR_LAR -- 'LAR' itself, which
+# data/grid.js's own GRID_TEAM_NAMES uses, is kept as the canonical target
+# so nothing about the live frontend's vocabulary changes) and 'AZ' for the
+# Cardinals (91 rows, 2026 data only -- an nflverse labeling quirk, not a
+# real relocation, same team as 'ARI').
+FRANCHISE_ALIASES = {"OAK": "LV", "SD": "LAC", "STL": "LAR", "LA": "LAR", "AZ": "ARI"}
 
 
 def canonical_team(raw_code: str) -> str:
@@ -131,18 +156,30 @@ POSITION_LABELS = {
     "pos_db": "Defensive Back (CB/S)", "pos_ol": "Offensive Line (OT/OG/C)",
 }
 
+DRAFT_ROUND_LABELS = {"draft_r1": "1st Round Pick", "draft_day2plus": "Drafted Round 3 or Later"}
+
 UNSUPPORTED_CRITERIA_REASONS = {
-    "draft_r1": "draft round is not tracked anywhere in the graph schema (DRAFTED_BY/DRAFTED_IN store team+year only).",
-    "draft_undrafted": "same -- round data absent, and edge-absence alone can't safely distinguish 'confirmed undrafted' from 'no data for this player'.",
-    "draft_day2plus": "draft round is not tracked anywhere in the graph schema.",
-    "hof": "no Hall of Fame data exists in the graph.",
-    "mvp": "no NFL MVP award data exists in the graph.",
-    "sb_mvp": "no Super Bowl MVP award data exists in the graph.",
-    "roty": "no Rookie of the Year award data exists in the graph.",
-    "probowl_5plus": "no Pro Bowl selection data exists in the graph.",
-    "probowl_10plus": "no Pro Bowl selection data exists in the graph.",
-    "allpro_3plus": "no All-Pro selection data exists in the graph.",
+    "draft_undrafted": ("real draft_facts table exists (v0.8), but 6,669 of 12,245 roster players (54.5%) have "
+                         "no matching row -- far too high to be genuine UDFA players, so absence here means "
+                         "'no identity match found', not 'confirmed undrafted', and is not asserted."),
+    "hof": "no Hall of Fame table or column exists anywhere in the database (v0.8 checked all 225 tables).",
+    "mvp": "no NFL MVP award data exists anywhere in the database.",
+    "sb_mvp": "no Super Bowl MVP award data exists anywhere in the database.",
+    "roty": "no Rookie of the Year award data exists anywhere in the database.",
+    "probowl_5plus": "no Pro Bowl selection data exists anywhere in the database.",
+    "probowl_10plus": "no Pro Bowl selection data exists anywhere in the database.",
+    "allpro_3plus": "no All-Pro selection data exists anywhere in the database.",
 }
+
+# Part 5 (v0.8 spec) coverage-status vocabulary. Only SUPPORTED /
+# SUPPORTED_WITH_COVERAGE_LIMIT / UNDERSTOOD_BUT_UNSUPPORTED are actually
+# assigned to a real criterion below; BLOCKED_IDENTITY/BLOCKED_SOURCE/
+# INVALID_CRITERION are real, valid outcomes this module can return (see
+# _validate_criterion_id) but no current criterion sits in those buckets.
+GRID_CRITERION_STATUSES = frozenset({
+    "SUPPORTED", "SUPPORTED_WITH_COVERAGE_LIMIT", "UNDERSTOOD_BUT_UNSUPPORTED",
+    "BLOCKED_IDENTITY", "BLOCKED_SOURCE", "INVALID_CRITERION",
+})
 
 
 def _roster_coverage(conn) -> Dict[str, int]:
@@ -174,31 +211,65 @@ def _canonical_team_codes(conn) -> List[str]:
     return sorted({canonical_team(code) for code in raw})
 
 
+def _draft_round_coverage(conn) -> Dict[str, Any]:
+    row = conn.execute("SELECT MIN(draft_season) lo, MAX(draft_season) hi, COUNT(*) n FROM draft_facts").fetchone()
+    return {"min_season": row["lo"], "max_season": row["hi"], "player_count": row["n"]}
+
+
 def list_supported_criteria() -> Dict[str, Any]:
     """Mirrors data/grid.js's GRID_CRITERIA shape/ids so a client already
     speaking that vocabulary needs no translation layer -- just a
     supported/unsupported split this Gateway can actually back with real
     data. Never called by the live frontend (content-pipeline model); used
-    by content ops and by this module's own tests."""
+    by content ops and by this module's own tests.
+
+    Each entry carries a Part 5 (v0.8 spec) `status` -- SUPPORTED for
+    roster/position/derived criteria (bounded by roster_coverage),
+    SUPPORTED_WITH_COVERAGE_LIMIT for draft_r1/draft_day2plus (real data,
+    but draft_facts' own 1980-2024/PFR-keyed coverage is a materially
+    different, narrower axis than roster_coverage -- see draft_coverage)."""
     _ensure_engine_importable()
     conn = graph_explorer.connect()
     try:
         coverage = _roster_coverage(conn)
         team_codes = _canonical_team_codes(conn)
+        draft_coverage = _draft_round_coverage(conn)
     finally:
         conn.close()
 
-    team_criteria = [{"id": f"team_{code}", "type": "team", "team": code} for code in team_codes]
-    stat_criteria = [{"id": pid, "type": "stat", "label": label} for pid, label in POSITION_LABELS.items()]
+    team_criteria = [
+        {"id": f"team_{code}", "type": "team", "team": code, "status": "SUPPORTED",
+         "coverage_start": coverage["min_season"], "coverage_end": coverage["max_season"]}
+        for code in team_codes
+    ]
+    stat_criteria = [
+        {"id": pid, "type": "stat", "label": label, "status": "SUPPORTED",
+         "coverage_start": coverage["min_season"], "coverage_end": coverage["max_season"]}
+        for pid, label in POSITION_LABELS.items()
+    ]
     stat_criteria += [
-        {"id": "multi_team", "type": "stat", "label": "Played for 3+ Teams"},
-        {"id": "one_team", "type": "stat", "label": "Played for Only 1 Team"},
-        {"id": "sb_champ", "type": "stat", "label": "Super Bowl Champion", "derived": True},
+        {"id": "multi_team", "type": "stat", "label": "Played for 3+ Teams", "status": "SUPPORTED",
+         "coverage_start": coverage["min_season"], "coverage_end": coverage["max_season"]},
+        {"id": "one_team", "type": "stat", "label": "Played for Only 1 Team", "status": "SUPPORTED",
+         "coverage_start": coverage["min_season"], "coverage_end": coverage["max_season"]},
+        {"id": "sb_champ", "type": "stat", "label": "Super Bowl Champion", "derived": True, "status": "SUPPORTED",
+         "coverage_start": coverage["min_season"], "coverage_end": coverage["max_season"]},
+    ]
+    stat_criteria += [
+        {"id": pid, "type": "stat", "label": label, "status": "SUPPORTED_WITH_COVERAGE_LIMIT",
+         "coverage_start": draft_coverage["min_season"], "coverage_end": draft_coverage["max_season"],
+         "notes": f"draft_facts covers {draft_coverage['player_count']} players by PFR id; players without a "
+                  f"PFR id (v0.8's newly-minted GSIS:-prefixed ids) will never match."}
+        for pid, label in DRAFT_ROUND_LABELS.items()
     ]
     return {
         "roster_coverage": coverage,
+        "draft_coverage": draft_coverage,
         "supported": {"team": team_criteria, "stat": stat_criteria},
-        "unsupported": [{"id": cid, "reason": reason} for cid, reason in UNSUPPORTED_CRITERIA_REASONS.items()],
+        "unsupported": [
+            {"id": cid, "reason": reason, "status": "UNDERSTOOD_BUT_UNSUPPORTED"}
+            for cid, reason in UNSUPPORTED_CRITERIA_REASONS.items()
+        ],
     }
 
 
@@ -212,7 +283,7 @@ def _validate_criterion_id(field_name: str, crit_id: str) -> None:
             f"{UNSUPPORTED_CRITERIA_REASONS[crit_id]}",
         )
     is_team = crit_id.startswith("team_")
-    is_stat = crit_id in POSITION_GROUPS or crit_id in ("multi_team", "one_team", "sb_champ")
+    is_stat = crit_id in POSITION_GROUPS or crit_id in ("multi_team", "one_team", "sb_champ") or crit_id in DRAFT_ROUND_LABELS
     if not (is_team or is_stat):
         raise GatewayError("INVALID_REQUEST", f"{field_name}={crit_id!r} is not a recognized Grid criterion id.")
 
@@ -283,6 +354,20 @@ def _players_matching(conn, crit_id: str, season: Optional[int]) -> set:
             params,
         ).fetchall()
         return {r["subject_id"] for r in rows}
+
+    if crit_id in DRAFT_ROUND_LABELS:
+        # v0.8: real draft_facts table, not a graph predicate -- same `conn`
+        # (graph_explorer.connect() opens the whole database file, not just
+        # the graph_* tables). Draft round is a timeless player attribute
+        # (like data/grid.js's own p.draft.round check), not season-bound,
+        # so `season` is deliberately not applied here -- matches the
+        # current Grid criterion's own semantics, not a bug.
+        op = "= 1" if crit_id == "draft_r1" else ">= 3"
+        rows = conn.execute(
+            f"SELECT DISTINCT player_key FROM draft_facts WHERE draft_round {op} "
+            f"AND {SAFE_STATUS_SQL}"
+        ).fetchall()
+        return {r["player_key"] for r in rows}
 
     raise GatewayError("INVALID_REQUEST", f"Unrecognized criterion id {crit_id!r}.")
 
@@ -379,9 +464,20 @@ def player_metadata(*, node_id: str) -> Dict[str, Any]:
             (node_id,),
         ).fetchone()
         drafted = {"team": canonical_team(draft_row["team"]), "year": draft_row["year"]} if draft_row else None
+        # v0.8: WORE_NUMBER is new (real jersey_number data only exists for the
+        # 2020-2026 import -- the 2006-2019 rows have jersey_number 100% NULL,
+        # see import_modern_rosters_v08.py's module docstring), so this can be
+        # legitimately empty for players active only in the older window.
+        number_rows = conn.execute(
+            f"""SELECT DISTINCT object_id, season_start FROM graph_edges
+                WHERE predicate='WORE_NUMBER' AND subject_type='nfl_player' AND subject_id=? AND {SAFE_STATUS_SQL}
+                ORDER BY season_start DESC""",
+            (node_id,),
+        ).fetchall()
+        jersey_numbers = [{"number": int(r["object_id"]), "season": r["season_start"]} for r in number_rows]
         return {
             "node_id": node_id, "display_name": name, "teams": teams,
-            "position_groups": position_groups, "drafted": drafted,
+            "position_groups": position_groups, "drafted": drafted, "jersey_numbers": jersey_numbers,
         }
     finally:
         conn.close()

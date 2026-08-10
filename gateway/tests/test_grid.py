@@ -53,14 +53,37 @@ def test_grid_criteria_real_coverage_and_split(client, auth_headers):
     r = client.get("/v1/grid/criteria", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
-    assert body["roster_coverage"] == {"min_season": 2006, "max_season": 2019}
+    # v0.8: real 2020-2026 nflverse roster import extended this from 2006-2019.
+    assert body["roster_coverage"] == {"min_season": 2006, "max_season": 2026}
+    assert body["draft_coverage"]["min_season"] == 1980
+    assert body["draft_coverage"]["max_season"] == 2024
     assert len(body["supported"]["team"]) == 32
     stat_ids = {c["id"] for c in body["supported"]["stat"]}
     assert stat_ids == {"pos_qb", "pos_rb", "pos_wr", "pos_te", "pos_dl", "pos_lb",
-                         "pos_db", "pos_ol", "multi_team", "one_team", "sb_champ"}
+                         "pos_db", "pos_ol", "multi_team", "one_team", "sb_champ",
+                         "draft_r1", "draft_day2plus"}
+    statuses = {c["id"]: c["status"] for c in body["supported"]["stat"]}
+    assert statuses["draft_r1"] == "SUPPORTED_WITH_COVERAGE_LIMIT"
+    assert statuses["pos_qb"] == "SUPPORTED"
     unsupported_ids = {c["id"] for c in body["unsupported"]}
-    assert unsupported_ids == {"draft_r1", "draft_undrafted", "draft_day2plus", "hof",
+    assert unsupported_ids == {"draft_undrafted", "hof",
                                 "mvp", "sb_mvp", "roty", "probowl_5plus", "probowl_10plus", "allpro_3plus"}
+
+
+def test_grid_draft_round_real_match(client, auth_headers):
+    # v0.8: draft_facts table (real, 1980-2024, 0 nulls on draft_round) is
+    # now wired up -- Mahomes was a real 2017 first-round pick.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "draft_r1"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
+
+
+def test_grid_season_2024_now_supported(client, auth_headers):
+    # v0.8 real coverage extension: season=2024 was UNDERSTOOD_BUT_UNSUPPORTED
+    # in v0.7 (window ended 2019); now inside the real 2006-2026 window.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb", "season": 2024}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
 
 
 # --- valid intersection (real data) -----------------------------------------
@@ -166,7 +189,7 @@ def test_grid_season_bound_validate_rejects_early_season(client, auth_headers):
 # --- historical coverage: outside the real window must not be guessed -------
 
 def test_grid_out_of_coverage_season_is_unsupported_not_a_silent_empty(client, auth_headers):
-    for season in (1999, 2023):
+    for season in (1999, 2027):  # v0.8 real window is 2006-2026; both still genuinely out of range
         r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb", "season": season}, headers=auth_headers)
         assert r.status_code == 200  # UNDERSTOOD_BUT_UNSUPPORTED is a structured 200, not a 4xx/5xx
         assert r.json()["error"]["code"] == "UNDERSTOOD_BUT_UNSUPPORTED"
@@ -226,6 +249,8 @@ def test_grid_player_real_metadata(client, auth_headers):
     assert "KC" in body["teams"]
     assert "pos_qb" in body["position_groups"]
     assert body["drafted"] == {"team": "KC", "year": 2017}
+    # v0.8: real jersey_number data (WORE_NUMBER edges) -- Mahomes wore #15.
+    assert {"number": 15, "season": 2024} in body["jersey_numbers"]
 
 
 def test_grid_player_unknown_node_id_is_404_not_found(client, auth_headers):
