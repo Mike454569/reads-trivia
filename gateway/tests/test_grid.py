@@ -13,6 +13,7 @@ import time
 from gateway.errors import ERROR_CODES
 
 MAHOMES_ID = "PFR:MahoPa00"
+MANNING_ID = "PFR:MannPe00"
 
 
 def _err(r):
@@ -59,15 +60,21 @@ def test_grid_criteria_real_coverage_and_split(client, auth_headers):
     assert body["draft_coverage"]["max_season"] == 2024
     assert len(body["supported"]["team"]) == 32
     stat_ids = {c["id"] for c in body["supported"]["stat"]}
+    # v0.9: real Hall of Fame / All-Pro / Pro Bowl facts (nflverse-data
+    # draft_picks, courtesy Pro Football Reference) took Grid from 13/21 to
+    # 17/21 real stat criteria. Only draft_undrafted/mvp/sb_mvp/roty remain
+    # genuinely unsupported (no safe/approved source exists for them).
     assert stat_ids == {"pos_qb", "pos_rb", "pos_wr", "pos_te", "pos_dl", "pos_lb",
                          "pos_db", "pos_ol", "multi_team", "one_team", "sb_champ",
-                         "draft_r1", "draft_day2plus"}
+                         "draft_r1", "draft_day2plus", "hof", "allpro_3plus",
+                         "probowl_5plus", "probowl_10plus"}
     statuses = {c["id"]: c["status"] for c in body["supported"]["stat"]}
     assert statuses["draft_r1"] == "SUPPORTED_WITH_COVERAGE_LIMIT"
+    assert statuses["hof"] == "SUPPORTED_WITH_COVERAGE_LIMIT"
     assert statuses["pos_qb"] == "SUPPORTED"
     unsupported_ids = {c["id"] for c in body["unsupported"]}
-    assert unsupported_ids == {"draft_undrafted", "hof",
-                                "mvp", "sb_mvp", "roty", "probowl_5plus", "probowl_10plus", "allpro_3plus"}
+    assert unsupported_ids == {"draft_undrafted", "mvp", "sb_mvp", "roty"}
+    assert body["accolade_coverage"]["player_count"] > 0
 
 
 def test_grid_draft_round_real_match(client, auth_headers):
@@ -84,6 +91,78 @@ def test_grid_season_2024_now_supported(client, auth_headers):
     r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb", "season": 2024}, headers=auth_headers)
     assert r.status_code == 200
     assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
+
+
+# --- v0.9: real Hall of Fame / All-Pro / Pro Bowl accolade criteria -----------
+
+def test_grid_hof_real_match(client, auth_headers):
+    # Peyton Manning: real Hall of Famer, played for IND 2006-2019 (in the
+    # real roster-coverage window), real induction confirmed via
+    # nflverse-data draft_picks (courtesy Pro Football Reference).
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_IND", "col_id": "hof"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MANNING_ID for p in r.json()["players"])
+
+
+def test_grid_hof_known_non_hof_player_fails(client, auth_headers):
+    v = client.post("/v1/grid/validate", json={
+        "row_id": "team_KC", "col_id": "hof", "player_name": "Patrick Mahomes",
+    }, headers=auth_headers).json()
+    # Mahomes is not yet a Hall of Famer as of this dataset -- real, correct rejection.
+    assert v["valid"] is False
+    assert v["satisfies_col"] is False
+
+
+def test_grid_pro_bowl_10plus_real_match(client, auth_headers):
+    # Peyton Manning: real 14 career Pro Bowl selections (well over 10).
+    r = client.post("/v1/grid/validate", json={
+        "row_id": "team_IND", "col_id": "probowl_10plus", "player_name": "Peyton Manning",
+    }, headers=auth_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["valid"] is True
+    assert body["node_id"] == MANNING_ID
+
+
+def test_grid_pro_bowl_10plus_known_non_qualifier_fails(client, auth_headers):
+    r = client.post("/v1/grid/validate", json={
+        "row_id": "team_KC", "col_id": "probowl_10plus", "player_name": "Patrick Mahomes",
+    }, headers=auth_headers)
+    assert r.status_code == 200
+    # Mahomes has real Pro Bowl selections but not yet 10+ as of this dataset.
+    assert r.json()["valid"] is False
+
+
+def test_grid_all_pro_3plus_real_match(client, auth_headers):
+    # Peyton Manning: real 7 career First-Team All-Pro selections.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_IND", "col_id": "allpro_3plus"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MANNING_ID for p in r.json()["players"])
+
+
+def test_grid_accolade_criteria_ignore_season_like_draft_round(client, auth_headers):
+    # hof/allpro_3plus/probowl_* are timeless career facts (like draft_r1) --
+    # a season filter on the OTHER side of the cell still applies normally.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "hof", "season": 2024}, headers=auth_headers)
+    assert r.status_code == 200  # does not raise UNDERSTOOD_BUT_UNSUPPORTED just because hof ignores season
+
+
+def test_grid_mvp_still_unsupported(client, auth_headers):
+    # v0.9 audit confirmed: no NFL MVP data in any already-approved source.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "mvp"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json()["error"]["code"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+
+
+def test_grid_accolade_identity_safety_adrian_peterson_still_blocked(client, auth_headers):
+    # Regression: v0.9's new accolade criteria must not bypass the existing
+    # identity-collision protection from v0.7 (two real, distinct "Adrian
+    # Peterson" players in the database).
+    r = client.post("/v1/grid/validate", json={
+        "row_id": "team_MIN", "col_id": "hof", "player_name": "Adrian Peterson",
+    }, headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json()["reason"] == "AMBIGUOUS"
 
 
 # --- valid intersection (real data) -----------------------------------------
@@ -196,10 +275,12 @@ def test_grid_out_of_coverage_season_is_unsupported_not_a_silent_empty(client, a
 
 
 def test_grid_unsupported_criterion_is_unavailable_not_guessed(client, auth_headers):
-    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "hof"}, headers=auth_headers)
+    # v0.9: hof became SUPPORTED_WITH_COVERAGE_LIMIT (real accolade data) --
+    # mvp remains genuinely unsupported, still a valid example of this behavior.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "mvp"}, headers=auth_headers)
     assert r.status_code == 200
     assert r.json()["error"]["code"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert "Hall of Fame" in r.json()["error"]["message"]
+    assert "MVP" in r.json()["error"]["message"]
 
 
 # --- alias handling (franchise relocation) -----------------------------------

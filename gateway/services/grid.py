@@ -16,6 +16,21 @@ gateway/services/graph.py already documents. Grid eligibility RULES are
 copied 1:1 from data/grid.js's real GRID_CRITERIA (read in full before
 writing this file) -- this module does not invent new gameplay.
 
+--- v0.9 UPDATE: real HOF/All-Pro/Pro-Bowl facts (hof, allpro_3plus,
+probowl_5plus, probowl_10plus now SUPPORTED_WITH_COVERAGE_LIMIT) ---
+Source: nflverse-data's `draft_picks` release (courtesy Pro Football
+Reference per its own release notes) -- see
+import_accolades_v09.py's module docstring for the full real semantic
+verification (cross-checked allpro/probowls/hof against Randy Moss, J.J.
+Watt, Jerry Rice, Lawrence Taylor, Anthony Munoz) and the two real,
+honest coverage gaps (drafted-players-only source; canonical_players
+itself only covers 2006-2026-active players, so 53 of 102 real Hall of
+Famers in the source -- anyone whose career ended before 2006 -- have no
+row to attach to). mvp/sb_mvp/roty remain unsupported: checked all 225
+tables (v0.8) and every real nflverse-data release tag (v0.8 + v0.9,
+including draft_picks' full column list) -- genuinely no season-specific
+individual award-winner data exists in any already-approved source.
+
 --- v0.8 UPDATE: roster coverage extended 2006-2026 (was 2006-2019 in v0.7) ---
 v0.8's import_modern_rosters_v08.py added real nflverse-data "rosters"
 release rows for 2020-2026 on top of the v0.7-era 2006-2019 import (both
@@ -158,17 +173,38 @@ POSITION_LABELS = {
 
 DRAFT_ROUND_LABELS = {"draft_r1": "1st Round Pick", "draft_day2plus": "Drafted Round 3 or Later"}
 
+# v0.9: real accolade facts (player_accolades table, imported from nflverse-data's
+# draft_picks release -- see import_accolades_v09.py's module docstring for the
+# real semantic verification against known players and the two real, honest
+# coverage limitations that make these SUPPORTED_WITH_COVERAGE_LIMIT, not
+# plain SUPPORTED: (1) drafted-players-only source (a true undrafted HOF/All-Pro/
+# Pro-Bowler, rare but real, would be invisible), and (2) canonical_players
+# itself only covers players with an actual 2006-2026 roster row, so a real
+# Hall of Famer whose career ended before 2006 (e.g. Jerry Rice) has no
+# canonical_players row to attach the fact to at all -- 53 of the source
+# file's 102 real HOF rows were skipped for exactly this reason, not lost
+# data, a structural scope boundary. `hof` is a plain EXISTS check;
+# allpro_3plus/probowl_5plus/probowl_10plus are CAREER count thresholds
+# (the source has no season-by-season selection list, only a career total).
+ACCOLADE_CAREER_THRESHOLDS = {
+    "allpro_3plus": ("ALL_PRO_FIRST_TEAM_CAREER_COUNT", 3),
+    "probowl_5plus": ("PRO_BOWL_CAREER_COUNT", 5),
+    "probowl_10plus": ("PRO_BOWL_CAREER_COUNT", 10),
+}
+ACCOLADE_LABELS = {
+    "hof": "Pro Football Hall of Famer",
+    "allpro_3plus": "3+ First-Team All-Pro",
+    "probowl_5plus": "5+ Pro Bowls",
+    "probowl_10plus": "10+ Pro Bowls",
+}
+
 UNSUPPORTED_CRITERIA_REASONS = {
     "draft_undrafted": ("real draft_facts table exists (v0.8), but 6,669 of 12,245 roster players (54.5%) have "
                          "no matching row -- far too high to be genuine UDFA players, so absence here means "
                          "'no identity match found', not 'confirmed undrafted', and is not asserted."),
-    "hof": "no Hall of Fame table or column exists anywhere in the database (v0.8 checked all 225 tables).",
-    "mvp": "no NFL MVP award data exists anywhere in the database.",
-    "sb_mvp": "no Super Bowl MVP award data exists anywhere in the database.",
-    "roty": "no Rookie of the Year award data exists anywhere in the database.",
-    "probowl_5plus": "no Pro Bowl selection data exists anywhere in the database.",
-    "probowl_10plus": "no Pro Bowl selection data exists anywhere in the database.",
-    "allpro_3plus": "no All-Pro selection data exists anywhere in the database.",
+    "mvp": "no NFL MVP award data exists anywhere in the database or in any real nflverse release checked (v0.8/v0.9 audits).",
+    "sb_mvp": "no Super Bowl MVP award data exists anywhere in the database or in any real nflverse release checked.",
+    "roty": "no Rookie of the Year (offensive or defensive) award data exists anywhere in the database or in any real nflverse release checked.",
 }
 
 # Part 5 (v0.8 spec) coverage-status vocabulary. Only SUPPORTED /
@@ -216,6 +252,11 @@ def _draft_round_coverage(conn) -> Dict[str, Any]:
     return {"min_season": row["lo"], "max_season": row["hi"], "player_count": row["n"]}
 
 
+def _accolade_coverage(conn) -> Dict[str, Any]:
+    row = conn.execute("SELECT COUNT(DISTINCT player_id) n FROM player_accolades").fetchone()
+    return {"player_count": row["n"], "universe": "drafted players with a canonical_players row (see notes)"}
+
+
 def list_supported_criteria() -> Dict[str, Any]:
     """Mirrors data/grid.js's GRID_CRITERIA shape/ids so a client already
     speaking that vocabulary needs no translation layer -- just a
@@ -234,6 +275,7 @@ def list_supported_criteria() -> Dict[str, Any]:
         coverage = _roster_coverage(conn)
         team_codes = _canonical_team_codes(conn)
         draft_coverage = _draft_round_coverage(conn)
+        accolade_coverage = _accolade_coverage(conn)
     finally:
         conn.close()
 
@@ -262,9 +304,23 @@ def list_supported_criteria() -> Dict[str, Any]:
                   f"PFR id (v0.8's newly-minted GSIS:-prefixed ids) will never match."}
         for pid, label in DRAFT_ROUND_LABELS.items()
     ]
+    stat_criteria += [
+        {"id": pid, "type": "stat", "label": label, "status": "SUPPORTED_WITH_COVERAGE_LIMIT",
+         "coverage_start": None, "coverage_end": None,
+         "notes": (f"v0.9: real nflverse-data/PFR-sourced facts ({accolade_coverage['player_count']} players "
+                    "total across hof/all-pro/pro-bowl), but two real, honest gaps: (1) source only covers "
+                    "DRAFTED players -- a true undrafted honoree, rare but real, is invisible; (2) "
+                    "canonical_players itself only has rows for players with a 2006-2026 roster season, so a "
+                    "real honoree whose career ended before 2006 (e.g. Jerry Rice) has no row to attach to at "
+                    "all -- 53 of 102 real Hall of Famers in the source were skipped for this reason alone. "
+                    "All-Pro/Pro-Bowl counts are CAREER totals, not season-by-season selections (source "
+                    "limitation, not fabricated per-season data).")}
+        for pid, label in ACCOLADE_LABELS.items()
+    ]
     return {
         "roster_coverage": coverage,
         "draft_coverage": draft_coverage,
+        "accolade_coverage": accolade_coverage,
         "supported": {"team": team_criteria, "stat": stat_criteria},
         "unsupported": [
             {"id": cid, "reason": reason, "status": "UNDERSTOOD_BUT_UNSUPPORTED"}
@@ -283,7 +339,8 @@ def _validate_criterion_id(field_name: str, crit_id: str) -> None:
             f"{UNSUPPORTED_CRITERIA_REASONS[crit_id]}",
         )
     is_team = crit_id.startswith("team_")
-    is_stat = crit_id in POSITION_GROUPS or crit_id in ("multi_team", "one_team", "sb_champ") or crit_id in DRAFT_ROUND_LABELS
+    is_stat = (crit_id in POSITION_GROUPS or crit_id in ("multi_team", "one_team", "sb_champ")
+               or crit_id in DRAFT_ROUND_LABELS or crit_id in ACCOLADE_LABELS)
     if not (is_team or is_stat):
         raise GatewayError("INVALID_REQUEST", f"{field_name}={crit_id!r} is not a recognized Grid criterion id.")
 
@@ -368,6 +425,20 @@ def _players_matching(conn, crit_id: str, season: Optional[int]) -> set:
             f"AND {SAFE_STATUS_SQL}"
         ).fetchall()
         return {r["player_key"] for r in rows}
+
+    if crit_id == "hof":
+        # v0.9: real player_accolades table (import_accolades_v09.py). Season-
+        # agnostic, timeless fact like draft round -- `season` not applied.
+        rows = conn.execute("SELECT player_id FROM player_accolades WHERE accolade_type='HALL_OF_FAME'").fetchall()
+        return {r["player_id"] for r in rows}
+
+    if crit_id in ACCOLADE_CAREER_THRESHOLDS:
+        accolade_type, threshold = ACCOLADE_CAREER_THRESHOLDS[crit_id]
+        rows = conn.execute(
+            "SELECT player_id FROM player_accolades WHERE accolade_type=? AND count_value >= ?",
+            (accolade_type, threshold),
+        ).fetchall()
+        return {r["player_id"] for r in rows}
 
     raise GatewayError("INVALID_REQUEST", f"Unrecognized criterion id {crit_id!r}.")
 
