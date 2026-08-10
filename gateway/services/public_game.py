@@ -1,4 +1,5 @@
-"""Reads Engine Gateway -- public gameplay (v1.2 pilot).
+"""Reads Engine Gateway -- public gameplay (v1.2 draft pilot, v1.3
+generalized to a multi-mode public mode registry).
 
 The production-safe boundary between the real Reads frontend (browser,
 zero credentials) and the Engine. Everything in this module is a THIN
@@ -21,7 +22,14 @@ filesystem use, effectively unguessable (a client would have to find a
 real sha256 preimage to forge one), and already has atomic, idempotent
 storage. Reusing it here means a public `game_id` and an admin
 `package_id` are literally the same identifier space -- no new storage
-layer, no new ID scheme, nothing to keep in sync.
+layer, no new ID scheme, nothing to keep in sync. Re-audited in v1.3 with
+multiple modes live (Part 7): `validate_public_answer()` never takes a
+client-declared `mode` at all -- the mode is derived entirely from the
+loaded package itself, so there is no "declared mode" field for a client
+to lie about, and a Draft `game_id` cannot be used to somehow validate a
+Championship answer or vice versa (the package loaded IS the puzzle;
+there's nothing else to target). See `test_public_game.py`'s
+`test_cross_mode_game_id_stays_scoped_to_its_own_mode` for the real check.
 
 --- ANSWER LEAKAGE BOUNDARY ---
 `_public_view()` is the ONLY function in this file allowed to shape what a
@@ -36,14 +44,32 @@ from `get_public_game()` -- matching the one existing Reads Quiz
 convention this pilot borrows (`renderQuizQuestion()` in app.js only shows
 `q.notes` once a question has been answered).
 
---- WHY draft_guess AND NOT EVERY REGISTERED CAPABILITY ---
-`config.PUBLIC_MODE_ALLOWLIST` has exactly one entry as of v1.2 (Part 3:
-explicit allow-list; Part 34/35: Grid and Six Degrees are NOT migrated in
-this phase). `championship_guess`/`player_from_clues` are real, registered
-internal capabilities (see generation.list_capabilities()) that are
-DELIBERATELY not yet public -- requesting them returns MODE_UNAVAILABLE
-(a real, recognized capability, just not vetted for direct public
-delivery yet), distinct from INVALID_MODE (not a real capability at all).
+--- WHY draft_guess + championship_guess AND NOT EVERY REGISTERED CAPABILITY ---
+`config.PUBLIC_MODE_ALLOWLIST` has exactly two entries as of v1.3 (Part 3/33:
+explicit, hand-certified allow-list; Part 16/17: Grid and Six Degrees are
+NOT migrated in this phase). `player_from_clues` is a real, registered
+internal capability (see generation.list_capabilities()) that is
+DELIBERATELY not yet public -- requesting it returns MODE_UNAVAILABLE (a
+real, recognized capability, just not vetted for direct public delivery
+yet), distinct from INVALID_MODE (not a real capability at all).
+
+--- WHY THIS ISN'T A "DraftGuessHandler / ChampionshipGuessHandler" CLASS HIERARCHY ---
+Part 30 sketches per-mode handler classes. Both certified modes here are
+the SAME internal mechanic shape (`guess` -> Game Factory/adapter ->
+4-option multiple choice, `options[correctIndex]`) -- introducing separate
+handler classes for two modes with byte-identical fetch/validate logic
+would be ceremony with no behavioral difference (Part 30's own "do not
+overengineer... for hypothetical future modes" caveat). What actually WAS
+Draft-specific coupling in v1.2, and is fixed here: (1) only one registry
+entry existed at all, (2) there was no per-mode certified-difficulty check
+(a mode's metadata could silently advertise a difficulty band that has
+zero real candidates), (3) `/v1/public/modes` returned only
+`{mode, competition, title}`, too thin for a client to make a real choice
+between modes. `PUBLIC_MODES` entries now carry a `kind` field
+(`"multiple_choice"` for both today) specifically so a future mode with a
+genuinely different mechanic (e.g. free-text) has a real place to branch
+from, without speculative branching code that has no mode to exercise it
+yet.
 """
 from __future__ import annotations
 
@@ -54,19 +80,55 @@ from .. import config
 from ..errors import GatewayError
 from . import generation, packages
 
-# Public mode id -> (internal Director capability spec, public-facing copy).
-# The public mode id is a stable, independent vocabulary -- NOT the internal
-# (mechanic, domain, relationship_predicate) tuple -- so the public contract
-# never has to change shape if internal registry naming changes.
+# The public game contract's own version (Part 31) -- distinct from
+# `package_version` (metadata.version below), which is the internal
+# Director package SCHEMA version. contract_version only needs to move if
+# the shape of THIS response (the fields a client parses) changes in a
+# breaking way; nothing has needed that yet, so it starts at 1.
+CONTRACT_VERSION = 1
+
+# Public mode id -> (internal Director capability spec, public-facing copy,
+# real certified difficulty support). The public mode id is a stable,
+# independent vocabulary -- NOT the internal (mechanic, domain,
+# relationship_predicate) tuple -- so the public contract never has to
+# change shape if internal registry naming changes.
+#
+# `certified_difficulties`: hand-verified against REAL candidate surveys
+# (Part 20/3), never copied from the internal capability registry's
+# `supported_difficulties` (which is technically-supported-by-the-adapter-
+# code, not empirically-has-real-candidates -- a real, different thing).
+# "any" is not listed per-mode because it isn't a difficulty band claim at
+# all -- it means "no difficulty filter", which trivially always has
+# candidates if the mode has any candidates. Both modes below were
+# surveyed directly this phase: 0 "Easy" candidates for either (Draft:
+# 0/232 accepted; Championship: 0/296 accepted) -- so "easy" is
+# deliberately absent from both, not an oversight.
 PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
     "draft_guess": {
         "competition": "NFL",
         "title": "NFL Draft History: Guess the Team",
         "instructions": "You'll be shown a real NFL player. Pick the team that actually drafted him.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "NFL_DRAFT",
             "relationship_predicate": "DRAFTED_BY",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "championship_guess": {
+        "competition": "NFL",
+        "title": "NFL Playoffs: Guess the Result",
+        "instructions": "You'll be shown a real NFL team and season. Pick how their postseason actually ended.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_CHAMPIONSHIP",
+            "relationship_predicate": "TEAM_POSTSEASON_RESULT",
             "question_count": 1,
             "filters": {},
             "exclusions": [],
@@ -80,7 +142,7 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
 # caller might reasonably expect to exist. Kept as literal, hand-verified
 # strings (not derived from the registry) so this file never accidentally
 # expands the public surface just because a new internal capability ships.
-KNOWN_NOT_YET_PUBLIC_MODES = frozenset({"championship_guess", "player_from_clues"})
+KNOWN_NOT_YET_PUBLIC_MODES = frozenset({"player_from_clues"})
 
 assert set(PUBLIC_MODES) == config.PUBLIC_MODE_ALLOWLIST, (
     "PUBLIC_MODES and config.PUBLIC_MODE_ALLOWLIST have drifted apart -- these must name the same modes."
@@ -90,22 +152,54 @@ MAX_GAME_FETCH_ATTEMPTS = 5  # bounded retry for the exclude-recent-repeats loop
 
 
 def list_public_modes() -> List[dict]:
+    """Part 19: client-safe mode discovery. Only ever the fields a client
+    needs to make a real choice (which mode, what difficulties actually
+    work, what kind of gameplay to render) -- never internal source
+    tables, answer truth, or QA/admin detail (Part 13)."""
     return [
-        {"mode": mode_id, "competition": entry["competition"], "title": entry["title"]}
+        {
+            "mode": mode_id,
+            "competition": entry["competition"],
+            "title": entry["title"],
+            "kind": entry["kind"],
+            "difficulties": sorted(entry["certified_difficulties"]) + ["any"],
+            "available": True,
+        }
         for mode_id, entry in PUBLIC_MODES.items()
     ]
 
 
-def _ensure_mode_public(mode: str) -> None:
+def _ensure_mode_public(mode: str) -> dict:
     if mode in PUBLIC_MODES:
-        return
+        return PUBLIC_MODES[mode]
     if mode in KNOWN_NOT_YET_PUBLIC_MODES:
         raise GatewayError(
             "MODE_UNAVAILABLE",
             f"mode={mode!r} is a real Reads Engine capability but is not yet available through the "
-            f"public API -- the v1.2 pilot covers draft_guess only.",
+            f"public API.",
         )
     raise GatewayError("INVALID_MODE", f"mode={mode!r} is not a recognized mode.")
+
+
+def _ensure_difficulty_certified(mode: str, entry: dict, difficulty: Optional[str]) -> None:
+    """Part 20/21: reject an uncertified difficulty request BEFORE burning
+    real generation attempts on it. Real bug this fixes (found empirically,
+    not assumed): requesting difficulty="easy" for draft_guess in v1.2
+    silently spent all 5 retry attempts (each a real Engine DB round-trip)
+    only to land on NO_ELIGIBLE_GAME every time, because "easy" has zero
+    real candidates for this mode -- a fact known in advance, not something
+    that needs re-discovering per request. "any" always passes: it isn't a
+    difficulty-band claim, it's "no filter", which trivially works if the
+    mode has any real candidates at all."""
+    if difficulty is None or difficulty == "any":
+        return
+    if difficulty in entry["certified_difficulties"]:
+        return
+    raise GatewayError(
+        "INVALID_REQUEST",
+        f"mode={mode!r} does not have certified {difficulty!r}-difficulty candidates. "
+        f"Certified difficulties: {sorted(entry['certified_difficulties'])} (plus 'any').",
+    )
 
 
 def _public_view(mode: str, entry: dict, stored: dict) -> dict:
@@ -126,14 +220,15 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
         "metadata": {
             "seed": (stored.get("_diagnostics") or {}).get("seed"),
             "version": stored.get("package_version"),
+            "contract_version": CONTRACT_VERSION,
         },
     }
 
 
 def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str],
                      exclude_game_ids: Optional[List[str]]) -> dict:
-    _ensure_mode_public(mode)
-    entry = PUBLIC_MODES[mode]
+    entry = _ensure_mode_public(mode)
+    _ensure_difficulty_certified(mode, entry, difficulty)
     exclude = set(exclude_game_ids or [])
 
     # A real bug caught by actually calling this (not assumed from reading
@@ -196,6 +291,16 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
 
 
 def validate_public_answer(*, game_id: str, answer: str) -> dict:
+    """Part 6/32: one shared validator for every public mode -- there is no
+    per-mode branch here because every certified mode today shares the same
+    `options[correctIndex]` label shape (Part 30's docstring explains why
+    that means no handler classes are needed yet). Normalization
+    (strip + case-fold exact match) is mode-agnostic by construction: it
+    compares whatever label string the mode's own generator put in
+    `options`, never a hand-maintained alias table in this file or in the
+    browser. No `mode` parameter is accepted from the client at all -- the
+    mode is implied entirely by which package `game_id` resolves to, which
+    is also why cross-mode tampering has no surface here (Part 7)."""
     try:
         stored = packages.load_package(game_id)
     except packages.PackageIdInvalid:

@@ -38,11 +38,18 @@ var ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 = false;
 // exact existing "NFL Draft History" Quiz category -- a real, already-
 // working, hand-authored-plus-engine-static equivalent, not a placeholder.
 var ENABLE_ENGINE_DRAFT_PILOT_V01 = false; // default OFF (Part 33) -- flip true locally to test against a running Gateway
+// v1.3, Part 8: independent flag for the second engine-backed pilot
+// (Championship guessing, hidden #championshippilot route). Deliberately
+// its own variable, not a shared "engine pilots on" toggle -- Draft and
+// Championship must be independently rollback-able. Default OFF, same
+// reasoning as Draft's flag above.
+var ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01 = false; // default OFF (Part 33) -- flip true locally to test against a running Gateway
 // Local-dev-only value (see gateway/Dockerfile's documented internal port
 // 8850) -- a real deployment would need a real reachable Gateway URL here,
 // not this. Never hardcode a machine-specific filesystem path here; this
 // is a network origin, not a path, and is meant to be edited per
-// environment the same way SITE_URL above already is.
+// environment the same way SITE_URL above already is. Shared by both
+// engine pilots -- one Gateway, multiple public modes (v1.3's whole point).
 var ENGINE_GATEWAY_BASE_URL = 'http://localhost:8850';
 
 /* ============================== utilities ============================== */
@@ -4200,18 +4207,65 @@ function renderPlayerCluesScreen() {
   return renderPlayerCluesRound();
 }
 
-/* ============================== engine draft pilot (v1.2) ==============================
-   The ONLY mode in this file that fetches its actual game content over the
-   network instead of reading a local data/*.js file -- see
-   ENABLE_ENGINE_DRAFT_PILOT_V01's comment above for the full picture. The
-   Gateway's public API (gateway/services/public_game.py) is the
-   authoritative source of both the question AND the answer: this file
-   never receives, stores, or compares against a correct answer locally --
-   pickEnginePilotAnswer() below sends the player's pick to
+/* ============================== engine pilots: shared adapter (v1.2 draft, v1.3 generalized) ==============================
+   The ONLY modes in this file that fetch their actual game content over
+   the network instead of reading a local data/*.js file. The Gateway's
+   public API (gateway/services/public_game.py) is the authoritative
+   source of both the question AND the answer for every engine pilot: this
+   file never receives, stores, or compares against a correct answer
+   locally -- pickEnginePilotAnswer() below sends the player's pick to
    POST /v1/public/game/answer and renders whatever the server says, the
    same trust boundary every other client-authoritative mode here
-   deliberately does NOT have. */
+   deliberately does NOT have.
+
+   v1.3, Part 9: generalized from v1.2's Draft-only version into one
+   shared adapter (fetch/render/state-machine functions below) plus a
+   small per-mode config table (ENGINE_PILOT_MODES) -- NOT a rewrite and
+   NOT a big framework (Part 9/18): every function here is the same one
+   v1.2 shipped, just reading its mode-specific title/API-mode-id/fallback
+   from `ENGINE_PILOT_MODES[modeKey]` instead of hardcoding Draft's values.
+   `enginePilotCurrentModeKey` tracks which pilot the (possibly
+   not-yet-started) screen refers to -- set once when a hidden route is
+   entered or a pilot is explicitly started, then carried by
+   `state.enginePilot.modeKey` for the lifetime of an in-progress round. */
 var ENGINE_PILOT_ROUNDSIZE = 10;
+var ENGINE_PILOT_MODES = {
+  draft: {
+    apiMode: 'draft_guess',
+    hash: '#draftpilot',
+    flagOn: function () { return ENABLE_ENGINE_DRAFT_PILOT_V01; },
+    title: 'NFL Draft History (Live Engine Pilot)',
+    desc: 'Same idea as NFL Draft History in Quiz, except every question is generated live by the Reads Football Engine right now, not read from a pre-built file.',
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    // Real fallback, not a placeholder (Part 12/20): "NFL Draft History" is
+    // an existing, already-working Quiz category backed by real
+    // engine-exported content (data/quiz-engine-draft-production.js,
+    // merged into QUIZ when ENABLE_ENGINE_QUIZ_DRAFT is on) -- conceptually
+    // the same game, playable with zero network dependency.
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
+  championship: {
+    apiMode: 'championship_guess',
+    hash: '#championshippilot',
+    flagOn: function () { return ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01; },
+    title: 'NFL Playoffs (Live Engine Pilot)',
+    desc: 'Every question is generated live by the Reads Football Engine: see a real NFL team and season, and guess how their postseason actually ended.',
+    fallbackLabel: 'Play Super Bowl History (Quiz) Instead',
+    // Part 12: mode-aware fallback -- "Super Bowl History" is a real,
+    // already-loaded, hand-authored Quiz category (data/quiz.js, 60
+    // questions), the honest Championship-pilot equivalent of Draft's
+    // fallback above. Deliberately NOT data/quiz-engine-championship-award-
+    // pilot.js -- that engine-exported file exists on disk but was never
+    // wired into QUIZ (unlike ENABLE_ENGINE_QUIZ_DRAFT's draft merge),
+    // and wiring it in is a separate, unrequested content change outside
+    // v1.3's scope (see the v1.3 report's Frontend section).
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
+  },
+};
+var enginePilotCurrentModeKey = 'draft';
+function enginePilotModeConfig(modeKey) {
+  return ENGINE_PILOT_MODES[modeKey] || ENGINE_PILOT_MODES.draft;
+}
 
 function enginePilotFetchJson(path, options) {
   return fetch(ENGINE_GATEWAY_BASE_URL + path, options).then(function (res) {
@@ -4225,35 +4279,32 @@ function enginePilotFetchJson(path, options) {
     return res.json();
   });
 }
-function startEnginePilotRound() {
-  state.enginePilot = { screen: 'loading', roundIndex: 0, roundSize: ENGINE_PILOT_ROUNDSIZE, correctCount: 0, seenGameIds: [], current: null, error: null };
+function startEnginePilotRound(modeKey) {
+  if (modeKey) enginePilotCurrentModeKey = modeKey;
+  state.enginePilot = { modeKey: enginePilotCurrentModeKey, screen: 'loading', roundIndex: 0, roundSize: ENGINE_PILOT_ROUNDSIZE, correctCount: 0, seenGameIds: [], current: null, error: null };
   state.screen = 'enginePilot';
   renderAll();
   loadNextEnginePilotQuestion();
 }
-function enginePilotFallbackToQuiz() {
-  // Real fallback, not a placeholder (Part 20): "NFL Draft History" is an
-  // existing, already-working Quiz category backed by real engine-exported
-  // content (data/quiz-engine-draft-production.js, merged into QUIZ when
-  // ENABLE_ENGINE_QUIZ_DRAFT is on) -- conceptually the same game, playable
-  // with zero network dependency.
+function enginePilotFallback() {
   // A real bug caught by actually clicking this in a browser, not assumed
-  // from reading the code: startQuizRound() does NOT set state.screen
-  // itself (every other caller reaches it via goToMode('quiz') first,
-  // which does) -- omitting this line left renderAll() still dispatching
-  // to the (now-null) enginePilot screen after a real fallback.
-  state.enginePilot = null;
-  state.screen = 'quiz';
-  startQuizRound('NFL Draft History', '', 10);
+  // from reading the code (v1.2): startQuizRound() does NOT set
+  // state.screen itself (every other caller reaches it via
+  // goToMode('quiz') first, which does) -- each mode's fallback() above
+  // sets it explicitly so renderAll() doesn't keep dispatching to the
+  // (now-null) enginePilot screen after a real fallback.
+  var modeKey = (state.enginePilot && state.enginePilot.modeKey) || enginePilotCurrentModeKey;
+  enginePilotModeConfig(modeKey).fallback();
 }
 function loadNextEnginePilotQuestion() {
   var s = state.enginePilot;
   if (!s) return;
+  var cfg = enginePilotModeConfig(s.modeKey);
   s.screen = 'loading';
   s.error = null;
   renderAll();
   var exclude = s.seenGameIds.slice(-20).join(',');
-  enginePilotFetchJson('/v1/public/game?mode=draft_guess' + (exclude ? '&exclude=' + encodeURIComponent(exclude) : ''))
+  enginePilotFetchJson('/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode) + (exclude ? '&exclude=' + encodeURIComponent(exclude) : ''))
     .then(function (game) {
       if (state.enginePilot !== s) return; // player navigated away while this was in flight
       s.current = game;
@@ -4308,12 +4359,13 @@ function enginePilotToolbarHtml() {
     '</div>';
 }
 function renderEnginePilotScreen() {
-  if (!ENABLE_ENGINE_DRAFT_PILOT_V01) return renderHome();
   var s = state.enginePilot;
+  var cfg = enginePilotModeConfig(s ? s.modeKey : enginePilotCurrentModeKey);
+  if (!cfg.flagOn()) return renderHome();
   if (!s) {
     return '<div class="panel">' +
-      '<h2 class="panel-title">NFL Draft History (Live Engine Pilot)</h2>' +
-      '<p class="mode-desc">Same idea as NFL Draft History in Quiz, except every question is generated live by the Reads Football Engine right now, not read from a pre-built file.</p>' +
+      '<h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
+      '<p class="mode-desc">' + esc(cfg.desc) + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Start</button></div>' +
       '</div>';
   }
@@ -4325,7 +4377,7 @@ function renderEnginePilotScreen() {
       '<p class="mode-desc">' + esc(s.error) + '</p>' +
       '<div class="btn-row">' +
       '<button class="btn-primary" data-pilot-retry>Try Again</button>' +
-      '<button class="btn-secondary" data-pilot-fallback>Play NFL Draft History (Quiz) Instead</button>' +
+      '<button class="btn-secondary" data-pilot-fallback>' + esc(cfg.fallbackLabel) + '</button>' +
       '</div></div>';
   }
   if (s.screen === 'summary') {
@@ -8199,7 +8251,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pilotAnswer !== undefined) { pickEnginePilotAnswer(parseInt(t.dataset.pilotAnswer, 10)); return; }
   if (t.dataset.pilotNext !== undefined) { advanceEnginePilot(); return; }
   if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
-  if (t.dataset.pilotFallback !== undefined) { enginePilotFallbackToQuiz(); return; }
+  if (t.dataset.pilotFallback !== undefined) { enginePilotFallback(); return; }
 
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
   if (t.dataset.iqAnswer !== undefined) { answerIQQuestion(parseInt(t.dataset.iqAnswer, 10)); return; }
@@ -8383,8 +8435,14 @@ initPlayerCluesPackage();
 var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports' };
 if (ENABLE_PLAYER_FROM_CLUES_V01) HIDDEN_ROUTES['#clues'] = 'playerClues';
 if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01) HIDDEN_ROUTES['#championshippilot'] = 'enginePilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
+  // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
+  // one shared adapter) -- this is the one place that resolves WHICH pilot
+  // a bare hash visit means, before any round/state.enginePilot exists.
+  if (location.hash === ENGINE_PILOT_MODES.championship.hash) enginePilotCurrentModeKey = 'championship';
+  else if (location.hash === ENGINE_PILOT_MODES.draft.hash) enginePilotCurrentModeKey = 'draft';
   renderAll();
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode) { openOnboarding(); }

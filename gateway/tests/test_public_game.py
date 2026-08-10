@@ -1,5 +1,6 @@
-"""Tests for the v1.2 public gameplay pilot (gateway/services/public_game.py,
-gateway/app.py's /v1/public/* routes).
+"""Tests for the public gameplay API (gateway/services/public_game.py,
+gateway/app.py's /v1/public/* routes) -- v1.2 introduced draft_guess, v1.3
+adds championship_guess through the same generalized mode registry.
 
 Runs against the real, checksum-verified Reads_v4_Database.sqlite via the
 same Director pipeline /v1/games/generate already uses -- not mocked. Every
@@ -18,12 +19,30 @@ def _get_game(client, **params):
     return client.get("/v1/public/game", params=params)
 
 
+def _get_champ_game(client, **params):
+    params.setdefault("mode", "championship_guess")
+    return client.get("/v1/public/game", params=params)
+
+
 # --- public auth (no admin token needed) -------------------------------------
 
 def test_public_modes_no_auth_needed(client):
     r = client.get("/v1/public/modes")
     assert r.status_code == 200
-    assert {"mode": "draft_guess", "competition": "NFL", "title": "NFL Draft History: Guess the Team"} in r.json()["modes"]
+    modes_by_id = {m["mode"]: m for m in r.json()["modes"]}
+    assert set(modes_by_id) == {"draft_guess", "championship_guess"}
+    draft = modes_by_id["draft_guess"]
+    assert draft["competition"] == "NFL"
+    assert draft["title"] == "NFL Draft History: Guess the Team"
+    assert draft["kind"] == "multiple_choice"
+    assert draft["available"] is True
+    # Part 20: only real, certified difficulties advertised -- "easy" was
+    # surveyed this phase (0/232 real candidates) and must never appear.
+    assert set(draft["difficulties"]) == {"medium", "hard", "any"}
+    champ = modes_by_id["championship_guess"]
+    assert champ["competition"] == "NFL"
+    assert champ["kind"] == "multiple_choice"
+    assert set(champ["difficulties"]) == {"medium", "hard", "any"}
 
 
 def test_public_game_no_auth_needed(client):
@@ -128,19 +147,20 @@ def test_unknown_mode_is_invalid_mode(client):
 
 
 def test_known_internal_but_not_public_mode_is_mode_unavailable(client):
-    r = _get_game(client, mode="championship_guess")
+    # championship_guess graduated to public in v1.3 (see below) --
+    # player_from_clues is the real, registered-but-not-yet-public
+    # capability left to exercise this path now.
+    r = _get_game(client, mode="player_from_clues")
     assert r.status_code == 404
     assert r.json()["error"]["code"] == "MODE_UNAVAILABLE"
-    r2 = _get_game(client, mode="player_from_clues")
-    assert r2.json()["error"]["code"] == "MODE_UNAVAILABLE"
 
 
 def test_grid_and_six_degrees_are_not_public_modes(client):
-    # Part 34/35: neither is migrated in v1.2 -- confirm they're not
+    # Part 16/17: neither is migrated in v1.3 -- confirm they're not
     # accidentally reachable as a "mode" through this new surface.
     assert "grid" not in config.PUBLIC_MODE_ALLOWLIST
     assert "six_degrees" not in config.PUBLIC_MODE_ALLOWLIST
-    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({"draft_guess"})
+    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({"draft_guess", "championship_guess"})
 
 
 # --- determinism ----------------------------------------------------------------
@@ -179,6 +199,28 @@ def test_rate_limit_enforced_on_public_game(client, monkeypatch):
     public_game_limiter.reset()
     statuses = [_get_game(client, seed=f"ratelimit-{i}").status_code for i in range(5)]
     assert statuses.count(429) >= 2, f"expected at least 2 rate-limited responses, got {statuses}"
+    public_game_limiter.reset()
+    monkeypatch.setattr(public_game_limiter, "max_requests", config.PUBLIC_GAME_RATE_LIMIT_MAX)
+
+
+def test_public_game_rate_limit_is_shared_across_modes(client, monkeypatch):
+    # Part 22: a deliberate, simple design choice -- one bucket per client
+    # PER ROUTE, not per (client, mode). /v1/public/game is a single route
+    # that happens to take a `mode` query param; both certified modes
+    # ultimately call the same single-slot-concurrency-guarded
+    # generation.generate() pipeline, so bounding combined draft+
+    # championship traffic together is what actually protects that shared
+    # resource. A per-mode bucket would let a client double its real
+    # generation load by alternating modes -- exactly what this test
+    # guards against.
+    from gateway.app import public_game_limiter
+    monkeypatch.setattr(public_game_limiter, "max_requests", 4)
+    public_game_limiter.reset()
+    statuses = []
+    for i in range(6):
+        mode = "draft_guess" if i % 2 == 0 else "championship_guess"
+        statuses.append(_get_game(client, mode=mode, seed=f"shared-limit-{i}").status_code)
+    assert statuses.count(429) >= 2, f"expected the shared bucket to rate-limit across modes, got {statuses}"
     public_game_limiter.reset()
     monkeypatch.setattr(public_game_limiter, "max_requests", config.PUBLIC_GAME_RATE_LIMIT_MAX)
 
@@ -246,3 +288,127 @@ def test_public_answer_is_fast_no_generation(client):
     elapsed = time.perf_counter() - t0
     assert r.status_code == 200
     assert elapsed < 1.0, f"answer validation took {elapsed:.2f}s -- should be a cheap package lookup, not generation"
+
+
+# --- v1.3: championship_guess, migrated through the same generalized registry --
+
+def test_championship_game_no_auth_needed(client):
+    r = _get_champ_game(client)
+    assert r.status_code == 200
+
+
+def test_championship_payload_never_contains_answer(client):
+    r = _get_champ_game(client)
+    raw = r.text
+    for forbidden in ("correctIndex", "answer\":", "source_ids", "provenance", "qa_checks_performed", "funnel"):
+        assert forbidden not in raw, f"{forbidden!r} leaked in a fresh championship_guess response"
+    body = r.json()
+    assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
+    assert set(body["payload"].keys()) == {"prompt", "options"}
+    assert len(body["payload"]["options"]) == 4
+    assert body["mode"] == "championship_guess"
+
+
+def test_championship_correct_answer_accepted(client):
+    game = _get_champ_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": real_answer})
+    body = r.json()
+    assert body["correct"] is True
+    assert body["canonical_answer"] == real_answer
+
+
+def test_championship_incorrect_answer_rejected(client):
+    game = _get_champ_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    wrong = next(o for o in game["payload"]["options"] if o != real_answer)
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": wrong})
+    body = r.json()
+    assert body["correct"] is False
+    assert body["canonical_answer"] == real_answer
+
+
+def test_championship_question_is_a_real_postseason_fact(client):
+    # Spot-check the actual generated prompt shape, not just that SOMETHING
+    # came back -- confirms the real adapter (not a stub) is wired in.
+    game = _get_champ_game(client, seed="test-champ-real-fact").json()
+    assert game["payload"]["prompt"].startswith("How did the ")
+    assert "NFL season" in game["payload"]["prompt"]
+    real_outcomes = {
+        "Won the Super Bowl", "Lost the Super Bowl", "Lost in the Conference Championship",
+        "Lost in the Divisional Round", "Lost in the Wild Card Round",
+    }
+    assert set(game["payload"]["options"]) <= real_outcomes
+
+
+# --- v1.3: public mode registry ------------------------------------------------
+
+def test_both_certified_modes_registered(client):
+    modes = {m["mode"] for m in client.get("/v1/public/modes").json()["modes"]}
+    assert modes == {"draft_guess", "championship_guess"}
+
+
+def test_player_from_clues_remains_internal_only(client):
+    r = _get_game(client, mode="player_from_clues")
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "MODE_UNAVAILABLE"
+    assert "player_from_clues" not in {m["mode"] for m in client.get("/v1/public/modes").json()["modes"]}
+
+
+# --- v1.3: certified-difficulty enforcement (Part 20/21) -----------------------
+
+def test_draft_uncertified_easy_difficulty_rejected_immediately(client):
+    r = _get_game(client, difficulty="easy")
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+def test_championship_uncertified_easy_difficulty_rejected_immediately(client):
+    r = _get_champ_game(client, difficulty="easy")
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+def test_draft_certified_difficulties_actually_work(client):
+    for diff in ("medium", "hard", "any"):
+        r = _get_game(client, difficulty=diff, seed=f"test-draft-diff-{diff}")
+        assert r.status_code == 200, f"difficulty={diff!r} should be certified and real"
+
+
+def test_championship_certified_difficulties_actually_work(client):
+    for diff in ("medium", "hard", "any"):
+        r = _get_champ_game(client, difficulty=diff, seed=f"test-champ-diff-{diff}")
+        assert r.status_code == 200, f"difficulty={diff!r} should be certified and real"
+
+
+# --- v1.3: game ID / cross-mode tamper resistance (Part 7) ---------------------
+
+def test_cross_mode_game_id_stays_scoped_to_its_own_mode(client):
+    draft_game = _get_game(client, seed="test-tamper-draft").json()
+    champ_game = _get_champ_game(client, seed="test-tamper-champ").json()
+    assert draft_game["game_id"] != champ_game["game_id"]
+
+    draft_stored = packages.load_package(draft_game["game_id"])
+    champ_stored = packages.load_package(champ_game["game_id"])
+    draft_answer = draft_stored["questions"][0]["answer"]
+    champ_answer = champ_stored["questions"][0]["answer"]
+    assert draft_answer != champ_answer  # a real team name vs. a real postseason outcome label
+
+    # Submitting the DRAFT game's id with the CHAMPIONSHIP answer must be
+    # judged against the draft game's own real answer, never the other
+    # package's -- there is no "mode" field in the request for a client to
+    # lie about (see public_game.py's validate_public_answer docstring).
+    r = client.post("/v1/public/game/answer", json={"game_id": draft_game["game_id"], "answer": champ_answer})
+    assert r.json()["correct"] is False
+    assert r.json()["canonical_answer"] == draft_answer
+
+
+# --- v1.3: contract versioning (Part 31) ----------------------------------------
+
+def test_contract_version_present_and_stable(client):
+    draft_game = _get_game(client).json()
+    champ_game = _get_champ_game(client).json()
+    assert draft_game["metadata"]["contract_version"] == 1
+    assert champ_game["metadata"]["contract_version"] == 1
