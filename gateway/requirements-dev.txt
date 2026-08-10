@@ -1,0 +1,5 @@
+# Test-only dependencies -- never required to RUN the Gateway, only to test
+# it (gateway/tests/). Kept separate from requirements.txt so a production
+# install never pulls in a test framework.
+-r requirements.txt
+pytest==8.4.2

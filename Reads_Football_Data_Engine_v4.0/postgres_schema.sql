@@ -1,0 +1,9 @@
+-- Production target: PostgreSQL. Keep stable IDs and provenance.
+CREATE TABLE sources(source_id text PRIMARY KEY,source_name text NOT NULL,source_url text,license_note text,attribution_required boolean DEFAULT false,approved_for_import boolean DEFAULT false,notes text);
+CREATE TABLE schools(school_id text PRIMARY KEY,school_name text NOT NULL,status text NOT NULL);
+CREATE TABLE franchises(franchise_id text PRIMARY KEY,display_name text NOT NULL,source_id text REFERENCES sources(source_id));
+CREATE TABLE players(player_id text PRIMARY KEY,display_name text NOT NULL,gsis_id text UNIQUE,pfr_id text,birth_date date,height_in integer,weight_lb integer,primary_position text,primary_school_id text REFERENCES schools(school_id),verification_status text NOT NULL DEFAULT 'INCOMPLETE');
+CREATE TABLE roster_seasons(season integer NOT NULL,team_code text NOT NULL,franchise_id text REFERENCES franchises(franchise_id),player_id text NOT NULL REFERENCES players(player_id),jersey_number integer,position text,depth_role text,school_id text REFERENCES schools(school_id),verification_status text NOT NULL DEFAULT 'INCOMPLETE',source_id text REFERENCES sources(source_id),PRIMARY KEY(season,team_code,player_id));
+CREATE TABLE relationships(relationship_id bigserial PRIMARY KEY,subject_type text NOT NULL,subject_id text NOT NULL,predicate text NOT NULL,object_type text NOT NULL,object_id text NOT NULL,season_start integer,season_end integer,source_id text REFERENCES sources(source_id),verification_status text NOT NULL DEFAULT 'DERIVED',UNIQUE(subject_type,subject_id,predicate,object_type,object_id,season_start,season_end));
+CREATE INDEX relationships_subject_idx ON relationships(subject_type,subject_id,predicate);
+CREATE INDEX relationships_object_idx ON relationships(object_type,object_id,predicate);

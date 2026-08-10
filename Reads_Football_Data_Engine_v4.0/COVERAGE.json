@@ -1,0 +1,110 @@
+[
+  {
+    "domain_id": "CFB_GAMES",
+    "competition_id": "CFB",
+    "dataset_name": "schedules/results",
+    "coverage_start": 2002,
+    "coverage_end": 2025,
+    "current_through": "2025 final dataset",
+    "completeness": "HISTORICAL_COMPLETE_FOR_FEED",
+    "production_safe": 1,
+    "source_id": "SPORTSDATAVERSE_CFB",
+    "notes": "SportsDataverse cfbfastR schedules; real imported CSVs."
+  },
+  {
+    "domain_id": "CFB_PLAYER_STATS_REAL",
+    "competition_id": "CFB",
+    "dataset_name": "play-derived player event aggregates",
+    "coverage_start": 2024,
+    "coverage_end": 2025,
+    "current_through": "2025",
+    "completeness": "IMPORTED_INTERNAL_VALIDATION_REQUIRED",
+    "production_safe": 0,
+    "source_id": "SPORTSDATAVERSE_CFB",
+    "notes": "Stored internally; exact season-total trivia disabled until reconciled to authoritative aggregate totals."
+  },
+  {
+    "domain_id": "CFB_ROSTERS",
+    "competition_id": "CFB",
+    "dataset_name": "season rosters",
+    "coverage_start": null,
+    "coverage_end": null,
+    "current_through": null,
+    "completeness": "SCHEMA_READY_NOT_IMPORTED",
+    "production_safe": 0,
+    "source_id": null,
+    "notes": "Requires approved CFB roster feed."
+  },
+  {
+    "domain_id": "CFB_ROSTERS_REAL",
+    "competition_id": "CFB",
+    "dataset_name": "real roster seasons",
+    "coverage_start": 2024,
+    "coverage_end": 2025,
+    "current_through": "2025",
+    "completeness": "LATEST_TWO_PUBLISHED_SEASONS",
+    "production_safe": 1,
+    "source_id": "SPORTSDATAVERSE_CFB",
+    "notes": "Production-safe for team, jersey, position, class, bio, transfer and teammate relationships."
+  },
+  {
+    "domain_id": "CFB_STATS",
+    "competition_id": "CFB",
+    "dataset_name": "player season stats",
+    "coverage_start": null,
+    "coverage_end": null,
+    "current_through": null,
+    "completeness": "SCHEMA_READY_NOT_IMPORTED",
+    "production_safe": 0,
+    "source_id": null,
+    "notes": "Requires approved stats feed."
+  },
+  {
+    "domain_id": "NFL_DRAFT",
+    "competition_id": "NFL",
+    "dataset_name": "draft/player seed",
+    "coverage_start": 1980,
+    "coverage_end": 2024,
+    "current_through": "2024 draft",
+    "completeness": "HISTORICAL_COMPLETE_FOR_SOURCE_RANGE",
+    "production_safe": 1,
+    "source_id": "NFLVERSE_DATA",
+    "notes": "Draft-backed identity seed."
+  },
+  {
+    "domain_id": "NFL_GAMES",
+    "competition_id": "NFL",
+    "dataset_name": "games",
+    "coverage_start": 1999,
+    "coverage_end": 2026,
+    "current_through": "2026 schedule present in source workbook",
+    "completeness": "CURRENT_OR_SCHEDULED",
+    "production_safe": 1,
+    "source_id": "NFLVERSE_DATA",
+    "notes": "Game source includes past games and future schedule rows."
+  },
+  {
+    "domain_id": "NFL_ROSTERS_CURRENT",
+    "competition_id": "NFL",
+    "dataset_name": "modern nflverse season rosters",
+    "coverage_start": 1920,
+    "coverage_end": 2026,
+    "current_through": null,
+    "completeness": "ADAPTER_READY_NOT_IMPORTED",
+    "production_safe": 0,
+    "source_id": "NFLVERSE_ROSTERS",
+    "notes": "Official loader supports broad history, but release binary unavailable in this runtime."
+  },
+  {
+    "domain_id": "NFL_ROSTERS_HIST",
+    "competition_id": "NFL",
+    "dataset_name": "historical season rosters",
+    "coverage_start": 2006,
+    "coverage_end": 2019,
+    "current_through": "2019",
+    "completeness": "HISTORICAL_ONLY",
+    "production_safe": 1,
+    "source_id": "NFLVERSE_DATA",
+    "notes": "Never use for current-roster claims after 2019."
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "status": "PASSED",
+  "tested_flow": [
+    "creator profile",
+    "Factory-backed draft",
+    "submit for review",
+    "approve",
+    "publish",
+    "follow",
+    "like",
+    "save",
+    "start/complete play",
+    "comment",
+    "share",
+    "remix",
+    "trending",
+    "creator leaderboard"
+  ],
+  "test_data_removed_from_release": true,
+  "notes": "Full lifecycle smoke test passed before the final database was rebuilt from the clean v1.8 base."
+}

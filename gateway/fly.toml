@@ -1,0 +1,106 @@
+# Reads Engine Gateway -- Fly.io staging configuration (Director v0.7, Part P).
+#
+# CONFIGURATION ONLY -- not deployed. No `fly launch`/`fly deploy` was run
+# this milestone; no Fly.io account or app was created. This file is what a
+# future, separately-approved deployment milestone would use as a starting
+# point, informed by the real resource measurements taken this milestone
+# (see READS_ENGINE_STAGING_V01_REPORT.md, Part Q) rather than guessed.
+#
+# app name is a placeholder -- pick a real one at actual deploy time.
+app = "reads-engine-gateway-staging"
+primary_region = "iad"  # placeholder; pick based on where the admin operator actually is
+
+[build]
+  dockerfile = "gateway/Dockerfile"
+
+# --- internal port -----------------------------------------------------
+# The Gateway itself speaks plain HTTP on 8850 inside Fly's private network
+# (see gateway/Dockerfile's CMD). Fly's edge terminates TLS and forwards to
+# this internal_port -- see READS_ENGINE_STAGING_V01_REPORT.md, Part I, for
+# the full external-HTTPS / internal-HTTP architecture and why homemade TLS
+# inside this Python process was deliberately not built.
+[http_service]
+  internal_port = 8850
+  force_https = true
+  auto_stop_machines = false   # staging should stay up for an admin to reach it, not scale to zero
+  auto_start_machines = true
+  min_machines_running = 1
+  # NOT exposing this publicly beyond what Fly's own network boundary
+  # provides -- per this milestone's explicit restriction ("do not expose
+  # the Gateway to normal Reads users"), a real staging rollout should
+  # additionally restrict access at the Fly network layer (private
+  # networking / IP allowlist) before this ever goes live. That
+  # restriction is NOT configured in this file -- it's a real,
+  # not-yet-closed gap, documented honestly in
+  # READS_ENGINE_PUBLIC_EXPOSURE_GATE.md rather than silently assumed.
+
+  [[http_service.checks]]
+    # Liveness -- matches gateway/Dockerfile's own HEALTHCHECK. Fly restarts
+    # the machine if this fails repeatedly (Part K: platform-provided
+    # supervision, not a custom one built here).
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/v1/health"
+    protocol = "http"
+    timeout = "5s"
+
+# --- persistent volume (Part D) ------------------------------------------
+# ONE volume, mounted at /data, holding BOTH the Football Warehouse (Engine
+# .py modules + reads_football_v4.0.sqlite, see gateway/Dockerfile's module
+# docstring for why they must live together) under /data/engine, AND the
+# Gateway's own generated-package/log storage under /data/packages and
+# /data/logs (matching READS_ENGINE_PACKAGES_DIR / READS_ENGINE_LOG_DIR's
+# defaults set as image ENV -- see gateway/Dockerfile). A real deploy must
+# populate /data/engine (Engine code + database) onto this volume BEFORE
+# first start -- the image itself intentionally ships without either (Part C).
+[mounts]
+  source = "reads_engine_data"
+  destination = "/data"
+
+[env]
+  READS_ENGINE_DIR = "/data/engine"
+  # READS_ENGINE_PACKAGES_DIR and READS_ENGINE_LOG_DIR are already set as
+  # image-level ENV (/data/packages, /data/logs) in gateway/Dockerfile --
+  # not repeated here to avoid two sources of truth for the same value.
+  # READS_ENGINE_ADMIN_TOKEN and READS_ENGINE_ALLOWED_ORIGINS are NOT set
+  # here -- see the [secrets/config to set separately] note below. Never
+  # put a real secret value in this file.
+
+# --- resource sizing (Part Q -- measured, not guessed) --------------------
+# This milestone measured real Gateway process memory under load locally:
+# ~39MB RSS at rest, ~46MB after a 25-question Draft/Championship
+# generation, ~55MB peak after a 25-puzzle Player From Clues generation
+# (the heaviest capability -- builds an in-memory model of all 4,506
+# candidate players). SQLite's own page cache and the OS's file-system
+# cache for the 1.65GB database are the dominant additional memory
+# consumers beyond the Python process itself, and scale with how much of
+# the database is actively queried, not with request volume. 1GB gives
+# very generous headroom over the ~150-250MB realistic working set
+# (process + a meaningfully warm page cache); it is deliberately NOT sized
+# down to the bare-measured minimum, since a first staging deployment is
+# exactly where you want margin for surprises, not a tight fit.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# --- what still needs to happen before a real `fly deploy` ---------------
+# 1. `fly volumes create reads_engine_data --size 5` (5GB: 1.65GB database +
+#    headroom for a second snapshot during import/rotation + package/log
+#    storage -- generous relative to the ~172KB observed for 3 real
+#    packages this milestone, so package storage will not meaningfully
+#    contribute to volume sizing for a long time).
+# 2. Populate /data/engine on that volume with the Engine's .py modules and
+#    reads_football_v4.0.sqlite (see READS_ENGINE_BACKUP_AND_RESTORE.md's
+#    restore procedure -- this IS that procedure, aimed at a fresh volume
+#    instead of a local disposable directory).
+# 3. `fly secrets set READS_ENGINE_ADMIN_TOKEN=<real generated token>`
+#    (never in this file, never in [env] above).
+# 4. Set READS_ENGINE_ALLOWED_ORIGINS via `fly secrets set` or `[env]` once
+#    a real staging admin-tool origin exists (still not
+#    https://reads.football -- see READS_ENGINE_PUBLIC_EXPOSURE_GATE.md).
+# 5. Restrict network reachability beyond Fly's default -- see the
+#    http_service note above.
+# None of this was executed this milestone.

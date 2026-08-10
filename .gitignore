@@ -3,6 +3,36 @@ node_modules/
 .DS_Store
 *.log
 
+# Reads Engine Gateway secrets (Director v0.7, Part O) -- .env.example is
+# the only env file that belongs in version control; every real one is a
+# local secret. See READS_ENGINE_STAGING_V01_REPORT.md.
+.env
+.env.*
+!.env.example
+gateway/storage/
+
+# SQLite database snapshots and rebuild artifacts (not runtime deps of the
+# static app — app.js/netlify functions read only data/*.js, never .sqlite).
+# Keeping these out of version control to avoid bloating the git repo.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite.gz
+*.sqlite.gz.part*
+
+# Gateway's local test/dev virtualenv (created this phase to actually run
+# pytest against real Python 3.9 + fastapi/pydantic/httpx) -- never a repo
+# dependency, same reasoning as node_modules/ above.
+gateway/.venv/
+gateway/.pytest_cache/
+
+# Superseded Engine milestone snapshots (v0.1-v0.6, now at v4.0) -- same
+# "avoid bloating the git repo" reasoning as the sqlite exclusions above,
+# applied to their zipped snapshots (1.5MB-56MB each).
+Reads_Football_Data_Engine_v0.*.zip
+data/Reads_Football_Data_Engine_v0.6.zip
+netlify/functions/Reads_Football_Data_Engine_v0.2.zip
+
 # Reference photos used to design the Learn tab icons (HOF Jacket, Heisman,
 # CFP Trophy, Lombardi Trophy) — replaced with hand-drawn SVG icons for
 # copyright reasons; keeping them out of the repo entirely rather than just

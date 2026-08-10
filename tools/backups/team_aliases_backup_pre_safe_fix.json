@@ -1,0 +1,298 @@
+{
+  "backup_created": "2026-08-09",
+  "purpose": "Pre-change snapshot of every team_aliases row for the 30 codes classified SAFE_FIX_AVAILABLE in TEAM_ALIAS_GAP_ANALYSIS.md, before any UPDATE is applied.",
+  "source_db": "/Users/micahnichols/Downloads/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite",
+  "physical_file_backup": "/Users/micahnichols/Downloads/Reads_Football_Data_Engine_v4.0/pre_safe_fix_backup_20260809/reads_football_v4.0.sqlite.pre_safe_fix_backup",
+  "physical_backup_sha256": "39ed5fe996e6b240642bde46daabb2eec1dc310f46e8cdc7e3ea3365070a549d",
+  "row_count": 32,
+  "codes_covered": [
+    "ARI",
+    "ATL",
+    "BUF",
+    "CAR",
+    "CHI",
+    "CIN",
+    "CLE",
+    "DAL",
+    "DEN",
+    "DET",
+    "GB",
+    "IND",
+    "JAX",
+    "KC",
+    "MIA",
+    "MIN",
+    "NE",
+    "NO",
+    "NYG",
+    "NYJ",
+    "OAK",
+    "PHI",
+    "PIT",
+    "SD",
+    "SEA",
+    "SF",
+    "STL",
+    "TB",
+    "TEN",
+    "WAS"
+  ],
+  "rows": [
+    {
+      "rowid": 1,
+      "team_code": "ARI",
+      "franchise_id": "FR_ARI",
+      "full_name": "Arizona Cardinals",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 2,
+      "team_code": "ATL",
+      "franchise_id": "FR_ATL",
+      "full_name": "Atlanta Falcons",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 4,
+      "team_code": "BUF",
+      "franchise_id": "FR_BUF",
+      "full_name": "Buffalo Bills",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 5,
+      "team_code": "CAR",
+      "franchise_id": "FR_CAR",
+      "full_name": "Carolina Panthers",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 6,
+      "team_code": "CHI",
+      "franchise_id": "FR_CHI",
+      "full_name": "Chicago Bears",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 7,
+      "team_code": "CIN",
+      "franchise_id": "FR_CIN",
+      "full_name": "Cincinnati Bengals",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 8,
+      "team_code": "CLE",
+      "franchise_id": "FR_CLE",
+      "full_name": "Cleveland Browns",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 9,
+      "team_code": "DAL",
+      "franchise_id": "FR_DAL",
+      "full_name": "Dallas Cowboys",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 10,
+      "team_code": "DEN",
+      "franchise_id": "FR_DEN",
+      "full_name": "Denver Broncos",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 11,
+      "team_code": "DET",
+      "franchise_id": "FR_DET",
+      "full_name": "Detroit Lions",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 12,
+      "team_code": "GB",
+      "franchise_id": "FR_GB",
+      "full_name": "Green Bay Packers",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 14,
+      "team_code": "IND",
+      "franchise_id": "FR_IND",
+      "full_name": "Indianapolis Colts",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 15,
+      "team_code": "JAX",
+      "franchise_id": "FR_JAX",
+      "full_name": "Jacksonville Jaguars",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 16,
+      "team_code": "KC",
+      "franchise_id": "FR_KC",
+      "full_name": "Kansas City Chiefs",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 20,
+      "team_code": "MIA",
+      "franchise_id": "FR_MIA",
+      "full_name": "Miami Dolphins",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 21,
+      "team_code": "MIN",
+      "franchise_id": "FR_MIN",
+      "full_name": "Minnesota Vikings",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 22,
+      "team_code": "NE",
+      "franchise_id": "FR_NE",
+      "full_name": "New England Patriots",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 23,
+      "team_code": "NO",
+      "franchise_id": "FR_NO",
+      "full_name": "New Orleans Saints",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 24,
+      "team_code": "NYG",
+      "franchise_id": "FR_NYG",
+      "full_name": "New York Giants",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 25,
+      "team_code": "NYJ",
+      "franchise_id": "FR_NYJ",
+      "full_name": "New York Jets",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 26,
+      "team_code": "OAK",
+      "franchise_id": "FR_LV",
+      "full_name": "Oakland Raiders",
+      "season_start": 2002,
+      "season_end": 2019
+    },
+    {
+      "rowid": 27,
+      "team_code": "PHI",
+      "franchise_id": "FR_PHI",
+      "full_name": "Philadelphia Eagles",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 28,
+      "team_code": "PIT",
+      "franchise_id": "FR_PIT",
+      "full_name": "Pittsburgh Steelers",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 29,
+      "team_code": "SD",
+      "franchise_id": "FR_LAC",
+      "full_name": "San Diego Chargers",
+      "season_start": 2002,
+      "season_end": 2016
+    },
+    {
+      "rowid": 30,
+      "team_code": "SEA",
+      "franchise_id": "FR_SEA",
+      "full_name": "Seattle Seahawks",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 31,
+      "team_code": "SF",
+      "franchise_id": "FR_SF",
+      "full_name": "San Francisco 49ers",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 32,
+      "team_code": "STL",
+      "franchise_id": "FR_LAR",
+      "full_name": "St Louis Rams",
+      "season_start": 2002,
+      "season_end": 2015
+    },
+    {
+      "rowid": 33,
+      "team_code": "TB",
+      "franchise_id": "FR_TB",
+      "full_name": "Tampa Bay Buccaneers",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 34,
+      "team_code": "TEN",
+      "franchise_id": "FR_TEN",
+      "full_name": "Tennessee Titans",
+      "season_start": 2002,
+      "season_end": 2026
+    },
+    {
+      "rowid": 37,
+      "team_code": "WAS",
+      "franchise_id": "FR_WAS",
+      "full_name": "Washington Redskins",
+      "season_start": 2002,
+      "season_end": 2019
+    },
+    {
+      "rowid": 36,
+      "team_code": "WAS",
+      "franchise_id": "FR_WAS",
+      "full_name": "Washington Football Team",
+      "season_start": 2020,
+      "season_end": 2021
+    },
+    {
+      "rowid": 35,
+      "team_code": "WAS",
+      "franchise_id": "FR_WAS",
+      "full_name": "Washington Commanders",
+      "season_start": 2022,
+      "season_end": 2026
+    }
+  ]
+}

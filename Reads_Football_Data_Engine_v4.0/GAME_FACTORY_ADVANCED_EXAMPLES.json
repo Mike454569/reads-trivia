@@ -1,0 +1,749 @@
+[
+  {
+    "description": "Four NFL players drafted by the same team and same position",
+    "spec": {
+      "description": "Four NFL players drafted by the same team and same position",
+      "competition_id": "NFL",
+      "mechanic": "connections",
+      "entity_type": "nfl_player",
+      "relationship_predicate": "NFL_SAME_DRAFT_TEAM_POSITION",
+      "object_type": "draft_team_position",
+      "answer_type": "draft_team_position",
+      "group_size": 4,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED",
+      "rule_version": "1.4",
+      "rules": [
+        {
+          "kind": "composite_same",
+          "group_by": [
+            "group",
+            "position"
+          ]
+        }
+      ],
+      "complexity_score": 0.72,
+      "required_capabilities": [
+        "NFL_COMPOSITE_DRAFT_TEAM_POSITION"
+      ]
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 574,
+      "reason": "NFL draft team+position composite groups.",
+      "missing": [],
+      "source_table": "draft_facts"
+    },
+    "examples": [
+      {
+        "difficulty_score": 0.7,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these NFL players?",
+          "items": [
+            {
+              "id": "PFR:milledan01",
+              "label": "Dan Miller"
+            },
+            {
+              "id": "PFR:HallJe20",
+              "label": "Jeff Hall"
+            },
+            {
+              "id": "PFR:HockZa00",
+              "label": "Zach Hocker"
+            },
+            {
+              "id": "PFR:lohmichi01",
+              "label": "Chip Lohmiller"
+            }
+          ],
+          "answer": "WAS \u2014 K",
+          "draft_team": "WAS",
+          "position": "K",
+          "rule": "same_draft_team_and_position"
+        }
+      },
+      {
+        "difficulty_score": 0.7,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these NFL players?",
+          "items": [
+            {
+              "id": "PFR:GreeJa20",
+              "label": "Jamaal Green"
+            },
+            {
+              "id": "PFR:SweaJo00",
+              "label": "Josh Sweat"
+            },
+            {
+              "id": "PFR:HarrJo26",
+              "label": "Jon Harris"
+            },
+            {
+              "id": "PFR:SimmCl00",
+              "label": "Clyde Simmons"
+            }
+          ],
+          "answer": "PHI \u2014 DE",
+          "draft_team": "PHI",
+          "position": "DE",
+          "rule": "same_draft_team_and_position"
+        }
+      },
+      {
+        "difficulty_score": 0.7,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these NFL players?",
+          "items": [
+            {
+              "id": "PFR:WhitJo20",
+              "label": "Jose White"
+            },
+            {
+              "id": "PFR:LyncJa00",
+              "label": "James Lynch"
+            },
+            {
+              "id": "PFR:WortSh20",
+              "label": "Shawn Worthen"
+            },
+            {
+              "id": "PFR:FloySh00",
+              "label": "Sharrif Floyd"
+            }
+          ],
+          "answer": "MIN \u2014 DT",
+          "draft_team": "MIN",
+          "position": "DT",
+          "rule": "same_draft_team_and_position"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Five CFB players: four from the same school and same position, but the fifth is from the same school and a different position",
+    "spec": {
+      "description": "Five CFB players: four from the same school and same position, but the fifth is from the same school and a different position",
+      "competition_id": "CFB",
+      "mechanic": "elimination",
+      "entity_type": "cfb_player",
+      "relationship_predicate": "CFB_SCHOOL_POSITION_CONTRAST",
+      "object_type": "school_position",
+      "answer_type": "player",
+      "group_size": 5,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED",
+      "rule_version": "1.4",
+      "rules": [
+        {
+          "kind": "contrast",
+          "shared": [
+            "group",
+            "position"
+          ],
+          "outsider_shares": [
+            "group"
+          ],
+          "outsider_differs": [
+            "position"
+          ]
+        }
+      ],
+      "complexity_score": 0.82,
+      "required_capabilities": [
+        "CFB_CONTRAST_SCHOOL_POSITION"
+      ]
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 2762,
+      "reason": "CFB school+position composite groups.",
+      "missing": [],
+      "source_table": "cfb_roster_seasons_real"
+    },
+    "examples": [
+      {
+        "difficulty_score": 0.78,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which player is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5227188",
+              "label": "Justin Rosado Jr."
+            },
+            {
+              "id": "ESPN_CFB:5153289",
+              "label": "Lucas Lambert-Pipkin"
+            },
+            {
+              "id": "ESPN_CFB:5227191",
+              "label": "Turner Schmidt"
+            },
+            {
+              "id": "ESPN_CFB:5298356",
+              "label": "Semaj Fuse"
+            },
+            {
+              "id": "ESPN_CFB:5298357",
+              "label": "Bryan Robertson"
+            }
+          ],
+          "answer": "Justin Rosado Jr.",
+          "answer_id": "ESPN_CFB:5227188",
+          "explanation": "The other 4 were DLs at Robert Morris; Justin Rosado Jr. was at Robert Morris but played WR.",
+          "shared_school": "Robert Morris",
+          "shared_position": "DL"
+        }
+      },
+      {
+        "difficulty_score": 0.78,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which player is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5151666",
+              "label": "Miquon Merriweather"
+            },
+            {
+              "id": "ESPN_CFB:4921452",
+              "label": "Eamon Smalls"
+            },
+            {
+              "id": "ESPN_CFB:5167509",
+              "label": "Jamichael Rogers"
+            },
+            {
+              "id": "ESPN_CFB:4689267",
+              "label": "Demarcus Smith"
+            },
+            {
+              "id": "ESPN_CFB:5219705",
+              "label": "Jacob Thompson"
+            }
+          ],
+          "answer": "Jamichael Rogers",
+          "answer_id": "ESPN_CFB:5167509",
+          "explanation": "The other 4 were DTs at UAB; Jamichael Rogers was at UAB but played DE.",
+          "shared_school": "UAB",
+          "shared_position": "DT"
+        }
+      },
+      {
+        "difficulty_score": 0.78,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which player is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5160224",
+              "label": "Trip Maxwell"
+            },
+            {
+              "id": "ESPN_CFB:5161197",
+              "label": "Bo Gaines"
+            },
+            {
+              "id": "ESPN_CFB:5226398",
+              "label": "Gunner Chenier"
+            },
+            {
+              "id": "ESPN_CFB:5226448",
+              "label": "Malachi Townsen"
+            },
+            {
+              "id": "ESPN_CFB:4880458",
+              "label": "Gavin Rupp"
+            }
+          ],
+          "answer": "Bo Gaines",
+          "answer_id": "ESPN_CFB:5161197",
+          "explanation": "The other 4 were QBs at Stetson; Bo Gaines was at Stetson but played P.",
+          "shared_school": "Stetson",
+          "shared_position": "QB"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Four CFB players who transferred exactly once",
+    "spec": {
+      "description": "Four CFB players who transferred exactly once",
+      "competition_id": "CFB",
+      "mechanic": "guess",
+      "entity_type": "cfb_player",
+      "relationship_predicate": "CFB_TRANSFER_COUNT",
+      "object_type": "transfer_count",
+      "answer_type": "property",
+      "group_size": 4,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED",
+      "rule_version": "1.4",
+      "rules": [
+        {
+          "kind": "count_condition",
+          "metric": "transfer_count",
+          "operator": "eq",
+          "value": 1
+        }
+      ],
+      "complexity_score": 0.55,
+      "required_capabilities": [
+        "CFB_TRANSFER_COUNT"
+      ]
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 3978,
+      "reason": "Roster-derived transfer history.",
+      "missing": [],
+      "source_table": "cfb_transfer_summary"
+    },
+    "examples": [
+      {
+        "difficulty_score": 0.62,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 college football players?",
+          "items": [
+            {
+              "id": "ESPN_CFB:4832953",
+              "label": "Chase Carter"
+            },
+            {
+              "id": "ESPN_CFB:5158796",
+              "label": "Malik Richardson"
+            },
+            {
+              "id": "ESPN_CFB:4596663",
+              "label": "Jalen Cheek"
+            },
+            {
+              "id": "ESPN_CFB:5127877",
+              "label": "Peyton Waters"
+            }
+          ],
+          "answer": "Transferred exactly 1 time",
+          "rule": {
+            "transfer_count": 1
+          },
+          "evidence": {
+            "ESPN_CFB:4832953": [
+              {
+                "school_id": "CFB_SCHOOL_INCARNATE_WORD",
+                "school_name": "Incarnate Word",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_MEMPHIS",
+                "school_name": "Memphis",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:5158796": [
+              {
+                "school_id": "CFB_SCHOOL_IDAHO_STATE",
+                "school_name": "Idaho State",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_SOUTH_CAROLINA_STATE",
+                "school_name": "South Carolina State",
+                "season": 2024
+              }
+            ],
+            "ESPN_CFB:4596663": [
+              {
+                "school_id": "CFB_SCHOOL_BOSTON_COLLEGE",
+                "school_name": "Boston College",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_UAB",
+                "school_name": "UAB",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:5127877": [
+              {
+                "school_id": "CFB_SCHOOL_WASHINGTON",
+                "school_name": "Washington",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_NORTH_CAROLINA",
+                "school_name": "North Carolina",
+                "season": 2025
+              }
+            ]
+          }
+        }
+      },
+      {
+        "difficulty_score": 0.62,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 college football players?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5151948",
+              "label": "Joey Aguilar"
+            },
+            {
+              "id": "ESPN_CFB:4705474",
+              "label": "Tyreese Fearbry"
+            },
+            {
+              "id": "ESPN_CFB:5077060",
+              "label": "Amare Thomas"
+            },
+            {
+              "id": "ESPN_CFB:5149908",
+              "label": "Greg Burrell"
+            }
+          ],
+          "answer": "Transferred exactly 1 time",
+          "rule": {
+            "transfer_count": 1
+          },
+          "evidence": {
+            "ESPN_CFB:5151948": [
+              {
+                "school_id": "CFB_SCHOOL_APP_STATE",
+                "school_name": "App State",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_TENNESSEE",
+                "school_name": "Tennessee",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:4705474": [
+              {
+                "school_id": "CFB_SCHOOL_KENTUCKY",
+                "school_name": "Kentucky",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_WISCONSIN",
+                "school_name": "Wisconsin",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:5077060": [
+              {
+                "school_id": "CFB_SCHOOL_UAB",
+                "school_name": "UAB",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_HOUSTON",
+                "school_name": "Houston",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:5149908": [
+              {
+                "school_id": "CFB_SCHOOL_UNLV",
+                "school_name": "UNLV",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_TEXAS_STATE",
+                "school_name": "Texas State",
+                "season": 2025
+              }
+            ]
+          }
+        }
+      },
+      {
+        "difficulty_score": 0.62,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 college football players?",
+          "items": [
+            {
+              "id": "ESPN_CFB:4868356",
+              "label": "Hero Kanu"
+            },
+            {
+              "id": "ESPN_CFB:5144023",
+              "label": "Jackson Voth"
+            },
+            {
+              "id": "ESPN_CFB:4687358",
+              "label": "J'Dan Burnett"
+            },
+            {
+              "id": "ESPN_CFB:4837215",
+              "label": "Joseph Sipp Jr."
+            }
+          ],
+          "answer": "Transferred exactly 1 time",
+          "rule": {
+            "transfer_count": 1
+          },
+          "evidence": {
+            "ESPN_CFB:4868356": [
+              {
+                "school_id": "CFB_SCHOOL_OHIO_STATE",
+                "school_name": "Ohio State",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_TEXAS",
+                "school_name": "Texas",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:5144023": [
+              {
+                "school_id": "CFB_SCHOOL_KANSAS_STATE",
+                "school_name": "Kansas State",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_DRAKE",
+                "school_name": "Drake",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:4687358": [
+              {
+                "school_id": "CFB_SCHOOL_LOUISIANA_TECH",
+                "school_name": "Louisiana Tech",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_TULSA",
+                "school_name": "Tulsa",
+                "season": 2025
+              }
+            ],
+            "ESPN_CFB:4837215": [
+              {
+                "school_id": "CFB_SCHOOL_BOWLING_GREEN",
+                "school_name": "Bowling Green",
+                "season": 2024
+              },
+              {
+                "school_id": "CFB_SCHOOL_KANSAS",
+                "school_name": "Kansas",
+                "season": 2025
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "description": "Four NFL players who were teammates before 2015",
+    "spec": {
+      "description": "Four NFL players who were teammates before 2015",
+      "competition_id": "NFL",
+      "mechanic": "guess",
+      "entity_type": "nfl_player",
+      "relationship_predicate": "NFL_TEAMMATE_TIME",
+      "object_type": "team_season",
+      "answer_type": "team",
+      "group_size": 4,
+      "filters": {
+        "season_max": 2014
+      },
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED",
+      "rule_version": "1.4",
+      "rules": [
+        {
+          "kind": "temporal_relationship",
+          "predicate": "TEAMMATE_OF",
+          "filters": {
+            "season_max": 2014
+          }
+        }
+      ],
+      "complexity_score": 0.68,
+      "required_capabilities": [
+        "NFL_TEAMMATE_TIME"
+      ]
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 17827,
+      "reason": "Historical NFL roster overlap (2006-2019).",
+      "missing": [],
+      "source_table": "canonical_roster_seasons"
+    },
+    "examples": [
+      {
+        "difficulty_score": 0.66,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 players?",
+          "items": [
+            {
+              "id": "PFR:WateBr55",
+              "label": "Brian Waters"
+            },
+            {
+              "id": "PFR:BattJa00",
+              "label": "Jackie Battle"
+            },
+            {
+              "id": "PFR:RichBa20",
+              "label": "Barry Richardson"
+            },
+            {
+              "id": "PFR:ToriAn20",
+              "label": "Anthony Toribio"
+            }
+          ],
+          "answer": "Teammates at KC in 2010",
+          "team_or_school": "KC",
+          "season": 2010,
+          "rule": "teammates_in_time_window"
+        }
+      },
+      {
+        "difficulty_score": 0.66,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 players?",
+          "items": [
+            {
+              "id": "PFR:McQuPa21",
+              "label": "Paul McQuistan"
+            },
+            {
+              "id": "PFR:RichJa99",
+              "label": "Jay Richardson"
+            },
+            {
+              "id": "PFR:GreeCo20",
+              "label": "Cornell Green"
+            },
+            {
+              "id": "PFR:ReecMa00",
+              "label": "Marcel Reece"
+            }
+          ],
+          "answer": "Teammates at OAK in 2009",
+          "team_or_school": "OAK",
+          "season": 2009,
+          "rule": "teammates_in_time_window"
+        }
+      },
+      {
+        "difficulty_score": 0.66,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these 4 players?",
+          "items": [
+            {
+              "id": "PFR:MorrMa00",
+              "label": "Maurice Morris"
+            },
+            {
+              "id": "PFR:HobbKe99",
+              "label": "Kevin Hobbs"
+            },
+            {
+              "id": "PFR:BurlNa00",
+              "label": "Nate Burleson"
+            },
+            {
+              "id": "PFR:PeteJu00",
+              "label": "Julian Peterson"
+            }
+          ],
+          "answer": "Teammates at SEA in 2008",
+          "team_or_school": "SEA",
+          "season": 2008,
+          "rule": "teammates_in_time_window"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Four players who won an award before being drafted",
+    "spec": {
+      "description": "Four players who won an award before being drafted",
+      "competition_id": "NFL",
+      "mechanic": "connections",
+      "entity_type": "person",
+      "relationship_predicate": "AWARD_DRAFT_SEQUENCE",
+      "object_type": "sequence",
+      "answer_type": "sequence",
+      "group_size": 4,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED",
+      "rule_version": "1.4",
+      "rules": [
+        {
+          "kind": "cross_domain_sequence",
+          "events": [
+            "CFB_AWARD",
+            "NFL_DRAFT"
+          ],
+          "order": "award_before_draft"
+        }
+      ],
+      "complexity_score": 0.95,
+      "required_capabilities": [
+        "CFB_AWARD_BEFORE_NFL_DRAFT"
+      ]
+    },
+    "feasibility": {
+      "status": "NEEDS_IDENTITY",
+      "estimated_candidates": 0,
+      "reason": "Identity bridge is mostly AUTO_HIGH, not verified enough for production.",
+      "missing": [
+        {
+          "capability": "CFB_AWARD_BEFORE_NFL_DRAFT",
+          "notes": "Identity bridge is mostly AUTO_HIGH, not verified enough for production."
+        }
+      ],
+      "supported_capabilities": []
+    },
+    "examples": []
+  }
+]

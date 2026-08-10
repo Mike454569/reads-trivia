@@ -1,0 +1,27 @@
+{
+  "database_version": "2.0.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "identity_bridge_links": 3534,
+  "live_feeds_configured": 6,
+  "production_safe_live_feeds": 5,
+  "event_game_rules": 5,
+  "daily_slate_templates": 1,
+  "live_runtime_events_in_clean_release": 0,
+  "notification_outbox_in_clean_release": 0,
+  "foreign_key_errors": [],
+  "integrity_check": "ok",
+  "compile": {
+    "live_intelligence.py": "OK",
+    "live_admin_api.py": "OK",
+    "update_everything.py": "OK",
+    "update_cfb.py": "OK",
+    "fetch_nflverse_current.py": "OK",
+    "game_factory.py": "OK",
+    "retention_engine.py": "OK",
+    "community_engine.py": "OK",
+    "retention_api.py": "OK",
+    "community_api.py": "OK",
+    "api_server.py": "OK"
+  }
+}

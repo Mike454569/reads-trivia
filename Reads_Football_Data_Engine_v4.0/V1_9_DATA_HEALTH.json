@@ -1,0 +1,20 @@
+{
+  "database_version": "1.9.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "identity_bridge_links": 3534,
+  "community_games_in_clean_release": 0,
+  "creator_profiles_in_clean_release": 0,
+  "community_tables": 14,
+  "community_views": 2,
+  "foreign_key_errors": [],
+  "integrity_check": "ok",
+  "compile": {
+    "community_engine.py": "OK",
+    "community_api.py": "OK",
+    "retention_engine.py": "OK",
+    "retention_api.py": "OK",
+    "game_factory.py": "OK",
+    "api_server.py": "OK"
+  }
+}

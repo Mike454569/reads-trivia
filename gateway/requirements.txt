@@ -1,0 +1,10 @@
+# Reads Engine Gateway -- dependencies (Director v0.6, Part B).
+# Minimal on purpose: one web framework, its ASGI server, and its own
+# validation library (pydantic ships with FastAPI but pinning it explicitly
+# documents that this Gateway depends on it directly for gateway/models.py).
+# httpx is test-only (gateway/tests/, drives the app in-process via
+# FastAPI's TestClient) -- not imported by any runtime route/service code.
+fastapi==0.128.8
+uvicorn==0.39.0
+pydantic==2.13.4
+httpx==0.28.1

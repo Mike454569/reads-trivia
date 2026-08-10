@@ -1,0 +1,51 @@
+{
+  "seed": "reads-quiz-engine-qb-pilot-v1",
+  "target_count": 100,
+  "safety": {
+    "source_id": "NFLVERSE_DATA",
+    "source_name": "nflverse-data",
+    "approved_for_import": true,
+    "qb_team_seasons_total_rows": 1587,
+    "qb_team_seasons_verified_rows": 1587
+  },
+  "considered": 1587,
+  "rejected_counts": {
+    "NO_ENGINE_DIFFICULTY_AVAILABLE": 264,
+    "DUPLICATE_PLAYER": 1003,
+    "UNRESOLVED_QB_IDENTITY": 49,
+    "TEAM_UNRESOLVED": 5,
+    "MULTIPLE_PLAUSIBLE_ANSWERS_MIDSEASON_TRADE": 20
+  },
+  "total_rejected": 1341,
+  "accepted_total": 246,
+  "exported_count": 100,
+  "accepted_but_not_exported": 146,
+  "shortfall_reason": null,
+  "category_distribution": {
+    "Passing Records & QB Trivia": 100
+  },
+  "difficulty_distribution": {
+    "Medium": 30,
+    "Hard": 44,
+    "Easy": 26
+  },
+  "min_season": 1999,
+  "max_season": 2025,
+  "unique_franchises": 31,
+  "unique_qbs": 100,
+  "dup_questions": [],
+  "dup_players": [],
+  "dup_ids": [],
+  "contract_failures": [],
+  "contract_passed": true,
+  "identity_inconsistent_qb_ids_excluded": [
+    "00-0017200",
+    "00-0033869",
+    "00-0034577",
+    "00-0035228",
+    "00-0035289",
+    "00-0036355",
+    "00-0039917"
+  ],
+  "multi_team_season_pairs_excluded": 10
+}

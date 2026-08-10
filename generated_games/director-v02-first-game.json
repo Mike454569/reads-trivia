@@ -1,0 +1,815 @@
+{
+  "package_id": "GGP:6ac320511504137aa85ab63b",
+  "package_version": "0.2",
+  "requested_description": "Make a guessing game where I see an NFL player and have to guess which NFL team drafted him.",
+  "director_request_id": "GDR2:e233ad8b8a54549c5ceac3ad",
+  "parsed_spec": {
+    "competition_id": "NFL",
+    "mechanic": "guess",
+    "entity_type": "nfl_player",
+    "relationship_predicate": "DRAFTED_BY",
+    "object_type": "team",
+    "answer_type": "team",
+    "group_size": 4,
+    "filters": {}
+  },
+  "mechanic": "guess",
+  "game_title": "NFL Draft History: Guess the Team",
+  "game_instructions": "You'll be shown a fact from NFL Draft History. Pick the correct team from four options.",
+  "generated_at": "2026-08-09T19:33:11.163602+00:00",
+  "engine_version": {
+    "db_path": "/Users/micahnichols/Downloads/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite",
+    "database_version": "4.0.0",
+    "draft_facts_row_count": 12253,
+    "team_aliases_row_count": 37
+  },
+  "source_domains": [
+    "NFL_DRAFT"
+  ],
+  "production_safety": {
+    "domain_id": "NFL_DRAFT",
+    "competition_id": "NFL",
+    "dataset_name": "draft/player seed",
+    "coverage_start": 1980,
+    "coverage_end": 2024,
+    "completeness": "HISTORICAL_COMPLETE_FOR_SOURCE_RANGE",
+    "production_safe": true,
+    "source_id": "NFLVERSE_DATA",
+    "source_name": "nflverse-data",
+    "approved_for_import": true
+  },
+  "qa_status": "PASSED",
+  "qa_checks_performed": [
+    "translator.translate() -> structured TranslationResult (LLM or deterministic mock, never trusted -- see below)",
+    "validator.validate_translation() -- exact key-set check (rejects any extra/injected field)",
+    "validator: mechanic/domain/relationship_predicate/difficulty checked against a hardcoded allowlist",
+    "validator: question_count bounds check (schema-level and capability-specific)",
+    "validator: filters/exclusions must be empty (no registered capability supports either yet)",
+    "registry.lookup() -- (mechanic, domain, predicate) must be a previously-proven, registered capability",
+    "game_director.interpret() -> game_factory.feasibility() must be SUPPORTED",
+    "spec.mechanic must be 'guess' (only mechanic with a Reads-renderable adapter today)",
+    "spec.relationship_predicate must be a registered, previously-proven adapter",
+    "adapter.safety_check() -- production-safety gate (data_coverage / row-level provenance)",
+    "game_factory.qa_candidate() -- Engine's own candidate QA (missing-answer, duplicate-label checks)",
+    "adapter row-level identity/provenance check (verification_status + approved source_id)",
+    "season-aware franchise/team identity resolution (team_aliases, including the Pilot #1 safe-fix corrections)",
+    "distractor construction restricted to real, season-matched Engine data (never arbitrary names)",
+    "duplicate-entity guard (no player repeated within one package)",
+    "duplicate-question guard",
+    "contract validation: exactly 4 unique options",
+    "contract validation: correctIndex points at the verified correct answer",
+    "contract validation: category is an existing Reads Quiz category",
+    "contract validation: difficulty in {Easy, Medium, Hard}",
+    "contract validation: notes is a string (never invented flavor text)",
+    "duplicate-ID check across the exported package"
+  ],
+  "difficulty_distribution": {
+    "Hard": 13,
+    "Medium": 12
+  },
+  "question_count": 25,
+  "questions": [
+    {
+      "id": 610000,
+      "question": "Which NFL team drafted Stuart Schweigert?",
+      "options": [
+        "Miami Dolphins",
+        "Houston Texans",
+        "Philadelphia Eagles",
+        "Oakland Raiders"
+      ],
+      "correctIndex": 3,
+      "answer": "Oakland Raiders",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:SchwSt20",
+        "draft_team_code": "OAK",
+        "draft_season": 2004,
+        "franchise_id": "FR_LV"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5587,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610001,
+      "question": "Which NFL team drafted Pharoh Cooper?",
+      "options": [
+        "Los Angeles Rams",
+        "Cincinnati Bengals",
+        "San Diego Chargers",
+        "Carolina Panthers"
+      ],
+      "correctIndex": 0,
+      "answer": "Los Angeles Rams",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:CoopPh00",
+        "draft_team_code": "LA",
+        "draft_season": 2016,
+        "franchise_id": "FR_LAR"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4747,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610002,
+      "question": "Which NFL team drafted Channing Crowder?",
+      "options": [
+        "Green Bay Packers",
+        "San Diego Chargers",
+        "Miami Dolphins",
+        "Washington Redskins"
+      ],
+      "correctIndex": 2,
+      "answer": "Miami Dolphins",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:CrowCh20",
+        "draft_team_code": "MIA",
+        "draft_season": 2005,
+        "franchise_id": "FR_MIA"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.6147,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610003,
+      "question": "Which NFL team drafted Kyren Williams?",
+      "options": [
+        "Kansas City Chiefs",
+        "Chicago Bears",
+        "Los Angeles Rams",
+        "Buffalo Bills"
+      ],
+      "correctIndex": 2,
+      "answer": "Los Angeles Rams",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:WillKy02",
+        "draft_team_code": "LA",
+        "draft_season": 2022,
+        "franchise_id": "FR_LAR"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4607,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610004,
+      "question": "Which NFL team drafted Joe Staley?",
+      "options": [
+        "San Francisco 49ers",
+        "Baltimore Ravens",
+        "Green Bay Packers",
+        "Detroit Lions"
+      ],
+      "correctIndex": 0,
+      "answer": "San Francisco 49ers",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:StalJo20",
+        "draft_team_code": "SF",
+        "draft_season": 2007,
+        "franchise_id": "FR_SF"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5447,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610005,
+      "question": "Which NFL team drafted Carl Lawson?",
+      "options": [
+        "New York Giants",
+        "Miami Dolphins",
+        "Cincinnati Bengals",
+        "Los Angeles Chargers"
+      ],
+      "correctIndex": 2,
+      "answer": "Cincinnati Bengals",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:LawsCa00",
+        "draft_team_code": "CIN",
+        "draft_season": 2017,
+        "franchise_id": "FR_CIN"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5027,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610006,
+      "question": "Which NFL team drafted Calvin Murray?",
+      "options": [
+        "Chicago Bears",
+        "Philadelphia Eagles",
+        "San Diego Chargers",
+        "Denver Broncos"
+      ],
+      "correctIndex": 1,
+      "answer": "Philadelphia Eagles",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:MurrCa20",
+        "draft_team_code": "PHI",
+        "draft_season": 1981,
+        "franchise_id": "FR_PHI"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.8247,
+        "difficulty_band": "EXPERT",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610007,
+      "question": "Which NFL team drafted Viliami Maumau?",
+      "options": [
+        "Carolina Panthers",
+        "Jacksonville Jaguars",
+        "Philadelphia Eagles",
+        "Chicago Bears"
+      ],
+      "correctIndex": 0,
+      "answer": "Carolina Panthers",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:MaumVi20",
+        "draft_team_code": "CAR",
+        "draft_season": 1998,
+        "franchise_id": "FR_CAR"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4327,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610008,
+      "question": "Which NFL team drafted Marco Wilson?",
+      "options": [
+        "Arizona Cardinals",
+        "Tampa Bay Buccaneers",
+        "San Francisco 49ers",
+        "New York Giants"
+      ],
+      "correctIndex": 0,
+      "answer": "Arizona Cardinals",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:WilsMa04",
+        "draft_team_code": "ARI",
+        "draft_season": 2021,
+        "franchise_id": "FR_ARI"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4327,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610009,
+      "question": "Which NFL team drafted Joseph Addai?",
+      "options": [
+        "Green Bay Packers",
+        "Indianapolis Colts",
+        "Seattle Seahawks",
+        "Jacksonville Jaguars"
+      ],
+      "correctIndex": 1,
+      "answer": "Indianapolis Colts",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:AddaJo00",
+        "draft_team_code": "IND",
+        "draft_season": 2006,
+        "franchise_id": "FR_IND"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4327,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610010,
+      "question": "Which NFL team drafted Keenan Burton?",
+      "options": [
+        "St Louis Rams",
+        "Cleveland Browns",
+        "Kansas City Chiefs",
+        "Green Bay Packers"
+      ],
+      "correctIndex": 0,
+      "answer": "St Louis Rams",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:BurtKe00",
+        "draft_team_code": "STL",
+        "draft_season": 2008,
+        "franchise_id": "FR_LAR"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5587,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610011,
+      "question": "Which NFL team drafted Vederian Lowe?",
+      "options": [
+        "Indianapolis Colts",
+        "Minnesota Vikings",
+        "Philadelphia Eagles",
+        "Baltimore Ravens"
+      ],
+      "correctIndex": 1,
+      "answer": "Minnesota Vikings",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:LoweVe00",
+        "draft_team_code": "MIN",
+        "draft_season": 2022,
+        "franchise_id": "FR_MIN"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4607,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610012,
+      "question": "Which NFL team drafted Jeff Lewis?",
+      "options": [
+        "St Louis Rams",
+        "Philadelphia Eagles",
+        "Oakland Raiders",
+        "Denver Broncos"
+      ],
+      "correctIndex": 3,
+      "answer": "Denver Broncos",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:LewiJe01",
+        "draft_team_code": "DEN",
+        "draft_season": 1996,
+        "franchise_id": "FR_DEN"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5167,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610013,
+      "question": "Which NFL team drafted Keith Bulluck?",
+      "options": [
+        "Cincinnati Bengals",
+        "Tennessee Titans",
+        "Detroit Lions",
+        "Buffalo Bills"
+      ],
+      "correctIndex": 1,
+      "answer": "Tennessee Titans",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:BullKe00",
+        "draft_team_code": "TEN",
+        "draft_season": 2000,
+        "franchise_id": "FR_TEN"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4327,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610014,
+      "question": "Which NFL team drafted Clyde Edwards-Helaire?",
+      "options": [
+        "Los Angeles Chargers",
+        "Cincinnati Bengals",
+        "Kansas City Chiefs",
+        "Tampa Bay Buccaneers"
+      ],
+      "correctIndex": 2,
+      "answer": "Kansas City Chiefs",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:EdwaCl00",
+        "draft_team_code": "KC",
+        "draft_season": 2020,
+        "franchise_id": "FR_KC"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4887,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610015,
+      "question": "Which NFL team drafted Jordan Morgan?",
+      "options": [
+        "Chicago Bears",
+        "Philadelphia Eagles",
+        "Atlanta Falcons",
+        "Buffalo Bills"
+      ],
+      "correctIndex": 0,
+      "answer": "Chicago Bears",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:MorgJo02",
+        "draft_team_code": "CHI",
+        "draft_season": 2017,
+        "franchise_id": "FR_CHI"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5307,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610016,
+      "question": "Which NFL team drafted Jerry Wunsch?",
+      "options": [
+        "New York Jets",
+        "Green Bay Packers",
+        "Tampa Bay Buccaneers",
+        "New Orleans Saints"
+      ],
+      "correctIndex": 2,
+      "answer": "Tampa Bay Buccaneers",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:WunsJe20",
+        "draft_team_code": "TB",
+        "draft_season": 1997,
+        "franchise_id": "FR_TB"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5447,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610017,
+      "question": "Which NFL team drafted Triandos Luke?",
+      "options": [
+        "Seattle Seahawks",
+        "Denver Broncos",
+        "New England Patriots",
+        "Cincinnati Bengals"
+      ],
+      "correctIndex": 1,
+      "answer": "Denver Broncos",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:LukeTr00",
+        "draft_team_code": "DEN",
+        "draft_season": 2004,
+        "franchise_id": "FR_DEN"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5027,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610018,
+      "question": "Which NFL team drafted Mark Behning?",
+      "options": [
+        "Pittsburgh Steelers",
+        "Chicago Bears",
+        "Dallas Cowboys",
+        "Denver Broncos"
+      ],
+      "correctIndex": 0,
+      "answer": "Pittsburgh Steelers",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:BehnMa20",
+        "draft_team_code": "PIT",
+        "draft_season": 1985,
+        "franchise_id": "FR_PIT"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4607,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610019,
+      "question": "Which NFL team drafted Scott Caldwell?",
+      "options": [
+        "Seattle Seahawks",
+        "Tampa Bay Buccaneers",
+        "Detroit Lions",
+        "Indianapolis Colts"
+      ],
+      "correctIndex": 2,
+      "answer": "Detroit Lions",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:CaldSc20",
+        "draft_team_code": "DET",
+        "draft_season": 1985,
+        "franchise_id": "FR_DET"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.6987,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610020,
+      "question": "Which NFL team drafted Jonathan Babineaux?",
+      "options": [
+        "Atlanta Falcons",
+        "Carolina Panthers",
+        "Miami Dolphins",
+        "Houston Texans"
+      ],
+      "correctIndex": 0,
+      "answer": "Atlanta Falcons",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:BabiJo20",
+        "draft_team_code": "ATL",
+        "draft_season": 2005,
+        "franchise_id": "FR_ATL"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5167,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610021,
+      "question": "Which NFL team drafted Paris Johnson Jr.?",
+      "options": [
+        "Kansas City Chiefs",
+        "Arizona Cardinals",
+        "Cincinnati Bengals",
+        "Pittsburgh Steelers"
+      ],
+      "correctIndex": 1,
+      "answer": "Arizona Cardinals",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:JohnPa03",
+        "draft_team_code": "ARI",
+        "draft_season": 2023,
+        "franchise_id": "FR_ARI"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4467,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610022,
+      "question": "Which NFL team drafted Kerry Porter?",
+      "options": [
+        "Buffalo Bills",
+        "New England Patriots",
+        "Cleveland Browns",
+        "Miami Dolphins"
+      ],
+      "correctIndex": 0,
+      "answer": "Buffalo Bills",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:PortKe20",
+        "draft_team_code": "BUF",
+        "draft_season": 1987,
+        "franchise_id": "FR_BUF"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4747,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610023,
+      "question": "Which NFL team drafted Julian Peterson?",
+      "options": [
+        "Denver Broncos",
+        "San Francisco 49ers",
+        "Atlanta Falcons",
+        "Cincinnati Bengals"
+      ],
+      "correctIndex": 1,
+      "answer": "San Francisco 49ers",
+      "category": "NFL Draft History",
+      "difficulty": "Hard",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:PeteJu00",
+        "draft_team_code": "SF",
+        "draft_season": 2000,
+        "franchise_id": "FR_SF"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.5027,
+        "difficulty_band": "HARD",
+        "engine_qa_issues": []
+      }
+    },
+    {
+      "id": 610024,
+      "question": "Which NFL team drafted Trae Williams?",
+      "options": [
+        "Jacksonville Jaguars",
+        "New York Jets",
+        "Tampa Bay Buccaneers",
+        "Carolina Panthers"
+      ],
+      "correctIndex": 0,
+      "answer": "Jacksonville Jaguars",
+      "category": "NFL Draft History",
+      "difficulty": "Medium",
+      "notes": "",
+      "source_ids": {
+        "player_key": "PFR:WillTr97",
+        "draft_team_code": "JAX",
+        "draft_season": 2008,
+        "franchise_id": "FR_JAX"
+      },
+      "provenance": {
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "difficulty_score": 0.4747,
+        "difficulty_band": "MEDIUM",
+        "engine_qa_issues": []
+      }
+    }
+  ],
+  "funnel": {
+    "considered": 500,
+    "rejected_counts": {
+      "TEAM_UNRESOLVED": 63,
+      "DUPLICATE_PLAYER": 14
+    },
+    "accepted_total": 423,
+    "exported_count": 25,
+    "target_count": 25,
+    "shortfall_reason": null
+  },
+  "review_status": "UNREVIEWED",
+  "_diagnostics": {
+    "contract_failures": [],
+    "dup_questions": [],
+    "dup_ids": [],
+    "seed": "director-v02-drafted-by-guess"
+  },
+  "director_spec": {
+    "mechanic": "guess",
+    "domain": "NFL_DRAFT",
+    "relationship_predicate": "DRAFTED_BY",
+    "question_count": 25,
+    "difficulty": "any",
+    "filters": {},
+    "exclusions": []
+  },
+  "translator": {
+    "raw_request_text": "Make a guessing game where I see an NFL player and have to guess which NFL team drafted him.",
+    "translator_id": "mock-deterministic-v1",
+    "translation_status": "TRANSLATED",
+    "spec": {
+      "mechanic": "guess",
+      "domain": "NFL_DRAFT",
+      "relationship_predicate": "DRAFTED_BY",
+      "question_count": 25,
+      "difficulty": "any",
+      "filters": {},
+      "exclusions": []
+    },
+    "translator_notes": "Matched player + drafted/picked + team/franchise keywords -> DRAFTED_BY guess capability."
+  }
+}

@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Reads Quality Command Center</title>
+<style>body{font-family:system-ui;background:#f5f7fa;color:#142033;margin:0}header{background:#0b1f33;color:white;padding:26px 34px}main{max-width:1100px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:white;border:1px solid #dce5ee;border-radius:14px;padding:17px}button{padding:10px 13px;border:0;border-radius:8px;background:#163a5f;color:white;font-weight:700}pre{background:#101820;color:#eaf2f8;padding:16px;border-radius:12px;min-height:260px;overflow:auto}</style></head>
+<body><header><h1>Reads Quality Command Center v2.3</h1><div>Truth • Puzzle QA • Coverage • Knowledge Graph • Release Certification</div></header>
+<main><div class="grid">
+<div class="card"><h3>Reads Health</h3><p>Combined truth, quality, coverage, live, growth and infrastructure score.</p><button onclick="get('/v2.3/health')">Health</button></div>
+<div class="card"><h3>Full Audit</h3><p>Rebuild graph, truth claims, puzzle QA, coverage and opportunities.</p><button onclick="post('/v2.3/audit',{})">Run audit</button></div>
+<div class="card"><h3>Daily Certification</h3><p>PASS/HOLD every Daily slot before publication.</p><button onclick="out.textContent='POST /v2.3/daily/certify {date}'">Endpoint</button></div>
+<div class="card"><h3>Knowledge Graph</h3><p>Traverse verified football relationships.</p><button onclick="out.textContent='GET /v2.3/graph/query?type=...&id=...&predicate=...'">Endpoint</button></div>
+</div><h2>Response</h2><pre id="out">Run quality_api.py on port 8795.</pre></main>
+<script>const out=document.getElementById('out');async function get(p){let r=await fetch('http://127.0.0.1:8795'+p);out.textContent=JSON.stringify(await r.json(),null,2)}async function post(p,d){let r=await fetch('http://127.0.0.1:8795'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});out.textContent=JSON.stringify(await r.json(),null,2)}</script></body></html>

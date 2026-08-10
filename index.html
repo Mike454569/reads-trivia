@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#0c110d" />
 <title>Reads – NFL & CFB Football Trivia</title>
-<meta name="description" content="Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating." />
+<meta name="description" content="Free NFL and College Football trivia with 15 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, a Sleeper-style 17-0 fantasy draft, and X's &amp; O's (700 real scheme/strategy questions on formations, coverages, and blocking) — plus a live shared leaderboard and an adaptive Football Rating." />
 <meta name="author" content="Reads" />
 <link rel="canonical" href="https://reads.football/" />
 
@@ -22,13 +22,13 @@
 <meta property="og:site_name" content="Reads" />
 <meta property="og:url" content="https://reads.football/" />
 <meta property="og:title" content="Reads – NFL & CFB Football Trivia" />
-<meta property="og:description" content="12 game modes across NFL and College Football trivia — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft. Live shared leaderboard, adaptive Football Rating." />
+<meta property="og:description" content="15 game modes across NFL and College Football trivia — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, a Sleeper-style 17-0 fantasy draft, and X's &amp; O's scheme/strategy trivia. Live shared leaderboard, adaptive Football Rating." />
 <meta property="og:image" content="https://reads.football/assets/brand/reads-logo-square.jpg" />
 <meta property="og:image:alt" content="Reads — NFL & CFB Football Trivia logo" />
 
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Reads – NFL & CFB Football Trivia" />
-<meta name="twitter:description" content="12 game modes across NFL and College Football trivia, a live shared leaderboard, and an adaptive Football Rating." />
+<meta name="twitter:description" content="15 game modes across NFL and College Football trivia — including X's &amp; O's scheme/strategy trivia — a live shared leaderboard, and an adaptive Football Rating." />
 <meta name="twitter:image" content="https://reads.football/assets/brand/reads-logo-square.jpg" />
 
 <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png" />
@@ -55,7 +55,7 @@
   "name": "Reads",
   "alternateName": "Reads – NFL & CFB Football Trivia",
   "url": "https://reads.football/",
-  "description": "Free NFL and College Football trivia with 12 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, and a Sleeper-style 17-0 fantasy draft — plus a live shared leaderboard and an adaptive Football Rating.",
+  "description": "Free NFL and College Football trivia with 15 game modes — Immaculate Grid, Quiz, Blitz, Speed Round, Silhouette, IQ Test, a Sleeper-style 17-0 fantasy draft, and X's & O's (700 real scheme/strategy questions on formations, coverages, and blocking) — plus a live shared leaderboard and an adaptive Football Rating.",
   "applicationCategory": "GameApplication",
   "operatingSystem": "Any (runs in any modern web browser)",
   "image": "https://reads.football/assets/brand/reads-logo-square.jpg",
@@ -216,7 +216,7 @@
   <main id="app" tabindex="-1">
     <div class="hero">
       <img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />
-      <h1 class="hero-tagline">NFL &amp; College Football trivia, 12 ways to play.</h1>
+      <h1 class="hero-tagline">NFL &amp; College Football trivia, 15 ways to play.</h1>
       <p>One adaptive Football Rating tracks how good you actually are — across every mode, every device. Free to play, no account required, live cross-device leaderboard.</p>
     </div>
     <section>
@@ -229,6 +229,7 @@
         <li class="mode-card"><b class="mode-title">NFL Silhouette</b><p class="mode-desc">Guess the player from a silhouette and a ladder of clues.</p></li>
         <li class="mode-card"><b class="mode-title">NFL IQ Test</b><p class="mode-desc">25 questions, no feedback until the end — get a Football IQ score.</p></li>
         <li class="mode-card"><b class="mode-title">17-0</b><p class="mode-desc">Draft a 7-player team from real players' real seasons and see if it grades out perfect.</p></li>
+        <li class="mode-card"><b class="mode-title">Higher or Lower</b><p class="mode-desc">Two real players (or contracts, or stadiums), one real stat — guess higher or lower and build a streak.</p></li>
       </ul>
     </section>
     <section>
@@ -240,6 +241,12 @@
         <li class="mode-card"><b class="mode-title">CFB Speed Round</b><p class="mode-desc">Rapid-fire college football multiple choice against the clock.</p></li>
         <li class="mode-card"><b class="mode-title">College Football IQ Test</b><p class="mode-desc">The IQ Test format, college edition.</p></li>
         <li class="mode-card"><b class="mode-title">CFB 12-0</b><p class="mode-desc">Draft an 8-player college roster and see how your 12-game regular season plays out — and where it lands you in the postseason.</p></li>
+      </ul>
+    </section>
+    <section>
+      <h2 class="mode-section-title">X's &amp; O's</h2>
+      <ul class="mode-grid" style="list-style:none;padding:0;">
+        <li class="mode-card"><b class="mode-title">X's &amp; O's</b><p class="mode-desc">700 questions on real scheme and strategy — formations, coverages, blocking, route concepts, and more. Not history or trivia, the actual X's and O's of how the game is played.</p></li>
       </ul>
     </section>
   </main>
@@ -260,9 +267,27 @@
        cfb-grid — loads lazily on first entry into its mode; see
        MODE_DATA_FILES / loadScript() / goToMode() in app.js. -->
   <script src="data/quiz.js"></script>
+  <script src="data/quiz-engine-draft-production.js"></script>
+  <!-- Director v0.5 local-only prototype: Player From Clues. Reachable only via
+       the hidden #clues route behind ENABLE_PLAYER_FROM_CLUES_V01 in app.js — not
+       part of the production nav/home mode grid. See
+       PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md. -->
+  <script src="data/player-from-clues-v01.js"></script>
+  <!-- Director v0.6 Gateway dev-loop only (Part O) -- inert (null) unless
+       tools/gateway_dev_client.py has been run against a local Gateway AND
+       ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 is turned on in app.js.
+       Never the production data source. -->
+  <script src="data/player-from-clues-gateway-dev.js"></script>
   <script src="data/cfb.js"></script>
   <script src="sound.js"></script>
   <script src="app.js"></script>
+  <!-- TEMPORARY: local-only Engine Draft playtest logger. No network calls, no
+       visible UI, no effect on gameplay. Delete this line + playtest-engine-draft.js
+       once playtesting the 100 Engine Draft questions is done. -->
+  <script src="playtest-engine-draft.js"></script>
+  <!-- TEMPORARY: local-only Player From Clues playtest logger, same pattern as
+       playtest-engine-draft.js above. No network calls, no visible UI. -->
+  <script src="playtest-player-from-clues.js"></script>
   <script type="module" src="firebase-sync.js"></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "description": "Four NFL players drafted by the same team",
+  "competition_id": "NFL",
+  "mechanic": "connections",
+  "entity_type": "nfl_player",
+  "relationship_predicate": "DRAFTED_BY",
+  "object_type": "team",
+  "answer_type": "team",
+  "group_size": 4,
+  "filters": {
+    "season_min": 2000,
+    "position": null
+  },
+  "difficulty": {"min": 0.2, "max": 0.8}
+}

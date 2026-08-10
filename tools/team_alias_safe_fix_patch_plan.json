@@ -1,0 +1,460 @@
+{
+  "generated": "2026-08-09",
+  "source": "TEAM_ALIAS_GAP_ANALYSIS.md, SAFE_FIX_AVAILABLE classification only",
+  "seed_used_for_recovery_estimate": "reads-quiz-engine-pilot-v1",
+  "candidate_sample_size": 500,
+  "total_codes": 30,
+  "total_v1_sample_candidates_expected_recoverable": 197,
+  "changes": [
+    {
+      "team_code": "ARI",
+      "franchise_id": "FR_ARI",
+      "current_season_start": 2002,
+      "proposed_season_start": 1994,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Arizona Cardinals",
+      "recovered_candidates_in_v1_sample": 1,
+      "draft_facts_observed_range": [
+        1994,
+        2024
+      ],
+      "draft_facts_row_count": 243,
+      "evidence": "draft_facts shows 243 rows for code ARI, seasons 1994-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_ARI (\"Arizona Cardinals\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code ARI at any season in team_aliases."
+    },
+    {
+      "team_code": "ATL",
+      "franchise_id": "FR_ATL",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Atlanta Falcons",
+      "recovered_candidates_in_v1_sample": 5,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 385,
+      "evidence": "draft_facts shows 385 rows for code ATL, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_ATL (\"Atlanta Falcons\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code ATL at any season in team_aliases."
+    },
+    {
+      "team_code": "BUF",
+      "franchise_id": "FR_BUF",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Buffalo Bills",
+      "recovered_candidates_in_v1_sample": 10,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 420,
+      "evidence": "draft_facts shows 420 rows for code BUF, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_BUF (\"Buffalo Bills\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code BUF at any season in team_aliases."
+    },
+    {
+      "team_code": "CAR",
+      "franchise_id": "FR_CAR",
+      "current_season_start": 2002,
+      "proposed_season_start": 1995,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Carolina Panthers",
+      "recovered_candidates_in_v1_sample": 4,
+      "draft_facts_observed_range": [
+        1995,
+        2024
+      ],
+      "draft_facts_row_count": 222,
+      "evidence": "draft_facts shows 222 rows for code CAR, seasons 1995-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_CAR (\"Carolina Panthers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code CAR at any season in team_aliases."
+    },
+    {
+      "team_code": "CHI",
+      "franchise_id": "FR_CHI",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Chicago Bears",
+      "recovered_candidates_in_v1_sample": 5,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 406,
+      "evidence": "draft_facts shows 406 rows for code CHI, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_CHI (\"Chicago Bears\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code CHI at any season in team_aliases."
+    },
+    {
+      "team_code": "CIN",
+      "franchise_id": "FR_CIN",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Cincinnati Bengals",
+      "recovered_candidates_in_v1_sample": 5,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 446,
+      "evidence": "draft_facts shows 446 rows for code CIN, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_CIN (\"Cincinnati Bengals\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code CIN at any season in team_aliases."
+    },
+    {
+      "team_code": "CLE",
+      "franchise_id": "FR_CLE",
+      "current_season_start": 2002,
+      "proposed_season_start": 1984,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Cleveland Browns",
+      "recovered_candidates_in_v1_sample": 8,
+      "draft_facts_observed_range": [
+        1984,
+        2024
+      ],
+      "draft_facts_row_count": 319,
+      "evidence": "draft_facts shows 319 rows for code CLE, seasons 1984-2024 (gap at [(1995, 1999)]). team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_CLE (\"Cleveland Browns\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code CLE at any season in team_aliases."
+    },
+    {
+      "team_code": "DAL",
+      "franchise_id": "FR_DAL",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Dallas Cowboys",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 433,
+      "evidence": "draft_facts shows 433 rows for code DAL, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_DAL (\"Dallas Cowboys\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code DAL at any season in team_aliases."
+    },
+    {
+      "team_code": "DEN",
+      "franchise_id": "FR_DEN",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Denver Broncos",
+      "recovered_candidates_in_v1_sample": 5,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 395,
+      "evidence": "draft_facts shows 395 rows for code DEN, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_DEN (\"Denver Broncos\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code DEN at any season in team_aliases."
+    },
+    {
+      "team_code": "DET",
+      "franchise_id": "FR_DET",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Detroit Lions",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 393,
+      "evidence": "draft_facts shows 393 rows for code DET, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_DET (\"Detroit Lions\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code DET at any season in team_aliases."
+    },
+    {
+      "team_code": "GB",
+      "franchise_id": "FR_GB",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Green Bay Packers",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 445,
+      "evidence": "draft_facts shows 445 rows for code GB, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_GB (\"Green Bay Packers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code GB at any season in team_aliases."
+    },
+    {
+      "team_code": "IND",
+      "franchise_id": "FR_IND",
+      "current_season_start": 2002,
+      "proposed_season_start": 1984,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Indianapolis Colts",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1984,
+        2024
+      ],
+      "draft_facts_row_count": 354,
+      "evidence": "draft_facts shows 354 rows for code IND, seasons 1984-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_IND (\"Indianapolis Colts\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code IND at any season in team_aliases."
+    },
+    {
+      "team_code": "JAX",
+      "franchise_id": "FR_JAX",
+      "current_season_start": 2002,
+      "proposed_season_start": 1995,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Jacksonville Jaguars",
+      "recovered_candidates_in_v1_sample": 5,
+      "draft_facts_observed_range": [
+        1995,
+        2024
+      ],
+      "draft_facts_row_count": 243,
+      "evidence": "draft_facts shows 243 rows for code JAX, seasons 1995-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_JAX (\"Jacksonville Jaguars\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code JAX at any season in team_aliases."
+    },
+    {
+      "team_code": "KC",
+      "franchise_id": "FR_KC",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Kansas City Chiefs",
+      "recovered_candidates_in_v1_sample": 7,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 388,
+      "evidence": "draft_facts shows 388 rows for code KC, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_KC (\"Kansas City Chiefs\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code KC at any season in team_aliases."
+    },
+    {
+      "team_code": "MIA",
+      "franchise_id": "FR_MIA",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Miami Dolphins",
+      "recovered_candidates_in_v1_sample": 12,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 410,
+      "evidence": "draft_facts shows 410 rows for code MIA, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_MIA (\"Miami Dolphins\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code MIA at any season in team_aliases."
+    },
+    {
+      "team_code": "MIN",
+      "franchise_id": "FR_MIN",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Minnesota Vikings",
+      "recovered_candidates_in_v1_sample": 7,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 413,
+      "evidence": "draft_facts shows 413 rows for code MIN, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_MIN (\"Minnesota Vikings\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code MIN at any season in team_aliases."
+    },
+    {
+      "team_code": "NE",
+      "franchise_id": "FR_NE",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "New England Patriots",
+      "recovered_candidates_in_v1_sample": 10,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 456,
+      "evidence": "draft_facts shows 456 rows for code NE, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_NE (\"New England Patriots\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code NE at any season in team_aliases."
+    },
+    {
+      "team_code": "NO",
+      "franchise_id": "FR_NO",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "New Orleans Saints",
+      "recovered_candidates_in_v1_sample": 12,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 353,
+      "evidence": "draft_facts shows 353 rows for code NO, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_NO (\"New Orleans Saints\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code NO at any season in team_aliases."
+    },
+    {
+      "team_code": "NYG",
+      "franchise_id": "FR_NYG",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "New York Giants",
+      "recovered_candidates_in_v1_sample": 3,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 399,
+      "evidence": "draft_facts shows 399 rows for code NYG, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_NYG (\"New York Giants\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code NYG at any season in team_aliases."
+    },
+    {
+      "team_code": "NYJ",
+      "franchise_id": "FR_NYJ",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "New York Jets",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 398,
+      "evidence": "draft_facts shows 398 rows for code NYJ, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_NYJ (\"New York Jets\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code NYJ at any season in team_aliases."
+    },
+    {
+      "team_code": "OAK",
+      "franchise_id": "FR_LV",
+      "current_season_start": 2002,
+      "proposed_season_start": 1995,
+      "existing_season_end": 2019,
+      "current_full_name_of_row_being_widened": "Oakland Raiders",
+      "recovered_candidates_in_v1_sample": 8,
+      "draft_facts_observed_range": [
+        1995,
+        2019
+      ],
+      "draft_facts_row_count": 198,
+      "evidence": "draft_facts shows 198 rows for code OAK, seasons 1995-2019, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_LV (\"Oakland Raiders\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code OAK at any season in team_aliases."
+    },
+    {
+      "team_code": "PHI",
+      "franchise_id": "FR_PHI",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Philadelphia Eagles",
+      "recovered_candidates_in_v1_sample": 8,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 405,
+      "evidence": "draft_facts shows 405 rows for code PHI, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_PHI (\"Philadelphia Eagles\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code PHI at any season in team_aliases."
+    },
+    {
+      "team_code": "PIT",
+      "franchise_id": "FR_PIT",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Pittsburgh Steelers",
+      "recovered_candidates_in_v1_sample": 9,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 432,
+      "evidence": "draft_facts shows 432 rows for code PIT, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_PIT (\"Pittsburgh Steelers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code PIT at any season in team_aliases."
+    },
+    {
+      "team_code": "SD",
+      "franchise_id": "FR_LAC",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2016,
+      "current_full_name_of_row_being_widened": "San Diego Chargers",
+      "recovered_candidates_in_v1_sample": 7,
+      "draft_facts_observed_range": [
+        1980,
+        2016
+      ],
+      "draft_facts_row_count": 340,
+      "evidence": "draft_facts shows 340 rows for code SD, seasons 1980-2016, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_LAC (\"San Diego Chargers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code SD at any season in team_aliases."
+    },
+    {
+      "team_code": "SEA",
+      "franchise_id": "FR_SEA",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Seattle Seahawks",
+      "recovered_candidates_in_v1_sample": 11,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 404,
+      "evidence": "draft_facts shows 404 rows for code SEA, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_SEA (\"Seattle Seahawks\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code SEA at any season in team_aliases."
+    },
+    {
+      "team_code": "SF",
+      "franchise_id": "FR_SF",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "San Francisco 49ers",
+      "recovered_candidates_in_v1_sample": 6,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 391,
+      "evidence": "draft_facts shows 391 rows for code SF, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_SF (\"San Francisco 49ers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code SF at any season in team_aliases."
+    },
+    {
+      "team_code": "STL",
+      "franchise_id": "FR_LAR",
+      "current_season_start": 2002,
+      "proposed_season_start": 1995,
+      "existing_season_end": 2015,
+      "current_full_name_of_row_being_widened": "St Louis Rams",
+      "recovered_candidates_in_v1_sample": 3,
+      "draft_facts_observed_range": [
+        1995,
+        2015
+      ],
+      "draft_facts_row_count": 183,
+      "evidence": "draft_facts shows 183 rows for code STL, seasons 1995-2015, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_LAR (\"St Louis Rams\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code STL at any season in team_aliases."
+    },
+    {
+      "team_code": "TB",
+      "franchise_id": "FR_TB",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Tampa Bay Buccaneers",
+      "recovered_candidates_in_v1_sample": 4,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 401,
+      "evidence": "draft_facts shows 401 rows for code TB, seasons 1980-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_TB (\"Tampa Bay Buccaneers\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code TB at any season in team_aliases."
+    },
+    {
+      "team_code": "TEN",
+      "franchise_id": "FR_TEN",
+      "current_season_start": 2002,
+      "proposed_season_start": 1997,
+      "existing_season_end": 2026,
+      "current_full_name_of_row_being_widened": "Tennessee Titans",
+      "recovered_candidates_in_v1_sample": 3,
+      "draft_facts_observed_range": [
+        1997,
+        2024
+      ],
+      "draft_facts_row_count": 231,
+      "evidence": "draft_facts shows 231 rows for code TEN, seasons 1997-2024, uninterrupted. team_aliases has 1 row(s) for this code, all mapping to franchise_id FR_TEN (\"Tennessee Titans\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code TEN at any season in team_aliases."
+    },
+    {
+      "team_code": "WAS",
+      "franchise_id": "FR_WAS",
+      "current_season_start": 2002,
+      "proposed_season_start": 1980,
+      "existing_season_end": 2019,
+      "current_full_name_of_row_being_widened": "Washington Redskins",
+      "recovered_candidates_in_v1_sample": 9,
+      "draft_facts_observed_range": [
+        1980,
+        2024
+      ],
+      "draft_facts_row_count": 379,
+      "evidence": "draft_facts shows 379 rows for code WAS, seasons 1980-2024, uninterrupted. team_aliases has 3 row(s) for this code, all mapping to franchise_id FR_WAS (\"Washington Redskins\" at the earliest window), and that franchise_id is not reachable via any other team_code in team_aliases. No other franchise_id claims code WAS at any season in team_aliases."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Reads Growth Engine</title>
+<style>body{font-family:system-ui;background:#f5f7fa;color:#132238;margin:0}header{background:#0b1f33;color:white;padding:26px 34px}main{max-width:1100px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{background:white;border:1px solid #dae3ec;border-radius:14px;padding:17px}button{background:#163a5f;color:white;border:0;border-radius:9px;padding:10px 13px;font-weight:700}pre{background:#101820;color:#edf5fb;padding:16px;border-radius:12px;min-height:220px;overflow:auto}</style></head>
+<body><header><h1>Reads Growth Engine v2.2</h1><div>SEO • Shares • Referrals • Creator Discovery • Experiments</div></header>
+<main><div class="grid">
+<div class="card"><h3>Growth metrics</h3><p>Share/referral/challenge activity for today.</p><button onclick="get('/v2.2/growth/metrics')">View</button></div>
+<div class="card"><h3>SEO page API</h3><p>Dynamic metadata, JSON-LD, internal links and playable trivia.</p><button onclick="out.textContent='GET /v2.2/seo/page?slug=...'">Endpoint</button></div>
+<div class="card"><h3>Daily share</h3><p>Spoiler-safe score cards with deep links.</p><button onclick="out.textContent='POST /v2.2/share/daily'">Endpoint</button></div>
+<div class="card"><h3>Referrals</h3><p>First-touch attribution and milestone rewards.</p><button onclick="out.textContent='POST /v2.2/referral'">Endpoint</button></div>
+</div><h2>Response</h2><pre id="out">Run growth_api.py on port 8794.</pre></main>
+<script>const out=document.getElementById('out');async function get(p){try{let r=await fetch('http://127.0.0.1:8794'+p);out.textContent=JSON.stringify(await r.json(),null,2)}catch(e){out.textContent=e}}</script></body></html>

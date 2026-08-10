@@ -1,0 +1,142 @@
+[
+  {
+    "season": 2004,
+    "rows": 3620,
+    "players": 3619,
+    "schools": 161,
+    "sha256": "194ac6bc6338c2aecc91a4984e8e5c8e8c6e2cef63c0371f3757cb84cb04f347"
+  },
+  {
+    "season": 2005,
+    "rows": 4146,
+    "players": 4145,
+    "schools": 171,
+    "sha256": "40ee619361d35a9cd0605eb2034f085fbe1e710cafa4e4522598ed8412596856"
+  },
+  {
+    "season": 2006,
+    "rows": 4367,
+    "players": 4366,
+    "schools": 181,
+    "sha256": "5874a329820ea9d636cb482bb188c78a566a64bc52fcc6a8cd7f4ab962365acc"
+  },
+  {
+    "season": 2007,
+    "rows": 4698,
+    "players": 4697,
+    "schools": 190,
+    "sha256": "01b54348281d58bf884515b59c9ff0545983100c12459db3d265052bf6d40e85"
+  },
+  {
+    "season": 2008,
+    "rows": 4798,
+    "players": 4798,
+    "schools": 193,
+    "sha256": "37bd23a614ebb366caffd4885562373924ae4b405de792eebbedbad11b8cf52f"
+  },
+  {
+    "season": 2009,
+    "rows": 6623,
+    "players": 6623,
+    "schools": 197,
+    "sha256": "b43fd81cac47dfa61cd31411fb8f4c2201d517e5d7d6f6dd6ba2d2b723102bbc"
+  },
+  {
+    "season": 2010,
+    "rows": 7033,
+    "players": 7033,
+    "schools": 200,
+    "sha256": "96834c1e30534c8bed08ee6373f628aa36ad124508633b610315b7ad42097f29"
+  },
+  {
+    "season": 2011,
+    "rows": 7135,
+    "players": 7135,
+    "schools": 204,
+    "sha256": "75ad2bbaf9f1a3ac83946eb79dd0631e3ddfa7f8c4b53e319ec81dc989c8ea6f"
+  },
+  {
+    "season": 2012,
+    "rows": 7616,
+    "players": 7613,
+    "schools": 208,
+    "sha256": "5451b340c5a0721d4ff3aabe76980737db6886ad4d475917290690e1788e6dd5"
+  },
+  {
+    "season": 2013,
+    "rows": 8401,
+    "players": 8398,
+    "schools": 216,
+    "sha256": "3597d89c9868d85e9dce8692447eb729146b463ad040101433886ebe84e051d6"
+  },
+  {
+    "season": 2014,
+    "rows": 9417,
+    "players": 9415,
+    "schools": 221,
+    "sha256": "3ccafecaa356d443d89d2504ce83c424b0ff96cee50b5e93c965382145f420a8"
+  },
+  {
+    "season": 2015,
+    "rows": 10514,
+    "players": 10511,
+    "schools": 224,
+    "sha256": "4e7d1a9911bb798d5efd59443af69b8672e2f00e200805c1aa41ad8cc6111190"
+  },
+  {
+    "season": 2016,
+    "rows": 14100,
+    "players": 14093,
+    "schools": 226,
+    "sha256": "acfc5983ce31f425e19f44ecce3c7534d1e31a22cbe5069704f95896c4a1d1af"
+  },
+  {
+    "season": 2017,
+    "rows": 14742,
+    "players": 14735,
+    "schools": 225,
+    "sha256": "a7a3d0e74b2b726717b6bc94250eadba68123e1c84b753445cfaeb549902f505"
+  },
+  {
+    "season": 2018,
+    "rows": 15720,
+    "players": 15713,
+    "schools": 228,
+    "sha256": "3fb1b6a01bdb90828ba0a97320a5083170c6750631fe0d18be762b561d1dcbfd"
+  },
+  {
+    "season": 2019,
+    "rows": 18227,
+    "players": 18226,
+    "schools": 217,
+    "sha256": "bdf6abeb919ec7b66e56d849e6a1fc5ada44d08ecffb932967cd9335e11c8888"
+  },
+  {
+    "season": 2020,
+    "rows": 16466,
+    "players": 16427,
+    "schools": 144,
+    "sha256": "204110f064da1152d3c0564d0768396a9e24406ad094f4f9a02d5bb29aa89b78"
+  },
+  {
+    "season": 2021,
+    "rows": 18700,
+    "players": 18503,
+    "schools": 227,
+    "sha256": "b788a2e32bbbbabf70f76cdbc16bb263df619ce6f8810f8d084d6a822ec0c188"
+  },
+  {
+    "season": 2022,
+    "rows": 30416,
+    "players": 30414,
+    "schools": 307,
+    "sha256": "79f7edd50be31daa975ce0ef5070dd81b4220d93e49614e24769e056cb892295"
+  },
+  {
+    "season": 2023,
+    "rows": 22467,
+    "players": 22466,
+    "schools": 304,
+    "sha256": "942614ce95e64a7ade69bf2fa25cbd042c931ca4cbc11c8acae0377158f40e47"
+  }
+]

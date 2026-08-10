@@ -1,0 +1,20 @@
+{
+  "compile": {
+    "identity_bridge_v16.py": "OK",
+    "rebuild_cross_league.py": "OK",
+    "fetch_nflverse_current.py": "OK",
+    "update_everything.py": "OK",
+    "game_factory.py": "OK",
+    "api_server.py": "OK",
+    "graph_explorer.py": "OK",
+    "player_explorer.py": "OK",
+    "league_game_engine.py": "OK",
+    "import_data.py": "OK",
+    "update_cfb.py": "OK"
+  },
+  "factory_smoke": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "ds_Football_Data_Engine_v1.6/game_factory.py\"\u001b[0m, line \u001b[35m335\u001b[0m, in \u001b[35mmain\u001b[0m\n    if a.cmd=='preview': out=\u001b[31mpreview\u001b[0m\u001b[1;31m(a.description,a.limit,a.seed)\u001b[0m\n                             \u001b[31m~~~~~~~\u001b[0m\u001b[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\u001b[0m\n  File \u001b[35m\"/mnt/data/Reads_Football_Data_Engine_v1.6/game_factory.py\"\u001b[0m, line \u001b[35m284\u001b[0m, in \u001b[35mpreview\u001b[0m\n    issues=qa_candidate(payload); eligible=0 if any(x['severity']=='ERROR' for x in issues) else 1\n  File \u001b[35m\"/mnt/data/Reads_Football_Data_Engine_v1.6/game_factory.py\"\u001b[0m, line \u001b[35m263\u001b[0m, in \u001b[35mqa_candidate\u001b[0m\n    issues=legacy.qa_candidate(payload)\n  File \u001b[35m\"/mnt/data/Reads_Football_Data_Engine_v1.6/game_factory_legacy.py\"\u001b[0m, line \u001b[35m292\u001b[0m, in \u001b[35mqa_candidate\u001b[0m\n    for x in payload.get(key,[]) or []: labels.append(norm(\u001b[1;31mx.get\u001b[0m(\"label\")))\n                                                           \u001b[1;31m^^^^^\u001b[0m\n\u001b[1;35mAttributeError\u001b[0m: \u001b[35m'str' object has no attribute 'get'\u001b[0m\n"
+  }
+}

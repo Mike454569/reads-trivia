@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reads Game Factory</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#152235;background:#f4f7fb}
+body{margin:0}.wrap{max-width:1180px;margin:auto;padding:28px}.hero{background:#0b1f33;color:white;border-radius:18px;padding:26px 28px;margin-bottom:20px}.hero h1{margin:0 0 6px}.hero p{opacity:.85;margin:0}.panel{background:white;border:1px solid #dce5ef;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 4px 16px rgba(10,30,50,.04)}
+textarea,input,select{width:100%;box-sizing:border-box;border:1px solid #cdd8e5;border-radius:10px;padding:12px;font:inherit}textarea{min-height:110px;resize:vertical}.row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;background:#163a5f;color:white}button.secondary{background:#eaf0f6;color:#163a5f}.status{padding:12px;border-radius:10px;background:#edf4fb;margin-top:12px;white-space:pre-wrap}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.card{border:1px solid #e0e7ef;border-radius:12px;padding:14px}.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8eff7;font-size:12px;font-weight:700}.good{background:#e7f6ed;color:#126a38}.bad{background:#fdebec;color:#a22b32}.muted{color:#65758a;font-size:13px}pre{overflow:auto;background:#0e1824;color:#e9f1f9;padding:14px;border-radius:10px;font-size:12px}
+</style></head><body><div class="wrap">
+<div class="hero"><h1>Reads Football — Game Factory</h1><p>Describe a game. The engine checks the data, generates candidates, QA-tests them, and publishes only what is supported.</p></div>
+<div class="panel"><h2>Describe a game</h2><textarea id="desc">Four NFL players drafted by the same team. What connects them?</textarea>
+<div class="row"><div><label class="muted">Mode ID when published</label><input id="mode" value="factory_draft_connections"></div><div><label class="muted">Preview count</label><input id="limit" type="number" value="12" min="1" max="100"></div><div><label class="muted">Seed</label><input id="seed" value="admin-preview"></div></div>
+<div class="actions"><button onclick="analyze()">Analyze</button><button onclick="preview()">Generate Preview</button><button class="secondary" onclick="publishMode()">Publish Preview Spec</button><button class="secondary" onclick="unpublishMode()">Unpublish Mode</button></div>
+<div id="status" class="status">Ready.</div></div>
+<div class="panel"><h2>Preview</h2><div id="cards" class="cards"></div></div>
+<div class="panel"><h2>Raw Factory response</h2><pre id="raw">{}</pre></div>
+</div>
+<script>
+let lastSpec=null; const API='http://127.0.0.1:8787';
+async function post(path,body){const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return await r.json()}
+function show(x){document.getElementById('raw').textContent=JSON.stringify(x,null,2);const f=x.feasibility||{};document.getElementById('status').textContent=`${f.status||x.status||'OK'} — ${f.reason||''}`;if(x.spec_id)lastSpec=x.spec_id}
+async function analyze(){show(await post('/factory/analyze',{description:desc.value}))}
+async function preview(){const x=await post('/factory/preview',{description:desc.value,limit:+limit.value,seed:seed.value});show(x);cards.innerHTML='';(x.preview||[]).forEach(p=>{let el=document.createElement('div');el.className='card';let y=p.payload;el.innerHTML=`<span class="tag ${p.difficulty_band==='EXPERT'?'bad':'good'}">${p.difficulty_band}</span><h3>${y.prompt||y.mechanic}</h3><div>${(y.items||y.left||[]).map(i=>'• '+i.label).join('<br>')}</div><p class="muted">Answer: ${y.answer||'[structured solution]'}</p>`;cards.appendChild(el)})}
+async function publishMode(){if(!lastSpec){status.textContent='Generate a preview first.';return}show(await post('/factory/publish',{spec_id:lastSpec,mode_id:mode.value,limit:5000}))}
+async function unpublishMode(){show(await post('/factory/unpublish',{mode_id:mode.value}))}
+</script><div style="max-width:1100px;margin:24px auto;padding:16px;border:1px solid #dfe6ee;border-radius:12px;background:#fff"><strong>v1.4 advanced prompts:</strong> Try “Four NFL players drafted by the same team and same position”, “Four CFB players who transferred exactly once”, or a school+position odd-one-out rule. Cross-domain rules that lack verified identity joins are blocked rather than guessed.</div></body></html>

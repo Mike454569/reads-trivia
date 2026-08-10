@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Reads Football Data Admin</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f6f8fb;color:#142033}
+header{background:#0B1F33;color:white;padding:24px 32px}
+main{padding:24px 32px;max-width:1400px;margin:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.card{background:white;border:1px solid #dfe6ee;border-radius:12px;padding:16px}
+.big{font-size:28px;font-weight:700} table{width:100%;border-collapse:collapse;background:white;margin-top:12px}
+th,td{padding:9px 10px;border-bottom:1px solid #e8edf3;text-align:left;font-size:14px}
+th{background:#163A5F;color:white;position:sticky;top:0}
+section{margin:28px 0} .ok{color:#08783e} .warn{color:#9a6200}
+code{background:#edf2f7;padding:2px 5px;border-radius:4px}
+</style></head>
+<body><header><h1>Reads Football Data Admin — v0.8.0</h1>
+<div>QA, source provenance, mode health, and publishing readiness.</div></header><main>
+<div class="cards">
+<div class="card"><div>Eligible puzzles</div><div class="big">49,637</div></div>
+<div class="card"><div>Excluded puzzles</div><div class="big">838</div></div>
+<div class="card"><div>Graph nodes</div><div class="big">50,952</div></div>
+<div class="card"><div>Graph edges</div><div class="big">122,338</div></div>
+<div class="card"><div>Open QA issues</div><div class="big">54</div></div>
+<div class="card"><div>Provenance rows</div><div class="big">74,567</div></div>
+</div>
+<section><h2>Sources</h2><table><tr><th>Source</th><th>Name</th><th>Approved</th><th>Releases</th><th>Provenance rows</th></tr>
+<tr><td>NFLVERSE_DATA</td><td>nflverse-data</td><td>YES</td><td>1</td><td>73,507</td></tr><tr><td>NFLVERSE_PLAYERS</td><td>nflverse-players</td><td>YES</td><td>0</td><td>0</td></tr><tr><td>NFLVERSE_ROSTERS</td><td>nflverse-rosters</td><td>YES</td><td>0</td><td>0</td></tr><tr><td>READS_CFB_MASTER</td><td>Reads Football CFB master</td><td>YES</td><td>1</td><td>1,060</td></tr>
+</table></section>
+<section><h2>Mode health</h2><table><tr><th>Mode</th><th>Eligible</th><th>Easy</th><th>Medium</th><th>Hard</th><th>Expert</th><th>Excluded</th></tr>
+<tr><td>draft_round</td><td>12,221</td><td>1,969</td><td>2,954</td><td>3,200</td><td>4,098</td><td>32</td></tr><tr><td>draft_pick</td><td>12,217</td><td>2,152</td><td>3,432</td><td>3,475</td><td>3,158</td><td>36</td></tr><tr><td>draft_team</td><td>11,605</td><td>2,629</td><td>5,005</td><td>3,275</td><td>696</td><td>648</td></tr><tr><td>stadium_from_game</td><td>7,239</td><td>2,071</td><td>2,618</td><td>1,510</td><td>1,040</td><td>0</td></tr><tr><td>qb_season</td><td>1,081</td><td>359</td><td>336</td><td>264</td><td>122</td><td>50</td></tr><tr><td>coach_from_team_season</td><td>850</td><td>50</td><td>262</td><td>295</td><td>243</td><td>34</td></tr><tr><td>conference_membership</td><td>800</td><td>448</td><td>320</td><td>32</td><td>0</td><td>0</td></tr><tr><td>division_membership</td><td>800</td><td>384</td><td>256</td><td>160</td><td>0</td><td>0</td></tr><tr><td>point_differential</td><td>768</td><td>0</td><td>160</td><td>288</td><td>320</td><td>0</td></tr><tr><td>season_record</td><td>768</td><td>64</td><td>256</td><td>288</td><td>160</td><td>0</td></tr><tr><td>playoff_seed</td><td>300</td><td>0</td><td>96</td><td>108</td><td>96</td><td>0</td></tr><tr><td>playoff_result</td><td>296</td><td>0</td><td>80</td><td>108</td><td>108</td><td>0</td></tr><tr><td>college_of_player</td><td>238</td><td>12</td><td>45</td><td>95</td><td>86</td><td>0</td></tr><tr><td>cfb_coach_school</td><td>119</td><td>0</td><td>13</td><td>106</td><td>0</td><td>16</td></tr><tr><td>award_school</td><td>91</td><td>27</td><td>30</td><td>30</td><td>4</td><td>0</td></tr><tr><td>award_winner</td><td>91</td><td>39</td><td>30</td><td>22</td><td>0</td><td>0</td></tr><tr><td>cfb_champion_by_year</td><td>79</td><td>6</td><td>26</td><td>21</td><td>26</td><td>22</td></tr><tr><td>rivalry_series</td><td>48</td><td>0</td><td>0</td><td>48</td><td>0</td><td>0</td></tr><tr><td>rivalry_trophy</td><td>26</td><td>0</td><td>26</td><td>0</td><td>0</td><td>0</td></tr>
+</table></section>
+<section><h2>QA summary</h2><table><tr><th>Severity</th><th>Issue</th><th>Status</th><th>Count</th></tr>
+<tr><td>INFO</td><td>MULTIPLE_HEAD_COACHES</td><td>OPEN</td><td>43</td></tr><tr><td>INFO</td><td>UNMAPPED_CHAMPION_LABEL</td><td>OPEN</td><td>1</td></tr><tr><td>WARN</td><td>DUPLICATE_SOURCE_ID</td><td>OPEN</td><td>1</td></tr><tr><td>WARN</td><td>MULTIPLE_NFL_CANDIDATES</td><td>OPEN</td><td>9</td></tr>
+</table></section>
+<section><h2>Operator rules</h2><div class="card">
+<p><strong>Publish gate:</strong> source-backed/verified facts only; no unresolved prompt-answer collision.</p>
+<p><strong>External imports:</strong> raw file + SHA-256 + release/license metadata before transform.</p>
+<p><strong>Same-name people:</strong> never merge by name alone.</p>
+<p><strong>Game creation:</strong> prefer <code>game_templates</code> + DSL compiler over hard-coded one-off modes.</p>
+</div></section></main></body></html>

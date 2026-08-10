@@ -1,0 +1,18 @@
+{
+  "version": "1.8.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "identity_bridge_links": 3534,
+  "retention_tables": 10,
+  "seed_achievements": 5,
+  "competitive_seasons": 1,
+  "foreign_key_errors": [],
+  "integrity": "ok",
+  "compile": {
+    "retention_engine.py": "OK",
+    "retention_api.py": "OK",
+    "game_factory.py": "OK",
+    "api_server.py": "OK",
+    "update_everything.py": "OK"
+  }
+}

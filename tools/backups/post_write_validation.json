@@ -1,0 +1,16 @@
+{
+  "integrity_check": [
+    [
+      "ok"
+    ]
+  ],
+  "integrity_ok": true,
+  "foreign_key_violations": [],
+  "foreign_key_ok": true,
+  "alias_collisions": [],
+  "alias_collision_ok": true,
+  "duplicate_alias_ranges": [],
+  "duplicate_alias_range_ok": true,
+  "team_aliases_row_count": 37,
+  "ALL_CHECKS_PASSED": true
+}

@@ -1,0 +1,66 @@
+# Reads Engine Gateway -- build context exclusions (Director v0.7, Part C).
+# Applies to the whole repo root (the Dockerfile's build context), since the
+# image only ever COPYs tools/ and gateway/ explicitly -- everything below
+# is either a secret, a huge unrelated file, or genuinely dev-only, and
+# excluding it here means it's never even sent to the Docker build daemon,
+# not just skipped by COPY.
+
+# Version control
+.git/
+.gitignore
+
+# Secrets -- never allow these into a build context, regardless of COPY rules
+.env
+.env.*
+*.env
+**/READS_ENGINE_ADMIN_TOKEN*
+
+# Local caches / bytecode
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Gateway's own local runtime storage (never baked into the image -- see
+# Dockerfile's mkdir for the empty directory the image DOES ship with)
+gateway/storage/
+gateway/tests/__pycache__/
+
+# Test artifacts
+.coverage
+htmlcov/
+
+# The Reads static frontend -- a separate deployable (Netlify), not part of
+# this Gateway image, and the biggest chunk of repo size by file count
+data/
+assets/
+app.js
+index.html
+styles.css
+sound.js
+firebase-sync.js
+sw.js
+manifest.json
+netlify/
+netlify.toml
+playtest-*.js
+
+# Already-approved milestone deliverables -- read by tools/ at generation
+# time from disk paths, never needed INSIDE the image itself
+generated_games/
+
+# Huge unrelated files that must never end up in any image layer
+*.sqlite
+*.sqlite.gz*
+*.zip
+*.xlsx
+Reads_Football_Data_Engine_v0.*/
+Reads_v4_Rebuild_Instructions/
+
+# Every prior milestone's markdown report -- documentation, not runtime code
+*.md
+
+# Local backup/restore drill scratch space (Part N)
+backup_drill/

@@ -1,0 +1,32 @@
+{
+  "status": "PASSED",
+  "tested": [
+    "SEO entity generation",
+    "JSON-LD page payload",
+    "XML sitemap generation",
+    "verified internal-link generation",
+    "spoiler-safe Daily share",
+    "SVG share-card renderer",
+    "referral creation",
+    "first-touch referral attribution",
+    "share click tracking",
+    "viral challenge link",
+    "stable A/B assignment",
+    "creator discovery rebuild",
+    "growth daily metrics",
+    "Daily social-content queue"
+  ],
+  "test_data_removed": true,
+  "compile": {
+    "growth_engine.py": "OK",
+    "growth_api.py": "OK",
+    "build_seo.py": "OK",
+    "share_card_renderer.py": "OK",
+    "production_engine.py": "OK",
+    "production_api.py": "OK",
+    "live_intelligence.py": "OK",
+    "community_engine.py": "OK",
+    "retention_engine.py": "OK",
+    "game_factory.py": "OK"
+  }
+}

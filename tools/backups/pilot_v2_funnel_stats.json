@@ -1,0 +1,50 @@
+{
+  "seed": "reads-quiz-engine-pilot-v1",
+  "candidate_limit": 500,
+  "target_count": 100,
+  "safety": {
+    "domain_id": "NFL_DRAFT",
+    "competition_id": "NFL",
+    "dataset_name": "draft/player seed",
+    "coverage_start": 1980,
+    "coverage_end": 2024,
+    "completeness": "HISTORICAL_COMPLETE_FOR_SOURCE_RANGE",
+    "production_safe": true,
+    "source_id": "NFLVERSE_DATA",
+    "source_name": "nflverse-data",
+    "approved_for_import": true
+  },
+  "feasibility": {
+    "status": "SUPPORTED",
+    "estimated_candidates": 12253,
+    "reason": "Backed by NFL draft data.",
+    "source_table": "relationships"
+  },
+  "considered": 500,
+  "rejected_counts": {
+    "TEAM_UNRESOLVED": 54,
+    "DUPLICATE_PLAYER": 14,
+    "DUPLICATE_QUESTION": 1
+  },
+  "total_rejected": 69,
+  "accepted_total": 431,
+  "exported_count": 100,
+  "accepted_but_not_exported": 331,
+  "shortfall_reason": null,
+  "category_distribution": {
+    "NFL Draft History": 100
+  },
+  "difficulty_distribution": {
+    "Hard": 69,
+    "Medium": 31
+  },
+  "min_season": 1980,
+  "max_season": 2024,
+  "unique_franchises": 31,
+  "unique_players": 100,
+  "dup_questions": [],
+  "dup_players": [],
+  "dup_ids": [],
+  "contract_failures": [],
+  "contract_passed": true
+}

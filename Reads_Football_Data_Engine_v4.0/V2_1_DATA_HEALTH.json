@@ -1,0 +1,24 @@
+{
+  "database_version": "2.1.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "identity_bridge_links": 3534,
+  "roles": 5,
+  "entitlements": 7,
+  "feature_flags": 5,
+  "active_paid_products": 0,
+  "payments_enabled": 0,
+  "sponsorships_enabled": 0,
+  "foreign_key_errors": [],
+  "integrity": "ok",
+  "compile": {
+    "production_engine.py": "OK",
+    "production_api.py": "OK",
+    "backup_manager.py": "OK",
+    "postgres_migration_v2_1.py": "OK",
+    "live_intelligence.py": "OK",
+    "community_engine.py": "OK",
+    "retention_engine.py": "OK",
+    "game_factory.py": "OK"
+  }
+}

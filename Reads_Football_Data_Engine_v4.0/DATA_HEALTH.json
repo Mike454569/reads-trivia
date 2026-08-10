@@ -1,0 +1,21 @@
+{
+  "database_version": "1.7.0",
+  "cfb_roster_rows": 282124,
+  "cfb_roster_seasons": 22,
+  "cfb_roster_min_year": 2004,
+  "cfb_roster_max_year": 2025,
+  "canonical_cfb_players": 109221,
+  "production_safe_bridge_links": 3534,
+  "bridge_rejections": 3521,
+  "cross_league_relationships": 11053,
+  "cross_league_puzzles": 7465,
+  "cross_league_modes": 6,
+  "school_pipeline_boards": 323,
+  "draft_class_matching_boards": 40,
+  "total_eligible_puzzles": 414165,
+  "working_modes": 43,
+  "graph_nodes": 91466,
+  "graph_edges": 1412831,
+  "foreign_key_errors": [],
+  "integrity_check": "ok"
+}

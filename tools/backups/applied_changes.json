@@ -1,0 +1,155 @@
+{
+  "applied": [
+    {
+      "team_code": "ARI",
+      "before_season_start": 2002,
+      "after_season_start": 1994
+    },
+    {
+      "team_code": "ATL",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "BUF",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "CAR",
+      "before_season_start": 2002,
+      "after_season_start": 1995
+    },
+    {
+      "team_code": "CHI",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "CIN",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "CLE",
+      "before_season_start": 2002,
+      "after_season_start": 1984
+    },
+    {
+      "team_code": "DAL",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "DEN",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "DET",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "GB",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "IND",
+      "before_season_start": 2002,
+      "after_season_start": 1984
+    },
+    {
+      "team_code": "JAX",
+      "before_season_start": 2002,
+      "after_season_start": 1995
+    },
+    {
+      "team_code": "KC",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "MIA",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "MIN",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "NE",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "NO",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "NYG",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "NYJ",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "OAK",
+      "before_season_start": 2002,
+      "after_season_start": 1995
+    },
+    {
+      "team_code": "PHI",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "PIT",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "SD",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "SEA",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "SF",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "STL",
+      "before_season_start": 2002,
+      "after_season_start": 1995
+    },
+    {
+      "team_code": "TB",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    },
+    {
+      "team_code": "TEN",
+      "before_season_start": 2002,
+      "after_season_start": 1997
+    },
+    {
+      "team_code": "WAS",
+      "before_season_start": 2002,
+      "after_season_start": 1980
+    }
+  ],
+  "held_codes": []
+}

@@ -1,0 +1,31 @@
+{
+  "database_version": "2.2.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "identity_bridge_links": 3534,
+  "seo_entities": 116638,
+  "seo_nfl_players": 7277,
+  "seo_cfb_players": 109221,
+  "seo_schools": 108,
+  "seo_franchises": 32,
+  "seo_internal_links": 4552,
+  "sitemap_files": 3,
+  "referral_reward_rules": 3,
+  "daily_share_templates": 2,
+  "smoke_share_rows": 0,
+  "smoke_creator_rows": 0,
+  "foreign_key_errors": [],
+  "integrity": "ok",
+  "compile": {
+    "growth_engine.py": "OK",
+    "growth_api.py": "OK",
+    "build_seo.py": "OK",
+    "share_card_renderer.py": "OK",
+    "production_engine.py": "OK",
+    "production_api.py": "OK",
+    "live_intelligence.py": "OK",
+    "community_engine.py": "OK",
+    "retention_engine.py": "OK",
+    "game_factory.py": "OK"
+  }
+}

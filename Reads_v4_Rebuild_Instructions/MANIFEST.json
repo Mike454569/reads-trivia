@@ -1,0 +1,30 @@
+{
+  "release": "4.0.0-rebuilt",
+  "database_bytes": 1650307072,
+  "database_sha256": "39ed5fe996e6b240642bde46daabb2eec1dc310f46e8cdc7e3ea3365070a549d",
+  "gzip_sha256": "ce16592b9452aa0675ed63bb00e54d9b8ed46235644086de98ee5051d7e724e5",
+  "code_docs_sha256": "e8d02764490b0fde40713bf6d435f853b403a7190309049fd22c0cf0a22c8790",
+  "part_count": 4,
+  "parts": [
+    {
+      "name": "Reads_v4_Database.sqlite.gz.part00",
+      "bytes": 73400320,
+      "sha256": "af7a165ff20a91b8025aed19258412af73ba4feb13f10dd931b60a9e77c46609"
+    },
+    {
+      "name": "Reads_v4_Database.sqlite.gz.part01",
+      "bytes": 73400320,
+      "sha256": "14343aa34a7d2e650f3fab9f08a8578062a311fd9e517e86c9024f320af4949e"
+    },
+    {
+      "name": "Reads_v4_Database.sqlite.gz.part02",
+      "bytes": 73400320,
+      "sha256": "b764ccf7f64f48cbcf33a214f8e50f63282700afd1ccf612d75acd567d34c703"
+    },
+    {
+      "name": "Reads_v4_Database.sqlite.gz.part03",
+      "bytes": 20449944,
+      "sha256": "6c6212ca4cc41f41a34d5aca42e54d67f832a6c9802aafadd3220a9a8370ef5f"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "seed": "reads-quiz-engine-championship-award-pilot-v1",
+  "target_count": 100,
+  "safety": {
+    "source_id": "NFLVERSE_DATA",
+    "source_name": "nflverse-data",
+    "approved_for_import": true,
+    "season_standings_playoff_rows_total": 296,
+    "season_standings_playoff_rows_verified": 296
+  },
+  "considered": 296,
+  "rejected_counts": {},
+  "total_rejected": 0,
+  "accepted_total": 296,
+  "exported_count": 100,
+  "accepted_but_not_exported": 196,
+  "shortfall_reason": null,
+  "category_distribution": {
+    "Playoffs & Postseason Moments": 100
+  },
+  "difficulty_distribution": {
+    "Medium": 26,
+    "Hard": 74
+  },
+  "outcome_distribution": {
+    "LostWC": 32,
+    "LostDV": 36,
+    "WonSB": 10,
+    "LostSB": 9,
+    "LostCC": 13
+  },
+  "min_season": 2002,
+  "max_season": 2025,
+  "unique_franchises": 29,
+  "dup_questions": [],
+  "dup_ids": [],
+  "dup_team_seasons": [],
+  "contract_failures": [],
+  "contract_passed": true
+}

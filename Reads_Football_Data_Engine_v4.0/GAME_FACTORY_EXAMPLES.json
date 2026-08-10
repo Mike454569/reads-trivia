@@ -1,0 +1,434 @@
+{
+  "nfl_connections": {
+    "spec_id": "SPEC:387a801b9be7cc21b906",
+    "spec": {
+      "description": "Four NFL players drafted by the same team",
+      "competition_id": "NFL",
+      "mechanic": "connections",
+      "entity_type": "nfl_player",
+      "relationship_predicate": "DRAFTED_BY",
+      "object_type": "team",
+      "answer_type": "team",
+      "group_size": 4,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED"
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 3063,
+      "reason": "Backed by NFL draft data.",
+      "missing": [],
+      "source_table": "relationships"
+    },
+    "preview": [
+      {
+        "candidate_id": "CAND:1810ff4e3649953fba11",
+        "difficulty_score": 0.525,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these names?",
+          "items": [
+            {
+              "id": "PFR:NewmRo00",
+              "label": "Royce Newman"
+            },
+            {
+              "id": "PFR:HallKo99",
+              "label": "Korey Hall"
+            },
+            {
+              "id": "DRAFT:2003:253:DEANDREW_RUBIN",
+              "label": "DeAndrew Rubin"
+            },
+            {
+              "id": "PFR:BrowRo21",
+              "label": "Roger Brown"
+            }
+          ],
+          "answer": "GB",
+          "answer_id": "GB",
+          "relationship": "DRAFTED_BY"
+        }
+      },
+      {
+        "candidate_id": "CAND:96fe05c47972b44b74d0",
+        "difficulty_score": 0.735,
+        "difficulty_band": "EXPERT",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these names?",
+          "items": [
+            {
+              "id": "PFR:LongTe20",
+              "label": "Terry Long"
+            },
+            {
+              "id": "PFR:SmitAn21",
+              "label": "Anthony Smith"
+            },
+            {
+              "id": "DRAFT:1983:302:MARK_RAUGH",
+              "label": "Mark Raugh"
+            },
+            {
+              "id": "DRAFT:1988:209:MARK_NICHOLS",
+              "label": "Mark Nichols"
+            }
+          ],
+          "answer": "PIT",
+          "answer_id": "PIT",
+          "relationship": "DRAFTED_BY"
+        }
+      },
+      {
+        "candidate_id": "CAND:f6285555ebfd161eafa0",
+        "difficulty_score": 0.679,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "connections",
+          "prompt": "What connects these names?",
+          "items": [
+            {
+              "id": "PFR:LyncMa00",
+              "label": "Marshawn Lynch"
+            },
+            {
+              "id": "DRAFT:1990:166:BRENT_GRIFFITH",
+              "label": "Brent Griffith"
+            },
+            {
+              "id": "DRAFT:1990:170:BRENT_COLLINS",
+              "label": "Brent Collins"
+            },
+            {
+              "id": "PFR:CarrAl99",
+              "label": "Alex Carrington"
+            }
+          ],
+          "answer": "BUF",
+          "answer_id": "BUF",
+          "relationship": "DRAFTED_BY"
+        }
+      }
+    ],
+    "excluded_by_qa": 0
+  },
+  "cfb_odd_one_out": {
+    "spec_id": "SPEC:5a11f6f40a5a75e507a0",
+    "spec": {
+      "description": "Five FBS college players: four from the same school and one odd one out",
+      "competition_id": "CFB",
+      "mechanic": "elimination",
+      "entity_type": "cfb_player",
+      "relationship_predicate": "CFB_ROSTER_SCHOOL",
+      "object_type": "school",
+      "answer_type": "school",
+      "group_size": 5,
+      "filters": {
+        "division": "fbs"
+      },
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED"
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 10583,
+      "reason": "Backed by CFB rosters.",
+      "missing": [],
+      "source_table": "cfb_roster_seasons_real"
+    },
+    "preview": [
+      {
+        "candidate_id": "CAND:67d7061c77b5100ee366",
+        "difficulty_score": 0.542,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which one is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5077391",
+              "label": "Brady Neu"
+            },
+            {
+              "id": "ESPN_CFB:5086233",
+              "label": "Jesse Prewitt III"
+            },
+            {
+              "id": "ESPN_CFB:5295486",
+              "label": "Alex Toothman"
+            },
+            {
+              "id": "ESPN_CFB:4832020",
+              "label": "Kade Kostus"
+            },
+            {
+              "id": "ESPN_CFB:5082458",
+              "label": "Maurion Eleam"
+            }
+          ],
+          "answer": "Maurion Eleam",
+          "answer_id": "ESPN_CFB:5082458",
+          "explanation": "The other 4 share Central Michigan via CFB_ROSTER_SCHOOL.",
+          "shared_answer": "Central Michigan"
+        }
+      },
+      {
+        "candidate_id": "CAND:dd14bc50c07de0ae9714",
+        "difficulty_score": 0.542,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which one is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5089859",
+              "label": "Floyd Chalk IV"
+            },
+            {
+              "id": "ESPN_CFB:5203589",
+              "label": "Jamarcus Pierre"
+            },
+            {
+              "id": "ESPN_CFB:4576325",
+              "label": "Aaron Beckwith"
+            },
+            {
+              "id": "ESPN_CFB:4884682",
+              "label": "Isaiah Hayse"
+            },
+            {
+              "id": "ESPN_CFB:4600418",
+              "label": "Kajiya Hollawayne"
+            }
+          ],
+          "answer": "Floyd Chalk IV",
+          "answer_id": "ESPN_CFB:5089859",
+          "explanation": "The other 4 share Temple via CFB_ROSTER_SCHOOL.",
+          "shared_answer": "Temple"
+        }
+      },
+      {
+        "candidate_id": "CAND:cf8591e44ac32eab28a1",
+        "difficulty_score": 0.542,
+        "difficulty_band": "HARD",
+        "payload": {
+          "mechanic": "elimination",
+          "prompt": "Which one is the odd one out?",
+          "items": [
+            {
+              "id": "ESPN_CFB:5213298",
+              "label": "Christian Evans"
+            },
+            {
+              "id": "ESPN_CFB:4879641",
+              "label": "Luke Byrne"
+            },
+            {
+              "id": "ESPN_CFB:5081207",
+              "label": "Noah Hartsoe"
+            },
+            {
+              "id": "ESPN_CFB:4921435",
+              "label": "Miles Greene"
+            },
+            {
+              "id": "ESPN_CFB:5081204",
+              "label": "John Hurley"
+            }
+          ],
+          "answer": "Christian Evans",
+          "answer_id": "ESPN_CFB:5213298",
+          "explanation": "The other 4 share Virginia via CFB_ROSTER_SCHOOL.",
+          "shared_answer": "Virginia"
+        }
+      }
+    ],
+    "excluded_by_qa": 0
+  },
+  "nfl_ordering": {
+    "spec_id": "SPEC:0b184c6fe3070626ea44",
+    "spec": {
+      "description": "Order four NFL players by draft pick",
+      "competition_id": "NFL",
+      "mechanic": "ordering",
+      "entity_type": "nfl_player",
+      "relationship_predicate": "DRAFT_PICK_ORDER",
+      "object_type": "draft_pick",
+      "answer_type": "ordering",
+      "group_size": 4,
+      "filters": {},
+      "difficulty": {
+        "min": 0.0,
+        "max": 1.0
+      },
+      "intent_status": "PARSED"
+    },
+    "feasibility": {
+      "status": "SUPPORTED",
+      "estimated_candidates": 12253,
+      "reason": "Backed by NFL draft data.",
+      "missing": [],
+      "source_table": "draft_facts"
+    },
+    "preview": [
+      {
+        "candidate_id": "CAND:2a9d64c7532c34c54976",
+        "difficulty_score": 0.472,
+        "difficulty_band": "MEDIUM",
+        "payload": {
+          "mechanic": "ordering",
+          "prompt": "Order these NFL players by overall draft pick, earliest pick to latest.",
+          "items": [
+            {
+              "id": "PFR:CrawRi00",
+              "label": "Richard Crawford"
+            },
+            {
+              "id": "PFR:HawkCo00",
+              "label": "Courtney Hawkins"
+            },
+            {
+              "id": "PFR:MeadMi00",
+              "label": "Mike Meade"
+            },
+            {
+              "id": "PFR:JackLa98",
+              "label": "Lawrence Jackson"
+            }
+          ],
+          "solution": [
+            "PFR:JackLa98",
+            "PFR:HawkCo00",
+            "PFR:MeadMi00",
+            "PFR:CrawRi00"
+          ],
+          "values": {
+            "PFR:MeadMi00": 126,
+            "PFR:CrawRi00": 213,
+            "PFR:JackLa98": 28,
+            "PFR:HawkCo00": 44
+          }
+        }
+      },
+      {
+        "candidate_id": "CAND:92935681806d1b1a973d",
+        "difficulty_score": 0.481,
+        "difficulty_band": "MEDIUM",
+        "payload": {
+          "mechanic": "ordering",
+          "prompt": "Order these NFL players by overall draft pick, earliest pick to latest.",
+          "items": [
+            {
+              "id": "PFR:MitcJo00",
+              "label": "Johnny Mitchell"
+            },
+            {
+              "id": "DRAFT:1990:269:JEROME_MARTIN",
+              "label": "Jerome Martin"
+            },
+            {
+              "id": "DRAFT:1992:234:LARRY_STAYNER",
+              "label": "Larry Stayner"
+            },
+            {
+              "id": "PFR:BannSh00",
+              "label": "Shane Bannon"
+            }
+          ],
+          "solution": [
+            "PFR:MitcJo00",
+            "PFR:BannSh00",
+            "DRAFT:1992:234:LARRY_STAYNER",
+            "DRAFT:1990:269:JEROME_MARTIN"
+          ],
+          "values": {
+            "DRAFT:1990:269:JEROME_MARTIN": 269,
+            "PFR:MitcJo00": 15,
+            "PFR:BannSh00": 223,
+            "DRAFT:1992:234:LARRY_STAYNER": 234
+          }
+        }
+      },
+      {
+        "candidate_id": "CAND:eae853474ad0d6b843da",
+        "difficulty_score": 0.455,
+        "difficulty_band": "MEDIUM",
+        "payload": {
+          "mechanic": "ordering",
+          "prompt": "Order these NFL players by overall draft pick, earliest pick to latest.",
+          "items": [
+            {
+              "id": "PFR:PleaAn20",
+              "label": "Anthony Pleasant"
+            },
+            {
+              "id": "PFR:RiveNa20",
+              "label": "Nate Rivers"
+            },
+            {
+              "id": "PFR:SchoBo20",
+              "label": "Bo Schobel"
+            },
+            {
+              "id": "PFR:CareKa00",
+              "label": "Ka'Deem Carey"
+            }
+          ],
+          "solution": [
+            "PFR:PleaAn20",
+            "PFR:SchoBo20",
+            "PFR:CareKa00",
+            "PFR:RiveNa20"
+          ],
+          "values": {
+            "PFR:PleaAn20": 73,
+            "PFR:CareKa00": 117,
+            "PFR:SchoBo20": 103,
+            "PFR:RiveNa20": 135
+          }
+        }
+      }
+    ],
+    "excluded_by_qa": 0
+  },
+  "blocked_missing_data": {
+    "request": "Five NFL players, four attended SEC schools and one did not",
+    "analysis": {
+      "spec": {
+        "description": "Five NFL players, four attended SEC schools and one did not",
+        "competition_id": "NFL",
+        "mechanic": "elimination",
+        "entity_type": "nfl_player",
+        "relationship_predicate": "NFL_ATTENDED_SCHOOL",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 5,
+        "filters": {
+          "conference": "SEC"
+        },
+        "difficulty": {
+          "min": 0.0,
+          "max": 1.0
+        },
+        "intent_status": "PARSED"
+      },
+      "feasibility": {
+        "status": "NEEDS_DATA",
+        "estimated_candidates": 0,
+        "reason": "NFL player\u2192college edges are not populated in the current production-safe database.",
+        "missing": [
+          "modern NFL player college enrichment"
+        ]
+      }
+    }
+  }
+}

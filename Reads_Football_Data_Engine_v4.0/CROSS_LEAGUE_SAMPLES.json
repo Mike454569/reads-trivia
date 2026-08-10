@@ -1,0 +1,146 @@
+[
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2021,
+      "bridge_id": "BRIDGE16:662b36c9e7ae4c181b31",
+      "draft_year": 2023,
+      "explanation": "Bryce Young won the Heisman Trophy in 2021; his NFL draft year was 2023.",
+      "player": "Bryce Young",
+      "prompt": "What happened first for Bryce Young: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2016,
+      "bridge_id": "BRIDGE16:43a6c00b19a03af04a2c",
+      "draft_year": 2018,
+      "explanation": "Lamar Jackson won the Heisman Trophy in 2016; his NFL draft year was 2018.",
+      "player": "Lamar Jackson",
+      "prompt": "What happened first for Lamar Jackson: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2023,
+      "bridge_id": "BRIDGE16:d416c053a2e0c0942238",
+      "draft_year": 2024,
+      "explanation": "Jayden Daniels won the Heisman Trophy in 2023; his NFL draft year was 2024.",
+      "player": "Jayden Daniels",
+      "prompt": "What happened first for Jayden Daniels: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2020,
+      "bridge_id": "BRIDGE16:1ecfd99f829c0ea4ec9d",
+      "draft_year": 2021,
+      "explanation": "DeVonta Smith won the Heisman Trophy in 2020; his NFL draft year was 2021.",
+      "player": "DeVonta Smith",
+      "prompt": "What happened first for DeVonta Smith: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1996,
+      "bridge_id": "BRIDGE16:586270646ba7f7bf6e72",
+      "draft_year": 1997,
+      "explanation": "Danny Wuerffel won the Heisman Trophy in 1996; his NFL draft year was 1997.",
+      "player": "Danny Wuerffel",
+      "prompt": "What happened first for Danny Wuerffel: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1982,
+      "bridge_id": "BRIDGE16:fc743355be69a627836f",
+      "draft_year": 1985,
+      "explanation": "Herschel Walker won the Heisman Trophy in 1982; his NFL draft year was 1985.",
+      "player": "Herschel Walker",
+      "prompt": "What happened first for Herschel Walker: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1997,
+      "bridge_id": "BRIDGE16:11fd24ba0a344741da27",
+      "draft_year": 1998,
+      "explanation": "Charles Woodson won the Heisman Trophy in 1997; his NFL draft year was 1998.",
+      "player": "Charles Woodson",
+      "prompt": "What happened first for Charles Woodson: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1990,
+      "bridge_id": "BRIDGE16:05c34eacf0251264d2a7",
+      "draft_year": 1992,
+      "explanation": "Ty Detmer won the Heisman Trophy in 1990; his NFL draft year was 1992.",
+      "player": "Ty Detmer",
+      "prompt": "What happened first for Ty Detmer: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2007,
+      "bridge_id": "BRIDGE16:d9bba5867b4fbb1dd808",
+      "draft_year": 2010,
+      "explanation": "Tim Tebow won the Heisman Trophy in 2007; his NFL draft year was 2010.",
+      "player": "Tim Tebow",
+      "prompt": "What happened first for Tim Tebow: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 2012,
+      "bridge_id": "BRIDGE16:ed527005321178d9b122",
+      "draft_year": 2014,
+      "explanation": "Johnny Manziel won the Heisman Trophy in 2012; his NFL draft year was 2014.",
+      "player": "Johnny Manziel",
+      "prompt": "What happened first for Johnny Manziel: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1994,
+      "bridge_id": "BRIDGE16:bac61615b82ac88bcb9f",
+      "draft_year": 1995,
+      "explanation": "Rashaan Salaam won the Heisman Trophy in 1994; his NFL draft year was 1995.",
+      "player": "Rashaan Salaam",
+      "prompt": "What happened first for Rashaan Salaam: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  },
+  {
+    "mode_id": "cross_award_before_draft",
+    "payload": {
+      "answer": "Won the Heisman Trophy",
+      "award_year": 1998,
+      "bridge_id": "BRIDGE16:e89450f8e0a3a6c01f1c",
+      "draft_year": 1999,
+      "explanation": "Ricky Williams won the Heisman Trophy in 1998; his NFL draft year was 1999.",
+      "player": "Ricky Williams",
+      "prompt": "What happened first for Ricky Williams: winning the Heisman Trophy or entering the NFL draft?"
+    }
+  }
+]

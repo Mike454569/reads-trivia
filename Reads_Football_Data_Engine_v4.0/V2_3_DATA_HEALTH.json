@@ -1,0 +1,31 @@
+{
+  "database_version": "2.3.0",
+  "eligible_puzzles": 414165,
+  "working_modes": 43,
+  "knowledge_nodes": 208754,
+  "knowledge_edges": 496276,
+  "truth_claims": 492742,
+  "open_blocker_contradictions": 0,
+  "puzzles_audited": 415973,
+  "puzzle_qa_pass": 407778,
+  "puzzle_qa_fail": 8195,
+  "exact_duplicate_pairs": 93,
+  "mode_quality_avg": 99.9,
+  "coverage_dimensions": 53,
+  "coverage_score_avg": 91.26,
+  "factory_opportunities": 3,
+  "release_decision": "PASS",
+  "reads_health_score": 98.66,
+  "foreign_key_errors": 0,
+  "integrity": "ok",
+  "compile": {
+    "quality_intelligence.py": "OK",
+    "quality_api.py": "OK",
+    "growth_engine.py": "OK",
+    "production_engine.py": "OK",
+    "live_intelligence.py": "OK",
+    "community_engine.py": "OK",
+    "retention_engine.py": "OK",
+    "game_factory.py": "OK"
+  }
+}

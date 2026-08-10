@@ -1,0 +1,20 @@
+{
+  "draft": {
+    "framework_output_sha256": "3dcbe7d3625bcfe6e8ebd897b418ad3b42eb93fd6d58ff0d789761ad4f41c91c",
+    "original_file_sha256": "3dcbe7d3625bcfe6e8ebd897b418ad3b42eb93fd6d58ff0d789761ad4f41c91c",
+    "byte_identical": true,
+    "original_path": "data/quiz-engine-pilot-v2.js"
+  },
+  "qb_season": {
+    "framework_output_sha256": "fbd0541009af62a78317c317ef490341c9f426793c26674a5618d8377e7a3410",
+    "original_file_sha256": "fbd0541009af62a78317c317ef490341c9f426793c26674a5618d8377e7a3410",
+    "byte_identical": true,
+    "original_path": "data/quiz-engine-qb-pilot.js"
+  },
+  "championship": {
+    "framework_output_sha256": "be13f338b50164cf1809b75850261bdf7dd31028b94f4edd8186a9d062d6c64a",
+    "original_file_sha256": "be13f338b50164cf1809b75850261bdf7dd31028b94f4edd8186a9d062d6c64a",
+    "byte_identical": true,
+    "original_path": "data/quiz-engine-championship-award-pilot.js"
+  }
+}

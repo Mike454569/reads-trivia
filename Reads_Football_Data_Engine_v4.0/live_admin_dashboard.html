@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Reads Live Football Intelligence</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#f6f8fb;color:#142033;margin:0}
+header{background:#0B1F33;color:white;padding:24px 32px}
+main{max-width:1200px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:white;border:1px solid #dce5ee;border-radius:12px;padding:16px}button{padding:9px 12px;border-radius:8px;border:0;background:#163A5F;color:white;cursor:pointer}
+pre{white-space:pre-wrap;background:#101820;color:#eaf2f8;padding:14px;border-radius:10px;max-height:420px;overflow:auto}
+h2{margin-top:30px}.warn{color:#9a6200}.good{color:#08783e}
+</style></head>
+<body><header><h1>Reads Live Football Intelligence</h1><div>Feeds • Freshness • Events • Publish Queue • Daily Slate</div></header>
+<main>
+<div class="grid">
+<div class="card"><h3>Run pipeline</h3><p>Detect freshness, current verified events and rebuild today's slate.</p><button onclick="post('/v2/live/run',{})">Run</button></div>
+<div class="card"><h3>Feeds</h3><p>See every live NFL/CFB feed and its last status.</p><button onclick="get('/v2/live/feeds')">View</button></div>
+<div class="card"><h3>Publish queue</h3><p>Review live facts and event-generated games.</p><button onclick="get('/v2/live/queue')">View</button></div>
+<div class="card"><h3>Alerts</h3><p>Freshness failures and QA/admin warnings.</p><button onclick="get('/v2/live/alerts')">View</button></div>
+<div class="card"><h3>Today's slate</h3><p>Deterministic Daily content selection.</p><button onclick="get('/v2/live/slate')">Build/View</button></div>
+<div class="card"><h3>Push outbox</h3><p>Notifications ready for your app's push provider.</p><button onclick="get('/v2/live/outbox')">View</button></div>
+</div>
+<h2>Response</h2><pre id="out">Run live_admin_api.py on port 8792, then use this screen.</pre>
+</main>
+<script>
+const out=document.getElementById('out');
+async function get(path){try{let r=await fetch('http://127.0.0.1:8792'+path);out.textContent=JSON.stringify(await r.json(),null,2)}catch(e){out.textContent=e}}
+async function post(path,data){try{let r=await fetch('http://127.0.0.1:8792'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});out.textContent=JSON.stringify(await r.json(),null,2)}catch(e){out.textContent=e}}
+</script></body></html>

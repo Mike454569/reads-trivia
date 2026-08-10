@@ -1,0 +1,27 @@
+{
+  "database_version": "4.0.0",
+  "eligible_puzzles": 414165,
+  "knowledge_nodes": 208754,
+  "knowledge_edges": 496276,
+  "seo_entities": 116638,
+  "capabilities_total": 14,
+  "capabilities_ready": 14,
+  "quick_check": "ok",
+  "foreign_key_errors": 0,
+  "compile": {
+    "production_engine.py": "OK",
+    "game_factory.py": "OK",
+    "retention_engine.py": "OK",
+    "community_engine.py": "OK",
+    "live_intelligence.py": "OK",
+    "growth_engine.py": "OK",
+    "quality_intelligence.py": "OK",
+    "game_director.py": "OK",
+    "autonomous_expansion.py": "OK",
+    "content_studio.py": "OK",
+    "personalization_brain.py": "OK",
+    "competition_engine.py": "OK",
+    "production_autopilot.py": "OK"
+  },
+  "overall_status": "PASS"
+}

@@ -1,0 +1,241 @@
+[
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "award_school",
+    "puzzle_id": "PZ:50c63dfe466fec248126",
+    "difficulty_score": 0.32933333333333337,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "Colorado",
+      "prompt": "Which school did Rashaan Salaam represent when winning the Heisman Trophy in 1994?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "award_winner",
+    "puzzle_id": "PZ:00d975b41452fad668c7",
+    "difficulty_score": 0.636,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "Jay Berwanger",
+      "prompt": "Who won the Heisman Trophy in 1935?",
+      "school": "Chicago"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "cfb_champion_by_year",
+    "puzzle_id": "PZ:7da5598ff45d3e5ce234",
+    "difficulty_score": 0.4522222222222222,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "Tennessee",
+      "coach": "Phillip Fulmer",
+      "prompt": "Which school is recorded as a national champion for 1998?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "coach_from_team_season",
+    "puzzle_id": "PZ:c1a358e9c89bb0965508",
+    "difficulty_score": 0.6,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "Hue Jackson",
+      "prompt": "Who coached CLE in the 2017 NFL season?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "college_of_player",
+    "puzzle_id": "PZ:e44b66412787900289fa",
+    "difficulty_score": 0.366875,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "Ohio State",
+      "context": "Heisman Winner",
+      "player": "Eddie George",
+      "prompt": "Which school is Eddie George linked to?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "conference_membership",
+    "puzzle_id": "PZ:911bd55aef00567a43fe",
+    "difficulty_score": 0.2375,
+    "difficulty_band": "EASY",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "NFC",
+      "full_name": "San Francisco 49ers",
+      "prompt": "Which conference was SF in during 2016?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "division_membership",
+    "puzzle_id": "PZ:af111d188ad45a7e34f2",
+    "difficulty_score": 0.575,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "NFC North",
+      "full_name": "Green Bay Packers",
+      "prompt": "Which division was GB in during 2003?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "draft_pick",
+    "puzzle_id": "PZ:966240799d4166f79fa9",
+    "difficulty_score": 0.15869565217391307,
+    "difficulty_band": "EASY",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "30",
+      "player": "Damarious Randall",
+      "prompt": "What overall pick was Damarious Randall in the 2015 NFL Draft?",
+      "round": 1,
+      "team": "GB"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "draft_round",
+    "puzzle_id": "PZ:c5544016818b0e1c1920",
+    "difficulty_score": 0.6369565217391304,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "4",
+      "pick": 90,
+      "player": "Anthony Florence",
+      "prompt": "In which round was Anthony Florence drafted in 1989?",
+      "team": "TB"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "draft_team",
+    "puzzle_id": "PZ:5c118ebef928a0d6e6bd",
+    "difficulty_score": 0.45251170568561877,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "IND",
+      "draft_season": 1998,
+      "pick": 135,
+      "player": "Antony Jordan",
+      "position": "LB",
+      "prompt": "Which team drafted Antony Jordan?",
+      "round": 5
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "playoff_result",
+    "puzzle_id": "PZ:b97d1298ec69cb9752d5",
+    "difficulty_score": 0.41874999999999996,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "LostDV",
+      "prompt": "How did GB's 2023 postseason end?",
+      "record": "9-8"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "playoff_seed",
+    "puzzle_id": "PZ:6761ac62b2d0a8123a1d",
+    "difficulty_score": 0.3529166666666667,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "1",
+      "prompt": "What playoff seed did SEA earn in 2025?",
+      "record": "14-3"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "point_differential",
+    "puzzle_id": "PZ:cf27fe3e974566d8d0ae",
+    "difficulty_score": 0.3929166666666667,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "-191",
+      "prompt": "What was LV's point differential in 2025?",
+      "record": "3-14"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "qb_season",
+    "puzzle_id": "PZ:f6d81fe2c9a4ef332182",
+    "difficulty_score": 0.5541666666666667,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "Damon Huard",
+      "prompt": "Which QB recorded 10 starts for KC in 2007?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "rivalry_series",
+    "puzzle_id": "PZ:c52929fdff9994c8667b",
+    "difficulty_score": 0.55,
+    "difficulty_band": "HARD",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "Purdue leads narrowly",
+      "nickname": "-",
+      "prompt": "What is the listed all-time series record for Purdue vs. Indiana?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "rivalry_trophy",
+    "puzzle_id": "PZ:45aa01fb6bbe7a716d4d",
+    "difficulty_score": 0.45,
+    "difficulty_band": "MEDIUM",
+    "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+    "payload": {
+      "answer": "The Golden Boot",
+      "nickname": "-",
+      "prompt": "What trophy is played for in Arkansas vs. LSU (SEC)?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "season_record",
+    "puzzle_id": "PZ:eb4b2bd65754de32fe98",
+    "difficulty_score": 0.8,
+    "difficulty_band": "EXPERT",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "4-12",
+      "full_name": "Chicago Bears",
+      "prompt": "What was CHI's record in 2002?"
+    }
+  },
+  {
+    "puzzle_date": "2026-08-07",
+    "mode_id": "stadium_from_game",
+    "puzzle_id": "PZ:e34bfe010fe5edeb1a36",
+    "difficulty_score": 0.9640000000000001,
+    "difficulty_band": "EXPERT",
+    "verification_status": "SOURCE_BACKED",
+    "payload": {
+      "answer": "Mile High Stadium",
+      "prompt": "Which stadium hosted KC at DEN on 1999-12-05?"
+    }
+  }
+]

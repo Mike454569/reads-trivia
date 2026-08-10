@@ -1,0 +1,9 @@
+{
+  "production_safe_bridges": 37,
+  "cross_league_puzzles": 74,
+  "cross_league_edges": 111,
+  "eligible_puzzles": 406774,
+  "working_modes": 39,
+  "foreign_key_errors": 0,
+  "integrity": "ok"
+}

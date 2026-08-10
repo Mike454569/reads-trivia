@@ -1,0 +1,597 @@
+{
+  "NFL": {
+    "competition": "NFL",
+    "seed": "daily:1",
+    "generated_packs": [
+      {
+        "pack_id": "PACK:f0ae04d8347da6dfdd",
+        "competition_id": "NFL",
+        "mode_id": "nfl_matching",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "left": [
+            {
+              "id": "PFR:DorsTr20",
+              "label": "Travis Dorsch"
+            },
+            {
+              "id": "PFR:MitcMe20",
+              "label": "Mel Mitchell"
+            },
+            {
+              "id": "PFR:PutzJe00",
+              "label": "Jeb Putzier"
+            },
+            {
+              "id": "PFR:KellJe21",
+              "label": "Jeff Kelly"
+            }
+          ],
+          "mechanic": "matching",
+          "prompt": "Match each NFL player to the team that drafted him.",
+          "right": [
+            {
+              "id": "SEA",
+              "label": "SEA"
+            },
+            {
+              "id": "DEN",
+              "label": "DEN"
+            },
+            {
+              "id": "NO",
+              "label": "NO"
+            },
+            {
+              "id": "CIN",
+              "label": "CIN"
+            }
+          ],
+          "solution": {
+            "PFR:DorsTr20": "CIN",
+            "PFR:KellJe21": "SEA",
+            "PFR:MitcMe20": "NO",
+            "PFR:PutzJe00": "DEN"
+          }
+        }
+      },
+      {
+        "pack_id": "PACK:5e7becf6e958259254",
+        "competition_id": "NFL",
+        "mode_id": "nfl_ordering",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "items": [
+            {
+              "id": "DRAFT:2002:180:CLENTON_BALLARD",
+              "label": "Clenton Ballard"
+            },
+            {
+              "id": "DRAFT:2002:211:BOB_SLOWIKOWSKI",
+              "label": "Bob Slowikowski"
+            },
+            {
+              "id": "PFR:KennJi21",
+              "label": "Jimmy Kennedy"
+            },
+            {
+              "id": "PFR:KeisBr20",
+              "label": "Brett Keisel"
+            }
+          ],
+          "mechanic": "ordering",
+          "picks": {
+            "DRAFT:2002:180:CLENTON_BALLARD": 180,
+            "DRAFT:2002:211:BOB_SLOWIKOWSKI": 211,
+            "PFR:KeisBr20": 242,
+            "PFR:KennJi21": 12
+          },
+          "prompt": "Order these NFL players by draft position, earliest pick to latest pick.",
+          "solution": [
+            "PFR:KennJi21",
+            "DRAFT:2002:180:CLENTON_BALLARD",
+            "DRAFT:2002:211:BOB_SLOWIKOWSKI",
+            "PFR:KeisBr20"
+          ]
+        }
+      },
+      {
+        "pack_id": "PACK:366792be0768cf08d6",
+        "competition_id": "NFL",
+        "mode_id": "nfl_connections",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "answer": "LARM",
+          "items": [
+            {
+              "id": "PFR:StewMi20",
+              "label": "Michael Stewart"
+            },
+            {
+              "id": "PFR:BranCh00",
+              "label": "Chris Brantley"
+            },
+            {
+              "id": "PFR:PeatTo20",
+              "label": "Todd Peat"
+            },
+            {
+              "id": "PFR:AlvoSt20",
+              "label": "Steve Alvord"
+            }
+          ],
+          "mechanic": "connections",
+          "prompt": "What connects these four NFL players?",
+          "relationship": "All were drafted by the same NFL team."
+        }
+      },
+      {
+        "pack_id": "PACK:075dbde8d8f6a2646c",
+        "competition_id": "NFL",
+        "mode_id": "nfl_odd_one_out",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "answer": "Mike Williams",
+          "answer_id": "PFR:WillMi07",
+          "explanation": "Three were drafted by NYG; Mike Williams was drafted by LAC.",
+          "items": [
+            {
+              "id": "PFR:SehoJa20",
+              "label": "Jason Sehorn"
+            },
+            {
+              "id": "PFR:RivePh00",
+              "label": "Philip Rivers"
+            },
+            {
+              "id": "PFR:WillMi07",
+              "label": "Mike Williams"
+            },
+            {
+              "id": "DRAFT:2001:160:JOHN_MARKHAM",
+              "label": "John Markham"
+            }
+          ],
+          "mechanic": "elimination",
+          "prompt": "Which NFL player is the odd one out?"
+        }
+      }
+    ],
+    "single_puzzles": [
+      {
+        "puzzle_id": "PZ:c070ca10ac5d6324f6b9",
+        "mode_id": "draft_team",
+        "source_entity_type": "nfl_player",
+        "source_entity_id": "PFR:SmitRa20",
+        "season": 2002,
+        "difficulty_score": 0.23213823857302118,
+        "difficulty_band": "EASY",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.7678617614269788,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "MIN",
+          "draft_season": 2002,
+          "pick": 38,
+          "player": "Raonall Smith",
+          "position": "LB",
+          "prompt": "Which team drafted Raonall Smith?",
+          "round": 2
+        }
+      },
+      {
+        "puzzle_id": "PZ:bee92d44f4c49ade8e47",
+        "mode_id": "draft_pick",
+        "source_entity_type": "nfl_player",
+        "source_entity_id": "PFR:WoodLa99",
+        "season": 2007,
+        "difficulty_score": 0.25956521739130434,
+        "difficulty_band": "EASY",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.7404347826086957,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "46",
+          "player": "LaMarr Woodley",
+          "prompt": "What overall pick was LaMarr Woodley in the 2007 NFL Draft?",
+          "round": 2,
+          "team": "PIT"
+        }
+      },
+      {
+        "puzzle_id": "PZ:f0df55a3df81298d0553",
+        "mode_id": "draft_round",
+        "source_entity_type": "nfl_player",
+        "source_entity_id": "PFR:AlleCo00",
+        "season": 2011,
+        "difficulty_score": 0.4217391304347826,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.5782608695652174,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "4",
+          "pick": 128,
+          "player": "Cortez Allen",
+          "prompt": "In which round was Cortez Allen drafted in 2011?",
+          "team": "PIT"
+        }
+      },
+      {
+        "puzzle_id": "PZ:3506400e04c9fb88439c",
+        "mode_id": "season_record",
+        "source_entity_type": "team",
+        "source_entity_id": "JAX",
+        "season": 2023,
+        "difficulty_score": 0.31875,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.68125,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "9-8",
+          "full_name": "Jacksonville Jaguars",
+          "prompt": "What was JAX's record in 2023?"
+        }
+      },
+      {
+        "puzzle_id": "PZ:ad278a802c3b1fb889b5",
+        "mode_id": "playoff_seed",
+        "source_entity_type": "team",
+        "source_entity_id": "DEN",
+        "season": 2025,
+        "difficulty_score": 0.3529166666666667,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.6470833333333332,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "1",
+          "prompt": "What playoff seed did DEN earn in 2025?",
+          "record": "14-3"
+        }
+      },
+      {
+        "puzzle_id": "PZ:7087b75ce873dcdcf8ee",
+        "mode_id": "coach_from_team_season",
+        "source_entity_type": "coach",
+        "source_entity_id": "COACH:brian_callahan",
+        "season": 2024,
+        "difficulty_score": 0.5037037037037038,
+        "difficulty_band": "HARD",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.49629629629629624,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "Brian Callahan",
+          "prompt": "Who coached TEN in the 2024 NFL season?"
+        }
+      },
+      {
+        "puzzle_id": "PZ:e79892f3fa8fba72816f",
+        "mode_id": "stadium_from_game",
+        "source_entity_type": "game",
+        "source_entity_id": "2011_17_CAR_NO",
+        "season": 2011,
+        "difficulty_score": 0.4653055555555556,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.5346944444444444,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED",
+        "source_id": "NFLVERSE_DATA",
+        "payload": {
+          "answer": "Mercedes-Benz Superdome",
+          "prompt": "Which stadium hosted CAR at NO on 2012-01-01?"
+        }
+      }
+    ]
+  },
+  "CFB": {
+    "competition": "CFB",
+    "seed": "daily:1",
+    "generated_packs": [
+      {
+        "pack_id": "PACK:c0545f32d306a4bb23",
+        "competition_id": "CFB",
+        "mode_id": "cfb_matching",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "left": [
+            {
+              "id": "CFB_PLAYER_JOE_BELLINO",
+              "label": "Joe Bellino"
+            },
+            {
+              "id": "CFB_PLAYER_MAJOR_HARRIS",
+              "label": "Major Harris"
+            },
+            {
+              "id": "CFB_PLAYER_REX_GROSSMAN",
+              "label": "Rex Grossman"
+            },
+            {
+              "id": "CFB_PLAYER_TREVOR_LAWRENCE",
+              "label": "Trevor Lawrence"
+            }
+          ],
+          "mechanic": "matching",
+          "prompt": "Match each college football player to the school in the master database.",
+          "right": [
+            {
+              "id": "CFB_SCHOOL_CLEMSON",
+              "label": "Clemson"
+            },
+            {
+              "id": "CFB_SCHOOL_FLORIDA",
+              "label": "Florida"
+            },
+            {
+              "id": "CFB_SCHOOL_WEST_VIRGINIA",
+              "label": "West Virginia"
+            },
+            {
+              "id": "CFB_SCHOOL_NAVY",
+              "label": "Navy"
+            }
+          ],
+          "solution": {
+            "CFB_PLAYER_JOE_BELLINO": "CFB_SCHOOL_NAVY",
+            "CFB_PLAYER_MAJOR_HARRIS": "CFB_SCHOOL_WEST_VIRGINIA",
+            "CFB_PLAYER_REX_GROSSMAN": "CFB_SCHOOL_FLORIDA",
+            "CFB_PLAYER_TREVOR_LAWRENCE": "CFB_SCHOOL_CLEMSON"
+          }
+        }
+      },
+      {
+        "pack_id": "PACK:fc7f3763922b28ca21",
+        "competition_id": "CFB",
+        "mode_id": "cfb_ordering",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "items": [
+            {
+              "id": "CFB_SCHOOL_OHIO_STATE:1942",
+              "label": "Ohio State \u2014 National Champion"
+            },
+            {
+              "id": "CFB_SCHOOL_MIAMI:1991",
+              "label": "Miami \u2014 National Champion"
+            },
+            {
+              "id": "CFB_SCHOOL_FLORIDA:2006",
+              "label": "Florida \u2014 National Champion"
+            },
+            {
+              "id": "CFB_SCHOOL_USC:1967",
+              "label": "USC \u2014 National Champion"
+            }
+          ],
+          "mechanic": "ordering",
+          "prompt": "Put these college football items in chronological order, earliest to latest.",
+          "solution": [
+            "CFB_SCHOOL_OHIO_STATE:1942",
+            "CFB_SCHOOL_USC:1967",
+            "CFB_SCHOOL_MIAMI:1991",
+            "CFB_SCHOOL_FLORIDA:2006"
+          ],
+          "years": {
+            "CFB_SCHOOL_FLORIDA:2006": 2006,
+            "CFB_SCHOOL_MIAMI:1991": 1991,
+            "CFB_SCHOOL_OHIO_STATE:1942": 1942,
+            "CFB_SCHOOL_USC:1967": 1967
+          }
+        }
+      },
+      {
+        "pack_id": "PACK:a56ced595a708a6cf3",
+        "competition_id": "CFB",
+        "mode_id": "cfb_connections",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "answer": "SMU",
+          "items": [
+            {
+              "id": "CFB_PLAYER_ERIC_DICKERSON",
+              "label": "Eric Dickerson",
+              "type": "player"
+            },
+            {
+              "id": "CFB_PLAYER_KYLE_ROTE",
+              "label": "Kyle Rote",
+              "type": "player"
+            },
+            {
+              "id": "CFB_PLAYER_DOAK_WALKER",
+              "label": "Doak Walker",
+              "type": "player"
+            },
+            {
+              "id": "CFB_COACH_MATTY_BELL",
+              "label": "Matty Bell",
+              "type": "coach"
+            }
+          ],
+          "mechanic": "connections",
+          "prompt": "What connects these four college football names?",
+          "relationship": "All are linked to the same school in the CFB graph.",
+          "school_id": "CFB_SCHOOL_SMU"
+        }
+      },
+      {
+        "pack_id": "PACK:787b45446c69e036fc",
+        "competition_id": "CFB",
+        "mode_id": "cfb_odd_one_out",
+        "seed_text": "daily:1",
+        "difficulty_band": "MIXED",
+        "verification_status": "SOURCE_BACKED_OR_DERIVED",
+        "payload": {
+          "answer": "Colt McCoy",
+          "answer_id": "CFB_PLAYER_COLT_MCCOY",
+          "explanation": "Three are linked to Miami (FL); Colt McCoy is linked to Texas.",
+          "items": [
+            {
+              "id": "CFB_PLAYER_KEN_DORSEY",
+              "label": "Ken Dorsey",
+              "type": "player"
+            },
+            {
+              "id": "CFB_PLAYER_COLT_MCCOY",
+              "label": "Colt McCoy",
+              "type": "player"
+            },
+            {
+              "id": "CFB_COACH_ANDY_GUSTAFSON",
+              "label": "Andy Gustafson",
+              "type": "coach"
+            },
+            {
+              "id": "CFB_PLAYER_GINO_TORRETTA",
+              "label": "Gino Torretta",
+              "type": "player"
+            }
+          ],
+          "mechanic": "elimination",
+          "prompt": "Which name is the odd one out?"
+        }
+      }
+    ],
+    "single_puzzles": [
+      {
+        "puzzle_id": "PZ:fac380d7fd1b2b3d9982",
+        "mode_id": "college_of_player",
+        "source_entity_type": "cfb_player",
+        "source_entity_id": "CFB_PLAYER_ERNIE_DAVIS",
+        "season": 1961,
+        "difficulty_score": 0.8606250000000001,
+        "difficulty_band": "EXPERT",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.13937499999999992,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+        "source_id": "READS_CFB_MASTER",
+        "payload": {
+          "answer": "Syracuse",
+          "context": "Heisman Winner",
+          "player": "Ernie Davis",
+          "prompt": "Which school is Ernie Davis linked to?"
+        }
+      },
+      {
+        "puzzle_id": "PZ:da5eaf88b6ed513a00cd",
+        "mode_id": "award_winner",
+        "source_entity_type": "award_fact",
+        "source_entity_id": "AWARDFACT:ea28bbbd356ba7bc",
+        "season": 1975,
+        "difficulty_score": 0.37599999999999995,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.6240000000000001,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+        "source_id": "READS_CFB_MASTER",
+        "payload": {
+          "answer": "Archie Griffin",
+          "prompt": "Who won the Heisman Trophy in 1975?",
+          "school": "Ohio State"
+        }
+      },
+      {
+        "puzzle_id": "PZ:d4723d6f20afdd8c3868",
+        "mode_id": "award_school",
+        "source_entity_type": "award_fact",
+        "source_entity_id": "AWARDFACT:03950b4ed7012fce",
+        "season": 1995,
+        "difficulty_score": 0.32266666666666666,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.6773333333333333,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+        "source_id": "READS_CFB_MASTER",
+        "payload": {
+          "answer": "Ohio State",
+          "prompt": "Which school did Eddie George represent when winning the Heisman Trophy in 1995?"
+        }
+      },
+      {
+        "puzzle_id": "PZ:52c015ea2da5f7c6eae1",
+        "mode_id": "cfb_champion_by_year",
+        "source_entity_type": "school",
+        "source_entity_id": "CFB_SCHOOL_ALABAMA",
+        "season": 1992,
+        "difficulty_score": 0.4955555555555555,
+        "difficulty_band": "MEDIUM",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.5044444444444445,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+        "source_id": "READS_CFB_MASTER",
+        "payload": {
+          "answer": "Alabama",
+          "coach": "Gene Stallings",
+          "prompt": "Which school is recorded as a national champion for 1992?"
+        }
+      },
+      {
+        "puzzle_id": "PZ:bde7fc206b18bc6eac83",
+        "mode_id": "cfb_coach_school",
+        "source_entity_type": "cfb_coach",
+        "source_entity_id": "CFB_COACH_MIKE_NORVELL",
+        "season": null,
+        "difficulty_score": 0.5,
+        "difficulty_band": "HARD",
+        "ambiguity_score": 0.0,
+        "popularity_proxy": 0.5,
+        "eligible": 1,
+        "exclusion_reason": null,
+        "verification_status": "SOURCE_BACKED_FROM_CFB_MASTER",
+        "source_id": "READS_CFB_MASTER",
+        "payload": {
+          "answer": "Memphis",
+          "coach_name": "Mike Norvell",
+          "context": "Top_Coaches_By_School",
+          "prompt": "Which school is Mike Norvell linked to in the CFB coaching master?",
+          "school_id": "CFB_SCHOOL_MEMPHIS"
+        }
+      }
+    ]
+  }
+}

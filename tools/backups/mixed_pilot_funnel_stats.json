@@ -1,0 +1,53 @@
+{
+  "target_total": 300,
+  "exported_total": 300,
+  "by_domain": {
+    "draft": {
+      "considered": 500,
+      "rejected": 69,
+      "accepted": 431,
+      "exported": 100,
+      "id_range": [
+        500000,
+        500099
+      ],
+      "rejected_counts": {
+        "TEAM_UNRESOLVED": 54,
+        "DUPLICATE_PLAYER": 14,
+        "DUPLICATE_QUESTION": 1
+      }
+    },
+    "qb_season": {
+      "considered": 1587,
+      "rejected": 1341,
+      "accepted": 246,
+      "exported": 100,
+      "id_range": [
+        500100,
+        500199
+      ],
+      "rejected_counts": {
+        "NO_ENGINE_DIFFICULTY_AVAILABLE": 264,
+        "DUPLICATE_PLAYER": 1003,
+        "UNRESOLVED_QB_IDENTITY": 49,
+        "TEAM_UNRESOLVED": 5,
+        "MULTIPLE_PLAUSIBLE_ANSWERS_MIDSEASON_TRADE": 20
+      }
+    },
+    "championship": {
+      "considered": 296,
+      "rejected": 0,
+      "accepted": 296,
+      "exported": 100,
+      "id_range": [
+        500200,
+        500299
+      ],
+      "rejected_counts": {}
+    }
+  },
+  "dup_questions_cross_domain": [],
+  "dup_ids_cross_domain": [],
+  "contract_failures": [],
+  "contract_passed": true
+}

@@ -1,0 +1,367 @@
+{
+  "results": [
+    {
+      "team_code": "ARI",
+      "franchise_id": "FR_ARI",
+      "proposed_range": [
+        1994,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "ATL",
+      "franchise_id": "FR_ATL",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "BUF",
+      "franchise_id": "FR_BUF",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "CAR",
+      "franchise_id": "FR_CAR",
+      "proposed_range": [
+        1995,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "CHI",
+      "franchise_id": "FR_CHI",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "CIN",
+      "franchise_id": "FR_CIN",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "CLE",
+      "franchise_id": "FR_CLE",
+      "proposed_range": [
+        1984,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "draft_facts gap(s) within widened range: [(1995, 1999)]"
+    },
+    {
+      "team_code": "DAL",
+      "franchise_id": "FR_DAL",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "DEN",
+      "franchise_id": "FR_DEN",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "DET",
+      "franchise_id": "FR_DET",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "GB",
+      "franchise_id": "FR_GB",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "IND",
+      "franchise_id": "FR_IND",
+      "proposed_range": [
+        1984,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "JAX",
+      "franchise_id": "FR_JAX",
+      "proposed_range": [
+        1995,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "KC",
+      "franchise_id": "FR_KC",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "MIA",
+      "franchise_id": "FR_MIA",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "MIN",
+      "franchise_id": "FR_MIN",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "NE",
+      "franchise_id": "FR_NE",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "NO",
+      "franchise_id": "FR_NO",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "NYG",
+      "franchise_id": "FR_NYG",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "NYJ",
+      "franchise_id": "FR_NYJ",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "OAK",
+      "franchise_id": "FR_LV",
+      "proposed_range": [
+        1995,
+        2019
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "PHI",
+      "franchise_id": "FR_PHI",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "PIT",
+      "franchise_id": "FR_PIT",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "SD",
+      "franchise_id": "FR_LAC",
+      "proposed_range": [
+        1980,
+        2016
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "SEA",
+      "franchise_id": "FR_SEA",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "SF",
+      "franchise_id": "FR_SF",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "STL",
+      "franchise_id": "FR_LAR",
+      "proposed_range": [
+        1995,
+        2015
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "TB",
+      "franchise_id": "FR_TB",
+      "proposed_range": [
+        1980,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "TEN",
+      "franchise_id": "FR_TEN",
+      "proposed_range": [
+        1997,
+        2026
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    },
+    {
+      "team_code": "WAS",
+      "franchise_id": "FR_WAS",
+      "proposed_range": [
+        1980,
+        2019
+      ],
+      "status": "PASS",
+      "issues": [],
+      "note": "no gaps in draft_facts within widened range"
+    }
+  ],
+  "passed_codes": [
+    "ARI",
+    "ATL",
+    "BUF",
+    "CAR",
+    "CHI",
+    "CIN",
+    "CLE",
+    "DAL",
+    "DEN",
+    "DET",
+    "GB",
+    "IND",
+    "JAX",
+    "KC",
+    "MIA",
+    "MIN",
+    "NE",
+    "NO",
+    "NYG",
+    "NYJ",
+    "OAK",
+    "PHI",
+    "PIT",
+    "SD",
+    "SEA",
+    "SF",
+    "STL",
+    "TB",
+    "TEN",
+    "WAS"
+  ],
+  "held_codes": []
+}

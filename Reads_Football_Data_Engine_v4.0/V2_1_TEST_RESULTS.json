@@ -1,0 +1,26 @@
+{
+  "status": "PASSED",
+  "tested": [
+    "account creation",
+    "hashed session issuance",
+    "optimistic cloud sync",
+    "sync conflict protection",
+    "FREE entitlement resolution",
+    "single-use ranked match",
+    "valid ranked submission",
+    "impossible-speed anti-cheat signal",
+    "analytics funnel aggregation",
+    "PostgreSQL schema generation"
+  ],
+  "smoke_data_removed": true,
+  "compile": {
+    "production_engine.py": "OK",
+    "production_api.py": "OK",
+    "backup_manager.py": "OK",
+    "postgres_migration_v2_1.py": "OK",
+    "live_intelligence.py": "OK",
+    "community_engine.py": "OK",
+    "retention_engine.py": "OK",
+    "game_factory.py": "OK"
+  }
+}

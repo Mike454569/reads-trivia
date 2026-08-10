@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reads Football Game Factory Spec v1.4",
+  "type": "object",
+  "required": [
+    "competition_id",
+    "mechanic",
+    "group_size"
+  ],
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "competition_id": {
+      "enum": [
+        "NFL",
+        "CFB"
+      ]
+    },
+    "mechanic": {
+      "enum": [
+        "guess",
+        "connections",
+        "elimination",
+        "matching",
+        "ordering",
+        "path"
+      ]
+    },
+    "entity_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "relationship_predicate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "object_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "answer_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "group_size": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 12
+    },
+    "filters": {
+      "type": "object"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "relationship",
+              "attribute_filters",
+              "composite_same",
+              "contrast",
+              "count_condition",
+              "temporal_relationship",
+              "cross_domain_sequence"
+            ]
+          }
+        }
+      }
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "complexity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "difficulty": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "database_version": "3.0.0",
+  "director_requests": 4,
+  "director_previews": 4,
+  "integrity": "ok",
+  "foreign_key_errors": 0,
+  "compile": {
+    "game_director.py": "OK",
+    "game_director_api.py": "OK",
+    "game_factory.py": "OK",
+    "quality_intelligence.py": "OK",
+    "growth_engine.py": "OK",
+    "production_engine.py": "OK"
+  },
+  "smoke": [
+    {
+      "request": "Make a Connections game with college players who went to the same school and played the same position.",
+      "status": "READY",
+      "feasibility": "SUPPORTED",
+      "candidates": 3,
+      "qa": {
+        "pass": 3,
+        "fail": 0
+      }
+    },
+    {
+      "request": "Make an odd-one-out game where four college players shared a school and position but the fifth played another position.",
+      "status": "READY",
+      "feasibility": "SUPPORTED",
+      "candidates": 3,
+      "qa": {
+        "pass": 3,
+        "fail": 0
+      }
+    },
+    {
+      "request": "Make a game about NFL players drafted by the same team at the same position.",
+      "status": "READY",
+      "feasibility": "SUPPORTED",
+      "candidates": 3,
+      "qa": {
+        "pass": 3,
+        "fail": 0
+      }
+    },
+    {
+      "request": "Make a game about college players who transferred exactly once.",
+      "status": "READY",
+      "feasibility": "SUPPORTED",
+      "candidates": 3,
+      "qa": {
+        "pass": 3,
+        "fail": 0
+      }
+    }
+  ]
+}
