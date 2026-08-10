@@ -165,6 +165,52 @@ def test_grid_accolade_identity_safety_adrian_peterson_still_blocked(client, aut
     assert r.json()["reason"] == "AMBIGUOUS"
 
 
+# --- v1.0: historical canonical player identity expansion --------------------
+
+def test_grid_historical_player_has_canonical_identity(client, auth_headers):
+    # Jerry Rice retired in 2004 (before the 2006-2026 roster window) but is
+    # now a real canonical_players row (v1.0's historical identity expansion,
+    # source: nfl_players_draft, id_quality=PFR_UNIQUE).
+    r = client.get("/v1/grid/player/PFR:RiceJe00", headers=auth_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["display_name"] == "Jerry Rice"
+    assert body["drafted"] == {"team": "SF", "year": 1985}
+    # Real, honest limitation: no roster/team data exists for pre-2006 careers.
+    assert body["teams"] == []
+    assert body["position_groups"] == []
+
+
+def test_grid_hof_all_real_source_rows_now_linked(client, auth_headers):
+    # v0.9 linked 49/102 real HOF facts (blocked by canonical_players' old
+    # 2006-2026-only scope). v1.0's historical identity expansion re-linked
+    # the rest -- 102/102 now real and attached.
+    r = client.get("/v1/grid/criteria", headers=auth_headers)
+    assert r.status_code == 200
+    # accolade_coverage counts distinct players across all 3 accolade types,
+    # not HOF alone -- just confirm it's meaningfully larger than v0.9's 909.
+    assert r.json()["accolade_coverage"]["player_count"] > 1000
+
+
+def test_grid_hof_still_bounded_by_team_data_for_grid_cells(client, auth_headers):
+    # The real, important v1.0 finding: newly-linked historical HOF players
+    # (no roster data) can NEVER satisfy a team_<CODE> criterion, so they
+    # can't appear in a real Grid cell despite being real, linked HOF facts.
+    # Jerry Rice has no team_SF membership fact (PLAYED_FOR doesn't exist
+    # pre-2006), even though he was real SF roster/HOF history.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_SF", "col_id": "hof"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert not any(p["node_id"] == "PFR:RiceJe00" for p in r.json()["players"])
+
+
+def test_grid_historical_expansion_does_not_change_team_criterion_counts(client, auth_headers):
+    # Regression: adding 4,868 roster-data-less historical players must not
+    # leak into team_<CODE> matching (they have zero PLAYED_FOR edges).
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
+
+
 # --- valid intersection (real data) -----------------------------------------
 
 def test_grid_intersection_team_position_real_match(client, auth_headers):

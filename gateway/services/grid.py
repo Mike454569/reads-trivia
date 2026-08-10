@@ -22,13 +22,32 @@ Source: nflverse-data's `draft_picks` release (courtesy Pro Football
 Reference per its own release notes) -- see
 import_accolades_v09.py's module docstring for the full real semantic
 verification (cross-checked allpro/probowls/hof against Randy Moss, J.J.
-Watt, Jerry Rice, Lawrence Taylor, Anthony Munoz) and the two real,
-honest coverage gaps (drafted-players-only source; canonical_players
-itself only covers 2006-2026-active players, so 53 of 102 real Hall of
-Famers in the source -- anyone whose career ended before 2006 -- have no
-row to attach to). mvp/sb_mvp/roty remain unsupported: checked all 225
-tables (v0.8) and every real nflverse-data release tag (v0.8 + v0.9,
-including draft_picks' full column list) -- genuinely no season-specific
+Watt, Jerry Rice, Lawrence Taylor, Anthony Munoz). At v0.9, 53 of 102 real
+Hall of Famers in the source (anyone whose career ended before 2006)
+couldn't link -- canonical_players only had 2006-2026-active players.
+
+--- v1.0 UPDATE: historical identity expansion re-linked ALL 102 real HOF
+facts (see import_historical_identity_v10.py) --- canonical_players grew
+by 4,868 real, source-backed pre-2006 players (draft-identity only, no
+roster/team data -- see data_coverage.NFL_PLAYER_IDENTITY_HISTORICAL).
+Re-running import_accolades_v09.py against the larger universe linked
+102/102 HOF (up from 49), 517 All-Pro career-count facts (up from 349),
+1,325 Pro Bowl career-count facts (up from 893). Grid criterion STATUS is
+UNCHANGED by this (still SUPPORTED_WITH_COVERAGE_LIMIT, not upgraded to
+SUPPORTED) -- these are still coverage-limited by the drafted-players-only
+source, and more importantly: every one of these newly-linked historical
+players has ZERO canonical_roster_seasons/PLAYED_FOR data (that source
+genuinely doesn't exist before 2006), so they can NEVER satisfy a
+team_<CODE> criterion -- and Grid's own board structure requires BOTH a
+row (always team-based) AND column match per cell. So while raw HOF/
+All-Pro/Pro-Bowl LINKAGE materially improved, Grid CELL-PARTICIPATION for
+these criteria is unaffected: only players with both real roster data
+*and* real accolade data (i.e. the 2006-2026-era subset) can ever complete
+an actual Grid cell. The larger linked universe is real, valuable data
+(Player Explorer, Player-From-Clues, general correctness) -- just not a
+change to what Grid itself can display. mvp/sb_mvp/roty remain
+unsupported: checked all 225 tables (v0.8/v1.0) and every real
+nflverse-data release tag (v0.8/v0.9/v1.0) -- genuinely no season-specific
 individual award-winner data exists in any already-approved source.
 
 --- v0.8 UPDATE: roster coverage extended 2006-2026 (was 2006-2019 in v0.7) ---
@@ -307,14 +326,16 @@ def list_supported_criteria() -> Dict[str, Any]:
     stat_criteria += [
         {"id": pid, "type": "stat", "label": label, "status": "SUPPORTED_WITH_COVERAGE_LIMIT",
          "coverage_start": None, "coverage_end": None,
-         "notes": (f"v0.9: real nflverse-data/PFR-sourced facts ({accolade_coverage['player_count']} players "
-                    "total across hof/all-pro/pro-bowl), but two real, honest gaps: (1) source only covers "
-                    "DRAFTED players -- a true undrafted honoree, rare but real, is invisible; (2) "
-                    "canonical_players itself only has rows for players with a 2006-2026 roster season, so a "
-                    "real honoree whose career ended before 2006 (e.g. Jerry Rice) has no row to attach to at "
-                    "all -- 53 of 102 real Hall of Famers in the source were skipped for this reason alone. "
-                    "All-Pro/Pro-Bowl counts are CAREER totals, not season-by-season selections (source "
-                    "limitation, not fabricated per-season data).")}
+         "notes": (f"v0.9+v1.0: real nflverse-data/PFR-sourced facts ({accolade_coverage['player_count']} players "
+                    "total across hof/all-pro/pro-bowl -- 102/102 real HOF now linked after v1.0's historical "
+                    "identity expansion, up from 49/102 at v0.9). Still SUPPORTED_WITH_COVERAGE_LIMIT, not "
+                    "SUPPORTED: (1) source only covers DRAFTED players -- a true undrafted honoree, rare but "
+                    "real, is invisible; (2) v1.0's newly-linked pre-2006 players have NO roster/team data at "
+                    "all (PLAYED_FOR doesn't exist before 2006), so they can never satisfy a team_<CODE> "
+                    "criterion -- Grid's own board structure needs both a row and column match per cell, so "
+                    "this criterion's real-world Grid cell participation is still bounded to the 2006-2026-era "
+                    "player pool despite the larger linked universe. All-Pro/Pro-Bowl counts are CAREER "
+                    "totals, not season-by-season selections (source limitation, not fabricated data).")}
         for pid, label in ACCOLADE_LABELS.items()
     ]
     return {

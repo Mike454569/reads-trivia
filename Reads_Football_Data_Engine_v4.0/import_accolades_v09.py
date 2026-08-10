@@ -175,6 +175,14 @@ def main():
         # Idempotency: remove any prior v0.9 rows from this exact import before
         # re-inserting (safe to re-run without duplicating facts).
         c.execute("DELETE FROM player_accolades WHERE source_id='NFLVERSE_DATA' AND notes LIKE 'v0.9%'")
+        # v1.0 fix: this script is re-run whenever canonical_players grows (e.g. after
+        # historical identity expansion) to re-link against the larger universe -- the
+        # source_releases/import_batches rows below need the same idempotency the
+        # player_accolades DELETE above already has, or a re-run fails with a real
+        # UNIQUE-constraint error instead of cleanly updating (caught by actually
+        # re-running this script after v1.0's historical expansion, not assumed).
+        c.execute("DELETE FROM source_releases WHERE release_id='REL_NFLVERSE_DRAFT_PICKS_ACCOLADES_V09'")
+        c.execute("DELETE FROM import_batches WHERE batch_id='BATCH:v09_accolades'")
 
         rows_to_insert = []
         for player_id in hof_facts:
