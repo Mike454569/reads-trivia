@@ -55,7 +55,8 @@ def test_grid_criteria_real_coverage_and_split(client, auth_headers):
     assert r.status_code == 200
     body = r.json()
     # v0.8: real 2020-2026 nflverse roster import extended this from 2006-2019.
-    assert body["roster_coverage"] == {"min_season": 2006, "max_season": 2026}
+    # v1.1: real 1999-2005 stats-participation import extended it further back.
+    assert body["roster_coverage"] == {"min_season": 1999, "max_season": 2026}
     assert body["draft_coverage"]["min_season"] == 1980
     assert body["draft_coverage"]["max_season"] == 2024
     assert len(body["supported"]["team"]) == 32
@@ -168,17 +169,18 @@ def test_grid_accolade_identity_safety_adrian_peterson_still_blocked(client, aut
 # --- v1.0: historical canonical player identity expansion --------------------
 
 def test_grid_historical_player_has_canonical_identity(client, auth_headers):
-    # Jerry Rice retired in 2004 (before the 2006-2026 roster window) but is
-    # now a real canonical_players row (v1.0's historical identity expansion,
-    # source: nfl_players_draft, id_quality=PFR_UNIQUE).
+    # Jerry Rice retired in 2004 (before the original 2006-2026 roster window)
+    # but is now a real canonical_players row (v1.0's historical identity
+    # expansion, source: nfl_players_draft, id_quality=PFR_UNIQUE) AND now has
+    # real team data too (v1.1's historical PLAYED_FOR extension, 1999-2005 --
+    # see test_grid_jerry_rice_acceptance_real_team_career for the full check).
     r = client.get("/v1/grid/player/PFR:RiceJe00", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert body["display_name"] == "Jerry Rice"
     assert body["drafted"] == {"team": "SF", "year": 1985}
-    # Real, honest limitation: no roster/team data exists for pre-2006 careers.
-    assert body["teams"] == []
-    assert body["position_groups"] == []
+    assert "SF" in body["teams"]
+    assert "pos_wr" in body["position_groups"]
 
 
 def test_grid_hof_all_real_source_rows_now_linked(client, auth_headers):
@@ -193,20 +195,101 @@ def test_grid_hof_all_real_source_rows_now_linked(client, auth_headers):
 
 
 def test_grid_hof_still_bounded_by_team_data_for_grid_cells(client, auth_headers):
-    # The real, important v1.0 finding: newly-linked historical HOF players
-    # (no roster data) can NEVER satisfy a team_<CODE> criterion, so they
-    # can't appear in a real Grid cell despite being real, linked HOF facts.
-    # Jerry Rice has no team_SF membership fact (PLAYED_FOR doesn't exist
-    # pre-2006), even though he was real SF roster/HOF history.
-    r = client.get("/v1/grid/intersection", params={"row_id": "team_SF", "col_id": "hof"}, headers=auth_headers)
+    # v1.0 found: newly-linked historical HOF players with NO roster data
+    # can never satisfy a team_<CODE> criterion. v1.1 narrowed this gap
+    # (real PLAYED_FOR now reaches back to 1999 for canonical, stats-linked
+    # players) but did not close it -- John Elway retired in 1998, before
+    # even the extended 1999 floor, so he still has zero canonical_roster_
+    # seasons rows (verified directly against the live DB) and still can't
+    # complete a real Grid cell despite being a real, linked HOF fact.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_DEN", "col_id": "hof"}, headers=auth_headers)
     assert r.status_code == 200
-    assert not any(p["node_id"] == "PFR:RiceJe00" for p in r.json()["players"])
+    assert not any(p["node_id"] == "PFR:ElwaJo00" for p in r.json()["players"])
 
 
 def test_grid_historical_expansion_does_not_change_team_criterion_counts(client, auth_headers):
     # Regression: adding 4,868 roster-data-less historical players must not
     # leak into team_<CODE> matching (they have zero PLAYED_FOR edges).
     r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
+
+
+# --- v1.1: historical player-team career (PLAYED_FOR, 1999-2005) -------------
+
+JERRY_RICE_ID = "PFR:RiceJe00"
+
+
+def test_grid_jerry_rice_acceptance_real_team_career(client, auth_headers):
+    # The v1.1 acceptance test: Jerry Rice's real career (SF 1985-2000, then
+    # traded to the Raiders 2001-2004, then Seattle in 2004) now resolves
+    # through the generic historical PLAYED_FOR import -- no special-case
+    # code for Rice anywhere in gateway/services/grid.py.
+    r = client.get(f"/v1/grid/player/{JERRY_RICE_ID}", headers=auth_headers)
+    assert r.status_code == 200
+    teams = set(r.json()["teams"])
+    assert {"SF", "LV", "SEA"} <= teams
+
+
+def test_grid_jerry_rice_now_completes_real_grid_cells(client, auth_headers):
+    # v1.0 could link the HOF fact but not the team; v1.1 closes that gap
+    # for players covered by the 1999-2005 stats-participation import.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_SF", "col_id": "hof"}, headers=auth_headers)
+    assert r.status_code == 200
+    assert any(p["node_id"] == JERRY_RICE_ID for p in r.json()["players"])
+
+    v = client.post("/v1/grid/validate", json={
+        "row_id": "team_SF", "col_id": "allpro_3plus", "player_name": "Jerry Rice",
+    }, headers=auth_headers)
+    assert v.status_code == 200
+    assert v.json()["valid"] is True
+
+
+def test_grid_multi_team_historical_player_resolves_correctly(client, auth_headers):
+    # Real multi-team career, not fabricated: Marshall Faulk played for
+    # Indianapolis (1994-1998) then St. Louis/LA Rams (1999+) -- verify at
+    # least his real 1999-2005 Rams-era team (LAR, the canonical code for
+    # both STL and LA per this codebase's existing franchise alias map).
+    r = client.get("/v1/grid/player/PFR:FaulMa00", headers=auth_headers)
+    assert r.status_code == 200
+    assert "LAR" in r.json()["teams"]
+
+
+def test_grid_draft_team_does_not_imply_played_for(client, auth_headers):
+    # Part 7's absolute rule, checked with a real, verified example (found by
+    # querying for a real DRAFTED_BY team absent from real roster teams, not
+    # picked from memory): Hamza Abdullah was drafted by Tampa Bay (2005) but
+    # his real canonical_roster_seasons teams are DEN/CLE/ARI -- TB never
+    # appears. Confirms this codebase never infers PLAYED_FOR from draft data.
+    r = client.get("/v1/grid/player/PFR:AbduHa20", headers=auth_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["drafted"]["team"] == "TB"
+    assert "TB" not in body["teams"]
+    assert {"DEN", "CLE", "ARI"} <= set(body["teams"])
+
+
+def test_grid_historical_season_bound_excludes_wrong_season(client, auth_headers):
+    # Jerry Rice was real SF-only through 2000; his real Raiders/LV stint
+    # started 2001. A season=1999 query for team_LV must not include him.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_LV", "col_id": "hof", "season": 1999}, headers=auth_headers)
+    assert r.status_code == 200
+    assert not any(p["node_id"] == JERRY_RICE_ID for p in r.json()["players"])
+
+    r2 = client.get("/v1/grid/intersection", params={"row_id": "team_SF", "col_id": "hof", "season": 1999}, headers=auth_headers)
+    assert r2.status_code == 200
+    assert any(p["node_id"] == JERRY_RICE_ID for p in r2.json()["players"])
+
+
+def test_grid_roster_coverage_now_starts_1999(client, auth_headers):
+    r = client.get("/v1/grid/criteria", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json()["roster_coverage"] == {"min_season": 1999, "max_season": 2026}
+
+
+def test_grid_modern_2006_2026_coverage_unaffected(client, auth_headers):
+    # Regression: the v0.8 modern roster window must still work identically.
+    r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb", "season": 2024}, headers=auth_headers)
     assert r.status_code == 200
     assert any(p["node_id"] == MAHOMES_ID for p in r.json()["players"])
 
@@ -314,7 +397,7 @@ def test_grid_season_bound_validate_rejects_early_season(client, auth_headers):
 # --- historical coverage: outside the real window must not be guessed -------
 
 def test_grid_out_of_coverage_season_is_unsupported_not_a_silent_empty(client, auth_headers):
-    for season in (1999, 2027):  # v0.8 real window is 2006-2026; both still genuinely out of range
+    for season in (1998, 2027):  # v1.1 real window is 1999-2026; both still genuinely out of range
         r = client.get("/v1/grid/intersection", params={"row_id": "team_KC", "col_id": "pos_qb", "season": season}, headers=auth_headers)
         assert r.status_code == 200  # UNDERSTOOD_BUT_UNSUPPORTED is a structured 200, not a 4xx/5xx
         assert r.json()["error"]["code"] == "UNDERSTOOD_BUT_UNSUPPORTED"
