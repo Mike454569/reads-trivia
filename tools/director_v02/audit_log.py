@@ -27,11 +27,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-LOG_DIR = Path(__file__).resolve().parent / "logs"
+# v1.4, Part 19: overridable via READS_DIRECTOR_AUDIT_LOG_DIR (same pattern
+# gateway/config.py already uses for READS_ENGINE_LOG_DIR) -- fixes a real,
+# repeatedly-observed problem, not a hypothetical one: every prior phase's
+# test run (and every manual verification call made while developing this
+# project) appended to this SAME committed file, since it used to have no
+# way to redirect at all, dirtying the working tree every time and
+# requiring a manual `git restore` before every checkpoint commit.
+# gateway/tests/conftest.py sets this before the app is ever exercised, the
+# same way it already redirects gateway.config.PACKAGES_DIR /
+# GATEWAY_AUDIT_LOG_DIR for the exact same reason. Unset (every real/local
+# non-test run) -- byte-for-byte the same default as every prior phase.
+LOG_DIR = Path(os.environ.get("READS_DIRECTOR_AUDIT_LOG_DIR") or (Path(__file__).resolve().parent / "logs"))
 LOG_PATH = LOG_DIR / "audit_log.jsonl"
 
 # Documented, disclosed, dev-only. Flip to False and this stops writing

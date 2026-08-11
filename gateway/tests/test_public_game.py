@@ -7,6 +7,7 @@ same Director pipeline /v1/games/generate already uses -- not mocked. Every
 route here is deliberately called WITHOUT auth_headers (the whole point:
 these routes must work with no admin token, unlike every other route in
 this Gateway)."""
+import json
 import time
 
 from gateway import config
@@ -412,3 +413,129 @@ def test_contract_version_present_and_stable(client):
     champ_game = _get_champ_game(client).json()
     assert draft_game["metadata"]["contract_version"] == 1
     assert champ_game["metadata"]["contract_version"] == 1
+
+
+# --- v1.4: production rollout controls (Part 10/11) -----------------------
+
+def test_master_switch_on_by_default(client):
+    # Every other test in this file already implicitly proves this (they'd
+    # all fail otherwise), but an explicit assertion documents the default.
+    assert config.PUBLIC_GAME_ENABLED is True
+
+
+def test_master_switch_off_blocks_game_fetch_safely(client, monkeypatch):
+    from gateway.services import public_game
+    monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", False)
+    r = _get_game(client)
+    assert r.status_code == 503
+    assert r.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
+
+
+def test_master_switch_off_blocks_answer_validation_safely(client, monkeypatch):
+    from gateway.services import public_game
+    game = _get_game(client).json()  # fetch BEFORE disabling
+    monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", False)
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": "x"})
+    assert r.status_code == 503
+    assert r.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
+
+
+def test_master_switch_off_reflected_in_modes_list(client, monkeypatch):
+    from gateway.services import public_game
+    monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", False)
+    modes = client.get("/v1/public/modes").json()["modes"]
+    assert all(m["available"] is False for m in modes)
+    monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", True)
+    modes = client.get("/v1/public/modes").json()["modes"]
+    assert all(m["available"] is True for m in modes)
+
+
+def test_public_modes_env_var_narrows_but_cannot_expand(monkeypatch):
+    monkeypatch.setenv("READS_PUBLIC_MODES", "draft_guess")
+    assert config.public_modes_allowed() == frozenset({"draft_guess"})
+    # Requesting a mode that isn't code-certified does NOT sneak it in.
+    monkeypatch.setenv("READS_PUBLIC_MODES", "draft_guess,totally_made_up_mode")
+    assert config.public_modes_allowed() == frozenset({"draft_guess"})
+    monkeypatch.delenv("READS_PUBLIC_MODES", raising=False)
+    assert config.public_modes_allowed() == config.PUBLIC_MODE_ALLOWLIST
+
+
+def test_public_modes_env_var_temporarily_disables_one_mode(client, monkeypatch):
+    monkeypatch.setenv("READS_PUBLIC_MODES", "draft_guess")
+    r = _get_champ_game(client)
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "MODE_UNAVAILABLE"
+    r2 = _get_game(client)
+    assert r2.status_code == 200
+    modes = client.get("/v1/public/modes").json()["modes"]
+    by_id = {m["mode"]: m for m in modes}
+    assert by_id["draft_guess"]["available"] is True
+    assert by_id["championship_guess"]["available"] is False
+    monkeypatch.delenv("READS_PUBLIC_MODES", raising=False)
+
+
+# --- v1.4: readiness (Part 4/5/6) -------------------------------------------
+
+def test_ready_route_exposes_no_filesystem_path(client):
+    r = client.get("/v1/ready")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ready"
+    assert "db_path" not in body["engine_database"]
+    assert "reason" not in body["engine_database"]
+    assert body["mode_registry"]["loaded"] is True
+    raw = r.text
+    assert "/Users/" not in raw
+    assert "nfl-trivia" not in raw
+
+
+def test_health_route_is_minimal_and_safe(client):
+    r = client.get("/v1/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body.keys()) == {"status", "service", "api_version"}
+
+
+# --- v1.4: gameplay telemetry (Part 17/18) ----------------------------------
+
+def test_answer_telemetry_correctly_identifies_mode(client, tmp_path, monkeypatch):
+    # Real bug caught by actually inspecting a generated package's stored
+    # `parsed_spec` (not assumed): it has no `domain` key at all (the
+    # validator normalizes that away) -- an earlier version of the mode
+    # lookup this test checks used `domain` and always logged `mode: None`
+    # for every answer-submission telemetry event. Verified directly
+    # against the real operational log file, not just that the endpoint
+    # still returns 200 (which it did even with the bug, since the buggy
+    # lookup never affected the client-facing response).
+    from gateway import config as gw_config
+    from gateway.services import public_game
+    log_dir = tmp_path / "telemetry"
+    monkeypatch.setattr(gw_config, "GATEWAY_AUDIT_LOG_DIR", log_dir)
+    monkeypatch.setattr(gw_config, "OPERATIONAL_LOG_PATH", log_dir / "gateway_operational_log.jsonl")
+
+    draft_game = _get_game(client, seed="telemetry-mode-draft").json()
+    client.post("/v1/public/game/answer", json={"game_id": draft_game["game_id"], "answer": "x"})
+    champ_game = _get_champ_game(client, seed="telemetry-mode-champ").json()
+    client.post("/v1/public/game/answer", json={"game_id": champ_game["game_id"], "answer": "x"})
+
+    lines = [json.loads(l) for l in gw_config.OPERATIONAL_LOG_PATH.read_text().splitlines() if l.strip()]
+    answer_events = [l for l in lines if l.get("event") == "public_answer_submitted"]
+    assert len(answer_events) == 2
+    assert answer_events[0]["mode"] == "draft_guess"
+    assert answer_events[1]["mode"] == "championship_guess"
+    # Never the raw free-text answer (Part 17).
+    assert all("answer" not in e for e in answer_events)
+
+
+def test_game_served_telemetry_recorded(client, tmp_path, monkeypatch):
+    from gateway import config as gw_config
+    log_dir = tmp_path / "telemetry"
+    monkeypatch.setattr(gw_config, "GATEWAY_AUDIT_LOG_DIR", log_dir)
+    monkeypatch.setattr(gw_config, "OPERATIONAL_LOG_PATH", log_dir / "gateway_operational_log.jsonl")
+    _get_game(client, seed="telemetry-served-check")
+    lines = [json.loads(l) for l in gw_config.OPERATIONAL_LOG_PATH.read_text().splitlines() if l.strip()]
+    served = [l for l in lines if l.get("event") == "public_game_served"]
+    assert len(served) == 1
+    assert served[0]["mode"] == "draft_guess"
+    assert served[0]["generation_attempts"] >= 1
+    assert served[0]["latency_ms"] > 0

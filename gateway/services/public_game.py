@@ -74,11 +74,12 @@ yet.
 from __future__ import annotations
 
 import secrets
+import time
 from typing import Any, Dict, List, Optional
 
 from .. import config
 from ..errors import GatewayError
-from . import generation, packages
+from . import generation, oplog, packages
 
 # The public game contract's own version (Part 31) -- distinct from
 # `package_version` (metadata.version below), which is the internal
@@ -150,12 +151,41 @@ assert set(PUBLIC_MODES) == config.PUBLIC_MODE_ALLOWLIST, (
 
 MAX_GAME_FETCH_ATTEMPTS = 5  # bounded retry for the exclude-recent-repeats loop (Part 27) -- never unbounded
 
+# relationship_predicate -> public mode id -- built once from PUBLIC_MODES
+# so validate_public_answer() can report `mode` in its telemetry event
+# (Part 17) without needing a `mode` parameter from the client (Part 7:
+# there deliberately isn't one). Keyed by relationship_predicate ALONE,
+# not the (domain, predicate) pair the request spec uses -- a real
+# mismatch found by actually inspecting a generated package, not assumed:
+# the VALIDATED/stored `parsed_spec` (game_director_v01's output) never
+# contains a `domain` key at all -- the validator normalizes it away into
+# `entity_type`/`competition_id`/`object_type` instead. `relationship_
+# predicate` is the one field that survives unchanged and is already
+# unique per certified mode (DRAFTED_BY vs. TEAM_POSTSEASON_RESULT), so it
+# alone is a safe, real lookup key -- re-verified directly against a real
+# generated package's actual `parsed_spec` shape.
+_MODE_BY_PREDICATE = {
+    entry["spec"]["relationship_predicate"]: mode_id
+    for mode_id, entry in PUBLIC_MODES.items()
+}
+
+
+def _mode_for_package(stored: dict) -> Optional[str]:
+    spec = stored.get("parsed_spec") or {}
+    return _MODE_BY_PREDICATE.get(spec.get("relationship_predicate"))
+
 
 def list_public_modes() -> List[dict]:
     """Part 19: client-safe mode discovery. Only ever the fields a client
     needs to make a real choice (which mode, what difficulties actually
     work, what kind of gameplay to render) -- never internal source
-    tables, answer truth, or QA/admin detail (Part 13)."""
+    tables, answer truth, or QA/admin detail (Part 13). `available` reflects
+    BOTH production rollout controls (Part 10/11: the master
+    PUBLIC_GAME_ENABLED switch and the per-mode READS_PUBLIC_MODES
+    narrowing) -- a client can build an honest "currently unavailable" UI
+    from this alone, without needing to first attempt a fetch and parse an
+    error."""
+    modes_currently_allowed = config.public_modes_allowed()
     return [
         {
             "mode": mode_id,
@@ -163,14 +193,39 @@ def list_public_modes() -> List[dict]:
             "title": entry["title"],
             "kind": entry["kind"],
             "difficulties": sorted(entry["certified_difficulties"]) + ["any"],
-            "available": True,
+            "available": config.PUBLIC_GAME_ENABLED and mode_id in modes_currently_allowed,
         }
         for mode_id, entry in PUBLIC_MODES.items()
     ]
 
 
+def _ensure_public_gameplay_enabled() -> None:
+    """Part 10: the master operator kill switch, checked before anything
+    else -- one env var (READS_PUBLIC_GAME_ENABLED=false) takes every
+    public mode down with a clean, structured response, no redeploy."""
+    if not config.PUBLIC_GAME_ENABLED:
+        oplog.record_event("public_game_mode_disabled", mode=None, reason="master_switch_off")
+        raise GatewayError(
+            "SERVICE_UNAVAILABLE",
+            "Public gameplay is currently disabled.",
+        )
+
+
 def _ensure_mode_public(mode: str) -> dict:
+    _ensure_public_gameplay_enabled()
     if mode in PUBLIC_MODES:
+        if mode not in config.public_modes_allowed():
+            # Part 11: code-certified but currently rolled back via
+            # READS_PUBLIC_MODES -- the client-facing meaning is identical
+            # to MODE_UNAVAILABLE ("not offered right now"), regardless of
+            # whether that's a permanent code decision or a temporary ops
+            # one, so it reuses the same code rather than inventing a
+            # distinction no client actually needs to act on differently.
+            oplog.record_event("public_game_mode_disabled", mode=mode, reason="mode_narrowed")
+            raise GatewayError(
+                "MODE_UNAVAILABLE",
+                f"mode={mode!r} is temporarily unavailable.",
+            )
         return PUBLIC_MODES[mode]
     if mode in KNOWN_NOT_YET_PUBLIC_MODES:
         raise GatewayError(
@@ -227,9 +282,11 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
 
 def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str],
                      exclude_game_ids: Optional[List[str]]) -> dict:
+    t0 = time.perf_counter()
     entry = _ensure_mode_public(mode)
     _ensure_difficulty_certified(mode, entry, difficulty)
     exclude = set(exclude_game_ids or [])
+    attempts_used = 0
 
     # A real bug caught by actually calling this (not assumed from reading
     # the pipeline code): the Director validator requires `difficulty`
@@ -249,6 +306,7 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
         # immediate repeats) when they conflict. Without a pinned seed,
         # each attempt gets a fresh random seed so a real exclude list can
         # actually find a different real question.
+        attempts_used = attempt + 1
         real_seed = seed if (seed and attempt == 0) else secrets.token_hex(8)
         result = generation.generate(
             request_text=None, spec=call_spec, provider="mock",
@@ -277,6 +335,10 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
             break
     if stored is None:
         if last_eligible is None:
+            oplog.record_event(
+                "public_game_no_eligible", mode=mode, difficulty=difficulty or "any",
+                generation_attempts=attempts_used, latency_ms=round((time.perf_counter() - t0) * 1000, 3),
+            )
             raise GatewayError(
                 "NO_ELIGIBLE_GAME",
                 f"No QA-passed question could be generated for mode={mode!r} right now.",
@@ -287,7 +349,12 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
         stored = last_eligible
 
     saved = packages.save_package(stored)
-    return _public_view(mode, entry, saved)
+    view = _public_view(mode, entry, saved)
+    oplog.record_event(
+        "public_game_served", mode=mode, difficulty=view["difficulty"],
+        generation_attempts=attempts_used, latency_ms=round((time.perf_counter() - t0) * 1000, 3),
+    )
+    return view
 
 
 def validate_public_answer(*, game_id: str, answer: str) -> dict:
@@ -300,7 +367,12 @@ def validate_public_answer(*, game_id: str, answer: str) -> dict:
     `options`, never a hand-maintained alias table in this file or in the
     browser. No `mode` parameter is accepted from the client at all -- the
     mode is implied entirely by which package `game_id` resolves to, which
-    is also why cross-mode tampering has no surface here (Part 7)."""
+    is also why cross-mode tampering has no surface here (Part 7).
+
+    Part 10: also honors the master kill switch -- a real emergency
+    shutdown should stop answer submission too, not just leave already-
+    in-flight games playable while new ones can't be fetched."""
+    _ensure_public_gameplay_enabled()
     try:
         stored = packages.load_package(game_id)
     except packages.PackageIdInvalid:
@@ -308,10 +380,17 @@ def validate_public_answer(*, game_id: str, answer: str) -> dict:
     if not stored:
         raise GatewayError("INVALID_GAME_ID", "No such game -- it may have expired or never existed.")
 
+    t0 = time.perf_counter()
     q = stored["questions"][0]
     norm = answer.strip().lower()
     correct_label = q["options"][q["correctIndex"]]
     is_correct = norm == correct_label.strip().lower() or norm == str(q.get("answer", "")).strip().lower()
+    oplog.record_event(
+        "public_answer_submitted", mode=_mode_for_package(stored), correct=is_correct,
+        latency_ms=round((time.perf_counter() - t0) * 1000, 3),
+        # Never the raw `answer` string itself (Part 17: "avoid logging raw
+        # free-text answers") -- only whether it was right.
+    )
     return {
         "correct": is_correct,
         "canonical_answer": correct_label,

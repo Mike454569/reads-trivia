@@ -32,6 +32,18 @@ config.GATEWAY_AUDIT_LOG_DIR = REPO_ROOT / "gateway" / "storage"
 config.GATEWAY_AUDIT_LOG_PATH = config.GATEWAY_AUDIT_LOG_DIR / "test_gateway_audit_log.jsonl"
 config.OPERATIONAL_LOG_PATH = config.GATEWAY_AUDIT_LOG_DIR / "test_gateway_operational_log.jsonl"
 
+# v1.4, Part 19: same redirection, for the same reason, for
+# tools/director_v02/audit_log.py's LOG_DIR/LOG_PATH -- every test run
+# used to append to the real, committed tools/director_v02/logs/
+# audit_log.jsonl (no redirect existed at all before this phase), dirtying
+# the working tree on every single test run and requiring a manual
+# `git restore` before every checkpoint commit. Reassigned as module
+# attributes (matching the config.PACKAGES_DIR pattern above) BEFORE
+# gateway.app -- and therefore the Director pipeline -- is ever exercised.
+from tools.director_v02 import audit_log as director_audit_log  # noqa: E402
+director_audit_log.LOG_DIR = REPO_ROOT / "gateway" / "storage" / "test_director_logs"
+director_audit_log.LOG_PATH = director_audit_log.LOG_DIR / "audit_log.jsonl"
+
 from gateway.app import (  # noqa: E402
     app, generate_limiter, graph_limiter, graph_path_limiter,
     grid_board_limiter, grid_lookup_limiter, preview_limiter,

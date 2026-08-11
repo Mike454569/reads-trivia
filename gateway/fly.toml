@@ -1,10 +1,25 @@
-# Reads Engine Gateway -- Fly.io staging configuration (Director v0.7, Part P).
+# Reads Engine Gateway -- Fly.io production configuration (v0.7 staging
+# draft, re-audited and updated for v1.4 production deployment + controlled
+# rollout).
 #
-# CONFIGURATION ONLY -- not deployed. No `fly launch`/`fly deploy` was run
-# this milestone; no Fly.io account or app was created. This file is what a
-# future, separately-approved deployment milestone would use as a starting
-# point, informed by the real resource measurements taken this milestone
-# (see READS_ENGINE_STAGING_V01_REPORT.md, Part Q) rather than guessed.
+# CONFIGURATION ONLY -- still not deployed as of v1.4. No `fly launch`/
+# `fly deploy` was run; no Fly.io account or app was created (confirmed:
+# this Claude Code environment has no Fly authentication -- see the v1.4
+# report's Deployment section for the exact blocker). This file is what an
+# actual `fly launch` + `fly deploy` would use as a starting point.
+#
+# v1.4 update: the v0.7-era framing below ("do not expose the Gateway to
+# normal Reads users") is now STALE -- v1.2 explicitly authorized and built
+# the public gameplay boundary (/v1/public/*) specifically so real Reads
+# users CAN reach this Gateway, through a curated, no-admin-token surface.
+# Admin routes (/v1/games/generate, /v1/grid/*, etc.) remain private via
+# the bearer token regardless of network reachability -- that boundary was
+# always token-based, never network-based, so nothing here needed to
+# change for admin safety. The one thing that WOULD still matter if this
+# Gateway were ever reachable by more than intended (e.g. a leaked internal
+# hostname) is exactly what READS_PUBLIC_GAME_ENABLED (Part 10, below)
+# exists for: an operator can take public gameplay down with one env var,
+# with no code change and no redeploy.
 #
 # app name is a placeholder -- pick a real one at actual deploy time.
 app = "reads-engine-gateway-staging"
@@ -21,27 +36,52 @@ primary_region = "iad"  # placeholder; pick based on where the admin operator ac
 # inside this Python process was deliberately not built.
 [http_service]
   internal_port = 8850
-  force_https = true
-  auto_stop_machines = false   # staging should stay up for an admin to reach it, not scale to zero
+  force_https = true  # Part 27: HTTPS is Fly's edge's job (TLS termination) -- this Gateway
+                       # itself never speaks TLS (plain HTTP internally, see Dockerfile);
+                       # force_https means Fly refuses to serve this app over plain HTTP
+                       # at all, so reads.football -> Gateway traffic can never downgrade.
+  auto_stop_machines = false   # stay up for real user traffic, not scale to zero
   auto_start_machines = true
   min_machines_running = 1
-  # NOT exposing this publicly beyond what Fly's own network boundary
-  # provides -- per this milestone's explicit restriction ("do not expose
-  # the Gateway to normal Reads users"), a real staging rollout should
-  # additionally restrict access at the Fly network layer (private
-  # networking / IP allowlist) before this ever goes live. That
-  # restriction is NOT configured in this file -- it's a real,
-  # not-yet-closed gap, documented honestly in
-  # READS_ENGINE_PUBLIC_EXPOSURE_GATE.md rather than silently assumed.
+  # v1.4: the v0.7-era plan here was to additionally restrict this app at
+  # the Fly network layer (private networking / IP allowlist) before any
+  # real exposure -- superseded by v1.2's actual decision (see the header
+  # comment above): public gameplay is now deliberately reachable, gated by
+  # READS_PUBLIC_GAME_ENABLED / READS_PUBLIC_MODES + the public API's own
+  # allow-list/rate-limit/CORS boundary, not by network-layer restriction.
+  # (The old comment here cited READS_ENGINE_PUBLIC_EXPOSURE_GATE.md --
+  # confirmed, again this phase, that file does not exist anywhere in this
+  # repo; not re-citing it.)
 
   [[http_service.checks]]
     # Liveness -- matches gateway/Dockerfile's own HEALTHCHECK. Fly restarts
     # the machine if this fails repeatedly (Part K: platform-provided
-    # supervision, not a custom one built here).
+    # supervision, not a custom one built here). Deliberately does NOT check
+    # the Engine database -- an unmounted/still-initializing volume should
+    # not cause Fly to repeatedly kill and restart an otherwise-healthy
+    # process (see Dockerfile's HEALTHCHECK comment for the full reasoning).
     grace_period = "10s"
     interval = "30s"
     method = "GET"
     path = "/v1/health"
+    protocol = "http"
+    timeout = "5s"
+
+  [[http_service.checks]]
+    # v1.4, Part 5: readiness -- a SEPARATE check from liveness above,
+    # added this phase (the v0.7 draft's Dockerfile comment always intended
+    # this ("readiness... a job for /v1/ready via the platform's readiness
+    # check, see fly.toml") but fly.toml itself never actually had it -- a
+    # real gap found by re-reading both files together, not assumed).
+    # Checks whether THIS instance can actually serve Engine-backed
+    # gameplay (DB present/readable, mode registry loaded) -- Fly's proxy
+    # should stop ROUTING traffic to a machine that fails this, without
+    # necessarily killing/restarting the process the way a liveness
+    # failure does (a missing volume mount is not fixed by a restart).
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    path = "/v1/ready"
     protocol = "http"
     timeout = "5s"
 
@@ -66,17 +106,32 @@ primary_region = "iad"  # placeholder; pick based on where the admin operator ac
   # READS_ENGINE_ADMIN_TOKEN and READS_ENGINE_ALLOWED_ORIGINS are NOT set
   # here -- see the [secrets/config to set separately] note below. Never
   # put a real secret value in this file.
+  #
+  # v1.4 rollout controls (Part 10/11/34) -- safe, non-secret, deliberately
+  # SET HERE (not left to code defaults) so the canary rollout stages in
+  # READS_ENGINE_V14_IMPLEMENTATION_REPORT.md are literal `fly deploy`
+  # config edits, not code changes. Stage 0 values shown; see the report's
+  # canary plan for what each later stage changes.
+  READS_PUBLIC_GAME_ENABLED = "false"  # Stage 0: deployed, public gameplay itself still off
+  # READS_PUBLIC_MODES is intentionally UNSET here -- once
+  # READS_PUBLIC_GAME_ENABLED flips to "true" (Stage 1+), unset means "every
+  # code-certified mode" (draft_guess, championship_guess); set it to a
+  # comma-separated subset (e.g. "draft_guess") for a narrower stage instead.
 
-# --- resource sizing (Part Q -- measured, not guessed) --------------------
+# --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --
 # This milestone measured real Gateway process memory under load locally:
 # ~39MB RSS at rest, ~46MB after a 25-question Draft/Championship
 # generation, ~55MB peak after a 25-puzzle Player From Clues generation
 # (the heaviest capability -- builds an in-memory model of all 4,506
-# candidate players). SQLite's own page cache and the OS's file-system
-# cache for the 1.65GB database are the dominant additional memory
-# consumers beyond the Python process itself, and scale with how much of
-# the database is actively queried, not with request volume. 1GB gives
-# very generous headroom over the ~150-250MB realistic working set
+# candidate players). Championship's generation was ALREADY part of this
+# measurement (its internal capability predates v1.3's public exposure of
+# it) -- v1.3/v1.4 didn't add a new, heavier code path, so this number is
+# not stale despite predating Championship's public migration. SQLite's own
+# page cache and the OS's file-system cache for the 1.65GB database are the
+# dominant additional memory consumers beyond the Python process itself,
+# and scale with how much of the database is actively queried, not with
+# request volume. 1GB gives very generous headroom over the ~150-250MB
+# realistic working set
 # (process + a meaningfully warm page cache); it is deliberately NOT sized
 # down to the bare-measured minimum, since a first staging deployment is
 # exactly where you want margin for surprises, not a tight fit.
@@ -87,20 +142,25 @@ primary_region = "iad"  # placeholder; pick based on where the admin operator ac
   cpus = 1
 
 # --- what still needs to happen before a real `fly deploy` ---------------
-# 1. `fly volumes create reads_engine_data --size 5` (5GB: 1.65GB database +
+# 1. `fly apps create <a real app name>` -- app name above is still a
+#    placeholder.
+# 2. `fly volumes create reads_engine_data --size 5` (5GB: 1.65GB database +
 #    headroom for a second snapshot during import/rotation + package/log
 #    storage -- generous relative to the ~172KB observed for 3 real
 #    packages this milestone, so package storage will not meaningfully
 #    contribute to volume sizing for a long time).
-# 2. Populate /data/engine on that volume with the Engine's .py modules and
+# 3. Populate /data/engine on that volume with the Engine's .py modules and
 #    reads_football_v4.0.sqlite (see READS_ENGINE_BACKUP_AND_RESTORE.md's
 #    restore procedure -- this IS that procedure, aimed at a fresh volume
 #    instead of a local disposable directory).
-# 3. `fly secrets set READS_ENGINE_ADMIN_TOKEN=<real generated token>`
+# 4. `fly secrets set READS_ENGINE_ADMIN_TOKEN=<real generated token>`
 #    (never in this file, never in [env] above).
-# 4. Set READS_ENGINE_ALLOWED_ORIGINS via `fly secrets set` or `[env]` once
-#    a real staging admin-tool origin exists (still not
-#    https://reads.football -- see READS_ENGINE_PUBLIC_EXPOSURE_GATE.md).
-# 5. Restrict network reachability beyond Fly's default -- see the
-#    http_service note above.
-# None of this was executed this milestone.
+# 5. Set READS_ENGINE_ALLOWED_ORIGINS via `fly secrets set` or `[env]` if the
+#    real production origin set ever needs to differ from
+#    gateway/config.py's own DEFAULT_CORS_ORIGINS (https://reads.football +
+#    local dev origins, already the default as of v1.2 -- see that file).
+# 6. Follow READS_ENGINE_V14_IMPLEMENTATION_REPORT.md's canary rollout plan
+#    for READS_PUBLIC_GAME_ENABLED / READS_PUBLIC_MODES -- do not flip
+#    straight to fully enabled.
+# None of this has been executed as of v1.4 -- see that report's Deployment
+# section for the exact reason (no Fly authentication in this environment).

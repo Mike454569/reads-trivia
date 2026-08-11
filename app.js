@@ -25,32 +25,36 @@ var ENABLE_PLAYER_FROM_CLUES_V01 = true;
 // static baseline is never modified or replaced by this flag.
 var ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 = false;
 
-// Director v0.7/v1.2 pilot flag. Default OFF (Part 33) -- when true, the
-// hidden #draftpilot route renders a NEW mode that fetches a real,
-// engine-generated NFL Draft question LIVE from the Gateway's public API
-// (/v1/public/game, /v1/public/game/answer -- no admin token anywhere in
-// this file, by construction: those routes don't require one) instead of
-// reading from a local data/*.js file. This is the first Reads mode that
-// depends on a network round-trip for its actual game content -- every
-// other mode, including the ENABLE_ENGINE_QUIZ_DRAFT-merged "NFL Draft
-// History" Quiz category below, remains 100% local/offline. When OFF, or
-// if the Gateway is unreachable while ON, this mode falls back to that
-// exact existing "NFL Draft History" Quiz category -- a real, already-
-// working, hand-authored-plus-engine-static equivalent, not a placeholder.
-var ENABLE_ENGINE_DRAFT_PILOT_V01 = false; // default OFF (Part 33) -- flip true locally to test against a running Gateway
-// v1.3, Part 8: independent flag for the second engine-backed pilot
-// (Championship guessing, hidden #championshippilot route). Deliberately
-// its own variable, not a shared "engine pilots on" toggle -- Draft and
-// Championship must be independently rollback-able. Default OFF, same
-// reasoning as Draft's flag above.
-var ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01 = false; // default OFF (Part 33) -- flip true locally to test against a running Gateway
-// Local-dev-only value (see gateway/Dockerfile's documented internal port
-// 8850) -- a real deployment would need a real reachable Gateway URL here,
-// not this. Never hardcode a machine-specific filesystem path here; this
-// is a network origin, not a path, and is meant to be edited per
-// environment the same way SITE_URL above already is. Shared by both
-// engine pilots -- one Gateway, multiple public modes (v1.3's whole point).
-var ENGINE_GATEWAY_BASE_URL = 'http://localhost:8850';
+// Director v0.7/v1.2 pilot flags, Gateway URL. Default OFF (Part 33) --
+// when true, the hidden #draftpilot / #championshippilot routes render a
+// NEW mode that fetches a real, engine-generated question LIVE from the
+// Gateway's public API (/v1/public/game, /v1/public/game/answer -- no
+// admin token anywhere in this file, by construction: those routes don't
+// require one) instead of reading from a local data/*.js file. These are
+// the only Reads modes that depend on a network round-trip for their
+// actual game content -- every other mode, including the
+// ENABLE_ENGINE_QUIZ_DRAFT-merged "NFL Draft History" Quiz category
+// below, remains 100% local/offline. When OFF, or if the Gateway is
+// unreachable while ON, each pilot falls back to a real, already-working
+// Quiz category -- see ENGINE_PILOT_MODES below.
+//
+// v1.4, Parts 12/13/29/30: read from `reads-config.js`'s small runtime
+// config surface (loaded before this file, see index.html) instead of a
+// hardcoded constant here -- lets an operator flip a pilot on/off or
+// repoint the Gateway URL by editing ONE small, separate, low-risk file,
+// never this one. Fails closed (Part 13): if reads-config.js failed to
+// load at all, or `window.READS_CONFIG` is missing/malformed, every
+// pilot reads as OFF here -- `=== true` never accidentally passes for a
+// missing, null, or truthy-but-not-boolean value.
+var READS_CONFIG = (typeof window !== 'undefined' && window.READS_CONFIG) || {};
+var ENABLE_ENGINE_DRAFT_PILOT_V01 = READS_CONFIG.enableEngineDraftPilot === true;
+var ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01 = READS_CONFIG.enableEngineChampionshipPilot === true;
+// Never hardcode a machine-specific filesystem path here; this is a
+// network origin, not a path. Falls back to the same local-dev value as
+// before if reads-config.js didn't provide one -- a missing Gateway URL
+// is not itself a security concern (unlike the flags above), so this one
+// fallback is a convenience default, not a fail-closed requirement.
+var ENGINE_GATEWAY_BASE_URL = READS_CONFIG.engineGatewayBaseUrl || 'http://localhost:8850';
 
 /* ============================== utilities ============================== */
 function lsGet(key, fallback) {
@@ -4267,8 +4271,26 @@ function enginePilotModeConfig(modeKey) {
   return ENGINE_PILOT_MODES[modeKey] || ENGINE_PILOT_MODES.draft;
 }
 
+// v1.4, Part 15: a dead/unreachable Gateway must not leave a player staring
+// at a spinner indefinitely -- the browser's own default fetch timeout is
+// effectively "none" for most network failure modes (a stalled TCP
+// connection can hang far longer than any real user will wait). 10s is
+// generous headroom over every real measured latency this project has ever
+// observed (Draft fetch ~0.26s avg/0.51s worst, Championship ~0.03s avg,
+// answer validation ~0.002s) while still failing fast enough to reach the
+// existing error/retry/fallback screen in a reasonable time. Part 16:
+// deliberately NO automatic retry here -- a retry storm against an already-
+// struggling Gateway is exactly the failure mode Part 16 warns about; the
+// existing "Try Again" button is the retry mechanism, explicit and
+// user-triggered, never silent or automatic.
+var ENGINE_PILOT_FETCH_TIMEOUT_MS = 10000;
 function enginePilotFetchJson(path, options) {
-  return fetch(ENGINE_GATEWAY_BASE_URL + path, options).then(function (res) {
+  var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timeoutId = controller ? setTimeout(function () { controller.abort(); }, ENGINE_PILOT_FETCH_TIMEOUT_MS) : null;
+  var opts = options ? Object.assign({}, options) : {};
+  if (controller) opts.signal = controller.signal;
+  return fetch(ENGINE_GATEWAY_BASE_URL + path, opts).then(function (res) {
+    if (timeoutId) clearTimeout(timeoutId);
     if (!res.ok) {
       return res.json().catch(function () { return {}; }).then(function (body) {
         var err = new Error((body.error && body.error.message) || ('HTTP ' + res.status));
@@ -4277,6 +4299,14 @@ function enginePilotFetchJson(path, options) {
       });
     }
     return res.json();
+  }).catch(function (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (err && err.name === 'AbortError') {
+      var timeoutErr = new Error('The live engine took too long to respond.');
+      timeoutErr.code = 'CLIENT_TIMEOUT';
+      throw timeoutErr;
+    }
+    throw err;
   });
 }
 function startEnginePilotRound(modeKey) {

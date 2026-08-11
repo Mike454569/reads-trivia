@@ -47,3 +47,28 @@ def record(*, request_id: str, route: str, method: str, status_code: int, latenc
     with _write_lock:
         with open(config.OPERATIONAL_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(line)
+
+
+def record_event(event: str, **fields) -> None:
+    """v1.4, Part 17/18: a second, domain-semantic structured log line,
+    distinct from `record()`'s generic per-HTTP-request line above --
+    `event` names a real gameplay occurrence (`public_game_served`,
+    `public_game_no_eligible`, `public_answer_submitted`,
+    `public_game_mode_disabled`) with whatever fields are meaningful for
+    that event (mode, difficulty, latency_ms, generation_attempts, correct).
+    Deliberately a plain function call from gateway/services/public_game.py
+    itself, not threaded through FastAPI's Request/response objects --
+    keeps the existing "thin route handlers, real logic in services"
+    boundary intact (Part C), and this module already owns the one JSONL
+    sink every operational log line in this Gateway writes to.
+
+    Same 'never log this' rules `record()` already documents: no admin
+    tokens, no raw free-text answers (only `correct: bool` is ever passed
+    for an answer-submission event), no database contents beyond the
+    small structured fields explicitly passed in."""
+    entry = {"timestamp": datetime.now(timezone.utc).isoformat(), "event": event, **fields}
+    config.GATEWAY_AUDIT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+    with _write_lock:
+        with open(config.OPERATIONAL_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(line)

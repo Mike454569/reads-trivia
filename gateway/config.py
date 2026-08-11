@@ -179,3 +179,38 @@ PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 # predicate) tuple) so the public contract's vocabulary stays independent
 # of internal registry naming.
 PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess"})
+
+# --- Production rollout controls (v1.4, Parts 10/11) -----------------------
+# TWO independent control layers, deliberately not one:
+#   1. This module's PUBLIC_GAME_ENABLED -- can the Gateway serve ANY public
+#      gameplay at all? A real operator emergency switch: flip one env var
+#      and every /v1/public/game* route returns a clean, structured
+#      SERVICE_UNAVAILABLE instead of a redeploy or code change. Defaults to
+#      enabled (matches every environment this has ever tested in --
+#      gateway/tests/test_public_game.py's 41 tests all call these routes
+#      expecting them to work when unset) -- this is an OPERATOR kill
+#      switch for an already-shipped feature, not a "ship it disabled by
+#      default" gate. That gate is the frontend's own feature flags
+#      (app.js's ENABLE_ENGINE_DRAFT_PILOT_V01 / _CHAMPIONSHIP_PILOT_V01,
+#      both default OFF, Part 42) -- a real end user reaching this Gateway
+#      at all already implies a frontend flag was deliberately turned on.
+#   2. PUBLIC_MODES_ALLOWED (below) -- WHICH of the code-certified modes are
+#      currently allowed, for staged per-mode rollout (e.g. launch Draft
+#      days before Championship without touching code). This can only ever
+#      NARROW PUBLIC_MODE_ALLOWLIST, never expand it -- public certification
+#      (Part 33) remains a code-level decision, never an env var's to grant.
+PUBLIC_GAME_ENABLED = os.environ.get("READS_PUBLIC_GAME_ENABLED", "true").strip().lower() not in ("false", "0", "no", "off")
+
+
+def public_modes_allowed() -> frozenset[str]:
+    """READS_PUBLIC_MODES unset -> every code-certified mode (today's
+    behavior, unchanged). Set -> intersected with PUBLIC_MODE_ALLOWLIST, so
+    e.g. READS_PUBLIC_MODES=draft_guess,not_a_real_mode is equivalent to
+    just draft_guess -- an operator can only ever ROLL BACK to a subset of
+    what's already code-certified, never grant a new mode through config
+    alone."""
+    raw = os.environ.get("READS_PUBLIC_MODES")
+    if not raw:
+        return PUBLIC_MODE_ALLOWLIST
+    requested = {m.strip() for m in raw.split(",") if m.strip()}
+    return frozenset(requested & PUBLIC_MODE_ALLOWLIST)

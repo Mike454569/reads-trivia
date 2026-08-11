@@ -280,6 +280,10 @@
   <script src="data/player-from-clues-gateway-dev.js"></script>
   <script src="data/cfb.js"></script>
   <script src="sound.js"></script>
+  <!-- v1.4: small runtime config surface (Parts 12/29/30) -- must load
+       BEFORE app.js so window.READS_CONFIG exists when app.js reads it.
+       No secrets in this file, ever -- see its own header comment. -->
+  <script src="reads-config.js"></script>
   <script src="app.js"></script>
   <!-- TEMPORARY: local-only Engine Draft playtest logger. No network calls, no
        visible UI, no effect on gameplay. Delete this line + playtest-engine-draft.js

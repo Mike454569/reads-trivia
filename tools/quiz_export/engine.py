@@ -1,20 +1,30 @@
 """Engine bootstrap, in one place instead of triplicated per exporter script.
 
-Director v0.7, Part D: ENGINE_DIR is now overridable via the
-`READS_ENGINE_DIR` environment variable, defaulting to the exact same
-hardcoded local path every prior milestone used -- so every existing local
-call site (every test, every prior generated package's determinism check)
-is byte-for-byte unaffected when the env var is unset, which is every local
-run to date. Only a staging/container environment that explicitly sets
-`READS_ENGINE_DIR` takes a different path. `game_factory.py` itself (Engine
-code, never modified by this project) resolves its own DB file as
-`Path(__file__).parent / 'reads_football_v4.0.sqlite'` -- i.e. the sqlite
-file MUST live alongside the Engine's own .py modules, so this module
-overrides the whole Engine directory (modules + database together), not a
-database file path independent of it. See
-READS_ENGINE_STAGING_GAP_ANALYSIS.md for why a separate, independently-settable
-DB-path env var was considered and rejected as architecturally dishonest
-given that constraint.
+Director v0.7, Part D: ENGINE_DIR is overridable via the `READS_ENGINE_DIR`
+environment variable. `game_factory.py` itself (Engine code, never modified
+by this project) resolves its own DB file as `Path(__file__).parent /
+'reads_football_v4.0.sqlite'` -- i.e. the sqlite file MUST live alongside
+the Engine's own .py modules, so this module overrides the whole Engine
+directory (modules + database together), not a database file path
+independent of it. See READS_ENGINE_STAGING_GAP_ANALYSIS.md for why a
+separate, independently-settable DB-path env var was considered and
+rejected as architecturally dishonest given that constraint.
+
+v1.4, Part 2: the original v0.7 default here was a hardcoded path on one
+specific developer's machine (`/Users/<name>/Downloads/...`) -- acceptable
+at the time as a "every existing local call site stays byte-for-byte
+unaffected" convenience, but a real liability once this module is audited
+as part of production deployment: it's not even this project's current
+maintainer's path anymore, and "production must resolve its engine
+location through deployment-safe configuration, never a guessed personal
+directory" is explicit. `READS_ENGINE_DIR` is required now -- every real
+call site (every test, every Gateway process, local or staging) already
+sets it explicitly (confirmed: no test file in gateway/tests/ omits it).
+An unset var resolves to a sentinel that is obviously not a real path
+(rather than silently pointing at a stranger's Downloads folder), so
+`check_engine_readiness()`'s existing `ENGINE_DIR.is_dir()` check still
+fails closed with an honest, honestly-labeled reason -- no new failure
+mode, just no misleading value in it.
 """
 from __future__ import annotations
 
@@ -23,7 +33,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-ENGINE_DIR = Path(os.environ.get("READS_ENGINE_DIR", "/Users/micahnichols/Downloads/Reads_Football_Data_Engine_v4.0"))
+ENGINE_DIR = Path(os.environ.get("READS_ENGINE_DIR") or "/READS_ENGINE_DIR-not-set")
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 import game_factory as gf  # noqa: E402  Engine's own connect/seeded/band/generate_candidates/qa_candidate
@@ -89,14 +99,25 @@ def check_engine_readiness() -> dict:
     a readiness endpoint can report exactly what's wrong rather than 500ing.
     Deliberately lightweight (a handful of indexed lookups), NOT a full data
     audit -- Part L is explicit that readiness must stay cheap enough to
-    call on every health check, not run a generation-scale scan."""
+    call on every health check, not run a generation-scale scan.
+
+    v1.4, Part 6: every failure branch also returns a stable `reason_code`
+    (e.g. "DB_FILE_MISSING") alongside the detailed `reason` string. The
+    detailed string embeds a real filesystem path -- fine for the startup
+    log (gateway/app.py's lifespan handler, an operator-only stderr
+    stream) but not for GET /v1/ready's PUBLIC, unauthenticated JSON body,
+    which exposes `reason_code` only (see app.py's ready() route) -- a
+    public health endpoint must not reveal server filesystem paths."""
     path = db_path()
     if not ENGINE_DIR.is_dir():
-        return {"ready": False, "reason": f"READS_ENGINE_DIR does not exist or is not a directory: {ENGINE_DIR}"}
+        return {"ready": False, "reason_code": "DIR_MISSING",
+                "reason": f"READS_ENGINE_DIR does not exist or is not a directory: {ENGINE_DIR}"}
     if not path.exists():
-        return {"ready": False, "reason": f"Engine database file not found at {path} -- refusing to auto-create one."}
+        return {"ready": False, "reason_code": "DB_FILE_MISSING",
+                "reason": f"Engine database file not found at {path} -- refusing to auto-create one."}
     if path.stat().st_size == 0:
-        return {"ready": False, "reason": f"Engine database file at {path} is empty (0 bytes)."}
+        return {"ready": False, "reason_code": "DB_FILE_EMPTY",
+                "reason": f"Engine database file at {path} is empty (0 bytes)."}
     try:
         # sqlite3.connect() on an existing-but-garbage file still succeeds --
         # PRAGMA integrity_check plus one real known-table query is what
@@ -116,13 +137,15 @@ def check_engine_readiness() -> dict:
         try:
             integrity = conn.execute("PRAGMA quick_check").fetchone()
             if not integrity or integrity[0] != "ok":
-                return {"ready": False, "reason": f"PRAGMA quick_check did not report 'ok': {integrity}"}
+                return {"ready": False, "reason_code": "INTEGRITY_CHECK_FAILED",
+                        "reason": f"PRAGMA quick_check did not report 'ok': {integrity}"}
             draft_facts_rows = conn.execute("SELECT COUNT(*) FROM draft_facts").fetchone()[0]
             db_version_row = conn.execute("SELECT value FROM meta WHERE key='database_version'").fetchone()
         finally:
             conn.close()
     except sqlite3.Error as e:
-        return {"ready": False, "reason": f"Engine database at {path} is not readable: {e}"}
+        return {"ready": False, "reason_code": "DB_NOT_READABLE",
+                "reason": f"Engine database at {path} is not readable: {e}"}
     return {
         "ready": True,
         "db_path": str(path),

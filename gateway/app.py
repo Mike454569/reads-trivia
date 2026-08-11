@@ -251,23 +251,50 @@ def ready():
     is (platform health checks generally can't supply an admin token, and
     this reveals nothing beyond 'is the DB there and readable'). Returns
     503 (not 200) when unready, matching how a platform's health-check
-    mechanism actually distinguishes healthy from unhealthy."""
+    mechanism actually distinguishes healthy from unhealthy.
+
+    v1.4, Part 6: a real gap found by actually reading this route's output,
+    not assumed -- `engine_database`/`package_storage` used to embed the
+    real server filesystem path (via `check_engine_readiness()`'s `reason`
+    string and `db_path`, and a raw `OSError` message that can itself
+    contain a path) directly in this PUBLIC, unauthenticated response body.
+    Now only a safe, fixed-vocabulary `reason_code` and non-path fields are
+    exposed here; the full path-bearing detail still goes to the operator
+    stderr log at startup (see the lifespan handler above) and is available
+    to whoever operates the platform's own log viewer, never to an
+    anonymous HTTP caller. Part 4: also confirms the public mode registry
+    and capability registry both loaded without error -- in practice this
+    can only fail if the process itself failed to start (both are built at
+    import time), but an explicit check here is cheap and matches Part 4's
+    ask directly rather than relying on that being true by construction."""
     readiness = engine_bootstrap.check_engine_readiness()
+    safe_engine_status: dict = {"ready": readiness["ready"]}
+    if readiness["ready"]:
+        safe_engine_status["database_version"] = readiness.get("database_version")
+    else:
+        safe_engine_status["reason_code"] = readiness.get("reason_code", "UNKNOWN")
+
     packages_dir_ok = True
-    packages_dir_reason = None
     try:
         config.PACKAGES_DIR.mkdir(parents=True, exist_ok=True)
         probe = config.PACKAGES_DIR / ".readiness-probe"
         probe.write_text("ok")
         probe.unlink()
-    except OSError as e:
+    except OSError:
         packages_dir_ok = False
-        packages_dir_reason = str(e)
+
+    registry_ok = True
+    try:
+        public_game.list_public_modes()
+        generation.list_capabilities()
+    except Exception:
+        registry_ok = False
 
     body = {
-        "status": "ready" if (readiness["ready"] and packages_dir_ok) else "not_ready",
-        "engine_database": readiness,
-        "package_storage": {"writable": packages_dir_ok, "reason": packages_dir_reason},
+        "status": "ready" if (readiness["ready"] and packages_dir_ok and registry_ok) else "not_ready",
+        "engine_database": safe_engine_status,
+        "package_storage": {"writable": packages_dir_ok},
+        "mode_registry": {"loaded": registry_ok},
     }
     if body["status"] != "ready":
         return JSONResponse(status_code=503, content=body)
