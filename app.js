@@ -162,6 +162,7 @@ function drawNoRepeat(deckKey, ids, count) {
    integration — QUIZ stays the original hand-authored array and nothing else
    changes. See QUIZ_ENGINE_PRODUCTION_ROLLOUT_REPORT.md for the full rollout audit. */
 var ENABLE_ENGINE_QUIZ_DRAFT = true;
+
 function buildEffectiveQuizPool(handAuthored) {
   if (!ENABLE_ENGINE_QUIZ_DRAFT) return handAuthored;
   var engineDraft = window.QUIZ_DATA_ENGINE_DRAFT;
