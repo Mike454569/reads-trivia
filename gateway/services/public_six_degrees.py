@@ -37,14 +37,26 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import secrets
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Real production bug found by testing the deployed Gateway (Final Go-Live
+# Operation, Mission G): this used to hardcode ENGINE_DIR as REPO_ROOT /
+# "Reads_Football_Data_Engine_v4.0" -- true for local dev (Engine code
+# lives alongside the Gateway on disk) but never true in the actual Fly.io
+# container, where the image deliberately does NOT ship the Engine
+# directory (see gateway/Dockerfile) and it only exists on the mounted
+# volume at the path READS_ENGINE_DIR points to. tools/quiz_export/
+# engine.py already gets this right; this module (and graph.py/grid.py,
+# same bug) did not, so every graph_explorer-backed route (Six Degrees,
+# Graph search/path, Grid) silently 503'd in production while working
+# fine locally.
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-ENGINE_DIR = REPO_ROOT / "Reads_Football_Data_Engine_v4.0"
+ENGINE_DIR = Path(os.environ.get("READS_ENGINE_DIR") or str(REPO_ROOT / "Reads_Football_Data_Engine_v4.0"))
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
