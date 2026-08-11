@@ -31,6 +31,8 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
+import threading
+import time
 from pathlib import Path
 
 ENGINE_DIR = Path(os.environ.get("READS_ENGINE_DIR") or "/READS_ENGINE_DIR-not-set")
@@ -91,15 +93,66 @@ def band(score):
     return gf.band(score)
 
 
+_READINESS_CACHE: dict = {"result": None, "checked_at": 0.0}
+_READINESS_CACHE_TTL_READY_SECONDS = 300.0   # 5 min -- steady-state healthy result
+_READINESS_CACHE_TTL_NOT_READY_SECONDS = 15.0  # re-check a real problem promptly
+_readiness_lock = threading.Lock()
+
+
 def check_engine_readiness() -> dict:
+    """Part D/L, cached + de-duplicated as of the Final Go-Live Operation's
+    real production deployment (Mission E): `PRAGMA quick_check` measured
+    at ~10s locally but 166s against the real production Fly.io volume for
+    this 1.65GB database -- Fly's block storage has meaningfully worse
+    random-I/O throughput than a local dev SSD for the scattered page-walk
+    `quick_check` performs, even though raw sequential reads (e.g. a full
+    sha256 of the file) are fine. Calling that cost fresh on every single
+    /v1/ready poll (every 15s per gateway/fly.toml) would mean concurrent
+    polls arriving before the first one finishes each independently kick
+    off their own redundant expensive check, piling I/O contention on top
+    of an already-slow disk -- the same shape of problem that produced a
+    genuine multi-minute stall during this deployment (found before this
+    fix existed, root-caused separately to WAL journal mode's locking;
+    this fix addresses the raw I/O cost, which is real regardless of
+    journal mode).
+
+    So: a lock serializes actual computation -- the first caller (cache
+    cold, or TTL expired) really does compute and block for the true
+    duration, exactly as every existing caller (including tests) already
+    expects; any caller that arrives while that computation is already in
+    flight blocks on the SAME lock and then reads the result the first
+    caller just produced, rather than starting a second redundant check.
+    Once cached, a result is reused for its TTL (5 min when healthy, 15s
+    when not, so a real problem is still re-checked promptly) with no
+    locking overhead at all on the hot path."""
+    cached = _READINESS_CACHE["result"]
+    if cached is not None:
+        ttl = _READINESS_CACHE_TTL_READY_SECONDS if cached["ready"] else _READINESS_CACHE_TTL_NOT_READY_SECONDS
+        if time.monotonic() - _READINESS_CACHE["checked_at"] < ttl:
+            return cached
+    with _readiness_lock:
+        # Re-check inside the lock: another thread may have just refreshed
+        # the cache while this caller was waiting for the lock.
+        cached = _READINESS_CACHE["result"]
+        if cached is not None:
+            ttl = _READINESS_CACHE_TTL_READY_SECONDS if cached["ready"] else _READINESS_CACHE_TTL_NOT_READY_SECONDS
+            if time.monotonic() - _READINESS_CACHE["checked_at"] < ttl:
+                return cached
+        result = _check_engine_readiness_uncached()
+        _READINESS_CACHE["result"] = result
+        _READINESS_CACHE["checked_at"] = time.monotonic()
+        return result
+
+
+def _check_engine_readiness_uncached() -> dict:
     """Part D/L: the fail-closed check `sqlite3.connect()` alone does NOT
     give you -- connecting to a MISSING path silently creates an empty file
     (confirmed empirically, see READS_ENGINE_STAGING_GAP_ANALYSIS.md) rather
     than raising. Never raises itself; always returns a structured result so
     a readiness endpoint can report exactly what's wrong rather than 500ing.
-    Deliberately lightweight (a handful of indexed lookups), NOT a full data
-    audit -- Part L is explicit that readiness must stay cheap enough to
-    call on every health check, not run a generation-scale scan.
+    A handful of indexed lookups plus one integrity pragma -- see
+    check_engine_readiness() above for why the caller now caches this
+    rather than calling it on every single poll.
 
     v1.4, Part 6: every failure branch also returns a stable `reason_code`
     (e.g. "DB_FILE_MISSING") alongside the detailed `reason` string. The

@@ -57,6 +57,14 @@ generated_games/
 *.zip
 *.xlsx
 Reads_Football_Data_Engine_v0.*/
+# The v4.0 Engine directory itself -- mounted at runtime onto a persistent
+# volume (see gateway/fly.toml's [mounts]), never baked into the image.
+# The *.sqlite pattern above already excludes the database files within it,
+# but this excludes the whole 2GB+ directory (37 admin scripts, docs,
+# stray sqlite variants) from the build context entirely -- this image only
+# ever needs game_factory.py + game_factory_legacy.py, and those reach the
+# running container via the volume, not a COPY.
+Reads_Football_Data_Engine_v4.0/
 Reads_v4_Rebuild_Instructions/
 
 # Every prior milestone's markdown report -- documentation, not runtime code
