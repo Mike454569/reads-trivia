@@ -113,6 +113,38 @@ GENERATION_TIMEOUT_SECONDS = 45  # observed worst case (Player From Clues, full 
                                   # scan) is ~3.5s (see GAME_DIRECTOR_V04_REPORT.md) -- generous headroom,
                                   # not tuned to be barely-sufficient.
 
+# v1.6, Part A: public generation's own bounded worker pool, deliberately
+# separate from (and much more generous than) the admin path's single slot
+# -- see gateway/services/generation.py's module docstring for the
+# read-only proof this relies on (the entire public generate_fn path opens
+# one connection per call, issues only SELECT-shaped reads, and closes it --
+# concurrent public generation is exactly the read pattern SQLite is built
+# to support).
+#
+# 4, not a larger number -- measured, not guessed (v1.6's real concurrency
+# test matrix, see READS_ENGINE_V16_PRODUCT_IMPLEMENTATION_REPORT.md's
+# Phase A section). The candidate-scanning work inside
+# tools/game_director_v01.py's generate_package_from_spec() is CPU-bound
+# Python (looping/filtering thousands of draft_facts/roster rows), which
+# does NOT parallelize across threads under CPython's GIL the way I/O-bound
+# work would -- concurrent requests effectively take turns, so wall-clock
+# latency for the LAST request in a batch of N concurrently-served requests
+# scales roughly linearly with N (measured: ~0.8s at N=1, ~4.0s at N=4,
+# ~5.6-7.5s at N=6, ~9.2s at N=8). The frontend's own
+# ENGINE_PILOT_FETCH_TIMEOUT_MS (app.js, v1.4 Part 15) is a fixed 10000ms --
+# N=8's ~9.2s worst case leaves under 1s of margin before a real player's
+# browser gives up and shows a timeout error even though the server would
+# have succeeded a moment later. N=4's ~4.0s worst case leaves a
+# comfortable ~6s margin. This value trades a lower hard ceiling on
+# simultaneous successful generations for keeping every one of them
+# comfortably inside the client's own timeout -- the right trade for an
+# initial canary (a handful of real concurrent testers, not sustained
+# heavy load), re-tunable via this env var without a code change once real
+# production telemetry (or a future GIL-avoiding architecture change, e.g.
+# multiprocessing or a pre-generated candidate pool) justifies a different
+# number.
+PUBLIC_GENERATION_MAX_CONCURRENCY = int(os.environ.get("READS_ENGINE_PUBLIC_GENERATION_MAX_CONCURRENCY", "4"))
+
 # --- Rate limiting (Part G) ------------------------------------------------
 # Deliberately conservative and configurable -- see gateway/ratelimit.py for
 # the in-process, single-instance-only implementation and why that's the

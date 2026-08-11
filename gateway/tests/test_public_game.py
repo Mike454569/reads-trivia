@@ -539,3 +539,87 @@ def test_game_served_telemetry_recorded(client, tmp_path, monkeypatch):
     assert served[0]["mode"] == "draft_guess"
     assert served[0]["generation_attempts"] >= 1
     assert served[0]["latency_ms"] > 0
+
+
+# --- v1.6, Part A: public generation concurrency -----------------------------
+# The old single-slot admin lock, once shared by the public path too, meant
+# only 1 of N concurrent public fetches could ever succeed (v1.4/v1.5's own
+# measured 1-success-out-of-15/6 results). generation.generate_public() now
+# uses its own bounded pool (config.PUBLIC_GENERATION_MAX_CONCURRENCY) --
+# these tests prove that fix at the code level, distinct from the real
+# HTTP-level load test in the v1.6 report (which exercises an actual running
+# Gateway process, not TestClient's in-process transport).
+
+def test_public_generation_supports_real_concurrency(client):
+    from concurrent.futures import ThreadPoolExecutor
+    n = config.PUBLIC_GENERATION_MAX_CONCURRENCY
+    with ThreadPoolExecutor(max_workers=n) as ex:
+        responses = list(ex.map(lambda i: _get_game(client, seed=f"concurrency-{i}"), range(n)))
+    statuses = [r.status_code for r in responses]
+    # Old behavior (single shared lock): only 1 of these would have been
+    # 200, the rest GENERATION_BUSY. New behavior: a batch sized exactly at
+    # the pool's own capacity should all succeed.
+    assert statuses.count(200) == n, f"expected all {n} concurrent public fetches to succeed, got {statuses}"
+
+
+def test_public_generation_independent_from_admin_lock(client):
+    # Directly proves Part A2's separation: an admin job holding the ADMIN
+    # lock must not block a public fetch from succeeding, since they now use
+    # two entirely separate gates.
+    from gateway.services import generation
+    acquired = generation._generation_lock.acquire(blocking=False)
+    assert acquired, "test setup: admin lock should have been free"
+    try:
+        r = _get_game(client, seed="admin-lock-held-check")
+        assert r.status_code == 200, (
+            "public fetch was blocked by a busy ADMIN lock -- concurrency "
+            "paths are not actually independent"
+        )
+    finally:
+        generation._generation_lock.release()
+
+
+def test_admin_generation_still_single_slot_after_public_change(client, auth_headers):
+    # Confirms Part A2's other half: the admin path itself was NOT loosened.
+    # Same assertion shape as test_staging_hardening.py's existing
+    # test_rate_limit_does_not_bypass_generation_busy, repeated here so this
+    # file's own concurrency section demonstrates both halves together.
+    from concurrent.futures import ThreadPoolExecutor
+    clues_request = "Identify the player from these three clues: drafted in the first round, plays quarterback, attended a school in the SEC."
+
+    def call(i):
+        return client.post("/v1/games/generate",
+                            json={"request_text": clues_request, "puzzle_count": 2, "seed": f"admin-busy-{i}"},
+                            headers=auth_headers)
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        results = list(ex.map(call, range(3)))
+    codes = sorted(r.json().get("error", {}).get("code") or "OK" for r in results)
+    assert codes.count("GENERATION_BUSY") == 2, f"expected admin path to remain single-slot, got {codes}"
+
+
+def test_concurrent_answer_validation_no_cross_contamination(client):
+    # Fetches two DIFFERENT real games (different prompts/options), submits
+    # both answer requests concurrently, and confirms each response's
+    # canonical_answer belongs to ITS OWN game -- not swapped/mixed up under
+    # concurrent execution.
+    from concurrent.futures import ThreadPoolExecutor
+    game_a = _get_game(client, seed="contamination-check-a").json()
+    game_b = _get_champ_game(client, seed="contamination-check-b").json()
+    assert game_a["game_id"] != game_b["game_id"]
+
+    def submit(game):
+        return client.post("/v1/public/game/answer",
+                            json={"game_id": game["game_id"], "answer": "not the real answer"}).json()
+
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        result_a, result_b = list(ex.map(submit, [game_a, game_b]))
+
+    assert result_a["canonical_answer"] in game_a["payload"]["options"], (
+        "game A's answer response returned an option that isn't even one of game A's own choices "
+        "-- possible cross-game contamination under concurrency"
+    )
+    assert result_b["canonical_answer"] in game_b["payload"]["options"], (
+        "game B's answer response returned an option that isn't even one of game B's own choices "
+        "-- possible cross-game contamination under concurrency"
+    )

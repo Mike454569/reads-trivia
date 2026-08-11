@@ -308,9 +308,13 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
         # actually find a different real question.
         attempts_used = attempt + 1
         real_seed = seed if (seed and attempt == 0) else secrets.token_hex(8)
-        result = generation.generate(
-            request_text=None, spec=call_spec, provider="mock",
-            puzzle_count=1, difficulty=difficulty, seed=real_seed,
+        # v1.6, Part A: the public-only bounded-concurrency path (its own
+        # worker pool, sized well above 1) -- not generation.generate(), the
+        # single-slot admin path. Never called with arbitrary caller
+        # input -- call_spec always comes from this module's own certified
+        # PUBLIC_MODES templates, never from the request body directly.
+        result = generation.generate_public(
+            spec=call_spec, difficulty=difficulty, seed=real_seed,
         )
         # Real bug caught by actually running Part 25's pilot-data
         # verification, not assumed from reading the code: game_director_v01

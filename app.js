@@ -1042,6 +1042,24 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
+  // v1.6, Part C6: engine-backed discovery cards (ENGINE_DISCOVERY_ENTRIES,
+  // only ever present when their flag is on) route into the shared engine
+  // shell instead of the normal local-data-file path below -- they have no
+  // MODE_DATA_FILES entry and never will (their content comes from the
+  // Gateway, not a data/*.js file). closeModeSheet() already ran in the
+  // caller (the single data-go click handler) exactly like every other
+  // mode, so no special-casing is needed there.
+  var engineEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode; });
+  if (engineEntry) {
+    // Same bookkeeping enterMode() does for every other LEAGUE_MODES entry
+    // (line ~1017 above) -- so "Continue where you left off" (Part C14) and
+    // Firebase's play-log both work for engine modes exactly like every
+    // other mode, without engine-game-ui.js needing to know either exists.
+    lsSet('nflTriviaLastMode', mode);
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    startEnginePilotRound(engineEntry.engineMode);
+    return;
+  }
   var files = MODE_DATA_FILES[mode];
   var pending = files && files.filter(function (f) { return !loadedScripts[f]; });
   if (pending && pending.length) {
@@ -1234,6 +1252,35 @@ function nameBarHtml() {
 // or not) — deliberately not called "Easy/Medium/Hard" so it can't be
 // confused with Quiz's own internal per-QUESTION difficulty picker, which is
 // a completely different, unrelated setting.
+// v1.6, Part C6/C12: engine-backed modes plug into the SAME registry/card
+// grid every hand-authored mode already uses -- a player sees one unified
+// NFL Modes list, never "old mode vs. engine mode" (Part C6's own framing).
+// Built conditionally on each pilot's existing flag (ENGINE_GATEWAY_UI's
+// own gate, unchanged) so BOTH entries are simply absent from LEAGUE_MODES
+// entirely -- not shown-but-disabled -- when a flag is off, matching Part
+// C12 ("if flags are OFF: do not present dead cards that lead nowhere") and
+// keeping the shipped default (both OFF) visually identical to v1.5's
+// homepage. Title/desc are read from ENGINE_PILOT_MODES (engine-game-ui.js)
+// rather than duplicated here, so there is exactly one place that owns that
+// copy. `engineMode` is an internal-only routing marker (Part C5: "do not
+// expose engine_backed to users unless useful internally") -- modeCardHtml()
+// never reads it; only goToMode() below does, to dispatch into the shared
+// engine shell instead of the normal local-mode path.
+var ENGINE_DISCOVERY_ENTRIES = [];
+if (typeof ENGINE_PILOT_MODES !== 'undefined') {
+  if (ENGINE_PILOT_MODES.draft.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'draft_guess', icon: 'flag', title: ENGINE_PILOT_MODES.draft.title,
+      desc: ENGINE_PILOT_MODES.draft.desc, engineMode: 'draft',
+    });
+  }
+  if (ENGINE_PILOT_MODES.championship.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'championship_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.championship.title,
+      desc: ENGINE_PILOT_MODES.championship.desc, engineMode: 'championship',
+    });
+  }
+}
 var LEAGUE_MODES = {
   nfl: [
     { id: 'quiz', icon: 'helpCircle', title: 'NFL Quiz', desc: QUIZ.length + ' multiple-choice questions across 16 categories. Choose category, difficulty, and round length.', featured: true, difficulty: 'casual' },
@@ -1244,7 +1291,7 @@ var LEAGUE_MODES = {
     { id: 'iq', icon: 'brain', title: 'NFL IQ Test', desc: '25 questions, no feedback until the end. Get a Football IQ score and a category breakdown.', featured: true, difficulty: 'competitive' },
     { id: 'legends', icon: 'trophy', title: '17-0', desc: 'Draft a 7-player team from real players\' real seasons (1999-2025) and see if it grades out as a perfect season.', difficulty: 'competitive' },
     { id: 'higherLower', icon: 'arrowUp', title: 'Higher or Lower', desc: 'Two real players, one real stat — guess higher or lower than the last one. Keep going until you miss.', difficulty: 'casual' }
-  ],
+  ].concat(ENGINE_DISCOVERY_ENTRIES),
   cfb: [
     { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: '456 CFB questions across 10 categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
     { id: 'cfbGrid', icon: 'grid', title: 'CFB Immaculate Grid', desc: 'A freshly generated 3x3 grid of schools and All-America/Heisman criteria. Name a player who satisfies both the row and the column.', featured: true, difficulty: 'hardcore' },
