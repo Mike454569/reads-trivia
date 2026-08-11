@@ -24,21 +24,24 @@
 // (same filename, different values, e.g. a real https:// Gateway hostname)
 // -- see READS_ENGINE_V14_IMPLEMENTATION_REPORT.md's deployment runbook.
 window.READS_CONFIG = {
-  // Final Go-Live Operation, Mission F: real, deployed, verified production
-  // Gateway (https://reads-football-gateway.fly.dev/v1/health and /v1/ready
-  // both confirmed live). All pilot flags below stay false at this stage --
-  // pointing this URL at a real Gateway does not, by itself, send any real
-  // user traffic there; every one of app.js's ENABLE_ENGINE_*_V01 constants
-  // gates the actual fetch calls, and every one is still off.
+  // Final Go-Live Operation: real, deployed, verified production Gateway
+  // (https://reads-football-gateway.fly.dev/v1/health and /v1/ready both
+  // confirmed live). All five pilots below are now ON -- each mode was
+  // individually canary-verified end-to-end against this exact production
+  // Gateway (real fetch, real answer validation, no leakage) before this
+  // flip. Server-side kill switches (READS_PUBLIC_GAME_ENABLED,
+  // READS_PUBLIC_SIX_DEGREES_ENABLED) remain available in gateway/fly.toml
+  // as an independent rollback layer if any of these need to come back
+  // down without a frontend redeploy.
   engineGatewayBaseUrl: 'https://reads-football-gateway.fly.dev',
-  enableEngineDraftPilot: false,
-  enableEngineChampionshipPilot: false,
-  // v1.7, Part C: same fail-closed pattern, default OFF.
-  enableEngineSixDegrees: false,
-  // v1.8, Part F/O: same fail-closed pattern, default OFF.
-  enableEngineLineupPilot: false,
-  // CFB data enrichment operation: same fail-closed pattern, default OFF.
+  enableEngineDraftPilot: true,
+  enableEngineChampionshipPilot: true,
+  // v1.7, Part C: same fail-closed pattern.
+  enableEngineSixDegrees: true,
+  // v1.8, Part F/O: same fail-closed pattern.
+  enableEngineLineupPilot: true,
+  // CFB data enrichment operation: same fail-closed pattern.
   // The first CFB engine mode -- see gateway/services/public_game.py's
   // cfb_heisman_guess entry.
-  enableEngineHeismanPilot: false,
+  enableEngineHeismanPilot: true,
 };
