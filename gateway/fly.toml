@@ -137,6 +137,17 @@ primary_region = "iad"
   # READS_PUBLIC_GAME_ENABLED flips to "true" (Stage 1+), unset means "every
   # code-certified mode" (draft_guess, championship_guess); set it to a
   # comma-separated subset (e.g. "draft_guess") for a narrower stage instead.
+  #
+  # Real gap found during Mission G security certification: Six Degrees
+  # (gateway/services/public_six_degrees.py) is a structurally separate
+  # system from the Director-pipeline modes above and has its OWN kill
+  # switch, READS_PUBLIC_SIX_DEGREES_ENABLED, which defaults to "true" in
+  # code -- it was reachable and fully functional in production even
+  # while READS_PUBLIC_GAME_ENABLED=false correctly blocked every other
+  # mode, because nothing here ever set it. Explicit now, matching Stage
+  # 0's "off until its turn in the canary sequence" posture for every
+  # other mode.
+  READS_PUBLIC_SIX_DEGREES_ENABLED = "false"
 
 # --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --
 # This milestone measured real Gateway process memory under load locally:
