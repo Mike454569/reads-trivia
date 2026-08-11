@@ -1,8 +1,10 @@
 # Reads UI Backlog
 
 Started in v1.5 (UI/product-foundation phase), updated in v1.6 (P0 hardening +
-homepage/FYP/game discovery) and v1.7 (Six Degrees + product audit). This is a
-prioritized list of known work — not a commitment, not a schedule.
+homepage/FYP/game discovery), v1.7 (Six Degrees + product audit), and v1.8
+(Game Creator + mechanic/template system + launch certification — see
+`READS_ENGINE_V18_FINAL_BUILD_AND_LAUNCH_REPORT.md` for the full phase report).
+This is a prioritized list of known work — not a commitment, not a schedule.
 
 Priority is P0 (do before broader rollout / real risk) → P3 (nice-to-have, low
 urgency). Effort is rough T-shirt sizing (S/M/L) for a single-developer-plus-Claude-
@@ -67,6 +69,20 @@ NOT BROAD-TRAFFIC READY** (re-tested with mixed Draft+Six Degrees traffic — Si
 Degrees does not share or affect the generation pool, see below); mobile stays
 **CLOSED** (no CSS touched in v1.7 either).
 
+v1.8 re-tested with a 3rd public mode (`lineup_guess`) sharing the same pool —
+classification unchanged (**CANARY READY, NOT BROAD-TRAFFIC READY**; pool sizing
+is per-slot, not per-mode, so a 3rd mode doesn't change the ceiling). Real
+sustained-arrival load test this phase (not just a burst test): 0% busy-rejection
+rate at 1-2 req/s, 3.1% at 4 req/s, climbing to 61.9% at 8 req/s and 86.2% at 15
+req/s — the real, measured shape of the ceiling, not an estimate. v1.8 also
+evaluated (in writing, not built) the pre-generated/pooled-puzzle alternative
+suggested above: a background job pre-runs the same real pipeline and stores a
+rotating pool via the existing `packages.py`, removing live generation from the
+request path entirely. Real trade-offs recorded in the v1.8 report's Part O —
+this remains the concrete #1 item for whoever prioritizes broad-traffic launch
+next; still a new subsystem (scheduler + pool lifecycle + new failure/monitoring
+surface), not a quick fix.
+
 ---
 
 ## P1 — High impact, reasonable effort
@@ -88,6 +104,21 @@ v1.7 to avoid rushing a second full engine-mode integration in the same phase
 Six Degrees was built and verified. **Classification: BLOCKED_BY_ARCHITECTURE,
 not BLOCKED_BY_DATA** — an important distinction for scoping future work.
 
+**v1.8 update**: re-audited specifically through the lens of "could the new
+Starting Lineups capability's exact pattern be cheaply reused for CFB?" Real,
+concrete finding: **no** — `cfb_roster_seasons_real`'s schema
+(`season, school_id, cfb_player_id, jersey_number, class_year, position,
+height_in, weight_lb, verification_status, source_id`) has **no games/starts/
+appearances column at all**, unlike the NFL table's real `starts` column that
+made the NFL version's "who actually started" signal honest rather than
+arbitrary. So for any starting-lineup-shaped CFB concept specifically, the
+classification is now **BLOCKED_BY_DATA**, layered on top of the pre-existing
+BLOCKED_BY_ARCHITECTURE finding above (also confirmed still true this phase:
+`tools/director_v02/registry.py` still has zero CFB entries; the Engine's own
+native CFB predicates use `connections`/`elimination` mechanics with no
+Director-registry entry and no frontend renderer). Full trace in the v1.8
+report's Part J.
+
 ### Player Explorer (data audited, real and rich; no endpoint or UI built)
 **Category**: New surface. **Effort**: M.
 v1.7 audited `canonical_players` (17,113 rows: display_name, birth_date, height,
@@ -105,6 +136,14 @@ not checked in detail this phase). Deferred to keep this phase's actual shipped
 feature (Six Degrees) fully real and fully tested rather than splitting effort
 across two half-finished ones. **Classification: READY_WITH_ARCHITECTURE_NEEDED**
 — the data audit found no blocker, only unbuilt scope.
+
+**v1.8 update**: re-audited, no new blocker found, classification unchanged.
+Deliberately not built this phase either — the same "own new public search +
+detail endpoint, own safe-field allowlist, real duplicate-name handling" scope
+noted above is still genuinely Effort M, and this phase's actual budget went to
+the Game Creator/mechanic-template system/proof-game/launch-certification work
+instead. Still the clearest "ready to build whenever prioritized" item on this
+list.
 
 ### Six Degrees: NFL-only, and a narrow 23-puzzle pool (real, honest limitation)
 **Category**: Content/Engine. **Effort**: depends entirely on the Engine's own

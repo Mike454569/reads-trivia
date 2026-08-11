@@ -292,6 +292,11 @@
   <!-- v1.7: public Six Degrees game shell -- own file (different mechanic
        from engine-game-ui.js's), loaded before app.js for the same reason. -->
   <script src="six-degrees-ui.js"></script>
+  <!-- v1.8: admin-only Game Creator shell -- own file, loaded before app.js
+       for the same reason (app.js's hash bootstrap reads CREATOR_SCREEN at
+       its own top level when routing to #creator). Contains no admin
+       token, no capability list of its own -- see its own module docstring. -->
+  <script src="creator-ui.js"></script>
   <script src="app.js"></script>
   <!-- TEMPORARY: local-only Engine Draft playtest logger. No network calls, no
        visible UI, no effect on gameplay. Delete this line + playtest-engine-draft.js

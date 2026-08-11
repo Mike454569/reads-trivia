@@ -135,6 +135,26 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Added v1.8, Part F/O -- the milestone's primary acceptance-test capability,
+    # certified public the same deliberate way Draft/Championship were (Part 33).
+    # Real candidate survey this phase, all 412 accepted candidates: Easy 125,
+    # Medium 64, Hard 223 -- unlike Draft/Championship, this domain genuinely has
+    # "easy" candidates (more recent seasons), so all three bands are certified.
+    "lineup_guess": {
+        "competition": "NFL",
+        "title": "NFL Starting Lineups: Guess the Team",
+        "instructions": "You'll be shown a real NFL team's starting offense, by position. Pick the team.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_OFFENSE_LINEUP",
+            "relationship_predicate": "TEAM_OF_STARTING_LINEUP",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())
@@ -271,6 +291,14 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
         "payload": {
             "prompt": q["question"],
             "options": list(q["options"]),
+            # v1.8, Part D/E: still an allow-list, not a deny-list (module
+            # docstring) -- `visual_payload` here is the SAME data every
+            # option/prompt field already is: the puzzle's own given
+            # information (e.g. player names on a lineup board), never the
+            # answer. Defaults match game_director_v01.py's own defaults so a
+            # pre-v1.8 mode (Draft/Championship) is unaffected.
+            "visual_template": q.get("visual_template", "DEFAULT_MULTIPLE_CHOICE"),
+            "visual_payload": q.get("visual_payload"),
         },
         "metadata": {
             "seed": (stored.get("_diagnostics") or {}).get("seed"),

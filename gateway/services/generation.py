@@ -121,6 +121,10 @@ def list_capabilities() -> list[dict]:
             "min_question_count": cap.get("min_question_count"),
             "max_question_count": cap.get("max_question_count"),
             "supported_difficulties": sorted(cap.get("supported_difficulties", [])),
+            # v1.8, Part D/E: which visual template this capability renders with --
+            # defaults to the pre-v1.8 implicit rendering for every capability that
+            # never declared one (Draft, Championship, Player From Clues).
+            "visual_template": cap.get("visual_template", "DEFAULT_MULTIPLE_CHOICE"),
         })
     return out
 

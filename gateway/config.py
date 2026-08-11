@@ -210,7 +210,7 @@ PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 # Keyed by the public-facing mode id (NOT the internal (mechanic, domain,
 # predicate) tuple) so the public contract's vocabulary stays independent
 # of internal registry naming.
-PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess"})
+PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess", "lineup_guess"})
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------
 # TWO independent control layers, deliberately not one:

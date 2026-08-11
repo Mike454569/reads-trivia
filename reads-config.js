@@ -29,4 +29,6 @@ window.READS_CONFIG = {
   enableEngineChampionshipPilot: false,
   // v1.7, Part C: same fail-closed pattern, default OFF.
   enableEngineSixDegrees: false,
+  // v1.8, Part F/O: same fail-closed pattern, default OFF.
+  enableEngineLineupPilot: false,
 };

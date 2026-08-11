@@ -37,9 +37,11 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import (GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,  # noqa: E402
+from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorReviewRequest,  # noqa: E402
+                      GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
                       PublicAnswerRequest, PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
+from .services import creator as creator_service  # noqa: E402
 from .services import generation, packages  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
@@ -376,6 +378,61 @@ def games_get(package_id: str, _admin=Depends(require_admin)):
     if record is None:
         raise GatewayError("PACKAGE_NOT_FOUND", "No such package.")
     return record
+
+
+# --- Game Creator (v1.8, Part B/C/G/H) ---------------------------------------
+# Admin-only like every other Engine-DB-touching/generation route in this
+# Gateway -- require_admin on every route below, no exception. The Creator
+# is NOT a new trust boundary: request_text is capped and forbid-extra at
+# the Pydantic layer (models.py), then flows through the exact same
+# translator -> validator pipeline every other caller already uses (Part
+# L/M -- see gateway/services/creator.py's own module docstring).
+
+@app.post("/v1/creator/feasibility")
+def creator_feasibility(body: CreatorFeasibilityRequest, request: Request,
+                         _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    return creator_service.assess_feasibility(body.request_text)
+
+
+@app.post("/v1/creator/generate")
+def creator_generate(body: CreatorGenerateRequest, request: Request,
+                      _rl=Depends(rate_limit_generate), _admin=Depends(require_admin)):
+    t0 = time.perf_counter()
+    result = creator_service.generate_for_review(
+        request_text=body.request_text, puzzle_count=body.puzzle_count,
+        difficulty=body.difficulty, seed=body.seed,
+    )
+    latency_ms = (time.perf_counter() - t0) * 1000
+    gateway_audit.record_generate(
+        request_id=request.state.request_id,
+        body=GenerateRequest(request_text=body.request_text, puzzle_count=body.puzzle_count,
+                              difficulty=body.difficulty, seed=body.seed),
+        result=result, latency_ms=latency_ms, endpoint="/v1/creator/generate",
+    )
+    return result
+
+
+@app.get("/v1/creator/queue")
+def creator_queue(request: Request,
+                   review_status: Optional[str] = Query(default=None, max_length=20),
+                   _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    if review_status is not None and review_status not in packages.REVIEW_STATUSES:
+        raise GatewayError("INVALID_REQUEST", f"review_status must be one of {sorted(packages.REVIEW_STATUSES)}.")
+    return {"packages": creator_service.list_review_queue(review_status)}
+
+
+@app.post("/v1/creator/review")
+def creator_review(body: CreatorReviewRequest, request: Request,
+                    _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    return creator_service.set_review_status(body.package_id, body.review_status)
+
+
+@app.get("/v1/creator/capabilities")
+def creator_capabilities(request: Request, _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    """What's already possible, for the Creator's own reference view --
+    every registered capability's real support status (Part C)."""
+    from tools.director_v02 import feasibility as feasibility_mod
+    return {"capabilities": feasibility_mod.list_capability_support_summary()}
 
 
 # --- Graph / Six Degrees (v0.7 port) ----------------------------------------

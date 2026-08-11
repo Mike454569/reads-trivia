@@ -52,6 +52,9 @@ var ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01 = READS_CONFIG.enableEngineChampionship
 // v1.7, Part C: same fail-closed pattern as the two flags above -- default
 // OFF, only on if reads-config.js explicitly says so.
 var ENABLE_ENGINE_SIX_DEGREES_V01 = READS_CONFIG.enableEngineSixDegrees === true;
+// v1.8, Part F/O: same fail-closed pattern -- the Starting Lineup proof-game
+// capability, default OFF.
+var ENABLE_ENGINE_LINEUP_PILOT_V01 = READS_CONFIG.enableEngineLineupPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -254,6 +257,7 @@ var state = {
   playerClues: null,
   enginePilot: null,
   sixDegrees: null,
+  creator: null,
   iq: null,
   legends: null,
   higherLower: null,
@@ -1301,6 +1305,13 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'championship_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.championship.title,
       desc: ENGINE_PILOT_MODES.championship.desc, engineMode: 'championship',
+    });
+  }
+  // v1.8, Part F/O.
+  if (ENGINE_PILOT_MODES.lineup.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'lineup_guess', icon: 'users', title: ENGINE_PILOT_MODES.lineup.title,
+      desc: ENGINE_PILOT_MODES.lineup.desc, engineMode: 'lineup',
     });
   }
 }
@@ -7789,6 +7800,7 @@ function renderAll() {
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
   else if (state.screen === 'enginePilot') html += renderEnginePilotScreen();
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
+  else if (state.screen === 'creator') html += renderCreatorScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
@@ -7950,6 +7962,8 @@ document.addEventListener('click', function (e) {
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
     '[data-sixdegrees-start], [data-sixdegrees-answer], [data-sixdegrees-continue], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], ' +
+    '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
+    '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -8153,6 +8167,23 @@ document.addEventListener('click', function (e) {
   if (t.dataset.sixdegreesRetry !== undefined) { loadSixDegreesGame(); return; }
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
+  if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
+    var tokenInput = document.getElementById('creator-token-input');
+    creatorSubmitToken(tokenInput ? tokenInput.value : '');
+    return;
+  }
+  if (t.dataset.creatorLogout !== undefined) { creatorLogout(); return; }
+  if (t.dataset.creatorNav === 'home') { creatorGoHome(); return; }
+  if (t.dataset.creatorNav === 'queue') { creatorLoadQueue(''); return; }
+  if (t.dataset.creatorNav === 'capabilities') { creatorLoadCapabilities(); return; }
+  if (t.dataset.creatorQueueFilter !== undefined) { creatorLoadQueue(t.dataset.creatorQueueFilter); return; }
+  if (t.dataset.creatorCheckFeasibility !== undefined) {
+    var reqInput = document.getElementById('creator-request-input');
+    creatorCheckFeasibility(reqInput ? reqInput.value.trim() : '');
+    return;
+  }
+  if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
+  if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
   if (t.dataset.iqAnswer !== undefined) { answerIQQuestion(parseInt(t.dataset.iqAnswer, 10)); return; }
@@ -8333,10 +8364,11 @@ function consumePendingLiveJoin() {
 }
 
 initPlayerCluesPackage();
-var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports' };
+var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports', '#creator': 'creator' };
 if (ENABLE_PLAYER_FROM_CLUES_V01) HIDDEN_ROUTES['#clues'] = 'playerClues';
 if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01) HIDDEN_ROUTES['#championshippilot'] = 'enginePilot';
+if (ENABLE_ENGINE_LINEUP_PILOT_V01) HIDDEN_ROUTES['#lineuppilot'] = 'enginePilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
@@ -8344,6 +8376,14 @@ if (HIDDEN_ROUTES[location.hash]) {
   // a bare hash visit means, before any round/state.enginePilot exists.
   if (location.hash === ENGINE_PILOT_MODES.championship.hash) enginePilotCurrentModeKey = 'championship';
   else if (location.hash === ENGINE_PILOT_MODES.draft.hash) enginePilotCurrentModeKey = 'draft';
+  else if (location.hash === ENGINE_PILOT_MODES.lineup.hash) enginePilotCurrentModeKey = 'lineup';
+  if (state.screen === 'creator') {
+    state.creator = {
+      screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
+      requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
+      capabilities: null, error: null,
+    };
+  }
   renderAll();
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode) { openOnboarding(); }

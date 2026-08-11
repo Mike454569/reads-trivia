@@ -139,6 +139,20 @@ var ENGINE_PILOT_MODES = {
     // scope (see the v1.3 report's Frontend section).
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
   },
+  // v1.8, Part F/O -- the milestone's primary acceptance-test capability.
+  lineup: {
+    apiMode: 'lineup_guess',
+    hash: '#lineuppilot',
+    flagOn: function () { return ENABLE_ENGINE_LINEUP_PILOT_V01; },
+    title: 'NFL Starting Lineups: Guess the Team',
+    desc: "See a real NFL team's starting offense, laid out by position, and guess the team.",
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    // No dedicated local Quiz category exists for this brand-new domain
+    // (unlike Draft/Championship, which reuse an existing hand-authored or
+    // engine-exported category) -- Draft History is the closest honest
+    // "real NFL trivia, works offline" fallback, not a placeholder.
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
 };
 var enginePilotCurrentModeKey = 'draft';
 function enginePilotModeConfig(modeKey) {
@@ -261,6 +275,34 @@ function advanceEnginePilot() {
   s.roundIndex++;
   loadNextEnginePilotQuestion();
 }
+/* v1.8, Part E/F: POSITION_LINEUP visual template -- a real football
+   position board (5 skill positions, then 5 grouped OL) instead of a plain
+   question sentence. Purely presentational: the answer/options underneath
+   are rendered exactly the same way regardless of visual_template (Part D's
+   mechanic/template separation -- this function never touches answer
+   validation). See tools/director_v02/visual_templates.py and
+   tools/quiz_export/adapters/lineup.py for why OL is one grouped row of 5,
+   not 5 individually-labeled slots. */
+function renderPositionLineupBoard(payload) {
+  var positions = (payload && payload.positions) || [];
+  var skillRow = positions.slice(0, 5);
+  var olRow = positions.slice(5, 10);
+  function cell(p) {
+    return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
+      '<div class="lineup-name">' + esc(p.name) + '</div></div>';
+  }
+  return '<div class="lineup-board">' +
+    '<div class="lineup-row">' + skillRow.map(cell).join('') + '</div>' +
+    '<div class="lineup-row">' + olRow.map(cell).join('') + '</div>' +
+    '</div>';
+}
+function renderEnginePilotPromptHtml(game) {
+  if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
+    return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+      renderPositionLineupBoard(game.payload.visual_payload);
+  }
+  return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>';
+}
 function enginePilotToolbarHtml() {
   return '<div class="mode-toolbar">' +
     '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
@@ -313,7 +355,7 @@ function renderEnginePilotScreen() {
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
   return '<div class="panel">' + enginePilotToolbarHtml() +
     '<div class="quiz-progress">Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || '') + '</div>' +
-    '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+    renderEnginePilotPromptHtml(game) +
     '<div class="quiz-options">' +
     game.payload.options.map(function (opt, i) {
       var cls = 'quiz-option';

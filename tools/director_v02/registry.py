@@ -23,6 +23,7 @@ from tools import game_director_v01 as v01  # noqa: E402
 from tools.director_v04 import player_from_clues  # noqa: E402
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
+from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -167,6 +168,46 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         # -- same "each generation path gets its own reserved block" discipline
         # already used for 600000s (v0.1 direct)/610000s (v0.2+ pipeline).
         "pipeline_id_start": 630000,
+    },
+    # Added in v1.8, Part F -- the phase's primary acceptance-test capability.
+    # See tools/quiz_export/adapters/lineup.py's module docstring for the
+    # full audit trail on why this is a real-player-NAMES lineup puzzle, not
+    # the colleges-by-position puzzle originally requested (colleges are not
+    # viably present in this database for NFL players). Reuses the `guess`
+    # mechanic's exact answer contract (Part D); the only new thing is the
+    # `POSITION_LINEUP` visual template (Part E) it declares below.
+    ("guess", "NFL_OFFENSE_LINEUP", "TEAM_OF_STARTING_LINEUP"): {
+        "adapter": lineup_adapter,
+        "category": lineup_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "visual_template": "POSITION_LINEUP",
+        # Part C: real, disclosed limitations -- feasibility.py promotes a
+        # capability with any of these from SUPPORTED to
+        # SUPPORTED_WITH_LIMITATIONS rather than silently claiming full
+        # support. See tools/quiz_export/adapters/lineup.py's module
+        # docstring for the full audit trail behind each one.
+        "known_limitations": [
+            "Uses real player NAMES, not colleges -- college attendance is not reliably present in this "
+            "database for NFL players (school_id/primary_school_id are NULL for essentially all rows).",
+            "Offensive-line positions are shown as one generic 'OL' group of 5 players, not individually "
+            "labeled LT/LG/C/RG/RT slots, because the underlying position data does not reliably "
+            "distinguish them across every season.",
+            "Covers real seasons 2006-2018 only (the range this capability's real candidate pool spans).",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_team_season_lineup",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["director-v1.8-lineup-proof-game"],
+        # New reserved ID block -- see the same discipline noted above.
+        "pipeline_id_start": 640000,
     },
 }
 

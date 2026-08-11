@@ -261,6 +261,12 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
             "category": q["category"],
             "difficulty": q["difficulty"],
             "notes": q["notes"],
+            # v1.8, Part D/E: generic, optional mechanic/visual-template separation --
+            # defaults to the pre-v1.8 implicit rendering for every candidate that never
+            # sets these (every Draft/Championship candidate today), so this is additive
+            # only. See tools/director_v02/visual_templates.py.
+            "visual_template": q.get("visual_template", "DEFAULT_MULTIPLE_CHOICE"),
+            "visual_payload": q.get("visual_payload"),
             "source_ids": {
                 "player_key": a.get("player_key"),
                 "draft_team_code": a.get("draft_team_code"),

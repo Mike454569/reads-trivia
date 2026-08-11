@@ -25,6 +25,11 @@ def _get_champ_game(client, **params):
     return client.get("/v1/public/game", params=params)
 
 
+def _get_lineup_game(client, **params):
+    params.setdefault("mode", "lineup_guess")
+    return client.get("/v1/public/game", params=params)
+
+
 # --- public auth (no admin token needed) -------------------------------------
 
 def test_public_modes_no_auth_needed(client):
@@ -33,8 +38,9 @@ def test_public_modes_no_auth_needed(client):
     modes_by_id = {m["mode"]: m for m in r.json()["modes"]}
     # v1.7, Part C8: Six Degrees composed into the SAME unified list -- see
     # test_six_degrees_mode_registered_alongside_guess_modes below for its
-    # own dedicated assertions.
-    assert set(modes_by_id) == {"draft_guess", "championship_guess", "six_degrees_guess"}
+    # own dedicated assertions. v1.8, Part F/O: lineup_guess is the third
+    # Director-pipeline guess mode, certified alongside the other two.
+    assert set(modes_by_id) == {"draft_guess", "championship_guess", "six_degrees_guess", "lineup_guess"}
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
     assert draft["title"] == "NFL Draft History: Guess the Team"
@@ -47,6 +53,13 @@ def test_public_modes_no_auth_needed(client):
     assert champ["competition"] == "NFL"
     assert champ["kind"] == "multiple_choice"
     assert set(champ["difficulties"]) == {"medium", "hard", "any"}
+    lineup = modes_by_id["lineup_guess"]
+    assert lineup["competition"] == "NFL"
+    assert lineup["kind"] == "multiple_choice"
+    # v1.8, Part F: unlike Draft/Championship, this domain genuinely has real
+    # "easy" candidates (more recent seasons) -- see public_game.py's own
+    # comment for the real survey numbers.
+    assert set(lineup["difficulties"]) == {"easy", "medium", "hard", "any"}
 
 
 def test_public_game_no_auth_needed(client):
@@ -77,7 +90,12 @@ def test_game_payload_never_contains_answer(client):
     for forbidden in ("correctIndex", "answer\":", "source_ids", "provenance", "qa_checks_performed", "funnel"):
         assert forbidden not in raw, f"{forbidden!r} leaked in a fresh /v1/public/game response"
     assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
-    assert set(body["payload"].keys()) == {"prompt", "options"}
+    # v1.8, Part D/E: visual_template/visual_payload are always present now
+    # (defaulting to DEFAULT_MULTIPLE_CHOICE/None for this pre-v1.8 mode) --
+    # additive fields, never containing the answer (see the loop above).
+    assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
+    assert body["payload"]["visual_template"] == "DEFAULT_MULTIPLE_CHOICE"
+    assert body["payload"]["visual_payload"] is None
     assert len(body["payload"]["options"]) == 4
 
 
@@ -164,7 +182,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     # accidentally reachable as a "mode" through this new surface.
     assert "grid" not in config.PUBLIC_MODE_ALLOWLIST
     assert "six_degrees" not in config.PUBLIC_MODE_ALLOWLIST
-    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({"draft_guess", "championship_guess"})
+    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({"draft_guess", "championship_guess", "lineup_guess"})
 
 
 # --- determinism ----------------------------------------------------------------
@@ -280,7 +298,9 @@ def test_new_error_codes_registered():
 def test_capabilities_route_unaffected_by_public_routes(client):
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
-    assert len(r.json()["capabilities"]) == 3  # unchanged from test_gateway.py's own baseline assertion
+    # v1.8, Part F added a 4th registered capability -- see
+    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_four.
+    assert len(r.json()["capabilities"]) == 4
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -308,7 +328,7 @@ def test_championship_payload_never_contains_answer(client):
         assert forbidden not in raw, f"{forbidden!r} leaked in a fresh championship_guess response"
     body = r.json()
     assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
-    assert set(body["payload"].keys()) == {"prompt", "options"}
+    assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
     assert len(body["payload"]["options"]) == 4
     assert body["mode"] == "championship_guess"
 
@@ -334,6 +354,52 @@ def test_championship_incorrect_answer_rejected(client):
     assert body["canonical_answer"] == real_answer
 
 
+# --- lineup_guess (v1.8, Part F/O) ------------------------------------------
+
+def test_lineup_payload_never_contains_answer_and_carries_a_real_visual_payload(client):
+    r = _get_lineup_game(client)
+    assert r.status_code == 200
+    raw = r.text
+    for forbidden in ("correctIndex", "answer\":", "source_ids", "provenance", "qa_checks_performed", "funnel"):
+        assert forbidden not in raw, f"{forbidden!r} leaked in a fresh lineup_guess response"
+    body = r.json()
+    assert body["mode"] == "lineup_guess"
+    assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
+    assert body["payload"]["visual_template"] == "POSITION_LINEUP"
+    positions = body["payload"]["visual_payload"]["positions"]
+    assert [p["position"] for p in positions] == ["QB", "RB", "WR", "WR", "TE", "OL", "OL", "OL", "OL", "OL"]
+    # The answer team must never appear as one of the player names shown.
+    names = {p["name"] for p in positions}
+    assert not (names & set(body["payload"]["options"]))
+
+
+def test_lineup_correct_answer_accepted(client):
+    game = _get_lineup_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": real_answer})
+    body = r.json()
+    assert body["correct"] is True
+    assert body["canonical_answer"] == real_answer
+
+
+def test_lineup_incorrect_answer_rejected(client):
+    game = _get_lineup_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    wrong = next(o for o in game["payload"]["options"] if o != real_answer)
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": wrong})
+    body = r.json()
+    assert body["correct"] is False
+
+
+def test_lineup_easy_difficulty_is_certified_and_works(client):
+    # Real difference from Draft/Championship (Part 20/21) -- this domain
+    # genuinely has "easy" candidates, so this must NOT be rejected.
+    r = _get_lineup_game(client, difficulty="easy")
+    assert r.status_code == 200
+
+
 def test_championship_question_is_a_real_postseason_fact(client):
     # Spot-check the actual generated prompt shape, not just that SOMETHING
     # came back -- confirms the real adapter (not a stub) is wired in.
@@ -349,15 +415,16 @@ def test_championship_question_is_a_real_postseason_fact(client):
 
 # --- v1.3: public mode registry ------------------------------------------------
 
-def test_both_certified_modes_registered(client):
+def test_all_three_certified_guess_modes_registered(client):
     # Scoped to public_game's own Director-pipeline guess-mechanic registry
     # specifically (not the combined /v1/public/modes response, which as of
     # v1.7 also includes six_degrees_guess -- a structurally different
     # system, see gateway/services/public_six_degrees.py's own module
     # docstring for why it was never folded into this same registry).
+    # v1.8, Part F/O added the third: lineup_guess.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
-    assert modes == {"draft_guess", "championship_guess"}
+    assert modes == {"draft_guess", "championship_guess", "lineup_guess"}
 
 
 def test_player_from_clues_remains_internal_only(client):

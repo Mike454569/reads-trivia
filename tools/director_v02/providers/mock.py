@@ -18,10 +18,25 @@ no code path here through which attacker-supplied text could become a
 values are always one of the literals already hardcoded below, full stop.
 
 Decision order (see `translate()`): mixed-unsupported check first (most
-specific), then the three registered capability patterns (Draft,
-Championship, Player From Clues), then a generic NEEDS_CLARIFICATION
-fallback for requests that clearly mention football/NFL content but not
-enough to resolve to any of the above, then NO_MATCH for everything else.
+specific), then the four registered capability patterns (Draft,
+Championship, Player From Clues, Starting Lineup), then a generic
+NEEDS_CLARIFICATION fallback for requests that clearly mention
+football/NFL content but not enough to resolve to any of the above, then
+NO_MATCH for everything else.
+
+v1.8, Part F/B: the Starting Lineup pattern below deliberately also matches
+requests that ask for "colleges" -- the exact proof-game concept requested
+in v1.8 ("guess the team from the colleges of the players on its offense,
+by position") is NOT backed by real data (see
+tools/quiz_export/adapters/lineup.py's module docstring) and there is no
+registered college-based capability to route to. Matching the college
+phrasing to the real, name-based TEAM_OF_STARTING_LINEUP capability is an
+honest best-effort match on INTENT (a real position-by-position starting
+offense puzzle), not a claim that colleges are actually used -- the
+generated package's own title/instructions/notes always say plainly that
+this is a names-based puzzle, never colleges, regardless of how the request
+was phrased. This mirrors an ordinary search engine matching a query to the
+closest real result rather than fabricating one that doesn't exist.
 """
 from __future__ import annotations
 
@@ -36,6 +51,10 @@ _DRAFT_WORDS = {"draft", "drafted", "pick", "picked", "picks"}
 _TEAM_WORDS = {"team", "teams", "franchise", "franchises", "club"}
 _CLUE_WORDS = {"clue", "clues", "identify"}
 _POSTSEASON_WORDS = {"playoff", "playoffs", "postseason", "championship"}
+_OFFENSE_WORDS = {"offense", "offensive"}
+_LINEUP_WORDS = {"lineup", "lineups", "starters", "starting"}
+_POSITION_WORDS = {"position", "positions"}
+_COLLEGE_WORDS = {"college", "colleges"}
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
 _MIXED_SIGNAL_WORDS = {"both"}
 _HARD_WORDS = {"hard", "difficult", "tough", "challenging"}
@@ -99,6 +118,10 @@ class MockDeterministicTranslator(Translator):
         has_team = bool(words & _TEAM_WORDS)
         has_clue = bool(words & _CLUE_WORDS)
         has_postseason = bool(words & _POSTSEASON_WORDS) or _has_super_bowl_phrase(text)
+        has_offense = bool(words & _OFFENSE_WORDS)
+        has_lineup = bool(words & _LINEUP_WORDS)
+        has_position = bool(words & _POSITION_WORDS)
+        has_college = bool(words & _COLLEGE_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
         has_who_am_i = _has_who_am_i_phrase(text)
@@ -175,6 +198,30 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched team/franchise + playoff/postseason/championship/Super Bowl "
                 "keywords -> TEAM_POSTSEASON_RESULT guess capability.",
+            )
+
+        # Starting Lineup, added v1.8, Part F. Requires "team" plus (offense OR
+        # lineup OR position OR college) -- broad enough to catch the exact
+        # college-phrased proof-game request (see module docstring for why
+        # "college" phrasing routes here honestly, not deceptively) as well as
+        # more direct phrasings like "starting lineup by position".
+        if has_team and (has_offense or has_lineup or (has_position and has_college)):
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_OFFENSE_LINEUP",
+                "relationship_predicate": "TEAM_OF_STARTING_LINEUP",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched team + offense/lineup/position/college keywords -> "
+                "TEAM_OF_STARTING_LINEUP guess capability. Note: the generated "
+                "puzzle uses real player NAMES, not colleges -- see the package's "
+                "own instructions/notes for why (colleges are not reliably present "
+                "in this database for NFL players).",
             )
 
         # Genuine ambiguity: clearly an NFL-related trivia/game request, but

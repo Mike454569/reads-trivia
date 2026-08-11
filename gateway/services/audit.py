@@ -58,11 +58,15 @@ def record_preview(*, request_id: str, body, result: dict) -> None:
     })
 
 
-def record_generate(*, request_id: str, body, result: dict, latency_ms: float) -> None:
+def record_generate(*, request_id: str, body, result: dict, latency_ms: float,
+                     endpoint: str = "/v1/games/generate") -> None:
+    # v1.8, Part B: `endpoint` defaults to the original literal so both
+    # existing call sites (games_generate) are byte-for-byte unaffected;
+    # the new Creator route (creator_generate) passes its own real path.
     director_spec = result.get("director_spec") or {}
     _write({
         "request_id": request_id,
-        "endpoint": "/v1/games/generate",
+        "endpoint": endpoint,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "provider": body.provider,
         "request_text_hash": _hash_text(body.request_text),

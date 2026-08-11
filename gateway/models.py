@@ -110,6 +110,42 @@ class PublicSixDegreesRevealRequest(BaseModel):
     game_id: str = Field(min_length=1, max_length=64)
 
 
+class CreatorFeasibilityRequest(BaseModel):
+    """POST /v1/creator/feasibility (v1.8, Part B/C). request_text-only --
+    unlike GameRequestBase, the Creator never accepts a raw `spec` dict from
+    the browser (Part L/M: the Creator's only input surface is natural-
+    language text funneled through the same translator every other request
+    already goes through, never a structured spec a client could hand-craft
+    to try to reach an unregistered/internal capability triple directly)."""
+    model_config = ConfigDict(extra="forbid")
+
+    request_text: str = Field(min_length=1, max_length=config.MAX_REQUEST_TEXT_CHARS)
+
+
+class CreatorGenerateRequest(BaseModel):
+    """POST /v1/creator/generate -- same request_text-only restriction as
+    CreatorFeasibilityRequest, plus the same puzzle_count/difficulty/seed
+    knobs GenerateRequest already exposes (still capability-bounds-checked
+    by the same validator, never a new trust surface)."""
+    model_config = ConfigDict(extra="forbid")
+
+    request_text: str = Field(min_length=1, max_length=config.MAX_REQUEST_TEXT_CHARS)
+    puzzle_count: Optional[int] = Field(default=None, ge=1, le=config.MAX_PUZZLE_COUNT)
+    difficulty: Optional[Literal["any", "easy", "medium", "hard"]] = None
+    seed: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
+class CreatorReviewRequest(BaseModel):
+    """POST /v1/creator/review -- the approve/reject step (Part G/H). Only
+    the three human-set review statuses are ever accepted here -- GENERATED
+    is set exclusively by generation itself (packages.save_package), never
+    by this route."""
+    model_config = ConfigDict(extra="forbid")
+
+    package_id: str = Field(min_length=1, max_length=64)
+    review_status: Literal["REVIEWED", "APPROVED", "REJECTED"]
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str
