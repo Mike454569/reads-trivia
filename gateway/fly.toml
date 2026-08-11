@@ -130,24 +130,26 @@ primary_region = "iad"
   # v1.4 rollout controls (Part 10/11/34) -- safe, non-secret, deliberately
   # SET HERE (not left to code defaults) so the canary rollout stages in
   # READS_ENGINE_V14_IMPLEMENTATION_REPORT.md are literal `fly deploy`
-  # config edits, not code changes. Stage 0 values shown; see the report's
-  # canary plan for what each later stage changes.
-  READS_PUBLIC_GAME_ENABLED = "false"  # Stage 0: deployed, public gameplay itself still off
-  # READS_PUBLIC_MODES is intentionally UNSET here -- once
-  # READS_PUBLIC_GAME_ENABLED flips to "true" (Stage 1+), unset means "every
-  # code-certified mode" (draft_guess, championship_guess); set it to a
-  # comma-separated subset (e.g. "draft_guess") for a narrower stage instead.
+  # config edits, not code changes.
   #
-  # Real gap found during Mission G security certification: Six Degrees
-  # (gateway/services/public_six_degrees.py) is a structurally separate
-  # system from the Director-pipeline modes above and has its OWN kill
-  # switch, READS_PUBLIC_SIX_DEGREES_ENABLED, which defaults to "true" in
-  # code -- it was reachable and fully functional in production even
-  # while READS_PUBLIC_GAME_ENABLED=false correctly blocked every other
-  # mode, because nothing here ever set it. Explicit now, matching Stage
-  # 0's "off until its turn in the canary sequence" posture for every
-  # other mode.
-  READS_PUBLIC_SIX_DEGREES_ENABLED = "false"
+  # Final Go-Live Operation, Mission H: all five certified public modes
+  # (draft_guess, championship_guess, lineup_guess, cfb_heisman_guess,
+  # six_degrees_guess) verified end-to-end against this real production
+  # Gateway -- real fetch, real wrong/correct answer validation, no
+  # leakage. Server-side only: every frontend engine flag in
+  # reads-config.js remains false, so no real reads.football visitor has
+  # reached any of this yet -- see READS_FINAL_GO_LIVE_REPORT.md for why
+  # frontend enablement is the one deliberately-held-back final step.
+  #
+  # Six Degrees (gateway/services/public_six_degrees.py) is a structurally
+  # separate system from the Director-pipeline modes above and has its OWN
+  # kill switch, READS_PUBLIC_SIX_DEGREES_ENABLED (defaults "true" in code
+  # -- a real gap found during Mission G: it was reachable in production
+  # even while READS_PUBLIC_GAME_ENABLED=false correctly blocked every
+  # other mode, until this was set explicitly).
+  READS_PUBLIC_GAME_ENABLED = "true"
+  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess"
+  READS_PUBLIC_SIX_DEGREES_ENABLED = "true"
 
 # --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --
 # This milestone measured real Gateway process memory under load locally:
