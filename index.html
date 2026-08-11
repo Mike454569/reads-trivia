@@ -284,6 +284,11 @@
        BEFORE app.js so window.READS_CONFIG exists when app.js reads it.
        No secrets in this file, ever -- see its own header comment. -->
   <script src="reads-config.js"></script>
+  <!-- v1.5: reusable engine-native game shell (Draft/Championship) -- must
+       load BEFORE app.js, same reason as reads-config.js above: app.js's
+       own hash-routing bootstrap reads ENGINE_PILOT_MODES at its top level
+       near the end of that file, not deferred inside a function. -->
+  <script src="engine-game-ui.js"></script>
   <script src="app.js"></script>
   <!-- TEMPORARY: local-only Engine Draft playtest logger. No network calls, no
        visible UI, no effect on gameplay. Delete this line + playtest-engine-draft.js
