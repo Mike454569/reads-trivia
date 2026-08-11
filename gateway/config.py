@@ -202,15 +202,16 @@ PUBLIC_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
 PUBLIC_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_ANSWER_RATE_LIMIT", "60"))
 PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 
-# Draft-guessing (v1.2) and championship-guessing (v1.3) are public-safe as
-# of v1.3 (Part 3/33: explicit, hand-certified mode allow-list, never "every
-# registered Director capability is now public" -- adding a mode here is a
-# deliberate certification decision made in gateway/services/public_game.py,
-# not an automatic consequence of the internal capability registry growing).
-# Keyed by the public-facing mode id (NOT the internal (mechanic, domain,
-# predicate) tuple) so the public contract's vocabulary stays independent
-# of internal registry naming.
-PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess", "lineup_guess"})
+# Draft-guessing (v1.2), championship-guessing (v1.3), lineup-guessing
+# (v1.8), and cfb_heisman_guess (CFB data enrichment operation) are
+# public-safe (Part 3/33: explicit, hand-certified mode allow-list, never
+# "every registered Director capability is now public" -- adding a mode
+# here is a deliberate certification decision made in
+# gateway/services/public_game.py, not an automatic consequence of the
+# internal capability registry growing). Keyed by the public-facing mode
+# id (NOT the internal (mechanic, domain, predicate) tuple) so the public
+# contract's vocabulary stays independent of internal registry naming.
+PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess"})
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------
 # TWO independent control layers, deliberately not one:

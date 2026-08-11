@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools import game_director_v01 as v01  # noqa: E402
 from tools.director_v04 import player_from_clues  # noqa: E402
+from tools.quiz_export.adapters import cfb_heisman as cfb_heisman_adapter  # noqa: E402
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
@@ -208,6 +209,46 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "proven_in": ["director-v1.8-lineup-proof-game"],
         # New reserved ID block -- see the same discipline noted above.
         "pipeline_id_start": 640000,
+    },
+    # Added during the production deployment + CFB data enrichment
+    # operation -- the FIRST CFB domain ever registered in this pipeline
+    # (Part 14: reuses the exact same guess mechanic/Game Director core
+    # every NFL capability already uses -- no separate CFB Game Factory,
+    # no separate registry, no separate mechanic, matching that phase's
+    # explicit "preserve Engine v4.0 architecture" mandate). See
+    # tools/quiz_export/adapters/cfb_heisman.py's module docstring for the
+    # full audit trail: this is the one CFB award domain this database has
+    # (Heisman only -- no All-America, no positional awards exist here),
+    # and it was chosen specifically because it is completely clean
+    # (91/91 rows fully populated, single verification_status, zero
+    # duplicate winners) where cfb_coaches, audited the same session, was
+    # found to have real, unresolved data-quality problems and was
+    # deliberately NOT built on.
+    ("guess", "CFB_HEISMAN", "WON_HEISMAN"): {
+        "adapter": cfb_heisman_adapter,
+        "category": cfb_heisman_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Distractor schools are not season-scoped (cfb_school_seasons, the real per-season CFB "
+            "school-participation table, only covers 2002-2025; Heisman goes back to 1935) -- every "
+            "option shown is a real school, but a distractor could be one without a program in that "
+            "exact historical year.",
+            "Covers only the Heisman Trophy -- this database has no All-America, positional, or "
+            "conference CFB award data of any kind.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_player",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 91,  # the real, total size of this domain -- see the adapter's own audit
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["cfb-data-enrichment-heisman-proof"],
+        "pipeline_id_start": 650000,
     },
 }
 

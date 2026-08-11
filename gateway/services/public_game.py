@@ -155,6 +155,31 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Added during the production deployment + CFB data enrichment
+    # operation -- the FIRST CFB public mode. Real candidate survey this
+    # phase, all 91 real Heisman winners accepted, zero rejections: Hard 46,
+    # Easy 27, Medium 18 -- all three bands genuinely certified. Proves the
+    # exact same public API/registry/answer-validation/frontend-adapter
+    # pipeline that already serves 3 NFL modes also serves a genuinely new
+    # CFB domain with zero architectural change (the operation's own Phase
+    # 14 mandate) -- competition is "CFB" here, everything else about how
+    # this mode is fetched/served/validated is byte-identical code to the
+    # NFL modes above.
+    "cfb_heisman_guess": {
+        "competition": "CFB",
+        "title": "CFB Heisman Winners: Guess the School",
+        "instructions": "You'll be shown a real Heisman Trophy winner and year. Pick the school he played for.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_HEISMAN",
+            "relationship_predicate": "WON_HEISMAN",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

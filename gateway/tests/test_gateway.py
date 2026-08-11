@@ -31,20 +31,22 @@ def test_health_unauthenticated(client):
     assert body["api_version"] == "v1"
 
 
-def test_capabilities_unauthenticated_and_exactly_four(client):
+def test_capabilities_unauthenticated_and_exactly_five(client):
     # v1.8, Part F: a 4th capability (the starting-lineup proof game) was
-    # added to the registry this phase -- this baseline count/set is a real,
+    # added to the registry that phase. The CFB data enrichment operation
+    # added a 5th (CFB_HEISMAN) -- this baseline count/set is a real,
     # deliberate change, not a regression.
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 4
+    assert len(caps) == 5
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
         ("guess", "NFL_DRAFT", "DRAFTED_BY"),
         ("guess", "NFL_CHAMPIONSHIP", "TEAM_POSTSEASON_RESULT"),
         ("identify_player_from_clues", "NFL_PLAYER_IDENTITY", "IDENTIFY_FROM_CLUES"),
         ("guess", "NFL_OFFENSE_LINEUP", "TEAM_OF_STARTING_LINEUP"),
+        ("guess", "CFB_HEISMAN", "WON_HEISMAN"),
     }
     # Part C: the frontend must never see Engine internals -- confirm no
     # response field leaks a Python module/adapter/table name.

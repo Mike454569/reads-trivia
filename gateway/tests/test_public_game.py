@@ -30,6 +30,11 @@ def _get_lineup_game(client, **params):
     return client.get("/v1/public/game", params=params)
 
 
+def _get_heisman_game(client, **params):
+    params.setdefault("mode", "cfb_heisman_guess")
+    return client.get("/v1/public/game", params=params)
+
+
 # --- public auth (no admin token needed) -------------------------------------
 
 def test_public_modes_no_auth_needed(client):
@@ -39,8 +44,11 @@ def test_public_modes_no_auth_needed(client):
     # v1.7, Part C8: Six Degrees composed into the SAME unified list -- see
     # test_six_degrees_mode_registered_alongside_guess_modes below for its
     # own dedicated assertions. v1.8, Part F/O: lineup_guess is the third
-    # Director-pipeline guess mode, certified alongside the other two.
-    assert set(modes_by_id) == {"draft_guess", "championship_guess", "six_degrees_guess", "lineup_guess"}
+    # Director-pipeline guess mode, certified alongside the other two. The
+    # CFB data enrichment operation added the fourth (and first CFB) mode.
+    assert set(modes_by_id) == {
+        "draft_guess", "championship_guess", "six_degrees_guess", "lineup_guess", "cfb_heisman_guess",
+    }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
     assert draft["title"] == "NFL Draft History: Guess the Team"
@@ -60,6 +68,12 @@ def test_public_modes_no_auth_needed(client):
     # "easy" candidates (more recent seasons) -- see public_game.py's own
     # comment for the real survey numbers.
     assert set(lineup["difficulties"]) == {"easy", "medium", "hard", "any"}
+    heisman = modes_by_id["cfb_heisman_guess"]
+    assert heisman["competition"] == "CFB"
+    assert heisman["kind"] == "multiple_choice"
+    # Real survey: 91/91 real Heisman winners accepted, zero rejections,
+    # genuinely spanning all three bands (Hard 46, Easy 27, Medium 18).
+    assert set(heisman["difficulties"]) == {"easy", "medium", "hard", "any"}
 
 
 def test_public_game_no_auth_needed(client):
@@ -179,10 +193,17 @@ def test_known_internal_but_not_public_mode_is_mode_unavailable(client):
 
 def test_grid_and_six_degrees_are_not_public_modes(client):
     # Part 16/17: neither is migrated in v1.3 -- confirm they're not
-    # accidentally reachable as a "mode" through this new surface.
+    # accidentally reachable as a "mode" through this new surface. (Note:
+    # "six_degrees" as a PUBLIC_MODE_ALLOWLIST entry specifically is still
+    # correctly absent even though Six Degrees itself did get a real public
+    # route in v1.7 -- it's served by a structurally separate system,
+    # public_six_degrees.py, never folded into this Director-pipeline
+    # registry -- see that module's own docstring.)
     assert "grid" not in config.PUBLIC_MODE_ALLOWLIST
     assert "six_degrees" not in config.PUBLIC_MODE_ALLOWLIST
-    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({"draft_guess", "championship_guess", "lineup_guess"})
+    assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
+        "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
+    })
 
 
 # --- determinism ----------------------------------------------------------------
@@ -298,9 +319,9 @@ def test_new_error_codes_registered():
 def test_capabilities_route_unaffected_by_public_routes(client):
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
-    # v1.8, Part F added a 4th registered capability -- see
-    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_four.
-    assert len(r.json()["capabilities"]) == 4
+    # v1.8 added a 4th registered capability, CFB data enrichment a 5th --
+    # see test_gateway.py::test_capabilities_unauthenticated_and_exactly_five.
+    assert len(r.json()["capabilities"]) == 5
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -400,6 +421,72 @@ def test_lineup_easy_difficulty_is_certified_and_works(client):
     assert r.status_code == 200
 
 
+# --- cfb_heisman_guess (CFB data enrichment operation) -----------------------
+# The first CFB public mode -- proves the exact same public API/registry/
+# answer-validation code that already serves 3 NFL modes also serves a
+# genuinely new CFB domain with zero architectural change.
+
+def test_heisman_game_no_auth_needed(client):
+    r = _get_heisman_game(client)
+    assert r.status_code == 200
+
+
+def test_heisman_payload_never_contains_answer(client):
+    r = _get_heisman_game(client)
+    raw = r.text
+    for forbidden in ("correctIndex", "answer\":", "source_ids", "provenance", "qa_checks_performed", "funnel"):
+        assert forbidden not in raw, f"{forbidden!r} leaked in a fresh cfb_heisman_guess response"
+    body = r.json()
+    assert body["mode"] == "cfb_heisman_guess"
+    assert body["competition"] == "CFB"
+    assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
+    assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
+    assert body["payload"]["visual_template"] == "DEFAULT_MULTIPLE_CHOICE"
+    assert len(body["payload"]["options"]) == 4
+
+
+def test_heisman_correct_answer_accepted(client):
+    game = _get_heisman_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": real_answer})
+    body = r.json()
+    assert body["correct"] is True
+    assert body["canonical_answer"] == real_answer
+
+
+def test_heisman_incorrect_answer_rejected(client):
+    game = _get_heisman_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    wrong = next(o for o in game["payload"]["options"] if o != real_answer)
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": wrong})
+    body = r.json()
+    assert body["correct"] is False
+    assert body["canonical_answer"] == real_answer
+
+
+def test_heisman_easy_difficulty_is_certified_and_works(client):
+    # Real survey: 27/91 real winners graded Easy -- must NOT be rejected.
+    r = _get_heisman_game(client, difficulty="easy")
+    assert r.status_code == 200
+
+
+def test_heisman_question_is_a_real_verifiable_fact(client):
+    # Spot-check the actual generated prompt shape, and confirm the option
+    # set is drawn from real school names -- confirms the real adapter (not
+    # a stub) is wired in. A player's own real prompt/answer varies by seed
+    # (this seed is not separately hand-verified to a specific winner the
+    # way the manual e2e check was) -- the structural checks here are what's
+    # actually asserted.
+    game = _get_heisman_game(client, seed="test-heisman-real-fact").json()
+    assert game["payload"]["prompt"].startswith("Which school did ")
+    assert "Heisman Trophy winner" in game["payload"]["prompt"]
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    assert real_answer in game["payload"]["options"]
+
+
 def test_championship_question_is_a_real_postseason_fact(client):
     # Spot-check the actual generated prompt shape, not just that SOMETHING
     # came back -- confirms the real adapter (not a stub) is wired in.
@@ -415,16 +502,17 @@ def test_championship_question_is_a_real_postseason_fact(client):
 
 # --- v1.3: public mode registry ------------------------------------------------
 
-def test_all_three_certified_guess_modes_registered(client):
+def test_all_four_certified_guess_modes_registered(client):
     # Scoped to public_game's own Director-pipeline guess-mechanic registry
     # specifically (not the combined /v1/public/modes response, which as of
     # v1.7 also includes six_degrees_guess -- a structurally different
     # system, see gateway/services/public_six_degrees.py's own module
     # docstring for why it was never folded into this same registry).
-    # v1.8, Part F/O added the third: lineup_guess.
+    # v1.8, Part F/O added the third: lineup_guess. The CFB data enrichment
+    # operation added the fourth: cfb_heisman_guess (the first CFB mode).
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
-    assert modes == {"draft_guess", "championship_guess", "lineup_guess"}
+    assert modes == {"draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess"}
 
 
 def test_player_from_clues_remains_internal_only(client):

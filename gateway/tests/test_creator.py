@@ -173,10 +173,12 @@ def test_creator_queue_invalid_review_status_filter_rejected(client, auth_header
 
 # --- capability reference (Part C) -------------------------------------------
 
-def test_creator_capabilities_lists_four_with_real_statuses(client, auth_headers):
+def test_creator_capabilities_lists_five_with_real_statuses(client, auth_headers):
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 4
+    assert len(caps) == 5
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    heisman = next(c for c in caps if c["relationship_predicate"] == "WON_HEISMAN")
+    assert heisman["support_status"] == "SUPPORTED_WITH_LIMITATIONS"

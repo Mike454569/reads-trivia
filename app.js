@@ -55,6 +55,9 @@ var ENABLE_ENGINE_SIX_DEGREES_V01 = READS_CONFIG.enableEngineSixDegrees === true
 // v1.8, Part F/O: same fail-closed pattern -- the Starting Lineup proof-game
 // capability, default OFF.
 var ENABLE_ENGINE_LINEUP_PILOT_V01 = READS_CONFIG.enableEngineLineupPilot === true;
+// CFB data enrichment operation: same fail-closed pattern -- the first CFB
+// engine mode, default OFF.
+var ENABLE_ENGINE_HEISMAN_PILOT_V01 = READS_CONFIG.enableEngineHeismanPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -1312,6 +1315,16 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'lineup_guess', icon: 'users', title: ENGINE_PILOT_MODES.lineup.title,
       desc: ENGINE_PILOT_MODES.lineup.desc, engineMode: 'lineup',
+    });
+  }
+  // CFB data enrichment operation -- the first CFB entry in the same
+  // unified discovery array, same shared-shell dispatch as every NFL entry
+  // above (Part 14's "no separate CFB architecture" carried into the
+  // frontend too).
+  if (ENGINE_PILOT_MODES.heisman.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_heisman_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.heisman.title,
+      desc: ENGINE_PILOT_MODES.heisman.desc, engineMode: 'heisman',
     });
   }
 }
@@ -8369,6 +8382,7 @@ if (ENABLE_PLAYER_FROM_CLUES_V01) HIDDEN_ROUTES['#clues'] = 'playerClues';
 if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01) HIDDEN_ROUTES['#championshippilot'] = 'enginePilot';
 if (ENABLE_ENGINE_LINEUP_PILOT_V01) HIDDEN_ROUTES['#lineuppilot'] = 'enginePilot';
+if (ENABLE_ENGINE_HEISMAN_PILOT_V01) HIDDEN_ROUTES['#heismanpilot'] = 'enginePilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
@@ -8377,6 +8391,7 @@ if (HIDDEN_ROUTES[location.hash]) {
   if (location.hash === ENGINE_PILOT_MODES.championship.hash) enginePilotCurrentModeKey = 'championship';
   else if (location.hash === ENGINE_PILOT_MODES.draft.hash) enginePilotCurrentModeKey = 'draft';
   else if (location.hash === ENGINE_PILOT_MODES.lineup.hash) enginePilotCurrentModeKey = 'lineup';
+  else if (location.hash === ENGINE_PILOT_MODES.heisman.hash) enginePilotCurrentModeKey = 'heisman';
   if (state.screen === 'creator') {
     state.creator = {
       screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,

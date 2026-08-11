@@ -39,6 +39,7 @@ ALLOWED_DOMAINS = frozenset({
     "NFL_CHAMPIONSHIP",
     "NFL_PLAYER_IDENTITY",
     "NFL_OFFENSE_LINEUP",  # v1.8, Part F
+    "CFB_HEISMAN",  # CFB data enrichment operation -- first CFB domain registered
 })
 
 ALLOWED_PREDICATES = frozenset({
@@ -46,6 +47,7 @@ ALLOWED_PREDICATES = frozenset({
     "TEAM_POSTSEASON_RESULT",
     "IDENTIFY_FROM_CLUES",
     "TEAM_OF_STARTING_LINEUP",  # v1.8, Part F
+    "WON_HEISMAN",  # CFB data enrichment operation
 })
 
 ALLOWED_DIFFICULTIES = frozenset({

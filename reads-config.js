@@ -31,4 +31,8 @@ window.READS_CONFIG = {
   enableEngineSixDegrees: false,
   // v1.8, Part F/O: same fail-closed pattern, default OFF.
   enableEngineLineupPilot: false,
+  // CFB data enrichment operation: same fail-closed pattern, default OFF.
+  // The first CFB engine mode -- see gateway/services/public_game.py's
+  // cfb_heisman_guess entry.
+  enableEngineHeismanPilot: false,
 };

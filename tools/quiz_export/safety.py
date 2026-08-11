@@ -79,3 +79,41 @@ def check_table_wide_safety(c, table: str, required_source, where_extra: str | N
         "approved_for_import": True,
         f"{table}_rows_total": total, f"{table}_rows_verified": clean,
     }
+
+
+def check_verification_status_safety(c, table: str, source_id: str, status_value: str,
+                                      where_extra: str | None = None) -> dict:
+    """A third, distinct pattern (CFB data enrichment operation) -- for a
+    "fact" table that carries its own exact `verification_status` string but
+    has NO per-row `source_id` column at all (unlike Draft/Championship/
+    Lineup's NFL tables, which all do). `cfb_award_facts` is the first real
+    case: 91 rows, verification_status='SOURCE_BACKED_FROM_CFB_MASTER',
+    checked directly against the real schema (audited before writing this,
+    not assumed) -- there is no `source_id` column to filter by, so trying
+    to reuse `check_table_wide_safety()` as-is would raise a real SQL error
+    ("no such column: source_id"), not just a safe ABORT. Same discipline as
+    the two functions above: source registered + approved_for_import
+    checked once, then an EXHAUSTIVE (not sampled) per-row check that every
+    row carries the exact expected status string -- a row with any other
+    value still fails the gate exactly as before."""
+    src = c.execute(
+        "SELECT source_id, source_name, approved_for_import FROM sources WHERE source_id=?",
+        (source_id,),
+    ).fetchone()
+    if not src:
+        raise SystemExit(f"ABORT: source {source_id!r} not found in the sources registry.")
+    if not src["approved_for_import"]:
+        raise SystemExit(f"ABORT: source {source_id!r} is not approved_for_import.")
+    where = f"WHERE {where_extra}" if where_extra else ""
+    total = c.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+    where2 = (where + " AND " if where else "WHERE ") + "verification_status=?"
+    clean = c.execute(f"SELECT COUNT(*) FROM {table} {where2}", (status_value,)).fetchone()[0]
+    if clean != total:
+        raise SystemExit(
+            f"ABORT: {table} has {total - clean} row(s) that are not verification_status={status_value!r}; "
+            f"this assumed uniform provenance."
+        )
+    return {
+        "source_id": source_id, "source_name": src["source_name"], "approved_for_import": True,
+        f"{table}_rows_total": total, f"{table}_rows_verified": clean,
+    }

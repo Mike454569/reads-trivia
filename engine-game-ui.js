@@ -153,6 +153,23 @@ var ENGINE_PILOT_MODES = {
     // "real NFL trivia, works offline" fallback, not a placeholder.
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
   },
+  // CFB data enrichment operation -- the first CFB engine mode. Plugs into
+  // this exact same shared shell with zero new render/state code, proving
+  // the shell (built for NFL modes) generalizes to a genuinely different
+  // competition, not just new NFL predicates.
+  heisman: {
+    apiMode: 'cfb_heisman_guess',
+    hash: '#heismanpilot',
+    flagOn: function () { return ENABLE_ENGINE_HEISMAN_PILOT_V01; },
+    title: 'CFB Heisman Winners: Guess the School',
+    desc: "See a real Heisman Trophy winner and year, and guess which school he played for.",
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    // No local CFB-award Quiz category exists (this is a brand-new CFB
+    // domain, same real gap lineup.py's fallback comment above discloses
+    // for its own NFL domain) -- Draft History is the closest honest,
+    // already-working, zero-network fallback, not a placeholder.
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
 };
 var enginePilotCurrentModeKey = 'draft';
 function enginePilotModeConfig(modeKey) {

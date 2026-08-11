@@ -83,10 +83,12 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_four_registered_capabilities():
+def test_capability_summary_lists_all_five_registered_capabilities():
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 4
+    assert len(summary) == 5
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    heisman = next(c for c in summary if c["relationship_predicate"] == "WON_HEISMAN")
+    assert heisman["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
