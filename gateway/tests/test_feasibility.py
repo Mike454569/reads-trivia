@@ -28,9 +28,60 @@ def test_supported_with_limitations_for_college_phrased_lineup_request():
     assert r["visual_template"] == "POSITION_LINEUP"
 
 
+def test_supported_with_limitations_for_heisman_request():
+    # Real gap found by actually testing the Creator against this exact
+    # request during the CFB expansion operation: cfb_heisman_guess was
+    # registered in CAPABILITY_REGISTRY (reachable via direct spec-based
+    # generation) but had no translator keyword recognition at all, so this
+    # request used to report NO_MATCH for a real, fully-certified
+    # capability. Fixed in providers/mock.py; this test guards the fix.
+    r = feasibility.assess("Make me a CFB Heisman guessing game.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "WON_HEISMAN"
+    assert r["capability"]["domain"] == "CFB_HEISMAN"
+
+
 def test_understood_but_unsupported_for_mixed_request():
     r = feasibility.assess("Give me a game where I guess both a QB's team and his favorite food.")
     assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+
+
+def test_understood_but_unsupported_for_cfb_worded_clue_request():
+    # Mission A5 fix: a CFB-worded player-from-clues request used to
+    # silently resolve to SUPPORTED against the NFL-only IDENTIFY_FROM_CLUES
+    # capability, since the translator never checked for a league signal at
+    # all. Now competition-aware: an explicit "cfb" token, "college
+    # football" phrase, or "college"/"colleges" word (with no contradicting
+    # "nfl" token) reports the real, honest gap instead of silently
+    # generating NFL content for a CFB-worded ask.
+    for text in [
+        "Make me a CFB game where I identify a player from his college career.",
+        "Identify a CFB player from clues about his career.",
+        "Give me a who am i game about a college football player.",
+    ]:
+        r = feasibility.assess(text)
+        assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED", text
+
+
+def test_supported_for_nfl_clue_request_even_with_incidental_college_mention():
+    # An explicit "nfl" token always wins over an incidental "college"
+    # mention -- the request is genuinely about an NFL player whose bio
+    # happens to reference college.
+    r = feasibility.assess(
+        "Identify a player from clues about his college career, he later played in the NFL."
+    )
+    assert r["support_status"] == "SUPPORTED"
+    assert r["capability"]["domain"] == "NFL_PLAYER_IDENTITY"
+
+
+def test_supported_for_bare_clue_request_with_no_league_signal():
+    # No "nfl" and no "cfb"/"college" signal at all still defaults to the
+    # NFL capability, consistent with every other pattern in the translator
+    # (Draft/Championship/Lineup also default to NFL without requiring an
+    # explicit "nfl" token).
+    r = feasibility.assess("Give me a who am i game about a player.")
+    assert r["support_status"] == "SUPPORTED"
+    assert r["capability"]["domain"] == "NFL_PLAYER_IDENTITY"
 
 
 def test_missing_data_for_salary_request():

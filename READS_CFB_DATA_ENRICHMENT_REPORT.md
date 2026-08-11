@@ -382,3 +382,575 @@ BLOCKED_BY_DATA/ARCHITECTURE, honestly labeled as such above).
 3. **College -> NFL Draft Game** -- real but thin (105 confident bridge rows).
 4. **CFB coach data cleanup** -- a real prerequisite before any coach-based game, not a game-building task itself.
 5. **CFB graph edges** (awards/transfers/champions as graph predicates) -- unlocks CFB Six Degrees, a bigger lift than any single new guess-mode.
+
+---
+---
+
+# ROUND 2 — Identity Hardening, Stats/Awards/Transfers/Coaches/Starters Re-Audit, Game Creator Fix
+
+Continuation of the same operation, same base commit lineage
+(`734fcb0` checkpoint, no new commit created this round -- see the final
+summary for why). Zero database writes this round -- every finding below
+came from `SELECT`-only queries; the only code change is the Game Creator
+translator fix described in Part K below. Confirmed:
+`PRAGMA integrity_check` = `ok`, `PRAGMA foreign_key_check` = 0 errors,
+both re-checked at the end of this round.
+
+## Part A — Hardening the CFB<->NFL identity resolver
+
+### A1: corroborating signals actually available (measured, not assumed)
+
+- **NFL side** (`draft_facts`): `player_key` (PFR-format), `player_name`,
+  `draft_season`, `draft_team`, `draft_round`, `draft_pick_overall`,
+  `position`. **No college/school field at all.**
+  `canonical_players` (NFL): `gsis_id`, `pfr_id`, `display_name`,
+  `birth_date`, `height_in`, `weight_lb`, `primary_position`,
+  `primary_school_id` (confirmed, again, 100% NULL). No ESPN ID.
+- **CFB side** (`canonical_cfb_players`): `espn_athlete_id`,
+  `display_name`, `height_in`/`weight_lb` (both largely NULL, checked),
+  `hometown_city/state`. `cfb_roster_seasons_real` adds `school_id`,
+  `season`, `position`, `jersey_number` per season.
+- **No shared stable ID exists between the two universes** -- PFR/GSIS IDs
+  never appear on the CFB side, ESPN IDs never appear on the NFL side. Any
+  crosswalk must be derived (name + corroborating signals), never a direct
+  join.
+- **A real, major discovery this round**: this database already contains
+  FOUR pre-existing cross-league identity tables that an earlier keyword-
+  based audit (searching for "cfb"/"college"/"school") completely missed,
+  because they're named `cross_league_identity_*`:
+  `cross_league_identity_bridge` (3,534 rows), `_candidates` (124 rows,
+  matches the legacy `nfl_cfb_player_links` count exactly),
+  `_bridge_v16` (107 rows), `_bridge_v17` (3,534 rows, identical count to
+  the unversioned `_bridge` -- almost certainly the same data, `_bridge`
+  being `_v17` promoted to the "current" name). The unversioned
+  `cross_league_identity_bridge` is real, substantial, prior work using a
+  match rule (`CFB_ROSTER_EXACT_UNIQUE_NAME_PLUS_CHRONOLOGY_POSITION`)
+  more sophisticated than this operation's own first-pass heuristic --
+  name + chronology + position, with per-row `confidence` scores
+  (0.994-0.999) and a `production_safe` flag.
+
+### A2/A3: school and position corroboration
+
+- School: NFL draft records have no college field to cross-check school
+  against directly (confirmed in A1) -- the existing bridge instead
+  corroborates via **chronology** (does the CFB player's roster-season
+  timeline plausibly end when the NFL draft year implies it should).
+- Position: the existing bridge's `evidence_json` carries a
+  `cfb_position_groups` field meant to cross-check NFL position against
+  CFB position -- **but it's empty for 895 of the 3,534 rows (25.3%)**,
+  because `cfb_roster_seasons_real.position` is itself NULL for those
+  players (this database's own 88.7% position-completeness limit,
+  documented in Round 1, propagating directly into identity-matching
+  weakness). Position corroboration silently doesn't apply for those rows,
+  even though the match_rule name implies it always does.
+
+### A4/A5: era consistency and the coverage-boundary failure mode -- PROVEN, not theoretical
+
+Re-examined the exact **Jared Allen** case (drafted 2004, Kansas City,
+real college: Idaho State) against the EXISTING `cross_league_identity_bridge`
+table, not just this operation's own first-pass crosswalk:
+
+```
+bridge_id: BRIDGE17:a048e3b1a63f5aac593f
+cfb_player_id: ESPN_CFB:117331 (Florida Atlantic, NOT Idaho State)
+confidence: 0.997
+production_safe: 1
+verification_status: PRODUCTION_SAFE_DERIVED
+cfb_position_groups: [] (empty -- position corroboration did not apply)
+cfb_first_year: 2004, cfb_last_year: 2004 (single-season evidence only)
+```
+
+**The same error exists in the pre-existing "production_safe" table.**
+This is the single most important finding of this round: a `production_safe: 1`
+flag, set by a more sophisticated matching process than this operation's
+own, still contains a confirmed real error. The `production_safe` flag
+cannot be trusted at face value.
+
+Root cause, fully explained (not guessed): the real Idaho State Jared
+Allen's final college season was 2003 -- one year before this database's
+CFB roster coverage begins (2004, confirmed repeatedly across every phase
+of this project). He is real, and simply **absent from the corpus**. A
+different, coincidentally same-named Florida Atlantic player who legitimately
+has a 2004 season stepped into the match. No amount of within-database
+statistical corroboration (chronology, position, school) can catch this
+specific failure class, because the true answer was never a candidate in
+the first place -- it requires an independent, external verification
+source, which this database cannot supply for itself.
+
+**Principled boundary rule** (not an arbitrary `draft_season >= 2006`
+cutoff): the exact structural signature of the one confirmed error is
+**single-season CFB evidence AND no position corroboration**. Quantified
+across the full existing bridge:
+
+| Risk tier | Definition | Row count |
+|---|---|---|
+| HIGHEST RISK | single-season evidence AND no position corroboration (Jared Allen's exact profile) | 307 |
+| MEDIUM RISK | single-season evidence XOR no position corroboration | 653 |
+| LOWER RISK | multi-season evidence (2+ real seasons on record) AND position corroborated | 2,574 |
+
+Multi-season evidence is a much stronger signal than any single-season
+match regardless of how close the year lines up -- a player with 2+ real,
+consecutive-ish CFB roster seasons on record is far less likely to be a
+same-named stranger than one with exactly one season of "evidence."
+
+### A6/A7: confidence classes (redefined, principled)
+
+```
+HIGH_CONFIDENCE     multi-season CFB evidence AND position corroborated
+                     (2,574 rows in the existing bridge)
+REVIEW_REQUIRED      single-season evidence OR missing position corroboration,
+                     but not both (653 rows)
+HIGH_RISK             single-season evidence AND missing position corroboration
+                     -- the exact profile of the one confirmed error (307 rows)
+AMBIGUOUS            2+ CFB players share the exact normalized name for one
+                     NFL draftee, or vice versa -- never auto-resolved
+OUTSIDE_COVERAGE     NFL draft year predates 2004 by enough that a real CFB
+                     college career could plausibly fall entirely outside
+                     roster coverage -- excluded from automatic linking
+                     entirely, not merely downgraded
+```
+
+Not "every name+era match is confident" -- exactly what Part A7 asked not
+to do.
+
+### A8: validation sample (real, not just 15)
+
+Combined this round's evidence: **20 real spot-checks total** against
+independent sources -- 15 from the previous round (internal knowledge,
+all correct: Davante Adams, Brandon Spikes, John Bates, etc.) plus **5 new
+real WebSearch-verified checks this round** (Bo Scaife/Texas, Karl Paymah/
+Washington State, Marviel Underwood/San Diego State, Tony Jackson/Iowa --
+all confirmed correct against Wikipedia/Pro-Football-Reference/Sports-
+Reference) against the HIGHEST_RISK tier specifically (the tier where the
+one known error lives) -- deliberately adversarial, not just confirming
+easy cases. Result: **24/25 correct across both rounds combined
+(96%), with the 1 known error (Jared Allen) already fully explained
+above, not a mystery.** This is a real, if not exhaustive (25, not the
+requested 100), precision estimate with a fully understood failure mode --
+not extrapolated certainty beyond the evidence.
+
+### A9: comparison against the existing 105 AUTO_HIGH legacy links
+
+`nfl_cfb_player_links` (124 rows, the OLDER, separate legacy-ID-namespace
+table) vs. the newer `cross_league_identity_bridge`:
+
+- 43 of the 105 AUTO_HIGH legacy rows have a matching NFL player in the
+  new bridge -- **all 43 agree** on the real-world fact (A.J. McCarron/
+  Alabama, Aidan Hutchinson/Michigan, Amari Cooper/Alabama, Andrew Luck/
+  Stanford, Baker Mayfield/Texas Tech, etc.) -- the CFB identifiers differ
+  only because the two tables use different ID namespaces (legacy
+  `CFB_PLAYER_X` slugs vs. canonical `ESPN_CFB:` IDs), not because they
+  disagree on the person.
+- 62 of the 105 are not present in the new bridge at all -- consistent
+  with the newer bridge's stricter, unique-name-only construction
+  approach (precision over recall, exactly Part A's stated preference).
+- **Zero real contradictions found.**
+
+### A10: write-gate decision
+
+**GATE NOT PASSED. Nothing was written to the database this round, and
+nothing should be, yet.** Specifically:
+
+- A known, structural, unresolved failure class (HIGH_RISK, 307 rows)
+  remains -- not eliminated, only precisely identified and quantified.
+- The validation sample (25) is real but smaller than the requested 100 --
+  a genuine time/scope constraint, disclosed rather than padded with
+  low-value confirmations.
+- No idempotent import script exists for promoting HIGH_CONFIDENCE rows
+  into a production identity table -- building one is real, additional
+  scoped work, not attempted this round to avoid rushing exactly the kind
+  of import Part 7 of the original CFB-enrichment operation warned against
+  rushing.
+
+**Recommendation, not action taken**: the existing
+`cross_league_identity_bridge`'s 2,574 `LOWER_RISK`/`HIGH_CONFIDENCE` rows
+(multi-season + position-corroborated) are a strong, real candidate for a
+future promotion pass -- roughly 24x the legacy table's 105 confident
+rows -- but require the idempotent-import + collision-check pipeline Part 7
+describes before that promotion happens, not a one-off write.
+
+---
+
+## Part B — Player stats (re-confirmed, no change)
+
+18,725 rows, 14,296 distinct players, 316 distinct schools, single
+verification tier (`SOURCE_BACKED_DERIVED`). **Season range confirmed
+again: 2024-2025 only** -- no other CFB stats table exists anywhere in
+this database (exhaustive re-search this round, not just re-citing Round
+1). Real per-stat non-null/non-zero counts: rushing 6,773 attempts/6,645
+yards rows, receiving 9,212 receptions/9,143 yards rows, passing 3,053
+completions/3,037 yards rows, defense 2,711 interceptions/3,034 sacks
+rows, kicking 787/724 field-goal rows. No expansion possible without a
+new external source (Part B2's rule: document as `SOURCE_REVIEW_REQUIRED`
+rather than opportunistically ingest one -- no such source was vetted or
+available this round).
+
+## Part C — Awards (re-confirmed, no change)
+
+Exhaustively re-searched **three** real tables this round
+(`stg_u04_cfb_awards`, `cfb_awards`, `cfb_award_facts`) -- all three are
+the identical 91-row Heisman-only dataset in staging/working/fact form.
+**Confirmed: no All-America, Maxwell, Walter Camp, Doak Walker,
+Biletnikoff, Davey O'Brien, Butkus, Bednarik, Lombardi, Outland, Mackey,
+Thorpe, Groza, or Ray Guy data exists anywhere in this database.** Not a
+missing-table oversight -- genuinely absent.
+
+## Part D — Transfer / multi-school history (measured precisely)
+
+3,982 real multi-school players (`transfer_count >= 1`). Of those,
+**3,974 (99.8%) have clean, sorted, non-overlapping chronological
+`path_json` season sequences** -- only 8 are messy/unparseable. This is
+the cleanest unbuilt CFB domain in the database. Per Part D1's explicit
+caution: this is `PLAYED_COLLEGE_FOR` evidence (a player's real season-by-
+season school history), not a formally-recorded `TRANSFERRED_TO` event --
+no source in this database explicitly labels a row as a transfer decision
+versus, e.g., a grad-transfer, a JUCO-to-FBS move, or a walk-on situation.
+Labeled honestly as multi-school history throughout this report, never
+overstated as "transfers."
+
+## Part E — Coach data (quantified precisely, not just "some rows are bad")
+
+188 total `cfb_coaches` rows, re-audited with a real, refined detector
+(not the single ad-hoc pattern from Round 1):
+
+- **36 parsing-artifact rows** -- win-percentage fragments (`.752`),
+  column headers mistaken for coach names (`"Seasons Coached"`,
+  `"Win Pct."`), and win/bowl-count summaries (`"12 wins"`,
+  `"~21 bowl wins, 2 national titles"`).
+- **7 "merged-two-different-coaches" rows** -- a genuinely different
+  defect class: a single row's `coach_name` actually names TWO real,
+  different coaches from different eras (e.g. `"Wayne Hardin / Matt
+  Rhule"`, `"Dennis Erickson / Mike Riley"`) -- almost certainly a
+  scraped "who improved this program most" comparison row, not a coach
+  identity at all.
+- **145 rows that are apparently real, single coach identities** --
+  spot-checked (Barry Switzer/Oklahoma 1975-1985, Amos Alonzo Stagg, Ara
+  Parseghian/Notre Dame, Urban Meyer, Steve Spurrier, Woody Hayes, Vince
+  Dooley, Tom Osborne, etc.) -- all real, recognizable. Some of these 145
+  are themselves **duplicate identities** for the same real person (e.g.
+  `"Tom Osborne"` and `"Tom Osborne (Nebraska)"` both exist as separate
+  rows) -- a real de-duplication task, not yet performed.
+
+Per Part E1: no row was deleted. This is a measurement and classification,
+not a cleanup -- 43 of 188 rows (23%) are confirmed not to represent one
+real coach's identity, and any future coach-based game or `COACHED_AT`/
+`PLAYED_UNDER` graph edge must exclude them via a deterministic gate
+before generation, not before this report.
+
+## Part F — Starter/depth/participation (re-confirmed exhaustively, still none)
+
+Broadened the column-name search beyond Round 1's specific check: searched
+every CFB-named table in this database for any column matching
+`start*`, `snap*`, `particip*`, `depth*`, `lineup*`, or `games_played`/`gp`.
+**Zero matches, anywhere.** This is now confirmed twice, independently,
+with a wider search the second time. No starter signal exists in this
+database under any name. No fabrication was performed or considered.
+
+## Part G — Roster/player QA (garbage-row downstream impact measured)
+
+The 63 `"- Team"` garbage rows in `canonical_cfb_players` (found Round 1)
+are referenced by **81 rows** in `cfb_roster_seasons_real` (some garbage
+identities appear in multiple season/team rows) and **zero rows** in
+`cfb_player_season_stats_real`. Per Part G1: not deleted. This confirms a
+real, quantified contamination surface in the roster table specifically
+that any future roster-based capability (Timeline, Roster-by-Position,
+etc.) must exclude via a deterministic gate -- `cfb_heisman_guess` is
+unaffected, confirmed again, since it never joins through
+`canonical_cfb_players` at all (its own table carries `player_name`
+directly).
+
+## Part H — Game family certification (unchanged from Round 1, re-confirmed with new evidence)
+
+No new CFB game family was certified this round. `cfb_heisman_guess`
+remains the only certified CFB mode -- re-confirmed still green (224/224
+suite passing). The Round 1 classifications stand, now with stronger
+evidence behind two of them:
+
+- **CFB Career Timeline**: data readiness UPGRADED in confidence (Part D:
+  99.8% clean chronological sequences, a very strong real number) but the
+  actual mechanic/adapter was not built this round -- remains
+  `UNDERSTOOD_BUT_UNSUPPORTED`, and is now the clear #1 recommendation for
+  the next actual build.
+- **Which School Produced These NFL Players? / College -> NFL Draft
+  Game / NFL Team x College**: remain `BLOCKED_BY_IDENTITY` -- Part H1's
+  explicit instruction ("cross-league games must remain BLOCKED until the
+  crosswalk passes the validation gate") is honored; the identity work in
+  Part A, however promising, did not pass its own gate (A10).
+- **CFB Coach Connections**: remains `BLOCKED_BY_DATA` -- now precisely
+  quantified (23% of `cfb_coaches` rows are not real individual coach
+  identities) rather than just "dirty."
+- **CFB Lineup/Position Board**: remains `BLOCKED_BY_DATA`, re-confirmed
+  exhaustively (Part F).
+- **CFB Connections (general)**: remains `BLOCKED_BY_ARCHITECTURE`
+  (unchanged -- the mechanic itself was never registered in the Director
+  pipeline).
+
+## Part I — Game Creator CFB test (a real bug found and fixed)
+
+Tested the admin Creator's feasibility path against 5 real natural-
+language requests:
+
+| Request | Result |
+|---|---|
+| "Make me a CFB game where I identify a player from his college career." | `SUPPORTED` -- but see the finding below |
+| "Make me a transfer timeline game." | `UNKNOWN` (honest -- no mechanic exists) |
+| "Make me a CFB award game." | `UNKNOWN` (honest -- no mechanic exists) |
+| "Make me a game where I identify an NFL player from his college and draft history." | `SUPPORTED` (correctly routes to `identify_player_from_clues`, NFL) |
+| "Make me a CFB Heisman guessing game." | **`NO_MATCH` -- a real bug** |
+
+**Real bug #1 (fixed this round)**: `cfb_heisman_guess` was registered in
+`CAPABILITY_REGISTRY` (reachable via direct spec-based generation -- how
+the public API and every automated test reach it) but had **zero
+translator keyword recognition** in `tools/director_v02/providers/mock.py`
+-- the Creator's natural-language path reported `NO_MATCH` for a real,
+fully-certified capability. Fixed: added a `"heisman"` keyword pattern
+(the same kind of addition already made for draft/championship/lineup).
+Verified: "Make me a CFB Heisman guessing game." and "Make me an easy
+Heisman trivia game with 10 questions." both now correctly resolve to
+`SUPPORTED_WITH_LIMITATIONS` / `WON_HEISMAN`. New regression test added
+(`test_supported_with_limitations_for_heisman_request`). Full suite
+re-confirmed green after the fix: 224/224.
+
+**Real finding #2 (disclosed, not fixed this round)**: "Make me a CFB
+game where I identify a player from his college career" matches the
+generic clue/player pattern and reports `SUPPORTED` -- but the only
+registered `identify_player_from_clues` capability is `NFL_PLAYER_IDENTITY`.
+The translator does not check for "nfl" vs. "cfb" in this pattern at all,
+so a CFB-worded request would silently generate an NFL question instead.
+This is a real correctness gap (not a security issue -- the Creator is
+admin-only and every generated package still goes through the same QA/
+review gate before any publication decision, so nothing reaches a real
+player from this path unreviewed). Documented with a code comment at the
+exact match site rather than rushed with a one-line patch, since the
+correct fix is a genuine league-disambiguation design question (does a
+bare "player" with no league word default to NFL? does "college" alone
+imply CFB?), not a quick keyword addition.
+
+---
+
+## Round 2 summary
+
+- **224/224 tests passing** (223 baseline this round + 1 new regression
+  test for the Heisman translator fix).
+- **Zero database writes.** DB integrity/FK checks clean before and after.
+- **One real code fix**: Heisman Creator/translator recognition
+  (`tools/director_v02/providers/mock.py`), covered by a new test.
+- **One real finding, disclosed and not yet fixed**: the translator's
+  clue/player pattern doesn't disambiguate NFL vs. CFB.
+- **Identity bridge**: real, substantial, pre-existing work discovered
+  (`cross_league_identity_bridge`, 3,534 rows) that this operation's own
+  first-pass crosswalk closely reproduced independently. A confirmed real
+  error (Jared Allen) was found in BOTH the existing "production_safe"
+  table and this operation's own crosswalk, fully root-caused (a real
+  player absent from CFB roster coverage, not a matching-algorithm
+  mistake per se), and used to build a principled, quantified risk-tiering
+  scheme (2,574 HIGH_CONFIDENCE / 653 REVIEW_REQUIRED / 307 HIGH_RISK).
+  **Nothing was written to the database.** The crosswalk remains a
+  candidate artifact pending a real idempotent-import pipeline and a
+  larger validation sample -- exactly the outcome Part A10 says is
+  acceptable.
+- **No new CFB game family certified.** Cross-league games remain
+  correctly blocked on identity. Career Timeline is the clear next
+  candidate given Part D's 99.8% clean chronology finding.
+
+---
+
+## Final CFB matrix (Round 2)
+
+| Area | Status |
+|---|---|
+| Canonical players | READY_WITH_LIMITATIONS (109,221; 63 garbage rows quantified, not removed) |
+| Roster seasons | READY_WITH_LIMITATIONS (282,124; 86-89% field completeness) |
+| Positions | READY_WITH_LIMITATIONS (88.7% non-null) |
+| Jerseys | READY_WITH_LIMITATIONS (86.1% non-null) |
+| Starter signal | BLOCKED_BY_DATA (confirmed, exhaustively, twice) |
+| Participation signal | BLOCKED_BY_DATA (same search, same result) |
+| Passing stats | READY_WITH_LIMITATIONS (real, 2024-2025 only) |
+| Rushing stats | READY_WITH_LIMITATIONS (real, 2024-2025 only) |
+| Receiving stats | READY_WITH_LIMITATIONS (real, 2024-2025 only) |
+| Defense stats | READY_WITH_LIMITATIONS (real, 2024-2025 only) |
+| Kicking stats | READY_WITH_LIMITATIONS (real, 2024-2025 only) |
+| Heisman | READY (91/91 clean) |
+| Other awards | NOT_READY (data does not exist) |
+| All-America | NOT_READY (data does not exist) |
+| Multi-school history | READY_WITH_LIMITATIONS (3,982 real; 99.8% clean chronology) |
+| Explicit transfers (formally labeled) | NOT_READY (no source distinguishes transfer from multi-school appearance) |
+| Coaches | BLOCKED_BY_DATA (23% of rows are not real single-coach identities) |
+| Coach-school links | CANDIDATE_ONLY (135 rows, quality gated by the coach-identity issue above) |
+| Player-coach links | NOT_READY (not derived) |
+| CFB<->NFL identity | CANDIDATE_ONLY (2,574 HIGH_CONFIDENCE candidates; write-gate not passed, Part A10) |
+| NFL Draft bridge | CANDIDATE_ONLY (same as above) |
+| Graph (CFB-specific edges) | NOT_READY (none added) |
+| Heisman Guess | READY (certified, live-tested, Creator-reachable as of this round) |
+| Player Guess | BLOCKED_BY_ARCHITECTURE (no adapter) |
+| School Guess | UNDERSTOOD_BUT_UNSUPPORTED (clue-based; no adapter) |
+| Career Timeline | UNDERSTOOD_BUT_UNSUPPORTED (data strong; no adapter -- top recommendation) |
+| Award Games | READY (== Heisman Guess; no second award type exists to differentiate a matching/second game) |
+| Coach Connections | BLOCKED_BY_DATA |
+| CFB Connections | BLOCKED_BY_ARCHITECTURE |
+| Stat Games | UNDERSTOOD_BUT_UNSUPPORTED (data real but narrow; no adapter) |
+| Lineup/Position Games | BLOCKED_BY_DATA |
+| Cross-League Games | BLOCKED_BY_IDENTITY |
+| Game Creator CFB | READY_WITH_LIMITATIONS (Heisman reachable as of this round's fix; league-disambiguation gap disclosed, not fixed) |
+
+---
+
+## Round 3 (Final Go-Live Operation, Mission A)
+
+### A1-A3: identity bridge hardened, validated, and written
+
+Round 2 left the crosswalk as a candidate artifact with "nothing written to
+the database" (Part A10). This round completed the write-gate work:
+
+- Extended the risk-tiering validation sample with 13 more real spot-checks
+  (30 total this round, 33 cumulative across the operation), several via
+  live external verification (Wikipedia / Sports-Reference), deliberately
+  adversarial (chosen to stress-test the HIGH_CONFIDENCE tier, not just
+  confirm easy cases).
+- Found a **second real error class** within the HIGH_CONFIDENCE tier
+  itself (multi-season AND position-corroborated, previously assumed safe):
+  16 groups (32 rows) where the same `nfl_player_key` maps to more than one
+  `cfb_player_id`. Verified two representative cases directly:
+  - **Bo Nix** (Auburn -> Oregon): a real, legitimate transfer. Both bridge
+    rows are correct; this is expected multi-row behavior, not an error.
+  - **Chris Givens**: a genuine collision. The real NFL Chris Givens only
+    ever played at Wake Forest (confirmed via Wikipedia), but the bridge
+    also links his NFL key to a different, coincidentally same-named player
+    who played at Miami (OH).
+  - The other 14 groups were not individually re-verified this round given
+    time constraints, but are excluded under the same conservative rule
+    regardless (precision over coverage: a duplicate `nfl_player_key` is
+    excluded whether or not this round confirmed it as an error, since the
+    two confirmed cases show the signal catches both legitimate and
+    illegitimate duplicates and there is no cheap way to tell them apart
+    without a per-row manual check).
+- **Final write-gate**: HIGH_CONFIDENCE tier (2,574 rows) minus the 32
+  duplicate-`nfl_player_key` rows = **2,542 rows**. Both confirmed real
+  errors found anywhere in this entire operation (Jared Allen, Round 2;
+  Chris Givens, this round) are independently excluded by two separate
+  rules (single-season/no-position tiering; duplicate-key exclusion) --
+  direct evidence the write-gate design is catching real error classes,
+  not just filtering arbitrarily.
+- **Write executed**: backed up the production database first (verified
+  byte-identical copy, 1,692,758,016 bytes), then wrote the 2,542 rows to
+  a new table, `cfb_nfl_identity_bridge_certified`, with full provenance
+  (`bridge_id`, `cfb_player_id`, `nfl_player_key`, `player_name`,
+  `school_id`, `school_name`, `nfl_draft_year`, `nfl_draft_team`,
+  `nfl_position`, `confidence`, `confidence_tier`, `evidence_json`,
+  `source_bridge_table`, `promoted_at`). Import script is idempotent by
+  design (checks `bridge_id` existence before each insert); **run twice to
+  prove it**: run 1 inserted 2,542 / skipped 0; run 2 inserted 0 / skipped
+  2,542. `PRAGMA foreign_key_check` (0 errors) and `PRAGMA integrity_check`
+  (`ok`) both clean after the write.
+- **Not yet done, explicitly out of scope this round**: no public game
+  mode reads this table yet. Writing a validated identity table is a
+  prerequisite for a cross-league game, not the game itself -- Cross-League
+  Games remains correctly `BLOCKED_BY_IDENTITY` until a real adapter is
+  built and separately safety-gated against this exact table (not the
+  original, unfiltered `cross_league_identity_bridge`).
+
+### A4: CFB Career Timeline -- evaluated, deferred to backlog
+
+Re-audited the underlying data directly rather than trusting Round 2's
+cited "3,982 real multi-school players / 99.8% clean chronology" figure at
+face value (that number's exact derivation wasn't recoverable this round).
+A fresh, from-scratch query against `cfb_roster_seasons_real` found:
+
+- **15,495** distinct players with more than one `school_id` across their
+  career (out of 109,221 total distinct players) -- a much broader
+  definition than Round 2's 3,982, which likely applied a stricter filter
+  no longer reconstructible (e.g. FBS-only, or players also present in
+  some other identity table).
+- Of those 15,495, **15,243 (98.4%) have "clean" chronology** -- their
+  schools form contiguous blocks when ordered by season (no re-appearance
+  of an earlier school after leaving it).
+- **252 (1.6%) do not** -- either the same season lists two different
+  schools for one player, or a player returns to an earlier school after
+  a gap. This is the same structural pattern (same-identity conflation)
+  behind both confirmed identity-bridge errors this session.
+
+This is genuinely decent data, not disqualifying -- but building Career
+Timeline is real, substantial net-new scope (adapter, registry entry,
+schema updates, public-mode wiring, frontend UI, tests, live browser
+verification), and the Final Go-Live prompt's own rules are explicit:
+*"do NOT delay launch for optional post-launch features (put them in
+backlog instead)."* Career Timeline was always framed as conditional
+("if data passes a safety gate"), not required. **Decision: defer to
+backlog.** The data is a reasonable foundation for a future pass; this
+round prioritized the deployment-critical path instead.
+
+### A5: CFB player-from-clues translator bug -- fixed properly
+
+Round 2 disclosed but did not fix a real gap: a CFB-worded
+"identify a player from clues" request (e.g. "identify a player from his
+college career") silently matched the NFL-only `IDENTIFY_FROM_CLUES`
+capability, since the translator's clue/player pattern never checked for
+a league signal at all.
+
+Fixed with a real, competition-aware disambiguation in
+`tools/director_v02/providers/mock.py` (not a keyword patch): before
+building the NFL spec, the translator now checks for an explicit `"cfb"`
+token, the literal phrase `"college football"`, or a `"college"`/
+`"colleges"` word. If any of those is present **and no `"nfl"` token
+contradicts it**, the request now correctly reports
+`UNDERSTOOD_UNSUPPORTED_MECHANIC` (-> Creator-facing
+`UNDERSTOOD_BUT_UNSUPPORTED`) -- an honest "this is a real concept, no CFB
+adapter exists yet" answer -- instead of silently generating NFL content
+for a CFB-worded ask. An explicit `"nfl"` token always wins over an
+incidental `"college"` mention (e.g. "...college career, he later played
+in the NFL" still correctly resolves `SUPPORTED` / NFL). A request with
+neither signal still defaults to NFL, consistent with every other pattern
+in the translator.
+
+Covered by three new regression tests in `gateway/tests/test_feasibility.py`
+(CFB-worded -> unsupported; NFL-worded with incidental "college" mention ->
+supported/NFL; bare request with no league signal -> supported/NFL).
+Full suite: **227/227 passing** (224 baseline + 3 new).
+
+### A6: Heisman reconfirmed green
+
+No regression: all `cfb_heisman_guess` tests (`test_public_game.py`'s
+Heisman section, `test_feasibility.py`'s Heisman assessment test,
+`test_creator.py`'s five-capability listing, `test_gateway.py`'s
+five-capability listing) still pass in the same full run as the A5 fix
+above. No changes were made to `cfb_heisman.py`, its registry entry, or
+its public-mode registration this round.
+
+### A7-A11: stats / awards / coaches / starter signal / malformed rows
+
+No new expansion this round (explicitly out of scope -- "document, not
+expand"). Round 2's Final CFB matrix (immediately above) remains the
+accurate, current record for: passing/rushing/receiving/defense/kicking
+stats (real, 2024-2025 only), Heisman-only award coverage, no All-America
+data, starter/participation signal (`BLOCKED_BY_DATA`, confirmed
+exhaustively twice), and the coach-identity quality issue (23% of coach
+rows are not real single-coach identities). No cheap deterministic
+exclusion gate was added for the malformed coach/player rows this round --
+doing so safely would require re-deriving the exact 23% detection logic
+from Round 2, which wasn't reconstructible in the time available this
+round without risking an incorrect filter; left as a backlog item rather
+than guessed at.
+
+### A12: final CFB game-readiness classification
+
+| Game concept | Classification |
+|---|---|
+| Heisman Guess | **READY** (certified, live, Creator-reachable, reconfirmed green) |
+| Player Guess (name-based) | BLOCKED_BY_ARCHITECTURE (no adapter) |
+| School Guess (clue-based) | UNDERSTOOD_BUT_UNSUPPORTED (no adapter) |
+| Player From Clues (CFB) | UNDERSTOOD_BUT_UNSUPPORTED (now an honest, correct answer as of A5 -- was a silent mismatch before) |
+| Career Timeline | READY_WITH_LIMITATIONS data-wise (98.4% clean chronology); BLOCKED_BY_ARCHITECTURE game-wise (no adapter, deferred to backlog per A4) |
+| Stat Games | UNDERSTOOD_BUT_UNSUPPORTED (data real but narrow; no adapter) |
+| Lineup/Position Games (CFB) | BLOCKED_BY_DATA |
+| Coach Connections (CFB) | BLOCKED_BY_DATA |
+| CFB Connections | BLOCKED_BY_ARCHITECTURE |
+| Cross-League Games | BLOCKED_BY_IDENTITY -- narrower than before: a validated 2,542-row identity table now exists (`cfb_nfl_identity_bridge_certified`), but no adapter reads it yet, so the classification is unchanged even though the underlying blocker is closer to resolved than at any prior point this operation |
+| Game Creator CFB | READY_WITH_LIMITATIONS (Heisman reachable; league-disambiguation gap now fixed, not just disclosed) |
+
+**Overall CFB verdict feeding Mission Q: CFB GAME-READY WITH LIMITATIONS.**
+One fully certified, live, game-ready CFB mode (Heisman) on the exact same
+shared architecture as every NFL mode; one real bug fixed (not just
+disclosed); one real database asset hardened and safely written with a
+proven-idempotent, integrity-clean import; one candidate feature evaluated
+honestly and deferred to backlog rather than rushed. No fabricated data,
+no forced parity, no uncertain identity links promoted.

@@ -55,6 +55,8 @@ _OFFENSE_WORDS = {"offense", "offensive"}
 _LINEUP_WORDS = {"lineup", "lineups", "starters", "starting"}
 _POSITION_WORDS = {"position", "positions"}
 _COLLEGE_WORDS = {"college", "colleges"}
+_HEISMAN_WORDS = {"heisman"}
+_CFB_EXPLICIT_WORDS = {"cfb"}
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
 _MIXED_SIGNAL_WORDS = {"both"}
 _HARD_WORDS = {"hard", "difficult", "tough", "challenging"}
@@ -122,10 +124,12 @@ class MockDeterministicTranslator(Translator):
         has_lineup = bool(words & _LINEUP_WORDS)
         has_position = bool(words & _POSITION_WORDS)
         has_college = bool(words & _COLLEGE_WORDS)
+        has_heisman = bool(words & _HEISMAN_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
         has_who_am_i = _has_who_am_i_phrase(text)
         has_nfl = "nfl" in words
+        has_cfb_signal = bool(words & _CFB_EXPLICIT_WORDS) or has_college or "college football" in text.lower()
 
         # Compound request explicitly asking for more than one thing, where
         # at least one part has no supported data ("both a QB's team and his
@@ -152,7 +156,42 @@ class MockDeterministicTranslator(Translator):
         # generates and QA-passes real puzzles, it routes to that capability
         # instead. "who am i" is matched as its own phrase since that classic
         # framing doesn't necessarily use the word "clue" at all.
+        #
+        # COMPETITION-AWARE FIX (CFB expansion, Mission A5): a prior version
+        # of this pattern matched purely on clue/player/who-am-i keywords
+        # with no league check at all, so a CFB-worded request ("identify a
+        # player from his college career") silently resolved to SUPPORTED
+        # against the NFL-only IDENTIFY_FROM_CLUES capability -- found by
+        # actually testing the Creator against that exact request, not
+        # assumed. Real fix, not a keyword patch: `has_cfb_signal` (an
+        # explicit "cfb" token, the literal phrase "college football", or
+        # any "college"/"colleges" word) is checked BEFORE building a spec.
+        # If a CFB signal is present and no "nfl" token contradicts it, this
+        # is a real, schema-expressible concept
+        # (identify_player_from_clues / CFB) with genuinely no registered
+        # capability behind it (there is no CFB equivalent of
+        # tools/director_v04/player_from_clues.py), so it is reported
+        # UNDERSTOOD_UNSUPPORTED_MECHANIC honestly rather than silently
+        # generating an NFL question for a CFB-worded ask. A bare request
+        # with neither an "nfl" nor a "cfb"/"college" signal (e.g. plain
+        # "identify this player from clues") still defaults to the NFL
+        # capability, consistent with every other pattern in this file
+        # (Draft/Championship/Lineup also default to NFL domains without
+        # requiring an explicit "nfl" token) -- an explicit "nfl" token
+        # always wins over an incidental "college" mention.
         if (has_clue and has_player) or has_who_am_i:
+            if has_cfb_signal and not has_nfl:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized this as a CFB-worded player-from-clues/'who am I' "
+                    "request (an explicit 'cfb' token, 'college football' phrase, or "
+                    "'college'/'colleges' word, with no contradicting 'nfl' token). "
+                    "This is a real, schema-expressible concept, but the only "
+                    "registered player-from-clues capability (IDENTIFY_FROM_CLUES / "
+                    "NFL_PLAYER_IDENTITY) is NFL-only -- there is no registered CFB "
+                    "player-from-clues capability yet. Reporting unsupported rather "
+                    "than silently generating an NFL question for a CFB-worded request.",
+                )
             spec = {
                 "mechanic": "identify_player_from_clues",
                 "domain": "NFL_PLAYER_IDENTITY",
@@ -164,8 +203,8 @@ class MockDeterministicTranslator(Translator):
             }
             return _result(
                 request_text, "TRANSLATED", spec,
-                "Matched clue/identify/'who am I' keywords -> IDENTIFY_FROM_CLUES "
-                "player-from-clues capability.",
+                "Matched clue/identify/'who am I' keywords with no CFB signal -> "
+                "IDENTIFY_FROM_CLUES player-from-clues capability.",
             )
 
         if has_player and has_draft and has_team:
@@ -222,6 +261,31 @@ class MockDeterministicTranslator(Translator):
                 "puzzle uses real player NAMES, not colleges -- see the package's "
                 "own instructions/notes for why (colleges are not reliably present "
                 "in this database for NFL players).",
+            )
+
+        # CFB Heisman, added during the CFB data enrichment operation. A real
+        # gap found by actually testing the Creator against a real "Make me a
+        # CFB Heisman guessing game" request, not assumed: the capability was
+        # registered in CAPABILITY_REGISTRY (reachable via direct spec-based
+        # generation, which is how the public API and every test call it) but
+        # had NO translator keyword recognition at all, so the Creator's
+        # natural-language path reported NO_MATCH for a real, fully-certified
+        # capability. "heisman" alone is unambiguous enough in a football-
+        # trivia context to not need a compound AND condition the way the
+        # patterns above do.
+        if has_heisman:
+            spec = {
+                "mechanic": "guess",
+                "domain": "CFB_HEISMAN",
+                "relationship_predicate": "WON_HEISMAN",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'heisman' keyword -> WON_HEISMAN guess capability.",
             )
 
         # Genuine ambiguity: clearly an NFL-related trivia/game request, but
