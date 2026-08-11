@@ -24,7 +24,13 @@
 // (same filename, different values, e.g. a real https:// Gateway hostname)
 // -- see READS_ENGINE_V14_IMPLEMENTATION_REPORT.md's deployment runbook.
 window.READS_CONFIG = {
-  engineGatewayBaseUrl: 'http://localhost:8850',
+  // Final Go-Live Operation, Mission F: real, deployed, verified production
+  // Gateway (https://reads-football-gateway.fly.dev/v1/health and /v1/ready
+  // both confirmed live). All pilot flags below stay false at this stage --
+  // pointing this URL at a real Gateway does not, by itself, send any real
+  // user traffic there; every one of app.js's ENABLE_ENGINE_*_V01 constants
+  // gates the actual fetch calls, and every one is still off.
+  engineGatewayBaseUrl: 'https://reads-football-gateway.fly.dev',
   enableEngineDraftPilot: false,
   enableEngineChampionshipPilot: false,
   // v1.7, Part C: same fail-closed pattern, default OFF.
