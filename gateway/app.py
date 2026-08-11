@@ -37,12 +37,14 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest, PublicAnswerRequest  # noqa: E402
+from .models import (GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,  # noqa: E402
+                      PublicAnswerRequest, PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import generation, packages  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
 from .services import public_game  # noqa: E402
+from .services import public_six_degrees  # noqa: E402
 from .services import audit as gateway_audit  # noqa: E402
 from .services import oplog  # noqa: E402
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
@@ -63,6 +65,12 @@ public_game_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_GAME_RATE_LIMIT_MAX, window_seconds=config.PUBLIC_GAME_RATE_LIMIT_WINDOW_SECONDS)
 public_answer_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_ANSWER_RATE_LIMIT_MAX, window_seconds=config.PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS)
+public_six_degrees_game_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_WINDOW_SECONDS)
+public_six_degrees_answer_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_WINDOW_SECONDS)
 
 
 def _validate_origins_or_die() -> list[str]:
@@ -192,6 +200,14 @@ def rate_limit_public_game(request: Request) -> None:
 
 def rate_limit_public_answer(request: Request) -> None:
     _rate_limit(public_answer_limiter, request)
+
+
+def rate_limit_public_six_degrees_game(request: Request) -> None:
+    _rate_limit(public_six_degrees_game_limiter, request)
+
+
+def rate_limit_public_six_degrees_answer(request: Request) -> None:
+    _rate_limit(public_six_degrees_answer_limiter, request)
 
 
 @app.exception_handler(GatewayError)
@@ -449,7 +465,10 @@ def grid_player(node_id: str, request: Request,
 
 @app.get("/v1/public/modes")
 def public_modes():
-    return {"modes": public_game.list_public_modes()}
+    # v1.7, Part C8: one unified discovery response -- Six Degrees composed
+    # in here alongside the Director-pipeline guess modes, not a second
+    # catalog endpoint a client would need to know to call separately.
+    return {"modes": public_game.list_public_modes() + [public_six_degrees.list_public_six_degrees_capability()]}
 
 
 @app.get("/v1/public/game")
@@ -463,6 +482,26 @@ def public_game_route(request: Request,
         raise GatewayError("INVALID_REQUEST", f"difficulty must be one of {sorted(config.ALLOWED_DIFFICULTIES)}.")
     exclude_ids = [x for x in (exclude.split(",") if exclude else []) if x][:50]
     return public_game.get_public_game(mode=mode, difficulty=difficulty, seed=seed, exclude_game_ids=exclude_ids)
+
+
+@app.get("/v1/public/six_degrees/game")
+def public_six_degrees_game_route(request: Request,
+                                   seed: Optional[str] = Query(default=None, min_length=1, max_length=config.MAX_SEED_LENGTH),
+                                   _rl=Depends(rate_limit_public_six_degrees_game)):
+    return public_six_degrees.get_public_six_degrees(seed=seed)
+
+
+@app.post("/v1/public/six_degrees/answer")
+def public_six_degrees_answer_route(body: PublicSixDegreesAnswerRequest, request: Request,
+                                     _rl=Depends(rate_limit_public_six_degrees_answer)):
+    return public_six_degrees.submit_public_six_degrees_answer(
+        game_id=body.game_id, step_index=body.step_index, choice_index=body.choice_index)
+
+
+@app.post("/v1/public/six_degrees/reveal")
+def public_six_degrees_reveal_route(body: PublicSixDegreesRevealRequest, request: Request,
+                                     _rl=Depends(rate_limit_public_six_degrees_answer)):
+    return public_six_degrees.reveal_public_six_degrees(game_id=body.game_id)
 
 
 @app.post("/v1/public/game/answer")

@@ -289,6 +289,9 @@
        own hash-routing bootstrap reads ENGINE_PILOT_MODES at its top level
        near the end of that file, not deferred inside a function. -->
   <script src="engine-game-ui.js"></script>
+  <!-- v1.7: public Six Degrees game shell -- own file (different mechanic
+       from engine-game-ui.js's), loaded before app.js for the same reason. -->
+  <script src="six-degrees-ui.js"></script>
   <script src="app.js"></script>
   <!-- TEMPORARY: local-only Engine Draft playtest logger. No network calls, no
        visible UI, no effect on gameplay. Delete this line + playtest-engine-draft.js

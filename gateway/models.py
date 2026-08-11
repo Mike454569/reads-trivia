@@ -90,6 +90,26 @@ class PublicAnswerRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=200)
 
 
+class PublicSixDegreesAnswerRequest(BaseModel):
+    """POST /v1/public/six_degrees/answer (v1.7). game_id is the same opaque
+    package_id scheme PublicAnswerRequest already uses. step_index/choice_index
+    are plain small integers (an index into the CURRENT step's options list,
+    never a raw graph node id -- see gateway/services/public_six_degrees.py's
+    docstring) -- the server looks up what they actually mean against the
+    stored puzzle, never trusting either value's meaning from the client."""
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: str = Field(min_length=1, max_length=64)
+    step_index: int = Field(ge=0, le=20)
+    choice_index: int = Field(ge=0, le=20)
+
+
+class PublicSixDegreesRevealRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: str = Field(min_length=1, max_length=64)
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

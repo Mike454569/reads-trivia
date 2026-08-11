@@ -1,8 +1,8 @@
 # Reads UI Backlog
 
 Started in v1.5 (UI/product-foundation phase), updated in v1.6 (P0 hardening +
-homepage/FYP/game discovery). This is a prioritized list of known work — not a
-commitment, not a schedule.
+homepage/FYP/game discovery) and v1.7 (Six Degrees + product audit). This is a
+prioritized list of known work — not a commitment, not a schedule.
 
 Priority is P0 (do before broader rollout / real risk) → P3 (nice-to-have, low
 urgency). Effort is rough T-shirt sizing (S/M/L) for a single-developer-plus-Claude-
@@ -62,9 +62,63 @@ tall (see P2 below — below the 44px Apple HIG guideline, though above WCAG 2.1
 (the `--window-size`-only method used then apparently didn't fully apply mobile
 layout rules) — see the updated audit table below.
 
+v1.7 re-confirmed both statuses unchanged: concurrency remains **CANARY READY,
+NOT BROAD-TRAFFIC READY** (re-tested with mixed Draft+Six Degrees traffic — Six
+Degrees does not share or affect the generation pool, see below); mobile stays
+**CLOSED** (no CSS touched in v1.7 either).
+
 ---
 
 ## P1 — High impact, reasonable effort
+
+### CFB has no engine-backed public mode (data is real and rich; architecture isn't built)
+**Category**: Engine/CFB. **Effort**: L (comparable to the original Draft/Championship build).
+v1.7 audited the real CFB tables, not planning docs: `canonical_cfb_players`
+(109,221 rows), `cfb_roster_seasons_real` (282,124 rows, 401 schools, seasons
+2004-2025), `cfb_award_facts`/`cfb_champions` (91 each), `cfb_coaches` (188),
+`cfb_rivalries` (48) — genuinely substantial, comparable in richness to the NFL
+side. The actual gap is architectural, not data: `tools/director_v02/registry.py`
+has exactly 3 registered capabilities (`guess`/NFL_DRAFT, `guess`/NFL_CHAMPIONSHIP,
+`identify_player_from_clues`) — zero CFB entries. A CFB-equivalent of Draft/
+Championship (a `cfb_draft_guess` or similar capability, its own adapter under
+`tools/quiz_export/adapters/`, registry entry, public certification in
+`gateway/config.py`'s `PUBLIC_MODE_ALLOWLIST`) is real, buildable, and the data
+supports it — just a full mode build, not a cheap addition. Not attempted in
+v1.7 to avoid rushing a second full engine-mode integration in the same phase
+Six Degrees was built and verified. **Classification: BLOCKED_BY_ARCHITECTURE,
+not BLOCKED_BY_DATA** — an important distinction for scoping future work.
+
+### Player Explorer (data audited, real and rich; no endpoint or UI built)
+**Category**: New surface. **Effort**: M.
+v1.7 audited `canonical_players` (17,113 rows: display_name, birth_date, height,
+weight, primary_position, primary_school_id, verification_status) and CFB's
+equivalent (109,221 rows) plus `draft_facts` (12,253) and `canonical_roster_seasons`
+(60,246) as real join targets for a player's draft info and team/season history.
+This is genuinely enough for an honest "Player" card (identity, position, draft,
+teams/seasons — never fabricated stats the schema doesn't have). Not built in
+v1.7: doing it safely needs its own public search endpoint (the graph search this
+phase already proved safe internally, in `public_six_degrees.py`'s distractor
+queries, was never exposed as its own standalone public route) plus a dedicated
+player-detail endpoint with its own safe-field allowlist and duplicate-name
+handling (Part D2's own explicit concern — this database has real name collisions,
+not checked in detail this phase). Deferred to keep this phase's actual shipped
+feature (Six Degrees) fully real and fully tested rather than splitting effort
+across two half-finished ones. **Classification: READY_WITH_ARCHITECTURE_NEEDED**
+— the data audit found no blocker, only unbuilt scope.
+
+### Six Degrees: NFL-only, and a narrow 23-puzzle pool (real, honest limitation)
+**Category**: Content/Engine. **Effort**: depends entirely on the Engine's own
+`graph_path_cache`, not this Gateway.
+Shipped in v1.7 (flag OFF by default) — see the v1.7 report for full detail. The
+real, checked content today is exactly 23 distinct puzzles, every one a two-NFL-
+team connection through a shared coach (`graph_path_cache` has only 500 total
+pre-computed paths; only 23 are entirely NFL-player/team/coach-typed, and every
+one of those 23 happens to be length-2 specifically — confirmed by direct query,
+not assumed). The public mode is honestly titled "Coach Connections," not "Six
+Degrees," specifically because of this. Growing the puzzle variety (more paths,
+more hop-lengths, eventually CFB or cross-league content) is entirely the
+Engine's `graph_path_cache` pre-computation job, outside this Gateway project's
+scope — flagged here so it isn't mistaken for a Gateway-side limitation.
 
 ### Deeper concurrency architecture (multiprocessing or pre-generated pool)
 **Category**: Engine/Gateway. **Effort**: M-L.
@@ -103,14 +157,15 @@ exists on disk but was never merged into `QUIZ`. Small, contained, still deferre
 Discovered while wiring the discovery cards in: the top-nav's active-league
 highlighting (`app.js`'s `currentLeague`, ~line 7749) and the contextual "?"
 help button (~line 7900) both look up `LEAGUE_MODES...find(m => m.id === state.screen)`
-— but engine modes set `state.screen = 'enginePilot'`, not their own `draft_guess`/
-`championship_guess` id, so neither lookup matches while actually playing one.
-Cosmetic only (nav just doesn't highlight "NFL" specially; "?" falls through to
-generic behavior instead of a mode-specific tip) — not attempted in v1.6 to avoid
-touching the shared nav/help code paths (Part C18: no navigation rewrite without a
-demonstrated need). Small, contained fix: special-case `state.enginePilot`'s
-`modeKey` in both lookups the same way `goToMode()` now special-cases
-`ENGINE_DISCOVERY_ENTRIES`.
+— but engine modes set `state.screen = 'enginePilot'` (and, as of v1.7, Six
+Degrees sets `state.screen = 'sixDegrees'`), not their own `draft_guess`/
+`championship_guess`/`six_degrees_guess` id, so neither lookup matches while
+actually playing one. Cosmetic only (nav just doesn't highlight "NFL" specially;
+"?" falls through to generic behavior instead of a mode-specific tip) — not
+attempted in v1.6 or v1.7 to avoid touching the shared nav/help code paths (Part
+C18: no navigation rewrite without a demonstrated need). Small, contained fix:
+special-case `state.enginePilot`'s `modeKey` and `state.sixDegrees`'s presence in
+both lookups the same way `goToMode()` special-cases `ENGINE_DISCOVERY_ENTRIES`.
 
 ---
 
@@ -135,13 +190,29 @@ treatment (Part C8 — not hard-coded to any one mode), explicit browse categori
 availability messaging ("temporarily unavailable" vs. "coming soon" per Part C13) —
 none of which existing signals currently justify building speculatively.
 
-### Six Degrees / Player Explorer / Profiles-achievements / NFL-CFB toggle UI
-**Category**: Future surfaces. **Effort**: L each.
-Unchanged from v1.5 — not started.
+### Profiles/achievements UI polish
+**Category**: Future surfaces. **Effort**: S — this one is smaller than it
+looks, since the underlying system is already real and complete.
+v1.7 audited this specifically (Part B) and found `BADGES` (17 real, live-computed
+achievements in `app.js`, ~line 7574), a Football Rating with a real sparkline
+history, and Daily streak display already built to a high standard on the Profile
+page. Nothing here needs building from scratch — only cosmetic polish, if any, is
+left. Downgraded from "not started" (its v1.5/v1.6 status) now that it's been
+actually read, not assumed missing.
+
+### NFL/CFB discovery toggle
+**Category**: Homepage. **Effort**: S, once CFB has an engine-backed mode to
+justify it.
+Not built — and per Part F5's own instruction, correctly not built: CFB already
+has 6 real, working local modes with their own homepage section
+(`modeSectionHtml('cfb')`), so a toggle isn't filling an empty gap, and until CFB
+has at least one engine-backed public mode (see the CFB item above), a dedicated
+NFL/CFB *engine content* toggle would have nothing new to filter.
 
 ### Results / social sharing for engine modes
 **Category**: Sharing. **Effort**: S–M.
-Unchanged from v1.5 — Quiz/Legends have `data-share`, Draft/Championship don't.
+Unchanged from v1.5/v1.6 — Quiz/Legends have `data-share`, Draft/Championship/Six
+Degrees don't.
 
 ---
 
@@ -151,31 +222,51 @@ Unchanged from v1.5 — Quiz/Legends have `data-share`, Draft/Championship don't
 No player-facing need currently.
 
 ### Daily mode integration with engine-backed modes
-v1.4 explicitly deferred Daily migration; nothing since has blocked it, no active
-design exists.
+**Category**: Daily. **Effort**: M, and genuinely risky if rushed.
+v1.7 specifically considered adding Draft/Championship/Six Degrees to
+`DAILY_CHALLENGE_TYPES`' deterministic daily rotation (Part A4 asked this be
+audited) and deliberately did NOT do it this phase: the rotation must be
+guaranteed playable for every visitor on a given day, but engine modes are
+flag-gated and, per the P0 concurrency item above, only canary-safe at low
+volume — a real production day where the deterministic hash happened to roll an
+engine-backed type could either show a dead/flag-off card to everyone, or expose
+Daily's guaranteed-playable promise to the same concurrency ceiling Draft/
+Championship already have. Fixing this properly needs either a flag-aware
+rotation (skip engine types when their flag is off, without breaking the "same
+for everyone" determinism) or confidence the concurrency ceiling is resolved
+first — real design work, not a one-line addition, and not worth risking Daily's
+already-excellent reliability for in this phase.
 
-### Play-count tracking for engine modes
+### Play-count tracking for engine modes (including Six Degrees)
 **Category**: FYP data quality. **Effort**: S, but touches stats/leaderboard territory.
 `recommendedModeHtml()`'s real "unplayed → new, least-played → fresh" logic now
-naturally includes Draft/Championship (v1.6, they're part of `LEAGUE_MODES.nfl`) —
-but engine modes don't write to `state.stats`, so `modeTimesPlayed()` always returns
-0 for them, meaning they'll show as "New to you" indefinitely even after a player
-has played many rounds. Deliberately NOT fixed in v1.6: wiring engine-mode results
-into `state.stats`/the leaderboard/Football Rating touches scoring economics and
-Firestore writes, explicitly out of scope for a UI-foundation phase (Part C27/C28).
-Not a fabrication — the signal genuinely doesn't exist yet, which is why the
+naturally includes Draft/Championship/Six Degrees (each joins `LEAGUE_MODES.nfl`
+when its flag is on) — but none of them write to `state.stats`, so
+`modeTimesPlayed()` always returns 0, meaning they'll show as "New to you"
+indefinitely even after a player has played many rounds. Deliberately NOT fixed:
+wiring engine-mode results into `state.stats`/the leaderboard/Football Rating
+touches scoring economics and Firestore writes, explicitly out of scope for a
+UI-foundation phase (Part C27/C28 in v1.6; same reasoning applies in v1.7). Not a
+fabrication — the signal genuinely doesn't exist yet, which is why the
 recommendation algorithm reads it that way.
 
 ---
 
 ## Audit reference
 
-Original Part 1 audit (v1.5) plus what v1.6 re-verified with real tooling.
+Original Part 1 audit (v1.5), what v1.6 re-verified, and what v1.7 newly audited
+(Daily/streak/progression/achievements, Six Degrees backend, CFB data, player
+data).
 
-| Surface | Strength | Weakness | v1.6 status |
+| Surface | Strength | Weakness | Status |
 |---|---|---|---|
-| Quiz | Clean, established `.panel`/`.quiz-*` component set; already accessible | None found relevant to this phase | Re-verified working (full round-trip: start → question → answer → feedback) during v1.6 regression, unmodified |
-| Engine shell (`engine-game-ui.js`) | Reusable state model, clean copy (v1.5) | Concurrency ceiling under real load (see P0 above) | Now also mobile-certified with real evidence (48/48 checks clean) and reachable from the homepage, not just a hidden hash route |
-| Homepage / FYP (`renderHome`, `recommendedModeHtml`, `continuePlayingCardHtml`) | Genuinely real recommendation logic already: deterministic per-day/per-user, prioritizes unplayed modes then least-played, real "Continue where you left off" via localStorage — stronger than initially assumed in the v1.5 audit | Engine modes were invisible to this whole system (only reachable via hidden hash route) | **Fixed in v1.6** — engine modes now participate in the exact same registry, recommendation, and continue-playing logic as every hand-authored mode, gated by their existing feature flags, zero visible change when both are OFF |
-| Onboarding modal | — | v1.5 flagged possible 375px text cropping (unconfirmed) | **Resolved in v1.6** — did not reproduce under real device-metric emulation across the full viewport matrix; was a v1.5 test-harness fidelity gap, not a real bug |
-| Grid / Speed / Blitz / Silhouette / Legends / IQ / Study / CFB variants | Each has its own established, working render/state pattern | Not shell candidates yet | Spot-verified (Grid launch) during v1.6 regression, unmodified |
+| Quiz | Clean, established `.panel`/`.quiz-*` component set; already accessible | None found relevant to this phase | Re-verified working during v1.6 regression, unmodified |
+| Engine shell (`engine-game-ui.js`) | Reusable state model, clean copy (v1.5) | Concurrency ceiling under real load (see P0 above) | Mobile-certified (v1.6, 48/48 checks clean), reachable from the homepage |
+| Homepage / FYP (`renderHome`, `recommendedModeHtml`, `continuePlayingCardHtml`) | Genuinely real recommendation logic: deterministic per-day/per-user, prioritizes unplayed then least-played, real "Continue where you left off" via localStorage | Engine modes were invisible to this system pre-v1.6 | **Fixed in v1.6**, extended in v1.7 (Six Degrees joins the same registry) |
+| Daily Challenge + streak (`app.js` ~line 652-882) | v1.7 found this MUCH more complete than assumed: 8 deterministic rotating challenge types (Quiz/Silhouette/both Grids/both Blitzes/both Legends drafts), a real streak system with a documented 7-day grace-day mechanic, full completion/leaderboard tracking | Engine modes (Draft/Championship/Six Degrees) aren't in the rotation (see P3 above — deliberately not added, real risk if rushed) | **READY** — audited in v1.7, found essentially complete, no changes made |
+| Progression / achievements (`BADGES`, Football Rating, rating sparkline, Profile page) | v1.7 found this also far more complete than assumed: 17 real, live-computed badges, a real rating-history sparkline, streak display | None found | **READY** — audited in v1.7, found essentially complete, no changes made |
+| Six Degrees / graph backend (`gateway/services/graph.py`, `Reads_Football_Data_Engine_v4.0/graph_explorer.py`) | Real, already-tested (19 tests), read-only, deterministic | Admin-only; `random_six()` returns the solution in the same dict as everything else — unsafe to expose as-is | **Shipped in v1.7** as a new safe public adapter (`public_six_degrees.py`) — see the P1 item above for the real 23-puzzle content limitation |
+| Onboarding modal | — | v1.5 flagged possible 375px text cropping (unconfirmed) | **Resolved in v1.6** — did not reproduce under real device-metric emulation |
+| CFB data (canonical_cfb_players, cfb_roster_seasons_real, cfb_award_facts, etc.) | v1.7 found this genuinely rich: 109,221 players, 282,124 roster-season rows, 401 schools, 2004-2025 coverage | Zero engine-backed public capability registered for it (architecture gap, not data gap) | **LIMITED** — real local modes already work; engine-backed CFB modes are real future scope, see P1 above |
+| Player data (canonical_players, draft_facts, canonical_roster_seasons) | v1.7 found 17,113 NFL + 109,221 CFB players with real identity/position/draft/team fields | No public search or player-detail endpoint built yet | **READY_WITH_ARCHITECTURE_NEEDED** — see the Player Explorer P1 item above |
+| Grid / Speed / Blitz / Silhouette / Legends / IQ / Study | Each has its own established, working render/state pattern | Not shell candidates yet | Spot-verified (Grid launch) during v1.6 regression, unmodified |

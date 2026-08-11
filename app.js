@@ -49,6 +49,9 @@ var ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 = false;
 var READS_CONFIG = (typeof window !== 'undefined' && window.READS_CONFIG) || {};
 var ENABLE_ENGINE_DRAFT_PILOT_V01 = READS_CONFIG.enableEngineDraftPilot === true;
 var ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01 = READS_CONFIG.enableEngineChampionshipPilot === true;
+// v1.7, Part C: same fail-closed pattern as the two flags above -- default
+// OFF, only on if reads-config.js explicitly says so.
+var ENABLE_ENGINE_SIX_DEGREES_V01 = READS_CONFIG.enableEngineSixDegrees === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -250,6 +253,7 @@ var state = {
   silhouette: null,
   playerClues: null,
   enginePilot: null,
+  sixDegrees: null,
   iq: null,
   legends: null,
   higherLower: null,
@@ -1049,7 +1053,15 @@ function goToMode(mode) {
   // Gateway, not a data/*.js file). closeModeSheet() already ran in the
   // caller (the single data-go click handler) exactly like every other
   // mode, so no special-casing is needed there.
-  var engineEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode; });
+  // v1.7 bug found by actually clicking the Coach Connections discovery
+  // card, not assumed safe from reading the code: ENGINE_DISCOVERY_ENTRIES
+  // now ALSO contains the Six Degrees entry (Part C8, below), which has no
+  // `engineMode` field -- without the `.engineMode` check here, .find()
+  // still matched it (same `id`), and startEnginePilotRound(undefined)
+  // silently launched Draft (the default modeKey) instead of Six Degrees.
+  // Guarding on `engineMode` specifically keeps this branch scoped to only
+  // the entries that actually belong to engine-game-ui.js's shell.
+  var engineEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode && e.engineMode; });
   if (engineEntry) {
     // Same bookkeeping enterMode() does for every other LEAGUE_MODES entry
     // (line ~1017 above) -- so "Continue where you left off" (Part C14) and
@@ -1058,6 +1070,17 @@ function goToMode(mode) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
     startEnginePilotRound(engineEntry.engineMode);
+    return;
+  }
+  // v1.7, Part C8: same unified-discovery routing as the block above, kept
+  // as its own small check rather than folded into ENGINE_DISCOVERY_ENTRIES'
+  // shape -- Six Degrees' start function takes no modeKey argument (there's
+  // only one variant), so reusing that exact shape would need a needless
+  // parameter every entry but this one ignores.
+  if (mode === 'six_degrees_guess' && ENABLE_ENGINE_SIX_DEGREES_V01) {
+    lsSet('nflTriviaLastMode', mode);
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    startSixDegreesRound();
     return;
   }
   var files = MODE_DATA_FILES[mode];
@@ -1280,6 +1303,16 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
       desc: ENGINE_PILOT_MODES.championship.desc, engineMode: 'championship',
     });
   }
+}
+// v1.7, Part C8: Six Degrees joins the exact same discovery array -- card
+// rendering (modeCardHtml) doesn't care that its routing (goToMode's own
+// separate `mode === 'six_degrees_guess'` check, above) differs slightly
+// from the draft/championship entries' shared engineMode dispatch.
+if (ENABLE_ENGINE_SIX_DEGREES_V01) {
+  ENGINE_DISCOVERY_ENTRIES.push({
+    id: 'six_degrees_guess', icon: 'versus', title: 'Coach Connections',
+    desc: 'Two NFL teams, one coach who led them both. Figure out the connection.',
+  });
 }
 var LEAGUE_MODES = {
   nfl: [
@@ -7755,6 +7788,7 @@ function renderAll() {
   else if (state.screen === 'study') html += renderStudyScreen();
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
   else if (state.screen === 'enginePilot') html += renderEnginePilotScreen();
+  else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
@@ -7915,6 +7949,7 @@ document.addEventListener('click', function (e) {
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
+    '[data-sixdegrees-start], [data-sixdegrees-answer], [data-sixdegrees-continue], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -8111,6 +8146,13 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pilotNext !== undefined) { advanceEnginePilot(); return; }
   if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
   if (t.dataset.pilotFallback !== undefined) { enginePilotFallback(); return; }
+
+  if (t.dataset.sixdegreesStart !== undefined) { startSixDegreesRound(); return; }
+  if (t.dataset.sixdegreesAnswer !== undefined) { pickSixDegreesOption(parseInt(t.dataset.sixdegreesAnswer, 10)); return; }
+  if (t.dataset.sixdegreesContinue !== undefined) { continueSixDegreesAfterStep(); return; }
+  if (t.dataset.sixdegreesRetry !== undefined) { loadSixDegreesGame(); return; }
+  if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
+  if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
 
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
   if (t.dataset.iqAnswer !== undefined) { answerIQQuestion(parseInt(t.dataset.iqAnswer, 10)); return; }

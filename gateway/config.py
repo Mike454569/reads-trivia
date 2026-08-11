@@ -246,3 +246,30 @@ def public_modes_allowed() -> frozenset[str]:
         return PUBLIC_MODE_ALLOWLIST
     requested = {m.strip() for m in raw.split(",") if m.strip()}
     return frozenset(requested & PUBLIC_MODE_ALLOWLIST)
+
+
+# --- Public Six Degrees (v1.7, Part C) --------------------------------------
+# A DELIBERATELY separate operator switch from PUBLIC_GAME_ENABLED above, not
+# folded into PUBLIC_MODE_ALLOWLIST -- Six Degrees is not a Director-pipeline
+# "guess" capability the way Draft/Championship are (see gateway/services/
+# graph.py's own module docstring: "Deliberately NOT registered in
+# tools.director_v02.registry's CAPABILITY_REGISTRY"), so it needed its own
+# parallel public adapter (gateway/services/public_six_degrees.py) and gets
+# its own parallel kill switch for the same reason. Same default-enabled
+# reasoning as PUBLIC_GAME_ENABLED: this is the OPERATOR emergency switch for
+# an already-certified feature, not the "ship it off" gate -- that gate is
+# the frontend's own ENABLE_ENGINE_SIX_DEGREES_V01 flag (default OFF).
+PUBLIC_SIX_DEGREES_ENABLED = os.environ.get(
+    "READS_PUBLIC_SIX_DEGREES_ENABLED", "true"
+).strip().lower() not in ("false", "0", "no", "off")
+
+# Rate limits: fetching a puzzle does a handful of indexed graph_edges
+# lookups per step (cheap, no BFS, no CPU-bound candidate scan the way
+# generate_public() has) -- grouped with the existing graph-search-style
+# limit rather than needing its own tier. Answer submission is a package
+# load + dict comparison, looser, matching public answer validation's own
+# shape.
+PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT", "20"))
+PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
+PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT", "60"))
+PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0

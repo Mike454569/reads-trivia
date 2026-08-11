@@ -27,4 +27,6 @@ window.READS_CONFIG = {
   engineGatewayBaseUrl: 'http://localhost:8850',
   enableEngineDraftPilot: false,
   enableEngineChampionshipPilot: false,
+  // v1.7, Part C: same fail-closed pattern, default OFF.
+  enableEngineSixDegrees: false,
 };

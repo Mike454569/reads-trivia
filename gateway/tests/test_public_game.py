@@ -31,7 +31,10 @@ def test_public_modes_no_auth_needed(client):
     r = client.get("/v1/public/modes")
     assert r.status_code == 200
     modes_by_id = {m["mode"]: m for m in r.json()["modes"]}
-    assert set(modes_by_id) == {"draft_guess", "championship_guess"}
+    # v1.7, Part C8: Six Degrees composed into the SAME unified list -- see
+    # test_six_degrees_mode_registered_alongside_guess_modes below for its
+    # own dedicated assertions.
+    assert set(modes_by_id) == {"draft_guess", "championship_guess", "six_degrees_guess"}
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
     assert draft["title"] == "NFL Draft History: Guess the Team"
@@ -347,7 +350,13 @@ def test_championship_question_is_a_real_postseason_fact(client):
 # --- v1.3: public mode registry ------------------------------------------------
 
 def test_both_certified_modes_registered(client):
-    modes = {m["mode"] for m in client.get("/v1/public/modes").json()["modes"]}
+    # Scoped to public_game's own Director-pipeline guess-mechanic registry
+    # specifically (not the combined /v1/public/modes response, which as of
+    # v1.7 also includes six_degrees_guess -- a structurally different
+    # system, see gateway/services/public_six_degrees.py's own module
+    # docstring for why it was never folded into this same registry).
+    from gateway.services import public_game as public_game_service
+    modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {"draft_guess", "championship_guess"}
 
 
@@ -441,13 +450,31 @@ def test_master_switch_off_blocks_answer_validation_safely(client, monkeypatch):
 
 
 def test_master_switch_off_reflected_in_modes_list(client, monkeypatch):
+    # v1.7: PUBLIC_GAME_ENABLED and PUBLIC_SIX_DEGREES_ENABLED are two
+    # DELIBERATELY independent switches (see gateway/config.py's Six Degrees
+    # section) -- turning off the guess-mode switch alone must not also
+    # silently take Six Degrees down, and vice versa. This test now checks
+    # exactly that independence rather than assuming one switch governs
+    # every public mode.
     from gateway.services import public_game
     monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", False)
-    modes = client.get("/v1/public/modes").json()["modes"]
-    assert all(m["available"] is False for m in modes)
+    modes = {m["mode"]: m for m in client.get("/v1/public/modes").json()["modes"]}
+    assert modes["draft_guess"]["available"] is False
+    assert modes["championship_guess"]["available"] is False
+    assert modes["six_degrees_guess"]["available"] is True
     monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", True)
     modes = client.get("/v1/public/modes").json()["modes"]
     assert all(m["available"] is True for m in modes)
+
+
+def test_six_degrees_master_switch_independent_of_public_game_switch(client, monkeypatch):
+    from gateway.services import public_six_degrees
+    monkeypatch.setattr(public_six_degrees.config, "PUBLIC_SIX_DEGREES_ENABLED", False)
+    modes = {m["mode"]: m for m in client.get("/v1/public/modes").json()["modes"]}
+    assert modes["six_degrees_guess"]["available"] is False
+    assert modes["draft_guess"]["available"] is True
+    assert modes["championship_guess"]["available"] is True
+    monkeypatch.setattr(public_six_degrees.config, "PUBLIC_SIX_DEGREES_ENABLED", True)
 
 
 def test_public_modes_env_var_narrows_but_cannot_expand(monkeypatch):
