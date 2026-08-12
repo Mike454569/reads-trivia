@@ -26,6 +26,11 @@ gateway/storage/
 gateway/.venv/
 gateway/.pytest_cache/
 
+# NFL/CFB data refresh (tools/data_refresh/) downloads its real source CSVs
+# here before staging/publishing them -- raw fetched data, not source code,
+# same "don't bloat the repo" reasoning as the .sqlite exclusions above.
+Reads_Football_Data_Engine_v4.0/imports/
+
 # Superseded Engine milestone snapshots (v0.1-v0.6, now at v4.0) -- same
 # "avoid bloating the git repo" reasoning as the sqlite exclusions above,
 # applied to their zipped snapshots (1.5MB-56MB each).

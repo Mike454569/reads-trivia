@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -46,6 +46,7 @@ from .services import creator as creator_service  # noqa: E402
 from .services import generation, packages  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
+from .services import admin_refresh  # noqa: E402
 from .services import public_coach_connections  # noqa: E402
 from .services import public_game  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
@@ -369,6 +370,38 @@ def admin_db_integrity(request: Request, _admin=Depends(require_admin)):
     else:
         safe["reason_code"] = result.get("reason_code", "UNKNOWN")
     return safe
+
+
+# --- NFL/CFB production data refresh (admin-triggered, background) --------
+# See gateway/services/admin_refresh.py's module docstring for why this
+# runs as a BackgroundTask rather than synchronously: a real refresh
+# (download + ~1.6GB DB backup + stage/publish + sanity check) can take
+# minutes, well past what the Netlify Scheduled Function that triggers this
+# in production budgets for a single HTTP call. The route returns as soon
+# as the run is scheduled (or immediately reports ALREADY_RUNNING); the
+# real result is read back via /v1/admin/refresh/status.
+
+@app.post("/v1/admin/refresh/nfl")
+def admin_refresh_nfl(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
+    check = admin_refresh.check_can_start("nfl")
+    if check["status"] == "ALREADY_RUNNING":
+        return check
+    background_tasks.add_task(admin_refresh.run_fn_for("nfl"))
+    return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
+
+
+@app.post("/v1/admin/refresh/cfb")
+def admin_refresh_cfb(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
+    check = admin_refresh.check_can_start("cfb")
+    if check["status"] == "ALREADY_RUNNING":
+        return check
+    background_tasks.add_task(admin_refresh.run_fn_for("cfb"))
+    return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
+
+
+@app.get("/v1/admin/refresh/status")
+def admin_refresh_status_route(request: Request, _admin=Depends(require_admin)):
+    return admin_refresh.refresh_status()
 
 
 @app.get("/v1/capabilities")

@@ -16,3 +16,13 @@
 # reset — this just picks a reasonable "most people are up" broadcast time.
 [functions."send-daily-push"]
   schedule = "7 15 * * *"
+
+# 09:10 UTC ≈ 4:10am US Central (CDT) — deliberately off-peak, before either
+# of the two schedules above, so a slow refresh run never overlaps with
+# send-daily-push's own scheduled invocation. Rosters/players change slowly
+# (not multiple times a day, unlike game-day content), so once daily is the
+# right cadence -- see gateway/services/admin_refresh.py and
+# tools/data_refresh/{nfl_refresh,cfb_refresh}.py for what this actually
+# triggers.
+[functions."trigger-data-refresh"]
+  schedule = "10 9 * * *"

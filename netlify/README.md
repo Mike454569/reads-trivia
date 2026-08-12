@@ -8,6 +8,12 @@ do on its own:
 2. **`save-subscription.js` + `send-daily-push.js`** — real Web Push
    notifications ("today's Daily Challenge is live") sent to anyone who
    turns on notifications in the app's Settings screen.
+3. **`trigger-data-refresh.js`** — the real production scheduler for the
+   NFL/CFB roster refresh (see `gateway/services/admin_refresh.py` and
+   `tools/data_refresh/`). Fires two short HTTPS calls to the Fly-hosted
+   Gateway's admin refresh endpoints once a day; the actual multi-minute
+   refresh work runs on the Gateway itself (Netlify Functions can't reach
+   the Engine database, which lives on Fly's persistent volume).
 
 ## Deploy workflow changed: git-based now, not drag-and-drop
 
@@ -44,6 +50,8 @@ Site configuration → Environment variables → add all of these:
 | `NTFY_TOPIC` | Your chosen ntfy.sh topic name (see below) |
 | `VAPID_PUBLIC_KEY` | See the chat where this was set up — also hardcoded in `app.js` (`VAPID_PUBLIC_KEY` constant), since public keys are meant to be public |
 | `VAPID_PRIVATE_KEY` | See the chat where this was set up — **never commit this to git**, it only belongs in this environment variable |
+| `READS_ENGINE_GATEWAY_BASE_URL` | `https://reads-football-gateway.fly.dev` (the live Gateway URL) |
+| `READS_ENGINE_ADMIN_TOKEN` | The SAME admin token already set on the Gateway via `fly secrets set READS_ENGINE_ADMIN_TOKEN=...` — **never commit this to git**, copy it from wherever you originally generated it |
 
 The VAPID keys are a matched pair generated specifically for this app.
 Deliberately not written in this file (which is committed to git) — the
