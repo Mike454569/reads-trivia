@@ -50,7 +50,30 @@ def _all_real_schools(c) -> dict:
     return {r["school_id"]: r["school_name"] for r in rows}
 
 
-def fetch_ordered_candidates(c, seed: str):
+# Real production performance finding (App-Wide Engine Migration operation):
+# every adapter in this codebase re-fetches its FULL candidate table on every
+# single request (championship.py/draft.py/cfb_heisman.py all do this too --
+# an existing, already-accepted pattern for their much smaller tables, 91-232
+# rows). cfb_games_canonical has 36,184 real candidate rows -- measured live
+# in production: 1.4s query + 1.4s fetchall + 0.5s shuffle = ~3.3s on EVERY
+# single public game request, real enough to cause request timeouts under
+# any concurrent load (confirmed: production requests started timing out
+# once this mode was enabled). The set of eligible games only actually
+# changes once a day (a real cfb_games_refresh.py run) -- caching the raw
+# row fetch, the expensive part, for a bounded window is the same real,
+# proven fix already used for check_engine_readiness()'s /v1/ready latency
+# incident earlier in this same operation. The per-request seeded shuffle
+# (the part that must vary per-seed for determinism) still runs fresh every
+# call -- only the DB round-trip is cached.
+_CANDIDATE_CACHE: dict = {"rows": None, "fetched_at": 0.0}
+_CANDIDATE_CACHE_TTL_SECONDS = 600.0  # 10 min -- generous headroom over the ~once-daily real refresh cadence
+
+
+def _fetch_raw_rows(c):
+    import time
+    cached = _CANDIDATE_CACHE["rows"]
+    if cached is not None and time.monotonic() - _CANDIDATE_CACHE["fetched_at"] < _CANDIDATE_CACHE_TTL_SECONDS:
+        return cached
     # Ties are vanishingly rare in modern CFB (overtime rules exist
     # specifically to prevent them) but excluded on the same principle as
     # the NFL adapter: "which team won" has no correct answer for one.
@@ -61,8 +84,15 @@ def fetch_ordered_candidates(c, seed: str):
         "AND season BETWEEN ? AND ? ORDER BY game_id",
         (MIN_SEASON, MAX_SEASON),
     ).fetchall()
-    rng_order = engine.seeded(seed)
     rows = list(rows)
+    _CANDIDATE_CACHE["rows"] = rows
+    _CANDIDATE_CACHE["fetched_at"] = time.monotonic()
+    return rows
+
+
+def fetch_ordered_candidates(c, seed: str):
+    rows = list(_fetch_raw_rows(c))  # copy -- the shuffle below must never mutate the shared cache
+    rng_order = engine.seeded(seed)
     rng_order.shuffle(rows)
     return rows
 

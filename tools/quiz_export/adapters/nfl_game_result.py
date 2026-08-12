@@ -49,7 +49,22 @@ def safety_check(c) -> dict:
     )
 
 
-def fetch_ordered_candidates(c, seed: str):
+# Cached raw-row fetch, same real fix as cfb_game_result.py's -- see that
+# module's comment for the full measured-in-production rationale
+# (check_engine_readiness()'s /v1/ready latency incident is the proven
+# precedent this mirrors). NFL's 7,548 rows are individually cheaper than
+# CFB's 36,184, but the same "re-fetch the full table on every request"
+# cost is real here too and only gets worse as nfl_games_refresh.py adds
+# more seasons over time.
+_CANDIDATE_CACHE: dict = {"rows": None, "fetched_at": 0.0}
+_CANDIDATE_CACHE_TTL_SECONDS = 600.0  # 10 min -- generous headroom over the ~once-daily real refresh cadence
+
+
+def _fetch_raw_rows(c):
+    import time
+    cached = _CANDIDATE_CACHE["rows"]
+    if cached is not None and time.monotonic() - _CANDIDATE_CACHE["fetched_at"] < _CANDIDATE_CACHE_TTL_SECONDS:
+        return cached
     # Ties (result_margin=0) excluded -- see module docstring. Regular season
     # + postseason both included (game_type covers REG/WC/DIV/CONF/SB) --
     # every one is a real, completed, source-backed game either way.
@@ -60,8 +75,15 @@ def fetch_ordered_candidates(c, seed: str):
         "AND season BETWEEN ? AND ? ORDER BY game_id",
         (MIN_SEASON, MAX_SEASON),
     ).fetchall()
-    rng_order = engine.seeded(seed)
     rows = list(rows)
+    _CANDIDATE_CACHE["rows"] = rows
+    _CANDIDATE_CACHE["fetched_at"] = time.monotonic()
+    return rows
+
+
+def fetch_ordered_candidates(c, seed: str):
+    rows = list(_fetch_raw_rows(c))  # copy -- the shuffle below must never mutate the shared cache
+    rng_order = engine.seeded(seed)
     rng_order.shuffle(rows)
     return rows
 
