@@ -28,6 +28,78 @@ def test_supported_with_limitations_for_college_phrased_lineup_request():
     assert r["visual_template"] == "POSITION_LINEUP"
 
 
+# --- feasibility-logic correction: "position + college, names hidden" ------
+# A real bug this pass fixed: the plain college-phrased lineup request above
+# must keep working exactly as before (names-based, SUPPORTED_WITH_LIMITATIONS)
+# -- but a request that ALSO explicitly asks for names to be hidden must never
+# silently fall back to that names-based capability. It must independently
+# measure the real, certified NFL<->CFB identity bridge and report the truth.
+
+def test_names_hidden_college_lineup_is_missing_data_not_silent_fallback():
+    r = feasibility.assess(
+        "Guess the NFL team from the colleges of the players on its offense, by position, with names hidden."
+    )
+    assert r["support_status"] == "MISSING_DATA"
+    # Never silently resolves to the names-based capability.
+    assert r["capability"] is None
+    assert "cfb_nfl_identity_bridge_certified" in r["reason"]
+    assert "never silently substituted with player names" in r["reason"]
+
+
+def test_names_hidden_college_lineup_reason_has_real_live_numbers():
+    r = feasibility.assess("Make a game with the position and college of each player, but hide the names.")
+    assert r["support_status"] == "MISSING_DATA"
+    # The exact real numbers measured this pass -- if the bridge is ever
+    # enriched further, this test (not a hardcoded claim in feasibility.py
+    # itself) is what should start failing, which is the correct signal to
+    # re-measure rather than a stale string quietly staying "true" forever.
+    assert "0 of 415" in r["reason"]
+    assert "only 6" in r["reason"]
+
+
+def test_plain_college_lineup_request_unaffected_by_hidden_names_check():
+    # No "hidden"/"hide"/"anonymous"/"no names" signal -- must NOT be
+    # swept into the names-hidden MISSING_DATA path.
+    r = feasibility.assess(
+        "Make a game where I guess the NFL team from its starting offense by position, using the colleges."
+    )
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP"
+
+
+def test_bare_college_request_gets_updated_honest_reason_not_stale_claim():
+    # No lineup/position/nfl/team framing at all -- falls all the way
+    # through to NO_MATCH and then the generic KNOWN_MISSING_DATA_SIGNALS
+    # entry (a phrase with "nfl"/"team" would instead hit the NEEDS_
+    # CLARIFICATION -> UNKNOWN path before ever reaching that fallback).
+    # The reason must no longer claim college data is entirely absent (it
+    # isn't, since the bridge hardening).
+    r = feasibility.assess("Make me a game about which college each player attended.")
+    assert r["support_status"] == "MISSING_DATA"
+    assert "cfb_nfl_identity_bridge_certified" in r["reason"]
+    assert "not reliably present" not in r["reason"]  # the old, now-false claim
+
+
+def test_lineup_college_coverage_measures_live_against_real_bridge():
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import lineup as lineup_adapter
+
+    c = engine.connect()
+    try:
+        coverage = lineup_adapter.lineup_college_coverage(c)
+    finally:
+        c.close()
+
+    assert coverage["bridge_table"] == "cfb_nfl_identity_bridge_certified"
+    assert coverage["bridge_entries"] > 2000  # real bridge, not the old ~124-row one
+    assert coverage["total_candidate_team_seasons"] == 415
+    assert coverage["min_required_for_support"] == 20
+    # Real measured state as of this pass -- genuinely insufficient.
+    assert coverage["full_lineup_college_coverage"] < coverage["min_required_for_support"]
+    assert coverage["sufficient"] is False
+    assert set(coverage["per_slot_hit_counts"]) == {"QB", "RB", "WR", "TE", "OL"}
+
+
 def test_supported_with_limitations_for_heisman_request():
     # Real gap found by actually testing the Creator against this exact
     # request during the CFB expansion operation: cfb_heisman_guess was

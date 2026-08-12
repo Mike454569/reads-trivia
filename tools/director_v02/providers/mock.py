@@ -55,6 +55,7 @@ _OFFENSE_WORDS = {"offense", "offensive"}
 _LINEUP_WORDS = {"lineup", "lineups", "starters", "starting"}
 _POSITION_WORDS = {"position", "positions"}
 _COLLEGE_WORDS = {"college", "colleges"}
+_HIDDEN_NAMES_WORDS = {"hidden", "hide", "anonymous"}
 _HEISMAN_WORDS = {"heisman"}
 _CFB_EXPLICIT_WORDS = {"cfb"}
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
@@ -124,6 +125,7 @@ class MockDeterministicTranslator(Translator):
         has_lineup = bool(words & _LINEUP_WORDS)
         has_position = bool(words & _POSITION_WORDS)
         has_college = bool(words & _COLLEGE_WORDS)
+        has_hidden_names = bool(words & _HIDDEN_NAMES_WORDS) or "no names" in text.lower() or "without names" in text.lower() or "names hidden" in text.lower()
         has_heisman = bool(words & _HEISMAN_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
@@ -237,6 +239,30 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched team/franchise + playoff/postseason/championship/Super Bowl "
                 "keywords -> TEAM_POSTSEASON_RESULT guess capability.",
+            )
+
+        # Feasibility-logic correction pass: a "position + college, NAMES
+        # HIDDEN" request must NOT silently fall into the general Starting
+        # Lineup pattern below -- that pattern's own capability only ever
+        # shows player NAMES, never colleges, so matching it here would be
+        # exactly the silent-fallback-to-names this correction explicitly
+        # forbids. Checked BEFORE the general pattern, narrowly (requires an
+        # explicit hidden/hide/anonymous/"no names" signal, not just any
+        # college mention -- a plain college-phrased lineup request still
+        # correctly falls through to the general pattern below, which
+        # honestly explains the names-not-colleges substitution in its own
+        # copy). Returns NO_MATCH here -- not TRANSLATED, not
+        # UNDERSTOOD_UNSUPPORTED_MECHANIC -- because there is no registered
+        # capability with a claim to this predicate at all; feasibility.py
+        # independently re-checks this exact signal and reports the real,
+        # live-measured MISSING_DATA reason (tools/quiz_export/adapters/
+        # lineup.py's lineup_college_coverage()), not a translator-invented one.
+        if has_team and has_college and has_hidden_names and (has_offense or has_lineup or has_position):
+            return _result(
+                request_text, "NO_MATCH", None,
+                "Recognized a 'position + college, names hidden' lineup request -- "
+                "no registered capability covers this (see the feasibility engine for "
+                "real, live-measured college-identity-bridge coverage numbers).",
             )
 
         # Starting Lineup, added v1.8, Part F. Requires "team" plus (offense OR

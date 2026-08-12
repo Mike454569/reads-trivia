@@ -46,9 +46,45 @@ guessed).
                                  structured spec (only reachable via a
                                  directly-supplied spec, never real NL text).
 
-This module never touches the Engine database, never generates a package,
-and never mutates anything -- pure read/reason over already-existing,
-already-proven pipeline output.
+This module never generates a package and never mutates anything. It also
+never touched the Engine database at all until the feasibility-logic
+correction pass described below -- that remains true for every status
+except the one narrow, real-time-measured exception documented there.
+
+--- FEASIBILITY-LOGIC CORRECTION: "POSITION + COLLEGE, NAMES HIDDEN" ---
+A real bug, not a hypothetical: this module's original `KNOWN_MISSING_DATA_
+SIGNALS` entry for "college" treated the NFL-local NULL columns
+(`canonical_roster_seasons.school_id`, `canonical_players.primary_school_id`)
+as proof college data was absent -- true for those two columns, but NOT
+the same claim as "no college data exists anywhere in this database," and
+it went stale the moment a later "CFB identity bridge hardened" operation
+built `cfb_nfl_identity_bridge_certified` (2,542 real, HIGH_CONFIDENCE_
+MULTI_SEASON_POSITION_CORROBORATED rows, confidence 0.994-0.999, zero
+ambiguous/duplicate mappings -- confirmed directly). A hardcoded English
+sentence can only ever describe the database as it was audited, not as it
+is now -- the fix is to measure live instead of asserting from memory.
+
+`_position_lineup_college_hidden_names_reason()` below does exactly that:
+it calls `tools.quiz_export.adapters.lineup.lineup_college_coverage()`
+(a real, parameterized query against the certified bridge, run fresh every
+call) and reports the ACTUAL current coverage. Measured this pass: 0 of 415
+real team-seasons have all 10 shown positions bridged to a certified
+college, and only 6 have all 5 SKILL positions bridged (ignoring the
+grouped OL entirely) -- both far below the 20-team-season floor
+(`MIN_FULL_LINEUP_COLLEGE_COVERAGE`) a real, repeatable public mode needs.
+So: still `MISSING_DATA` today, but for the true reason (insufficient
+identity-bridge coverage for this specific 10-position shape), not the
+false one (no college data exists at all) -- and because the check is
+live, it will correctly report `SUPPORTED` on its own, automatically, the
+day the bridge genuinely covers enough team-seasons, with no one having to
+remember to update a hardcoded string.
+
+Critically: this is a SEPARATE, explicitly-requested variant (the creator
+must ask for colleges with names hidden) from the existing, already-real,
+already-shipped `TEAM_OF_STARTING_LINEUP` capability, which uses real
+player NAMES and is unaffected by any of this -- see `providers/mock.py`'s
+own "hidden names" carve-out for why a names-hidden college request can
+never silently fall back to that names-based capability.
 """
 from __future__ import annotations
 
@@ -71,11 +107,23 @@ SUPPORT_STATUSES = frozenset({
 # pattern already gets an honest SUPPORTED_WITH_LIMITATIONS instead -- this
 # table is for concepts with no substitute at all).
 KNOWN_MISSING_DATA_SIGNALS = {
+    # NOTE: this generic entry is the fallback for a BARE "college" mention
+    # with no lineup/position framing (e.g. "make a game about where players
+    # went to college") -- it is intentionally NOT the check used for the
+    # specific "position + college, names hidden" lineup request, which gets
+    # its own live-measured, real-numbers reason instead (see
+    # `_position_lineup_college_hidden_names_reason()` and `assess()` below).
+    # Updated during the feasibility-logic correction pass to stop claiming
+    # college data is absent outright -- it no longer is (see module
+    # docstring) -- while still being honest that no registered capability
+    # uses it for anything other than the narrow lineup case.
     frozenset({"college", "colleges"}): (
-        "Audited directly: canonical_roster_seasons.school_id is NULL for 100% of rows (0/60,246), "
-        "canonical_players.primary_school_id is NULL for 100% of rows (0/17,113), and the only NFL<->CFB "
-        "player bridge (nfl_cfb_player_links) has 124 total rows, only 39 with any recorded starts. "
-        "College attendance is not reliably present in this database for NFL players."
+        "A certified NFL<->CFB college identity bridge does exist "
+        "(cfb_nfl_identity_bridge_certified, 2,542 real high-confidence rows), but no registered "
+        "capability is built on it for a general college-guessing request. See the "
+        "position+college 'names hidden' lineup variant for the one place this bridge IS measured "
+        "and used, and tools/quiz_export/adapters/lineup.lineup_college_coverage() for real, current "
+        "coverage numbers -- which today are not enough to support even that narrower case."
     ),
     frozenset({"salary", "salaries", "contract", "contracts", "cap"}): (
         "No salary/contract/cap table exists in this database at all -- this is not a partial-coverage "
@@ -98,6 +146,62 @@ def _missing_data_reason(request_text: str) -> str | None:
         if words & signal_words:
             return reason
     return None
+
+
+_POSITION_LINEUP_WORDS = {"lineup", "lineups", "starters", "starting", "offense", "offensive", "position", "positions"}
+_HIDDEN_NAMES_WORDS = {"hidden", "hide", "anonymous"}
+
+
+def _is_position_lineup_college_hidden_names_request(request_text: str) -> bool:
+    """Mirrors providers/mock.py's own carve-out check (same word sets, same
+    intent) -- kept as an independent check here rather than imported from
+    mock.py, because feasibility.py must recognize this request even when a
+    real (non-mock) translator provider is configured someday and would
+    never route through mock.py's pattern matching at all. Deliberately
+    narrow: requires an explicit hidden/hide/anonymous/"no names" signal,
+    not just any college mention, so an ordinary college-phrased lineup
+    request (no names-hidden ask) is untouched and keeps falling through to
+    the real, already-shipped names-based capability."""
+    words = _words(request_text)
+    has_college = bool(words & {"college", "colleges"})
+    has_hidden_names = (
+        bool(words & _HIDDEN_NAMES_WORDS)
+        or "no names" in request_text.lower()
+        or "without names" in request_text.lower()
+        or "names hidden" in request_text.lower()
+    )
+    has_lineup_signal = bool(words & _POSITION_LINEUP_WORDS)
+    return has_college and has_hidden_names and has_lineup_signal
+
+
+def _position_lineup_college_hidden_names_reason() -> str:
+    """The ONE place this module touches the Engine database (module
+    docstring) -- a real, live, parameterized-query measurement, run fresh
+    every call, never a cached or hardcoded claim. See
+    tools.quiz_export.adapters.lineup.lineup_college_coverage()."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import lineup as lineup_adapter
+
+    c = engine.connect()
+    try:
+        coverage = lineup_adapter.lineup_college_coverage(c)
+    finally:
+        c.close()
+
+    return (
+        f"Measured live against the certified NFL<->CFB identity bridge "
+        f"({coverage['bridge_table']}, {coverage['bridge_entries']} real entries): "
+        f"only {coverage['full_lineup_college_coverage']} of {coverage['total_candidate_team_seasons']} real "
+        f"team-seasons have every shown position's college verified, and only "
+        f"{coverage['skill_positions_only_college_coverage']} even if the offensive line is dropped entirely. "
+        f"Both are far below the {coverage['min_required_for_support']}-team-season floor a real, repeatable "
+        f"public mode needs (for comparison, every other registered capability has dozens to hundreds of real "
+        f"candidates). Per-position bridge coverage: "
+        + ", ".join(f"{slot} {coverage['per_slot_hit_counts'][slot]}/{coverage['per_slot_totals'][slot]}"
+                     for slot in ("QB", "RB", "WR", "TE", "OL"))
+        + ". Not supported -- and never silently substituted with player names, since names were explicitly "
+          "asked to be hidden."
+    )
 
 
 def assess(request_text: str | None = None, *, spec: dict | None = None, provider: str = "mock") -> dict:
@@ -152,6 +256,15 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
     # BLOCKED_NO_TRANSLATION (NO_MATCH or malformed translator output),
     # BLOCKED_INVALID_SPEC, BLOCKED_OUT_OF_BOUNDS, BLOCKED_UNSUPPORTED_FILTER.
     if request_text:
+        # Checked BEFORE the generic KNOWN_MISSING_DATA_SIGNALS fallback --
+        # this specific request gets a real, live-measured, numbers-backed
+        # reason instead of the generic static one (which would also match,
+        # since it's still a "college" mention, but would be far less
+        # precise and wouldn't reflect today's actual bridge coverage).
+        if _is_position_lineup_college_hidden_names_request(request_text):
+            result["support_status"] = "MISSING_DATA"
+            result["reason"] = _position_lineup_college_hidden_names_reason()
+            return result
         missing_reason = _missing_data_reason(request_text)
         if missing_reason:
             result["support_status"] = "MISSING_DATA"

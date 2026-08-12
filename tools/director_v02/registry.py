@@ -188,8 +188,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         # support. See tools/quiz_export/adapters/lineup.py's module
         # docstring for the full audit trail behind each one.
         "known_limitations": [
-            "Uses real player NAMES, not colleges -- college attendance is not reliably present in this "
-            "database for NFL players (school_id/primary_school_id are NULL for essentially all rows).",
+            "Uses real player NAMES, not colleges. A certified NFL<->CFB college identity bridge does "
+            "exist (cfb_nfl_identity_bridge_certified), but real coverage against this exact 10-position "
+            "lineup shape is far too thin to support a names-hidden college variant -- see "
+            "tools.quiz_export.adapters.lineup.lineup_college_coverage() for live current numbers.",
             "Offensive-line positions are shown as one generic 'OL' group of 5 players, not individually "
             "labeled LT/LG/C/RG/RT slots, because the underlying position data does not reliably "
             "distinguish them across every season.",
