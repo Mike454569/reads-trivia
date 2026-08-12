@@ -45,9 +45,32 @@ def safety_check(c) -> dict:
     )
 
 
+# Real production finding (App-Wide Engine Migration operation, second
+# incident on this same adapter): generate_package_from_spec() (tools/
+# game_director_v01.py) does not stop at the first accepted candidate -- it
+# calls adapter.evaluate() for EVERY row in fetch_ordered_candidates()'s
+# result (36,184 of them), every single request. evaluate() called
+# _all_real_schools(c) fresh on every one of those 36,184 calls -- a real,
+# measured second bottleneck on top of the candidate-fetch one (confirmed
+# live: the raw candidate fetch alone is ~4s via direct SSH timing, but the
+# actual public endpoint still hit the Gateway's 45s internal generation
+# timeout with a 502 -- the 36,184 extra `schools` round-trips, not the
+# candidate fetch, were the remaining cost). `schools` is a small, static
+# table (805 rows) -- same cache pattern as _CANDIDATE_CACHE above, keyed
+# separately since it's a different query.
+_SCHOOLS_CACHE: dict = {"schools": None, "fetched_at": 0.0}
+
+
 def _all_real_schools(c) -> dict:
+    import time
+    cached = _SCHOOLS_CACHE["schools"]
+    if cached is not None and time.monotonic() - _SCHOOLS_CACHE["fetched_at"] < _CANDIDATE_CACHE_TTL_SECONDS:
+        return cached
     rows = c.execute("SELECT school_id, school_name FROM schools").fetchall()
-    return {r["school_id"]: r["school_name"] for r in rows}
+    schools = {r["school_id"]: r["school_name"] for r in rows}
+    _SCHOOLS_CACHE["schools"] = schools
+    _SCHOOLS_CACHE["fetched_at"] = time.monotonic()
+    return schools
 
 
 # Real production performance finding (App-Wide Engine Migration operation):
