@@ -1,9 +1,10 @@
 """Reads Engine Gateway -- admin-triggered NFL/CFB production data refresh.
 
-Thin wrapper around tools/data_refresh/{nfl_refresh,cfb_refresh}.py (the
-real orchestration -- backup, download, stage, publish, sanity-check,
-restore-on-failure, run-tracking) -- this module adds exactly the two
-things a Gateway route needs that those scripts don't have on their own:
+Thin wrapper around tools/data_refresh/{nfl_refresh,cfb_refresh,
+nfl_games_refresh,cfb_games_refresh}.py (the real orchestration --
+backup, download, stage, publish, sanity-check, restore-on-failure,
+run-tracking) -- this module adds exactly the two things a Gateway route
+needs that those scripts don't have on their own:
 
 1. A real refresh can take minutes (network download of a real CSV, a full
    backup-copy of the ~1.6GB Engine DB, staging/publish writes, a sanity
@@ -16,12 +17,19 @@ things a Gateway route needs that those scripts don't have on their own:
    /v1/admin/refresh/status for the real outcome (same "kick off, then
    poll" shape as any other long-running admin operation in this class of
    system).
-2. A concurrency guard: two overlapping runs for the same league would both
-   try to back up/restore the same live DB file, which is not a safe
-   interleaving. refresh_runs already records a real RUNNING row for the
-   duration of a run (safety.start_run/finish_run) -- this checks for one
-   before starting a new run rather than trusting the caller not to
-   double-trigger.
+2. A GLOBAL concurrency guard -- only ONE refresh runs at a time, across
+   ALL datasets, not just per-dataset. Two overlapping runs for the SAME
+   dataset would obviously interleave unsafely, but even two DIFFERENT
+   datasets running together is real capacity risk here, not just a
+   theoretical one: the Gateway machine is a single shared-CPU, 1GB-memory
+   box (gateway/fly.toml), and every refresh's backup step copies the full
+   ~1.6GB Engine DB -- four datasets firing near-simultaneously (the real
+   shape of the scheduled trigger) would mean up to ~6.4GB of concurrent
+   file-copy I/O and four Python processes' memory footprint on that same
+   1GB machine. refresh_runs already records a real RUNNING row for the
+   duration of a run (safety.start_run/finish_run) -- this checks for ANY
+   such row before starting a new one, regardless of which dataset it
+   belongs to.
 
 Real incident, fixed here: tools/data_refresh/*.py import Engine scripts
 (fetch_nflverse_current, import_data, backup_manager) directly from
@@ -53,50 +61,74 @@ def _runners():
     """Lazy import -- see module docstring. Raises ImportError (never
     silently swallowed) if tools.data_refresh's own Engine-script imports
     fail on this deployment; callers (the Gateway routes) turn that into a
-    clean SERVICE_UNAVAILABLE response instead of a crash."""
-    from tools.data_refresh import cfb_refresh, nfl_refresh
+    clean SERVICE_UNAVAILABLE response instead of a crash.
 
-    return {"nfl": (nfl_refresh, "NFL", nfl_refresh.DATASET), "cfb": (cfb_refresh, "CFB", cfb_refresh.DATASET)}
+    Keyed by dataset_key (the Gateway route's own path segment) -> (module,
+    run_fn, league label, real dataset_name stored in refresh_runs)."""
+    from tools.data_refresh import cfb_games_refresh, cfb_refresh, nfl_games_refresh, nfl_refresh
+
+    return {
+        "nfl": (nfl_refresh, nfl_refresh.run_nfl_refresh, "NFL", nfl_refresh.DATASET),
+        "cfb": (cfb_refresh, cfb_refresh.run_cfb_refresh, "CFB", cfb_refresh.DATASET),
+        "nfl_games": (nfl_games_refresh, nfl_games_refresh.run_nfl_games_refresh, "NFL", nfl_games_refresh.DATASET),
+        "cfb_games": (cfb_games_refresh, cfb_games_refresh.run_cfb_games_refresh, "CFB", cfb_games_refresh.DATASET),
+    }
 
 
-def _is_running(league: str, dataset: str) -> bool:
+def _running_row(league: str | None, dataset: str | None) -> bool:
+    """league=None/dataset=None means 'is ANYTHING running' (the global
+    guard below) -- a bare SELECT with no WHERE-narrowing on those columns.
+    Real, measured reason this exists as a GLOBAL guard, not just
+    per-dataset: the Gateway machine is a single shared-CPU, 1GB-memory box
+    (see gateway/fly.toml's own resource-sizing notes), and each refresh
+    run's backup step copies the full ~1.6GB Engine DB. Four datasets
+    refreshing concurrently (the real shape of the scheduled trigger, which
+    fires one HTTP call per dataset in quick succession -- each returns
+    immediately since the actual work is backgrounded, so nothing about
+    that loop being 'sequential' from the caller's side serializes the
+    underlying work) would mean up to ~6.4GB of simultaneous file-copy I/O
+    and four concurrent Python processes' memory footprint on that same 1GB
+    machine -- never measured as safe, so never allowed. One refresh at a
+    time, full stop, regardless of dataset."""
     from tools.data_refresh import safety
 
     c = engine_bootstrap.connect()
     try:
         safety.ensure_refresh_tables(c)
-        row = c.execute(
-            "SELECT 1 FROM refresh_runs WHERE league=? AND dataset_name=? AND status='RUNNING' LIMIT 1",
-            (league, dataset),
-        ).fetchone()
+        sql = "SELECT 1 FROM refresh_runs WHERE status='RUNNING'"
+        params: tuple = ()
+        if league is not None:
+            sql += " AND league=? AND dataset_name=?"
+            params = (league, dataset)
+        row = c.execute(sql + " LIMIT 1", params).fetchone()
         return row is not None
     finally:
         c.close()
 
 
-def check_can_start(league_key: str) -> dict:
-    """league_key is 'nfl' or 'cfb' (the Gateway route's own path segment,
-    kept distinct from the real league label stored in refresh_runs). Pure
-    status check -- does NOT start anything; the route handler schedules
-    the actual background task itself (via run_fn_for) only when this
-    returns status=OK, so this function never needs to hand back a raw
-    callable inside a dict a caller might otherwise be tempted to
-    serialize."""
+def check_can_start(dataset_key: str) -> dict:
+    """dataset_key is one of 'nfl', 'cfb', 'nfl_games', 'cfb_games' (the
+    Gateway route's own path segment, kept distinct from the real league
+    label stored in refresh_runs). Pure status check -- does NOT start
+    anything; the route handler schedules the actual background task
+    itself (via run_fn_for) only when this returns status=OK, so this
+    function never needs to hand back a raw callable inside a dict a
+    caller might otherwise be tempted to serialize."""
     runners = _runners()
-    if league_key not in runners:
-        raise ValueError(f"unknown league_key: {league_key!r}")
-    _, league, dataset = runners[league_key]
-    if _is_running(league, dataset):
+    if dataset_key not in runners:
+        raise ValueError(f"unknown dataset_key: {dataset_key!r}")
+    _, _, league, dataset = runners[dataset_key]
+    if _running_row(None, None):  # global guard -- see _running_row's docstring
         return {"status": "ALREADY_RUNNING", "league": league, "dataset": dataset}
     return {"status": "OK", "league": league, "dataset": dataset}
 
 
-def run_fn_for(league_key: str):
+def run_fn_for(dataset_key: str):
     """The real, synchronous, potentially multi-minute refresh function for
-    this league -- callers pass this to FastAPI's BackgroundTasks, never
+    this dataset -- callers pass this to FastAPI's BackgroundTasks, never
     call it inline inside a request handler (see module docstring)."""
-    module, _, _ = _runners()[league_key]
-    return module.run_nfl_refresh if league_key == "nfl" else module.run_cfb_refresh
+    _, run_fn, _, _ = _runners()[dataset_key]
+    return run_fn
 
 
 def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
@@ -106,8 +138,8 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
     end up in a browser devtools panel, so the same "safe subset only"
     discipline as every other admin diagnostic route in this Gateway
     applies here too. The one exception is identity_bridge_status (NFL
-    runs only) -- a short, pre-classified string (never a raw stderr
-    blob), deliberately surfaced here since a silently-failing identity
+    roster runs only) -- a short, pre-classified string (never a raw
+    stderr blob), deliberately surfaced since a silently-failing identity
     bridge is exactly the kind of thing an admin freshness view exists to
     catch (see nfl_refresh.py's own module comment on the real, disclosed
     legacy-ID-collision failure mode)."""
@@ -135,9 +167,13 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
 
 def refresh_status() -> dict:
     runners = _runners()
-    nfl_refresh, _, _ = runners["nfl"]
-    cfb_refresh, _, _ = runners["cfb"]
     return {
-        "nfl": _safe_run_summary(nfl_refresh.last_run_status()),
-        "cfb": _safe_run_summary(cfb_refresh.last_run_status()),
+        "nfl": {
+            "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
+            "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
+        },
+        "cfb": {
+            "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),
+            "games": _safe_run_summary(runners["cfb_games"][0].last_run_status()),
+        },
     }

@@ -394,21 +394,24 @@ def _refresh_import_guard(fn, *args):
         raise GatewayError("SERVICE_UNAVAILABLE", f"Data refresh is unavailable on this deployment: {e}")
 
 
-@app.post("/v1/admin/refresh/nfl")
-def admin_refresh_nfl(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
-    check = _refresh_import_guard(admin_refresh.check_can_start, "nfl")
-    if check["status"] == "ALREADY_RUNNING":
-        return check
-    background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, "nfl"))
-    return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
+# One parameterized route rather than four near-identical copies -- dataset_key
+# is validated against admin_refresh's own known set (nfl/cfb rosters,
+# nfl_games/cfb_games) so an unrecognized segment 400s cleanly instead of
+# reaching _runners() at all. /v1/admin/refresh/nfl and /v1/admin/refresh/cfb
+# (rosters) keep responding exactly as before -- the already-deployed Netlify
+# scheduled function calls those two paths unchanged.
+_REFRESH_DATASET_KEYS = {"nfl", "cfb", "nfl_games", "cfb_games"}
 
 
-@app.post("/v1/admin/refresh/cfb")
-def admin_refresh_cfb(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
-    check = _refresh_import_guard(admin_refresh.check_can_start, "cfb")
+@app.post("/v1/admin/refresh/{dataset_key}")
+def admin_refresh_trigger(dataset_key: str, request: Request, background_tasks: BackgroundTasks,
+                           _admin=Depends(require_admin)):
+    if dataset_key not in _REFRESH_DATASET_KEYS:
+        raise GatewayError("INVALID_REQUEST", f"dataset_key must be one of {sorted(_REFRESH_DATASET_KEYS)}.")
+    check = _refresh_import_guard(admin_refresh.check_can_start, dataset_key)
     if check["status"] == "ALREADY_RUNNING":
         return check
-    background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, "cfb"))
+    background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, dataset_key))
     return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
 
 

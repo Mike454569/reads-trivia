@@ -1,0 +1,220 @@
+"""CFB production data refresh -- games/schedules/scores.
+
+Real source, confirmed live before writing any code: cfbfastR-data's
+per-season schedules CSV
+(https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/schedules/csv/cfb_schedules_{season}.csv),
+same repo/URL family fetch_cfb_roster_history.py and this package's own
+cfb_refresh.py (rosters) already use, already `approved_for_import=1` in
+the `sources` table as SPORTSDATAVERSE_CFB.
+
+Real column-name drift found and handled (not silently ignored): the
+Engine's vendored stage_cfb_games() (import_data.py) expects a CSV with
+columns game_date/home_score/away_score/stadium_name (or stadium) --
+the LIVE current cfbfastR-data schedules CSV instead has
+start_date/home_points/away_points/venue. Confirmed directly (col() in
+import_data.py does an EXACT key match, no fuzzy matching) that feeding
+the live CSV to stage_cfb_games unchanged would silently stage every row
+with NULL date/score/venue. Rather than edit vendored code (never done in
+this project) or accept that silent data-quality bug, this module
+remaps the real live headers to the exact names stage_cfb_games expects
+before calling it -- reusing that real, tested staging logic unmodified,
+just bridging it to the source's actual current shape.
+
+Also does NOT call the vendored publish_cfb_games() -- that function
+hardcodes source_id='READS_CFB_MASTER' (the sources table describes that
+as "user-provided workbook", i.e. a manual one-time import, not a live
+feed). Reusing it here would mislabel every automated update's provenance.
+This module's own _publish() mirrors its real INSERT/UPDATE shape exactly
+(same target table, same identity resolution via the real resolve_school()
+helper, same ON CONFLICT semantics) but with the correct
+source_id='SPORTSDATAVERSE_CFB' -- preserving accurate source attribution
+(a genuine, not cosmetic, requirement) rather than duplicating logic for
+its own sake.
+"""
+from __future__ import annotations
+
+import csv
+import datetime as _dt
+import sys
+from pathlib import Path
+
+from . import safety
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
+
+ENGINE_DIR = engine_bootstrap.ENGINE_DIR
+if str(ENGINE_DIR) not in sys.path:
+    sys.path.insert(0, str(ENGINE_DIR))
+import import_data  # noqa: E402  Engine's own stage_cfb_games/resolve_school/col/parse_int, reused as-is
+
+LEAGUE = "CFB"
+DATASET = "cfb_games"
+SOURCE_ID = "SPORTSDATAVERSE_CFB"
+SCHEDULE_URL = "https://raw.githubusercontent.com/sportsdataverse/cfbfastR-data/main/schedules/csv/cfb_schedules_{season}.csv"
+IMPORTS_DIR = ENGINE_DIR / "imports"
+
+# Live source header -> the exact header name import_data.stage_cfb_games()
+# already looks for (see module docstring for why this remap exists).
+_HEADER_REMAP = {"start_date": "game_date", "home_points": "home_score", "away_points": "away_score", "venue": "stadium_name"}
+
+
+def _current_season() -> int:
+    return _dt.datetime.now(_dt.timezone.utc).year
+
+
+def _remap_csv(src_path: Path, dst_path: Path) -> None:
+    with open(src_path, newline="", encoding="utf-8-sig") as fin:
+        reader = csv.DictReader(fin)
+        fieldnames = [_HEADER_REMAP.get(h, h) for h in reader.fieldnames]
+        with open(dst_path, "w", newline="", encoding="utf-8") as fout:
+            writer = csv.DictWriter(fout, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in reader:
+                writer.writerow({_HEADER_REMAP.get(k, k): v for k, v in row.items()})
+
+
+def _publish(c, bid: str) -> int:
+    """Mirrors import_data.publish_cfb_games()'s real INSERT/UPDATE shape
+    exactly, with the one deliberate change of a correct source_id (see
+    module docstring)."""
+    published = 0
+    for r in c.execute(
+        """SELECT game_id,season,week,game_date,home_school,away_school,home_score,away_score,
+           stadium_name,conference_game FROM staging_cfb_games WHERE batch_id=?""", (bid,)
+    ):
+        gid, season, week, date, home, away, hs, away_score, stadium, conf = r
+        hid = import_data.resolve_school(c, home)
+        aid = import_data.resolve_school(c, away)
+        if not hid or not aid:
+            c.execute(
+                "INSERT INTO qa_issues(severity,entity_type,entity_id,issue_type,detail) "
+                "VALUES('WARN','cfb_game',?,'UNMAPPED_SCHOOL',?)",
+                (gid, f"home={home} mapped={hid}; away={away} mapped={aid}"),
+            )
+            continue
+        c.execute(
+            """INSERT INTO cfb_games_canonical(
+               game_id,season,week,game_date,home_school_id,away_school_id,
+               home_score,away_score,stadium_name,conference_game,verification_status,source_id)
+               VALUES (?,?,?,?,?,?,?,?,?,?,'SOURCE_BACKED',?)
+               ON CONFLICT(game_id) DO UPDATE SET season=excluded.season,week=excluded.week,game_date=excluded.game_date,
+               home_school_id=excluded.home_school_id,away_school_id=excluded.away_school_id,
+               home_score=excluded.home_score,away_score=excluded.away_score,stadium_name=excluded.stadium_name,
+               conference_game=excluded.conference_game,verification_status='SOURCE_BACKED',source_id=?""",
+            (gid, season, week, date, hid, aid, hs, away_score, stadium, conf, SOURCE_ID, SOURCE_ID),
+        )
+        published += 1
+    return published
+
+
+def run_cfb_games_refresh(*, season: int | None = None) -> dict:
+    season = season or _current_season()
+    IMPORTS_DIR.mkdir(exist_ok=True)
+
+    c = engine_bootstrap.connect()
+    safety.ensure_refresh_tables(c)
+    baseline_count = c.execute("SELECT COUNT(*) FROM cfb_games_canonical").fetchone()[0]
+    source_url = SCHEDULE_URL.format(season=season)
+    run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
+    c.close()
+
+    backup = safety.create_verified_backup()
+
+    try:
+        import urllib.error
+        import urllib.request
+
+        raw_path = IMPORTS_DIR / f"cfb_schedules_{season}_raw.csv"
+        remapped_path = IMPORTS_DIR / f"cfb_schedules_{season}.csv"
+        req = urllib.request.Request(source_url, headers={"User-Agent": "Reads-Football-Data-Refresh/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp, open(raw_path, "wb") as f:
+                while True:
+                    chunk = resp.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                c = engine_bootstrap.connect()
+                safety.finish_run(c, run_id, status="SOURCE_NOT_YET_PUBLISHED", backup_id=backup["backup_id"],
+                                   detail={"season": season, "source_url": source_url})
+                c.close()
+                return {"status": "SOURCE_NOT_YET_PUBLISHED", "run_id": run_id, "season": season,
+                        "reason": f"{source_url} returned 404 -- not yet published upstream"}
+            raise
+
+        _remap_csv(raw_path, remapped_path)
+
+        c = engine_bootstrap.connect()
+        c.execute("PRAGMA foreign_keys=ON")
+        bid = import_data.begin_batch(c, DATASET, SOURCE_ID, remapped_path)
+        c.execute("BEGIN")
+        try:
+            read, staged, rejected = import_data.stage_cfb_games(c, bid, remapped_path)
+            published = _publish(c, bid)
+            qa_count = c.execute("SELECT COUNT(*) FROM qa_issues WHERE status='OPEN'").fetchone()[0]
+            c.execute(
+                "UPDATE import_batches SET finished_at=?, status='PUBLISHED', rows_read=?, rows_staged=?, "
+                "rows_published=?, rows_rejected=?, qa_issue_count=? WHERE batch_id=?",
+                (_dt.datetime.now(_dt.timezone.utc).isoformat(), read, staged, published, rejected, qa_count, bid),
+            )
+            c.commit()
+        except Exception:
+            c.rollback()
+            c.execute("UPDATE import_batches SET finished_at=?, status='ROLLED_BACK' WHERE batch_id=?",
+                       (_dt.datetime.now(_dt.timezone.utc).isoformat(), bid))
+            c.commit()
+            raise
+
+        try:
+            safety.run_post_refresh_sanity_checks(
+                c, table="cfb_games_canonical", rows_published=published, rows_rejected=rejected, rows_read=read,
+                min_row_count_floor=baseline_count,
+            )
+        except safety.SanityCheckFailure as e:
+            c.close()
+            restore_info = safety.restore_from_backup(backup["path"])
+            c = engine_bootstrap.connect()
+            safety.finish_run(
+                c, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
+                rows_downloaded=read, rows_imported=published, rows_rejected=rejected,
+                failure_reason=str(e), detail={"restore": restore_info, "season": season},
+            )
+            c.close()
+            return {"status": "FAILED_RESTORED", "run_id": run_id, "reason": str(e), "backup": backup}
+
+        no_op = published == 0 and rejected == 0
+        safety.finish_run(
+            c, run_id, status="SUCCESS", backup_id=backup["backup_id"],
+            rows_downloaded=read, rows_imported=published, rows_rejected=rejected, no_op=no_op,
+            detail={"season": season, "batch_id": bid},
+        )
+        c.close()
+        return {
+            "status": "SUCCESS", "run_id": run_id, "no_op": no_op, "season": season,
+            "rows_downloaded": read, "rows_imported": published, "rows_rejected": rejected,
+            "backup_id": backup["backup_id"],
+        }
+    except Exception as e:
+        restore_info = safety.restore_from_backup(backup["path"])
+        c2 = engine_bootstrap.connect()
+        safety.finish_run(
+            c2, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
+            failure_reason=repr(e), detail={"restore": restore_info, "season": season},
+        )
+        c2.close()
+        return {"status": "FAILED_RESTORED", "run_id": run_id, "reason": repr(e), "backup": backup}
+
+
+def last_run_status() -> dict | None:
+    c = engine_bootstrap.connect()
+    safety.ensure_refresh_tables(c)
+    row = c.execute(
+        "SELECT * FROM refresh_runs WHERE league=? AND dataset_name=? ORDER BY started_at DESC LIMIT 1",
+        (LEAGUE, DATASET),
+    ).fetchone()
+    c.close()
+    return dict(row) if row else None
