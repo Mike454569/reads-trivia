@@ -100,7 +100,8 @@ def test_run_fn_for_returns_the_real_orchestrator_functions():
 def test_refresh_status_shape_and_no_path_leakage():
     status = admin_refresh.refresh_status()
     assert set(status.keys()) == {"nfl", "cfb"}
-    assert set(status["nfl"].keys()) == {"rosters", "games"}
+    # Historical Engine Enrichment operation: nfl_draft_refresh.py added.
+    assert set(status["nfl"].keys()) == {"rosters", "games", "draft"}
     assert set(status["cfb"].keys()) == {"rosters", "games"}
     for league_block in status.values():
         for run_status in league_block.values():

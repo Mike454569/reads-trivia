@@ -176,6 +176,7 @@ def refresh_status() -> dict:
         "nfl": {
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
+            "draft": _safe_run_summary(runners["nfl_draft"][0].last_run_status()),
         },
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),
