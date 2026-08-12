@@ -100,7 +100,7 @@ window.BLITZ_LISTS = [
       { answer: "Bart Starr" }, { answer: "Johnny Unitas" }, { answer: "Otto Graham" },
       { answer: "Sammy Baugh" }, { answer: "Bob Griese" }, { answer: "Roger Staubach" },
       { answer: "Len Dawson" }, { answer: "Dan Fouts" }, { answer: "Jim Kelly" },
-      { answer: "Kurt Warner" }, { answer: "Peyton Manning" },
+      { answer: "Kurt Warner" }, { answer: "Peyton Manning" }, { answer: "Drew Brees" },
       { answer: "Y.A. Tittle" }, { answer: "Norm Van Brocklin" }, { answer: "George Blanda" }
     ]
   },
@@ -134,7 +134,8 @@ window.BLITZ_LISTS = [
       { answer: "Marcus Allen" }, { answer: "Franco Harris" }, { answer: "O.J. Simpson" },
       { answer: "Earl Campbell" }, { answer: "Gale Sayers" }, { answer: "John Riggins" },
       { answer: "Thurman Thomas" }, { answer: "Jerome Bettis" }, { answer: "Terrell Davis" },
-      { answer: "Floyd Little" }, { answer: "Leroy Kelly" }, { answer: "Bobby Mitchell" }
+      { answer: "Floyd Little" }, { answer: "Leroy Kelly" }, { answer: "Bobby Mitchell" },
+      { answer: "Edgerrin James" }, { answer: "Roger Craig" }
     ]
   },
   {
