@@ -58,7 +58,7 @@ window.BLITZ_LISTS = [
       { answer: "Joe Namath" }, { answer: "Roger Staubach" }, { answer: "Phil Simms" },
       { answer: "Jeff Hostetler" }, { answer: "Mark Rypien" }, { answer: "Doug Williams" },
       { answer: "Brad Johnson" }, { answer: "Trent Dilfer" }, { answer: "Nick Foles" },
-      { answer: "Jalen Hurts" }
+      { answer: "Jalen Hurts" }, { answer: "Joe Flacco" }, { answer: "Sam Darnold" }
     ]
   },
   {

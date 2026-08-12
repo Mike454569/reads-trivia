@@ -237,7 +237,17 @@ var ENGINE_CFB_QUIZ_SOURCES = [
   { key: 'QUIZ_DATA_ENGINE_CFB_GAME_RESULT', enabled: function () { return ENABLE_ENGINE_QUIZ_DRAFT; } },
 ];
 var CFB = buildEffectiveQuizPool(window.CFB_DATA || [], ENGINE_CFB_QUIZ_SOURCES);
-var CFB_SPEED = window.CFB_SPEED_DATA || [];
+// CFB Speed audited (App-Wide Engine Migration, Part C): cfbSpeedQueue()
+// reads CFB_SPEED directly, a wholly separate hand-authored pool from CFB
+// (NFL Speed, by contrast, already shares QUIZ itself with NFL Quiz --
+// speedQueue() reads QUIZ.map(...) directly, so it inherited Engine content
+// automatically). Same identical record shape as CFB_DATA (verified: id/
+// category/difficulty/question/options/correctIndex/notes), so the same
+// buildEffectiveQuizPool blend applies unchanged -- CFB Speed gains the same
+// real CFB_GAME_RESULT Engine content, independent of CFB's own copy of it
+// (each call folds the Engine source into its own hand-authored base; the
+// 1,415 existing CFB Speed questions are fully preserved as depth/fallback).
+var CFB_SPEED = buildEffectiveQuizPool(window.CFB_SPEED_DATA || [], ENGINE_CFB_QUIZ_SOURCES);
 var CFB_BLITZ_LISTS = window.CFB_BLITZ_LISTS || [];
 var CFB_GRID_PLAYERS = window.CFB_GRID_PLAYERS || [];
 var CFB_GRID_CRITERIA = window.CFB_GRID_CRITERIA || { team: [], stat: [], all: [] };
