@@ -40,6 +40,8 @@ ALLOWED_DOMAINS = frozenset({
     "NFL_PLAYER_IDENTITY",
     "NFL_OFFENSE_LINEUP",  # v1.8, Part F
     "CFB_HEISMAN",  # CFB data enrichment operation -- first CFB domain registered
+    "NFL_GAME_RESULT",  # App-Wide Engine Migration operation
+    "CFB_GAME_RESULT",  # App-Wide Engine Migration operation
 })
 
 ALLOWED_PREDICATES = frozenset({
@@ -48,6 +50,7 @@ ALLOWED_PREDICATES = frozenset({
     "IDENTIFY_FROM_CLUES",
     "TEAM_OF_STARTING_LINEUP",  # v1.8, Part F
     "WON_HEISMAN",  # CFB data enrichment operation
+    "WON_GAME",  # App-Wide Engine Migration operation -- shared by NFL_GAME_RESULT and CFB_GAME_RESULT
 })
 
 ALLOWED_DIFFICULTIES = frozenset({

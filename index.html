@@ -268,6 +268,12 @@
        MODE_DATA_FILES / loadScript() / goToMode() in app.js. -->
   <script src="data/quiz.js"></script>
   <script src="data/quiz-engine-draft-production.js"></script>
+  <!-- App-Wide Engine Migration operation: real NFL/CFB game-result content
+       built on tools/data_refresh/{nfl,cfb}_games_refresh.py's automatically-
+       refreshed games tables. Same eager-load treatment as the Draft file
+       above since app.js blends all three into QUIZ at init. -->
+  <script src="data/quiz-engine-game-result-production.js"></script>
+  <script src="data/quiz-engine-cfb-game-result-production.js"></script>
   <!-- Director v0.5 local-only prototype: Player From Clues. Reachable only via
        the hidden #clues route behind ENABLE_PLAYER_FROM_CLUES_V01 in app.js — not
        part of the production nav/home mode grid. See

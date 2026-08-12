@@ -58,6 +58,8 @@ _COLLEGE_WORDS = {"college", "colleges"}
 _HIDDEN_NAMES_WORDS = {"hidden", "hide", "anonymous"}
 _HEISMAN_WORDS = {"heisman"}
 _CFB_EXPLICIT_WORDS = {"cfb"}
+_GAME_WORDS = {"game", "games"}
+_RESULT_WORDS = {"result", "results", "won", "win", "score", "scored"}
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
 _MIXED_SIGNAL_WORDS = {"both"}
 _HARD_WORDS = {"hard", "difficult", "tough", "challenging"}
@@ -132,6 +134,8 @@ class MockDeterministicTranslator(Translator):
         has_who_am_i = _has_who_am_i_phrase(text)
         has_nfl = "nfl" in words
         has_cfb_signal = bool(words & _CFB_EXPLICIT_WORDS) or has_college or "college football" in text.lower()
+        has_game_word = bool(words & _GAME_WORDS)
+        has_result_word = bool(words & _RESULT_WORDS)
 
         # Compound request explicitly asking for more than one thing, where
         # at least one part has no supported data ("both a QB's team and his
@@ -313,6 +317,36 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched 'heisman' keyword -> WON_HEISMAN guess capability.",
             )
+
+        # NFL/CFB Game Results, added during the App-Wide Engine Migration
+        # operation (built on tools/data_refresh/{nfl,cfb}_games_refresh.py's
+        # real, automatically-refreshed games tables). Checked after the
+        # Championship pattern above (a request like "guess the result of
+        # the Super Bowl" is more specifically about postseason framing and
+        # should keep matching that capability, not this newer, more
+        # general one) and after Heisman (unambiguous, no competing signal).
+        # Competition-aware the same way the clue/player pattern is: an
+        # explicit CFB signal with no contradicting "nfl" token routes to
+        # the CFB capability; everything else (including a bare request
+        # with no league signal at all) defaults to NFL, consistent with
+        # every other pattern in this file.
+        if has_game_word and has_result_word:
+            if has_cfb_signal and not has_nfl:
+                domain, predicate = "CFB_GAME_RESULT", "WON_GAME"
+                note = "Matched 'game' + result/score keywords with a CFB signal -> WON_GAME (CFB) guess capability."
+            else:
+                domain, predicate = "NFL_GAME_RESULT", "WON_GAME"
+                note = "Matched 'game' + result/score keywords -> WON_GAME (NFL) guess capability."
+            spec = {
+                "mechanic": "guess",
+                "domain": domain,
+                "relationship_predicate": predicate,
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec, note)
 
         # Genuine ambiguity: clearly an NFL-related trivia/game request, but
         # not specific enough to resolve to either registered capability or

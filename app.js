@@ -156,56 +156,87 @@ function drawNoRepeat(deckKey, ids, count) {
 }
 
 /* ============================== data + state ============================== */
-/* ---- Engine content integration (NFL Draft History only, Engine ID namespace
-   500000+) ----
+/* ---- Engine content integration, Engine ID namespace 500000+ ----
    Kill switch: set to false to make the app behave exactly as it did before this
    integration — QUIZ stays the original hand-authored array and nothing else
-   changes. See QUIZ_ENGINE_PRODUCTION_ROLLOUT_REPORT.md for the full rollout audit. */
+   changes. See QUIZ_ENGINE_PRODUCTION_ROLLOUT_REPORT.md for the full rollout audit.
+   App-Wide Engine Migration operation: generalized from a single hardcoded
+   Draft source to a list of (global, label) sources so newly-registered
+   Engine domains (e.g. NFL/CFB Game Results, built on the real automatically-
+   refreshed games tables) blend in the same way without duplicating this
+   validation logic per source. Each source is validated and folded in
+   independently, in order -- one bad source only drops itself, never the
+   others (a real improvement over the original all-or-nothing behavior,
+   which would have silently discarded every other Engine source too). */
 var ENABLE_ENGINE_QUIZ_DRAFT = true;
+var ENGINE_QUIZ_SOURCES = [
+  { key: 'QUIZ_DATA_ENGINE_DRAFT', enabled: function () { return ENABLE_ENGINE_QUIZ_DRAFT; } },
+  { key: 'QUIZ_DATA_ENGINE_GAME_RESULT', enabled: function () { return ENABLE_ENGINE_QUIZ_DRAFT; } },
+];
 
-function buildEffectiveQuizPool(handAuthored) {
-  if (!ENABLE_ENGINE_QUIZ_DRAFT) return handAuthored;
-  var engineDraft = window.QUIZ_DATA_ENGINE_DRAFT;
-  if (!Array.isArray(engineDraft) || !engineDraft.length) {
-    console.warn('Engine Quiz Draft content unavailable or empty — using hand-authored Quiz pool only.');
-    return handAuthored;
-  }
-  var existingIds = {}, existingQuestions = {}, existingCategories = {};
-  handAuthored.forEach(function (q) {
-    existingIds[q.id] = true;
-    existingQuestions[q.question] = true;
-    existingCategories[q.category] = true;
-  });
-  var seenEngineIds = {};
-  for (var i = 0; i < engineDraft.length; i++) {
-    var q = engineDraft[i];
-    var ok = q && typeof q === 'object' &&
-      typeof q.id === 'number' &&
-      typeof q.category === 'string' && existingCategories[q.category] &&
-      typeof q.difficulty === 'string' && ['Easy', 'Medium', 'Hard'].indexOf(q.difficulty) !== -1 &&
-      typeof q.question === 'string' && q.question &&
-      Array.isArray(q.options) && q.options.length === 4 && new Set(q.options).size === 4 &&
-      typeof q.correctIndex === 'number' && q.correctIndex >= 0 && q.correctIndex <= 3 &&
-      typeof q.notes === 'string' &&
-      !existingIds[q.id] && !seenEngineIds[q.id] &&
-      !existingQuestions[q.question];
-    if (!ok) {
-      console.warn('Engine Quiz Draft content failed validation at index ' + i + ' — using hand-authored Quiz pool only.');
-      return handAuthored;
+function buildEffectiveQuizPool(handAuthored, sources) {
+  var pool = handAuthored.slice();
+  var existingIds = {}, existingQuestions = {};
+  pool.forEach(function (q) { existingIds[q.id] = true; existingQuestions[q.question] = true; });
+  sources.forEach(function (src) {
+    if (!src.enabled()) return;
+    var engineSet = window[src.key];
+    if (!Array.isArray(engineSet) || !engineSet.length) {
+      console.warn('Engine Quiz source ' + src.key + ' unavailable or empty — skipped.');
+      return;
     }
-    seenEngineIds[q.id] = true;
-  }
-  // .concat() returns a new array — window.QUIZ_DATA and window.QUIZ_DATA_ENGINE_DRAFT
-  // are never mutated.
-  return handAuthored.concat(engineDraft);
+    var seenEngineIds = {}, valid = true;
+    for (var i = 0; i < engineSet.length; i++) {
+      var q = engineSet[i];
+      // Deliberately no "category must already exist among hand-authored
+      // categories" check (the original Draft-only version had one) -- a
+      // genuinely new Engine domain is allowed to introduce a genuinely new
+      // category; quizCategories() already derives its filter list live
+      // from QUIZ itself (see below), so a new category needs no UI change
+      // to become selectable.
+      var ok = q && typeof q === 'object' &&
+        typeof q.id === 'number' &&
+        typeof q.category === 'string' && q.category &&
+        typeof q.difficulty === 'string' && ['Easy', 'Medium', 'Hard'].indexOf(q.difficulty) !== -1 &&
+        typeof q.question === 'string' && q.question &&
+        Array.isArray(q.options) && q.options.length === 4 && new Set(q.options).size === 4 &&
+        typeof q.correctIndex === 'number' && q.correctIndex >= 0 && q.correctIndex <= 3 &&
+        typeof q.notes === 'string' &&
+        !existingIds[q.id] && !seenEngineIds[q.id] &&
+        !existingQuestions[q.question];
+      if (!ok) {
+        console.warn('Engine Quiz source ' + src.key + ' failed validation at index ' + i + ' — source skipped.');
+        valid = false;
+        break;
+      }
+      seenEngineIds[q.id] = true;
+    }
+    if (!valid) return;
+    // pool/window.* sources are never mutated -- concat-equivalent via push
+    // onto the local `pool` copy only.
+    engineSet.forEach(function (q) {
+      pool.push(q);
+      existingIds[q.id] = true;
+      existingQuestions[q.question] = true;
+    });
+  });
+  return pool;
 }
-var QUIZ = buildEffectiveQuizPool(window.QUIZ_DATA || []);
+var QUIZ = buildEffectiveQuizPool(window.QUIZ_DATA || [], ENGINE_QUIZ_SOURCES);
 var XSO = window.XSO_DATA || [];
 var GRID_PLAYERS = window.GRID_PLAYERS || [];
 var GRID_CRITERIA = window.GRID_CRITERIA || { team: [], stat: [], all: [] };
 var BLITZ_LISTS = window.BLITZ_LISTS || [];
 var SILHOUETTE_PLAYERS = window.SILHOUETTE_PLAYERS || [];
-var CFB = window.CFB_DATA || [];
+// App-Wide Engine Migration operation: CFB Quiz gets the same Engine-blending
+// treatment NFL Quiz already had (buildEffectiveQuizPool is fully generic --
+// see its own comment above). Real CFB Game Results content, built on
+// tools/data_refresh/cfb_games_refresh.py's automatically-refreshed
+// cfb_games_canonical table.
+var ENGINE_CFB_QUIZ_SOURCES = [
+  { key: 'QUIZ_DATA_ENGINE_CFB_GAME_RESULT', enabled: function () { return ENABLE_ENGINE_QUIZ_DRAFT; } },
+];
+var CFB = buildEffectiveQuizPool(window.CFB_DATA || [], ENGINE_CFB_QUIZ_SOURCES);
 var CFB_SPEED = window.CFB_SPEED_DATA || [];
 var CFB_BLITZ_LISTS = window.CFB_BLITZ_LISTS || [];
 var CFB_GRID_PLAYERS = window.CFB_GRID_PLAYERS || [];
@@ -1357,7 +1388,7 @@ if (ENABLE_ENGINE_SIX_DEGREES_V01) {
 }
 var LEAGUE_MODES = {
   nfl: [
-    { id: 'quiz', icon: 'helpCircle', title: 'NFL Quiz', desc: QUIZ.length + ' multiple-choice questions across 16 categories. Choose category, difficulty, and round length.', featured: true, difficulty: 'casual' },
+    { id: 'quiz', icon: 'helpCircle', title: 'NFL Quiz', desc: QUIZ.length + ' multiple-choice questions across ' + quizCategories().length + ' categories. Choose category, difficulty, and round length.', featured: true, difficulty: 'casual' },
     { id: 'grid', icon: 'grid', title: 'NFL Grid', desc: 'A freshly generated 3x3 grid every round. Name a player who satisfies both the row and the column.', featured: true, difficulty: 'hardcore' },
     { id: 'blitz', icon: 'timer', title: 'NFL Blitz', desc: 'Sporcle-style: type every correct answer you can before the clock runs out.', difficulty: 'hardcore' },
     { id: 'speed', icon: 'zap', title: 'NFL Speed', desc: 'Rapid-fire multiple choice against the clock. Build a streak for bonus points.', difficulty: 'competitive' },
@@ -1367,7 +1398,7 @@ var LEAGUE_MODES = {
     { id: 'higherLower', icon: 'arrowUp', title: 'Higher or Lower', desc: 'Two real players, one real stat — guess higher or lower than the last one. Keep going until you miss.', difficulty: 'casual' }
   ].concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league !== 'cfb'; })),
   cfb: [
-    { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: '456 CFB questions across 10 categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
+    { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: CFB.length + ' CFB questions across ' + cfbCategories().length + ' categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
     { id: 'cfbGrid', icon: 'grid', title: 'CFB Immaculate Grid', desc: 'A freshly generated 3x3 grid of schools and All-America/Heisman criteria. Name a player who satisfies both the row and the column.', featured: true, difficulty: 'hardcore' },
     { id: 'cfbBlitz', icon: 'timer', title: 'CFB Blitz', desc: 'Sporcle-style college football: type every correct answer you can before the clock runs out.', difficulty: 'hardcore' },
     { id: 'cfbSpeed', icon: 'zap', title: 'CFB Speed Round', desc: 'Rapid-fire college football multiple choice against the clock. Build a streak for bonus points.', difficulty: 'competitive' },
@@ -7284,7 +7315,7 @@ var LEARN_SECTIONS = [
   { id: 'nflDecorated', league: 'nfl', icon: 'target', title: 'Pro Bowl & All-Pro Selections',
     desc: 'Every player with at least one Pro Bowl or All-Pro nod.', dataFiles: ['data/grid.js'] },
   { id: 'cfbTrivia', league: 'cfb', icon: 'brain', title: 'CFB Trivia Almanac',
-    desc: '456 real facts across Heisman history, coaches, rivalries, and more.', dataFiles: [] },
+    desc: CFB.length + ' real facts across Heisman history, coaches, rivalries, and more.', dataFiles: [] },
   { id: 'nflTrivia', league: 'nfl', icon: 'lombardiTrophy', title: 'NFL Trivia Almanac',
     desc: QUIZ.length + ' real facts across Super Bowl history, records, and more.', dataFiles: [] },
   { id: 'xsoAlmanac', league: 'both', icon: 'versus', title: "X's & O's Almanac",

@@ -217,7 +217,12 @@ PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 # internal capability registry growing). Keyed by the public-facing mode
 # id (NOT the internal (mechanic, domain, predicate) tuple) so the public
 # contract's vocabulary stays independent of internal registry naming.
-PUBLIC_MODE_ALLOWLIST = frozenset({"draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess"})
+PUBLIC_MODE_ALLOWLIST = frozenset({
+    "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
+    # App-Wide Engine Migration operation -- real candidate surveys in
+    # gateway/services/public_game.py's own entries for both.
+    "nfl_game_result_guess", "cfb_game_result_guess",
+})
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------
 # TWO independent control layers, deliberately not one:

@@ -21,10 +21,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools import game_director_v01 as v01  # noqa: E402
 from tools.director_v04 import player_from_clues  # noqa: E402
+from tools.quiz_export.adapters import cfb_game_result as cfb_game_result_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_heisman as cfb_heisman_adapter  # noqa: E402
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -251,6 +253,74 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["cfb-data-enrichment-heisman-proof"],
         "pipeline_id_start": 650000,
+    },
+    # Added during the App-Wide Engine Migration operation -- the first
+    # capability built on tools/data_refresh/nfl_games_refresh.py's real,
+    # automatically-refreshed `games` table (Mission D/E: prove newly
+    # ingested game data can become real, generatable, certified content,
+    # not just sit in a table). See tools/quiz_export/adapters/
+    # nfl_game_result.py's module docstring for the real, disclosed reason
+    # this is scoped to game RESULTS, not stat-line/leader questions: this
+    # database has no per-game player stats, only season-level, and this
+    # project never fabricates numbers to fill a gap.
+    ("guess", "NFL_GAME_RESULT", "WON_GAME"): {
+        "adapter": nfl_game_result_adapter,
+        "category": nfl_game_result_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only the final result (winner, score, margin) of a real completed game -- this "
+            "database has no per-game player statistics (passing/rushing/receiving lines), only "
+            "season-level totals, so stat-leader or stat-line questions are not built on this table.",
+            "Games that ended in a tie are excluded -- there is no correct 'which team won' answer "
+            "for one.",
+            "Real candidate survey (App-Wide Engine Migration operation): 6,484 of 7,261 candidate "
+            "games (1999-2025) pass every check -- 777 rejected as TEAM_UNRESOLVED (a historical team "
+            "code/season combination team_aliases doesn't resolve, e.g. incomplete alias coverage for "
+            "a relocated/renamed franchise in that exact year), never silently guessed at.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_game",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["app-wide-engine-migration-nfl-game-result-proof"],
+        "pipeline_id_start": 660000,
+    },
+    # The CFB mirror of the above -- same architecture, same mechanic, same
+    # disclosed limitations, built on cfb_games_refresh.py's real
+    # `cfb_games_canonical` table (Mission F: prove the same architecture
+    # works for CFB, not a separate CFB content engine). Proven against
+    # real historical CFB games; the same code path serves current-season
+    # games automatically once cfbfastR-data publishes them.
+    ("guess", "CFB_GAME_RESULT", "WON_GAME"): {
+        "adapter": cfb_game_result_adapter,
+        "category": cfb_game_result_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only the final result (winner, score, margin) of a real completed game -- same "
+            "real, disclosed data gap as the NFL version: no per-game player statistics exist in "
+            "this database.",
+            "Games that ended in a tie are excluded.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_game",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["app-wide-engine-migration-cfb-game-result-proof"],
+        "pipeline_id_start": 670000,
     },
 }
 

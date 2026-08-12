@@ -117,3 +117,40 @@ def check_verification_status_safety(c, table: str, source_id: str, status_value
         "source_id": source_id, "source_name": src["source_name"], "approved_for_import": True,
         f"{table}_rows_total": total, f"{table}_rows_verified": clean,
     }
+
+
+def check_source_id_only_safety(c, table: str, source_id: str, where_extra: str | None = None) -> dict:
+    """A fourth, distinct pattern (App-Wide Engine Migration operation) --
+    the mirror image of check_verification_status_safety() above: a table
+    that carries a per-row `source_id` column but has NO `verification_status`
+    column at all. `games` (the NFL games/schedule/score table nfl_games_
+    refresh.py populates) is the first real case, confirmed directly against
+    the real schema (audited before writing this, not assumed) -- 35
+    columns, no `verification_status` among them. Trying to reuse
+    check_table_wide_safety() as-is would raise a real SQL error ("no such
+    column: verification_status"), not just a safe ABORT. Same discipline
+    as the other three functions in this module: source registered +
+    approved_for_import checked once, then an EXHAUSTIVE (not sampled)
+    per-row check that every row's source_id matches the expected value --
+    a row from any other source still fails the gate exactly as before."""
+    src = c.execute(
+        "SELECT source_id, source_name, approved_for_import FROM sources WHERE source_id=?",
+        (source_id,),
+    ).fetchone()
+    if not src:
+        raise SystemExit(f"ABORT: source {source_id!r} not found in the sources registry.")
+    if not src["approved_for_import"]:
+        raise SystemExit(f"ABORT: source {source_id!r} is not approved_for_import.")
+    where = f"WHERE {where_extra}" if where_extra else ""
+    total = c.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+    where2 = (where + " AND " if where else "WHERE ") + "source_id=?"
+    clean = c.execute(f"SELECT COUNT(*) FROM {table} {where2}", (source_id,)).fetchone()[0]
+    if clean != total:
+        raise SystemExit(
+            f"ABORT: {table} has {total - clean} row(s) with a source_id other than {source_id!r}; "
+            f"this assumed uniform provenance."
+        )
+    return {
+        "source_id": source_id, "source_name": src["source_name"], "approved_for_import": True,
+        f"{table}_rows_total": total, f"{table}_rows_verified": clean,
+    }

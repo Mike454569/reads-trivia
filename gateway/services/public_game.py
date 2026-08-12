@@ -180,6 +180,50 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Added during the App-Wide Engine Migration operation -- the first
+    # mode built on a real, automatically-refreshed games table
+    # (tools/data_refresh/nfl_games_refresh.py) rather than a one-time
+    # import. Real candidate survey: 6,484 of 7,261 candidates (1999-2025)
+    # accepted, all three difficulty bands genuinely well-represented
+    # (Hard 2,934 / Medium 1,331 / Easy 2,219) -- see
+    # tools/director_v02/registry.py's known_limitations for the real,
+    # disclosed rejection reason (777 TEAM_UNRESOLVED).
+    "nfl_game_result_guess": {
+        "competition": "NFL",
+        "title": "NFL Game Results: Guess the Winner",
+        "instructions": "You'll be shown a real NFL matchup. Pick the team that won.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_GAME_RESULT",
+            "relationship_predicate": "WON_GAME",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    # The CFB mirror -- same architecture, built on
+    # tools/data_refresh/cfb_games_refresh.py's real, automatically-
+    # refreshed cfb_games_canonical table. Real candidate survey: 36,184
+    # of 36,184 candidates (2002-2025) accepted (100%), all three
+    # difficulty bands genuinely well-represented (Easy 19,524 / Medium
+    # 7,551 / Hard 9,109).
+    "cfb_game_result_guess": {
+        "competition": "CFB",
+        "title": "CFB Game Results: Guess the Winner",
+        "instructions": "You'll be shown a real college football matchup. Pick the team that won.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_GAME_RESULT",
+            "relationship_predicate": "WON_GAME",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())
