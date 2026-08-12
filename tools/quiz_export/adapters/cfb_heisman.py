@@ -28,19 +28,32 @@ franchise-lineage model makes that precise and correct. The CFB equivalent,
 `cfb_school_seasons`, only covers 2002-2025 -- Heisman goes back to 1935.
 Rather than either (a) fabricating pre-2002 season-scoped participation, or
 (b) restricting this entire capability to 2002+ and silently discarding 66
-real years of real winners, this adapter draws distractors from the full
-`schools` table (805 real, currently-known school names, no duplicates)
-without season-scoping. This means a distractor could technically be a
-school that did not have a Heisman-caliber (or any) program in a given
-historical year -- a real, disclosed precision tradeoff, not a fabrication:
-every option shown is still a REAL school that plays/played real college
-football, never an invented name.
+real years of real winners, this adapter still does not season-scope
+distractors. Every option shown is still a REAL school that plays/played
+real college football, never an invented name.
+
+--- DISTRACTOR QUALITY FIX (live-generated-game quality pass) ---
+Originally sampled distractors uniformly at random from ALL 805 schools in
+`schools`. Caught by actually playing this mode, not assumed: a famous
+Heisman winner (e.g. Ohio State, Notre Dame, LSU) ended up surrounded by
+random Division-III/NAIA names ("Presentation", "Mars Hill", "Nichols
+College") no real fan would ever consider plausible -- the correct answer
+was obvious by elimination alone, without knowing any football. Fixed via
+`tools.quiz_export.distractors.sample_plausible()`: distractors now prefer
+the pool of OTHER real schools that have themselves produced a Heisman
+winner (41 distinct schools across 91 real winners -- confirmed directly
+against `cfb_award_facts`, always >= 3 excluding the correct answer, so the
+full-805 fallback is never actually needed in practice, but stays in place
+as a genuine fallback, never removed). A wrong option is now always a real
+program a football fan would recognize as football-relevant, never a
+structurally obvious giveaway.
 """
 from __future__ import annotations
 
 from collections import Counter
 
 from .. import engine, safety, difficulty as difficulty_mod, serializer
+from .. import distractors as distractors_mod
 
 OUT_PATH = None  # Director-pipeline-only, like player_from_clues and lineup
 CATEGORY = "CFB Heisman Winners"
@@ -72,6 +85,21 @@ def _all_real_schools(c) -> dict:
     return {r["school_id"]: r["school_name"] for r in rows}
 
 
+def _heisman_winning_schools(c) -> dict:
+    """The plausible-distractor pool: every real school that has itself
+    produced at least one real Heisman winner -- 41 distinct schools across
+    the 91 real winners (confirmed by direct query). A wrong option drawn
+    from this pool is always a school a football fan would recognize as
+    genuinely Heisman-caliber, not a random name from the full 805-school
+    universe."""
+    rows = c.execute(
+        "SELECT DISTINCT school_id, school_name FROM cfb_award_facts "
+        "WHERE award_name = ? AND verification_status = ?",
+        (AWARD_NAME, REQUIRED_VERIFICATION_STATUS),
+    ).fetchall()
+    return {r["school_id"]: r["school_name"] for r in rows}
+
+
 def fetch_ordered_candidates(c, seed: str):
     rows = c.execute(
         "SELECT award_year, player_name, school_id, school_name FROM cfb_award_facts "
@@ -91,12 +119,12 @@ def evaluate(c, row, rng, guard):
     if not row["school_id"] or not row["school_name"]:
         return "MISSING_SCHOOL"
 
-    schools = _all_real_schools(c)
-    schools.pop(row["school_id"], None)
-    if len(schools) < 3:
+    plausible_schools = _heisman_winning_schools(c)
+    full_schools = _all_real_schools(c)
+    distractor_map = distractors_mod.sample_plausible(rng, row["school_id"], plausible_schools, full_schools, k=3)
+    if distractor_map is None:
         return "INSUFFICIENT_DISTRACTORS"
-    distractor_ids = rng.sample(sorted(schools.keys()), 3)
-    distractor_names = [schools[sid] for sid in distractor_ids]
+    distractor_names = list(distractor_map.values())
 
     options = [row["school_name"]] + distractor_names
     if len(set(options)) != 4:

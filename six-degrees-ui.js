@@ -107,7 +107,18 @@ function pickSixDegreesOption(optionIndex) {
     s.lastResult = result;
     playSound(result.last_correct ? 'correct' : 'wrong');
     if (result.last_correct && !result.completed) {
-      s.game = result; // carries the NEXT step's current/options already
+      // Real bug found by actually tracing a live answer response: the
+      // Gateway's answer contract already advances step_index/current/options
+      // to the NEXT step in this same response (see public_six_degrees.py's
+      // submit_public_six_degrees_answer() -> _public_step_view()). Assigning
+      // it straight to s.game here (the old code) made the "Correct!"
+      // celebration render on top of the WRONG question -- the one the
+      // player hasn't attempted yet, with its buttons disabled and nothing
+      // showing what was actually just answered. Stashing it as s.nextGame
+      // instead, and only promoting it to s.game when the player clicks
+      // "Next Move" (continueSixDegreesAfterStep, below), keeps the
+      // STEP_RESULT screen showing the step that was actually just solved.
+      s.nextGame = result;
       s.screen = SIX_DEGREES_SCREEN.STEP_RESULT;
     } else if (result.completed && result.last_correct) {
       s.screen = SIX_DEGREES_SCREEN.COMPLETE;
@@ -125,6 +136,7 @@ function pickSixDegreesOption(optionIndex) {
 function continueSixDegreesAfterStep() {
   var s = state.sixDegrees;
   if (!s) return;
+  if (s.nextGame) { s.game = s.nextGame; s.nextGame = null; }
   s.pickedIndex = null;
   s.lastResult = null;
   s.screen = SIX_DEGREES_SCREEN.STEP_READY;
@@ -207,7 +219,14 @@ function renderSixDegreesScreen() {
     '<div class="quiz-options">' +
     game.options.map(function (opt, i) {
       var cls = 'quiz-option';
-      if (i === s.pickedIndex) cls += submitting ? ' selected' : '';
+      if (i === s.pickedIndex) {
+        // STEP_RESULT is only ever reached via a CORRECT answer (a wrong
+        // one routes straight to LOST, never here) -- so the picked option
+        // is always the right one at this point, matching engine-game-ui.js's
+        // own .correct convention rather than the in-flight-only .selected.
+        if (submitting) cls += ' selected';
+        else if (justAnswered) cls += ' correct';
+      }
       return '<button class="' + cls + '" ' + (s.screen === SIX_DEGREES_SCREEN.STEP_READY ? 'data-sixdegrees-answer="' + i + '"' : 'disabled') + '>' +
         String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
     }).join('') +
