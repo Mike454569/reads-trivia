@@ -1085,7 +1085,7 @@ function goToMode(mode) {
   // shape -- Six Degrees' start function takes no modeKey argument (there's
   // only one variant), so reusing that exact shape would need a needless
   // parameter every entry but this one ignores.
-  if (mode === 'six_degrees_guess' && ENABLE_ENGINE_SIX_DEGREES_V01) {
+  if (mode === 'coach_connections' && ENABLE_ENGINE_SIX_DEGREES_V01) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
     startSixDegreesRound();
@@ -1343,14 +1343,15 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     });
   }
 }
-// v1.7, Part C8: Six Degrees joins the exact same discovery array -- card
-// rendering (modeCardHtml) doesn't care that its routing (goToMode's own
-// separate `mode === 'six_degrees_guess'` check, above) differs slightly
-// from the draft/championship entries' shared engineMode dispatch.
+// v1.7, Part C8 (v2 rebuild: graph-driven Coach Connections): joins the
+// exact same discovery array -- card rendering (modeCardHtml) doesn't care
+// that its routing (goToMode's own separate `mode === 'coach_connections'`
+// check, above) differs slightly from the draft/championship entries'
+// shared engineMode dispatch.
 if (ENABLE_ENGINE_SIX_DEGREES_V01) {
   ENGINE_DISCOVERY_ENTRIES.push({
-    id: 'six_degrees_guess', icon: 'versus', title: 'Coach Connections',
-    desc: 'Two NFL teams, one coach who led them both. Figure out the connection.',
+    id: 'coach_connections', icon: 'versus', title: 'Coach Connections',
+    desc: 'Connect two NFL people through real career history — coaches, players, and teams.',
     league: 'nfl', difficulty: 'hardcore',
   });
 }
@@ -8003,7 +8004,7 @@ document.addEventListener('click', function (e) {
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
-    '[data-sixdegrees-start], [data-sixdegrees-answer], [data-sixdegrees-continue], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], ' +
+    '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], ' +
     '[data-iq-start], [data-iq-answer], ' +
@@ -8204,11 +8205,14 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pilotFallback !== undefined) { enginePilotFallback(); return; }
 
   if (t.dataset.sixdegreesStart !== undefined) { startSixDegreesRound(); return; }
-  if (t.dataset.sixdegreesAnswer !== undefined) { pickSixDegreesOption(parseInt(t.dataset.sixdegreesAnswer, 10)); return; }
-  if (t.dataset.sixdegreesContinue !== undefined) { continueSixDegreesAfterStep(); return; }
+  if (t.dataset.sixdegreesPickId !== undefined) {
+    submitSixDegreesMove(t.dataset.sixdegreesPickType, t.dataset.sixdegreesPickId, t.dataset.sixdegreesPickName);
+    return;
+  }
   if (t.dataset.sixdegreesRetry !== undefined) { loadSixDegreesGame(); return; }
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
+  if (t.dataset.sixdegreesGiveup !== undefined) { giveUpSixDegrees(); return; }
   if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
     var tokenInput = document.getElementById('creator-token-input');
     creatorSubmitToken(tokenInput ? tokenInput.value : '');
@@ -8274,7 +8278,7 @@ document.addEventListener('click', function (e) {
 // (which shrinks the layout viewport instead of letting the keyboard just
 // overlay it) rather than replacing it — belt and suspenders, since browser
 // support for that meta value still varies.
-var MOBILE_KEYBOARD_INPUT_IDS = ['grid-input', 'cfb-grid-input', 'blitz-input', 'cfb-blitz-input', 'silhouette-input', 'clues-input'];
+var MOBILE_KEYBOARD_INPUT_IDS = ['grid-input', 'cfb-grid-input', 'blitz-input', 'cfb-blitz-input', 'silhouette-input', 'clues-input', 'sixdegrees-search-input'];
 document.addEventListener('focus', function (e) {
   if (MOBILE_KEYBOARD_INPUT_IDS.indexOf(e.target.id) === -1) return;
   if (!window.matchMedia || !window.matchMedia('(pointer: coarse)').matches) return;
@@ -8288,6 +8292,10 @@ document.addEventListener('focus', function (e) {
 // Delaying long enough for that click to land, then closing only if nothing
 // else already did, is the standard fix for this exact race.
 document.addEventListener('blur', function (e) {
+  if (e.target.id === 'sixdegrees-search-input') {
+    setTimeout(sixDegreesCloseSearch, 200);
+    return;
+  }
   if (!TYPEAHEAD_CONFIGS[e.target.id]) return;
   setTimeout(function () { closeTypeahead(e.target.id); }, 200);
 }, true);
@@ -8299,6 +8307,7 @@ document.addEventListener('input', function (e) {
   if (e.target.id === 'cfb-blitz-input') { state.cfbBlitz.input = e.target.value; return; }
   if (e.target.id === 'silhouette-input') { state.silhouette.input = e.target.value; renderTypeahead('silhouette-input'); return; }
   if (e.target.id === 'clues-input') { state.playerClues.input = e.target.value; renderTypeahead('clues-input'); return; }
+  if (e.target.id === 'sixdegrees-search-input') { sixDegreesOnSearchInput(e.target.value); return; }
   // Unlike the inputs above (which only read their value on submit, no
   // re-render per keystroke), the Learn filter box needs to narrow the
   // table live as you type — see renderAll()'s focus-preservation block
@@ -8342,6 +8351,10 @@ document.addEventListener('keydown', function (e) {
     closeTypeahead(e.target.id);
     return;
   }
+  if (e.key === 'Escape' && e.target.id === 'sixdegrees-search-input') {
+    sixDegreesCloseSearch();
+    return;
+  }
   if (e.key === 'Escape' && modeSheetOpenLeague) { closeModeSheet(); return; }
   if (e.key === 'Escape' && onboardingModalEl && onboardingModalEl.classList.contains('open')) { closeOnboarding(); return; }
   if (e.key === 'Escape' && shareModalEl && shareModalEl.classList.contains('open')) { closeShareModal(); return; }
@@ -8370,6 +8383,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.target.id === 'cfb-blitz-input') { submitCfbBlitzGuess(); }
   else if (e.target.id === 'silhouette-input') { if (!typeaheadPickActive('silhouette-input')) submitSilhouetteGuess(); }
   else if (e.target.id === 'clues-input') { if (!typeaheadPickActive('clues-input')) submitPlayerCluesGuess(); }
+  else if (e.target.id === 'sixdegrees-search-input') { sixDegreesPickTopResult(); }
   else if (e.target.id === 'auth-username-input' || e.target.id === 'auth-password-input') { authModalSubmit(); }
   else if (e.target.id === 'friend-name-input') { addFriend(e.target.value); }
 });

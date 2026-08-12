@@ -1115,6 +1115,13 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .typeahead-row + .typeahead-row { border-top: 1px solid var(--border); }
 .typeahead-row.active, .typeahead-row:hover { background: rgba(217, 166, 60, 0.14); }
 .typeahead-row mark { background: transparent; color: var(--accent); font-weight: 800; }
+/* Coach Connections v2's search results reuse .typeahead-row as-is but add
+   a small right-aligned type badge (Player/Coach/Team) so a name that could
+   plausibly be more than one entity type is unambiguous before picking it. */
+.typeahead-hint { float: right; color: var(--text-dim); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.sixdeg-edges { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.sixdeg-edges li { font-size: 12.5px; }
+.sixdeg-edges li::before { content: '→ '; color: var(--accent); font-weight: 800; }
 .grid-recap { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .grid-recap-row { border-radius: var(--radius-sm); padding: 10px 12px; background: var(--bg-elevated); border: 1px solid var(--border); font-size: 13.5px; }
 .grid-recap-row.correct { border-color: var(--good); }

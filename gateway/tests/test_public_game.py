@@ -46,8 +46,12 @@ def test_public_modes_no_auth_needed(client):
     # own dedicated assertions. v1.8, Part F/O: lineup_guess is the third
     # Director-pipeline guess mode, certified alongside the other two. The
     # CFB data enrichment operation added the fourth (and first CFB) mode.
+    # Coach Connections v2 rebuild: "coach_connections" (real graph-driven
+    # generation, gateway/services/public_coach_connections.py) REPLACES the
+    # old "six_degrees_guess" entry in this list -- same product slot, see
+    # app.py's public_modes() docstring.
     assert set(modes_by_id) == {
-        "draft_guess", "championship_guess", "six_degrees_guess", "lineup_guess", "cfb_heisman_guess",
+        "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -505,8 +509,8 @@ def test_championship_question_is_a_real_postseason_fact(client):
 def test_all_four_certified_guess_modes_registered(client):
     # Scoped to public_game's own Director-pipeline guess-mechanic registry
     # specifically (not the combined /v1/public/modes response, which as of
-    # v1.7 also includes six_degrees_guess -- a structurally different
-    # system, see gateway/services/public_six_degrees.py's own module
+    # v1.7 also includes coach_connections -- a structurally different
+    # system, see gateway/services/public_coach_connections.py's own module
     # docstring for why it was never folded into this same registry).
     # v1.8, Part F/O added the third: lineup_guess. The CFB data enrichment
     # operation added the fourth: cfb_heisman_guess (the first CFB mode).
@@ -616,20 +620,24 @@ def test_master_switch_off_reflected_in_modes_list(client, monkeypatch):
     modes = {m["mode"]: m for m in client.get("/v1/public/modes").json()["modes"]}
     assert modes["draft_guess"]["available"] is False
     assert modes["championship_guess"]["available"] is False
-    assert modes["six_degrees_guess"]["available"] is True
+    assert modes["coach_connections"]["available"] is True
     monkeypatch.setattr(public_game.config, "PUBLIC_GAME_ENABLED", True)
     modes = client.get("/v1/public/modes").json()["modes"]
     assert all(m["available"] is True for m in modes)
 
 
 def test_six_degrees_master_switch_independent_of_public_game_switch(client, monkeypatch):
-    from gateway.services import public_six_degrees
-    monkeypatch.setattr(public_six_degrees.config, "PUBLIC_SIX_DEGREES_ENABLED", False)
+    # Coach Connections v2 rebuild: shares the same PUBLIC_SIX_DEGREES_ENABLED
+    # kill switch as the old six_degrees_guess mode did (it's a replacement
+    # for that same product surface) -- see public_coach_connections.py's
+    # module docstring.
+    from gateway.services import public_coach_connections
+    monkeypatch.setattr(public_coach_connections.config, "PUBLIC_SIX_DEGREES_ENABLED", False)
     modes = {m["mode"]: m for m in client.get("/v1/public/modes").json()["modes"]}
-    assert modes["six_degrees_guess"]["available"] is False
+    assert modes["coach_connections"]["available"] is False
     assert modes["draft_guess"]["available"] is True
     assert modes["championship_guess"]["available"] is True
-    monkeypatch.setattr(public_six_degrees.config, "PUBLIC_SIX_DEGREES_ENABLED", True)
+    monkeypatch.setattr(public_coach_connections.config, "PUBLIC_SIX_DEGREES_ENABLED", True)
 
 
 def test_public_modes_env_var_narrows_but_cannot_expand(monkeypatch):

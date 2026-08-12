@@ -116,9 +116,11 @@ primary_region = "iad"
 # ONE volume, mounted at /data, holding BOTH the Football Warehouse (Engine
 # .py modules + reads_football_v4.0.sqlite, see gateway/Dockerfile's module
 # docstring for why they must live together) under /data/engine, AND the
-# Gateway's own generated-package/log storage under /data/packages and
-# /data/logs (matching READS_ENGINE_PACKAGES_DIR / READS_ENGINE_LOG_DIR's
-# defaults set as image ENV -- see gateway/Dockerfile). A real deploy must
+# Gateway's own generated-package/game-state/log storage under
+# /data/packages, /data/game_state, and /data/logs (matching
+# READS_ENGINE_PACKAGES_DIR / READS_ENGINE_GAME_STATE_DIR /
+# READS_ENGINE_LOG_DIR's defaults set as image ENV -- see gateway/Dockerfile).
+# A real deploy must
 # populate /data/engine (Engine code + database) onto this volume BEFORE
 # first start -- the image itself intentionally ships without either (Part C).
 [mounts]
@@ -127,9 +129,10 @@ primary_region = "iad"
 
 [env]
   READS_ENGINE_DIR = "/data/engine"
-  # READS_ENGINE_PACKAGES_DIR and READS_ENGINE_LOG_DIR are already set as
-  # image-level ENV (/data/packages, /data/logs) in gateway/Dockerfile --
-  # not repeated here to avoid two sources of truth for the same value.
+  # READS_ENGINE_PACKAGES_DIR, READS_ENGINE_GAME_STATE_DIR, and
+  # READS_ENGINE_LOG_DIR are already set as image-level ENV (/data/packages,
+  # /data/game_state, /data/logs) in gateway/Dockerfile -- not repeated here
+  # to avoid two sources of truth for the same value.
   # READS_ENGINE_ADMIN_TOKEN and READS_ENGINE_ALLOWED_ORIGINS are NOT set
   # here -- see the [secrets/config to set separately] note below. Never
   # put a real secret value in this file.

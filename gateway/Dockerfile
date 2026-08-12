@@ -51,12 +51,18 @@ COPY gateway/ /app/gateway/
 # (see fly.toml). Creating it here means a fresh container that hasn't had
 # a volume attached yet still starts cleanly (packages just won't survive a
 # restart until a real volume is mounted -- readiness reflects the Engine
-# DB's state, not this).
-RUN mkdir -p /app/gateway/storage/packages && chown -R gateway:gateway /app
+# DB's state, not this). game_state/ (Coach Connections v2's mutable
+# per-game progress, gateway/services/game_state.py) gets the same
+# treatment -- it's deliberately a SEPARATE directory from packages/, never
+# nested inside it, since packages.py's content-addressed collision check
+# and game_state.py's plain overwrite have different, incompatible write
+# semantics.
+RUN mkdir -p /app/gateway/storage/packages /app/gateway/storage/game_state && chown -R gateway:gateway /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     READS_ENGINE_PACKAGES_DIR=/data/packages \
+    READS_ENGINE_GAME_STATE_DIR=/data/game_state \
     READS_ENGINE_LOG_DIR=/data/logs
 
 # Documented, not baked in: READS_ENGINE_DIR (Engine volume mount path),

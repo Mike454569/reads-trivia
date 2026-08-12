@@ -71,14 +71,18 @@ def test_six_degrees_same_seed_same_puzzle(client):
 
 
 def test_six_degrees_content_is_nfl_only(client):
-    # Real, checked content today (see public_six_degrees.py's own
-    # PUBLIC_NODE_TYPES comment): every certified puzzle is a two-team NFL
-    # connection through a shared coach. This isn't asserting a specific
-    # team/coach name (that would be a brittle/content-coupled test) --
-    # just that the mode's own self-reported metadata matches reality.
+    # Coach Connections v2 rebuild: the routes this file otherwise exercises
+    # (public_six_degrees.py) stay mounted for rollback safety, but are no
+    # longer the mode /v1/public/modes advertises -- that's now
+    # "coach_connections" (gateway/services/public_coach_connections.py),
+    # still NFL-only (PUBLIC_NODE_TYPES = {nfl_player, team, coach}), still a
+    # graph-connections mechanic. This isn't asserting a specific
+    # team/coach/player name (that would be a brittle/content-coupled test)
+    # -- just that the mode's own self-reported metadata matches reality.
     modes = {m["mode"]: m for m in client.get("/v1/public/modes").json()["modes"]}
-    assert modes["six_degrees_guess"]["competition"] == "NFL"
-    assert modes["six_degrees_guess"]["kind"] == "six_degrees"
+    assert modes["coach_connections"]["competition"] == "NFL"
+    assert modes["coach_connections"]["kind"] == "graph_connections"
+    assert "six_degrees_guess" not in modes
 
 
 # --- answer flow ---------------------------------------------------------------

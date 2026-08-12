@@ -39,12 +39,14 @@ from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
 from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorReviewRequest,  # noqa: E402
                       GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
-                      PublicAnswerRequest, PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
+                      PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
+                      PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import creator as creator_service  # noqa: E402
 from .services import generation, packages  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
+from .services import public_coach_connections  # noqa: E402
 from .services import public_game  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
 from .services import audit as gateway_audit  # noqa: E402
@@ -73,6 +75,15 @@ public_six_degrees_game_limiter = SlidingWindowRateLimiter(
 public_six_degrees_answer_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_MAX,
     window_seconds=config.PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_WINDOW_SECONDS)
+coach_connections_game_limiter = SlidingWindowRateLimiter(
+    max_requests=config.COACH_CONNECTIONS_GAME_RATE_LIMIT_MAX,
+    window_seconds=config.COACH_CONNECTIONS_GAME_RATE_LIMIT_WINDOW_SECONDS)
+coach_connections_move_limiter = SlidingWindowRateLimiter(
+    max_requests=config.COACH_CONNECTIONS_MOVE_RATE_LIMIT_MAX,
+    window_seconds=config.COACH_CONNECTIONS_MOVE_RATE_LIMIT_WINDOW_SECONDS)
+coach_connections_search_limiter = SlidingWindowRateLimiter(
+    max_requests=config.COACH_CONNECTIONS_SEARCH_RATE_LIMIT_MAX,
+    window_seconds=config.COACH_CONNECTIONS_SEARCH_RATE_LIMIT_WINDOW_SECONDS)
 
 
 def _validate_origins_or_die() -> list[str]:
@@ -216,6 +227,18 @@ def rate_limit_public_six_degrees_game(request: Request) -> None:
 
 def rate_limit_public_six_degrees_answer(request: Request) -> None:
     _rate_limit(public_six_degrees_answer_limiter, request)
+
+
+def rate_limit_coach_connections_game(request: Request) -> None:
+    _rate_limit(coach_connections_game_limiter, request)
+
+
+def rate_limit_coach_connections_move(request: Request) -> None:
+    _rate_limit(coach_connections_move_limiter, request)
+
+
+def rate_limit_coach_connections_search(request: Request) -> None:
+    _rate_limit(coach_connections_search_limiter, request)
 
 
 @app.exception_handler(GatewayError)
@@ -554,7 +577,14 @@ def public_modes():
     # v1.7, Part C8: one unified discovery response -- Six Degrees composed
     # in here alongside the Director-pipeline guess modes, not a second
     # catalog endpoint a client would need to know to call separately.
-    return {"modes": public_game.list_public_modes() + [public_six_degrees.list_public_six_degrees_capability()]}
+    # Coach Connections v2 (public_coach_connections.py) REPLACES the old
+    # six_degrees_guess entry in this list -- same product slot ("Coach
+    # Connections"), real graph-driven generation instead of a 23-puzzle
+    # cache. The old routes/module stay mounted below (harmless, unused by
+    # a client that only ever discovers modes through this endpoint) rather
+    # than deleted outright, so nothing breaks for an in-flight old-frontend
+    # session during the deploy window.
+    return {"modes": public_game.list_public_modes() + [public_coach_connections.list_coach_connections_capability()]}
 
 
 @app.get("/v1/public/game")
@@ -588,6 +618,46 @@ def public_six_degrees_answer_route(body: PublicSixDegreesAnswerRequest, request
 def public_six_degrees_reveal_route(body: PublicSixDegreesRevealRequest, request: Request,
                                      _rl=Depends(rate_limit_public_six_degrees_answer)):
     return public_six_degrees.reveal_public_six_degrees(game_id=body.game_id)
+
+
+# --- Coach Connections v2 (graph-driven rebuild) ----------------------------
+# Progressive-reveal, free-text-move, multi-path contract -- see
+# gateway/services/public_coach_connections.py's module docstring for how
+# this differs from the six_degrees routes above. Same trust boundary:
+# server remains fully authoritative (gateway/services/game_state.py holds
+# real per-game progress, never trusted from the client), same
+# never-leak-internals error contract (gateway_error_handler, unchanged).
+
+@app.get("/v1/public/coach_connections/game")
+def public_coach_connections_game_route(request: Request,
+                                         seed: Optional[str] = Query(default=None, min_length=1, max_length=config.MAX_SEED_LENGTH),
+                                         exclude: Optional[str] = Query(default=None, max_length=2000),
+                                         _rl=Depends(rate_limit_coach_connections_game)):
+    exclude_ids = [x for x in (exclude.split(",") if exclude else []) if x][:50]
+    return public_coach_connections.get_coach_connections_game(seed=seed, exclude_game_ids=exclude_ids)
+
+
+@app.post("/v1/public/coach_connections/move")
+def public_coach_connections_move_route(body: PublicCoachConnectionsMoveRequest, request: Request,
+                                         _rl=Depends(rate_limit_coach_connections_move)):
+    return public_coach_connections.submit_move(game_id=body.game_id, node_type=body.node_type, node_id=body.node_id)
+
+
+@app.post("/v1/public/coach_connections/reveal")
+def public_coach_connections_reveal_route(body: PublicCoachConnectionsRevealRequest, request: Request,
+                                           _rl=Depends(rate_limit_coach_connections_move)):
+    return public_coach_connections.reveal(game_id=body.game_id)
+
+
+@app.get("/v1/public/coach_connections/search")
+def public_coach_connections_search_route(request: Request,
+                                           q: str = Query(..., min_length=2, max_length=64),
+                                           node_type: Optional[str] = Query(default=None, min_length=1, max_length=32),
+                                           _rl=Depends(rate_limit_coach_connections_search)):
+    if node_type is not None and node_type not in public_coach_connections.ccg.PUBLIC_NODE_TYPES:
+        raise GatewayError("INVALID_REQUEST",
+                            f"node_type must be one of {sorted(public_coach_connections.ccg.PUBLIC_NODE_TYPES)}.")
+    return {"results": public_coach_connections.search_nodes(query=q, node_type=node_type)}
 
 
 @app.post("/v1/public/game/answer")

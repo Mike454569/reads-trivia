@@ -27,6 +27,12 @@ API_VERSION = "v1"
 # (the hand-reviewed v0.1-v0.4 milestone deliverables) regardless of where
 # this points -- see gateway/services/packages.py.
 PACKAGES_DIR = Path(os.environ.get("READS_ENGINE_PACKAGES_DIR", str(REPO_ROOT / "gateway" / "storage" / "packages")))
+# Mutable per-game-session progress (Coach Connections v2's discovered-path
+# state) -- deliberately SEPARATE from PACKAGES_DIR: packages.py's
+# save_package() is content-addressed and raises PackageCollision on any
+# in-place mutation by design (Part E), which is right for generated puzzle
+# content but wrong for live, changing game progress. See gateway/services/game_state.py.
+GAME_STATE_DIR = Path(os.environ.get("READS_ENGINE_GAME_STATE_DIR", str(REPO_ROOT / "gateway" / "storage" / "game_state")))
 GATEWAY_AUDIT_LOG_DIR = Path(os.environ.get("READS_ENGINE_LOG_DIR", str(REPO_ROOT / "gateway" / "storage")))
 GATEWAY_AUDIT_LOG_PATH = GATEWAY_AUDIT_LOG_DIR / "gateway_audit_log.jsonl"
 OPERATIONAL_LOG_PATH = GATEWAY_AUDIT_LOG_DIR / "gateway_operational_log.jsonl"  # Part M -- per-request log line
@@ -274,3 +280,19 @@ PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC
 PUBLIC_SIX_DEGREES_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
 PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT", "60"))
 PUBLIC_SIX_DEGREES_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+# --- Coach Connections v2 (graph-driven rebuild) ----------------------------
+# Shares the same PUBLIC_SIX_DEGREES_ENABLED kill switch (it's a replacement
+# for that same product surface, not a new one -- see
+# gateway/services/public_coach_connections.py), but gets its OWN rate-limit
+# tiers: move submission is now free-text/open-ended (many more real
+# candidate moves per node than the old fixed 4-option list), and autocomplete
+# search is a genuinely new request shape this mode didn't have before
+# (fired roughly once per keystroke by the frontend), so it needs a looser,
+# dedicated budget rather than being folded into the move or game tier.
+COACH_CONNECTIONS_GAME_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_COACH_CONNECTIONS_GAME_RATE_LIMIT", "20"))
+COACH_CONNECTIONS_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
+COACH_CONNECTIONS_MOVE_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_COACH_CONNECTIONS_MOVE_RATE_LIMIT", "120"))
+COACH_CONNECTIONS_MOVE_RATE_LIMIT_WINDOW_SECONDS = 60.0
+COACH_CONNECTIONS_SEARCH_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_COACH_CONNECTIONS_SEARCH_RATE_LIMIT", "90"))
+COACH_CONNECTIONS_SEARCH_RATE_LIMIT_WINDOW_SECONDS = 60.0

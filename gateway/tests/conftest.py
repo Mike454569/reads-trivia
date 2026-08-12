@@ -28,6 +28,8 @@ from gateway import config  # noqa: E402
 # at call time, not import time) is ever exercised.
 TEST_PACKAGES_DIR = REPO_ROOT / "gateway" / "storage" / "test_packages"
 config.PACKAGES_DIR = TEST_PACKAGES_DIR
+TEST_GAME_STATE_DIR = REPO_ROOT / "gateway" / "storage" / "test_game_state"
+config.GAME_STATE_DIR = TEST_GAME_STATE_DIR
 config.GATEWAY_AUDIT_LOG_DIR = REPO_ROOT / "gateway" / "storage"
 config.GATEWAY_AUDIT_LOG_PATH = config.GATEWAY_AUDIT_LOG_DIR / "test_gateway_audit_log.jsonl"
 config.OPERATIONAL_LOG_PATH = config.GATEWAY_AUDIT_LOG_DIR / "test_gateway_operational_log.jsonl"
@@ -45,9 +47,11 @@ director_audit_log.LOG_DIR = REPO_ROOT / "gateway" / "storage" / "test_director_
 director_audit_log.LOG_PATH = director_audit_log.LOG_DIR / "audit_log.jsonl"
 
 from gateway.app import (  # noqa: E402
-    app, generate_limiter, graph_limiter, graph_path_limiter,
+    app, coach_connections_game_limiter, coach_connections_move_limiter,
+    coach_connections_search_limiter, generate_limiter, graph_limiter, graph_path_limiter,
     grid_board_limiter, grid_lookup_limiter, preview_limiter,
     public_answer_limiter, public_game_limiter,
+    public_six_degrees_answer_limiter, public_six_degrees_game_limiter,
 )
 
 
@@ -56,6 +60,9 @@ def _clean_test_storage():
     if TEST_PACKAGES_DIR.exists():
         shutil.rmtree(TEST_PACKAGES_DIR)
     TEST_PACKAGES_DIR.mkdir(parents=True, exist_ok=True)
+    if TEST_GAME_STATE_DIR.exists():
+        shutil.rmtree(TEST_GAME_STATE_DIR)
+    TEST_GAME_STATE_DIR.mkdir(parents=True, exist_ok=True)
     yield
     # Left in place after the run (not deleted) so a failed run's artifacts
     # are inspectable -- next run's setup wipes it fresh anyway.
@@ -77,6 +84,11 @@ def _reset_rate_limiters():
     grid_board_limiter.reset()
     public_game_limiter.reset()
     public_answer_limiter.reset()
+    public_six_degrees_game_limiter.reset()
+    public_six_degrees_answer_limiter.reset()
+    coach_connections_game_limiter.reset()
+    coach_connections_move_limiter.reset()
+    coach_connections_search_limiter.reset()
     yield
 
 

@@ -110,6 +110,29 @@ class PublicSixDegreesRevealRequest(BaseModel):
     game_id: str = Field(min_length=1, max_length=64)
 
 
+class PublicCoachConnectionsMoveRequest(BaseModel):
+    """POST /v1/public/coach_connections/move -- unlike Six Degrees v1's
+    step_index/choice_index (an index into a small server-fixed option
+    list), this mode's move is free-text: node_type/node_id identify a real
+    graph node the player found via /v1/public/coach_connections/search.
+    Still never trusted as "correct" here -- gateway/services/
+    public_coach_connections.py.submit_move() validates it against the live
+    graph (coach_connections_graph.is_legal_move) before accepting it, and
+    against server-held progress state (game_state.py), never a
+    client-supplied "current position"."""
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: str = Field(min_length=1, max_length=64)
+    node_type: str = Field(min_length=1, max_length=32)
+    node_id: str = Field(min_length=1, max_length=128)
+
+
+class PublicCoachConnectionsRevealRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    game_id: str = Field(min_length=1, max_length=64)
+
+
 class CreatorFeasibilityRequest(BaseModel):
     """POST /v1/creator/feasibility (v1.8, Part B/C). request_text-only --
     unlike GameRequestBase, the Creator never accepts a raw `spec` dict from
