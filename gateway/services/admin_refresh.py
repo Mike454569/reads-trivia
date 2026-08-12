@@ -65,7 +65,10 @@ def _runners():
 
     Keyed by dataset_key (the Gateway route's own path segment) -> (module,
     run_fn, league label, real dataset_name stored in refresh_runs)."""
-    from tools.data_refresh import cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh, nfl_refresh
+    from tools.data_refresh import (
+        cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh,
+        nfl_player_stats_refresh, nfl_refresh,
+    )
 
     return {
         "nfl": (nfl_refresh, nfl_refresh.run_nfl_refresh, "NFL", nfl_refresh.DATASET),
@@ -77,6 +80,11 @@ def _runners():
         # was capped at 2024 -- this closes that gap using the same
         # already-approved NFLVERSE_DATA source.
         "nfl_draft": (nfl_draft_refresh, nfl_draft_refresh.run_nfl_draft_refresh, "NFL", nfl_draft_refresh.DATASET),
+        # Historical Engine Enrichment operation, continuation:
+        # player_season_stats was completely empty (0 rows) -- the hard
+        # blocker on any real 17-0 candidate generation. Closes that gap.
+        "nfl_player_stats": (nfl_player_stats_refresh, nfl_player_stats_refresh.run_nfl_player_stats_refresh,
+                              "NFL", nfl_player_stats_refresh.DATASET),
     }
 
 
@@ -177,6 +185,7 @@ def refresh_status() -> dict:
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
             "draft": _safe_run_summary(runners["nfl_draft"][0].last_run_status()),
+            "player_stats": _safe_run_summary(runners["nfl_player_stats"][0].last_run_status()),
         },
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),
