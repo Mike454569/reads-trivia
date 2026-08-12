@@ -158,7 +158,11 @@ primary_region = "iad"
   # even while READS_PUBLIC_GAME_ENABLED=false correctly blocked every
   # other mode, until this was set explicitly).
   READS_PUBLIC_GAME_ENABLED = "true"
-  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess"
+  # App-Wide Engine Migration operation: nfl_game_result_guess/
+  # cfb_game_result_guess added after real production verification (real
+  # Super Bowl LX proof, real full-survey candidate counts) -- see
+  # READS_APP_WIDE_ENGINE_MIGRATION_REPORT.md.
+  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess,nfl_game_result_guess,cfb_game_result_guess"
   READS_PUBLIC_SIX_DEGREES_ENABLED = "true"
 
 # --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --
