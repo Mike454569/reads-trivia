@@ -1008,17 +1008,24 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .feedback-good { color: var(--good); }
 .feedback-bad { color: var(--bad); }
 .feedback-good .icon, .feedback-bad .icon { width: 18px; height: 18px; }
-/* position-lineup visual template (v1.8, Part E/F) -- a real football
-   position board instead of a plain question sentence. Reuses the same
-   .quiz-option/.quiz-options answer buttons below it -- only the PROMPT
-   presentation differs, the mechanic/answer contract does not. */
+/* position-lineup visual template (v1.8, Part E/F; UI polish pass) -- a
+   real football position board instead of a plain question sentence.
+   Reuses the same .quiz-option/.quiz-options answer buttons below it --
+   only the PROMPT presentation differs, the mechanic/answer contract does
+   not. */
 .lineup-board { margin-bottom: 14px; }
-.lineup-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 6px; }
+.lineup-board-eyebrow {
+  display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+}
+.lineup-board-eyebrow .icon { width: 14px; height: 14px; }
+.lineup-row-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 5px 2px; }
+.lineup-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
 .lineup-cell {
   background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 8px 4px; text-align: center;
 }
-.lineup-pos { color: var(--text-dim); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.lineup-pos { color: var(--accent); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
 .lineup-name { font-size: 12.5px; font-weight: 600; margin-top: 3px; line-height: 1.25; word-break: break-word; }
 /* Game Creator (v1.8, Part B) -- admin-only hidden page, utilitarian
    styling reusing existing tokens/patterns rather than a parallel design
@@ -1035,6 +1042,18 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .creator-queue-row { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
 .creator-limitations { margin: 6px 0 0; padding-left: 18px; color: var(--text-dim); font-size: 13px; line-height: 1.4; }
 .creator-preview-question { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+/* Coach Connections path HUD (UI polish pass) -- start/current/target made
+   visually explicit instead of one plain sentence. */
+.sixdeg-path { display: flex; align-items: stretch; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.sixdeg-path-node {
+  flex: 1 1 0; min-width: 90px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px 8px; font-size: 12.5px; font-weight: 700; line-height: 1.25;
+}
+.sixdeg-path-node b { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
+.sixdeg-path-current { border-color: var(--accent); background: rgba(217,166,60,.12); }
+.sixdeg-path-current b { color: var(--accent); }
+.sixdeg-path-arrow { display: flex; align-items: center; color: var(--text-dim); font-weight: 700; }
 .summary-score { font-size: 26px; font-weight: 800; margin: 6px 0; font-variant-numeric: tabular-nums; }
 .summary-note { color: var(--text-dim); font-size: 13.5px; }
 .streak-saved-note { color: var(--good); font-weight: 600; margin-top: 4px; }
@@ -1355,6 +1374,10 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .lineup-cell { padding: 6px 2px; }
   .lineup-pos { font-size: 9.5px; }
   .lineup-name { font-size: 11px; }
+  .lineup-board-eyebrow { font-size: 10px; }
+  .lineup-row-label { font-size: 9.5px; }
+  .sixdeg-path-node { min-width: 78px; font-size: 11px; padding: 5px 6px; }
+  .sixdeg-path-node b { font-size: 8.5px; }
 }
 
 @media (max-width: 360px) {

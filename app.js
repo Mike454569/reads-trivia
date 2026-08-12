@@ -1297,35 +1297,49 @@ function nameBarHtml() {
 // expose engine_backed to users unless useful internally") -- modeCardHtml()
 // never reads it; only goToMode() below does, to dispatch into the shared
 // engine shell instead of the normal local-mode path.
+// UI/product polish pass: every entry now carries the same `difficulty`
+// field every hand-authored card already has (modeCardHtml() only renders
+// the badge when it's present -- these 5 cards were rendering with a
+// visibly blank top-right corner next to every other card that has one,
+// looking unfinished by comparison) and an explicit `league` so each entry
+// lands in the tab it actually belongs to -- see the real bug this fixed,
+// just below.
 var ENGINE_DISCOVERY_ENTRIES = [];
 if (typeof ENGINE_PILOT_MODES !== 'undefined') {
   if (ENGINE_PILOT_MODES.draft.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'draft_guess', icon: 'flag', title: ENGINE_PILOT_MODES.draft.title,
-      desc: ENGINE_PILOT_MODES.draft.desc, engineMode: 'draft',
+      desc: ENGINE_PILOT_MODES.draft.desc, engineMode: 'draft', league: 'nfl', difficulty: 'competitive',
     });
   }
   if (ENGINE_PILOT_MODES.championship.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'championship_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.championship.title,
-      desc: ENGINE_PILOT_MODES.championship.desc, engineMode: 'championship',
+      desc: ENGINE_PILOT_MODES.championship.desc, engineMode: 'championship', league: 'nfl', difficulty: 'competitive',
     });
   }
   // v1.8, Part F/O.
   if (ENGINE_PILOT_MODES.lineup.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'lineup_guess', icon: 'users', title: ENGINE_PILOT_MODES.lineup.title,
-      desc: ENGINE_PILOT_MODES.lineup.desc, engineMode: 'lineup',
+      desc: ENGINE_PILOT_MODES.lineup.desc, engineMode: 'lineup', league: 'nfl', difficulty: 'hardcore',
     });
   }
   // CFB data enrichment operation -- the first CFB entry in the same
   // unified discovery array, same shared-shell dispatch as every NFL entry
   // above (Part 14's "no separate CFB architecture" carried into the
-  // frontend too).
+  // frontend too). `league: 'cfb'` is the real fix: this used to have no
+  // league tag at all, so it fell into LEAGUE_MODES.nfl by default (every
+  // ENGINE_DISCOVERY_ENTRIES entry was concatenated onto the NFL array,
+  // unconditionally) -- a real, visible bug found by actually opening the
+  // NFL tab in production: "CFB Heisman Winners" was listed as an NFL
+  // mode. Distinct icon from Championship's lombardiTrophy too (both used
+  // the same trophy glyph before, making them hard to tell apart at a
+  // glance in the same grid).
   if (ENGINE_PILOT_MODES.heisman.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
-      id: 'cfb_heisman_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.heisman.title,
-      desc: ENGINE_PILOT_MODES.heisman.desc, engineMode: 'heisman',
+      id: 'cfb_heisman_guess', icon: 'cfpTrophy', title: ENGINE_PILOT_MODES.heisman.title,
+      desc: ENGINE_PILOT_MODES.heisman.desc, engineMode: 'heisman', league: 'cfb', difficulty: 'casual',
     });
   }
 }
@@ -1337,6 +1351,7 @@ if (ENABLE_ENGINE_SIX_DEGREES_V01) {
   ENGINE_DISCOVERY_ENTRIES.push({
     id: 'six_degrees_guess', icon: 'versus', title: 'Coach Connections',
     desc: 'Two NFL teams, one coach who led them both. Figure out the connection.',
+    league: 'nfl', difficulty: 'hardcore',
   });
 }
 var LEAGUE_MODES = {
@@ -1349,7 +1364,7 @@ var LEAGUE_MODES = {
     { id: 'iq', icon: 'brain', title: 'NFL IQ Test', desc: '25 questions, no feedback until the end. Get a Football IQ score and a category breakdown.', featured: true, difficulty: 'competitive' },
     { id: 'legends', icon: 'trophy', title: '17-0', desc: 'Draft a 7-player team from real players\' real seasons (1999-2025) and see if it grades out as a perfect season.', difficulty: 'competitive' },
     { id: 'higherLower', icon: 'arrowUp', title: 'Higher or Lower', desc: 'Two real players, one real stat — guess higher or lower than the last one. Keep going until you miss.', difficulty: 'casual' }
-  ].concat(ENGINE_DISCOVERY_ENTRIES),
+  ].concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league !== 'cfb'; })),
   cfb: [
     { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: '456 CFB questions across 10 categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
     { id: 'cfbGrid', icon: 'grid', title: 'CFB Immaculate Grid', desc: 'A freshly generated 3x3 grid of schools and All-America/Heisman criteria. Name a player who satisfies both the row and the column.', featured: true, difficulty: 'hardcore' },
@@ -1357,7 +1372,7 @@ var LEAGUE_MODES = {
     { id: 'cfbSpeed', icon: 'zap', title: 'CFB Speed Round', desc: 'Rapid-fire college football multiple choice against the clock. Build a streak for bonus points.', difficulty: 'competitive' },
     { id: 'cfbIq', icon: 'book', title: 'College Football IQ Test', desc: 'The IQ Test format, college edition. 25 questions, no feedback until the end.', featured: true, difficulty: 'competitive' },
     { id: 'cfbLegends', icon: 'trophy', title: 'CFB 12-0', desc: 'Draft an 8-player college roster (including a whole team DEFENSE) from real players\' and teams\' real seasons (1990-2025), then see how your 12-game regular season plays out — and where it lands you in the postseason.', difficulty: 'competitive' }
-  ]
+  ].concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
 };
 var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
 

@@ -213,8 +213,21 @@ function renderSixDegreesScreen() {
   var game = s.game;
   var submitting = s.screen === SIX_DEGREES_SCREEN.SUBMITTING;
   var justAnswered = s.screen === SIX_DEGREES_SCREEN.STEP_RESULT;
+  // UI polish pass: a real visual path (start -> where-you-are-now -> target)
+  // instead of one plain text line -- this mode was flagged as the hardest
+  // to understand at a glance ("where do I start, what's the target, where
+  // am I now"); the three labeled pills below answer all three without
+  // requiring the player to parse a sentence first.
+  var pathHtml = '<div class="sixdeg-path">' +
+    '<span class="sixdeg-path-node sixdeg-path-start"><b>Start</b>' + esc(game.start.name) + '</span>' +
+    '<span class="sixdeg-path-arrow">&rarr;</span>' +
+    '<span class="sixdeg-path-node sixdeg-path-current"><b>You are here</b>' + esc(game.current.name) + '</span>' +
+    '<span class="sixdeg-path-arrow">&rarr;</span>' +
+    '<span class="sixdeg-path-node sixdeg-path-end"><b>Target</b>' + esc(game.end.name) + '</span>' +
+    '</div>';
   return '<div class="panel">' + sixDegreesToolbarHtml() +
-    '<div class="quiz-progress">' + esc(game.start.name) + ' &rarr; ' + esc(game.end.name) + ' &middot; Move ' + (game.step_index + 1) + ' of ' + game.par + '</div>' +
+    pathHtml +
+    '<div class="quiz-progress">Move ' + (game.step_index + 1) + ' of ' + game.par + '</div>' +
     '<div class="quiz-question">Who connects to <b>' + esc(game.current.name) + '</b>?</div>' +
     '<div class="quiz-options">' +
     game.options.map(function (opt, i) {

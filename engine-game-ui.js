@@ -301,7 +301,15 @@ function advanceEnginePilot() {
    tools/quiz_export/adapters/lineup.py for why OL is one grouped row of 5,
    not 5 individually-labeled slots. */
 function renderPositionLineupBoard(payload) {
+  // UI/product polish pass: this used to be two visually-identical rows of
+  // gray boxes with no framing -- functionally clear, but read as a
+  // generic quiz layout rather than a real lineup/roster puzzle. Added: an
+  // eyebrow label (matches the site's existing eyebrow-badge convention,
+  // e.g. the Daily Challenge card), and a row sub-label distinguishing the
+  // 5 skill positions from the grouped O-Line -- both purely presentational,
+  // no change to the answer contract underneath.
   var positions = (payload && payload.positions) || [];
+  var season = payload && payload.season;
   var skillRow = positions.slice(0, 5);
   var olRow = positions.slice(5, 10);
   function cell(p) {
@@ -309,7 +317,10 @@ function renderPositionLineupBoard(payload) {
       '<div class="lineup-name">' + esc(p.name) + '</div></div>';
   }
   return '<div class="lineup-board">' +
+    '<div class="lineup-board-eyebrow">' + icon('users') + ' Starting Offense' + (season ? ' &middot; ' + esc(String(season)) : '') + '</div>' +
+    '<div class="lineup-row-label">Skill Positions</div>' +
     '<div class="lineup-row">' + skillRow.map(cell).join('') + '</div>' +
+    '<div class="lineup-row-label">Offensive Line</div>' +
     '<div class="lineup-row">' + olRow.map(cell).join('') + '</div>' +
     '</div>';
 }
