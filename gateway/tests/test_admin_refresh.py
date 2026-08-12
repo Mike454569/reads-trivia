@@ -61,7 +61,7 @@ def test_check_can_start_ok_when_nothing_running():
 
 
 def test_check_can_start_detects_in_flight_run():
-    run_id = _insert_running_row("NFL", admin_refresh._RUNNERS["nfl"][2])
+    run_id = _insert_running_row("NFL", admin_refresh._runners()["nfl"][2])
     try:
         result = admin_refresh.check_can_start("nfl")
         assert result["status"] == "ALREADY_RUNNING"
@@ -70,7 +70,7 @@ def test_check_can_start_detects_in_flight_run():
 
 
 def test_check_can_start_leagues_are_independent():
-    run_id = _insert_running_row("NFL", admin_refresh._RUNNERS["nfl"][2])
+    run_id = _insert_running_row("NFL", admin_refresh._runners()["nfl"][2])
     try:
         assert admin_refresh.check_can_start("nfl")["status"] == "ALREADY_RUNNING"
         assert admin_refresh.check_can_start("cfb")["status"] == "OK"
@@ -119,13 +119,52 @@ def test_refresh_status_route_authorized(client, auth_headers):
 
 
 def test_refresh_route_reports_already_running(client, auth_headers):
-    run_id = _insert_running_row("NFL", admin_refresh._RUNNERS["nfl"][2])
+    run_id = _insert_running_row("NFL", admin_refresh._runners()["nfl"][2])
     try:
         r = client.post("/v1/admin/refresh/nfl", headers=auth_headers)
         assert r.status_code == 200
         assert r.json()["status"] == "ALREADY_RUNNING"
     finally:
         _finish_row(run_id)
+
+
+def test_admin_refresh_module_never_imports_tools_data_refresh_at_top_level():
+    """Real regression test for a real production incident: the first
+    version of this module imported tools.data_refresh at module scope,
+    and since gateway/app.py imports admin_refresh at ITS module scope too,
+    one missing Engine-script file on a deployment's mounted volume (e.g.
+    fetch_nflverse_current.py, only present via a runtime volume mount,
+    never baked into the Docker image -- see gateway/Dockerfile) took down
+    the ENTIRE Gateway on every boot, a real crash loop in production, not
+    a hypothetical. Every tools.data_refresh import must be nested inside a
+    function body from now on -- this asserts that structurally (via AST,
+    not by relying on sys.modules caching from other tests, which would be
+    order-dependent) so a future edit can't silently reintroduce it."""
+    import ast
+
+    src = (REPO_ROOT / "gateway" / "services" / "admin_refresh.py").read_text()
+    tree = ast.parse(src)
+    for node in tree.body:  # module-level (top) statements only, not nested inside functions
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("tools.data_refresh"):
+            pytest.fail(f"top-level 'from {node.module} import ...' found -- must be inside a function")
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("tools.data_refresh"):
+                    pytest.fail(f"top-level 'import {alias.name}' found -- must be inside a function")
+
+
+def test_refresh_route_returns_503_not_500_when_data_refresh_unimportable(client, auth_headers, monkeypatch):
+    """Simulates the real production scenario (a missing Engine script on
+    the mounted volume) without needing to actually break an import --
+    confirms the route degrades this ONE feature cleanly instead of
+    surfacing a raw, unhandled 500."""
+    def boom(league_key):
+        raise ImportError("simulated: fetch_nflverse_current not found on this deployment's volume")
+
+    monkeypatch.setattr(admin_refresh, "check_can_start", boom)
+    r = client.post("/v1/admin/refresh/nfl", headers=auth_headers)
+    assert r.status_code == 503
+    assert r.json()["error"]["code"] == "SERVICE_UNAVAILABLE"
 
 
 def test_refresh_route_schedules_background_task(client, auth_headers, monkeypatch):

@@ -381,27 +381,40 @@ def admin_db_integrity(request: Request, _admin=Depends(require_admin)):
 # as the run is scheduled (or immediately reports ALREADY_RUNNING); the
 # real result is read back via /v1/admin/refresh/status.
 
+def _refresh_import_guard(fn, *args):
+    """tools.data_refresh imports Engine scripts from a volume mounted only
+    in production (see admin_refresh.py's module docstring on the real
+    crash-loop this caused when that import was eager) -- routes call
+    through this so a missing file on a given deployment's volume degrades
+    this ONE feature to a clean 503, never a raw 500 (and never anything
+    that could take the route, let alone the app, down)."""
+    try:
+        return fn(*args)
+    except ImportError as e:
+        raise GatewayError("SERVICE_UNAVAILABLE", f"Data refresh is unavailable on this deployment: {e}")
+
+
 @app.post("/v1/admin/refresh/nfl")
 def admin_refresh_nfl(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
-    check = admin_refresh.check_can_start("nfl")
+    check = _refresh_import_guard(admin_refresh.check_can_start, "nfl")
     if check["status"] == "ALREADY_RUNNING":
         return check
-    background_tasks.add_task(admin_refresh.run_fn_for("nfl"))
+    background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, "nfl"))
     return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
 
 
 @app.post("/v1/admin/refresh/cfb")
 def admin_refresh_cfb(request: Request, background_tasks: BackgroundTasks, _admin=Depends(require_admin)):
-    check = admin_refresh.check_can_start("cfb")
+    check = _refresh_import_guard(admin_refresh.check_can_start, "cfb")
     if check["status"] == "ALREADY_RUNNING":
         return check
-    background_tasks.add_task(admin_refresh.run_fn_for("cfb"))
+    background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, "cfb"))
     return {"status": "STARTED", "league": check["league"], "dataset": check["dataset"]}
 
 
 @app.get("/v1/admin/refresh/status")
 def admin_refresh_status_route(request: Request, _admin=Depends(require_admin)):
-    return admin_refresh.refresh_status()
+    return _refresh_import_guard(admin_refresh.refresh_status)
 
 
 @app.get("/v1/capabilities")

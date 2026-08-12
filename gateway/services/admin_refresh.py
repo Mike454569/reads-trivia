@@ -22,6 +22,21 @@ things a Gateway route needs that those scripts don't have on their own:
    duration of a run (safety.start_run/finish_run) -- this checks for one
    before starting a new run rather than trusting the caller not to
    double-trigger.
+
+Real incident, fixed here: tools/data_refresh/*.py import Engine scripts
+(fetch_nflverse_current, import_data, backup_manager) directly from
+Reads_Football_Data_Engine_v4.0/ -- a directory mounted from a persistent
+volume in production, never baked into the Gateway's Docker image (see
+gateway/Dockerfile's own module docstring). A local dev copy of that
+directory having every file this module expects is not proof the
+PRODUCTION volume does. The first deploy of this module imported
+tools.data_refresh at module load time, and since gateway/app.py imports
+this module at ITS load time too, one missing file on the production
+volume took down the entire Gateway on every boot (a real crash loop,
+not a hypothetical). Every tools.data_refresh import below is now LAZY
+(deferred until a refresh route is actually called) specifically so that
+an admin-only, optional feature can never again prevent the whole app
+from starting.
 """
 from __future__ import annotations
 
@@ -31,13 +46,22 @@ from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
-from tools.data_refresh import cfb_refresh, nfl_refresh, safety  # noqa: E402
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-_RUNNERS = {"nfl": (nfl_refresh, "NFL", nfl_refresh.DATASET), "cfb": (cfb_refresh, "CFB", cfb_refresh.DATASET)}
+
+def _runners():
+    """Lazy import -- see module docstring. Raises ImportError (never
+    silently swallowed) if tools.data_refresh's own Engine-script imports
+    fail on this deployment; callers (the Gateway routes) turn that into a
+    clean SERVICE_UNAVAILABLE response instead of a crash."""
+    from tools.data_refresh import cfb_refresh, nfl_refresh
+
+    return {"nfl": (nfl_refresh, "NFL", nfl_refresh.DATASET), "cfb": (cfb_refresh, "CFB", cfb_refresh.DATASET)}
 
 
 def _is_running(league: str, dataset: str) -> bool:
+    from tools.data_refresh import safety
+
     c = engine_bootstrap.connect()
     try:
         safety.ensure_refresh_tables(c)
@@ -58,9 +82,10 @@ def check_can_start(league_key: str) -> dict:
     returns status=OK, so this function never needs to hand back a raw
     callable inside a dict a caller might otherwise be tempted to
     serialize."""
-    if league_key not in _RUNNERS:
+    runners = _runners()
+    if league_key not in runners:
         raise ValueError(f"unknown league_key: {league_key!r}")
-    _, league, dataset = _RUNNERS[league_key]
+    _, league, dataset = runners[league_key]
     if _is_running(league, dataset):
         return {"status": "ALREADY_RUNNING", "league": league, "dataset": dataset}
     return {"status": "OK", "league": league, "dataset": dataset}
@@ -70,7 +95,7 @@ def run_fn_for(league_key: str):
     """The real, synchronous, potentially multi-minute refresh function for
     this league -- callers pass this to FastAPI's BackgroundTasks, never
     call it inline inside a request handler (see module docstring)."""
-    module, _, _ = _RUNNERS[league_key]
+    module, _, _ = _runners()[league_key]
     return module.run_nfl_refresh if league_key == "nfl" else module.run_cfb_refresh
 
 
@@ -109,6 +134,9 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
 
 
 def refresh_status() -> dict:
+    runners = _runners()
+    nfl_refresh, _, _ = runners["nfl"]
+    cfb_refresh, _, _ = runners["cfb"]
     return {
         "nfl": _safe_run_summary(nfl_refresh.last_run_status()),
         "cfb": _safe_run_summary(cfb_refresh.last_run_status()),
