@@ -1837,9 +1837,18 @@ function recommendedModeHtml() {
     '<span class="recommend-card-mode">' + esc(pick.title) + '</span></span>' +
     '</button>';
 }
+// UI re-audit: this used to be a hardcoded "12 ways to play" in the tagline
+// below -- real, live-verified stale copy (production actually offers 19:
+// 12 NFL + 7 CFB, once the engine-backed modes shipped). Computed from
+// LEAGUE_MODES itself so it can never drift out of sync with the real mode
+// count again, regardless of which flags are on for a given deployment --
+// the exact bug that let the old number go stale in the first place.
+function totalModeCount() {
+  return LEAGUE_MODES.nfl.length + LEAGUE_MODES.cfb.length;
+}
 function renderHome() {
   return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
-    '<h1 class="hero-tagline">NFL &amp; College Football trivia, 12 ways to play.</h1>' +
+    '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
     favoriteTeamGreeting() +
     '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p></div>' +
     teamPickerPromptCardHtml() +
@@ -1943,7 +1952,11 @@ function onboardingSampleQuestion() { return QUIZ.find(function (q) { return q.i
 var ONBOARDING_STEPS = [
   {
     title: 'What is Reads?',
-    body: 'NFL and College Football trivia with 12 game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round. It’s free and works right in your browser — sign up with just a username and password, no email needed.'
+    // UI re-audit: real, live-verified stale copy fixed here too (same "12"
+    // hardcoded number as renderHome()'s old tagline) -- totalModeCount()
+    // is defined above this array, so it's already real by the time this
+    // module-level array literal runs.
+    body: 'NFL and College Football trivia with ' + totalModeCount() + ' game modes, built around one thing that follows you everywhere: your <b>Football Rating</b> — an adaptive number that tracks your real skill over time instead of resetting every round. It’s free and works right in your browser — sign up with just a username and password, no email needed.'
   },
   { title: 'Try a real question', type: 'sample' },
   {
@@ -7012,7 +7025,7 @@ function renderAbout() {
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">About Reads</h2>' +
     '<div class="about-section">' +
-    '<p class="mode-desc">Reads is free NFL and College Football trivia — 12 game modes, a live shared leaderboard, and one adaptive Football Rating that follows you across every mode and device. No accounts, no passwords — just a name.</p>' +
+    '<p class="mode-desc">Reads is free NFL and College Football trivia — ' + totalModeCount() + ' game modes, a live shared leaderboard, and one adaptive Football Rating that follows you across every mode and device. No accounts, no passwords — just a name.</p>' +
     '</div>' +
     '<div class="about-section">' +
     '<h3 class="about-heading">How the questions are made</h3>' +
