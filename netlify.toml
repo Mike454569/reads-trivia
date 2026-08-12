@@ -18,7 +18,7 @@
   schedule = "7 15 * * *"
 
 # NFL/CFB data refresh -- four SEPARATE scheduled functions, one per
-# dataset, staggered 10 minutes apart starting at 09:10 UTC (deliberately
+# dataset, staggered 30 minutes apart starting at 09:10 UTC (deliberately
 # off-peak, before either schedule above, so a slow refresh run never
 # overlaps with send-daily-push's own invocation). Real reason these are
 # four functions instead of one looping over all four datasets: the
@@ -29,19 +29,26 @@
 # trigger calls back-to-back would only ever actually run the first one --
 # each POST returns immediately (real work is backgrounded), so the
 # 2nd/3rd/4th would arrive mid-run and get ALREADY_RUNNING every day.
-# Measured real run time is 130-200s, so a 10-minute gap is a generous,
-# not a tight, buffer. Rosters/players/schedules change slowly (not
-# multiple times a day, unlike in-game content), so once daily per dataset
-# is the right cadence -- see tools/data_refresh/{nfl_refresh,cfb_refresh,
-# nfl_games_refresh,cfb_games_refresh}.py for what these actually trigger.
+#
+# 30 minutes, not the original 10: a real, live production run of
+# nfl_games_refresh measured 11m24s end-to-end (backup+verify, download,
+# stage/publish, post-refresh sanity check) -- almost 4x the "130-200s"
+# figure that number was based on (that estimate held for the roster
+# refreshes' lighter local-dev testing, not a full run against the real
+# Fly volume's slower I/O). 10 minutes was not a safe buffer; 30 minutes
+# gives real margin above the measured worst case. Rosters/players/
+# schedules change slowly (not multiple times a day, unlike in-game
+# content), so once daily per dataset is the right cadence -- see
+# tools/data_refresh/{nfl_refresh,cfb_refresh,nfl_games_refresh,
+# cfb_games_refresh}.py for what these actually trigger.
 [functions."trigger-refresh-nfl"]
   schedule = "10 9 * * *"
 
 [functions."trigger-refresh-cfb"]
-  schedule = "20 9 * * *"
+  schedule = "40 9 * * *"
 
 [functions."trigger-refresh-nfl-games"]
-  schedule = "30 9 * * *"
+  schedule = "10 10 * * *"
 
 [functions."trigger-refresh-cfb-games"]
-  schedule = "40 9 * * *"
+  schedule = "40 10 * * *"

@@ -114,10 +114,54 @@ def finish_run(c: sqlite3.Connection, run_id: str, *, status: str, backup_id: st
     c.commit()
 
 
+def _backups_dir() -> Path:
+    return _db_path().parent / "backups"
+
+
+def _prune_old_backups(*, keep: int = 1) -> None:
+    """Real incident, fixed here: `backup_manager.create()` (vendored, never
+    modified) has no retention policy of its own -- every refresh call
+    creates a new ~1.6GB snapshot and NOTHING ever deletes an old one. Two
+    refreshes run back-to-back (the real shape of the daily schedule, one
+    dataset after another) filled the entire 5GB production volume solid
+    (confirmed directly: `df -h /data` showed 100%, and the Gateway process
+    itself then failed on every request with `OSError: [Errno 28] No space
+    left on device` trying to write its own operational log -- a real,
+    observed production outage, not a hypothetical). Backups are a
+    transient safety net for the DURATION of one refresh call, not a
+    permanent archive (rollback/disaster-recovery is Fly's own scheduled
+    volume snapshots, a separate and already-real mechanism -- see
+    READS_FINAL_LIVE_CERTIFICATION.md). Deleting everything except the
+    `keep` most recent backups, called right before a new one is created,
+    keeps steady-state disk usage bounded regardless of how many refreshes
+    run in a day."""
+    d = _backups_dir()
+    if not d.is_dir():
+        return
+    backups = sorted(d.glob("reads_v2.1_*.sqlite"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for stale in backups[keep:]:
+        stale.unlink(missing_ok=True)
+        journal = stale.with_name(stale.name + "-journal")
+        journal.unlink(missing_ok=True)
+
+
 def create_verified_backup() -> dict:
     """Real, verified (PRAGMA integrity_check'd) snapshot via the Engine's
     own backup_manager.create() -- called BEFORE any refresh writes. Never
-    reimplemented -- this is that exact function, unmodified."""
+    reimplemented -- this is that exact function, unmodified.
+
+    Prunes ALL existing backups first (keep=0), not just down to some
+    positive count: the real production schedule runs FOUR datasets
+    sequentially, one after another, the same day (the Gateway's global
+    concurrency guard forces this). A backup only protects the run that
+    created it -- once that run finishes (success or fail-restored),
+    nothing needs yesterday's or this-morning's earlier backup anymore.
+    Pruning to keep=1 *before* creating a new one still allows a brief
+    window with two ~1.6GB backups plus the live DB on disk at once
+    (concretely: exactly the shape of the real incident this function was
+    added to fix) -- keep=0 means the disk only ever holds the live DB
+    plus AT MOST one backup, from the run currently in flight."""
+    _prune_old_backups(keep=0)
     return backup_manager.create()
 
 

@@ -217,3 +217,65 @@ def test_refresh_route_schedules_background_task(client, auth_headers, monkeypat
     # first) -- so by this point the fake has already run exactly once, not
     # zero or multiple times.
     assert calls == ["ran"]
+
+
+# --- backup retention (real production incident: unbounded backups filled --
+# the entire 5GB Fly volume solid, taking the Gateway down with
+# "OSError: No space left on device") ------------------------------------
+
+def test_prune_old_backups_deletes_everything_but_the_newest(tmp_path, monkeypatch):
+    from tools.data_refresh import safety
+
+    fake_db = tmp_path / "reads_football_v4.0.sqlite"
+    fake_db.write_bytes(b"not a real db, just a path anchor")
+    monkeypatch.setattr(safety, "_db_path", lambda: fake_db)
+
+    backups_dir = tmp_path / "backups"
+    backups_dir.mkdir()
+    import os
+    import time
+    paths = []
+    for i in range(4):
+        p = backups_dir / f"reads_v2.1_2026081{i}T000000Z.sqlite"
+        p.write_bytes(b"x" * 100)
+        os.utime(p, (time.time() + i, time.time() + i))  # distinct, increasing mtimes
+        paths.append(p)
+    # A stray leftover journal from an interrupted run -- must be cleaned
+    # up alongside its backup, never left orphaned.
+    journal = backups_dir / (paths[0].name + "-journal")
+    journal.write_bytes(b"j")
+
+    safety._prune_old_backups(keep=1)
+
+    remaining = sorted(backups_dir.iterdir())
+    assert remaining == [paths[-1]]  # only the most-recently-modified backup survives
+
+
+def test_prune_old_backups_keep_zero_deletes_all(tmp_path, monkeypatch):
+    from tools.data_refresh import safety
+
+    fake_db = tmp_path / "reads_football_v4.0.sqlite"
+    fake_db.write_bytes(b"anchor")
+    monkeypatch.setattr(safety, "_db_path", lambda: fake_db)
+
+    backups_dir = tmp_path / "backups"
+    backups_dir.mkdir()
+    (backups_dir / "reads_v2.1_20260812T000000Z.sqlite").write_bytes(b"x")
+
+    # keep=0 is what create_verified_backup() actually calls with -- the
+    # real production schedule runs all four datasets sequentially the
+    # same day, so a backup only needs to survive its OWN run, never a
+    # later one's.
+    safety._prune_old_backups(keep=0)
+
+    assert list(backups_dir.iterdir()) == []
+
+
+def test_prune_old_backups_missing_dir_is_a_no_op(tmp_path, monkeypatch):
+    from tools.data_refresh import safety
+
+    fake_db = tmp_path / "reads_football_v4.0.sqlite"
+    fake_db.write_bytes(b"anchor")
+    monkeypatch.setattr(safety, "_db_path", lambda: fake_db)
+    # backups/ deliberately never created -- must not raise.
+    safety._prune_old_backups(keep=1)
