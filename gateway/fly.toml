@@ -85,25 +85,32 @@ primary_region = "iad"
     # necessarily killing/restarting the process the way a liveness
     # failure does (a missing volume mount is not fixed by a restart).
     #
-    # Final Go-Live Operation, Mission E: real production testing found
-    # `PRAGMA quick_check` against the 1.65GB database taking ~166s on
-    # Fly's volume (vs ~10s locally) -- and the shipped database is now
-    # DELETE-journal-mode, not WAL (WAL caused a genuine lock hang on this
-    # volume, a separate problem from raw speed). tools/quiz_export/
-    # engine.py's check_engine_readiness() caches its result (5 min TTL
-    # once healthy) and de-duplicates concurrent callers behind a lock, so
-    # repeat/concurrent polls never pile up redundant 166s checks -- but
-    # the very first call after a fresh process start (cache cold) still
-    # genuinely blocks for the real ~166s duration, same as it always has.
-    # timeout below is sized for that real worst case, not just the fast
-    # cached path; grace_period gives the container a moment to finish
-    # booting before Fly even tries the first check.
-    grace_period = "20s"
+    # Readiness-latency incident (post-go-live): real production testing
+    # found `PRAGMA quick_check` against the 1.65GB database taking ~166s on
+    # Fly's volume (vs ~10s locally). The original fix here was a 180s
+    # timeout sized to tolerate that worst case -- but a readiness probe
+    # that can independently take ~3 minutes is itself the problem: Fly
+    # polled it faster than a cold check could finish and intermittently
+    # marked the machine NOT READY (`context deadline exceeded`), capable of
+    # pulling the only machine out of rotation.
+    #
+    # Real fix (tools/quiz_export/engine.py): `PRAGMA quick_check` is no
+    # longer part of what `/v1/ready` checks at all -- readiness now only
+    # verifies file-exists/DB-opens/one-real-lightweight-query-succeeds/
+    # schema-marker-present, every one of which is small, indexed I/O, fast
+    # even on this same slow volume (measured: sub-second, cold or warm).
+    # Full structural integrity verification still happens -- once, at
+    # process startup (gateway/app.py's lifespan handler, where a real ~166s
+    # cost is genuinely acceptable) and on-demand via an admin-gated
+    # diagnostic route -- just never on this polled hot path. timeout/
+    # grace_period below are back down to short, honest values that would
+    # actually catch a future regression instead of masking one.
+    grace_period = "10s"
     interval = "30s"
     method = "GET"
     path = "/v1/ready"
     protocol = "http"
-    timeout = "180s"
+    timeout = "10s"
 
 # --- persistent volume (Part D) ------------------------------------------
 # ONE volume, mounted at /data, holding BOTH the Football Warehouse (Engine

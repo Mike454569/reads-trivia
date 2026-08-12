@@ -97,7 +97,13 @@ async def lifespan(app: FastAPI):
     if weak_reason:
         print(f"[gateway] WARNING: {config.ADMIN_TOKEN_ENV_VAR} looks weak ({weak_reason}). "
               f"Not fatal, but should be regenerated before real staging use.", file=sys.stderr)
-    readiness = engine_bootstrap.check_engine_readiness()
+    # Readiness-latency fix: startup is the one place a real, full
+    # PRAGMA quick_check (up to ~166s against the production Fly volume,
+    # measured directly) is genuinely acceptable -- once per process boot,
+    # never on the polled /v1/ready hot path. See
+    # tools/quiz_export/engine.py's check_engine_readiness_deep() docstring
+    # for the full incident this split fixes.
+    readiness = engine_bootstrap.check_engine_readiness_deep()
     if readiness["ready"]:
         print(f"[gateway] startup OK -- Engine DB ready (database_version={readiness.get('database_version')}, "
               f"draft_facts_row_count={readiness.get('draft_facts_row_count')})", file=sys.stderr)
@@ -264,10 +270,13 @@ def health():
 @app.get("/v1/ready")
 def ready():
     """Readiness: 'can this instance actually serve Engine requests?' Part L:
-    lightweight (a PRAGMA quick_check plus one indexed COUNT, not a full
-    generation-scale audit), unauthenticated for the same reason /v1/health
-    is (platform health checks generally can't supply an admin token, and
-    this reveals nothing beyond 'is the DB there and readable'). Returns
+    lightweight (DB opens + one indexed COUNT + a schema-marker lookup, not
+    a full generation-scale audit, and -- since the readiness-latency
+    incident -- deliberately NOT a PRAGMA quick_check; see
+    tools/quiz_export/engine.py's check_engine_readiness() docstring),
+    unauthenticated for the same reason /v1/health is (platform health
+    checks generally can't supply an admin token, and this reveals nothing
+    beyond 'is the DB there and readable'). Returns
     503 (not 200) when unready, matching how a platform's health-check
     mechanism actually distinguishes healthy from unhealthy.
 
@@ -317,6 +326,26 @@ def ready():
     if body["status"] != "ready":
         return JSONResponse(status_code=503, content=body)
     return body
+
+
+@app.get("/v1/admin/diagnostics/db-integrity")
+def admin_db_integrity(request: Request, _admin=Depends(require_admin)):
+    """Readiness-latency fix: the full PRAGMA quick_check this route used to
+    run on every /v1/ready poll now lives ONLY here (admin-gated, on-demand)
+    and at process startup (gateway/app.py's lifespan handler) -- never on
+    the polled hot path. A real, deliberately slow (can take minutes against
+    the production volume, same as it always could) structural integrity
+    certification for manual/maintenance use, not a frequently-called
+    endpoint. See tools/quiz_export/engine.py's check_engine_readiness_deep()
+    docstring for the incident this split fixes."""
+    result = engine_bootstrap.check_engine_readiness_deep()
+    safe: dict = {"ready": result["ready"], "deep_integrity_checked": result.get("deep_integrity_checked", True)}
+    if result["ready"]:
+        safe["database_version"] = result.get("database_version")
+        safe["draft_facts_row_count"] = result.get("draft_facts_row_count")
+    else:
+        safe["reason_code"] = result.get("reason_code", "UNKNOWN")
+    return safe
 
 
 @app.get("/v1/capabilities")

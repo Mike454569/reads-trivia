@@ -101,30 +101,39 @@ _readiness_lock = threading.Lock()
 
 def check_engine_readiness() -> dict:
     """Part D/L, cached + de-duplicated as of the Final Go-Live Operation's
-    real production deployment (Mission E): `PRAGMA quick_check` measured
-    at ~10s locally but 166s against the real production Fly.io volume for
-    this 1.65GB database -- Fly's block storage has meaningfully worse
-    random-I/O throughput than a local dev SSD for the scattered page-walk
-    `quick_check` performs, even though raw sequential reads (e.g. a full
-    sha256 of the file) are fine. Calling that cost fresh on every single
-    /v1/ready poll (every 15s per gateway/fly.toml) would mean concurrent
-    polls arriving before the first one finishes each independently kick
-    off their own redundant expensive check, piling I/O contention on top
-    of an already-slow disk -- the same shape of problem that produced a
-    genuine multi-minute stall during this deployment (found before this
-    fix existed, root-caused separately to WAL journal mode's locking;
-    this fix addresses the raw I/O cost, which is real regardless of
-    journal mode).
+    real production deployment (Mission E) -- and, as of the readiness-
+    latency incident below, no longer runs `PRAGMA quick_check` on this hot
+    path at all.
 
-    So: a lock serializes actual computation -- the first caller (cache
-    cold, or TTL expired) really does compute and block for the true
-    duration, exactly as every existing caller (including tests) already
-    expects; any caller that arrives while that computation is already in
-    flight blocks on the SAME lock and then reads the result the first
-    caller just produced, rather than starting a second redundant check.
-    Once cached, a result is reused for its TTL (5 min when healthy, 15s
-    when not, so a real problem is still re-checked promptly) with no
-    locking overhead at all on the hot path."""
+    Real root cause, found on live production, not assumed: `PRAGMA
+    quick_check` measured ~10s locally but 166s against the real production
+    Fly.io volume for this 1.65GB database (Fly's block storage has
+    meaningfully worse random-I/O throughput than a local dev SSD for the
+    scattered page-walk quick_check performs). The caching/locking added
+    during the Final Go-Live Operation (below) correctly de-duplicates
+    concurrent callers so only one quick_check runs at a time -- but it does
+    nothing for the FIRST call after a cold start or cache-expiry, which is
+    exactly when Fly's health checker is polling and exactly when a 166s
+    stall reads as `context deadline exceeded` and pulls the machine out of
+    rotation. A readiness probe that can independently take almost three
+    minutes is a latency bug regardless of how well it's deduplicated.
+
+    Fix: `PRAGMA quick_check` is no longer part of what "ready" means for a
+    live-traffic health probe. Readiness now answers only "can this process
+    actually serve gameplay right now" -- file exists, database opens, a
+    real lightweight query against a real table succeeds, the schema-version
+    marker is present. Each of those is a fast, indexed, small-I/O operation
+    (confirmed fast even against the same slow Fly volume, since none of
+    them walk the whole file the way quick_check does). Full structural
+    integrity verification still exists -- see `check_engine_readiness_deep()`
+    below -- just no longer on the polled hot path. See gateway/app.py's
+    lifespan handler (startup-only, real cost acceptable once per boot) and
+    its admin-gated deep-diagnostic route for where the deep check now
+    actually runs.
+
+    The cache/lock machinery below is kept (harmless, still avoids redundant
+    concurrent work for the now-fast check, and needed no behavior change to
+    stay correct) -- TTLs unchanged: 5 min when healthy, 15s when not."""
     cached = _READINESS_CACHE["result"]
     if cached is not None:
         ttl = _READINESS_CACHE_TTL_READY_SECONDS if cached["ready"] else _READINESS_CACHE_TTL_NOT_READY_SECONDS
@@ -138,21 +147,39 @@ def check_engine_readiness() -> dict:
             ttl = _READINESS_CACHE_TTL_READY_SECONDS if cached["ready"] else _READINESS_CACHE_TTL_NOT_READY_SECONDS
             if time.monotonic() - _READINESS_CACHE["checked_at"] < ttl:
                 return cached
-        result = _check_engine_readiness_uncached()
+        result = _check_engine_readiness_uncached(deep=False)
         _READINESS_CACHE["result"] = result
         _READINESS_CACHE["checked_at"] = time.monotonic()
         return result
 
 
-def _check_engine_readiness_uncached() -> dict:
+def check_engine_readiness_deep() -> dict:
+    """The full structural integrity certification (`PRAGMA quick_check`
+    included) -- deliberately NEVER cached, NEVER on the polled `/v1/ready`
+    hot path, and never invoked automatically per-request. Real, current
+    uses only: gateway/app.py's lifespan startup handler (once per process
+    boot -- a real ~166s cost against the production volume is acceptable
+    exactly once at startup, not on every health poll) and an admin-gated
+    manual diagnostic route for on-demand deep verification. See
+    check_engine_readiness()'s own docstring for the incident this split
+    fixes."""
+    return _check_engine_readiness_uncached(deep=True)
+
+
+def _check_engine_readiness_uncached(*, deep: bool) -> dict:
     """Part D/L: the fail-closed check `sqlite3.connect()` alone does NOT
     give you -- connecting to a MISSING path silently creates an empty file
     (confirmed empirically, see READS_ENGINE_STAGING_GAP_ANALYSIS.md) rather
     than raising. Never raises itself; always returns a structured result so
     a readiness endpoint can report exactly what's wrong rather than 500ing.
-    A handful of indexed lookups plus one integrity pragma -- see
-    check_engine_readiness() above for why the caller now caches this
-    rather than calling it on every single poll.
+
+    `deep=False` (the hot path, via check_engine_readiness()): file
+    exists/non-empty, database opens, one real lightweight query against a
+    real table succeeds (`draft_facts` count), the schema-version marker
+    (`meta`) is present -- every one of these is small, indexed I/O, fast
+    even against a slow disk. `deep=True` (check_engine_readiness_deep()
+    only) additionally runs `PRAGMA quick_check` -- see that function's
+    docstring for why this is no longer unconditional.
 
     v1.4, Part 6: every failure branch also returns a stable `reason_code`
     (e.g. "DB_FILE_MISSING") alongside the detailed `reason` string. The
@@ -173,8 +200,9 @@ def _check_engine_readiness_uncached() -> dict:
                 "reason": f"Engine database file at {path} is empty (0 bytes)."}
     try:
         # sqlite3.connect() on an existing-but-garbage file still succeeds --
-        # PRAGMA integrity_check plus one real known-table query is what
-        # actually proves this is a readable, structurally valid database.
+        # a real query against a real table is what actually proves this is
+        # a readable, structurally usable database, not just a file that
+        # opens.
         #
         # NOT opened via the `mode=ro` read-only URI: a real backup/restore
         # drill this milestone caught that failing on a freshly-restored
@@ -188,10 +216,11 @@ def _check_engine_readiness_uncached() -> dict:
         # failure mode. See READS_ENGINE_BACKUP_AND_RESTORE.md's drill.
         conn = sqlite3.connect(str(path), timeout=5)
         try:
-            integrity = conn.execute("PRAGMA quick_check").fetchone()
-            if not integrity or integrity[0] != "ok":
-                return {"ready": False, "reason_code": "INTEGRITY_CHECK_FAILED",
-                        "reason": f"PRAGMA quick_check did not report 'ok': {integrity}"}
+            if deep:
+                integrity = conn.execute("PRAGMA quick_check").fetchone()
+                if not integrity or integrity[0] != "ok":
+                    return {"ready": False, "reason_code": "INTEGRITY_CHECK_FAILED",
+                            "reason": f"PRAGMA quick_check did not report 'ok': {integrity}"}
             draft_facts_rows = conn.execute("SELECT COUNT(*) FROM draft_facts").fetchone()[0]
             db_version_row = conn.execute("SELECT value FROM meta WHERE key='database_version'").fetchone()
         finally:
@@ -205,4 +234,5 @@ def _check_engine_readiness_uncached() -> dict:
         "db_size_bytes": path.stat().st_size,
         "database_version": db_version_row[0] if db_version_row else None,
         "draft_facts_row_count": draft_facts_rows,
+        "deep_integrity_checked": deep,
     }
