@@ -65,13 +65,18 @@ def _runners():
 
     Keyed by dataset_key (the Gateway route's own path segment) -> (module,
     run_fn, league label, real dataset_name stored in refresh_runs)."""
-    from tools.data_refresh import cfb_games_refresh, cfb_refresh, nfl_games_refresh, nfl_refresh
+    from tools.data_refresh import cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh, nfl_refresh
 
     return {
         "nfl": (nfl_refresh, nfl_refresh.run_nfl_refresh, "NFL", nfl_refresh.DATASET),
         "cfb": (cfb_refresh, cfb_refresh.run_cfb_refresh, "CFB", cfb_refresh.DATASET),
         "nfl_games": (nfl_games_refresh, nfl_games_refresh.run_nfl_games_refresh, "NFL", nfl_games_refresh.DATASET),
         "cfb_games": (cfb_games_refresh, cfb_games_refresh.run_cfb_games_refresh, "CFB", cfb_games_refresh.DATASET),
+        # Historical Engine Enrichment operation: draft_facts had no
+        # automatic refresh anywhere in this repo (confirmed by grep) and
+        # was capped at 2024 -- this closes that gap using the same
+        # already-approved NFLVERSE_DATA source.
+        "nfl_draft": (nfl_draft_refresh, nfl_draft_refresh.run_nfl_draft_refresh, "NFL", nfl_draft_refresh.DATASET),
     }
 
 

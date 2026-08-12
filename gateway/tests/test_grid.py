@@ -58,7 +58,9 @@ def test_grid_criteria_real_coverage_and_split(client, auth_headers):
     # v1.1: real 1999-2005 stats-participation import extended it further back.
     assert body["roster_coverage"] == {"min_season": 1999, "max_season": 2026}
     assert body["draft_coverage"]["min_season"] == 1980
-    assert body["draft_coverage"]["max_season"] == 2024
+    # Historical Engine Enrichment operation: nfl_draft_refresh.py brought
+    # draft_facts current (was capped at 2024, no automatic refresh existed).
+    assert body["draft_coverage"]["max_season"] == 2026
     assert len(body["supported"]["team"]) == 32
     stat_ids = {c["id"] for c in body["supported"]["stat"]}
     # v0.9: real Hall of Fame / All-Pro / Pro Bowl facts (nflverse-data

@@ -400,7 +400,7 @@ def _refresh_import_guard(fn, *args):
 # reaching _runners() at all. /v1/admin/refresh/nfl and /v1/admin/refresh/cfb
 # (rosters) keep responding exactly as before -- the already-deployed Netlify
 # scheduled function calls those two paths unchanged.
-_REFRESH_DATASET_KEYS = {"nfl", "cfb", "nfl_games", "cfb_games"}
+_REFRESH_DATASET_KEYS = {"nfl", "cfb", "nfl_games", "cfb_games", "nfl_draft"}
 
 
 @app.post("/v1/admin/refresh/{dataset_key}")

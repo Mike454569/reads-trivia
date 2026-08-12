@@ -52,3 +52,12 @@
 
 [functions."trigger-refresh-cfb-games"]
   schedule = "40 10 * * *"
+
+# Historical Engine Enrichment operation: draft_facts had no automatic
+# refresh anywhere in this repo (confirmed by grep) and was capped at 2024.
+# Fifth dataset, same 30-minutes-apart stagger as the four above, same
+# global-concurrency-guard reasoning (see refresh_shared.js) -- draft picks
+# change far less often than schedules/scores (once a year, in the spring),
+# so daily is generous headroom, not a requirement.
+[functions."trigger-refresh-nfl-draft"]
+  schedule = "10 11 * * *"

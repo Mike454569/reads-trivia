@@ -8,19 +8,20 @@ do on its own:
 2. **`save-subscription.js` + `send-daily-push.js`** — real Web Push
    notifications ("today's Daily Challenge is live") sent to anyone who
    turns on notifications in the app's Settings screen.
-3. **`trigger-refresh-nfl.js` / `trigger-refresh-cfb.js` / `trigger-refresh-nfl-games.js` / `trigger-refresh-cfb-games.js`**
+3. **`trigger-refresh-nfl.js` / `trigger-refresh-cfb.js` / `trigger-refresh-nfl-games.js` / `trigger-refresh-cfb-games.js` / `trigger-refresh-nfl-draft.js`**
    (sharing `lib/refresh_shared.js`) — the real production scheduler for
-   NFL/CFB roster and games/schedule/score refresh (see
+   NFL/CFB roster, games/schedule/score, and NFL draft-picks refresh (see
    `gateway/services/admin_refresh.py` and `tools/data_refresh/`). Each
    fires one short HTTPS call to the Fly-hosted Gateway's admin refresh
-   endpoints once a day, staggered 10 minutes apart (09:10/09:20/09:30/09:40
-   UTC) because the Gateway only allows one refresh running at a time
-   (single shared-CPU, 1GB-memory machine; each refresh backs up the full
-   ~1.6GB Engine DB) -- four separate scheduled functions instead of one
-   looping over all four datasets, since firing them back-to-back would
-   only ever actually run the first one. The actual multi-minute refresh
-   work runs on the Gateway itself (Netlify Functions can't reach the
-   Engine database, which lives on Fly's persistent volume).
+   endpoints once a day, staggered 30 minutes apart starting 09:10 UTC (see
+   the real current schedule in `netlify.toml`) because the Gateway only
+   allows one refresh running at a time (single shared-CPU, 1GB-memory
+   machine; each refresh backs up the full ~1.6GB Engine DB) -- five
+   separate scheduled functions instead of one looping over all five
+   datasets, since firing them back-to-back would only ever actually run
+   the first one. The actual multi-minute refresh work runs on the Gateway
+   itself (Netlify Functions can't reach the Engine database, which lives
+   on Fly's persistent volume).
 
 ## Deploy workflow changed: git-based now, not drag-and-drop
 
