@@ -70,6 +70,7 @@ CAPABILITY_REPLIES = [
     ("guess", "CFB_HEISMAN", "WON_HEISMAN"),
     ("guess", "NFL_GAME_RESULT", "WON_GAME"),
     ("guess", "CFB_GAME_RESULT", "WON_GAME"),
+    ("guess", "NFL_OFFENSE_LINEUP_COLLEGE", "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"),
 ]
 
 

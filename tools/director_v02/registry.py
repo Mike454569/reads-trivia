@@ -26,6 +26,7 @@ from tools.quiz_export.adapters import cfb_heisman as cfb_heisman_adapter  # noq
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
+from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
@@ -298,6 +299,52 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     # works for CFB, not a separate CFB content engine). Proven against
     # real historical CFB games; the same code path serves current-season
     # games automatically once cfbfastR-data publishes them.
+    # Added for the position+college proof-game fix -- the ORIGINAL v1.8
+    # acceptance-test request ("guess the NFL team from the colleges its
+    # offensive players attended, by position, names hidden"), now
+    # genuinely data-backed for 5 skill positions after a real identity-
+    # bridge expansion (tools/data_refresh/nfl_college_identity_bridge.py)
+    # grew certified NFL<->college coverage from 2,542 to 7,745+ rows using
+    # only already-present Engine data. See tools/quiz_export/adapters/
+    # lineup_college.py's own module docstring for the full audit trail,
+    # including the real, measured, unfixable reason OL is excluded
+    # entirely (~10% per-player college coverage -- 0/412 team-seasons ever
+    # have all 5 OL certified, even post-expansion).
+    ("guess", "NFL_OFFENSE_LINEUP_COLLEGE", "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"): {
+        "adapter": lineup_college_adapter,
+        "category": lineup_college_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "visual_template": "POSITION_LINEUP_COLLEGE",
+        "known_limitations": [
+            "Shows only the 5 skill positions (QB, RB, WR, WR, TE) -- the offensive line is not shown at "
+            "all. Certified college identity coverage for offensive linemen is too sparse (~10% per player, "
+            "211/2,060 shown OL slots) for any real team-season's full offensive line to be honestly "
+            "covered; showing OL anyway would mean guessing or fabricating a college, which this project "
+            "does not do.",
+            "Real candidate pool is a strict subset of the names-based TEAM_OF_STARTING_LINEUP capability's "
+            "own 412 team-seasons: 68 of 412 have a certified college for every shown skill-position player "
+            "(see tools.quiz_export.adapters.lineup.lineup_college_coverage() for live current numbers).",
+            "Covers real seasons 2006-2018 only (the same range the names-based sibling capability covers).",
+            "College identity for ~85 of the 5,340 skill-position-slot player-appearances relies on a "
+            "moderate-confidence (0.85) unique-name-plus-chronology match (tools/data_refresh/"
+            "nfl_college_identity_bridge.py) rather than the stronger 0.994-0.999 exact-ESPN-ID match the "
+            "original certified bridge uses -- still never a blind name join (ambiguous names are excluded "
+            "outright), but disclosed as a distinct, lower confidence tier.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_team_season_lineup_college",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 68,  # the real, total size of this domain -- see the adapter's own audit
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["position-college-proof-game-fix"],
+        "pipeline_id_start": 680000,
+    },
     ("guess", "CFB_GAME_RESULT", "WON_GAME"): {
         "adapter": cfb_game_result_adapter,
         "category": cfb_game_result_adapter.CATEGORY,

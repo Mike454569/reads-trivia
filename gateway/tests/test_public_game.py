@@ -336,9 +336,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     # v1.8 added a 4th registered capability, CFB data enrichment a 5th, the
-    # App-Wide Engine Migration operation a 6th and 7th -- see
-    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_seven.
-    assert len(r.json()["capabilities"]) == 7
+    # App-Wide Engine Migration operation a 6th and 7th, the position+college
+    # proof-game fix an 8th -- see
+    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_eight.
+    assert len(r.json()["capabilities"]) == 8
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------

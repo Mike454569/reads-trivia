@@ -324,10 +324,33 @@ function renderPositionLineupBoard(payload) {
     '<div class="lineup-row">' + olRow.map(cell).join('') + '</div>' +
     '</div>';
 }
+/* Position+college proof-game fix: the names-hidden sibling of
+   renderPositionLineupBoard above -- same board layout, but only the 5
+   skill positions (no OL row -- see tools/quiz_export/adapters/
+   lineup_college.py for why real college data can't honestly cover the
+   offensive line) and each cell shows a real COLLEGE instead of a name. */
+function renderPositionLineupCollegeBoard(payload) {
+  var positions = (payload && payload.positions) || [];
+  var season = payload && payload.season;
+  function cell(p) {
+    return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
+      '<div class="lineup-name">' + esc(p.college) + '</div></div>';
+  }
+  return '<div class="lineup-board">' +
+    '<div class="lineup-board-eyebrow">' + icon('users') + ' Starting Offense (by college, names hidden)' +
+    (season ? ' &middot; ' + esc(String(season)) : '') + '</div>' +
+    '<div class="lineup-row-label">Skill Positions</div>' +
+    '<div class="lineup-row">' + positions.map(cell).join('') + '</div>' +
+    '</div>';
+}
 function renderEnginePilotPromptHtml(game) {
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
       renderPositionLineupBoard(game.payload.visual_payload);
+  }
+  if (game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload) {
+    return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+      renderPositionLineupCollegeBoard(game.payload.visual_payload);
   }
   return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>';
 }

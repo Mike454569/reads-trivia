@@ -18,23 +18,32 @@ audit, Section on identity bridge refresh). Two real findings, direct DB
 inspection, not assumed:
   1. identity_bridge_v16.py writes to cross_league_identity_bridge_v16
      (107 rows) -- a DIFFERENT, much smaller table than
-     cfb_nfl_identity_bridge_certified (2,542 rows), the one Lineup/Coach
-     Connections actually query. Nothing in this repo currently writes to
-     cfb_nfl_identity_bridge_certified at all -- its 2,542 rows all share
-     the exact same promoted_at timestamp (2026-08-11T18:17:03Z), meaning
-     it was a one-time bulk promotion by a process that no longer exists
-     here, not a re-runnable pipeline.
+     cfb_nfl_identity_bridge_certified (2,542 rows originally), the one
+     Lineup/Coach Connections actually query. Nothing in this repo used to
+     write to cfb_nfl_identity_bridge_certified at all -- its original
+     2,542 rows all shared the exact same promoted_at timestamp
+     (2026-08-11T18:17:03Z), meaning that first batch was a one-time bulk
+     promotion by a process that no longer exists here, not a re-runnable
+     pipeline. This gap is now closed -- see below.
   2. identity_bridge_v16.py also reliably crashes (real, uncaught
      sqlite3.IntegrityError on canonical_players.gsis_id) whenever a bridge
      match lands on any of the ~11,040 canonical_players rows from an older
      `PFR:<id>`-keyed import convention that already carry a gsis_id -- its
      own INSERT only upserts on a player_id conflict, not a gsis_id one.
-  Calling a script that (a) doesn't feed the table production actually
+  Calling a script that (a) didn't feed the table production actually
   uses and (b) crashes on real data would add nothing but noise/failure
-  reports to every refresh run, so this orchestrator stops calling it.
-  Refreshing the REAL certified bridge remains a genuine, disclosed gap --
-  see the freshness status report -- not something silently faked here by
-  re-running the wrong script and calling it done.
+  reports to every refresh run, so this orchestrator never calls it.
+
+Position+college proof-game fix: `tools/data_refresh/nfl_college_identity_
+bridge.py`'s `expand_identity_bridge()` IS the real, re-runnable, idempotent
+fix for the gap identity_bridge_v16.py left open -- see that module's own
+docstring for the full methodology (a completed unique-normalized-name +
+NFL-chronology matching pass over already-present Engine data, deliberately
+conservative: any ambiguous name match is skipped, never forced). Called
+below, AFTER a successful roster refresh, wrapped in its own try/except so a
+bug in this enrichment step can never fail or trigger a restore-from-backup
+of an otherwise-successful roster refresh -- it is additive, idempotent, and
+strictly secondary to the roster data itself.
 """
 from __future__ import annotations
 
@@ -95,10 +104,21 @@ def run_nfl_refresh(*, seasons: list[int] | None = None) -> dict:
             meta["import"] = fetch_nflverse_current.run_import("nflverse_rosters", p)
             roster_metas.append(meta)
 
-        # No identity-bridge step here -- see module docstring for the real,
-        # measured reason (identity_bridge_v16.py doesn't feed the table
-        # production actually uses, and crashes on real data besides).
-        identity_bridge_status = "NOT_ATTEMPTED_NO_REUSABLE_BUILDER"
+        # Real, re-runnable identity-bridge expansion -- see module docstring
+        # for why this replaced the old "no reusable builder" gap. Wrapped in
+        # its own try/except: a failure here is logged honestly but never
+        # fails or restores the roster refresh itself, since this is a
+        # secondary enrichment step over data that already imported
+        # successfully, not a critical-path import.
+        try:
+            c = engine_bootstrap.connect()
+            from . import nfl_college_identity_bridge
+            bridge_result = nfl_college_identity_bridge.expand_identity_bridge(c)
+            c.close()
+            identity_bridge_status = f"OK_NEWLY_PROMOTED_{bridge_result['newly_promoted']}"
+        except Exception as e:  # noqa: BLE001 -- deliberately broad: never let an
+                                 # enrichment-step bug fail an otherwise-successful refresh.
+            identity_bridge_status = f"FAILED_NON_CRITICAL: {e.__class__.__name__}: {e}"
 
         c = engine_bootstrap.connect()
         # rows_downloaded/_imported/_rejected are pulled from import_batches directly (import_data.py

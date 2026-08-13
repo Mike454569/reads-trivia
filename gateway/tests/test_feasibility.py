@@ -28,33 +28,35 @@ def test_supported_with_limitations_for_college_phrased_lineup_request():
     assert r["visual_template"] == "POSITION_LINEUP"
 
 
-# --- feasibility-logic correction: "position + college, names hidden" ------
-# A real bug this pass fixed: the plain college-phrased lineup request above
-# must keep working exactly as before (names-based, SUPPORTED_WITH_LIMITATIONS)
-# -- but a request that ALSO explicitly asks for names to be hidden must never
-# silently fall back to that names-based capability. It must independently
-# measure the real, certified NFL<->CFB identity bridge and report the truth.
+# --- position+college proof-game fix -----------------------------------
+# A real identity-bridge expansion (tools/data_refresh/
+# nfl_college_identity_bridge.py) made this exact request genuinely
+# data-backed (68 real team-seasons, 5 skill positions, OL honestly
+# excluded) -- these tests replace the earlier "correctly reports
+# MISSING_DATA" pass, which is now stale (the whole point of that pass's
+# own live-measurement design was to start reporting SUPPORTED automatically
+# once real coverage existed, with no one needing to remember to update a
+# hardcoded string -- see feasibility.py's own module docstring).
 
-def test_names_hidden_college_lineup_is_missing_data_not_silent_fallback():
+def test_names_hidden_college_lineup_is_supported_not_missing_data():
     r = feasibility.assess(
         "Guess the NFL team from the colleges of the players on its offense, by position, with names hidden."
     )
-    assert r["support_status"] == "MISSING_DATA"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     # Never silently resolves to the names-based capability.
-    assert r["capability"] is None
-    assert "cfb_nfl_identity_bridge_certified" in r["reason"]
-    assert "never silently substituted with player names" in r["reason"]
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
+    assert r["capability"]["domain"] == "NFL_OFFENSE_LINEUP_COLLEGE"
+    assert any("offensive line is not shown" in lim.lower() for lim in r["known_limitations"])
 
 
-def test_names_hidden_college_lineup_reason_has_real_live_numbers():
-    r = feasibility.assess("Make a game with the position and college of each player, but hide the names.")
-    assert r["support_status"] == "MISSING_DATA"
-    # The exact real numbers measured this pass -- if the bridge is ever
-    # enriched further, this test (not a hardcoded claim in feasibility.py
-    # itself) is what should start failing, which is the correct signal to
-    # re-measure rather than a stale string quietly staying "true" forever.
-    assert "0 of 415" in r["reason"]
-    assert "only 6" in r["reason"]
+def test_names_hidden_college_lineup_composition_example_matches_mission_prompt():
+    # The mission's own verbatim composition example.
+    r = feasibility.assess(
+        "Guess the NFL team from the colleges its offensive players attended. Show position + college only. "
+        "Hide player names."
+    )
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
 
 
 def test_plain_college_lineup_request_unaffected_by_hidden_names_check():
@@ -91,12 +93,22 @@ def test_lineup_college_coverage_measures_live_against_real_bridge():
         c.close()
 
     assert coverage["bridge_table"] == "cfb_nfl_identity_bridge_certified"
-    assert coverage["bridge_entries"] > 2000  # real bridge, not the old ~124-row one
-    assert coverage["total_candidate_team_seasons"] == 415
+    assert coverage["bridge_entries"] > 5000  # real, expanded bridge (2,542 -> 7,745+) plus ATTENDED_BEFORE_DRAFT
+    # total_candidate_team_seasons now counts only actually-generatable
+    # (evaluate()-passing) team-seasons, not the raw structural candidate
+    # count -- "success is measured by playable lineups," not structural
+    # completeness (see lineup_college_coverage()'s own docstring).
+    assert coverage["total_candidate_team_seasons"] == 412
     assert coverage["min_required_for_support"] == 20
-    # Real measured state as of this pass -- genuinely insufficient.
-    assert coverage["full_lineup_college_coverage"] < coverage["min_required_for_support"]
-    assert coverage["sufficient"] is False
+    # Full 10-position coverage remains a real, measured, structural
+    # ceiling: OL college coverage is far too sparse (~10% per player) for
+    # all 5 OL players on any one team-season to ever be simultaneously
+    # certified.
+    assert coverage["full_lineup_college_coverage"] == 0
+    # Skill-positions-only coverage, however, is now genuinely sufficient --
+    # the real, data-backed reason NFL_OFFENSE_LINEUP_COLLEGE is registered.
+    assert coverage["skill_positions_only_college_coverage"] >= coverage["min_required_for_support"]
+    assert coverage["sufficient"] is True
     assert set(coverage["per_slot_hit_counts"]) == {"QB", "RB", "WR", "TE", "OL"}
 
 
@@ -206,13 +218,16 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_seven_registered_capabilities():
+def test_capability_summary_lists_all_eight_registered_capabilities():
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 7
+    assert len(summary) == 8
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    lineup_college = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")
+    assert lineup_college["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert lineup_college["domain"] == "NFL_OFFENSE_LINEUP_COLLEGE"
     heisman = next(c for c in summary if c["relationship_predicate"] == "WON_HEISMAN")
     assert heisman["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     game_results = [c for c in summary if c["relationship_predicate"] == "WON_GAME"]

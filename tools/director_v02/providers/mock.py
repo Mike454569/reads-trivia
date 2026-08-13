@@ -25,18 +25,25 @@ football/NFL content but not enough to resolve to any of the above, then
 NO_MATCH for everything else.
 
 v1.8, Part F/B: the Starting Lineup pattern below deliberately also matches
-requests that ask for "colleges" -- the exact proof-game concept requested
-in v1.8 ("guess the team from the colleges of the players on its offense,
-by position") is NOT backed by real data (see
-tools/quiz_export/adapters/lineup.py's module docstring) and there is no
-registered college-based capability to route to. Matching the college
-phrasing to the real, name-based TEAM_OF_STARTING_LINEUP capability is an
-honest best-effort match on INTENT (a real position-by-position starting
-offense puzzle), not a claim that colleges are actually used -- the
-generated package's own title/instructions/notes always say plainly that
-this is a names-based puzzle, never colleges, regardless of how the request
-was phrased. This mirrors an ordinary search engine matching a query to the
-closest real result rather than fabricating one that doesn't exist.
+requests that ask for "colleges" WITHOUT an explicit names-hidden signal --
+matching the college phrasing to the real, name-based TEAM_OF_STARTING_
+LINEUP capability is an honest best-effort match on INTENT (a real
+position-by-position starting offense puzzle), not a claim that colleges are
+actually used -- the generated package's own title/instructions/notes always
+say plainly that this is a names-based puzzle, never colleges, regardless of
+how the request was phrased. This mirrors an ordinary search engine matching
+a query to the closest real result rather than fabricating one that doesn't
+exist.
+
+POSITION + COLLEGE PROOF-GAME FIX: a request that ALSO explicitly asks to
+hide/anonymize names is a genuinely different, now-real capability
+(NFL_OFFENSE_LINEUP_COLLEGE / TEAM_OF_STARTING_LINEUP_BY_COLLEGE) --
+following a real identity-bridge expansion (tools/data_refresh/
+nfl_college_identity_bridge.py), the ORIGINAL v1.8 proof-game request ("guess
+the team from the colleges of the players on its offense, by position, names
+hidden") is now genuinely data-backed for 5 skill positions (68 real
+certified team-seasons) and is matched to its own real capability below,
+never silently substituted with the names-based one.
 """
 from __future__ import annotations
 
@@ -245,28 +252,40 @@ class MockDeterministicTranslator(Translator):
                 "keywords -> TEAM_POSTSEASON_RESULT guess capability.",
             )
 
-        # Feasibility-logic correction pass: a "position + college, NAMES
+        # POSITION + COLLEGE PROOF-GAME FIX: a "position + college, NAMES
         # HIDDEN" request must NOT silently fall into the general Starting
         # Lineup pattern below -- that pattern's own capability only ever
         # shows player NAMES, never colleges, so matching it here would be
-        # exactly the silent-fallback-to-names this correction explicitly
-        # forbids. Checked BEFORE the general pattern, narrowly (requires an
+        # exactly the silent-fallback-to-names the earlier correction pass
+        # forbade. Checked BEFORE the general pattern, narrowly (requires an
         # explicit hidden/hide/anonymous/"no names" signal, not just any
         # college mention -- a plain college-phrased lineup request still
         # correctly falls through to the general pattern below, which
         # honestly explains the names-not-colleges substitution in its own
-        # copy). Returns NO_MATCH here -- not TRANSLATED, not
-        # UNDERSTOOD_UNSUPPORTED_MECHANIC -- because there is no registered
-        # capability with a claim to this predicate at all; feasibility.py
-        # independently re-checks this exact signal and reports the real,
-        # live-measured MISSING_DATA reason (tools/quiz_export/adapters/
-        # lineup.py's lineup_college_coverage()), not a translator-invented one.
+        # copy).
+        #
+        # As of the identity-bridge expansion (tools/data_refresh/
+        # nfl_college_identity_bridge.py), this IS now a real, registered
+        # capability (NFL_OFFENSE_LINEUP_COLLEGE / TEAM_OF_STARTING_LINEUP_
+        # BY_COLLEGE -- 68 real, certified team-seasons, 5 skill positions,
+        # OL honestly excluded -- see tools/quiz_export/adapters/
+        # lineup_college.py's own module docstring for the full audit
+        # trail), so this now returns TRANSLATED, not NO_MATCH.
         if has_team and has_college and has_hidden_names and (has_offense or has_lineup or has_position):
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_OFFENSE_LINEUP_COLLEGE",
+                "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
             return _result(
-                request_text, "NO_MATCH", None,
-                "Recognized a 'position + college, names hidden' lineup request -- "
-                "no registered capability covers this (see the feasibility engine for "
-                "real, live-measured college-identity-bridge coverage numbers).",
+                request_text, "TRANSLATED", spec,
+                "Matched team + position/offense/lineup + college + names-hidden keywords -> "
+                "TEAM_OF_STARTING_LINEUP_BY_COLLEGE guess capability. Note: shows only the 5 skill "
+                "positions (no offensive line) -- see the package's own notes/known_limitations for why.",
             )
 
         # Starting Lineup, added v1.8, Part F. Requires "team" plus (offense OR

@@ -40,6 +40,17 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "renderer": "renderPositionLineup (engine-game-ui.js)",
         "proven_in": ["nfl_offense_lineup_guess"],
     },
+    "POSITION_LINEUP_COLLEGE": {
+        "description": "The names-hidden sibling of POSITION_LINEUP: a 5-slot skill-position board (QB/RB/"
+                        "WR/WR/TE only -- no OL row, see adapters/lineup_college.py for why) showing each "
+                        "player's real COLLEGE instead of their name.",
+        "payload_schema": {
+            "positions": "list[{position: str, college: str}], in board display order, skill positions only",
+            "season": "int",
+        },
+        "renderer": "renderPositionLineupCollegeBoard (engine-game-ui.js)",
+        "proven_in": ["nfl_offense_lineup_college_guess"],
+    },
 }
 
 

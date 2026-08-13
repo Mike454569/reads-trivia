@@ -212,6 +212,23 @@ CERTIFIED_BRIDGE_TABLE = "cfb_nfl_identity_bridge_certified"
 # claim did) -- but measuring it honestly is NOT the same as it being
 # sufficient. See `lineup_college_coverage()`'s own result for the real
 # current numbers and feasibility.py for how they're used.
+#
+# --- REAL COVERAGE EXPANSION (position+college proof-game fix) ---
+# `tools/data_refresh/nfl_college_identity_bridge.py` (a real, re-runnable,
+# idempotent pipeline -- see its own module docstring for the full
+# methodology/audit trail) grew the certified bridge from 2,542 to 7,745
+# rows using ONLY already-present Engine data (a completed unique-
+# normalized-name + NFL-chronology matching pass), reused here. This
+# function ALSO now falls back to `relationships` (predicate
+# ATTENDED_BEFORE_DRAFT, school -> nfl_player, 3,751 rows, already tagged
+# PRODUCTION_SAFE_DERIVED) for any player the certified bridge still
+# misses -- a real, pre-existing Engine source that was never wired into
+# this lookup before, found during the same audit pass. Neither addition
+# is a blind name join: the expansion module requires an UNAMBIGUOUS
+# normalized-name match (skipped_ambiguous_name in its own return dict) AND
+# a chronology-plausible match, and ATTENDED_BEFORE_DRAFT was itself
+# already promoted to PRODUCTION_SAFE_DERIVED by the Engine's own prior
+# identity-bridge process, not derived here.
 MIN_FULL_LINEUP_COLLEGE_COVERAGE = 20
 # Why 20: every other real capability in this registry has a candidate pool
 # in the dozens-to-hundreds range (Draft 232, Championship 296, this
@@ -222,15 +239,39 @@ MIN_FULL_LINEUP_COLLEGE_COVERAGE = 20
 # ideal.
 
 
+def certified_college_lookup(c) -> dict[str, str]:
+    """The single, real source of truth for "does this NFL player have a
+    certified college?", reused by both `lineup_college_coverage()` (the
+    Feasibility-facing measurement) and `adapters/lineup_college.py` (the
+    actual generation path) -- one lookup, not two independently-maintained
+    copies. Certified bridge first (highest confidence), ATTENDED_BEFORE_
+    DRAFT fills in anyone still missing (see module docstring above for why
+    both are real, already-vetted sources, not a new blind join)."""
+    bridge = {
+        r["nfl_player_key"]: r["school_name"]
+        for r in c.execute(f"SELECT nfl_player_key, school_name FROM {CERTIFIED_BRIDGE_TABLE}")
+    }
+    for r in c.execute(
+        "SELECT r.object_id AS nfl_player_key, s.school_name FROM relationships r "
+        "JOIN schools s ON s.school_id = r.subject_id WHERE r.predicate='ATTENDED_BEFORE_DRAFT'"
+    ):
+        bridge.setdefault(r["nfl_player_key"], r["school_name"])
+    return bridge
+
+
 def lineup_college_coverage(c) -> dict:
     """Real, LIVE-measured coverage of the certified NFL<->CFB identity
-    bridge against this adapter's own real candidate pool -- exactly the
-    data a "position + college, names hidden" variant would need. Recomputed
-    from the database on every call (never cached/hardcoded), specifically
-    so a future bridge improvement is reflected automatically instead of
-    requiring someone to remember to update a stale claim by hand -- the
-    exact failure mode that made the module docstring's original finding
-    go stale in the first place.
+    bridge against this adapter's own real, ACTUALLY-GENERATABLE candidate
+    pool (every candidate is run through `evaluate()` -- the same real
+    accept/reject logic real generation uses -- not the raw, unfiltered
+    candidate list, so this measures "playable lineups", not just
+    "structurally complete" ones per the mission's own "success is measured
+    by playable lineups" standard). Recomputed from the database on every
+    call (never cached/hardcoded), specifically so a future bridge
+    improvement is reflected automatically instead of requiring someone to
+    remember to update a stale claim by hand -- the exact failure mode that
+    made the module docstring's original finding go stale in the first
+    place.
 
     Two coverage figures, because they answer two different real questions:
     - `full_lineup_college_coverage`: team-seasons where ALL 10 shown
@@ -239,18 +280,24 @@ def lineup_college_coverage(c) -> dict:
       board -- as shipped today, 10 real slots -- would need.
     - `skill_positions_only_college_coverage`: the same, but only requiring
       the 5 skill positions (QB/RB/WR/WR/TE) to be covered, ignoring OL
-      entirely -- the most generous possible relaxation of the shape.
-    Both are reported so a caller never has to guess which one a given
-    claim is measuring."""
+      entirely -- the most generous possible relaxation of the shape, and
+      the shape `adapters/lineup_college.py` actually generates (see that
+      module's own docstring for why OL is dropped entirely rather than
+      shown with fabricated precision)."""
+    from .. import duplicates as duplicates_mod
+
     rows = fetch_ordered_candidates(c, seed="college-coverage-measurement")
-    bridge_rows = c.execute(f"SELECT nfl_player_key, school_name FROM {CERTIFIED_BRIDGE_TABLE}").fetchall()
-    bridge = {r["nfl_player_key"]: r["school_name"] for r in bridge_rows}
+    rng = engine.seeded("college-coverage-measurement")
+    guard = duplicates_mod.DuplicateGuard(track_entity=TRACK_ENTITY)
+    playable_rows = [raw for raw in rows if not isinstance(evaluate(c, raw, rng, guard), str)]
+
+    bridge = certified_college_lookup(c)
 
     full_lineup_coverage = 0
     skill_only_coverage = 0
     slot_hits = {"QB": 0, "RB": 0, "WR": 0, "TE": 0, "OL": 0}
     slot_totals = {"QB": 0, "RB": 0, "WR": 0, "TE": 0, "OL": 0}
-    for _season, _team_code, lineup_players in rows:
+    for _season, _team_code, lineup_players in playable_rows:
         skill_hits = 0
         skill_total = 0
         for slot in ("QB", "RB", "WR", "TE"):
@@ -272,13 +319,13 @@ def lineup_college_coverage(c) -> dict:
                 full_lineup_coverage += 1
 
     return {
-        "total_candidate_team_seasons": len(rows),
+        "total_candidate_team_seasons": len(playable_rows),
         "bridge_table": CERTIFIED_BRIDGE_TABLE,
         "bridge_entries": len(bridge),
         "full_lineup_college_coverage": full_lineup_coverage,
         "skill_positions_only_college_coverage": skill_only_coverage,
         "min_required_for_support": MIN_FULL_LINEUP_COLLEGE_COVERAGE,
-        "sufficient": full_lineup_coverage >= MIN_FULL_LINEUP_COLLEGE_COVERAGE,
+        "sufficient": skill_only_coverage >= MIN_FULL_LINEUP_COLLEGE_COVERAGE,
         "per_slot_hit_counts": slot_hits,
         "per_slot_totals": slot_totals,
     }

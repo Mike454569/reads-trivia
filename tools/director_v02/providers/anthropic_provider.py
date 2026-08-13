@@ -113,8 +113,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -126,7 +126,7 @@ this shape:
   "clarifying_question": null or "<a short question to show the user>"
 }
 
---- THE SEVEN SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
+--- THE EIGHT SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
 
 1. mechanic=guess, domain=NFL_DRAFT, relationship_predicate=DRAFTED_BY
    The player sees a real NFL player's name and picks which team drafted them.
@@ -166,35 +166,46 @@ separate part of the pipeline attaches an honest disclosure that colleges aren't
 7. mechanic=guess, domain=CFB_GAME_RESULT, relationship_predicate=WON_GAME
    The player sees a specific real, completed CFB game and picks which school won it.
 
+8. mechanic=guess, domain=NFL_OFFENSE_LINEUP_COLLEGE, relationship_predicate=TEAM_OF_STARTING_LINEUP_BY_COLLEGE
+   The player sees a real NFL team's starting offense for a season, shown position-by-position for the \
+5 SKILL positions only (QB/RB/WR/WR/TE -- no offensive line row at all) with each player's real COLLEGE \
+instead of their name, and picks which team it is. This is the "position + college, names hidden" concept \
+-- see Rule B below for exactly when a request matches this vs. capability 4. Real, certified college data \
+exists for only 68 real team-seasons (far fewer than capability 4's 412), and the offensive line is never \
+shown because per-player OL college coverage is too sparse (~10%) for any team-season's full line to be \
+honestly covered -- never guessed or fabricated.
+
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
-Capabilities 3 (player-from-clues) and 4 (starting lineup) are NFL-only -- there is NO \
-registered CFB equivalent of either. If a request clearly asks for a CFB/college-football \
-version of either idea (an explicit "CFB" mention, "college football" as its own phrase, or \
-unambiguous college-only framing with no NFL signal at all), you MUST NOT silently answer with \
-the NFL capability. Use "UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, and say plainly in \
-translator_notes that this is a real, understandable request but no registered CFB capability \
-covers it yet (name which NFL capability is the closest analog, for context, but do not set \
-spec to it). A bare request with NO league signal at all (neither "NFL" nor "CFB"/"college") \
-still defaults to the NFL capability for 1-4, consistent across all of them -- only an \
-EXPLICIT CFB signal with no contradicting "NFL" token should route away from NFL. Capabilities \
+Capabilities 3 (player-from-clues), 4 (starting lineup), and 8 (starting lineup by college) are \
+NFL-only -- there is NO registered CFB equivalent of any of them. If a request clearly asks for \
+a CFB/college-football version of one of these ideas (an explicit "CFB" mention, "college \
+football" as its own phrase, or unambiguous college-only framing with no NFL signal at all), you \
+MUST NOT silently answer with the NFL capability. Use "UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, \
+and say plainly in translator_notes that this is a real, understandable request but no \
+registered CFB capability covers it yet (name which NFL capability is the closest analog, for \
+context, but do not set spec to it). A bare request with NO league signal at all (neither "NFL" \
+nor "CFB"/"college") still defaults to the NFL capability for 1, 2, 3, 4, and 8, consistent \
+across all of them -- only an EXPLICIT CFB signal with no contradicting "NFL" token should route \
+away from NFL. (Note: capability 8 itself is inherently about colleges, but that is NOT the same \
+signal as an explicit CFB/college-FOOTBALL LEAGUE request -- a request for the NFL starting \
+lineup shown BY COLLEGE is still an NFL-competition request; only route to \
+UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request explicitly asks for a CFB/college-football \
+TEAM'S OWN starting lineup, which is a different, unregistered concept entirely.) Capabilities \
 5-7 are inherently CFB-specific (5) or come in both an NFL (6) and CFB (7) form -- for 6 vs 7, \
 the same rule applies: an explicit CFB signal (with no contradicting NFL token) selects \
 domain=CFB_GAME_RESULT; everything else defaults to domain=NFL_GAME_RESULT.
 
---- RULE B: THE "POSITION + COLLEGE, NAMES HIDDEN" TRAP ---
+--- RULE B: THE "POSITION + COLLEGE, NAMES HIDDEN" REQUEST -> CAPABILITY 8 ---
 A request that asks for a lineup/starters/offense-by-position game showing each player's \
 POSITION and COLLEGE while explicitly asking to HIDE, ANONYMIZE, or NOT SHOW player names \
-(signals like "hidden", "hide", "anonymous", "no names", "without names", "names hidden") is a \
-real, understandable, schema-expressible concept that is DIFFERENT from capability 4 above \
-(which only ever shows real names). Do NOT map this to capability 4 -- that would silently give \
-the user names when they explicitly asked to hide them. Do NOT use "TRANSLATED" and do NOT use \
-"UNDERSTOOD_UNSUPPORTED_MECHANIC" for this exact case either. Use "NO_MATCH" instead, with spec \
-null, and a translator_notes explaining you recognized a names-hidden position+college lineup \
-request. (A separate feasibility layer independently recognizes this exact pattern and reports \
-the real, live-measured data-coverage reason -- your job here is only to avoid the silent \
-names-substitution, not to explain the data gap yourself.) An ORDINARY college-phrased lineup \
-request with NO names-hidden signal is NOT this case -- that one matches capability 4 normally \
-per its own description above.
+(signals like "hidden", "hide", "anonymous", "no names", "without names", "names hidden") is \
+capability 8 above -- a real, registered capability, DIFFERENT from capability 4 (which only \
+ever shows real names). Use "TRANSLATED" with domain=NFL_OFFENSE_LINEUP_COLLEGE, \
+relationship_predicate=TEAM_OF_STARTING_LINEUP_BY_COLLEGE. Do NOT map this to capability 4 -- \
+that would silently give the user names when they explicitly asked to hide them. An ORDINARY \
+college-phrased lineup request with NO names-hidden signal is NOT this case -- that one matches \
+capability 4 normally per its own description above (names shown, colleges not used, honestly \
+disclosed).
 
 --- RULE C: REQUESTS OUTSIDE THIS SCHEMA ENTIRELY (e.g. Coach Connections, Six Degrees) ---
 "Reads" (the app this Creator is part of) has other real, already-built game modes -- e.g. \
@@ -207,10 +218,10 @@ IS a real, existing part of the product, but it is NOT something this natural-la
 pipeline generates -- say so plainly (e.g. "Coach Connections is a real, existing Reads mode, \
 but it isn't built through this natural-language Creator -- it has its own dedicated game screen"). \
 Never invent a (mechanic, domain, relationship_predicate) triple that doesn't appear in the list \
-of seven above to try to approximate it.
+of eight above to try to approximate it.
 
 --- RULE D: COMPOUND / MIXED / OFF-TOPIC REQUESTS ---
-If the request asks for something that isn't any of the seven capabilities and has no real \
+If the request asks for something that isn't any of the eight capabilities and has no real \
 football-data backing at all (e.g. player salaries/contracts, injuries, favorite foods, or any \
 other topic this database plainly wouldn't have), or is a compound request combining a \
 supported part with an unsupported part (e.g. "both a QB's team AND his favorite food"), use \

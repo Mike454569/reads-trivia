@@ -67,17 +67,34 @@ is now -- the fix is to measure live instead of asserting from memory.
 `_position_lineup_college_hidden_names_reason()` below does exactly that:
 it calls `tools.quiz_export.adapters.lineup.lineup_college_coverage()`
 (a real, parameterized query against the certified bridge, run fresh every
-call) and reports the ACTUAL current coverage. Measured this pass: 0 of 415
-real team-seasons have all 10 shown positions bridged to a certified
-college, and only 6 have all 5 SKILL positions bridged (ignoring the
-grouped OL entirely) -- both far below the 20-team-season floor
-(`MIN_FULL_LINEUP_COLLEGE_COVERAGE`) a real, repeatable public mode needs.
-So: still `MISSING_DATA` today, but for the true reason (insufficient
-identity-bridge coverage for this specific 10-position shape), not the
-false one (no college data exists at all) -- and because the check is
-live, it will correctly report `SUPPORTED` on its own, automatically, the
-day the bridge genuinely covers enough team-seasons, with no one having to
-remember to update a hardcoded string.
+call) and reports the ACTUAL current coverage. As measured at the time this
+correction pass was written: 0 of 415 real team-seasons had all 10 shown
+positions bridged to a certified college, and only 6 had all 5 SKILL
+positions bridged (ignoring the grouped OL entirely) -- both far below the
+20-team-season floor (`MIN_FULL_LINEUP_COLLEGE_COVERAGE`) a real, repeatable
+public mode needs.
+
+UPDATE (position+college proof-game fix): exactly the "it will correctly
+report SUPPORTED on its own, automatically" promise above came true. A real
+identity-bridge expansion (`tools/data_refresh/nfl_college_identity_bridge.py`,
+using only already-present Engine data) grew the certified bridge from 2,542
+to 7,745+ rows; skill-position-only coverage is now 68 of 412 real,
+actually-generatable team-seasons -- past the floor. A real capability
+(`NFL_OFFENSE_LINEUP_COLLEGE` / `TEAM_OF_STARTING_LINEUP_BY_COLLEGE`, see
+`tools/quiz_export/adapters/lineup_college.py`) is now registered for
+exactly this 5-skill-position shape, and `providers/mock.py` /
+`providers/anthropic_provider.py` both translate a names-hidden
+position+college request to it directly -- so a real such request now
+reaches `assess()`'s `gate_status == "READY"` branch above and returns
+`SUPPORTED_WITH_LIMITATIONS` (known_limitations disclosing the excluded OL
+row) WITHOUT ever reaching `_is_position_lineup_college_hidden_names_
+request()`/`_position_lineup_college_hidden_names_reason()` below at all.
+Full 10-position coverage remains permanently 0 (a real, measured,
+structural ceiling -- OL college coverage is ~10% per player even after the
+expansion, so all 5 OL simultaneously covered essentially never happens);
+the two functions below remain as a genuine, correct MISSING_DATA fallback
+for the (now much narrower) case where translation fails to produce a valid
+spec for this exact request pattern for some other reason.
 
 Critically: this is a SEPARATE, explicitly-requested variant (the creator
 must ask for colleges with names hidden) from the existing, already-real,

@@ -66,10 +66,10 @@ TEST_REQUESTS = [
      "UNDERSTOOD_UNSUPPORTED_MECHANIC"),  # real feature, but outside this schema entirely -- see Rule C
     ("10_lineup_names_hidden_short", "Make me a game where I guess a team from positions and colleges with "
      "names hidden.",
-     "NO_MATCH"),  # Rule B trap -- must NOT silently fall back to the names-based lineup capability
+     "TRANSLATED"),  # Rule B -- position+college proof-game fix: now a real, registered capability
     ("11_lineup_names_hidden_full_composition", "Make me a game where I guess the NFL team from the colleges "
      "its offensive players attended. Show position + college and hide player names.",
-     "NO_MATCH"),  # the mission's own verbatim composition example
+     "TRANSLATED"),  # the mission's own verbatim composition example -- now genuinely data-backed
     ("12_cfb_starters_unsupported", "Make me a game requiring CFB starters.",
      "UNDERSTOOD_UNSUPPORTED_MECHANIC"),  # Rule A -- NFL_OFFENSE_LINEUP has no CFB equivalent
     ("13_cfb_player_clues_unsupported", "Make me a CFB player-from-clues game about a college quarterback.",
