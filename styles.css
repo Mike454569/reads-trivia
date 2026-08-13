@@ -1453,3 +1453,57 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .classroom-lock-note { max-width: none; text-align: left; }
   .diagram-defender { width: 26px; height: 26px; font-size: 9.5px; }
 }
+
+/* ============================== Football Encyclopedia ==================
+   Browse-first reference UI (domain list -> concept list -> concept
+   detail). Reuses .panel/.mode-toolbar/.mode-desc/.learn-filter-input/
+   .btn-secondary/.btn-tiny wholesale -- only the row-list/badge/field-
+   list styling below has no existing equivalent. */
+.encyc-domain-list, .encyc-row-list, .encyc-results { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.encyc-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.encyc-row:hover { border-color: var(--accent); }
+.encyc-row-label { font-weight: 600; font-size: 14px; }
+.encyc-row-count {
+  font-size: 12px; font-weight: 700; color: var(--text-dim); background: var(--bg-elevated);
+  border-radius: 999px; padding: 2px 9px; flex-shrink: 0;
+}
+.encyc-row-meta { font-size: 12px; color: var(--text-dim); flex-shrink: 0; text-align: right; }
+.encyc-subcategory-label {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-dim); margin: 18px 0 6px;
+}
+.encyc-subcategory-label:first-of-type { margin-top: 10px; }
+.encyc-badge {
+  display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  margin: 6px 0 2px; text-transform: uppercase; letter-spacing: .03em;
+}
+.encyc-badge-verified { background: rgba(34,197,94,.14); color: var(--good); }
+.encyc-badge-caution { background: rgba(217,166,60,.16); color: var(--accent); }
+.encyc-caution {
+  display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-dim);
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 12px; margin-bottom: 14px;
+}
+.encyc-caution .icon { flex-shrink: 0; width: 16px; height: 16px; margin-top: 1px; }
+.encyc-fields { margin: 14px 0; }
+.encyc-fields dt {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--text-dim); margin-top: 12px;
+}
+.encyc-fields dt:first-child { margin-top: 0; }
+.encyc-fields dd { margin: 3px 0 0; font-size: 14.5px; line-height: 1.5; }
+.encyc-related-label {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-dim); margin: 20px 0 8px;
+}
+.encyc-classroom-link { margin: 14px 0 4px; }
+.encyc-provenance { margin-top: 18px; font-size: 11.5px; color: var(--text-dim); }
+
+@media (max-width: 520px) {
+  .encyc-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .encyc-row-meta { text-align: left; }
+}

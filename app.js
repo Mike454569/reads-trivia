@@ -231,6 +231,20 @@ var XSO = window.XSO_DATA || [];
 // tools/learn/export_coverage_module.py -- see that script and
 // tools/learn/build_coverage_module.py for full provenance.
 var LEARN_COVERAGES = window.LEARN_COVERAGE_MODULE || null;
+// Football Learning Engine, full Encyclopedia module -- concepts across
+// every football domain (positions, personnel, formations, route tree,
+// passing concepts, run game, blocking, protection, QB play, defensive
+// fronts/personnel/pressures/philosophy, special teams, situational,
+// play calling, scouting, film study, history, geometry, coaching,
+// officiating, rules, offensive systems), plus NFL/CFB team scheme
+// profiles and historical statistical leaders. A SEPARATE data file/entry
+// point from the Coverage Classroom above -- that module's lessons/
+// exercises are untouched; this one is a browse-first encyclopedia (see
+// renderEncyclopediaScreen()). Exported by
+// tools/learn/export_encyclopedia_module.py -- see that script and
+// tools/learn/build_encyclopedia_module.py for full provenance back to
+// the exact source workbook (sheet, row) for every field.
+var LEARN_ENCYCLOPEDIA = window.LEARN_ENCYCLOPEDIA || null;
 var GRID_PLAYERS = window.GRID_PLAYERS || [];
 var GRID_CRITERIA = window.GRID_CRITERIA || { team: [], stat: [], all: [] };
 var BLITZ_LISTS = window.BLITZ_LISTS || [];
@@ -1041,6 +1055,7 @@ function loadScript(src) {
 function refreshDataAliases() {
   XSO = window.XSO_DATA || XSO;
   LEARN_COVERAGES = window.LEARN_COVERAGE_MODULE || LEARN_COVERAGES;
+  LEARN_ENCYCLOPEDIA = window.LEARN_ENCYCLOPEDIA || LEARN_ENCYCLOPEDIA;
   // Engine v4.0-sourced players (data/grid-engine-players.js, see
   // tools/grid_export/build_grid_engine_players.py) concatenated onto the
   // hand-curated pool -- recomputed from the two stable window.* sources
@@ -7341,6 +7356,19 @@ var LEARN_SECTIONS = [
   // interactive reps) via a dedicated 'classroom' sub-screen (see
   // openLearnSection()/renderClassroomScreen()), not the generic filter/
   // table section renderer every other card below uses.
+  // The full Football Learning Encyclopedia -- browse-first (search ->
+  // domain -> concept), covering every football domain the source
+  // workbook supports. Distinct from coverageClassroom below (which stays
+  // a focused, lesson-based teaching module for one topic); this is the
+  // "look anything up" reference the rest of Learn now sits inside of.
+  { id: 'footballEncyclopedia', league: 'both', icon: 'book', title: 'Football Encyclopedia',
+    desc: 'Positions, personnel, formations, routes, passing concepts, run game, blocking, protection, QB play, defensive fronts, pressures, schemes, and more -- searchable and organized beginner to advanced.',
+    // Also loads learn-coverages.js (not just learn-encyclopedia.js) so a
+    // COVERAGES-domain concept page's "learn this hands-on" cross-link into
+    // the Coverage Classroom (see renderEncyclopediaConceptDetail()) always
+    // works, even if the user opens the Encyclopedia without ever visiting
+    // the Classroom card first.
+    dataFiles: ['data/learn-encyclopedia.js', 'data/learn-coverages.js'] },
   { id: 'coverageClassroom', league: 'nfl', icon: 'brain', title: 'Defensive Coverages: The Classroom',
     desc: 'Learn to read a defense -- Cover 0 through Cover 6, man vs. zone, and real rotations, taught step by step with interactive reps.',
     dataFiles: ['data/learn-coverages.js'] },
@@ -7647,17 +7675,20 @@ function renderLearnScreen() {
       '<p class="mode-desc">Couldn’t load this section. Check your connection and try again.</p></div>';
   }
   if (s.screen === 'classroom') return renderClassroomScreen();
+  if (s.screen === 'encyclopedia') return renderEncyclopediaScreen();
   return s.screen === 'section' ? renderLearnSectionDetail() : renderLearnMenu();
 }
 function learnBackToMenu() {
   state.learn = { screen: 'menu', sectionId: null, filter: '', category: '', loadingSection: null, loadError: null };
   state.classroom = null;
+  state.encyclopedia = null;
   renderAll();
 }
 function openLearnSection(id) {
   var s = state.learn, section = learnSectionById(id);
   if (!section) return;
   var isClassroom = id === 'coverageClassroom';
+  var isEncyclopedia = id === 'footballEncyclopedia';
   var pending = section.dataFiles.filter(function (f) { return !loadedScripts[f]; });
   if (pending.length) {
     s.loadingSection = id;
@@ -7667,6 +7698,7 @@ function openLearnSection(id) {
       refreshDataAliases();
       s.loadingSection = null;
       if (isClassroom) { s.screen = 'classroom'; }
+      else if (isEncyclopedia) { s.screen = 'encyclopedia'; }
       else { s.screen = 'section'; s.sectionId = id; s.filter = ''; s.category = ''; }
       renderAll();
     }).catch(function () {
@@ -7677,6 +7709,7 @@ function openLearnSection(id) {
     return;
   }
   if (isClassroom) { s.screen = 'classroom'; renderAll(); return; }
+  if (isEncyclopedia) { s.screen = 'encyclopedia'; renderAll(); return; }
   s.screen = 'section';
   s.sectionId = id;
   s.filter = '';
@@ -7989,6 +8022,285 @@ function renderClassroomScreen() {
   return renderClassroomPath();
 }
 
+/* ============================== Football Encyclopedia ==================
+   Browse-first (search -> domain -> concept), covering every domain
+   LEARN_ENCYCLOPEDIA.domains lists -- see tools/learn/build_encyclopedia_
+   module.py for the full ingestion/merge/provenance discipline behind this
+   data. Deliberately NOT quiz/lesson-first: every concept is readable with
+   no interactive gate (mission's explicit "browse -> search -> open
+   concept -> read explanation -> explore related concepts, without being
+   forced into a test"). The existing Coverage Classroom (state.classroom
+   above) remains the separate, hands-on lesson experience for that one
+   topic -- a COVERAGES-domain concept page here links into it rather than
+   duplicating its lesson content. */
+function encyclopediaAllConcepts() {
+  return (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.concepts) || {};
+}
+function encyclopediaDomains() {
+  var domains = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.domains) || [];
+  return domains.slice().sort(function (a, b) { return a.order - b.order; });
+}
+function encyclopediaConceptsForDomain(domainId) {
+  var all = encyclopediaAllConcepts();
+  var out = [];
+  for (var id in all) { if (all[id].domain === domainId) out.push(all[id]); }
+  out.sort(function (a, b) {
+    var sa = a.subcategory || '', sb = b.subcategory || '';
+    if (sa !== sb) return sa < sb ? -1 : 1;
+    return (a.label || '').localeCompare(b.label || '');
+  });
+  return out;
+}
+function encyclopediaTeamProfilesForDomain(domainId) {
+  var all = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.team_scheme_profiles) || {};
+  var out = [];
+  for (var id in all) { if (all[id].domain === domainId) out.push(all[id]); }
+  out.sort(function (a, b) { return (a.team || '').localeCompare(b.team || ''); });
+  return out;
+}
+function encyclopediaHistoricalForDomain() {
+  var all = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.historical_records) || {};
+  var out = [];
+  for (var id in all) out.push(all[id]);
+  out.sort(function (a, b) { return (b.season || 0) - (a.season || 0); });
+  return out;
+}
+function encyclopediaDomainCount(domainId) {
+  if (domainId === 'NFL_SCHEMES' || domainId === 'CFB_SCHEMES') return encyclopediaTeamProfilesForDomain(domainId).length;
+  if (domainId === 'GREAT_UNITS') return encyclopediaHistoricalForDomain().length;
+  return encyclopediaConceptsForDomain(domainId).length;
+}
+function encyclopediaConceptByCanonicalId(id) { return encyclopediaAllConcepts()[id]; }
+function encyclopediaPrettyLabel(key) {
+  return String(key).replace(/_/g, ' ').replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
+}
+function encyclopediaRelatedFor(canonicalId) {
+  var rels = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.relationships) || [];
+  var out = [];
+  rels.forEach(function (r) {
+    if (r.source === canonicalId) out.push({ predicate: r.predicate, id: r.target, direction: 'out' });
+    else if (r.target === canonicalId) out.push({ predicate: r.predicate, id: r.source, direction: 'in' });
+  });
+  return out;
+}
+var ENCYCLOPEDIA_SEARCH_LIMIT = 60;
+function encyclopediaSearch(query) {
+  var q = (query || '').trim().toLowerCase();
+  if (!q) return [];
+  var results = [];
+  var all = encyclopediaAllConcepts();
+  for (var id in all) {
+    var c = all[id];
+    var hay = (c.label || '') + ' ' + (c.subcategory || '') + ' ' + (c.domain || '');
+    if (c.fields) { for (var k in c.fields) hay += ' ' + c.fields[k]; }
+    if (hay.toLowerCase().indexOf(q) !== -1) {
+      results.push({ kind: 'concept', id: id, label: c.label, domain: c.domain, sub: c.subcategory });
+      if (results.length >= ENCYCLOPEDIA_SEARCH_LIMIT) return results;
+    }
+  }
+  var teams = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.team_scheme_profiles) || {};
+  for (var tid in teams) {
+    var t = teams[tid];
+    if ((t.label || '').toLowerCase().indexOf(q) !== -1) {
+      results.push({ kind: 'team', id: tid, label: t.label, domain: t.domain, sub: t.league });
+      if (results.length >= ENCYCLOPEDIA_SEARCH_LIMIT) return results;
+    }
+  }
+  return results;
+}
+
+function openEncyclopediaDomain(domainId) {
+  state.encyclopedia = state.encyclopedia || {};
+  state.encyclopedia.screen = 'domain';
+  state.encyclopedia.domainId = domainId;
+  state.encyclopedia.conceptId = null;
+  renderAll();
+}
+function openEncyclopediaConcept(kind, id) {
+  state.encyclopedia = state.encyclopedia || {};
+  state.encyclopedia.screen = 'concept';
+  state.encyclopedia.conceptKind = kind;
+  state.encyclopedia.conceptId = id;
+  renderAll();
+}
+function encyclopediaBackToDomains() {
+  state.encyclopedia = { screen: 'domains', domainId: null, conceptId: null, filter: state.encyclopedia ? state.encyclopedia.filter : '' };
+  renderAll();
+}
+function encyclopediaBackToDomain() {
+  state.encyclopedia.screen = 'domain';
+  state.encyclopedia.conceptId = null;
+  renderAll();
+}
+
+function renderEncyclopediaSearchBox() {
+  var val = (state.encyclopedia && state.encyclopedia.filter) || '';
+  return '<input id="encyclopedia-search-input" class="learn-filter-input" placeholder="Search concepts, terms, teams…" value="' + esc(val) + '" />';
+}
+
+function renderEncyclopediaDomains() {
+  var filter = (state.encyclopedia && state.encyclopedia.filter) || '';
+  if (filter.trim()) {
+    var results = encyclopediaSearch(filter);
+    var rows = results.map(function (r) {
+      return '<button class="encyc-row" data-encyc-open="' + r.kind + ':' + esc(r.id) + '">' +
+        '<span class="encyc-row-label">' + esc(r.label) + '</span>' +
+        '<span class="encyc-row-meta">' + esc(encyclopediaPrettyLabel(r.domain || '')) + (r.sub ? ' · ' + esc(r.sub) : '') + '</span>' +
+        '</button>';
+    }).join('');
+    return '<div class="panel">' +
+      '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Exit to Learn</button></div>' +
+      '<h2 class="panel-title">Football Encyclopedia</h2>' +
+      renderEncyclopediaSearchBox() +
+      '<div class="encyc-results">' + (rows || '<p class="mode-desc">No matches. Try a different term.</p>') + '</div>' +
+      '</div>';
+  }
+  var domains = encyclopediaDomains();
+  var rows = domains.map(function (d) {
+    var count = encyclopediaDomainCount(d.id);
+    if (count === 0) return '';
+    return '<button class="encyc-row" data-encyc-domain="' + d.id + '">' +
+      '<span class="encyc-row-label">' + esc(d.label) + '</span>' +
+      '<span class="encyc-row-count">' + count + '</span>' +
+      '</button>';
+  }).join('');
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Exit to Learn</button></div>' +
+    '<h2 class="panel-title">Football Encyclopedia</h2>' +
+    '<p class="mode-desc">Every domain covered by the encyclopedia -- browse by topic, or search for anything by name.</p>' +
+    renderEncyclopediaSearchBox() +
+    '<div class="encyc-domain-list">' + rows + '</div>' +
+    '</div>';
+}
+
+function renderEncyclopediaDomainDetail() {
+  var domainId = state.encyclopedia.domainId;
+  var domain = encyclopediaDomains().find(function (d) { return d.id === domainId; });
+  var title = domain ? domain.label : domainId;
+  var body;
+  if (domainId === 'NFL_SCHEMES' || domainId === 'CFB_SCHEMES') {
+    var teams = encyclopediaTeamProfilesForDomain(domainId);
+    body = '<div class="encyc-caution">' + icon('flag') +
+      ' These team scheme profiles are coaching-lineage and prior-film PROJECTIONS, not confirmed current-season film evidence -- see each profile for the exact caveat.</div>' +
+      '<div class="encyc-row-list">' + teams.map(function (t) {
+        return '<button class="encyc-row" data-encyc-open="team:' + esc(t.canonical_id) + '">' +
+          '<span class="encyc-row-label">' + esc(t.team) + '</span><span class="encyc-row-meta">' + esc(String(t.season)) + '</span></button>';
+      }).join('') + '</div>';
+  } else if (domainId === 'GREAT_UNITS') {
+    var records = encyclopediaHistoricalForDomain();
+    body = '<div class="encyc-row-list">' + records.map(function (r) {
+      return '<button class="encyc-row" data-encyc-open="hist:' + esc(r.canonical_id) + '">' +
+        '<span class="encyc-row-label">' + esc(r.label) + '</span>' +
+        '<span class="encyc-row-meta">' + esc(r.league) + ' ' + esc(r.side) + '</span></button>';
+    }).join('') + '</div>';
+  } else {
+    var concepts = encyclopediaConceptsForDomain(domainId);
+    var bySub = {}, order = [];
+    concepts.forEach(function (c) {
+      var sub = c.subcategory || 'General';
+      if (!bySub[sub]) { bySub[sub] = []; order.push(sub); }
+      bySub[sub].push(c);
+    });
+    body = order.map(function (sub) {
+      return '<div class="encyc-subcategory-label">' + esc(sub) + '</div>' +
+        '<div class="encyc-row-list">' + bySub[sub].map(function (c) {
+          return '<button class="encyc-row" data-encyc-open="concept:' + esc(c.canonical_id) + '">' +
+            '<span class="encyc-row-label">' + esc(c.label) + '</span></button>';
+        }).join('') + '</div>';
+    }).join('');
+  }
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-encyc-domains>' + icon('close') + ' All Domains</button></div>' +
+    '<h2 class="panel-title">' + esc(title) + '</h2>' +
+    body +
+    '</div>';
+}
+
+function renderEncyclopediaFieldsList(fields) {
+  if (!fields) return '';
+  var keys = Object.keys(fields);
+  if (!keys.length) return '';
+  return '<dl class="encyc-fields">' + keys.map(function (k) {
+    var v = fields[k];
+    var text = Array.isArray(v) ? v.join('; ') : String(v);
+    return '<dt>' + esc(encyclopediaPrettyLabel(k)) + '</dt><dd>' + esc(text) + '</dd>';
+  }).join('') + '</dl>';
+}
+
+function renderEncyclopediaConceptDetail() {
+  var id = state.encyclopedia.conceptId;
+  var kind = state.encyclopedia.conceptKind || 'concept';
+  var node, title, badgeText, badgeClass, fields, sourceRows;
+
+  if (kind === 'team') {
+    node = (LEARN_ENCYCLOPEDIA.team_scheme_profiles || {})[id];
+    if (!node) return renderEncyclopediaDomains();
+    title = node.label;
+    badgeText = 'Lineage-projected -- needs film verification';
+    badgeClass = 'encyc-badge-caution';
+    fields = node.fields;
+    sourceRows = node.source_rows;
+  } else if (kind === 'hist') {
+    node = (LEARN_ENCYCLOPEDIA.historical_records || {})[id];
+    if (!node) return renderEncyclopediaDomains();
+    title = node.label;
+    badgeText = 'Source-verified historical record';
+    badgeClass = 'encyc-badge-verified';
+    fields = node.fields;
+    sourceRows = node.source_rows;
+  } else {
+    node = encyclopediaConceptByCanonicalId(id);
+    if (!node) return renderEncyclopediaDomains();
+    title = node.label;
+    badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : node.verification_status;
+    badgeClass = 'encyc-badge-verified';
+    fields = node.fields || {};
+    sourceRows = node.source_rows;
+  }
+
+  var related = kind === 'concept' ? encyclopediaRelatedFor(id) : [];
+  var relatedHtml = related.length ? (
+    '<div class="encyc-related-label">Related concepts</div>' +
+    '<div class="encyc-row-list">' + related.map(function (r) {
+      var target = encyclopediaConceptByCanonicalId(r.id);
+      if (!target) return '';
+      var arrow = r.direction === 'out' ? '→' : '←';
+      return '<button class="encyc-row" data-encyc-open="concept:' + esc(r.id) + '">' +
+        '<span class="encyc-row-label">' + arrow + ' ' + esc(encyclopediaPrettyLabel(r.predicate)) + ' ' + esc(target.label) + '</span></button>';
+    }).join('') + '</div>'
+  ) : '';
+
+  var classroomLink = '';
+  if (kind === 'concept' && node.domain === 'COVERAGES' && LEARN_COVERAGES && LEARN_COVERAGES.concepts && LEARN_COVERAGES.concepts[id]) {
+    classroomLink = '<button class="btn-secondary btn-tiny encyc-classroom-link" data-encyc-goto-classroom>' + icon('brain') + ' Learn this hands-on in the Coverage Classroom</button>';
+  }
+
+  var provenance = sourceRows && sourceRows.length
+    ? '<div class="encyc-provenance">Source: ' + sourceRows.map(function (r) {
+        return esc(r.sheet ? (r.sheet + ' row ' + r.row) : String(r));
+      }).join(', ') + '</div>'
+    : '';
+
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-encyc-back-domain>' + icon('close') + ' Back</button></div>' +
+    '<h2 class="panel-title">' + esc(title) + '</h2>' +
+    '<span class="encyc-badge ' + badgeClass + '">' + esc(badgeText) + '</span>' +
+    (node.subcategory ? '<div class="encyc-subcategory-label">' + esc(node.subcategory) + '</div>' : '') +
+    renderEncyclopediaFieldsList(fields) +
+    classroomLink +
+    relatedHtml +
+    provenance +
+    '</div>';
+}
+
+function renderEncyclopediaScreen() {
+  if (!state.encyclopedia) state.encyclopedia = { screen: 'domains', domainId: null, conceptId: null, filter: '' };
+  var s = state.encyclopedia;
+  if (s.screen === 'concept') return renderEncyclopediaConceptDetail();
+  if (s.screen === 'domain') return renderEncyclopediaDomainDetail();
+  return renderEncyclopediaDomains();
+}
+
 /* ============================== friends ==============================
    No accounts, no requests to accept — just a local list of names you're
    tracking, matched against the same shared leaderboard/profile data every
@@ -8247,6 +8559,8 @@ function renderAll() {
   // would steal focus after the very first character typed.
   var learnFilterInput = document.getElementById('learn-filter-input');
   if (learnFilterInput) { learnFilterInput.focus(); learnFilterInput.setSelectionRange(learnFilterInput.value.length, learnFilterInput.value.length); specificFocusHandled = true; }
+  var encyclopediaSearchInput = document.getElementById('encyclopedia-search-input');
+  if (encyclopediaSearchInput) { encyclopediaSearchInput.focus(); encyclopediaSearchInput.setSelectionRange(encyclopediaSearchInput.value.length, encyclopediaSearchInput.value.length); specificFocusHandled = true; }
 
   // Move focus to the new screen's content on real navigation (mode A -> mode
   // B), so screen-reader users get announced into the new panel instead of
@@ -8410,6 +8724,7 @@ document.addEventListener('click', function (e) {
     '[data-learn-open], [data-learn-back], [data-learn-cat], ' +
     '[data-classroom-exit], [data-classroom-lesson], [data-classroom-practice], [data-classroom-path], ' +
     '[data-classroom-step-next], [data-classroom-step-back], [data-classroom-answer], [data-classroom-exercise-next], ' +
+    '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-friend-add], [data-friend-remove], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
@@ -8499,6 +8814,30 @@ document.addEventListener('click', function (e) {
   if (t.dataset.classroomStepBack !== undefined) { classroomPrevStep(); return; }
   if (t.dataset.classroomAnswer !== undefined) { classroomAnswerExercise(parseInt(t.dataset.classroomAnswer, 10)); return; }
   if (t.dataset.classroomExerciseNext !== undefined) { classroomExerciseNext(); return; }
+  if (t.dataset.encycDomain !== undefined) { openEncyclopediaDomain(t.dataset.encycDomain); return; }
+  if (t.dataset.encycDomains !== undefined) { encyclopediaBackToDomains(); return; }
+  if (t.dataset.encycOpen !== undefined) {
+    var encycParts = t.dataset.encycOpen.split(':');
+    openEncyclopediaConcept(encycParts[0], encycParts.slice(1).join(':'));
+    return;
+  }
+  if (t.dataset.encycBackDomain !== undefined) {
+    if (state.encyclopedia && state.encyclopedia.domainId) encyclopediaBackToDomain();
+    else encyclopediaBackToDomains();
+    return;
+  }
+  if (t.dataset.encycGotoClassroom !== undefined) {
+    var gotoClassroomLessonId = null;
+    if (LEARN_COVERAGES && LEARN_COVERAGES.lessons) {
+      var matchLesson = LEARN_COVERAGES.lessons.find(function (l) { return l.concept === state.encyclopedia.conceptId; });
+      if (matchLesson) gotoClassroomLessonId = matchLesson.lesson_id;
+    }
+    state.learn.screen = 'classroom';
+    state.classroom = null;
+    if (gotoClassroomLessonId) { renderAll(); startClassroomLesson(gotoClassroomLessonId); }
+    else renderAll();
+    return;
+  }
   if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
   if (t.dataset.typeaheadPick !== undefined) {
@@ -8703,6 +9042,7 @@ document.addEventListener('input', function (e) {
   // table live as you type — see renderAll()'s focus-preservation block
   // for the matching refocus step this requires.
   if (e.target.id === 'learn-filter-input') { state.learn.filter = e.target.value; renderAll(); return; }
+  if (e.target.id === 'encyclopedia-search-input') { state.encyclopedia.filter = e.target.value; renderAll(); return; }
   if (e.target.id === 'team-picker-search') { teamPickerSetFilter(e.target.value); return; }
 });
 
