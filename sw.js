@@ -8,7 +8,7 @@
 // (solo play keeps working offline, only the shared leaderboard needs a
 // connection). Bump CACHE_VERSION when shipping a change worth force-clearing
 // old installs' caches for.
-var CACHE_VERSION = 'reads-v27';
+var CACHE_VERSION = 'reads-v28';
 var CORE_ASSETS = [
   './', './index.html', './styles.css', './app.js', './reads-config.js', './engine-game-ui.js', './six-degrees-ui.js', './creator-ui.js', './sound.js', './firebase-sync.js', './manifest.json',
   './data/quiz.js', './data/quiz-engine-draft-production.js',
@@ -16,7 +16,7 @@ var CORE_ASSETS = [
   './data/grid.js', './data/blitz.js', './data/silhouette.js',
   './data/legends.js', './data/legends-meta.js', './data/cfb.js', './data/cfb-speed.js',
   './data/cfb-blitz.js', './data/cfb-grid.js', './data/cfb-legends.js', './data/cfb-legends-meta.js',
-  './data/higher-lower-extra.js', './data/xso.js',
+  './data/higher-lower-extra.js', './data/xso.js', './data/learn-coverages.js',
   './assets/brand/reads-logo.jpg', './assets/brand/reads-logo-square.jpg',
   './assets/brand/icon-192.png', './assets/brand/icon-512.png',
   './assets/brand/icon-192-maskable.png', './assets/brand/icon-512-maskable.png',

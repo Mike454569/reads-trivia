@@ -224,6 +224,13 @@ function buildEffectiveQuizPool(handAuthored, sources) {
 }
 var QUIZ = buildEffectiveQuizPool(window.QUIZ_DATA || [], ENGINE_QUIZ_SOURCES);
 var XSO = window.XSO_DATA || [];
+// Football Learning Engine, Defensive Coverages module -- structured
+// concepts/relationships/lessons/exercises, lazy-loaded like every other
+// Learn section data file (see LEARN_SECTIONS' 'coverageClassroom' entry
+// and openLearnSection()). Exported from the Engine's knowledge graph by
+// tools/learn/export_coverage_module.py -- see that script and
+// tools/learn/build_coverage_module.py for full provenance.
+var LEARN_COVERAGES = window.LEARN_COVERAGE_MODULE || null;
 var GRID_PLAYERS = window.GRID_PLAYERS || [];
 var GRID_CRITERIA = window.GRID_CRITERIA || { team: [], stat: [], all: [] };
 var BLITZ_LISTS = window.BLITZ_LISTS || [];
@@ -1033,6 +1040,7 @@ function loadScript(src) {
 // reassignable at any point, so this is safe to call any time.
 function refreshDataAliases() {
   XSO = window.XSO_DATA || XSO;
+  LEARN_COVERAGES = window.LEARN_COVERAGE_MODULE || LEARN_COVERAGES;
   GRID_PLAYERS = window.GRID_PLAYERS || GRID_PLAYERS;
   GRID_CRITERIA = window.GRID_CRITERIA || GRID_CRITERIA;
   BLITZ_LISTS = window.BLITZ_LISTS || BLITZ_LISTS;
@@ -7321,6 +7329,15 @@ function renderPrivacy() {
      merging both pools with no dedup guarantee — a real "not done yet,"
      not an oversight. */
 var LEARN_SECTIONS = [
+  // The Football Learning Engine's first real curriculum module -- distinct
+  // from every other card here, which browse verified player/trivia FACTS.
+  // This one teaches CONCEPTS (structured, with prerequisites, lessons, and
+  // interactive reps) via a dedicated 'classroom' sub-screen (see
+  // openLearnSection()/renderClassroomScreen()), not the generic filter/
+  // table section renderer every other card below uses.
+  { id: 'coverageClassroom', league: 'nfl', icon: 'brain', title: 'Defensive Coverages: The Classroom',
+    desc: 'Learn to read a defense -- Cover 0 through Cover 6, man vs. zone, and real rotations, taught step by step with interactive reps.',
+    dataFiles: ['data/learn-coverages.js'] },
   { id: 'cfbHeisman', league: 'cfb', icon: 'trophy', title: 'Heisman Trophy Winners',
     desc: 'Every Heisman winner tracked in the CFB player pool.', dataFiles: ['data/cfb-grid.js'] },
   { id: 'cfbMultiAA', league: 'cfb', icon: 'graduationCap', title: 'Multi-Time All-Americans',
@@ -7623,15 +7640,18 @@ function renderLearnScreen() {
     return '<div class="panel"><div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Back</button></div>' +
       '<p class="mode-desc">Couldn’t load this section. Check your connection and try again.</p></div>';
   }
+  if (s.screen === 'classroom') return renderClassroomScreen();
   return s.screen === 'section' ? renderLearnSectionDetail() : renderLearnMenu();
 }
 function learnBackToMenu() {
   state.learn = { screen: 'menu', sectionId: null, filter: '', category: '', loadingSection: null, loadError: null };
+  state.classroom = null;
   renderAll();
 }
 function openLearnSection(id) {
   var s = state.learn, section = learnSectionById(id);
   if (!section) return;
+  var isClassroom = id === 'coverageClassroom';
   var pending = section.dataFiles.filter(function (f) { return !loadedScripts[f]; });
   if (pending.length) {
     s.loadingSection = id;
@@ -7640,10 +7660,8 @@ function openLearnSection(id) {
     Promise.all(pending.map(loadScript)).then(function () {
       refreshDataAliases();
       s.loadingSection = null;
-      s.screen = 'section';
-      s.sectionId = id;
-      s.filter = '';
-      s.category = '';
+      if (isClassroom) { s.screen = 'classroom'; }
+      else { s.screen = 'section'; s.sectionId = id; s.filter = ''; s.category = ''; }
       renderAll();
     }).catch(function () {
       s.loadingSection = null;
@@ -7652,11 +7670,317 @@ function openLearnSection(id) {
     });
     return;
   }
+  if (isClassroom) { s.screen = 'classroom'; renderAll(); return; }
   s.screen = 'section';
   s.sectionId = id;
   s.filter = '';
   s.category = '';
   renderAll();
+}
+
+/* ============================== Football Learning Engine ==============
+   Defensive Coverages classroom -- a real curriculum (lessons with real
+   prerequisites, structured concept content, interactive reps, and local
+   mastery tracking) layered on top of the LEARN_COVERAGES data file. This
+   is deliberately a SEPARATE state namespace (state.classroom) from the
+   simple filter/category browsing state.learn already uses -- a lesson's
+   step/exercise progression is meaningfully more complex than "filter a
+   table," and keeping them apart avoids overloading that simple shape.
+   Still nested under the same top-level Learn screen (state.screen ===
+   'learn') so exit/navigation patterns stay consistent with the rest of
+   the app. No server-side account system exists in this app (every other
+   stat/progress feature is local-profile-based, keyed by slugify(state.name)
+   — dailyKey() is the existing precedent) -- mastery/progress here follows
+   that exact same convention rather than inventing a server-side one. */
+function classroomMasteryKey() { return 'nflTriviaClassroomMastery__' + slugify(state.name); }
+function classroomProgressKey() { return 'nflTriviaClassroomProgress__' + slugify(state.name); }
+function getClassroomMastery() { return lsGet(classroomMasteryKey(), {}); }
+function getClassroomProgress() { return lsGet(classroomProgressKey(), {}); }
+function recordClassroomAttempt(conceptId, correct) {
+  if (!state.name) return; // no local profile yet -- nothing to attribute progress to
+  var m = getClassroomMastery();
+  var rec = m[conceptId] || { attempts: 0, correct: 0 };
+  rec.attempts++;
+  if (correct) rec.correct++;
+  rec.lastPracticed = Date.now();
+  m[conceptId] = rec;
+  lsSet(classroomMasteryKey(), m);
+}
+// Thresholds are a simple, disclosed heuristic (not a claim of pedagogical
+// research) -- "not_started" (0 attempts), "learning" (<3 attempts, or
+// <60% correct), "practicing" (60-84%), "mastered" (85%+ across 3+ reps).
+function classroomMasteryLevel(conceptId) {
+  var m = getClassroomMastery()[conceptId];
+  if (!m || !m.attempts) return 'not_started';
+  if (m.attempts < 3) return 'learning';
+  var pct = m.correct / m.attempts;
+  if (pct >= 0.85) return 'mastered';
+  if (pct >= 0.6) return 'practicing';
+  return 'learning';
+}
+function classroomWeakConcepts() {
+  var m = getClassroomMastery();
+  return Object.keys(m).filter(function (id) { return classroomMasteryLevel(id) === 'learning'; });
+}
+function markClassroomLessonStarted(lessonId) {
+  if (!state.name) return;
+  var p = getClassroomProgress();
+  p[lessonId] = p[lessonId] || {};
+  p[lessonId].started = true;
+  lsSet(classroomProgressKey(), p);
+}
+function markClassroomLessonCompleted(lessonId) {
+  if (!state.name) return;
+  var p = getClassroomProgress();
+  p[lessonId] = p[lessonId] || {};
+  p[lessonId].started = true;
+  p[lessonId].completed = true;
+  lsSet(classroomProgressKey(), p);
+}
+function classroomLessons() { return (LEARN_COVERAGES && LEARN_COVERAGES.lessons) || []; }
+function classroomLessonById(id) { return classroomLessons().find(function (l) { return l.lesson_id === id; }); }
+function classroomConcept(id) { return LEARN_COVERAGES && LEARN_COVERAGES.concepts[id]; }
+function classroomExercise(id) { return LEARN_COVERAGES && LEARN_COVERAGES.exercises[id]; }
+function classroomLessonUnlocked(lesson) {
+  var p = getClassroomProgress();
+  return lesson.prerequisites.every(function (id) { return p[id] && p[id].completed; });
+}
+
+function startClassroomLesson(lessonId) {
+  var lesson = classroomLessonById(lessonId);
+  if (!lesson || !classroomLessonUnlocked(lesson)) return;
+  markClassroomLessonStarted(lessonId);
+  state.classroom = {
+    screen: 'lesson', lessonId: lessonId, stepIndex: 0,
+    exerciseQueue: [], exerciseIndex: 0, answeredIndex: null,
+    practiceMode: false, practiceResults: { correct: 0, total: 0 },
+  };
+  classroomEnterStep();
+  renderAll();
+}
+function classroomEnterStep() {
+  var s = state.classroom, lesson = classroomLessonById(s.lessonId), step = lesson.steps[s.stepIndex];
+  if (step.step_type === 'interactive_rep' || step.step_type === 'check_understanding') {
+    s.exerciseQueue = step.exercise_ids.slice();
+    s.exerciseIndex = 0;
+    s.answeredIndex = null;
+  }
+}
+function classroomNextStep() {
+  var s = state.classroom, lesson = classroomLessonById(s.lessonId);
+  if (s.stepIndex + 1 >= lesson.steps.length) {
+    markClassroomLessonCompleted(s.lessonId);
+    s.screen = 'path';
+    renderAll();
+    return;
+  }
+  s.stepIndex++;
+  classroomEnterStep();
+  renderAll();
+}
+function classroomPrevStep() {
+  var s = state.classroom;
+  if (s.stepIndex <= 0) { s.screen = 'path'; renderAll(); return; }
+  s.stepIndex--;
+  classroomEnterStep();
+  renderAll();
+}
+function startClassroomPractice(lessonId) {
+  var lesson = classroomLessonById(lessonId);
+  if (!lesson) return;
+  var exIds = [];
+  lesson.steps.forEach(function (st) { if (st.exercise_ids) exIds = exIds.concat(st.exercise_ids); });
+  state.classroom = {
+    screen: 'practice', lessonId: lessonId, stepIndex: -1,
+    exerciseQueue: shuffle(exIds), exerciseIndex: 0, answeredIndex: null,
+    practiceMode: true, practiceResults: { correct: 0, total: 0 },
+  };
+  renderAll();
+}
+function classroomAnswerExercise(idx) {
+  var s = state.classroom;
+  if (s.answeredIndex !== null) return;
+  var ex = classroomExercise(s.exerciseQueue[s.exerciseIndex]);
+  var correct = idx === ex.correctIndex;
+  s.answeredIndex = idx;
+  recordClassroomAttempt(ex.concept, correct);
+  if (s.practiceMode) {
+    s.practiceResults.total++;
+    if (correct) s.practiceResults.correct++;
+  }
+  playSound(correct ? 'correct' : 'wrong');
+  renderAll();
+}
+function classroomExerciseNext() {
+  var s = state.classroom;
+  s.exerciseIndex++;
+  s.answeredIndex = null;
+  if (s.exerciseIndex >= s.exerciseQueue.length) {
+    if (s.practiceMode) { s.screen = 'practiceResult'; renderAll(); return; }
+    classroomNextStep();
+    return;
+  }
+  renderAll();
+}
+function classroomExitToLearnMenu() {
+  state.classroom = null;
+  state.learn.screen = 'menu';
+  renderAll();
+}
+function classroomBackToPath() {
+  state.classroom.screen = 'path';
+  renderAll();
+}
+
+// Reusable structured diagram renderer (Learn Engine section 6) -- a
+// simplified schematic (labeled boxes on a bounded field rectangle), not a
+// fully illustrated play diagram. `align` values map to fixed percentage
+// positions; unrecognized aligns fall back to a center default rather than
+// erroring, so a future concept with a new alignment degrades gracefully.
+var CLASSROOM_ALIGN_POS = {
+  outside_left: { x: 8, y: 22 }, outside_right: { x: 92, y: 22 },
+  middle: { x: 50, y: 10 }, underneath: { x: 50, y: 60 },
+  left_half: { x: 25, y: 10 }, right_half: { x: 75, y: 10 },
+  left_middle: { x: 38, y: 10 }, right_middle: { x: 62, y: 10 },
+  quarters_side_outside: { x: 8, y: 10 }, quarters_side_middle: { x: 30, y: 10 },
+  half_side_middle: { x: 70, y: 10 }, half_side_outside: { x: 92, y: 24 },
+};
+function renderCoverageDiagram(spec) {
+  if (!spec || !spec.defenders || !spec.defenders.length) return '';
+  var dots = spec.defenders.map(function (d) {
+    var pos = CLASSROOM_ALIGN_POS[d.align] || { x: 50, y: 30 };
+    var depthCls = (d.depth === 'deep' || d.depth === 'deep_late') ? 'diagram-depth-deep' :
+      (d.depth === 'line' ? 'diagram-depth-line' : 'diagram-depth-underneath');
+    return '<div class="diagram-defender ' + depthCls + '" style="left:' + pos.x + '%; top:' + pos.y + '%;" ' +
+      'title="' + esc(d.assignment || '') + '">' + esc(d.role) + '</div>';
+  }).join('');
+  return '<div class="coverage-diagram"><div class="diagram-los"><span>Line of scrimmage</span></div>' + dots + '</div>';
+}
+
+function classroomMasteryBadgeHtml(conceptId) {
+  var level = classroomMasteryLevel(conceptId);
+  if (level === 'not_started') return '';
+  var label = level === 'mastered' ? 'Mastered' : level === 'practicing' ? 'Practicing' : 'Learning';
+  return '<span class="classroom-mastery-badge classroom-mastery-' + level + '">' + label + '</span>';
+}
+function renderClassroomPath() {
+  var lessons = classroomLessons(), progress = getClassroomProgress();
+  var weak = classroomWeakConcepts();
+  var rows = lessons.map(function (l) {
+    var unlocked = classroomLessonUnlocked(l);
+    var st = progress[l.lesson_id] || {};
+    var actionLabel = st.completed ? 'Review' : (st.started ? 'Continue' : 'Start');
+    return '<div class="classroom-lesson-row' + (unlocked ? '' : ' classroom-locked') + '">' +
+      '<div class="classroom-lesson-info">' +
+        '<div class="classroom-lesson-title">' + esc(l.title) + classroomMasteryBadgeHtml(l.concept) + '</div>' +
+        '<div class="classroom-lesson-summary">' + esc(l.summary) + '</div>' +
+      '</div>' +
+      (unlocked ?
+        '<div class="classroom-lesson-actions">' +
+          '<button class="btn-secondary btn-tiny" data-classroom-lesson="' + l.lesson_id + '">' + actionLabel + '</button>' +
+          (st.completed ? '<button class="btn-tiny" data-classroom-practice="' + l.lesson_id + '">Practice</button>' : '') +
+        '</div>'
+      : '<div class="classroom-lesson-actions"><span class="classroom-lock-note">Complete prior lessons first</span></div>') +
+      '</div>';
+  }).join('');
+  var weakNote = weak.length ?
+    '<p class="mode-desc classroom-weak-note">You’re still learning: ' +
+    weak.map(function (id) { var c = classroomConcept(id); return c ? esc(c.label) : id; }).join(', ') +
+    '. Practice a completed lesson above to reinforce it.</p>' : '';
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-exit>' + icon('close') + ' Exit to Learn</button></div>' +
+    '<h2 class="panel-title">Defensive Coverages</h2>' +
+    '<p class="mode-desc">Learn to read a defense, one coverage at a time. Each lesson teaches a real concept, shows you what it looks like, and checks your understanding with real reps.</p>' +
+    weakNote +
+    '<div class="classroom-lesson-list">' + rows + '</div>' +
+    '</div>';
+}
+function classroomStepLabel(type) {
+  return { teach: 'Teach', show: 'Show', explain: 'Explain', interactive_rep: 'Interactive Rep',
+    check_understanding: 'Check Understanding', apply: 'Apply' }[type] || type;
+}
+function renderClassroomExercise(ex, answeredIndex) {
+  var answered = answeredIndex !== null;
+  return (ex.structured && ex.structured.defenders ? renderCoverageDiagram(ex.structured) : '') +
+    '<div class="quiz-question">' + esc(ex.prompt) + '</div>' +
+    '<div class="quiz-options">' +
+    ex.options.map(function (opt, i) {
+      var cls = 'quiz-option';
+      if (answered) {
+        if (i === ex.correctIndex) cls += ' correct';
+        else if (i === answeredIndex) cls += ' wrong';
+      }
+      return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-classroom-answer="' + i + '"') + '>' + esc(opt) + '</button>';
+    }).join('') +
+    '</div>' +
+    (answered ?
+      '<div class="quiz-feedback" aria-live="polite">' +
+        (answeredIndex === ex.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct.</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Not quite.</span>') +
+        ' ' + esc(ex.explanation) +
+      '</div>' +
+      '<button class="btn-primary" data-classroom-exercise-next>Next</button>'
+    : '');
+}
+function renderClassroomStepContent(step) {
+  if (step.step_type === 'show') {
+    return '<div class="classroom-step-text">' + esc(step.content) + '</div>' +
+      (step.diagram_spec ? renderCoverageDiagram(step.diagram_spec) : '');
+  }
+  return '<div class="classroom-step-text">' + esc(step.content) + '</div>';
+}
+function renderClassroomLesson() {
+  var s = state.classroom, lesson = classroomLessonById(s.lessonId);
+  if (!lesson) { s.screen = 'path'; return renderClassroomPath(); }
+  var step = lesson.steps[s.stepIndex];
+  var isExerciseStep = step.step_type === 'interactive_rep' || step.step_type === 'check_understanding';
+  var body;
+  if (isExerciseStep) {
+    var ex = classroomExercise(s.exerciseQueue[s.exerciseIndex]);
+    body = '<div class="quiz-progress">Rep ' + (s.exerciseIndex + 1) + ' of ' + s.exerciseQueue.length + '</div>' +
+      renderClassroomExercise(ex, s.answeredIndex);
+  } else {
+    body = renderClassroomStepContent(step) +
+      '<div class="btn-row">' +
+      (s.stepIndex > 0 ? '<button class="btn-secondary" data-classroom-step-back>Back</button>' : '') +
+      '<button class="btn-primary" data-classroom-step-next>' + (s.stepIndex + 1 >= lesson.steps.length ? 'Finish Lesson' : 'Next') + '</button>' +
+      '</div>';
+  }
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-path>' + icon('close') + ' Back to Path</button></div>' +
+    '<h2 class="panel-title">' + esc(lesson.title) + '</h2>' +
+    '<div class="classroom-step-pill">' + classroomStepLabel(step.step_type) + ' · Step ' + (s.stepIndex + 1) + ' of ' + lesson.steps.length + '</div>' +
+    body +
+    '</div>';
+}
+function renderClassroomPractice() {
+  var s = state.classroom;
+  if (s.screen === 'practiceResult') {
+    var r = s.practiceResults, pct = r.total ? Math.round(100 * r.correct / r.total) : 0;
+    return '<div class="panel">' +
+      '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-path>' + icon('close') + ' Back to Path</button></div>' +
+      '<h2 class="panel-title">Practice Complete</h2>' +
+      '<p class="mode-desc">' + r.correct + ' / ' + r.total + ' correct (' + pct + '%).</p>' +
+      '<button class="btn-primary" data-classroom-path>Back to Path</button>' +
+      '</div>';
+  }
+  var lesson = classroomLessonById(s.lessonId);
+  var ex = classroomExercise(s.exerciseQueue[s.exerciseIndex]);
+  return '<div class="panel">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-path>' + icon('close') + ' Back to Path</button></div>' +
+    '<h2 class="panel-title">Practice: ' + esc(lesson ? lesson.title : '') + '</h2>' +
+    '<div class="quiz-progress">Rep ' + (s.exerciseIndex + 1) + ' of ' + s.exerciseQueue.length + '</div>' +
+    renderClassroomExercise(ex, s.answeredIndex) +
+    '</div>';
+}
+function renderClassroomScreen() {
+  if (!state.classroom) state.classroom = {
+    screen: 'path', lessonId: null, stepIndex: 0, exerciseQueue: [], exerciseIndex: 0,
+    answeredIndex: null, practiceMode: false, practiceResults: { correct: 0, total: 0 },
+  };
+  var s = state.classroom;
+  if (s.screen === 'lesson') return renderClassroomLesson();
+  if (s.screen === 'practice' || s.screen === 'practiceResult') return renderClassroomPractice();
+  return renderClassroomPath();
 }
 
 /* ============================== friends ==============================
@@ -8078,6 +8402,8 @@ document.addEventListener('click', function (e) {
     '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
     '[data-h2h-live-join], [data-h2h-live-ready], [data-h2h-live-share-link], [data-h2h-live-answer], [data-h2h-live-exit], ' +
     '[data-learn-open], [data-learn-back], [data-learn-cat], ' +
+    '[data-classroom-exit], [data-classroom-lesson], [data-classroom-practice], [data-classroom-path], ' +
+    '[data-classroom-step-next], [data-classroom-step-back], [data-classroom-answer], [data-classroom-exercise-next], ' +
     '[data-friend-add], [data-friend-remove], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
@@ -8159,6 +8485,14 @@ document.addEventListener('click', function (e) {
   if (t.dataset.learnOpen !== undefined) { openLearnSection(t.dataset.learnOpen); return; }
   if (t.dataset.learnBack !== undefined) { learnBackToMenu(); return; }
   if (t.dataset.learnCat !== undefined) { state.learn.category = t.dataset.learnCat; renderAll(); return; }
+  if (t.dataset.classroomExit !== undefined) { classroomExitToLearnMenu(); return; }
+  if (t.dataset.classroomLesson !== undefined) { startClassroomLesson(t.dataset.classroomLesson); return; }
+  if (t.dataset.classroomPractice !== undefined) { startClassroomPractice(t.dataset.classroomPractice); return; }
+  if (t.dataset.classroomPath !== undefined) { classroomBackToPath(); return; }
+  if (t.dataset.classroomStepNext !== undefined) { classroomNextStep(); return; }
+  if (t.dataset.classroomStepBack !== undefined) { classroomPrevStep(); return; }
+  if (t.dataset.classroomAnswer !== undefined) { classroomAnswerExercise(parseInt(t.dataset.classroomAnswer, 10)); return; }
+  if (t.dataset.classroomExerciseNext !== undefined) { classroomExerciseNext(); return; }
   if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
   if (t.dataset.typeaheadPick !== undefined) {
