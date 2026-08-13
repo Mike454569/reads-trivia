@@ -3804,15 +3804,33 @@ window.GRID_CRITERIA = (function () {
     };
   });
 
+  // Position-group membership, extended (Connect Engine v4.0 to NFL Grid
+  // task) to mirror gateway/services/grid.py's own already-established
+  // POSITION_GROUPS equivalence classes exactly -- that admin QA tool's
+  // graph queries already treat e.g. "DB"/"SS"/"FS"/"RCB"/"LCB" as the same
+  // real defensive-back concept pos_db tests for; the hand-curated pool
+  // never happened to use those side/variant/grouped codes, so this gap
+  // was invisible until data/grid-engine-players.js (built from the same
+  // graph) started supplying players whose ONLY recorded position is one of
+  // them. Not a new criterion and not a guess: "DB" already unambiguously
+  // means defensive back, exactly what this criterion has always tested
+  // for -- see tools/grid_export/build_grid_engine_players.py's own
+  // comment for why a generic code is never resolved to a guessed specific
+  // one (e.g. CB vs. S) instead.
+  var POS_DL_CODES = { DE: 1, DT: 1, EDGE: 1, DL: 1, NT: 1, RDT: 1, LDT: 1 };
+  var POS_LB_CODES = { LB: 1, OLB: 1, MLB: 1, ILB: 1, ROLB: 1, LOLB: 1, RILB: 1, LILB: 1 };
+  var POS_DB_CODES = { CB: 1, S: 1, DB: 1, SS: 1, FS: 1, RCB: 1, LCB: 1 };
+  var POS_OL_CODES = { OT: 1, OG: 1, C: 1, T: 1, OL: 1, G: 1, RT: 1, LT: 1, RG: 1, LG: 1 };
+  var POS_WR_CODES = { WR: 1, SE: 1, FL: 1 };
   var statCriteria = [
     { id: "pos_qb", type: "stat", label: "Quarterback", test: function (p) { return p.position === "QB"; } },
-    { id: "pos_rb", type: "stat", label: "Running Back", test: function (p) { return p.position === "RB"; } },
-    { id: "pos_wr", type: "stat", label: "Wide Receiver", test: function (p) { return p.position === "WR"; } },
+    { id: "pos_rb", type: "stat", label: "Running Back", test: function (p) { return p.position === "RB" || p.position === "HB"; } },
+    { id: "pos_wr", type: "stat", label: "Wide Receiver", test: function (p) { return !!POS_WR_CODES[p.position]; } },
     { id: "pos_te", type: "stat", label: "Tight End", test: function (p) { return p.position === "TE"; } },
-    { id: "pos_dl", type: "stat", label: "Defensive Line (DE/DT/EDGE)", test: function (p) { return p.position === "DE" || p.position === "DT" || p.position === "EDGE"; } },
-    { id: "pos_lb", type: "stat", label: "Linebacker", test: function (p) { return p.position === "LB"; } },
-    { id: "pos_db", type: "stat", label: "Defensive Back (CB/S)", test: function (p) { return p.position === "CB" || p.position === "S"; } },
-    { id: "pos_ol", type: "stat", label: "Offensive Line (OT/OG/C)", test: function (p) { return p.position === "OT" || p.position === "OG" || p.position === "C"; } },
+    { id: "pos_dl", type: "stat", label: "Defensive Line (DE/DT/EDGE)", test: function (p) { return !!POS_DL_CODES[p.position]; } },
+    { id: "pos_lb", type: "stat", label: "Linebacker", test: function (p) { return !!POS_LB_CODES[p.position]; } },
+    { id: "pos_db", type: "stat", label: "Defensive Back (CB/S)", test: function (p) { return !!POS_DB_CODES[p.position]; } },
+    { id: "pos_ol", type: "stat", label: "Offensive Line (OT/OG/C)", test: function (p) { return !!POS_OL_CODES[p.position]; } },
     { id: "draft_r1", type: "stat", label: "1st Round Pick", test: function (p) { return p.draft.round === 1; } },
     { id: "draft_undrafted", type: "stat", label: "Undrafted", test: function (p) { return p.draft.round === 0; } },
     { id: "draft_day2plus", type: "stat", label: "Drafted Round 3 or Later", test: function (p) { return p.draft.round >= 3; } },

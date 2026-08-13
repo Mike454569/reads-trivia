@@ -1008,8 +1008,8 @@ function resetModeState(mode) {
    it) loads on first entry into that specific mode instead. */
 var MODE_DATA_FILES = {
   xso: ['data/xso.js'],
-  grid: ['data/grid.js'],
-  higherLower: ['data/grid.js', 'data/higher-lower-extra.js'],
+  grid: ['data/grid.js', 'data/grid-engine-players.js'],
+  higherLower: ['data/grid.js', 'data/grid-engine-players.js', 'data/higher-lower-extra.js'],
   cfbGrid: ['data/cfb-grid.js'],
   blitz: ['data/blitz.js'],
   cfbBlitz: ['data/cfb-blitz.js'],
@@ -1041,7 +1041,13 @@ function loadScript(src) {
 function refreshDataAliases() {
   XSO = window.XSO_DATA || XSO;
   LEARN_COVERAGES = window.LEARN_COVERAGE_MODULE || LEARN_COVERAGES;
-  GRID_PLAYERS = window.GRID_PLAYERS || GRID_PLAYERS;
+  // Engine v4.0-sourced players (data/grid-engine-players.js, see
+  // tools/grid_export/build_grid_engine_players.py) concatenated onto the
+  // hand-curated pool -- recomputed from the two stable window.* sources
+  // every call rather than mutated in place, so calling this more than
+  // once (it runs after every lazy-load event, not just Grid's own) never
+  // re-appends and never duplicates.
+  GRID_PLAYERS = (window.GRID_PLAYERS || GRID_PLAYERS).concat(window.GRID_ENGINE_PLAYERS || []);
   GRID_CRITERIA = window.GRID_CRITERIA || GRID_CRITERIA;
   BLITZ_LISTS = window.BLITZ_LISTS || BLITZ_LISTS;
   SILHOUETTE_PLAYERS = window.SILHOUETTE_PLAYERS || SILHOUETTE_PLAYERS;
@@ -7347,9 +7353,9 @@ var LEARN_SECTIONS = [
   { id: 'cfbAwards', league: 'cfb', icon: 'zap', title: 'Position Award Winners',
     desc: 'Maxwell, Outland, Lombardi, and 14 more national position awards.', dataFiles: ['data/cfb-grid.js'] },
   { id: 'nflHof', league: 'nfl', icon: 'hofJacket', title: 'Pro Football Hall of Fame',
-    desc: 'Every Hall of Famer tracked in the NFL player pool.', dataFiles: ['data/grid.js'] },
+    desc: 'Every Hall of Famer tracked in the NFL player pool.', dataFiles: ['data/grid.js', 'data/grid-engine-players.js'] },
   { id: 'nflDecorated', league: 'nfl', icon: 'target', title: 'Pro Bowl & All-Pro Selections',
-    desc: 'Every player with at least one Pro Bowl or All-Pro nod.', dataFiles: ['data/grid.js'] },
+    desc: 'Every player with at least one Pro Bowl or All-Pro nod.', dataFiles: ['data/grid.js', 'data/grid-engine-players.js'] },
   { id: 'cfbTrivia', league: 'cfb', icon: 'brain', title: 'CFB Trivia Almanac',
     desc: CFB.length + ' real facts across Heisman history, coaches, rivalries, and more.', dataFiles: [] },
   { id: 'nflTrivia', league: 'nfl', icon: 'lombardiTrophy', title: 'NFL Trivia Almanac',
