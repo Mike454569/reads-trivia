@@ -73,6 +73,41 @@ def _all_real_schools(c) -> dict:
     return schools
 
 
+# Real UI QA finding: the `schools` table (805 rows) is every school ever
+# known to the Engine, including tiny Division II/III programs (e.g.
+# Worcester Polytechnic Institute) that a marquee FBS matchup would never
+# plausibly be confused with -- distractors sampled from that whole table
+# came back trivially, obviously wrong (a real player-visible quality bug,
+# caught by actually playing the mode, not just checking it "loads"). The
+# NFL sibling adapter already avoids this exact problem via
+# teams_active_in_season() -- this is the same fix: restrict distractors to
+# schools that really played a tracked, verified game THAT season, so a
+# wrong option is at least a real, contemporaneous FBS-caliber opponent.
+_SEASON_SCHOOLS_CACHE: dict = {"by_season": None, "fetched_at": 0.0}
+
+
+def _schools_by_season(c) -> dict:
+    import time
+    cached = _SEASON_SCHOOLS_CACHE["by_season"]
+    if cached is not None and time.monotonic() - _SEASON_SCHOOLS_CACHE["fetched_at"] < _CANDIDATE_CACHE_TTL_SECONDS:
+        return cached
+    schools = _all_real_schools(c)
+    rows = c.execute(
+        "SELECT DISTINCT season, home_school_id AS sid FROM cfb_games_canonical "
+        "WHERE home_score IS NOT NULL AND away_score IS NOT NULL "
+        "UNION "
+        "SELECT DISTINCT season, away_school_id AS sid FROM cfb_games_canonical "
+        "WHERE home_score IS NOT NULL AND away_score IS NOT NULL"
+    ).fetchall()
+    by_season: dict = {}
+    for r in rows:
+        by_season.setdefault(r["season"], set()).add(r["sid"])
+    result = {season: {sid: schools[sid] for sid in sids if sid in schools} for season, sids in by_season.items()}
+    _SEASON_SCHOOLS_CACHE["by_season"] = result
+    _SEASON_SCHOOLS_CACHE["fetched_at"] = time.monotonic()
+    return result
+
+
 # Real production performance finding (App-Wide Engine Migration operation):
 # every adapter in this codebase re-fetches its FULL candidate table on every
 # single request (championship.py/draft.py/cfb_heisman.py all do this too --
@@ -136,7 +171,13 @@ def evaluate(c, row, rng, guard):
     winner_name = schools[winner_id]
     loser_name = schools[loser_id]
 
-    pool = {sid: name for sid, name in schools.items() if sid not in (winner_id, loser_id)}
+    season_schools = _schools_by_season(c).get(row["season"], {})
+    pool = {sid: name for sid, name in season_schools.items() if sid not in (winner_id, loser_id)}
+    if len(pool) < 3:
+        # Real fallback, never a fabrication -- just widens to every real
+        # school rather than only that season's real participants, for the
+        # rare season with too few tracked games to fill 3 distractors.
+        pool = {sid: name for sid, name in schools.items() if sid not in (winner_id, loser_id)}
     if len(pool) < 3:
         return "INSUFFICIENT_DISTRACTOR_POOL"
     distractor_names = rng.sample(list(pool.values()), 3)

@@ -1095,6 +1095,15 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
+  // UI polish pass: real bug found by actually scrolling down on one
+  // screen (e.g. a long quiz result review list) and then navigating to a
+  // DIFFERENT mode -- the browser keeps the old scroll offset, so the new
+  // mode can render with its question/instructions header already
+  // scrolled off the top of the viewport. Every navigation through this
+  // function (mode switches, Home, the mode-sheet) is the right single
+  // place to reset it -- covers the whole app instead of patching each
+  // mode's own start function individually.
+  window.scrollTo(0, 0);
   // v1.6, Part C6: engine-backed discovery cards (ENGINE_DISCOVERY_ENTRIES,
   // only ever present when their flag is on) route into the shared engine
   // shell instead of the normal local-data-file path below -- they have no
