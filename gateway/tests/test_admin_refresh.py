@@ -31,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _insert_running_row(league: str, dataset: str) -> str:
+def _insert_running_row(league: str, dataset: str, *, started_at: str | None = None) -> str:
     from tools.data_refresh import safety
 
     c = engine_bootstrap.connect()
@@ -39,11 +39,18 @@ def _insert_running_row(league: str, dataset: str) -> str:
     run_id = "RUN:test" + uuid.uuid4().hex[:16]
     c.execute(
         "INSERT INTO refresh_runs(run_id, league, dataset_name, started_at, status) VALUES (?,?,?,?,?)",
-        (run_id, league, dataset, datetime.now(timezone.utc).isoformat(), "RUNNING"),
+        (run_id, league, dataset, started_at or datetime.now(timezone.utc).isoformat(), "RUNNING"),
     )
     c.commit()
     c.close()
     return run_id
+
+
+def _run_row(run_id: str) -> dict:
+    c = engine_bootstrap.connect()
+    row = c.execute("SELECT * FROM refresh_runs WHERE run_id=?", (run_id,)).fetchone()
+    c.close()
+    return dict(row)
 
 
 def _finish_row(run_id: str, status: str = "SUCCESS") -> None:
@@ -88,6 +95,44 @@ def test_check_can_start_is_a_global_guard_not_per_dataset():
 def test_check_can_start_rejects_unknown_league():
     with pytest.raises(ValueError):
         admin_refresh.check_can_start("mlb")
+
+
+def test_stale_running_row_is_reclaimed_and_no_longer_blocks():
+    """Real regression test for a real production incident: a refresh's
+    BackgroundTask runs inside the Gateway's own process, and `fly deploy`
+    kills and replaces that process mid-flight as an ordinary part of a
+    rolling update -- nothing ever calls finish_run() for a run killed that
+    way. Confirmed happening live: a real NFL roster refresh triggered at
+    01:12:38 UTC was still reporting RUNNING 10+ minutes later, right after
+    a deploy. Without reclaim, that one row would silently block every
+    future refresh, forever, via the global guard -- this proves it self-
+    heals instead."""
+    from datetime import datetime, timedelta, timezone
+
+    old_start = (datetime.now(timezone.utc) - timedelta(minutes=admin_refresh.STALE_RUNNING_THRESHOLD_MINUTES + 5)).isoformat()
+    run_id = _insert_running_row("NFL", admin_refresh._runners()["nfl"][3], started_at=old_start)
+    try:
+        result = admin_refresh.check_can_start("nfl")
+        assert result["status"] == "OK", "a stale RUNNING row must not block new refreshes"
+        reclaimed = _run_row(run_id)
+        assert reclaimed["status"] == "FAILED_STALE"
+        assert reclaimed["finished_at"] is not None
+    finally:
+        _finish_row(run_id)  # no-op if already reclaimed, harmless either way
+
+
+def test_recent_running_row_is_not_reclaimed():
+    """The other half of the same guarantee -- a run that's genuinely still
+    in progress (started well within the threshold) must still block, or
+    the staleness fix would defeat the whole point of the concurrency
+    guard."""
+    run_id = _insert_running_row("NFL", admin_refresh._runners()["nfl"][3])  # started_at=now
+    try:
+        result = admin_refresh.check_can_start("cfb")
+        assert result["status"] == "ALREADY_RUNNING"
+        assert _run_row(run_id)["status"] == "RUNNING"
+    finally:
+        _finish_row(run_id)
 
 
 def test_run_fn_for_returns_the_real_orchestrator_functions():

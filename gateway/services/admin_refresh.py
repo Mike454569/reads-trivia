@@ -88,6 +88,39 @@ def _runners():
     }
 
 
+# Real incident, fixed here: a refresh's BackgroundTask runs inside the
+# Gateway's own process, which a `fly deploy` kills and replaces mid-flight
+# as a completely ordinary part of a rolling update -- confirmed happening
+# in production (a real NFL roster refresh triggered at 01:12:38 UTC was
+# still reporting RUNNING 10+ minutes later, right after a deploy, well
+# past the ~130-200s that normally takes). Nothing ever calls finish_run()
+# for a run killed that way, so without this, that one RUNNING row would
+# block EVERY future refresh, forever, via the global guard below -- a
+# real, live production bug, not a hypothetical. 30 minutes is comfortably
+# above the worst real measured run time (~11m24s for nfl_games_refresh
+# against the actual production volume).
+STALE_RUNNING_THRESHOLD_MINUTES = 30
+
+
+def _reclaim_stale_running_rows(c) -> None:
+    """Marks any RUNNING row older than the threshold as FAILED_STALE (an
+    honest, visible status -- never silently dropped) so the guard below
+    can proceed. Self-healing: called at the top of every guard check, not
+    a separate cron/admin action someone has to remember to run."""
+    from datetime import datetime, timedelta, timezone
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=STALE_RUNNING_THRESHOLD_MINUTES)).isoformat()
+    stale = c.execute("SELECT run_id FROM refresh_runs WHERE status='RUNNING' AND started_at < ?", (cutoff,)).fetchall()
+    if not stale:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    log = '{"failure_reason": "run never reported finished -- reclaimed as stale (likely killed mid-flight by a deploy or machine restart)"}'
+    for row in stale:
+        c.execute("UPDATE refresh_runs SET status='FAILED_STALE', finished_at=?, log_json=? WHERE run_id=?",
+                   (now, log, row["run_id"]))
+    c.commit()
+
+
 def _running_row(league: str | None, dataset: str | None) -> bool:
     """league=None/dataset=None means 'is ANYTHING running' (the global
     guard below) -- a bare SELECT with no WHERE-narrowing on those columns.
@@ -108,6 +141,7 @@ def _running_row(league: str | None, dataset: str | None) -> bool:
     c = engine_bootstrap.connect()
     try:
         safety.ensure_refresh_tables(c)
+        _reclaim_stale_running_rows(c)
         sql = "SELECT 1 FROM refresh_runs WHERE status='RUNNING'"
         params: tuple = ()
         if league is not None:
