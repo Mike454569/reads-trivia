@@ -67,7 +67,7 @@ def _runners():
     run_fn, league label, real dataset_name stored in refresh_runs)."""
     from tools.data_refresh import (
         cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh,
-        nfl_player_stats_refresh, nfl_refresh,
+        nfl_player_game_stats_refresh, nfl_player_stats_refresh, nfl_refresh,
     )
 
     return {
@@ -85,6 +85,11 @@ def _runners():
         # blocker on any real 17-0 candidate generation. Closes that gap.
         "nfl_player_stats": (nfl_player_stats_refresh, nfl_player_stats_refresh.run_nfl_player_stats_refresh,
                               "NFL", nfl_player_stats_refresh.DATASET),
+        # Master Knowledge Blueprint (02_FIELD_MASTER "Player-Game Stats",
+        # 14_CLAUDE_EXECUTION step 3's #1 priority): game-grain stats, real
+        # canonical game_id linkage to the `games` table.
+        "nfl_player_game_stats": (nfl_player_game_stats_refresh, nfl_player_game_stats_refresh.run_nfl_player_game_stats_refresh,
+                                   "NFL", nfl_player_game_stats_refresh.DATASET),
     }
 
 
@@ -220,6 +225,7 @@ def refresh_status() -> dict:
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
             "draft": _safe_run_summary(runners["nfl_draft"][0].last_run_status()),
             "player_stats": _safe_run_summary(runners["nfl_player_stats"][0].last_run_status()),
+            "player_game_stats": _safe_run_summary(runners["nfl_player_game_stats"][0].last_run_status()),
         },
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),

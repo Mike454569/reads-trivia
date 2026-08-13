@@ -66,3 +66,9 @@
 # had zero rows before this -- sixth dataset, same 30-minutes-apart stagger.
 [functions."trigger-refresh-nfl-player-stats"]
   schedule = "40 11 * * *"
+
+# Master Knowledge Blueprint's top execution priority -- game-grain player
+# stats, real canonical game_id linkage to `games`. Seventh dataset, same
+# 30-minutes-apart stagger.
+[functions."trigger-refresh-nfl-player-game-stats"]
+  schedule = "10 12 * * *"
