@@ -343,9 +343,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # v1.8 added a 4th registered capability, CFB data enrichment a 5th, the
     # App-Wide Engine Migration operation a 6th and 7th, the position+college
     # proof-game fix an 8th, the Historical Engine Enrichment operation a
-    # 9th (NFL_GAME_BOXSCORE) -- see
-    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_nine.
-    assert len(r.json()["capabilities"]) == 9
+    # 9th (NFL_GAME_BOXSCORE), the stale-college-feasibility fix a 10th
+    # (ATTENDED_COLLEGE) -- see
+    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_ten.
+    assert len(r.json()["capabilities"]) == 10
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------

@@ -60,7 +60,10 @@ def _fake_credential(monkeypatch):
     monkeypatch.setenv(anthropic_provider.CREDENTIAL_ENV_VAR, FAKE_KEY)
 
 
-# --- schema coverage: all 7 capabilities are reachable ----------------------
+# --- schema coverage: all 10 capabilities are reachable ---------------------
+# (NFL_GAME_BOXSCORE/HAD_MORE_YARDS was a pre-existing gap in this list, not
+# a new one -- found and fixed alongside the stale-college-feasibility fix's
+# own new NFL_DRAFT/ATTENDED_COLLEGE entry.)
 
 CAPABILITY_REPLIES = [
     ("guess", "NFL_DRAFT", "DRAFTED_BY"),
@@ -71,12 +74,14 @@ CAPABILITY_REPLIES = [
     ("guess", "NFL_GAME_RESULT", "WON_GAME"),
     ("guess", "CFB_GAME_RESULT", "WON_GAME"),
     ("guess", "NFL_OFFENSE_LINEUP_COLLEGE", "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"),
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_YARDS"),
+    ("guess", "NFL_DRAFT", "ATTENDED_COLLEGE"),
 ]
 
 
 @pytest.mark.parametrize("mechanic,domain,predicate", CAPABILITY_REPLIES)
 def test_each_registered_capability_is_a_valid_translated_reply(mechanic, domain, predicate):
-    """Simulates the model correctly naming each of the 7 real registered
+    """Simulates the model correctly naming each of the 10 real registered
     capabilities -- proves the schema in anthropic_provider.py's translate()
     parsing path accepts every one of them and validator.py accepts the
     resulting spec as READY (not just schema-shaped, actually registered)."""

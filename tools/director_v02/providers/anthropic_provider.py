@@ -12,6 +12,22 @@ present (checked by name only, never read/logged). Run
 available; do not read any report's test results as having exercised this
 class until a report explicitly says a live call occurred.
 
+STALE-COLLEGE-FEASIBILITY FIX: found and fixed a real gap this SYSTEM_PROMPT
+had accumulated -- it was updated for capabilities 4-8 as each was added over
+time, but NFL_GAME_BOXSCORE/HAD_MORE_YARDS (capability 9, added during the
+Historical Engine Enrichment operation) was NEVER added here at all, and this
+was the live production path a real "guess the college of an NFL player"
+request actually took (the mock provider's own keyword patterns are a
+SEPARATE implementation -- getting a request right there does not mean the
+real deployed system, which uses `provider="auto"` -> the real Anthropic
+provider when a credential is configured, gets it right too). Capability 10
+(ATTENDED_COLLEGE) is the new one this fix adds. This is exactly the kind of
+"stale capability metadata" this whole fix pass exists to find and remove --
+a hardcoded prompt string is metadata the same way a hardcoded English
+sentence in feasibility.py is, and both go stale the same way if a new
+capability is registered without updating every place that describes the
+registry in English.
+
 Credential required: environment variable `ANTHROPIC_API_KEY`. Never read
 from a file, never hardcoded, never logged, never included in any package
 output. If unset, `translate()` raises `RuntimeError` immediately -- callers
@@ -113,8 +129,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -126,7 +142,7 @@ this shape:
   "clarifying_question": null or "<a short question to show the user>"
 }
 
---- THE EIGHT SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
+--- THE TEN SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
 
 1. mechanic=guess, domain=NFL_DRAFT, relationship_predicate=DRAFTED_BY
    The player sees a real NFL player's name and picks which team drafted them.
@@ -141,9 +157,12 @@ lost in the Divisional round / lost in the Wild Card round).
 (draft year/round/pick, position, college, teams played for, postseason history) and must \
 identify the player. "question_count" means how many such puzzles to generate, NOT how many \
 clues per puzzle. "Who am I"-style requests about an NFL player, or "guess the player from \
-clues/hints/stats/draft info," all mean this. IMPORTANT: only "difficulty":"any" is ever \
-valid for this capability (no difficulty model exists for it) -- if the request asks for \
-"hard" or "easy", still set difficulty to "any" and briefly note in translator_notes that \
+clues/hints/stats/draft info," all mean this -- including a request phrased as "guess the \
+player from his college [and draft round/year/etc]": the THING BEING GUESSED is the player's \
+identity here, college is just one of several possible clue types, so this is capability 3, \
+NOT capability 10 below (which is the reverse direction). IMPORTANT: only "difficulty":"any" \
+is ever valid for this capability (no difficulty model exists for it) -- if the request asks \
+for "hard" or "easy", still set difficulty to "any" and briefly note in translator_notes that \
 this capability has no difficulty levels; do NOT reject the request over this. NFL ONLY -- \
 see Rule A below for the CFB case.
 
@@ -175,25 +194,42 @@ exists for only 68 real team-seasons (far fewer than capability 4's 412), and th
 shown because per-player OL college coverage is too sparse (~10%) for any team-season's full line to be \
 honestly covered -- never guessed or fabricated.
 
+9. mechanic=guess, domain=NFL_GAME_BOXSCORE, relationship_predicate=HAD_MORE_YARDS
+   The player sees a specific real, completed NFL game and picks which team gained more total \
+offensive yards (passing + rushing) -- NOT the same as who won (a team can out-gain its \
+opponent and still lose). Real per-game team box scores, not season totals.
+
+10. mechanic=guess, domain=NFL_DRAFT, relationship_predicate=ATTENDED_COLLEGE
+    The player sees a real, drafted NFL player's name and picks which COLLEGE they attended -- \
+the reverse direction from capability 3. Matches a request phrased as "guess the college/school \
+[a player attended/went to]" or "guess the school [given/from] NFL players [drafted from \
+there]" -- the THING BEING GUESSED is the college here, not the player. Built on the real \
+college recorded directly in the draft record itself (draft_facts.college) -- 12,914 of 12,927 \
+real draft picks (1980-2026) have a known college. This is DIFFERENT from and NARROWER than \
+capability 8: capability 8 additionally requires season-specific team-starting-lineup \
+membership and only covers 5 skill positions for 68 team-seasons; capability 10 has no team or \
+lineup framing at all -- just "this one drafted player, which college."
+
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
-Capabilities 3 (player-from-clues), 4 (starting lineup), and 8 (starting lineup by college) are \
-NFL-only -- there is NO registered CFB equivalent of any of them. If a request clearly asks for \
-a CFB/college-football version of one of these ideas (an explicit "CFB" mention, "college \
-football" as its own phrase, or unambiguous college-only framing with no NFL signal at all), you \
-MUST NOT silently answer with the NFL capability. Use "UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, \
-and say plainly in translator_notes that this is a real, understandable request but no \
-registered CFB capability covers it yet (name which NFL capability is the closest analog, for \
-context, but do not set spec to it). A bare request with NO league signal at all (neither "NFL" \
-nor "CFB"/"college") still defaults to the NFL capability for 1, 2, 3, 4, and 8, consistent \
-across all of them -- only an EXPLICIT CFB signal with no contradicting "NFL" token should route \
-away from NFL. (Note: capability 8 itself is inherently about colleges, but that is NOT the same \
-signal as an explicit CFB/college-FOOTBALL LEAGUE request -- a request for the NFL starting \
-lineup shown BY COLLEGE is still an NFL-competition request; only route to \
-UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request explicitly asks for a CFB/college-football \
-TEAM'S OWN starting lineup, which is a different, unregistered concept entirely.) Capabilities \
-5-7 are inherently CFB-specific (5) or come in both an NFL (6) and CFB (7) form -- for 6 vs 7, \
-the same rule applies: an explicit CFB signal (with no contradicting NFL token) selects \
-domain=CFB_GAME_RESULT; everything else defaults to domain=NFL_GAME_RESULT.
+Capabilities 3 (player-from-clues), 4 (starting lineup), 8 (starting lineup by college), 9 (box \
+score yards), and 10 (player's college) are NFL-only -- there is NO registered CFB equivalent of \
+any of them. If a request clearly asks for a CFB/college-football version of one of these ideas \
+(an explicit "CFB" mention, "college football" as its own phrase, or unambiguous college-only \
+framing with no NFL signal at all), you MUST NOT silently answer with the NFL capability. Use \
+"UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, and say plainly in translator_notes that this is a \
+real, understandable request but no registered CFB capability covers it yet (name which NFL \
+capability is the closest analog, for context, but do not set spec to it). A bare request with \
+NO league signal at all (neither "NFL" nor "CFB"/"college") still defaults to the NFL capability \
+for 1, 2, 3, 4, 8, 9, and 10, consistent across all of them -- only an EXPLICIT CFB signal with \
+no contradicting "NFL" token should route away from NFL. (Note: capabilities 8 and 10 are \
+themselves inherently about colleges, but that is NOT the same signal as an explicit \
+CFB/college-FOOTBALL LEAGUE request -- a request for an NFL player's/lineup's college is still \
+an NFL-competition request; only route to UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request \
+explicitly asks about a CFB/college-football player or team, which is a different, unregistered \
+concept entirely.) Capabilities 5-7 are inherently CFB-specific (5) or come in both an NFL (6) \
+and CFB (7) form -- for 6 vs 7, the same rule applies: an explicit CFB signal (with no \
+contradicting NFL token) selects domain=CFB_GAME_RESULT; everything else defaults to \
+domain=NFL_GAME_RESULT.
 
 --- RULE B: THE "POSITION + COLLEGE, NAMES HIDDEN" REQUEST -> CAPABILITY 8 ---
 A request that asks for a lineup/starters/offense-by-position game showing each player's \
@@ -218,10 +254,10 @@ IS a real, existing part of the product, but it is NOT something this natural-la
 pipeline generates -- say so plainly (e.g. "Coach Connections is a real, existing Reads mode, \
 but it isn't built through this natural-language Creator -- it has its own dedicated game screen"). \
 Never invent a (mechanic, domain, relationship_predicate) triple that doesn't appear in the list \
-of eight above to try to approximate it.
+of ten above to try to approximate it.
 
 --- RULE D: COMPOUND / MIXED / OFF-TOPIC REQUESTS ---
-If the request asks for something that isn't any of the eight capabilities and has no real \
+If the request asks for something that isn't any of the ten capabilities and has no real \
 football-data backing at all (e.g. player salaries/contracts, injuries, favorite foods, or any \
 other topic this database plainly wouldn't have), or is a compound request combining a \
 supported part with an unsupported part (e.g. "both a QB's team AND his favorite food"), use \

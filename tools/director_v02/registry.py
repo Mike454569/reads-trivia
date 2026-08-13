@@ -25,6 +25,7 @@ from tools.quiz_export.adapters import cfb_game_result as cfb_game_result_adapte
 from tools.quiz_export.adapters import cfb_heisman as cfb_heisman_adapter  # noqa: E402
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
+from tools.quiz_export.adapters import draft_college as draft_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore as nfl_game_boxscore_adapter  # noqa: E402
@@ -116,6 +117,48 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "director-v0.1-first-game",
         ],
         "pipeline_id_start": 610000,
+    },
+    # Added for the stale-college-feasibility fix: a real gap-check found
+    # `draft_facts.college` had always had a `college` column (from the
+    # `draft_picks.csv` source) that was never mapped -- backfilled
+    # additively (12,914 of 12,927 real draft rows got a real college; the
+    # other 13 have none in the source, see tools/quiz_export/adapters/
+    # draft_college.py's module docstring). Before this, a general "guess
+    # the college of an NFL player" request had NO registered capability at
+    # all and fell into feasibility.py's generic, hardcoded "college" signal
+    # (a stale 2,542-row citation of a DIFFERENT table,
+    # cfb_nfl_identity_bridge_certified, used by the narrower
+    # NFL_OFFENSE_LINEUP_COLLEGE capability below). This capability is what
+    # makes that data real, generatable content: entity=player, answer=the
+    # college that specific player attended, sourced directly from the
+    # draft record.
+    ("guess", "NFL_DRAFT", "ATTENDED_COLLEGE"): {
+        "adapter": draft_college_adapter,
+        "category": draft_college_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only drafted NFL players with a college recorded in the draft record itself "
+            "(draft_facts.college, backfilled from nflverse's draft_picks.csv) -- 12,914 of 12,927 real "
+            "draft picks (1980-2026) have a known college; the other 13 have none in the source and are "
+            "excluded, never guessed. Undrafted players are not covered by this capability at all.",
+            "Distinct from the narrower NFL_OFFENSE_LINEUP_COLLEGE capability, which additionally requires "
+            "season-specific starting-lineup membership and uses a different, cross-referenced identity "
+            "bridge (cfb_nfl_identity_bridge_certified) -- see tools.quiz_export.adapters.draft_college."
+            "live_college_coverage() for this capability's own live, current coverage numbers.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_player",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["stale-college-feasibility-fix"],
+        "pipeline_id_start": 690000,
     },
     # Added in Director v0.3, Part B. Selected over QB/Season as the second
     # capability specifically because of its prior-pilot ambiguity profile:

@@ -70,16 +70,57 @@ def test_plain_college_lineup_request_unaffected_by_hidden_names_check():
 
 
 def test_bare_college_request_gets_updated_honest_reason_not_stale_claim():
-    # No lineup/position/nfl/team framing at all -- falls all the way
-    # through to NO_MATCH and then the generic KNOWN_MISSING_DATA_SIGNALS
-    # entry (a phrase with "nfl"/"team" would instead hit the NEEDS_
-    # CLARIFICATION -> UNKNOWN path before ever reaching that fallback).
-    # The reason must no longer claim college data is entirely absent (it
-    # isn't, since the bridge hardening).
+    # No "guess the college"/"guess the player" directional phrase, no
+    # lineup/position/nfl/team framing -- falls all the way through to
+    # NO_MATCH and then the generic college fallback (a phrase with
+    # "nfl"/"team" would instead hit the NEEDS_CLARIFICATION -> UNKNOWN path
+    # before ever reaching it). Stale-college-feasibility fix: this reason
+    # is now LIVE-measured against draft_facts every call, never a hardcoded
+    # sentence, and must no longer cite the OLD, unrelated
+    # cfb_nfl_identity_bridge_certified 2,542-row figure this bug used to.
     r = feasibility.assess("Make me a game about which college each player attended.")
     assert r["support_status"] == "MISSING_DATA"
-    assert "cfb_nfl_identity_bridge_certified" in r["reason"]
+    assert "draft_facts" in r["reason"]
+    assert "12914" in r["reason"]  # live count, not the old stale 2,542 citation
+    assert "2,542" not in r["reason"]
     assert "not reliably present" not in r["reason"]  # the old, now-false claim
+
+
+def test_guess_college_of_player_is_supported_not_missing_data():
+    # Stale-college-feasibility fix: a general "guess the college of an NFL
+    # player" request (no team/lineup framing) now resolves to a real,
+    # registered capability built on the draft_facts.college backfill
+    # (12,914 of 12,927 real draft rows), not the old hardcoded MISSING_DATA
+    # fallback.
+    r = feasibility.assess("Make me a game where I guess the college of an NFL player.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "ATTENDED_COLLEGE"
+    assert r["capability"]["domain"] == "NFL_DRAFT"
+    assert any("12,914" in lim for lim in r["known_limitations"])
+
+
+def test_guess_school_from_players_drafted_there_is_supported():
+    r = feasibility.assess("Guess the school from NFL players drafted from there.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "ATTENDED_COLLEGE"
+
+
+def test_guess_player_from_college_and_round_routes_to_player_from_clues():
+    # The reverse direction -- "guess the PLAYER from his college and draft
+    # round" -- routes to the already-registered IDENTIFY_FROM_CLUES
+    # capability, which already supports "college" and "draft_round" as
+    # real clue types; it just wasn't reachable from this phrasing before.
+    r = feasibility.assess("Guess the NFL player from his college and draft round.")
+    assert r["support_status"] == "SUPPORTED"
+    assert r["capability"]["relationship_predicate"] == "IDENTIFY_FROM_CLUES"
+
+
+def test_college_lineup_hidden_names_request_still_uses_narrower_capability():
+    # The fourth acceptance prompt -- must still resolve to the narrower,
+    # season-lineup-specific capability, not the new general one.
+    r = feasibility.assess("Guess the NFL team from skill-position colleges, hide names.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
 
 
 def test_lineup_college_coverage_measures_live_against_real_bridge():
@@ -218,9 +259,11 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_nine_registered_capabilities():
+def test_capability_summary_lists_all_ten_registered_capabilities():
+    # 10, not 9, since the stale-college-feasibility fix registered a new
+    # capability (ATTENDED_COLLEGE/NFL_DRAFT).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 9
+    assert len(summary) == 10
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

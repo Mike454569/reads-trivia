@@ -44,6 +44,22 @@ the team from the colleges of the players on its offense, by position, names
 hidden") is now genuinely data-backed for 5 skill positions (68 real
 certified team-seasons) and is matched to its own real capability below,
 never silently substituted with the names-based one.
+
+STALE-COLLEGE-FEASIBILITY FIX: a general "guess a player's college" (not a
+team's lineup) request, and a "guess the player from his college" (reverse
+direction) request, are two MORE distinct real capabilities -- neither is a
+team/lineup request at all. `_GUESS_COLLEGE_PHRASE_RE` / `_GUESS_PLAYER_
+PHRASE_RE` use a directional phrase match (not just keyword presence) to
+tell "guess the college/school ..." (-> ATTENDED_COLLEGE, ANSWER=college)
+apart from "guess the ... player ..." (-> IDENTIFY_FROM_CLUES, which already
+supports "college" and "draft_round" as clue types -- ANSWER=player
+identity). Both route to real, registered, data-backed capabilities as of
+the stale-college-feasibility fix (draft_facts.college backfill, 12,914 of
+12,927 real draft rows) -- see tools/quiz_export/adapters/draft_college.py
+and tools/director_v02/feasibility.py's own module docstring for the full
+audit trail on why the OLD behavior (falling through to a hardcoded,
+now-stale "college data is basically unusable" MISSING_DATA reason citing a
+DIFFERENT table's 2,542-row count) was wrong.
 """
 from __future__ import annotations
 
@@ -75,6 +91,14 @@ _EASY_WORDS = {"easy", "simple", "beginner"}
 _MEDIUM_WORDS = {"medium", "moderate", "intermediate"}
 
 _COUNT_RE = re.compile(r"\b(\d{1,3})\b")
+
+# Directional phrase matches (not just keyword presence) -- distinguishes
+# "guess the college of a player" (answer=college) from "guess the player
+# from his college" (answer=player identity). See the module docstring's
+# STALE-COLLEGE-FEASIBILITY FIX section.
+_GUESS_COLLEGE_PHRASE_RE = re.compile(r"guess\s+(the\s+)?(college|school)\b")
+_GUESS_PLAYER_PHRASE_RE = re.compile(r"guess\s+(the\s+)?(nfl\s+)?player\b")
+_SCHOOL_WORDS = {"school", "schools"}
 
 
 def _words(text: str) -> set[str]:
@@ -135,6 +159,9 @@ class MockDeterministicTranslator(Translator):
         has_lineup = bool(words & _LINEUP_WORDS)
         has_position = bool(words & _POSITION_WORDS)
         has_college = bool(words & _COLLEGE_WORDS)
+        has_college_or_school = has_college or bool(words & _SCHOOL_WORDS)
+        has_guess_college_phrase = bool(_GUESS_COLLEGE_PHRASE_RE.search(text.lower()))
+        has_guess_player_phrase = bool(_GUESS_PLAYER_PHRASE_RE.search(text.lower()))
         has_hidden_names = bool(words & _HIDDEN_NAMES_WORDS) or "no names" in text.lower() or "without names" in text.lower() or "names hidden" in text.lower()
         has_heisman = bool(words & _HEISMAN_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
@@ -194,7 +221,16 @@ class MockDeterministicTranslator(Translator):
         # (Draft/Championship/Lineup also default to NFL domains without
         # requiring an explicit "nfl" token) -- an explicit "nfl" token
         # always wins over an incidental "college" mention.
-        if (has_clue and has_player) or has_who_am_i:
+        # STALE-COLLEGE-FEASIBILITY FIX: also route a "guess the PLAYER from
+        # his college [and other draft facts]" request here -- a directional
+        # phrase match (not just keyword presence, see module docstring),
+        # requires no team framing (a team request is a different capability
+        # entirely). IDENTIFY_FROM_CLUES already supports both "college" and
+        # "draft_round" as real clue types (tools/director_v04/
+        # player_from_clues.py), so this is genuinely supported today, not a
+        # new adapter.
+        college_player_clue_request = has_guess_player_phrase and has_college_or_school and not has_team
+        if (has_clue and has_player) or has_who_am_i or college_player_clue_request:
             if has_cfb_signal and not has_nfl:
                 return _result(
                     request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
@@ -216,11 +252,14 @@ class MockDeterministicTranslator(Translator):
                 "filters": {},
                 "exclusions": [],
             }
-            return _result(
-                request_text, "TRANSLATED", spec,
+            note = (
+                "Matched 'guess the player' + college/school keywords with no team framing -> "
+                "IDENTIFY_FROM_CLUES (college and draft round are both real, supported clue types)."
+                if college_player_clue_request and not (has_clue and has_player) and not has_who_am_i else
                 "Matched clue/identify/'who am I' keywords with no CFB signal -> "
-                "IDENTIFY_FROM_CLUES player-from-clues capability.",
+                "IDENTIFY_FROM_CLUES player-from-clues capability."
             )
+            return _result(request_text, "TRANSLATED", spec, note)
 
         if has_player and has_draft and has_team:
             spec = {
@@ -390,6 +429,46 @@ class MockDeterministicTranslator(Translator):
                 "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec, note)
+
+        # STALE-COLLEGE-FEASIBILITY FIX: the reverse direction -- "guess the
+        # college/school of a player" (not a team's lineup). Checked LAST,
+        # after every other, more specific pattern above (Player-From-Clues,
+        # Draft, Championship, both Lineup variants, Heisman, Box Score, Game
+        # Result) -- deliberately broad ("guess the college" + any "player"
+        # mention, no team framing) so a MORE specific request that happens
+        # to also contain those words (e.g. "guess the college football
+        # player who won the Heisman") still resolves to its own real,
+        # already-registered capability first, never shadowed by this
+        # general fallback. A real ordering bug caught by testing this exact
+        # example during the fix, not assumed. Competition-aware the same
+        # way the pattern above is: an explicit CFB signal with no
+        # contradicting "nfl" token is honestly reported as unsupported (no
+        # CFB equivalent of this capability exists either), never silently
+        # generating an NFL question for a CFB-worded request.
+        if has_guess_college_phrase and has_player and not has_team:
+            if has_cfb_signal and not has_nfl:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized this as a CFB-worded 'guess the player's college' request "
+                    "(an explicit 'cfb' token, 'college football' phrase, or 'college'/'colleges' "
+                    "word, with no contradicting 'nfl' token). This is a real, schema-expressible "
+                    "concept, but the only registered player<->college capability (ATTENDED_COLLEGE "
+                    "/ NFL_DRAFT) is NFL-only -- there is no registered CFB equivalent.",
+                )
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_DRAFT",
+                "relationship_predicate": "ATTENDED_COLLEGE",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'guess the college/school' + player keywords with no team framing -> "
+                "ATTENDED_COLLEGE guess capability (draft_facts.college, real backfilled data).",
+            )
 
         # Genuine ambiguity: clearly an NFL-related trivia/game request, but
         # not specific enough to resolve to either registered capability or

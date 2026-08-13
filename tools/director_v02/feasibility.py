@@ -102,6 +102,39 @@ already-shipped `TEAM_OF_STARTING_LINEUP` capability, which uses real
 player NAMES and is unaffected by any of this -- see `providers/mock.py`'s
 own "hidden names" carve-out for why a names-hidden college request can
 never silently fall back to that names-based capability.
+
+--- STALE-COLLEGE-FEASIBILITY FIX (general "college of an NFL player") ---
+A second, separate real bug, found by literally testing the live Creator
+against "Make me a game where I guess the college of an NFL player.": the
+generic `KNOWN_MISSING_DATA_SIGNALS["college"]` entry (below) was a
+HARDCODED English sentence citing `cfb_nfl_identity_bridge_certified`'s
+2,542-row count -- the SAME staleness bug the position+college fix above
+already found and fixed once, recurring in a second, more general place
+this module makes the same kind of claim. That 2,542 number was stale on
+two independent counts by the time this was caught: (1) the bridge itself
+had already grown past 2,542 (see UPDATE above), and (2) a completely
+DIFFERENT, larger, more directly relevant table -- `draft_facts.college` /
+`nfl_players_draft.college`, backfilled from the `draft_picks.csv` source's
+long-unmapped `college` column, 12,914 of 12,927 real draft rows (1980-2026)
+-- makes a GENERAL player<->college capability genuinely supportable now,
+completely independent of the narrower, season-lineup-specific bridge this
+sentence was originally (and still, for its own narrow case) describing.
+
+Fix, same discipline as the position+college fix: (1) two new real,
+registered capabilities now exist --
+`ATTENDED_COLLEGE`/`NFL_DRAFT` (guess a specific drafted player's college,
+`tools/quiz_export/adapters/draft_college.py`) and an extended
+`IDENTIFY_FROM_CLUES`/`NFL_PLAYER_IDENTITY` routing (guess the player from
+college+other clues -- that capability already supported "college" and
+"draft_round" as clue types; it just weren't reachable from this exact
+phrasing before) -- so most real "college" requests now resolve via
+`gate_status == "READY"` and never reach this fallback at all. (2) For the
+narrower remainder that still doesn't match either pattern (e.g. a request
+mentioning "college" with no player/school framing the translator
+recognizes), `_general_college_missing_data_reason()` below replaces the
+hardcoded sentence with a live query against `draft_facts` every call, the
+same "measure live, never assert from memory" fix the position+college
+correction pass already established.
 """
 from __future__ import annotations
 
@@ -122,26 +155,11 @@ SUPPORT_STATUSES = frozenset({
 # Checked ONLY when the request does NOT already resolve to a registered
 # capability (a request that matches the lineup capability's own keyword
 # pattern already gets an honest SUPPORTED_WITH_LIMITATIONS instead -- this
-# table is for concepts with no substitute at all).
+# table is for concepts with no substitute at all). "college"/"colleges" is
+# deliberately NOT listed here -- see `_general_college_missing_data_reason()`
+# below for why a bare college mention now needs a LIVE-measured reason,
+# never a hardcoded one (that was exactly the stale-college-feasibility bug).
 KNOWN_MISSING_DATA_SIGNALS = {
-    # NOTE: this generic entry is the fallback for a BARE "college" mention
-    # with no lineup/position framing (e.g. "make a game about where players
-    # went to college") -- it is intentionally NOT the check used for the
-    # specific "position + college, names hidden" lineup request, which gets
-    # its own live-measured, real-numbers reason instead (see
-    # `_position_lineup_college_hidden_names_reason()` and `assess()` below).
-    # Updated during the feasibility-logic correction pass to stop claiming
-    # college data is absent outright -- it no longer is (see module
-    # docstring) -- while still being honest that no registered capability
-    # uses it for anything other than the narrow lineup case.
-    frozenset({"college", "colleges"}): (
-        "A certified NFL<->CFB college identity bridge does exist "
-        "(cfb_nfl_identity_bridge_certified, 2,542 real high-confidence rows), but no registered "
-        "capability is built on it for a general college-guessing request. See the "
-        "position+college 'names hidden' lineup variant for the one place this bridge IS measured "
-        "and used, and tools/quiz_export/adapters/lineup.lineup_college_coverage() for real, current "
-        "coverage numbers -- which today are not enough to support even that narrower case."
-    ),
     frozenset({"salary", "salaries", "contract", "contracts", "cap"}): (
         "No salary/contract/cap table exists in this database at all -- this is not a partial-coverage "
         "gap, there is no relevant table to query."
@@ -157,8 +175,45 @@ def _words(text: str) -> set[str]:
     return set(re.findall(r"[a-z]+", text.lower()))
 
 
+_GENERAL_COLLEGE_WORDS = frozenset({"college", "colleges", "school", "schools"})
+
+
+def _general_college_missing_data_reason() -> str:
+    """The bare-"college"-mention fallback, now LIVE-measured every call
+    instead of a hardcoded sentence (the exact bug this whole correction
+    pass exists to fix -- see module docstring's STALE-COLLEGE-FEASIBILITY
+    FIX section). Reached only when a college-mentioning request matches
+    NEITHER real registered capability (ATTENDED_COLLEGE's "guess the
+    college" phrasing, or IDENTIFY_FROM_CLUES's "guess the player from his
+    college" phrasing) -- i.e. genuine translator ambiguity, not a real data
+    gap, so this reports what DOES exist rather than claiming absence."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import draft_college
+
+    c = engine.connect()
+    try:
+        coverage = draft_college.live_college_coverage(c)
+    finally:
+        c.close()
+
+    return (
+        f"Measured live against {coverage['table']} ({coverage['source_id']}): "
+        f"{coverage['rows_with_college']} of {coverage['total_draft_rows']} real NFL draft picks "
+        f"({coverage['min_season']}-{coverage['max_season']}) have a known college on record, covering "
+        f"{coverage['unique_players_with_college']} unique players across {coverage['unique_colleges']} real "
+        f"colleges. Two real, registered capabilities already use this: ATTENDED_COLLEGE/NFL_DRAFT (\"guess "
+        f"the college/school [a player] attended\") and IDENTIFY_FROM_CLUES/NFL_PLAYER_IDENTITY (\"guess the "
+        f"player from his college [and other clues]\") -- this specific request just didn't match either "
+        f"phrasing pattern. Try rephrasing as one of those two framings. (For the separate, narrower "
+        f"season-specific 'starting lineup by college, names hidden' capability, see "
+        f"tools.quiz_export.adapters.lineup.lineup_college_coverage() for its own live coverage numbers.)"
+    )
+
+
 def _missing_data_reason(request_text: str) -> str | None:
     words = _words(request_text)
+    if words & _GENERAL_COLLEGE_WORDS:
+        return _general_college_missing_data_reason()
     for signal_words, reason in KNOWN_MISSING_DATA_SIGNALS.items():
         if words & signal_words:
             return reason

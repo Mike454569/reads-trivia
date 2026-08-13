@@ -55,6 +55,10 @@ ALLOWED_PREDICATES = frozenset({
     "WON_GAME",  # App-Wide Engine Migration operation -- shared by NFL_GAME_RESULT and CFB_GAME_RESULT
     "HAD_MORE_YARDS",  # Historical Engine Enrichment operation -- NFL_GAME_BOXSCORE
     "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",  # position+college proof-game fix
+    "ATTENDED_COLLEGE",  # stale-college-feasibility fix -- general "guess the college of an NFL
+                          # player" capability, built on draft_facts.college (see
+                          # tools/quiz_export/adapters/draft_college.py). Same NFL_DRAFT domain as
+                          # DRAFTED_BY (same underlying table), a new predicate, not a new domain.
 })
 
 ALLOWED_DIFFICULTIES = frozenset({
