@@ -68,6 +68,7 @@ def _runners():
     from tools.data_refresh import (
         cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_player_game_stats_refresh, nfl_player_stats_refresh, nfl_refresh,
+        nfl_team_game_stats_refresh,
     )
 
     return {
@@ -90,6 +91,11 @@ def _runners():
         # canonical game_id linkage to the `games` table.
         "nfl_player_game_stats": (nfl_player_game_stats_refresh, nfl_player_game_stats_refresh.run_nfl_player_game_stats_refresh,
                                    "NFL", nfl_player_game_stats_refresh.DATASET),
+        # Direct user request: a real boxscore for every game, for
+        # in-depth specific-game questions. Team-level (not per-player)
+        # totals, same real canonical game_id linkage.
+        "nfl_team_game_stats": (nfl_team_game_stats_refresh, nfl_team_game_stats_refresh.run_nfl_team_game_stats_refresh,
+                                 "NFL", nfl_team_game_stats_refresh.DATASET),
     }
 
 
@@ -226,6 +232,7 @@ def refresh_status() -> dict:
             "draft": _safe_run_summary(runners["nfl_draft"][0].last_run_status()),
             "player_stats": _safe_run_summary(runners["nfl_player_stats"][0].last_run_status()),
             "player_game_stats": _safe_run_summary(runners["nfl_player_game_stats"][0].last_run_status()),
+            "team_game_stats": _safe_run_summary(runners["nfl_team_game_stats"][0].last_run_status()),
         },
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),

@@ -80,7 +80,16 @@ def _ensure_schema(c) -> None:
     cols = {r["name"] for r in c.execute("PRAGMA table_info(player_season_stats)").fetchall()}
     if "fantasy_points_ppr" not in cols:
         c.execute("ALTER TABLE player_season_stats ADD COLUMN fantasy_points_ppr REAL")
-        c.commit()
+    # Real gap found after this module first shipped: the source CSV has
+    # always had completions/attempts/carries/targets -- available but
+    # never mapped, even though the sibling player_game_stats table (built
+    # later, same source family) already captures them. Added additively;
+    # a follow-up run backfills these for every existing row too (see
+    # `_publish`'s ON CONFLICT UPDATE, which now includes them).
+    for new_col in ("pass_completions", "pass_attempts", "rush_attempts", "targets"):
+        if new_col not in cols:
+            c.execute(f"ALTER TABLE player_season_stats ADD COLUMN {new_col} INTEGER")
+    c.commit()
 
 
 def _ensure_staging_table(c) -> None:
@@ -94,9 +103,14 @@ def _ensure_staging_table(c) -> None:
             def_sacks TEXT, def_interceptions TEXT,
             def_tackles_solo TEXT, def_tackles_with_assist TEXT,
             fg_made TEXT, fg_att TEXT, fantasy_points_ppr TEXT,
+            pass_completions TEXT, pass_attempts TEXT, rush_attempts TEXT, targets TEXT,
             PRIMARY KEY (batch_id, source_row)
         )
     """)
+    existing = {r["name"] for r in c.execute("PRAGMA table_info(staging_nfl_player_stats)").fetchall()}
+    for new_col in ("pass_completions", "pass_attempts", "rush_attempts", "targets"):
+        if new_col not in existing:
+            c.execute(f"ALTER TABLE staging_nfl_player_stats ADD COLUMN {new_col} TEXT")
     c.commit()
 
 
@@ -119,7 +133,8 @@ def _stage_one_season(c, bid: str, season: int, path: Path) -> tuple[int, int, i
                 "INSERT INTO staging_nfl_player_stats(season, player_id, team_code, games, pass_yards, "
                 "pass_td, rush_yards, rush_td, receptions, rec_yards, rec_td, def_sacks, def_interceptions, "
                 "def_tackles_solo, def_tackles_with_assist, fg_made, fg_att, fantasy_points_ppr, "
-                "batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "pass_completions, pass_attempts, rush_attempts, targets, "
+                "batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (str(season), player_id, import_data.col(row, "recent_team"), import_data.col(row, "games"),
                  import_data.col(row, "passing_yards"), import_data.col(row, "passing_tds"),
                  import_data.col(row, "rushing_yards"), import_data.col(row, "rushing_tds"),
@@ -128,6 +143,8 @@ def _stage_one_season(c, bid: str, season: int, path: Path) -> tuple[int, int, i
                  import_data.col(row, "def_interceptions"), import_data.col(row, "def_tackles_solo"),
                  import_data.col(row, "def_tackles_with_assist"), import_data.col(row, "fg_made"),
                  import_data.col(row, "fg_att"), import_data.col(row, "fantasy_points_ppr"),
+                 import_data.col(row, "completions"), import_data.col(row, "attempts"),
+                 import_data.col(row, "carries"), import_data.col(row, "targets"),
                  bid, i),
             )
             staged += 1
@@ -146,7 +163,8 @@ def _publish(c, bid: str) -> tuple[int, int]:
     for row in c.execute(
         "SELECT season, player_id, team_code, games, pass_yards, pass_td, rush_yards, rush_td, "
         "receptions, rec_yards, rec_td, def_sacks, def_interceptions, def_tackles_solo, "
-        "def_tackles_with_assist, fg_made, fg_att, fantasy_points_ppr FROM staging_nfl_player_stats "
+        "def_tackles_with_assist, fg_made, fg_att, fantasy_points_ppr, "
+        "pass_completions, pass_attempts, rush_attempts, targets FROM staging_nfl_player_stats "
         "WHERE batch_id=?", (bid,)
     ):
         gsis_id = row["player_id"]
@@ -180,6 +198,10 @@ def _publish(c, bid: str) -> tuple[int, int]:
             "fg_made": import_data.parse_int(row["fg_made"]),
             "fg_att": import_data.parse_int(row["fg_att"]),
             "fantasy_points_ppr": float(row["fantasy_points_ppr"]) if row["fantasy_points_ppr"] not in (None, "") else None,
+            "pass_completions": import_data.parse_int(row["pass_completions"]),
+            "pass_attempts": import_data.parse_int(row["pass_attempts"]),
+            "rush_attempts": import_data.parse_int(row["rush_attempts"]),
+            "targets": import_data.parse_int(row["targets"]),
             "verification_status": "SOURCE_BACKED",
             "source_id": SOURCE_ID,
         }

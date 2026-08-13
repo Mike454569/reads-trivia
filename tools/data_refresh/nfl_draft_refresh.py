@@ -63,16 +63,38 @@ DRAFT_URL = "https://github.com/nflverse/nflverse-data/releases/download/draft_p
 IMPORTS_DIR = ENGINE_DIR / "imports"
 
 
+def _ensure_schema(c) -> None:
+    """Real gap found after this module first shipped: the source CSV
+    (draft_picks.csv) has always had a real `college` column -- it was
+    downloaded and inspected before writing this module's very first
+    version, but never mapped. Added additively (safe on a live table);
+    backfilled for every existing row, not just new picks going forward --
+    see `_backfill_college()`."""
+    for table in ("nfl_players_draft", "draft_facts"):
+        cols = {r["name"] for r in c.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "college" not in cols:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN college TEXT")
+    c.commit()
+
+
 def _ensure_staging_table(c) -> None:
     c.execute("""
         CREATE TABLE IF NOT EXISTS staging_nfl_draft (
             batch_id TEXT NOT NULL REFERENCES import_batches(batch_id),
             source_row INTEGER NOT NULL,
             season TEXT, round TEXT, pick TEXT, team TEXT, gsis_id TEXT,
-            pfr_player_id TEXT, pfr_player_name TEXT, position TEXT,
+            pfr_player_id TEXT, pfr_player_name TEXT, position TEXT, college TEXT,
             PRIMARY KEY (batch_id, source_row)
         )
     """)
+    # A staging table from before `college` existed persists across runs
+    # (CREATE TABLE IF NOT EXISTS doesn't migrate an existing one) -- real
+    # failure hit in testing, fixed here rather than dropping/recreating
+    # the table (which would lose nothing real, but this is the same
+    # additive-migration pattern used everywhere else in this module).
+    cols = {r["name"] for r in c.execute("PRAGMA table_info(staging_nfl_draft)").fetchall()}
+    if "college" not in cols:
+        c.execute("ALTER TABLE staging_nfl_draft ADD COLUMN college TEXT")
     c.commit()
 
 
@@ -90,13 +112,44 @@ def _stage(c, bid: str, path: Path) -> tuple[int, int, int]:
                 continue
             c.execute(
                 "INSERT INTO staging_nfl_draft(season, round, pick, team, gsis_id, pfr_player_id, "
-                "pfr_player_name, position, batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "pfr_player_name, position, college, batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (season, import_data.col(row, "round"), pick, import_data.col(row, "team"),
                  import_data.col(row, "gsis_id"), import_data.col(row, "pfr_player_id"),
-                 name, import_data.col(row, "position"), bid, i),
+                 name, import_data.col(row, "position"), import_data.col(row, "college"), bid, i),
             )
             staged += 1
     return read, staged, rejected
+
+
+def _backfill_college(c, bid: str) -> int:
+    """Fills `college` for every existing row (not just new picks this
+    run) that doesn't have one yet, matched on the real, stable (season,
+    pick) key -- never overwrites a value already present."""
+    by_season_pick: dict[tuple[int | None, int | None], str] = {}
+    for row in c.execute("SELECT season, pick, college FROM staging_nfl_draft WHERE batch_id=?", (bid,)).fetchall():
+        college = row["college"]
+        if not college:
+            continue
+        key = (import_data.parse_int(row["season"]), import_data.parse_int(row["pick"]))
+        by_season_pick[key] = college
+
+    updated = 0
+    for target in ("nfl_players_draft", "draft_facts"):
+        rows = c.execute(
+            f"SELECT draft_season, draft_pick_overall FROM {target} WHERE college IS NULL"
+        ).fetchall()
+        for r in rows:
+            key = (r["draft_season"], r["draft_pick_overall"])
+            college = by_season_pick.get(key)
+            if not college:
+                continue
+            c.execute(
+                f"UPDATE {target} SET college=? WHERE draft_season=? AND draft_pick_overall=? AND college IS NULL",
+                (college, r["draft_season"], r["draft_pick_overall"]),
+            )
+            if target == "nfl_players_draft":
+                updated += 1
+    return updated
 
 
 def _publish(c, bid: str) -> tuple[int, int]:
@@ -112,7 +165,7 @@ def _publish(c, bid: str) -> tuple[int, int]:
     inserted = 0
     skipped = 0
     for row in c.execute(
-        "SELECT season, round, pick, team, gsis_id, pfr_player_id, pfr_player_name, position "
+        "SELECT season, round, pick, team, gsis_id, pfr_player_id, pfr_player_name, position, college "
         "FROM staging_nfl_draft WHERE batch_id=?", (bid,)
     ):
         season = import_data.parse_int(row["season"])
@@ -127,6 +180,7 @@ def _publish(c, bid: str) -> tuple[int, int]:
         team = row["team"]
         position = row["position"]
         gsis_id = row["gsis_id"] or None
+        college = row["college"] or None
 
         if pfr_id:
             key = f"PFR:{pfr_id}"
@@ -146,14 +200,14 @@ def _publish(c, bid: str) -> tuple[int, int]:
         c.execute(
             "INSERT INTO nfl_players_draft(player_key, draft_season, draft_team, draft_round, "
             "draft_pick_overall, pfr_id, player_name, nflverse_player_id, side, category, position, "
-            "id_quality, source_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "id_quality, source_id, college) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (key, season, team, round_, pick_overall, pfr_id, name, gsis_id, None, None, position,
-             id_quality, SOURCE_ID),
+             id_quality, SOURCE_ID, college),
         )
         c.execute(
             "INSERT INTO draft_facts(player_key, player_name, draft_season, draft_team, draft_round, "
-            "draft_pick_overall, position, source_id, verification_status) VALUES (?,?,?,?,?,?,?,?,?)",
-            (key, name, season, team, round_, pick_overall, position, SOURCE_ID, "SOURCE_BACKED"),
+            "draft_pick_overall, position, source_id, verification_status, college) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (key, name, season, team, round_, pick_overall, position, SOURCE_ID, "SOURCE_BACKED", college),
         )
         existing_season_picks.add((season, pick_overall))
         if pfr_id:
@@ -167,6 +221,7 @@ def run_nfl_draft_refresh() -> dict:
 
     c = engine_bootstrap.connect()
     safety.ensure_refresh_tables(c)
+    _ensure_schema(c)
     _ensure_staging_table(c)
     baseline_count = c.execute("SELECT COUNT(*) FROM draft_facts").fetchone()[0]
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
@@ -194,6 +249,7 @@ def run_nfl_draft_refresh() -> dict:
         try:
             read, staged, rejected = _stage(c, bid, path)
             inserted, skipped = _publish(c, bid)
+            college_backfilled = _backfill_college(c, bid)
             qa_count = c.execute("SELECT COUNT(*) FROM qa_issues WHERE status='OPEN'").fetchone()[0]
             c.execute(
                 "UPDATE import_batches SET finished_at=?, status='PUBLISHED', rows_read=?, rows_staged=?, "
@@ -225,16 +281,17 @@ def run_nfl_draft_refresh() -> dict:
             c.close()
             return {"status": "FAILED_RESTORED", "run_id": run_id, "reason": str(e), "backup": backup}
 
-        no_op = inserted == 0 and rejected == 0
+        no_op = inserted == 0 and rejected == 0 and college_backfilled == 0
         safety.finish_run(
             c, run_id, status="SUCCESS", backup_id=backup["backup_id"],
             rows_downloaded=read, rows_imported=inserted, rows_rejected=rejected, no_op=no_op,
-            detail={"batch_id": bid, "rows_already_present_skipped": skipped},
+            detail={"batch_id": bid, "rows_already_present_skipped": skipped, "college_backfilled": college_backfilled},
         )
         c.close()
         return {
             "status": "SUCCESS", "run_id": run_id, "no_op": no_op,
             "rows_downloaded": read, "rows_imported": inserted, "rows_rejected": rejected,
+            "college_backfilled": college_backfilled,
             "rows_already_present_skipped": skipped, "backup_id": backup["backup_id"],
         }
     except urllib.error.HTTPError as e:

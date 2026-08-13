@@ -72,3 +72,8 @@
 # 30-minutes-apart stagger.
 [functions."trigger-refresh-nfl-player-game-stats"]
   schedule = "10 12 * * *"
+
+# Direct user request: real per-game team boxscores. Eighth dataset, same
+# 30-minutes-apart stagger.
+[functions."trigger-refresh-nfl-team-game-stats"]
+  schedule = "40 12 * * *"
