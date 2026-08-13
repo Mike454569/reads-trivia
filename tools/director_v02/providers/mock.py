@@ -67,6 +67,7 @@ _HEISMAN_WORDS = {"heisman"}
 _CFB_EXPLICIT_WORDS = {"cfb"}
 _GAME_WORDS = {"game", "games"}
 _RESULT_WORDS = {"result", "results", "won", "win", "score", "scored"}
+_BOXSCORE_WORDS = {"boxscore", "yards", "yardage"}  # "box" + "score" (two tokens) checked separately below
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
 _MIXED_SIGNAL_WORDS = {"both"}
 _HARD_WORDS = {"hard", "difficult", "tough", "challenging"}
@@ -143,6 +144,7 @@ class MockDeterministicTranslator(Translator):
         has_cfb_signal = bool(words & _CFB_EXPLICIT_WORDS) or has_college or "college football" in text.lower()
         has_game_word = bool(words & _GAME_WORDS)
         has_result_word = bool(words & _RESULT_WORDS)
+        has_boxscore_word = bool(words & _BOXSCORE_WORDS) or ("box" in words and "score" in words)
 
         # Compound request explicitly asking for more than one thing, where
         # at least one part has no supported data ("both a QB's team and his
@@ -349,6 +351,28 @@ class MockDeterministicTranslator(Translator):
         # the CFB capability; everything else (including a bare request
         # with no league signal at all) defaults to NFL, consistent with
         # every other pattern in this file.
+        # NFL Game Box Scores, added during the Historical Engine Enrichment
+        # operation (built on tools/data_refresh/nfl_team_game_stats_refresh.py's
+        # real, automatically-refreshed team_game_stats table). Checked
+        # BEFORE the general game+result pattern below: a box-score request
+        # ("yards", "box score") also contains "game" and often "score", so
+        # it would otherwise be swept into the plain WON_GAME capability --
+        # this is a genuinely different question (which team gained more
+        # yards, not who won). NFL-only -- team_game_stats has no CFB
+        # equivalent yet.
+        if has_game_word and has_boxscore_word:
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_GAME_BOXSCORE",
+                "relationship_predicate": "HAD_MORE_YARDS",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            note = "Matched 'game' + box score/yards keywords -> HAD_MORE_YARDS (NFL) guess capability."
+            return _result(request_text, "TRANSLATED", spec, note)
+
         if has_game_word and has_result_word:
             if has_cfb_signal and not has_nfl:
                 domain, predicate = "CFB_GAME_RESULT", "WON_GAME"

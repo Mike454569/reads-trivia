@@ -222,6 +222,8 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # App-Wide Engine Migration operation -- real candidate surveys in
     # gateway/services/public_game.py's own entries for both.
     "nfl_game_result_guess", "cfb_game_result_guess",
+    # Historical Engine Enrichment operation -- built on team_game_stats.
+    "nfl_game_boxscore_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

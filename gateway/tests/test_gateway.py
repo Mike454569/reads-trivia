@@ -31,17 +31,19 @@ def test_health_unauthenticated(client):
     assert body["api_version"] == "v1"
 
 
-def test_capabilities_unauthenticated_and_exactly_eight(client):
+def test_capabilities_unauthenticated_and_exactly_nine(client):
     # v1.8, Part F: a 4th capability (the starting-lineup proof game) was
     # added to the registry that phase. The CFB data enrichment operation
     # added a 5th (CFB_HEISMAN). The App-Wide Engine Migration operation
     # added a 6th and 7th (NFL_GAME_RESULT/CFB_GAME_RESULT). The position+
-    # college proof-game fix added an 8th (NFL_OFFENSE_LINEUP_COLLEGE) --
-    # this baseline count/set is a real, deliberate change, not a regression.
+    # college proof-game fix added an 8th (NFL_OFFENSE_LINEUP_COLLEGE). The
+    # Historical Engine Enrichment operation added a 9th (NFL_GAME_BOXSCORE,
+    # built on the newly-populated team_game_stats table) -- this baseline
+    # count/set is a real, deliberate change, not a regression.
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 8
+    assert len(caps) == 9
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
         ("guess", "NFL_DRAFT", "DRAFTED_BY"),
@@ -52,6 +54,7 @@ def test_capabilities_unauthenticated_and_exactly_eight(client):
         ("guess", "NFL_GAME_RESULT", "WON_GAME"),
         ("guess", "CFB_GAME_RESULT", "WON_GAME"),
         ("guess", "NFL_OFFENSE_LINEUP_COLLEGE", "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"),
+        ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_YARDS"),
     }
     # Part C: the frontend must never see Engine internals -- confirm no
     # response field leaks a Python module/adapter/table name.

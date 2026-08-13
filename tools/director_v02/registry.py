@@ -27,6 +27,7 @@ from tools.quiz_export.adapters import championship as championship_adapter  # n
 from tools.quiz_export.adapters import draft as draft_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_game_boxscore as nfl_game_boxscore_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
@@ -368,6 +369,43 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["app-wide-engine-migration-cfb-game-result-proof"],
         "pipeline_id_start": 670000,
+    },
+    # Historical Engine Enrichment operation: the first capability built on
+    # team_game_stats (real per-game team box scores, cross-verified against
+    # a real known final score before being trusted -- see
+    # tools/data_refresh/nfl_team_game_stats_refresh.py). Genuinely distinct
+    # from NFL_GAME_RESULT's WON_GAME: this asks which team gained more
+    # total yards, not who won -- these frequently differ (a team can
+    # out-gain its opponent and still lose), so it's real new content, not
+    # a reskin. The per-game-player-stats gap NFL_GAME_RESULT's own entry
+    # above disclosed is now closed for NFL (player_game_stats/
+    # team_game_stats both real and populated) -- a future capability could
+    # build stat-line/leader questions directly; this one is scoped to the
+    # team-level comparison only, proven first.
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_YARDS"): {
+        "adapter": nfl_game_boxscore_adapter,
+        "category": nfl_game_boxscore_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Compares real total offensive yards (passing + rushing) between the two teams in a real "
+            "completed game -- games where both teams gained exactly equal total yards are excluded "
+            "(no correct answer for a tie).",
+            "16 real game_ids in team_game_stats don't have exactly two teams' rows recorded (a source "
+            "data gap, not a bug) -- excluded rather than guessed at.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_game",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["historical-engine-enrichment-boxscore-proof"],
+        "pipeline_id_start": 680000,
     },
 }
 

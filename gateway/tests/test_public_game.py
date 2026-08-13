@@ -45,6 +45,11 @@ def _get_cfb_game_result_game(client, **params):
     return client.get("/v1/public/game", params=params)
 
 
+def _get_boxscore_game(client, **params):
+    params.setdefault("mode", "nfl_game_boxscore_guess")
+    return client.get("/v1/public/game", params=params)
+
+
 # --- public auth (no admin token needed) -------------------------------------
 
 def test_public_modes_no_auth_needed(client):
@@ -62,7 +67,7 @@ def test_public_modes_no_auth_needed(client):
     # app.py's public_modes() docstring.
     assert set(modes_by_id) == {
         "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
-        "nfl_game_result_guess", "cfb_game_result_guess",
+        "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -218,7 +223,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     assert "six_degrees" not in config.PUBLIC_MODE_ALLOWLIST
     assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
-        "nfl_game_result_guess", "cfb_game_result_guess",
+        "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
     })
 
 
@@ -337,9 +342,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     assert r.status_code == 200
     # v1.8 added a 4th registered capability, CFB data enrichment a 5th, the
     # App-Wide Engine Migration operation a 6th and 7th, the position+college
-    # proof-game fix an 8th -- see
-    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_eight.
-    assert len(r.json()["capabilities"]) == 8
+    # proof-game fix an 8th, the Historical Engine Enrichment operation a
+    # 9th (NFL_GAME_BOXSCORE) -- see
+    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_nine.
+    assert len(r.json()["capabilities"]) == 9
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -520,7 +526,7 @@ def test_championship_question_is_a_real_postseason_fact(client):
 
 # --- v1.3: public mode registry ------------------------------------------------
 
-def test_all_six_certified_guess_modes_registered(client):
+def test_all_seven_certified_guess_modes_registered(client):
     # Scoped to public_game's own Director-pipeline guess-mechanic registry
     # specifically (not the combined /v1/public/modes response, which as of
     # v1.7 also includes coach_connections -- a structurally different
@@ -529,12 +535,13 @@ def test_all_six_certified_guess_modes_registered(client):
     # v1.8, Part F/O added the third: lineup_guess. The CFB data enrichment
     # operation added the fourth: cfb_heisman_guess (the first CFB mode).
     # The App-Wide Engine Migration operation added the fifth and sixth:
-    # nfl_game_result_guess / cfb_game_result_guess.
+    # nfl_game_result_guess / cfb_game_result_guess. The Historical Engine
+    # Enrichment operation added the seventh: nfl_game_boxscore_guess.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
-        "nfl_game_result_guess", "cfb_game_result_guess",
+        "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
     }
 
 
@@ -921,6 +928,68 @@ def test_cfb_game_result_easy_difficulty_is_certified_and_works(client):
 def test_nfl_game_result_question_is_a_real_verifiable_fact(client):
     game = _get_nfl_game_result_game(client, seed="test-nfl-game-result-real-fact").json()
     assert game["payload"]["prompt"].startswith("Which team won when the ")
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    assert real_answer in game["payload"]["options"]
+
+
+# --- nfl_game_boxscore_guess (Historical Engine Enrichment operation) --
+# built on the newly-populated team_game_stats table, cross-verified
+# against a real known final score before being trusted (2024 Week 1
+# KC-BAL: both teams' box-score lines sum, via TDs*6+FG*3+PAT, to the
+# real historical result on both sides). Genuinely distinct from
+# nfl_game_result_guess -- asks which team gained more yards, not who
+# won. -----------------------------------------------------------------
+
+def test_boxscore_no_auth_needed(client):
+    r = _get_boxscore_game(client)
+    assert r.status_code == 200
+
+
+def test_boxscore_payload_never_contains_answer(client):
+    r = _get_boxscore_game(client)
+    raw = r.text
+    for forbidden in ("correctIndex", "answer\":", "source_ids", "provenance", "qa_checks_performed", "funnel"):
+        assert forbidden not in raw, f"{forbidden!r} leaked in a fresh nfl_game_boxscore_guess response"
+    body = r.json()
+    assert body["mode"] == "nfl_game_boxscore_guess"
+    assert body["competition"] == "NFL"
+    assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
+    assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
+    assert len(body["payload"]["options"]) == 4
+
+
+def test_boxscore_correct_answer_accepted(client):
+    game = _get_boxscore_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": real_answer})
+    body = r.json()
+    assert body["correct"] is True
+    assert body["canonical_answer"] == real_answer
+
+
+def test_boxscore_incorrect_answer_rejected(client):
+    game = _get_boxscore_game(client).json()
+    stored = packages.load_package(game["game_id"])
+    real_answer = stored["questions"][0]["answer"]
+    wrong = next(o for o in game["payload"]["options"] if o != real_answer)
+    r = client.post("/v1/public/game/answer", json={"game_id": game["game_id"], "answer": wrong})
+    body = r.json()
+    assert body["correct"] is False
+    assert body["canonical_answer"] == real_answer
+
+
+def test_boxscore_easy_difficulty_is_certified_and_works(client):
+    # Real survey (Historical Engine Enrichment operation): 2,187 of 5,738
+    # real accepted candidates graded Easy -- must NOT be rejected.
+    r = _get_boxscore_game(client, difficulty="easy")
+    assert r.status_code == 200
+
+
+def test_boxscore_question_is_a_real_verifiable_fact(client):
+    game = _get_boxscore_game(client, seed="test-boxscore-real-fact").json()
+    assert "which team gained more total yards" in game["payload"]["prompt"]
     stored = packages.load_package(game["game_id"])
     real_answer = stored["questions"][0]["answer"]
     assert real_answer in game["payload"]["options"]

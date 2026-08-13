@@ -224,6 +224,31 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Historical Engine Enrichment operation: built on the newly-populated
+    # team_game_stats table (real per-game team box scores, cross-verified
+    # against a known real final score before being trusted -- see
+    # tools/data_refresh/nfl_team_game_stats_refresh.py). Genuinely distinct
+    # from nfl_game_result_guess -- asks which team gained more total
+    # yards, not who won (these frequently differ). Real candidate survey:
+    # 5,738 of 7,233 candidates (1999-2025) accepted (1,495 rejected as
+    # TEAM_UNRESOLVED, same disclosed pattern as nfl_game_result_guess),
+    # all three difficulty bands genuinely well-represented (Easy 2,187 /
+    # Medium 1,144 / Hard 2,407).
+    "nfl_game_boxscore_guess": {
+        "competition": "NFL",
+        "title": "NFL Box Scores: Guess Who Gained More Yards",
+        "instructions": "You'll be shown a real NFL matchup. Pick the team that gained more total yards.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_GAME_BOXSCORE",
+            "relationship_predicate": "HAD_MORE_YARDS",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

@@ -218,9 +218,9 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_eight_registered_capabilities():
+def test_capability_summary_lists_all_nine_registered_capabilities():
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 8
+    assert len(summary) == 9
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
@@ -233,6 +233,16 @@ def test_capability_summary_lists_all_eight_registered_capabilities():
     game_results = [c for c in summary if c["relationship_predicate"] == "WON_GAME"]
     assert len(game_results) == 2
     assert {c["domain"] for c in game_results} == {"NFL_GAME_RESULT", "CFB_GAME_RESULT"}
+    boxscore = next(c for c in summary if c["relationship_predicate"] == "HAD_MORE_YARDS")
+    assert boxscore["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert boxscore["domain"] == "NFL_GAME_BOXSCORE"
+
+
+def test_supported_with_limitations_for_boxscore_request():
+    r = feasibility.assess("Make me a game about which NFL team had more total yards in the box score.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "HAD_MORE_YARDS"
+    assert r["capability"]["domain"] == "NFL_GAME_BOXSCORE"
 
 
 def test_supported_with_limitations_for_nfl_game_result_request():
