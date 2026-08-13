@@ -158,6 +158,8 @@ def run(request_text: str | None = None, *, spec: dict | None = None, provider: 
             capability_key=None, generation_status="NOT_ATTEMPTED", package_id=None,
             provider_latency_ms=provider_latency_ms, engine_generation_latency_ms=None,
             rejection_reason=gate["gate_reason"],
+            translator_id=translation.get("translator_id"), provider_usage=translation.get("usage"),
+            fallback_used=translation.get("fallback_used"),
         )
         return result
 
@@ -187,5 +189,7 @@ def run(request_text: str | None = None, *, spec: dict | None = None, provider: 
         package_id=package.get("package_id"),
         provider_latency_ms=provider_latency_ms, engine_generation_latency_ms=engine_generation_latency_ms,
         rejection_reason=None,
+        translator_id=translation.get("translator_id"), provider_usage=translation.get("usage"),
+        fallback_used=translation.get("fallback_used"),
     )
     return package

@@ -301,3 +301,23 @@ COACH_CONNECTIONS_MOVE_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_COACH_C
 COACH_CONNECTIONS_MOVE_RATE_LIMIT_WINDOW_SECONDS = 60.0
 COACH_CONNECTIONS_SEARCH_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_COACH_CONNECTIONS_SEARCH_RATE_LIMIT", "90"))
 COACH_CONNECTIONS_SEARCH_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+# --- Game Creator LLM integration (Production LLM Integration for Game
+# Creator milestone) ---------------------------------------------------------
+# Same "operator emergency switch, independent of whether the feature is
+# code-certified" pattern as PUBLIC_GAME_ENABLED/PUBLIC_SIX_DEGREES_ENABLED
+# above -- but for the real Anthropic provider specifically, not the whole
+# Creator (the Creator's request_text/generate routes keep working via the
+# deterministic mock translator either way -- see gateway/services/
+# creator.py). This is a SEPARATE control from whether ANTHROPIC_API_KEY is
+# configured at all: an operator can flip this off to force every Creator
+# request back to the mock-only path (e.g. to stop real API spend or if the
+# real provider is behaving badly) without touching the credential or
+# redeploying. Defaults to enabled -- consistent with every other rollout
+# flag in this file, this is a kill switch for an already-reviewed feature,
+# not a "ship it off" gate. Only ever consulted by gateway/services/
+# creator.py (Creator routes are the only caller of a real LLM provider in
+# this Gateway today -- see that module's own docstring: "Do NOT invoke the
+# LLM for ordinary player gameplay when deterministic Engine generation
+# already works").
+CREATOR_LLM_ENABLED = os.environ.get("READS_CREATOR_LLM_ENABLED", "true").strip().lower() not in ("false", "0", "no", "off")

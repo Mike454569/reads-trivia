@@ -8,7 +8,13 @@ served, never shipped.
 What is logged, matching Part E's list exactly: request ID, provider used,
 request-text hash, validated Director spec, capability selected, translation
 status, generation status, package ID (if generated), provider latency,
-Engine generation latency, rejection reason (if any).
+Engine generation latency, rejection reason (if any). Extended for the
+Production LLM Integration for Game Creator milestone: the real
+translator_id that served the request (distinct from the requested
+`provider` string -- see translator.py's `provider="auto"` fallback),
+raw provider token usage when the real Anthropic provider was used (never
+an estimated dollar figure), and whether a fallback to the deterministic
+mock translator occurred.
 
 What is NEVER logged, under any circumstance: API keys, authorization
 headers, or any other secret value. Nothing in this module ever reads an
@@ -62,13 +68,29 @@ def record(*, request_text: str, director_request_id: str, provider: str,
            capability_key: tuple | None, generation_status: str,
            package_id: str | None, provider_latency_ms: float,
            engine_generation_latency_ms: float | None,
-           rejection_reason: str | None) -> dict:
+           rejection_reason: str | None,
+           translator_id: str | None = None,
+           provider_usage: dict | None = None,
+           fallback_used: bool | None = None) -> dict:
     """Writes one audit entry and returns it (useful for tests/reports --
-    callers don't need to re-read the log file to see what was recorded)."""
+    callers don't need to re-read the log file to see what was recorded).
+
+    `translator_id`/`provider_usage`/`fallback_used` (Production LLM
+    Integration for Game Creator milestone): the honest record of which
+    translator ACTUALLY served this request and what it cost, distinct from
+    `provider` (the string the caller REQUESTED, e.g. "auto" -- which,
+    per translator.py's own fallback logic, does not by itself say whether
+    the real Anthropic provider or the mock fallback ultimately ran).
+    `provider_usage` is the raw `{"input_tokens":..., "output_tokens":...}`
+    the Anthropic API returned, when available -- never a fabricated dollar
+    estimate (see anthropic_provider.py's own docstring for why)."""
     entry = {
         "request_id": director_request_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "provider": provider,
+        "translator_id": translator_id,
+        "provider_usage": provider_usage,
+        "fallback_used": fallback_used,
         "request_text_hash": _hash_text(request_text),
         "request_text_raw": request_text if RAW_TEXT_LOGGING else None,
         "translation_status": translation_status,
