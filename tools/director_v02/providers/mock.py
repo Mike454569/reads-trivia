@@ -18,11 +18,15 @@ no code path here through which attacker-supplied text could become a
 values are always one of the literals already hardcoded below, full stop.
 
 Decision order (see `translate()`): mixed-unsupported check first (most
-specific), then the four registered capability patterns (Draft,
-Championship, Player From Clues, Starting Lineup), then a generic
-NEEDS_CLARIFICATION fallback for requests that clearly mention
+specific), then the registered capability patterns (Player From Clues,
+Draft, Super Bowl History, Season Awards, Championship, both Lineup
+variants, Heisman, Box Score, Game Result, Attended College), then a
+generic NEEDS_CLARIFICATION fallback for requests that clearly mention
 football/NFL content but not enough to resolve to any of the above, then
-NO_MATCH for everything else.
+NO_MATCH for everything else. Super Bowl History is checked BEFORE the
+older Championship pattern specifically because both can match a "Super
+Bowl" mention -- see the WON_CHAMPIONSHIP block's own comment for why order
+matters there.
 
 v1.8, Part F/B: the Starting Lineup pattern below deliberately also matches
 requests that ask for "colleges" WITHOUT an explicit names-hidden signal --
@@ -80,6 +84,8 @@ _POSITION_WORDS = {"position", "positions"}
 _COLLEGE_WORDS = {"college", "colleges"}
 _HIDDEN_NAMES_WORDS = {"hidden", "hide", "anonymous"}
 _HEISMAN_WORDS = {"heisman"}
+_WIN_WORDS = {"won", "win", "wins", "winner"}
+_AWARD_WORDS = {"award", "awards", "trophy", "mvp"}
 _CFB_EXPLICIT_WORDS = {"cfb"}
 _GAME_WORDS = {"game", "games"}
 _RESULT_WORDS = {"result", "results", "won", "win", "score", "scored"}
@@ -99,6 +105,8 @@ _COUNT_RE = re.compile(r"\b(\d{1,3})\b")
 _GUESS_COLLEGE_PHRASE_RE = re.compile(r"guess\s+(the\s+)?(college|school)\b")
 _GUESS_PLAYER_PHRASE_RE = re.compile(r"guess\s+(the\s+)?(nfl\s+)?player\b")
 _SCHOOL_WORDS = {"school", "schools"}
+_PLAYER_OF_THE_YEAR_RE = re.compile(r"player of the year")
+_ROOKIE_OF_THE_YEAR_RE = re.compile(r"rookie of the year")
 
 
 def _words(text: str) -> set[str]:
@@ -164,6 +172,10 @@ class MockDeterministicTranslator(Translator):
         has_guess_player_phrase = bool(_GUESS_PLAYER_PHRASE_RE.search(text.lower()))
         has_hidden_names = bool(words & _HIDDEN_NAMES_WORDS) or "no names" in text.lower() or "without names" in text.lower() or "names hidden" in text.lower()
         has_heisman = bool(words & _HEISMAN_WORDS)
+        has_win_word = bool(words & _WIN_WORDS)
+        has_award_word = bool(words & _AWARD_WORDS)
+        has_player_of_year_phrase = bool(_PLAYER_OF_THE_YEAR_RE.search(text.lower()))
+        has_rookie_of_year_phrase = bool(_ROOKIE_OF_THE_YEAR_RE.search(text.lower()))
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
         has_who_am_i = _has_who_am_i_phrase(text)
@@ -275,6 +287,54 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched player + drafted/picked + team/franchise keywords "
                 "-> DRAFTED_BY guess capability.",
+            )
+
+        # NFL Super Bowl History (WON_CHAMPIONSHIP), added after the NFL
+        # Wikipedia history import. Checked BEFORE the older team+postseason
+        # pattern below, and requires a real "who won" signal, not just any
+        # Super Bowl mention -- a request like "guess which team won the
+        # Super Bowl" also contains "team" and matches _has_super_bowl_phrase
+        # (a _POSTSEASON_WORDS trigger), so without this earlier, more
+        # specific check it would silently fall into TEAM_POSTSEASON_RESULT
+        # (a different real question: how one team's own season ended, not
+        # who won a specific Super Bowl game). Excludes an award-word
+        # co-occurrence ("who won Super Bowl MVP") so that phrasing falls
+        # through to the NFL_AWARDS pattern below instead.
+        if _has_super_bowl_phrase(text) and has_win_word and not has_award_word:
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_SUPER_BOWL",
+                "relationship_predicate": "WON_CHAMPIONSHIP",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'Super Bowl' + won/win keywords with no award-word co-occurrence -> "
+                "WON_CHAMPIONSHIP guess capability (which team won a specific Super Bowl game).",
+            )
+
+        # NFL Season Awards (WON_AWARD), added the same operation -- AP MVP/
+        # OPOY/DPOY/OROY/DROY plus Super Bowl MVP. "mvp"/"award"/"awards"/
+        # "trophy" alone, or the "player of the year"/"rookie of the year"
+        # phrases, are unambiguous enough in a football-trivia context (same
+        # reasoning cfb_heisman's single-keyword match already uses).
+        if has_award_word or has_player_of_year_phrase or has_rookie_of_year_phrase:
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_AWARDS",
+                "relationship_predicate": "WON_AWARD",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched award/MVP/trophy/'player of the year'/'rookie of the year' keywords -> "
+                "WON_AWARD guess capability (AP MVP/OPOY/DPOY/OROY/DROY + Super Bowl MVP).",
             )
 
         if has_team and has_postseason:

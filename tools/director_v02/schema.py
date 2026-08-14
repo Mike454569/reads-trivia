@@ -44,6 +44,8 @@ ALLOWED_DOMAINS = frozenset({
     "CFB_GAME_RESULT",  # App-Wide Engine Migration operation
     "NFL_GAME_BOXSCORE",  # Historical Engine Enrichment operation -- built on team_game_stats
     "NFL_OFFENSE_LINEUP_COLLEGE",  # position+college proof-game fix -- names-hidden variant, see registry.py
+    "NFL_SUPER_BOWL",  # NFL Wikipedia history import -- Super Bowl game results
+    "NFL_AWARDS",  # NFL Wikipedia history import -- AP MVP/OPOY/DPOY/OROY/DROY + Super Bowl MVP
 })
 
 ALLOWED_PREDICATES = frozenset({
@@ -59,6 +61,8 @@ ALLOWED_PREDICATES = frozenset({
                           # player" capability, built on draft_facts.college (see
                           # tools/quiz_export/adapters/draft_college.py). Same NFL_DRAFT domain as
                           # DRAFTED_BY (same underlying table), a new predicate, not a new domain.
+    "WON_CHAMPIONSHIP",  # NFL Wikipedia history import -- NFL_SUPER_BOWL
+    "WON_AWARD",  # NFL Wikipedia history import -- NFL_AWARDS
 })
 
 ALLOWED_DIFFICULTIES = frozenset({

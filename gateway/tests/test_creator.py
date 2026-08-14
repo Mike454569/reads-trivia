@@ -173,13 +173,13 @@ def test_creator_queue_invalid_review_status_filter_rejected(client, auth_header
 
 # --- capability reference (Part C) -------------------------------------------
 
-def test_creator_capabilities_lists_ten_with_real_statuses(client, auth_headers):
-    # 10, not 9, since the stale-college-feasibility fix registered a new
-    # capability (ATTENDED_COLLEGE/NFL_DRAFT).
+def test_creator_capabilities_lists_twelve_with_real_statuses(client, auth_headers):
+    # 12, not 10, since the NFL Wikipedia history import registered two new
+    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS).
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 10
+    assert len(caps) == 12
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")
@@ -190,3 +190,9 @@ def test_creator_capabilities_lists_ten_with_real_statuses(client, auth_headers)
     assert len(game_results) == 2
     assert {c["domain"] for c in game_results} == {"NFL_GAME_RESULT", "CFB_GAME_RESULT"}
     assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in game_results)
+    super_bowl = next(c for c in caps if c["relationship_predicate"] == "WON_CHAMPIONSHIP")
+    assert super_bowl["domain"] == "NFL_SUPER_BOWL"
+    assert super_bowl["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    awards = next(c for c in caps if c["relationship_predicate"] == "WON_AWARD")
+    assert awards["domain"] == "NFL_AWARDS"
+    assert awards["support_status"] == "SUPPORTED_WITH_LIMITATIONS"

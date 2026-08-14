@@ -30,6 +30,8 @@ from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore as nfl_game_boxscore_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_super_bowl as nfl_super_bowl_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_season_awards as nfl_season_awards_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -449,6 +451,85 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["historical-engine-enrichment-boxscore-proof"],
         "pipeline_id_start": 680000,
+    },
+    # Added after the NFL Wikipedia history import (Super Bowl championships +
+    # AP/SB awards, tools/data_refresh/nfl_wikipedia_history_import.py) --
+    # importing the data into nfl_championship_events/nfl_season_awards and
+    # the shared `relationships` table alone did NOT make it Creator-usable
+    # (confirmed directly: neither predicate existed anywhere in this
+    # registry, schema.py's allowlist, or mock.py's translator before this).
+    # This entry is what makes the Super Bowl GAME itself (who beat whom) a
+    # real playable capability -- genuinely distinct from the pre-existing
+    # NFL_CHAMPIONSHIP/TEAM_POSTSEASON_RESULT capability above, which asks
+    # how one team's season ended, not who won a specific Super Bowl. See
+    # tools/quiz_export/adapters/nfl_super_bowl.py's own module docstring
+    # for the real, disclosed 2002+ team-identity-resolution limit (24 of 60
+    # real Super Bowls are resolved/playable; the other 36 pre-2002 games
+    # are honestly rejected as TEAM_UNRESOLVED, never guessed at).
+    ("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP"): {
+        "adapter": nfl_super_bowl_adapter,
+        "category": nfl_super_bowl_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers real Super Bowl games (SB I-LX) imported from Wikipedia as a secondary structured "
+            "source, but team identity only resolves via team_aliases, which covers seasons 2002+ -- "
+            "24 of 60 real Super Bowls (2002-2025 seasons) are playable; the other 36 (1966-2001) are "
+            "excluded, never guessed at.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_championship_event",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 24,  # the real, total size of this resolved domain -- see the adapter's own audit
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["nfl-wikipedia-history-import"],
+        "pipeline_id_start": 700000,
+    },
+    # The companion capability from the same import: real NFL individual
+    # season awards (AP MVP/OPOY/DPOY/OROY/DROY, kept as distinct awarding
+    # predicates internally per the import's own explicit requirement never
+    # to combine award bodies -- this capability surfaces all of them plus
+    # Super Bowl MVP as one "guess the award winner" game, the award name
+    # itself stated in each question so nothing is conflated). The first
+    # NFL individual-award capability this registry has ever had -- CFB_
+    # HEISMAN above was previously the only award-guessing capability at
+    # all. See tools/quiz_export/adapters/nfl_season_awards.py's own module
+    # docstring for the real, disclosed identity-resolution limit (238 of
+    # 369 real award instances resolve to a canonical player, splitting
+    # cleanly at roughly the 2000 season -- a canonical_players coverage
+    # limit, not a match-quality problem).
+    ("guess", "NFL_AWARDS", "WON_AWARD"): {
+        "adapter": nfl_season_awards_adapter,
+        "category": nfl_season_awards_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers AP MVP/Offensive Player of the Year/Defensive Player of the Year/Offensive Rookie "
+            "of the Year/Defensive Rookie of the Year, plus Super Bowl MVP -- imported from Wikipedia "
+            "as a secondary structured source. 238 of 369 real award instances resolve to a canonical "
+            "player (splits cleanly at roughly the 2000 season, a canonical_players identity-coverage "
+            "limit, not a match-quality problem); unresolved award winners are excluded, never guessed at.",
+            "Distractor options are drawn only from the pool of other real award winners across these "
+            "six award types (never the full player database) -- see the adapter's own module docstring "
+            "for why a wider pool was deliberately rejected.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_award",
+        "object_type": "nfl_player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["nfl-wikipedia-history-import"],
+        "pipeline_id_start": 710000,
     },
 }
 

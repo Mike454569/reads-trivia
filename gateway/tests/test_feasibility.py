@@ -259,11 +259,11 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_ten_registered_capabilities():
-    # 10, not 9, since the stale-college-feasibility fix registered a new
-    # capability (ATTENDED_COLLEGE/NFL_DRAFT).
+def test_capability_summary_lists_all_twelve_registered_capabilities():
+    # 12, not 10, since the NFL Wikipedia history import registered two new
+    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 10
+    assert len(summary) == 12
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
