@@ -41,6 +41,16 @@ small, ~200KB/season): every run re-fetches every available season file
 and UPSERTs on the real primary key `(season, player_key, team_code)` --
 correct both for the current season's in-progress stats changing week to
 week, and for the common case where a past season's file is unchanged.
+
+Engine-gap-audit operation, extension: found this table's own source file
+(`stats_player_reg_{season}.csv`, already downloaded every run) has always
+carried `passing_interceptions` (INTs THROWN) and real punt/kickoff return
+columns -- neither was ever mapped. This mattered concretely: passer rating
+cannot be computed at all without real INTs-thrown, and this table's
+existing `interceptions` column is DEFENSIVE interceptions (a different
+real stat, confirmed via the Creator-gap-audit operation's own verification
+of nfl_season_stat_leader.py). No new external source, no new file, no new
+download -- purely five additive columns on data already being fetched.
 """
 from __future__ import annotations
 
@@ -89,6 +99,19 @@ def _ensure_schema(c) -> None:
     for new_col in ("pass_completions", "pass_attempts", "rush_attempts", "targets"):
         if new_col not in cols:
             c.execute(f"ALTER TABLE player_season_stats ADD COLUMN {new_col} INTEGER")
+    # Engine-gap-audit operation: found the source CSV's own `passing_interceptions`
+    # column (INTs THROWN) was never mapped -- this table's existing `interceptions`
+    # column is DEFENSIVE interceptions instead (confirmed directly against real 2019
+    # leader data during the Creator-gap-audit operation; see
+    # tools/quiz_export/adapters/nfl_season_stat_leader.py's own module docstring).
+    # No passer-rating computation is possible without real INTs-thrown, and this was
+    # the actual blocker -- not a missing formula. Also adds the source CSV's real
+    # punt/kickoff return columns (punt_returns/punt_return_yards/kickoff_returns/
+    # kickoff_return_yards), sitting unused in the same file for the same reason.
+    for new_col in ("pass_interceptions", "punt_returns", "punt_return_yards",
+                     "kickoff_returns", "kickoff_return_yards"):
+        if new_col not in cols:
+            c.execute(f"ALTER TABLE player_season_stats ADD COLUMN {new_col} INTEGER")
     c.commit()
 
 
@@ -108,7 +131,9 @@ def _ensure_staging_table(c) -> None:
         )
     """)
     existing = {r["name"] for r in c.execute("PRAGMA table_info(staging_nfl_player_stats)").fetchall()}
-    for new_col in ("pass_completions", "pass_attempts", "rush_attempts", "targets"):
+    for new_col in ("pass_completions", "pass_attempts", "rush_attempts", "targets",
+                     "pass_interceptions", "punt_returns", "punt_return_yards",
+                     "kickoff_returns", "kickoff_return_yards"):
         if new_col not in existing:
             c.execute(f"ALTER TABLE staging_nfl_player_stats ADD COLUMN {new_col} TEXT")
     c.commit()
@@ -134,7 +159,8 @@ def _stage_one_season(c, bid: str, season: int, path: Path) -> tuple[int, int, i
                 "pass_td, rush_yards, rush_td, receptions, rec_yards, rec_td, def_sacks, def_interceptions, "
                 "def_tackles_solo, def_tackles_with_assist, fg_made, fg_att, fantasy_points_ppr, "
                 "pass_completions, pass_attempts, rush_attempts, targets, "
-                "batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "pass_interceptions, punt_returns, punt_return_yards, kickoff_returns, kickoff_return_yards, "
+                "batch_id, source_row) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (str(season), player_id, import_data.col(row, "recent_team"), import_data.col(row, "games"),
                  import_data.col(row, "passing_yards"), import_data.col(row, "passing_tds"),
                  import_data.col(row, "rushing_yards"), import_data.col(row, "rushing_tds"),
@@ -145,6 +171,9 @@ def _stage_one_season(c, bid: str, season: int, path: Path) -> tuple[int, int, i
                  import_data.col(row, "fg_att"), import_data.col(row, "fantasy_points_ppr"),
                  import_data.col(row, "completions"), import_data.col(row, "attempts"),
                  import_data.col(row, "carries"), import_data.col(row, "targets"),
+                 import_data.col(row, "passing_interceptions"), import_data.col(row, "punt_returns"),
+                 import_data.col(row, "punt_return_yards"), import_data.col(row, "kickoff_returns"),
+                 import_data.col(row, "kickoff_return_yards"),
                  bid, i),
             )
             staged += 1
@@ -164,8 +193,9 @@ def _publish(c, bid: str) -> tuple[int, int]:
         "SELECT season, player_id, team_code, games, pass_yards, pass_td, rush_yards, rush_td, "
         "receptions, rec_yards, rec_td, def_sacks, def_interceptions, def_tackles_solo, "
         "def_tackles_with_assist, fg_made, fg_att, fantasy_points_ppr, "
-        "pass_completions, pass_attempts, rush_attempts, targets FROM staging_nfl_player_stats "
-        "WHERE batch_id=?", (bid,)
+        "pass_completions, pass_attempts, rush_attempts, targets, "
+        "pass_interceptions, punt_returns, punt_return_yards, kickoff_returns, kickoff_return_yards "
+        "FROM staging_nfl_player_stats WHERE batch_id=?", (bid,)
     ):
         gsis_id = row["player_id"]
         player_key = canon.get(gsis_id) or draft_fallback.get(gsis_id)
@@ -202,6 +232,11 @@ def _publish(c, bid: str) -> tuple[int, int]:
             "pass_attempts": import_data.parse_int(row["pass_attempts"]),
             "rush_attempts": import_data.parse_int(row["rush_attempts"]),
             "targets": import_data.parse_int(row["targets"]),
+            "pass_interceptions": import_data.parse_int(row["pass_interceptions"]),
+            "punt_returns": import_data.parse_int(row["punt_returns"]),
+            "punt_return_yards": import_data.parse_int(row["punt_return_yards"]),
+            "kickoff_returns": import_data.parse_int(row["kickoff_returns"]),
+            "kickoff_return_yards": import_data.parse_int(row["kickoff_return_yards"]),
             "verification_status": "SOURCE_BACKED",
             "source_id": SOURCE_ID,
         }
