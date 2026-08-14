@@ -1,0 +1,2994 @@
+{
+  "championships": [
+    {
+      "sb_number": "I",
+      "sb_title": "Super Bowl I",
+      "date": "1967-01-15",
+      "season": 1966,
+      "winner_name": "Green Bay Packers",
+      "loser_name": "Kansas City Chiefs",
+      "winner_score": 35,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Los Angeles Memorial Coliseum",
+      "city": "Los Angeles, California"
+    },
+    {
+      "sb_number": "II",
+      "sb_title": "Super Bowl II",
+      "date": "1968-01-14",
+      "season": 1967,
+      "winner_name": "Green Bay Packers",
+      "loser_name": "Oakland Raiders",
+      "winner_score": 33,
+      "loser_score": 14,
+      "overtime": false,
+      "venue": "Miami Orange Bowl",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "III",
+      "sb_title": "Super Bowl III",
+      "date": "1969-01-12",
+      "season": 1968,
+      "winner_name": "New York Jets",
+      "loser_name": "Baltimore Colts",
+      "winner_score": 16,
+      "loser_score": 7,
+      "overtime": false,
+      "venue": "Miami Orange Bowl",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "IV",
+      "sb_title": "Super Bowl IV",
+      "date": "1970-01-11",
+      "season": 1969,
+      "winner_name": "Kansas City Chiefs",
+      "loser_name": "Minnesota Vikings",
+      "winner_score": 23,
+      "loser_score": 7,
+      "overtime": false,
+      "venue": "Tulane Stadium",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "V",
+      "sb_title": "Super Bowl V",
+      "date": "1971-01-17",
+      "season": 1970,
+      "winner_name": "Baltimore Colts",
+      "loser_name": "Dallas Cowboys",
+      "winner_score": 16,
+      "loser_score": 13,
+      "overtime": false,
+      "venue": "Miami Orange Bowl",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "VI",
+      "sb_title": "Super Bowl VI",
+      "date": "1972-01-16",
+      "season": 1971,
+      "winner_name": "Dallas Cowboys",
+      "loser_name": "Miami Dolphins",
+      "winner_score": 24,
+      "loser_score": 3,
+      "overtime": false,
+      "venue": "Tulane Stadium",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "VII",
+      "sb_title": "Super Bowl VII",
+      "date": "1973-01-14",
+      "season": 1972,
+      "winner_name": "Miami Dolphins",
+      "loser_name": "Washington Redskins",
+      "winner_score": 14,
+      "loser_score": 7,
+      "overtime": false,
+      "venue": "Los Angeles Memorial Coliseum",
+      "city": "Los Angeles, California"
+    },
+    {
+      "sb_number": "VIII",
+      "sb_title": "Super Bowl VIII",
+      "date": "1974-01-13",
+      "season": 1973,
+      "winner_name": "Miami Dolphins",
+      "loser_name": "Minnesota Vikings",
+      "winner_score": 24,
+      "loser_score": 7,
+      "overtime": false,
+      "venue": "Rice Stadium",
+      "city": "Houston, Texas"
+    },
+    {
+      "sb_number": "IX",
+      "sb_title": "Super Bowl IX",
+      "date": "1975-01-12",
+      "season": 1974,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Minnesota Vikings",
+      "winner_score": 16,
+      "loser_score": 6,
+      "overtime": false,
+      "venue": "Tulane Stadium",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "X",
+      "sb_title": "Super Bowl X",
+      "date": "1976-01-18",
+      "season": 1975,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Dallas Cowboys",
+      "winner_score": 21,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Miami Orange Bowl",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "XI",
+      "sb_title": "Super Bowl XI",
+      "date": "1977-01-09",
+      "season": 1976,
+      "winner_name": "Oakland Raiders",
+      "loser_name": "Minnesota Vikings",
+      "winner_score": 32,
+      "loser_score": 14,
+      "overtime": false,
+      "venue": "Rose Bowl",
+      "city": "Pasadena, California"
+    },
+    {
+      "sb_number": "XII",
+      "sb_title": "Super Bowl XII",
+      "date": "1978-01-15",
+      "season": 1977,
+      "winner_name": "Dallas Cowboys",
+      "loser_name": "Denver Broncos",
+      "winner_score": 27,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XIII",
+      "sb_title": "Super Bowl XIII",
+      "date": "1979-01-21",
+      "season": 1978,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Dallas Cowboys",
+      "winner_score": 35,
+      "loser_score": 31,
+      "overtime": false,
+      "venue": "Miami Orange Bowl",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "XIV",
+      "sb_title": "Super Bowl XIV",
+      "date": "1980-01-20",
+      "season": 1979,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Los Angeles Rams",
+      "winner_score": 31,
+      "loser_score": 19,
+      "overtime": false,
+      "venue": "Rose Bowl",
+      "city": "Pasadena, California"
+    },
+    {
+      "sb_number": "XV",
+      "sb_title": "Super Bowl XV",
+      "date": "1981-01-25",
+      "season": 1980,
+      "winner_name": "Oakland Raiders",
+      "loser_name": "Philadelphia Eagles",
+      "winner_score": 27,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XVI",
+      "sb_title": "Super Bowl XVI",
+      "date": "1982-01-24",
+      "season": 1981,
+      "winner_name": "San Francisco 49ers",
+      "loser_name": "Cincinnati Bengals",
+      "winner_score": 26,
+      "loser_score": 21,
+      "overtime": false,
+      "venue": "Pontiac Silverdome",
+      "city": "Pontiac, Michigan"
+    },
+    {
+      "sb_number": "XVII",
+      "sb_title": "Super Bowl XVII",
+      "date": "1983-01-30",
+      "season": 1982,
+      "winner_name": "Washington Redskins",
+      "loser_name": "Miami Dolphins",
+      "winner_score": 27,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Rose Bowl",
+      "city": "Pasadena, California"
+    },
+    {
+      "sb_number": "XVIII",
+      "sb_title": "Super Bowl XVIII",
+      "date": "1984-01-22",
+      "season": 1983,
+      "winner_name": "Los Angeles Raiders",
+      "loser_name": "Washington Redskins",
+      "winner_score": 38,
+      "loser_score": 9,
+      "overtime": false,
+      "venue": "Tampa Stadium",
+      "city": "Tampa, Florida"
+    },
+    {
+      "sb_number": "XIX",
+      "sb_title": "Super Bowl XIX",
+      "date": "1985-01-20",
+      "season": 1984,
+      "winner_name": "San Francisco 49ers",
+      "loser_name": "Miami Dolphins",
+      "winner_score": 38,
+      "loser_score": 16,
+      "overtime": false,
+      "venue": "Stanford Stadium",
+      "city": "Stanford, California"
+    },
+    {
+      "sb_number": "XX",
+      "sb_title": "Super Bowl XX",
+      "date": "1986-01-26",
+      "season": 1985,
+      "winner_name": "Chicago Bears",
+      "loser_name": "New England Patriots",
+      "winner_score": 46,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XXI",
+      "sb_title": "Super Bowl XXI",
+      "date": "1987-01-25",
+      "season": 1986,
+      "winner_name": "New York Giants",
+      "loser_name": "Denver Broncos",
+      "winner_score": 39,
+      "loser_score": 20,
+      "overtime": false,
+      "venue": "Rose Bowl",
+      "city": "Pasadena, California"
+    },
+    {
+      "sb_number": "XXII",
+      "sb_title": "Super Bowl XXII",
+      "date": "1988-01-31",
+      "season": 1987,
+      "winner_name": "Washington Redskins",
+      "loser_name": "Denver Broncos",
+      "winner_score": 42,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "San Diego\u2013Jack Murphy Stadium",
+      "city": "San Diego, California"
+    },
+    {
+      "sb_number": "XXIII",
+      "sb_title": "Super Bowl XXIII",
+      "date": "1989-01-22",
+      "season": 1988,
+      "winner_name": "San Francisco 49ers",
+      "loser_name": "Cincinnati Bengals",
+      "winner_score": 20,
+      "loser_score": 16,
+      "overtime": false,
+      "venue": "Joe Robbie Stadium",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "XXIV",
+      "sb_title": "Super Bowl XXIV",
+      "date": "1990-01-28",
+      "season": 1989,
+      "winner_name": "San Francisco 49ers",
+      "loser_name": "Denver Broncos",
+      "winner_score": 55,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XXV",
+      "sb_title": "Super Bowl XXV",
+      "date": "1991-01-27",
+      "season": 1990,
+      "winner_name": "New York Giants",
+      "loser_name": "Buffalo Bills",
+      "winner_score": 20,
+      "loser_score": 19,
+      "overtime": false,
+      "venue": "Tampa Stadium",
+      "city": "Tampa, Florida"
+    },
+    {
+      "sb_number": "XXVI",
+      "sb_title": "Super Bowl XXVI",
+      "date": "1992-01-26",
+      "season": 1991,
+      "winner_name": "Washington Redskins",
+      "loser_name": "Buffalo Bills",
+      "winner_score": 37,
+      "loser_score": 24,
+      "overtime": false,
+      "venue": "Metrodome",
+      "city": "Minneapolis, Minnesota"
+    },
+    {
+      "sb_number": "XXVII",
+      "sb_title": "Super Bowl XXVII",
+      "date": "1993-01-31",
+      "season": 1992,
+      "winner_name": "Dallas Cowboys",
+      "loser_name": "Buffalo Bills",
+      "winner_score": 52,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Rose Bowl",
+      "city": "Pasadena, California"
+    },
+    {
+      "sb_number": "XXVIII",
+      "sb_title": "Super Bowl XXVIII",
+      "date": "1994-01-30",
+      "season": 1993,
+      "winner_name": "Dallas Cowboys",
+      "loser_name": "Buffalo Bills",
+      "winner_score": 30,
+      "loser_score": 13,
+      "overtime": false,
+      "venue": "Georgia Dome",
+      "city": "Atlanta, Georgia"
+    },
+    {
+      "sb_number": "XXIX",
+      "sb_title": "Super Bowl XXIX",
+      "date": "1995-01-29",
+      "season": 1994,
+      "winner_name": "San Francisco 49ers",
+      "loser_name": "San Diego Chargers",
+      "winner_score": 49,
+      "loser_score": 26,
+      "overtime": false,
+      "venue": "Joe Robbie Stadium",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "XXX",
+      "sb_title": "Super Bowl XXX",
+      "date": "1996-01-28",
+      "season": 1995,
+      "winner_name": "Dallas Cowboys",
+      "loser_name": "Pittsburgh Steelers",
+      "winner_score": 27,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Sun Devil Stadium",
+      "city": "Tempe, Arizona"
+    },
+    {
+      "sb_number": "XXXI",
+      "sb_title": "Super Bowl XXXI",
+      "date": "1997-01-26",
+      "season": 1996,
+      "winner_name": "Green Bay Packers",
+      "loser_name": "New England Patriots",
+      "winner_score": 35,
+      "loser_score": 21,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XXXII",
+      "sb_title": "Super Bowl XXXII",
+      "date": "1998-01-25",
+      "season": 1997,
+      "winner_name": "Denver Broncos",
+      "loser_name": "Green Bay Packers",
+      "winner_score": 31,
+      "loser_score": 24,
+      "overtime": false,
+      "venue": "Qualcomm Stadium",
+      "city": "San Diego, California"
+    },
+    {
+      "sb_number": "XXXIII",
+      "sb_title": "Super Bowl XXXIII",
+      "date": "1999-01-31",
+      "season": 1998,
+      "winner_name": "Denver Broncos",
+      "loser_name": "Atlanta Falcons",
+      "winner_score": 34,
+      "loser_score": 19,
+      "overtime": false,
+      "venue": "Pro Player Stadium",
+      "city": "Miami, Florida"
+    },
+    {
+      "sb_number": "XXXIV",
+      "sb_title": "Super Bowl XXXIV",
+      "date": "2000-01-30",
+      "season": 1999,
+      "winner_name": "St. Louis Rams",
+      "loser_name": "Tennessee Titans",
+      "winner_score": 23,
+      "loser_score": 16,
+      "overtime": false,
+      "venue": "Georgia Dome",
+      "city": "Atlanta, Georgia"
+    },
+    {
+      "sb_number": "XXXV",
+      "sb_title": "Super Bowl XXXV",
+      "date": "2001-01-28",
+      "season": 2000,
+      "winner_name": "Baltimore Ravens",
+      "loser_name": "New York Giants",
+      "winner_score": 34,
+      "loser_score": 7,
+      "overtime": false,
+      "venue": "Raymond James Stadium",
+      "city": "Tampa, Florida"
+    },
+    {
+      "sb_number": "XXXVI",
+      "sb_title": "Super Bowl XXXVI",
+      "date": "2002-02-03",
+      "season": 2001,
+      "winner_name": "New England Patriots",
+      "loser_name": "St. Louis Rams",
+      "winner_score": 20,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Louisiana Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XXXVII",
+      "sb_title": "Super Bowl XXXVII",
+      "date": "2003-01-26",
+      "season": 2002,
+      "winner_name": "Tampa Bay Buccaneers",
+      "loser_name": "Oakland Raiders",
+      "winner_score": 48,
+      "loser_score": 21,
+      "overtime": false,
+      "venue": "Qualcomm Stadium",
+      "city": "San Diego, California"
+    },
+    {
+      "sb_number": "XXXVIII",
+      "sb_title": "Super Bowl XXXVIII",
+      "date": "2004-02-01",
+      "season": 2003,
+      "winner_name": "New England Patriots",
+      "loser_name": "Carolina Panthers",
+      "winner_score": 32,
+      "loser_score": 29,
+      "overtime": false,
+      "venue": "Reliant Stadium",
+      "city": "Houston, Texas"
+    },
+    {
+      "sb_number": "XXXIX",
+      "sb_title": "Super Bowl XXXIX",
+      "date": "2005-02-06",
+      "season": 2004,
+      "winner_name": "New England Patriots",
+      "loser_name": "Philadelphia Eagles",
+      "winner_score": 24,
+      "loser_score": 21,
+      "overtime": false,
+      "venue": "Alltel Stadium",
+      "city": "Jacksonville, Florida"
+    },
+    {
+      "sb_number": "XL",
+      "sb_title": "Super Bowl XL",
+      "date": "2006-02-05",
+      "season": 2005,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Seattle Seahawks",
+      "winner_score": 21,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Ford Field",
+      "city": "Detroit, Michigan"
+    },
+    {
+      "sb_number": "XLI",
+      "sb_title": "Super Bowl XLI",
+      "date": "2007-02-04",
+      "season": 2006,
+      "winner_name": "Indianapolis Colts",
+      "loser_name": "Chicago Bears",
+      "winner_score": 29,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Dolphin Stadium",
+      "city": "Miami Gardens, Florida"
+    },
+    {
+      "sb_number": "XLII",
+      "sb_title": "Super Bowl XLII",
+      "date": "2008-02-03",
+      "season": 2007,
+      "winner_name": "New York Giants",
+      "loser_name": "New England Patriots",
+      "winner_score": 17,
+      "loser_score": 14,
+      "overtime": false,
+      "venue": "University of Phoenix Stadium",
+      "city": "Glendale, Arizona"
+    },
+    {
+      "sb_number": "XLIII",
+      "sb_title": "Super Bowl XLIII",
+      "date": "2009-02-01",
+      "season": 2008,
+      "winner_name": "Pittsburgh Steelers",
+      "loser_name": "Arizona Cardinals",
+      "winner_score": 27,
+      "loser_score": 23,
+      "overtime": false,
+      "venue": "Raymond James Stadium",
+      "city": "Tampa, Florida"
+    },
+    {
+      "sb_number": "XLIV",
+      "sb_title": "Super Bowl XLIV",
+      "date": "2010-02-07",
+      "season": 2009,
+      "winner_name": "New Orleans Saints",
+      "loser_name": "Indianapolis Colts",
+      "winner_score": 31,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Sun Life Stadium",
+      "city": "Miami Gardens, Florida"
+    },
+    {
+      "sb_number": "XLV",
+      "sb_title": "Super Bowl XLV",
+      "date": "2011-02-06",
+      "season": 2010,
+      "winner_name": "Green Bay Packers",
+      "loser_name": "Pittsburgh Steelers",
+      "winner_score": 31,
+      "loser_score": 25,
+      "overtime": false,
+      "venue": "Cowboys Stadium",
+      "city": "Arlington, Texas"
+    },
+    {
+      "sb_number": "XLVI",
+      "sb_title": "Super Bowl XLVI",
+      "date": "2012-02-05",
+      "season": 2011,
+      "winner_name": "New York Giants",
+      "loser_name": "New England Patriots",
+      "winner_score": 21,
+      "loser_score": 17,
+      "overtime": false,
+      "venue": "Lucas Oil Stadium",
+      "city": "Indianapolis, Indiana"
+    },
+    {
+      "sb_number": "XLVII",
+      "sb_title": "Super Bowl XLVII",
+      "date": "2013-02-03",
+      "season": 2012,
+      "winner_name": "Baltimore Ravens",
+      "loser_name": "San Francisco 49ers",
+      "winner_score": 34,
+      "loser_score": 31,
+      "overtime": false,
+      "venue": "Mercedes-Benz Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "XLVIII",
+      "sb_title": "Super Bowl XLVIII",
+      "date": "2014-02-02",
+      "season": 2013,
+      "winner_name": "Seattle Seahawks",
+      "loser_name": "Denver Broncos",
+      "winner_score": 43,
+      "loser_score": 8,
+      "overtime": false,
+      "venue": "MetLife Stadium",
+      "city": "East Rutherford, New Jersey"
+    },
+    {
+      "sb_number": "XLIX",
+      "sb_title": "Super Bowl XLIX",
+      "date": "2015-02-01",
+      "season": 2014,
+      "winner_name": "New England Patriots",
+      "loser_name": "Seattle Seahawks",
+      "winner_score": 28,
+      "loser_score": 24,
+      "overtime": false,
+      "venue": "University of Phoenix Stadium",
+      "city": "Glendale, Arizona"
+    },
+    {
+      "sb_number": "50",
+      "sb_title": "Super Bowl 50",
+      "date": "2016-02-07",
+      "season": 2015,
+      "winner_name": "Denver Broncos",
+      "loser_name": "Carolina Panthers",
+      "winner_score": 24,
+      "loser_score": 10,
+      "overtime": false,
+      "venue": "Levi's Stadium",
+      "city": "Santa Clara, California"
+    },
+    {
+      "sb_number": "LI",
+      "sb_title": "Super Bowl LI",
+      "date": "2017-02-05",
+      "season": 2016,
+      "winner_name": "New England Patriots",
+      "loser_name": "Atlanta Falcons",
+      "winner_score": 34,
+      "loser_score": 28,
+      "overtime": true,
+      "venue": "NRG Stadium",
+      "city": "Houston, Texas"
+    },
+    {
+      "sb_number": "LII",
+      "sb_title": "Super Bowl LII",
+      "date": "2018-02-04",
+      "season": 2017,
+      "winner_name": "Philadelphia Eagles",
+      "loser_name": "New England Patriots",
+      "winner_score": 41,
+      "loser_score": 33,
+      "overtime": false,
+      "venue": "U.S. Bank Stadium",
+      "city": "Minneapolis, Minnesota"
+    },
+    {
+      "sb_number": "LIII",
+      "sb_title": "Super Bowl LIII",
+      "date": "2019-02-03",
+      "season": 2018,
+      "winner_name": "New England Patriots",
+      "loser_name": "Los Angeles Rams",
+      "winner_score": 13,
+      "loser_score": 3,
+      "overtime": false,
+      "venue": "Mercedes-Benz Stadium",
+      "city": "Atlanta, Georgia"
+    },
+    {
+      "sb_number": "LIV",
+      "sb_title": "Super Bowl LIV",
+      "date": "2020-02-02",
+      "season": 2019,
+      "winner_name": "Kansas City Chiefs",
+      "loser_name": "San Francisco 49ers",
+      "winner_score": 31,
+      "loser_score": 20,
+      "overtime": false,
+      "venue": "Hard Rock Stadium",
+      "city": "Miami Gardens, Florida"
+    },
+    {
+      "sb_number": "LV",
+      "sb_title": "Super Bowl LV",
+      "date": "2021-02-07",
+      "season": 2020,
+      "winner_name": "Tampa Bay Buccaneers",
+      "loser_name": "Kansas City Chiefs",
+      "winner_score": 31,
+      "loser_score": 9,
+      "overtime": false,
+      "venue": "Raymond James Stadium",
+      "city": "Tampa, Florida"
+    },
+    {
+      "sb_number": "LVI",
+      "sb_title": "Super Bowl LVI",
+      "date": "2022-02-13",
+      "season": 2021,
+      "winner_name": "Los Angeles Rams",
+      "loser_name": "Cincinnati Bengals",
+      "winner_score": 23,
+      "loser_score": 20,
+      "overtime": false,
+      "venue": "SoFi Stadium",
+      "city": "Inglewood, California"
+    },
+    {
+      "sb_number": "LVII",
+      "sb_title": "Super Bowl LVII",
+      "date": "2023-02-12",
+      "season": 2022,
+      "winner_name": "Kansas City Chiefs",
+      "loser_name": "Philadelphia Eagles",
+      "winner_score": 38,
+      "loser_score": 35,
+      "overtime": false,
+      "venue": "State Farm Stadium",
+      "city": "Glendale, Arizona"
+    },
+    {
+      "sb_number": "LVIII",
+      "sb_title": "Super Bowl LVIII",
+      "date": "2024-02-11",
+      "season": 2023,
+      "winner_name": "Kansas City Chiefs",
+      "loser_name": "San Francisco 49ers",
+      "winner_score": 25,
+      "loser_score": 22,
+      "overtime": true,
+      "venue": "Allegiant Stadium",
+      "city": "Paradise, Nevada"
+    },
+    {
+      "sb_number": "LIX",
+      "sb_title": "Super Bowl LIX",
+      "date": "2025-02-09",
+      "season": 2024,
+      "winner_name": "Philadelphia Eagles",
+      "loser_name": "Kansas City Chiefs",
+      "winner_score": 40,
+      "loser_score": 22,
+      "overtime": false,
+      "venue": "Caesars Superdome",
+      "city": "New Orleans, Louisiana"
+    },
+    {
+      "sb_number": "LX",
+      "sb_title": "Super Bowl LX",
+      "date": "2026-02-08",
+      "season": 2025,
+      "winner_name": "Seattle Seahawks",
+      "loser_name": "New England Patriots",
+      "winner_score": 29,
+      "loser_score": 13,
+      "overtime": false,
+      "venue": "Levi's Stadium",
+      "city": "Santa Clara, California"
+    }
+  ],
+  "sb_mvp": [
+    {
+      "season": 1967,
+      "sb_number": "I",
+      "player_name": "Bart Starr",
+      "team": "Green Bay Packers",
+      "position": "Quarterback",
+      "college": "Alabama"
+    },
+    {
+      "season": 1968,
+      "sb_number": "II",
+      "player_name": "Bart Starr",
+      "team": "Green Bay Packers",
+      "position": "Quarterback",
+      "college": "Alabama"
+    },
+    {
+      "season": 1969,
+      "sb_number": "III",
+      "player_name": "Joe Namath",
+      "team": "New York Jets",
+      "position": "Quarterback",
+      "college": "Alabama"
+    },
+    {
+      "season": 1970,
+      "sb_number": "IV",
+      "player_name": "Len Dawson",
+      "team": "Kansas City Chiefs",
+      "position": "Quarterback",
+      "college": "Purdue"
+    },
+    {
+      "season": 1971,
+      "sb_number": "V",
+      "player_name": "Chuck Howley",
+      "team": "Dallas Cowboys \u00a7",
+      "position": "Linebacker",
+      "college": "West Virginia"
+    },
+    {
+      "season": 1972,
+      "sb_number": "VI",
+      "player_name": "Roger Staubach",
+      "team": "Dallas Cowboys",
+      "position": "Quarterback",
+      "college": "Navy"
+    },
+    {
+      "season": 1973,
+      "sb_number": "VII",
+      "player_name": "Jake Scott",
+      "team": "Miami Dolphins",
+      "position": "Safety",
+      "college": "Georgia"
+    },
+    {
+      "season": 1974,
+      "sb_number": "VIII",
+      "player_name": "Larry Csonka",
+      "team": "Miami Dolphins",
+      "position": "Running back",
+      "college": "Syracuse"
+    },
+    {
+      "season": 1975,
+      "sb_number": "IX",
+      "player_name": "Franco Harris",
+      "team": "Pittsburgh Steelers",
+      "position": "Running back",
+      "college": "Penn State"
+    },
+    {
+      "season": 1976,
+      "sb_number": "X",
+      "player_name": "Lynn Swann",
+      "team": "Pittsburgh Steelers",
+      "position": "Wide receiver",
+      "college": "USC"
+    },
+    {
+      "season": 1977,
+      "sb_number": "XI",
+      "player_name": "Fred Biletnikoff",
+      "team": "Oakland Raiders",
+      "position": "Wide receiver",
+      "college": "Florida State"
+    },
+    {
+      "season": 1978,
+      "sb_number": "XII",
+      "player_name": "Harvey Martin",
+      "team": "Dallas Cowboys (3, 4)",
+      "position": "Defensive end",
+      "college": "Texas A&M\u2013Commerce"
+    },
+    {
+      "season": 1978,
+      "sb_number": "XII",
+      "player_name": "Randy White",
+      "team": "Dallas Cowboys (3, 4)",
+      "position": "Defensive tackle",
+      "college": "Maryland"
+    },
+    {
+      "season": 1979,
+      "sb_number": "XIII",
+      "player_name": "Terry Bradshaw",
+      "team": "Pittsburgh Steelers",
+      "position": "Quarterback",
+      "college": "Louisiana Tech"
+    },
+    {
+      "season": 1980,
+      "sb_number": "XIV",
+      "player_name": "Terry Bradshaw",
+      "team": "Pittsburgh Steelers",
+      "position": "Quarterback",
+      "college": "Louisiana Tech"
+    },
+    {
+      "season": 1981,
+      "sb_number": "XV",
+      "player_name": "Jim Plunkett",
+      "team": "Oakland Raiders",
+      "position": "Quarterback",
+      "college": "Stanford"
+    },
+    {
+      "season": 1982,
+      "sb_number": "XVI",
+      "player_name": "Joe Montana",
+      "team": "San Francisco 49ers",
+      "position": "Quarterback",
+      "college": "Notre Dame"
+    },
+    {
+      "season": 1983,
+      "sb_number": "XVII",
+      "player_name": "John Riggins",
+      "team": "Washington Redskins",
+      "position": "Running back",
+      "college": "Kansas"
+    },
+    {
+      "season": 1984,
+      "sb_number": "XVIII",
+      "player_name": "Marcus Allen",
+      "team": "Los Angeles Raiders",
+      "position": "Running back",
+      "college": "USC"
+    },
+    {
+      "season": 1985,
+      "sb_number": "XIX",
+      "player_name": "Joe Montana",
+      "team": "San Francisco 49ers",
+      "position": "Quarterback",
+      "college": "Notre Dame"
+    },
+    {
+      "season": 1986,
+      "sb_number": "XX",
+      "player_name": "Richard Dent",
+      "team": "Chicago Bears",
+      "position": "Defensive end",
+      "college": "Tennessee State"
+    },
+    {
+      "season": 1987,
+      "sb_number": "XXI",
+      "player_name": "Phil Simms",
+      "team": "New York Giants",
+      "position": "Quarterback",
+      "college": "Morehead State"
+    },
+    {
+      "season": 1988,
+      "sb_number": "XXII",
+      "player_name": "Doug Williams",
+      "team": "Washington Redskins",
+      "position": "Quarterback",
+      "college": "Grambling State"
+    },
+    {
+      "season": 1989,
+      "sb_number": "XXIII",
+      "player_name": "Jerry Rice",
+      "team": "San Francisco 49ers",
+      "position": "Wide receiver",
+      "college": "Mississippi Valley State"
+    },
+    {
+      "season": 1990,
+      "sb_number": "XXIV",
+      "player_name": "Joe Montana",
+      "team": "San Francisco 49ers",
+      "position": "Quarterback",
+      "college": "Notre Dame"
+    },
+    {
+      "season": 1991,
+      "sb_number": "XXV",
+      "player_name": "Ottis Anderson",
+      "team": "New York Giants",
+      "position": "Running back",
+      "college": "Miami (FL)"
+    },
+    {
+      "season": 1992,
+      "sb_number": "XXVI",
+      "player_name": "Mark Rypien",
+      "team": "Washington Redskins",
+      "position": "Quarterback",
+      "college": "Washington State"
+    },
+    {
+      "season": 1993,
+      "sb_number": "XXVII",
+      "player_name": "Troy Aikman",
+      "team": "Dallas Cowboys",
+      "position": "Quarterback",
+      "college": "UCLA"
+    },
+    {
+      "season": 1994,
+      "sb_number": "XXVIII",
+      "player_name": "Emmitt Smith",
+      "team": "Dallas Cowboys",
+      "position": "Running back",
+      "college": "Florida"
+    },
+    {
+      "season": 1995,
+      "sb_number": "XXIX",
+      "player_name": "Steve Young",
+      "team": "San Francisco 49ers",
+      "position": "Quarterback",
+      "college": "BYU"
+    },
+    {
+      "season": 1996,
+      "sb_number": "XXX",
+      "player_name": "Larry Brown",
+      "team": "Dallas Cowboys",
+      "position": "Cornerback",
+      "college": "TCU"
+    },
+    {
+      "season": 1997,
+      "sb_number": "XXXI",
+      "player_name": "Desmond Howard",
+      "team": "Green Bay Packers",
+      "position": "Return specialist",
+      "college": "Michigan"
+    },
+    {
+      "season": 1998,
+      "sb_number": "XXXII",
+      "player_name": "Terrell Davis",
+      "team": "Denver Broncos",
+      "position": "Running back",
+      "college": "Georgia"
+    },
+    {
+      "season": 1999,
+      "sb_number": "XXXIII",
+      "player_name": "John Elway",
+      "team": "Denver Broncos",
+      "position": "Quarterback",
+      "college": "Stanford"
+    },
+    {
+      "season": 2000,
+      "sb_number": "XXXIV",
+      "player_name": "Kurt Warner",
+      "team": "St. Louis Rams",
+      "position": "Quarterback",
+      "college": "Northern Iowa"
+    },
+    {
+      "season": 2001,
+      "sb_number": "XXXV",
+      "player_name": "Ray Lewis",
+      "team": "Baltimore Ravens",
+      "position": "Linebacker",
+      "college": "Miami (FL)"
+    },
+    {
+      "season": 2002,
+      "sb_number": "XXXVI",
+      "player_name": "Tom Brady",
+      "team": "New England Patriots",
+      "position": "Quarterback",
+      "college": "Michigan"
+    },
+    {
+      "season": 2003,
+      "sb_number": "XXXVII",
+      "player_name": "Dexter Jackson",
+      "team": "Tampa Bay Buccaneers",
+      "position": "Safety",
+      "college": "Florida State"
+    },
+    {
+      "season": 2004,
+      "sb_number": "XXXVIII",
+      "player_name": "Tom Brady",
+      "team": "New England Patriots",
+      "position": "Quarterback",
+      "college": "Michigan"
+    },
+    {
+      "season": 2005,
+      "sb_number": "XXXIX",
+      "player_name": "Deion Branch",
+      "team": "New England Patriots",
+      "position": "Wide receiver",
+      "college": "Louisville"
+    },
+    {
+      "season": 2006,
+      "sb_number": "XL",
+      "player_name": "Hines Ward",
+      "team": "Pittsburgh Steelers",
+      "position": "Wide receiver",
+      "college": "Georgia"
+    },
+    {
+      "season": 2007,
+      "sb_number": "XLI",
+      "player_name": "Peyton Manning",
+      "team": "Indianapolis Colts",
+      "position": "Quarterback",
+      "college": "Tennessee"
+    },
+    {
+      "season": 2008,
+      "sb_number": "XLII",
+      "player_name": "Eli Manning",
+      "team": "New York Giants",
+      "position": "Quarterback",
+      "college": "Ole Miss"
+    },
+    {
+      "season": 2009,
+      "sb_number": "XLIII",
+      "player_name": "Santonio Holmes",
+      "team": "Pittsburgh Steelers",
+      "position": "Wide receiver",
+      "college": "Ohio State"
+    },
+    {
+      "season": 2010,
+      "sb_number": "XLIV",
+      "player_name": "Drew Brees",
+      "team": "New Orleans Saints",
+      "position": "Quarterback",
+      "college": "Purdue"
+    },
+    {
+      "season": 2011,
+      "sb_number": "XLV",
+      "player_name": "Aaron Rodgers",
+      "team": "Green Bay Packers",
+      "position": "Quarterback",
+      "college": "California"
+    },
+    {
+      "season": 2012,
+      "sb_number": "XLVI",
+      "player_name": "Eli Manning",
+      "team": "New York Giants",
+      "position": "Quarterback",
+      "college": "Ole Miss"
+    },
+    {
+      "season": 2013,
+      "sb_number": "XLVII",
+      "player_name": "Joe Flacco",
+      "team": "Baltimore Ravens",
+      "position": "Quarterback",
+      "college": "Delaware"
+    },
+    {
+      "season": 2014,
+      "sb_number": "XLVIII",
+      "player_name": "Malcolm Smith",
+      "team": "Seattle Seahawks",
+      "position": "Linebacker",
+      "college": "USC"
+    },
+    {
+      "season": 2015,
+      "sb_number": "XLIX",
+      "player_name": "Tom Brady",
+      "team": "New England Patriots",
+      "position": "Quarterback",
+      "college": "Michigan"
+    },
+    {
+      "season": 2016,
+      "sb_number": "50",
+      "player_name": "Von Miller",
+      "team": "Denver Broncos",
+      "position": "Linebacker",
+      "college": "Texas A&M"
+    },
+    {
+      "season": 2017,
+      "sb_number": "LI",
+      "player_name": "Tom Brady",
+      "team": "New England Patriots",
+      "position": "Quarterback",
+      "college": "Michigan"
+    },
+    {
+      "season": 2018,
+      "sb_number": "LII",
+      "player_name": "Nick Foles",
+      "team": "Philadelphia Eagles",
+      "position": "Quarterback",
+      "college": "Arizona"
+    },
+    {
+      "season": 2019,
+      "sb_number": "LIII",
+      "player_name": "Julian Edelman",
+      "team": "New England Patriots",
+      "position": "Wide receiver",
+      "college": "Kent State"
+    },
+    {
+      "season": 2020,
+      "sb_number": "LIV",
+      "player_name": "Patrick Mahomes",
+      "team": "Kansas City Chiefs",
+      "position": "Quarterback",
+      "college": "Texas Tech"
+    },
+    {
+      "season": 2021,
+      "sb_number": "LV",
+      "player_name": "Tom Brady",
+      "team": "Tampa Bay Buccaneers",
+      "position": "Quarterback",
+      "college": "Michigan"
+    },
+    {
+      "season": 2022,
+      "sb_number": "LVI",
+      "player_name": "Cooper Kupp",
+      "team": "Los Angeles Rams",
+      "position": "Wide receiver",
+      "college": "Eastern Washington"
+    },
+    {
+      "season": 2023,
+      "sb_number": "LVII",
+      "player_name": "Patrick Mahomes",
+      "team": "Kansas City Chiefs",
+      "position": "Quarterback",
+      "college": "Texas Tech"
+    },
+    {
+      "season": 2024,
+      "sb_number": "LVIII",
+      "player_name": "Patrick Mahomes",
+      "team": "Kansas City Chiefs",
+      "position": "Quarterback",
+      "college": "Texas Tech"
+    },
+    {
+      "season": 2025,
+      "sb_number": "LIX",
+      "player_name": "Jalen Hurts",
+      "team": "Philadelphia Eagles",
+      "position": "Quarterback",
+      "college": "Oklahoma"
+    },
+    {
+      "season": 2026,
+      "sb_number": "LX",
+      "player_name": "Kenneth Walker III",
+      "team": "Seattle Seahawks",
+      "position": "Running back",
+      "college": "Michigan State"
+    }
+  ],
+  "ap_mvp": [
+    {
+      "season": 1957,
+      "player_name": "Jim Brown"
+    },
+    {
+      "season": 1958,
+      "player_name": "Jim Brown"
+    },
+    {
+      "season": 1959,
+      "player_name": "Johnny Unitas"
+    },
+    {
+      "season": 1960,
+      "player_name": "Norm Van Brocklin"
+    },
+    {
+      "season": 1961,
+      "player_name": "Paul Hornung"
+    },
+    {
+      "season": 1962,
+      "player_name": "Jim Taylor"
+    },
+    {
+      "season": 1963,
+      "player_name": "Y. A. Tittle"
+    },
+    {
+      "season": 1963,
+      "player_name": "Y. A. Tittle"
+    },
+    {
+      "season": 1964,
+      "player_name": "Johnny Unitas"
+    },
+    {
+      "season": 1965,
+      "player_name": "Jim Brown"
+    },
+    {
+      "season": 1966,
+      "player_name": "Bart Starr"
+    },
+    {
+      "season": 1967,
+      "player_name": "Johnny Unitas"
+    },
+    {
+      "season": 1968,
+      "player_name": "Earl Morrall"
+    },
+    {
+      "season": 1969,
+      "player_name": "Roman Gabriel"
+    },
+    {
+      "season": 1970,
+      "player_name": "John Brodie"
+    },
+    {
+      "season": 1971,
+      "player_name": "Alan Page"
+    },
+    {
+      "season": 1972,
+      "player_name": "Larry Brown"
+    },
+    {
+      "season": 1973,
+      "player_name": "O. J. Simpson"
+    },
+    {
+      "season": 1974,
+      "player_name": "Ken Stabler"
+    },
+    {
+      "season": 1975,
+      "player_name": "Fran Tarkenton"
+    },
+    {
+      "season": 1976,
+      "player_name": "Bert Jones"
+    },
+    {
+      "season": 1977,
+      "player_name": "Walter Payton"
+    },
+    {
+      "season": 1978,
+      "player_name": "Terry Bradshaw"
+    },
+    {
+      "season": 1979,
+      "player_name": "Earl Campbell"
+    },
+    {
+      "season": 1980,
+      "player_name": "Brian Sipe"
+    },
+    {
+      "season": 1981,
+      "player_name": "Ken Anderson"
+    },
+    {
+      "season": 1982,
+      "player_name": "Mark Moseley"
+    },
+    {
+      "season": 1983,
+      "player_name": "Joe Theismann"
+    },
+    {
+      "season": 1984,
+      "player_name": "Dan Marino"
+    },
+    {
+      "season": 1985,
+      "player_name": "Marcus Allen"
+    },
+    {
+      "season": 1986,
+      "player_name": "Lawrence Taylor"
+    },
+    {
+      "season": 1987,
+      "player_name": "John Elway"
+    },
+    {
+      "season": 1988,
+      "player_name": "Boomer Esiason"
+    },
+    {
+      "season": 1989,
+      "player_name": "Joe Montana"
+    },
+    {
+      "season": 1990,
+      "player_name": "Joe Montana"
+    },
+    {
+      "season": 1991,
+      "player_name": "Thurman Thomas"
+    },
+    {
+      "season": 1992,
+      "player_name": "Steve Young"
+    },
+    {
+      "season": 1993,
+      "player_name": "Emmitt Smith"
+    },
+    {
+      "season": 1994,
+      "player_name": "Steve Young"
+    },
+    {
+      "season": 1995,
+      "player_name": "Brett Favre"
+    },
+    {
+      "season": 1996,
+      "player_name": "Brett Favre"
+    },
+    {
+      "season": 1997,
+      "player_name": "Brett Favre"
+    },
+    {
+      "season": 1997,
+      "player_name": "Barry Sanders"
+    },
+    {
+      "season": 1998,
+      "player_name": "Terrell Davis"
+    },
+    {
+      "season": 1999,
+      "player_name": "Kurt Warner"
+    },
+    {
+      "season": 2000,
+      "player_name": "Marshall Faulk"
+    },
+    {
+      "season": 2001,
+      "player_name": "Kurt Warner"
+    },
+    {
+      "season": 2002,
+      "player_name": "Rich Gannon"
+    },
+    {
+      "season": 2003,
+      "player_name": "Peyton Manning"
+    },
+    {
+      "season": 2003,
+      "player_name": "Steve McNair"
+    },
+    {
+      "season": 2004,
+      "player_name": "Peyton Manning"
+    },
+    {
+      "season": 2005,
+      "player_name": "Shaun Alexander"
+    },
+    {
+      "season": 2006,
+      "player_name": "LaDainian Tomlinson"
+    },
+    {
+      "season": 2007,
+      "player_name": "Tom Brady"
+    },
+    {
+      "season": 2008,
+      "player_name": "Peyton Manning"
+    },
+    {
+      "season": 2009,
+      "player_name": "Peyton Manning"
+    },
+    {
+      "season": 2010,
+      "player_name": "Tom Brady"
+    },
+    {
+      "season": 2011,
+      "player_name": "Aaron Rodgers"
+    },
+    {
+      "season": 2012,
+      "player_name": "Adrian Peterson"
+    },
+    {
+      "season": 2013,
+      "player_name": "Peyton Manning"
+    },
+    {
+      "season": 2014,
+      "player_name": "Aaron Rodgers"
+    },
+    {
+      "season": 2015,
+      "player_name": "Cam Newton"
+    },
+    {
+      "season": 2016,
+      "player_name": "Matt Ryan"
+    },
+    {
+      "season": 2017,
+      "player_name": "Tom Brady"
+    },
+    {
+      "season": 2018,
+      "player_name": "Patrick Mahomes"
+    },
+    {
+      "season": 2019,
+      "player_name": "Lamar Jackson"
+    },
+    {
+      "season": 2020,
+      "player_name": "Aaron Rodgers"
+    },
+    {
+      "season": 2021,
+      "player_name": "Aaron Rodgers"
+    },
+    {
+      "season": 2022,
+      "player_name": "Patrick Mahomes"
+    },
+    {
+      "season": 2023,
+      "player_name": "Lamar Jackson"
+    },
+    {
+      "season": 2024,
+      "player_name": "Josh Allen"
+    },
+    {
+      "season": 2025,
+      "player_name": "Matthew Stafford"
+    }
+  ],
+  "opoy": [
+    {
+      "season": 1972,
+      "player_name": "Larry Brown",
+      "position": "Running back",
+      "team": "Washington Redskins"
+    },
+    {
+      "season": 1973,
+      "player_name": "O. J. Simpson",
+      "position": "Running back",
+      "team": "Buffalo Bills"
+    },
+    {
+      "season": 1974,
+      "player_name": "Ken Stabler",
+      "position": "Quarterback",
+      "team": "Oakland Raiders"
+    },
+    {
+      "season": 1975,
+      "player_name": "Fran Tarkenton",
+      "position": "Quarterback",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 1976,
+      "player_name": "Bert Jones",
+      "position": "Quarterback",
+      "team": "Baltimore Colts"
+    },
+    {
+      "season": 1977,
+      "player_name": "Walter Payton",
+      "position": "Running back",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1978,
+      "player_name": "Earl Campbell",
+      "position": "Running back",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1979,
+      "player_name": "Earl Campbell",
+      "position": "Running back",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1980,
+      "player_name": "Earl Campbell",
+      "position": "Running back",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1981,
+      "player_name": "Ken Anderson",
+      "position": "Quarterback",
+      "team": "Cincinnati Bengals"
+    },
+    {
+      "season": 1982,
+      "player_name": "Dan Fouts",
+      "position": "Quarterback",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 1983,
+      "player_name": "Joe Theismann",
+      "position": "Quarterback",
+      "team": "Washington Redskins"
+    },
+    {
+      "season": 1984,
+      "player_name": "Dan Marino",
+      "position": "Quarterback",
+      "team": "Miami Dolphins"
+    },
+    {
+      "season": 1985,
+      "player_name": "Marcus Allen",
+      "position": "Running back",
+      "team": "Los Angeles Raiders"
+    },
+    {
+      "season": 1986,
+      "player_name": "Eric Dickerson",
+      "position": "Running back",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 1987,
+      "player_name": "Jerry Rice",
+      "position": "Wide receiver",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1988,
+      "player_name": "Roger Craig",
+      "position": "Running back",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1989,
+      "player_name": "Joe Montana",
+      "position": "Quarterback",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1990,
+      "player_name": "Warren Moon",
+      "position": "Quarterback",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1991,
+      "player_name": "Thurman Thomas",
+      "position": "Running back",
+      "team": "Buffalo Bills"
+    },
+    {
+      "season": 1992,
+      "player_name": "Steve Young",
+      "position": "Quarterback",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1993,
+      "player_name": "Jerry Rice",
+      "position": "Wide receiver",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1994,
+      "player_name": "Barry Sanders",
+      "position": "Running back",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1995,
+      "player_name": "Brett Favre",
+      "position": "Quarterback",
+      "team": "Green Bay Packers"
+    },
+    {
+      "season": 1996,
+      "player_name": "Terrell Davis",
+      "position": "Running back",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 1997,
+      "player_name": "Barry Sanders",
+      "position": "Running back",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1998,
+      "player_name": "Terrell Davis",
+      "position": "Running back",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 1999,
+      "player_name": "Marshall Faulk",
+      "position": "Running back",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2000,
+      "player_name": "Marshall Faulk",
+      "position": "Running back",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2001,
+      "player_name": "Marshall Faulk",
+      "position": "Running back",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2002,
+      "player_name": "Priest Holmes",
+      "position": "Running back",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 2003,
+      "player_name": "Jamal Lewis",
+      "position": "Running back",
+      "team": "Baltimore Ravens"
+    },
+    {
+      "season": 2004,
+      "player_name": "Peyton Manning",
+      "position": "Quarterback",
+      "team": "Indianapolis Colts"
+    },
+    {
+      "season": 2005,
+      "player_name": "Shaun Alexander",
+      "position": "Running back",
+      "team": "Seattle Seahawks"
+    },
+    {
+      "season": 2006,
+      "player_name": "LaDainian Tomlinson",
+      "position": "Running back",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 2007,
+      "player_name": "Tom Brady",
+      "position": "Quarterback",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 2008,
+      "player_name": "Drew Brees",
+      "position": "Quarterback",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 2009,
+      "player_name": "Chris Johnson",
+      "position": "Running back",
+      "team": "Tennessee Titans"
+    },
+    {
+      "season": 2010,
+      "player_name": "Tom Brady",
+      "position": "Quarterback",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 2011,
+      "player_name": "Drew Brees",
+      "position": "Quarterback",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 2012,
+      "player_name": "Adrian Peterson",
+      "position": "Running back",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 2013,
+      "player_name": "Peyton Manning",
+      "position": "Quarterback",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 2014,
+      "player_name": "DeMarco Murray",
+      "position": "Running back",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 2015,
+      "player_name": "Cam Newton",
+      "position": "Quarterback",
+      "team": "Carolina Panthers"
+    },
+    {
+      "season": 2016,
+      "player_name": "Matt Ryan",
+      "position": "Quarterback",
+      "team": "Atlanta Falcons"
+    },
+    {
+      "season": 2017,
+      "player_name": "Todd Gurley",
+      "position": "Running back",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 2018,
+      "player_name": "Patrick Mahomes",
+      "position": "Quarterback",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 2019,
+      "player_name": "Michael Thomas",
+      "position": "Wide receiver",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 2020,
+      "player_name": "Derrick Henry",
+      "position": "Running back",
+      "team": "Tennessee Titans"
+    },
+    {
+      "season": 2021,
+      "player_name": "Cooper Kupp",
+      "position": "Wide receiver",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 2022,
+      "player_name": "Justin Jefferson",
+      "position": "Wide receiver",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 2023,
+      "player_name": "Christian McCaffrey",
+      "position": "Running back",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 2024,
+      "player_name": "Saquon Barkley",
+      "position": "Running back",
+      "team": "Philadelphia Eagles"
+    },
+    {
+      "season": 2025,
+      "player_name": "Jaxon Smith-Njigba",
+      "position": "Wide receiver",
+      "team": "Seattle Seahawks"
+    }
+  ],
+  "dpoy": [
+    {
+      "season": 1971,
+      "player_name": "Alan Page",
+      "position": "DT",
+      "team": "Minnesota"
+    },
+    {
+      "season": 1972,
+      "player_name": "Joe Greene",
+      "position": "DT",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 1973,
+      "player_name": "Dick Anderson",
+      "position": "S",
+      "team": "Miami"
+    },
+    {
+      "season": 1974,
+      "player_name": "Joe Greene",
+      "position": "DT",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 1975,
+      "player_name": "Mel Blount",
+      "position": "CB",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 1976,
+      "player_name": "Jack Lambert",
+      "position": "LB",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 1977,
+      "player_name": "Harvey Martin",
+      "position": "DE",
+      "team": "Dallas"
+    },
+    {
+      "season": 1978,
+      "player_name": "Randy Gradishar",
+      "position": "LB",
+      "team": "Denver"
+    },
+    {
+      "season": 1979,
+      "player_name": "Lee Roy Selmon",
+      "position": "DE",
+      "team": "Tampa Bay"
+    },
+    {
+      "season": 1980,
+      "player_name": "Lester Hayes",
+      "position": "CB",
+      "team": "Oakland"
+    },
+    {
+      "season": 1981,
+      "player_name": "Lawrence Taylor",
+      "position": "LB",
+      "team": "NY Giants"
+    },
+    {
+      "season": 1982,
+      "player_name": "Lawrence Taylor",
+      "position": "LB",
+      "team": "NY Giants"
+    },
+    {
+      "season": 1983,
+      "player_name": "Doug Betters",
+      "position": "DE",
+      "team": "Miami"
+    },
+    {
+      "season": 1984,
+      "player_name": "Kenny Easley",
+      "position": "S",
+      "team": "Seattle"
+    },
+    {
+      "season": 1985,
+      "player_name": "Mike Singletary",
+      "position": "LB",
+      "team": "Chicago"
+    },
+    {
+      "season": 1986,
+      "player_name": "Lawrence Taylor",
+      "position": "LB",
+      "team": "NY Giants"
+    },
+    {
+      "season": 1987,
+      "player_name": "Reggie White",
+      "position": "DE",
+      "team": "Philadelphia"
+    },
+    {
+      "season": 1988,
+      "player_name": "Mike Singletary",
+      "position": "LB",
+      "team": "Chicago"
+    },
+    {
+      "season": 1989,
+      "player_name": "Keith Millard",
+      "position": "DT",
+      "team": "Minnesota"
+    },
+    {
+      "season": 1990,
+      "player_name": "Bruce Smith",
+      "position": "DE",
+      "team": "Buffalo"
+    },
+    {
+      "season": 1991,
+      "player_name": "Pat Swilling",
+      "position": "LB",
+      "team": "New Orleans"
+    },
+    {
+      "season": 1992,
+      "player_name": "Cortez Kennedy",
+      "position": "DT",
+      "team": "Seattle"
+    },
+    {
+      "season": 1993,
+      "player_name": "Rod Woodson",
+      "position": "CB",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 1994,
+      "player_name": "Deion Sanders",
+      "position": "CB",
+      "team": "San Francisco"
+    },
+    {
+      "season": 1995,
+      "player_name": "Bryce Paup",
+      "position": "LB",
+      "team": "Buffalo"
+    },
+    {
+      "season": 1996,
+      "player_name": "Bruce Smith",
+      "position": "DE",
+      "team": "Buffalo"
+    },
+    {
+      "season": 1997,
+      "player_name": "Dana Stubblefield",
+      "position": "DT",
+      "team": "San Francisco"
+    },
+    {
+      "season": 1998,
+      "player_name": "Reggie White",
+      "position": "DE",
+      "team": "Green Bay"
+    },
+    {
+      "season": 1999,
+      "player_name": "Warren Sapp",
+      "position": "DT",
+      "team": "Tampa Bay"
+    },
+    {
+      "season": 2000,
+      "player_name": "Ray Lewis",
+      "position": "LB",
+      "team": "Baltimore"
+    },
+    {
+      "season": 2001,
+      "player_name": "Michael Strahan",
+      "position": "DE",
+      "team": "NY Giants"
+    },
+    {
+      "season": 2002,
+      "player_name": "Derrick Brooks",
+      "position": "LB",
+      "team": "Tampa Bay"
+    },
+    {
+      "season": 2003,
+      "player_name": "Ray Lewis",
+      "position": "LB",
+      "team": "Baltimore"
+    },
+    {
+      "season": 2004,
+      "player_name": "Ed Reed",
+      "position": "S",
+      "team": "Baltimore"
+    },
+    {
+      "season": 2005,
+      "player_name": "Brian Urlacher",
+      "position": "LB",
+      "team": "Chicago"
+    },
+    {
+      "season": 2006,
+      "player_name": "Jason Taylor",
+      "position": "DE",
+      "team": "Miami"
+    },
+    {
+      "season": 2007,
+      "player_name": "Bob Sanders",
+      "position": "S",
+      "team": "Indianapolis"
+    },
+    {
+      "season": 2008,
+      "player_name": "James Harrison",
+      "position": "LB",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 2009,
+      "player_name": "Charles Woodson",
+      "position": "CB",
+      "team": "Green Bay"
+    },
+    {
+      "season": 2010,
+      "player_name": "Troy Polamalu",
+      "position": "S",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 2011,
+      "player_name": "Terrell Suggs",
+      "position": "LB",
+      "team": "Baltimore"
+    },
+    {
+      "season": 2012,
+      "player_name": "J. J. Watt",
+      "position": "DE",
+      "team": "Houston"
+    },
+    {
+      "season": 2013,
+      "player_name": "Luke Kuechly",
+      "position": "LB",
+      "team": "Carolina"
+    },
+    {
+      "season": 2014,
+      "player_name": "J. J. Watt",
+      "position": "DE",
+      "team": "Houston"
+    },
+    {
+      "season": 2015,
+      "player_name": "J. J. Watt",
+      "position": "DE",
+      "team": "Houston"
+    },
+    {
+      "season": 2016,
+      "player_name": "Khalil Mack",
+      "position": "DE",
+      "team": "Oakland"
+    },
+    {
+      "season": 2017,
+      "player_name": "Aaron Donald",
+      "position": "DT",
+      "team": "LA Rams"
+    },
+    {
+      "season": 2018,
+      "player_name": "Aaron Donald",
+      "position": "DT",
+      "team": "LA Rams"
+    },
+    {
+      "season": 2019,
+      "player_name": "Stephon Gilmore",
+      "position": "CB",
+      "team": "New England"
+    },
+    {
+      "season": 2020,
+      "player_name": "Aaron Donald",
+      "position": "DT",
+      "team": "LA Rams"
+    },
+    {
+      "season": 2021,
+      "player_name": "T. J. Watt",
+      "position": "LB",
+      "team": "Pittsburgh"
+    },
+    {
+      "season": 2022,
+      "player_name": "Nick Bosa",
+      "position": "DE",
+      "team": "San Francisco"
+    },
+    {
+      "season": 2023,
+      "player_name": "Myles Garrett",
+      "position": "DE",
+      "team": "Cleveland"
+    },
+    {
+      "season": 2024,
+      "player_name": "Patrick Surtain II",
+      "position": "CB",
+      "team": "Denver"
+    },
+    {
+      "season": 2025,
+      "player_name": "Myles Garrett",
+      "position": "DE",
+      "team": "Cleveland"
+    }
+  ],
+  "oroy": [
+    {
+      "season": 1957,
+      "player_name": "Jim Brown",
+      "position": "Running back",
+      "team": "Cleveland Browns"
+    },
+    {
+      "season": 1958,
+      "player_name": "Jimmy Orr",
+      "position": "Wide receiver",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 1959,
+      "player_name": "Boyd Dowler",
+      "position": "Wide receiver",
+      "team": "Green Bay Packers"
+    },
+    {
+      "season": 1960,
+      "player_name": "Gail Cogdill",
+      "position": "Split end",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1961,
+      "player_name": "Mike Ditka",
+      "position": "Tight end",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1962,
+      "player_name": "Ron Bull",
+      "position": "Running back",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1963,
+      "player_name": "Paul Flatley",
+      "position": "Wide receiver",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 1964,
+      "player_name": "Charley Taylor",
+      "position": "Running back",
+      "team": "Washington Redskins"
+    },
+    {
+      "season": 1965,
+      "player_name": "Gale Sayers",
+      "position": "Running back",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1966,
+      "player_name": "Johnny Roland",
+      "position": "Running back",
+      "team": "St. Louis Cardinals"
+    },
+    {
+      "season": 1967,
+      "player_name": "Mel Farr",
+      "position": "Running back",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1968,
+      "player_name": "Earl McCullouch",
+      "position": "Wide receiver",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1969,
+      "player_name": "Calvin Hill",
+      "position": "Running back",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 1970,
+      "player_name": "Dennis Shaw",
+      "position": "Quarterback",
+      "team": "Buffalo Bills"
+    },
+    {
+      "season": 1971,
+      "player_name": "John Brockington",
+      "position": "Running back",
+      "team": "Green Bay Packers"
+    },
+    {
+      "season": 1972,
+      "player_name": "Franco Harris",
+      "position": "Running back",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 1973,
+      "player_name": "Chuck Foreman",
+      "position": "Running back",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 1974,
+      "player_name": "Don Woods",
+      "position": "Running back",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 1975,
+      "player_name": "Mike Thomas",
+      "position": "Running back",
+      "team": "Washington Redskins"
+    },
+    {
+      "season": 1976,
+      "player_name": "Sammy White",
+      "position": "Wide receiver",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 1977,
+      "player_name": "Tony Dorsett",
+      "position": "Running back",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 1978,
+      "player_name": "Earl Campbell",
+      "position": "Running back",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1979,
+      "player_name": "Ottis Anderson",
+      "position": "Running back",
+      "team": "St. Louis Cardinals"
+    },
+    {
+      "season": 1980,
+      "player_name": "Billy Sims",
+      "position": "Running back",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1981,
+      "player_name": "George Rogers",
+      "position": "Running back",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 1982,
+      "player_name": "Marcus Allen",
+      "position": "Running back",
+      "team": "Los Angeles Raiders"
+    },
+    {
+      "season": 1983,
+      "player_name": "Eric Dickerson",
+      "position": "Running back",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 1984,
+      "player_name": "Louis Lipps",
+      "position": "Wide receiver",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 1985,
+      "player_name": "Eddie Brown",
+      "position": "Wide receiver",
+      "team": "Cincinnati Bengals"
+    },
+    {
+      "season": 1986,
+      "player_name": "Rueben Mayes",
+      "position": "Running back",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 1987,
+      "player_name": "Troy Stradford",
+      "position": "Running back",
+      "team": "Miami Dolphins"
+    },
+    {
+      "season": 1988,
+      "player_name": "John Stephens",
+      "position": "Running back",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 1989,
+      "player_name": "Barry Sanders",
+      "position": "Running back",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1990,
+      "player_name": "Emmitt Smith",
+      "position": "Running back",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 1991,
+      "player_name": "Leonard Russell",
+      "position": "Running back",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 1992,
+      "player_name": "Carl Pickens",
+      "position": "Wide receiver",
+      "team": "Cincinnati Bengals"
+    },
+    {
+      "season": 1993,
+      "player_name": "Jerome Bettis",
+      "position": "Running back",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 1994,
+      "player_name": "Marshall Faulk",
+      "position": "Running back",
+      "team": "Indianapolis Colts"
+    },
+    {
+      "season": 1995,
+      "player_name": "Curtis Martin",
+      "position": "Running back",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 1996,
+      "player_name": "Eddie George",
+      "position": "Running back",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1997,
+      "player_name": "Warrick Dunn",
+      "position": "Running back",
+      "team": "Tampa Bay Buccaneers"
+    },
+    {
+      "season": 1998,
+      "player_name": "Randy Moss",
+      "position": "Wide receiver",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 1999,
+      "player_name": "Edgerrin James",
+      "position": "Running back",
+      "team": "Indianapolis Colts"
+    },
+    {
+      "season": 2000,
+      "player_name": "Mike Anderson",
+      "position": "Running back",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 2001,
+      "player_name": "Anthony Thomas",
+      "position": "Running back",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 2002,
+      "player_name": "Clinton Portis",
+      "position": "Running back",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 2003,
+      "player_name": "Anquan Boldin",
+      "position": "Wide receiver",
+      "team": "Arizona Cardinals"
+    },
+    {
+      "season": 2004,
+      "player_name": "Ben Roethlisberger",
+      "position": "Quarterback",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 2005,
+      "player_name": "Cadillac Williams",
+      "position": "Running back",
+      "team": "Tampa Bay Buccaneers"
+    },
+    {
+      "season": 2006,
+      "player_name": "Vince Young",
+      "position": "Quarterback",
+      "team": "Tennessee Titans"
+    },
+    {
+      "season": 2007,
+      "player_name": "Adrian Peterson",
+      "position": "Running back",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 2008,
+      "player_name": "Matt Ryan",
+      "position": "Quarterback",
+      "team": "Atlanta Falcons"
+    },
+    {
+      "season": 2009,
+      "player_name": "Percy Harvin",
+      "position": "Wide receiver",
+      "team": "Minnesota Vikings"
+    },
+    {
+      "season": 2010,
+      "player_name": "Sam Bradford",
+      "position": "Quarterback",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2011,
+      "player_name": "Cam Newton",
+      "position": "Quarterback",
+      "team": "Carolina Panthers"
+    },
+    {
+      "season": 2012,
+      "player_name": "Robert Griffin III",
+      "position": "Quarterback",
+      "team": "Washington Redskins"
+    },
+    {
+      "season": 2013,
+      "player_name": "Eddie Lacy",
+      "position": "Running back",
+      "team": "Green Bay Packers"
+    },
+    {
+      "season": 2014,
+      "player_name": "Odell Beckham Jr.",
+      "position": "Wide receiver",
+      "team": "New York Giants"
+    },
+    {
+      "season": 2015,
+      "player_name": "Todd Gurley",
+      "position": "Running back",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2016,
+      "player_name": "Dak Prescott",
+      "position": "Quarterback",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 2017,
+      "player_name": "Alvin Kamara",
+      "position": "Running back",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 2018,
+      "player_name": "Saquon Barkley",
+      "position": "Running back",
+      "team": "New York Giants"
+    },
+    {
+      "season": 2019,
+      "player_name": "Kyler Murray",
+      "position": "Quarterback",
+      "team": "Arizona Cardinals"
+    },
+    {
+      "season": 2020,
+      "player_name": "Justin Herbert",
+      "position": "Quarterback",
+      "team": "Los Angeles Chargers"
+    },
+    {
+      "season": 2021,
+      "player_name": "Ja'Marr Chase",
+      "position": "Wide receiver",
+      "team": "Cincinnati Bengals"
+    },
+    {
+      "season": 2022,
+      "player_name": "Garrett Wilson",
+      "position": "Wide receiver",
+      "team": "New York Jets"
+    },
+    {
+      "season": 2023,
+      "player_name": "C. J. Stroud",
+      "position": "Quarterback",
+      "team": "Houston Texans"
+    },
+    {
+      "season": 2024,
+      "player_name": "Jayden Daniels",
+      "position": "Quarterback",
+      "team": "Washington Commanders"
+    },
+    {
+      "season": 2025,
+      "player_name": "Tetairoa McMillan",
+      "position": "Wide receiver",
+      "team": "Carolina Panthers"
+    }
+  ],
+  "droy": [
+    {
+      "season": 1967,
+      "player_name": "Lem Barney",
+      "position": "Cornerback",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1968,
+      "player_name": "Claude Humphrey",
+      "position": "Defensive end",
+      "team": "Atlanta Falcons"
+    },
+    {
+      "season": 1969,
+      "player_name": "Joe Greene",
+      "position": "Defensive tackle",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 1970,
+      "player_name": "Bruce Taylor",
+      "position": "Cornerback",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1971,
+      "player_name": "Isiah Robertson",
+      "position": "Linebacker",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 1972,
+      "player_name": "Willie Buchanon",
+      "position": "Cornerback",
+      "team": "Green Bay Packers"
+    },
+    {
+      "season": 1973,
+      "player_name": "Wally Chambers",
+      "position": "Defensive tackle",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1974,
+      "player_name": "Jack Lambert",
+      "position": "Linebacker",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 1975,
+      "player_name": "Robert Brazile",
+      "position": "Linebacker",
+      "team": "Houston Oilers"
+    },
+    {
+      "season": 1976,
+      "player_name": "Mike Haynes",
+      "position": "Cornerback",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 1977,
+      "player_name": "A. J. Duhe",
+      "position": "Defensive end",
+      "team": "Miami Dolphins"
+    },
+    {
+      "season": 1978,
+      "player_name": "Al Baker",
+      "position": "Defensive end",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 1979,
+      "player_name": "Jim Haslett",
+      "position": "Linebacker",
+      "team": "Buffalo Bills"
+    },
+    {
+      "season": 1980,
+      "player_name": "Buddy Curry",
+      "position": "Linebacker",
+      "team": "Atlanta Falcons"
+    },
+    {
+      "season": 1981,
+      "player_name": "Lawrence Taylor",
+      "position": "Linebacker",
+      "team": "New York Giants"
+    },
+    {
+      "season": 1982,
+      "player_name": "Chip Banks",
+      "position": "Linebacker",
+      "team": "Cleveland Browns"
+    },
+    {
+      "season": 1983,
+      "player_name": "Vernon Maxwell",
+      "position": "Linebacker",
+      "team": "Baltimore Colts"
+    },
+    {
+      "season": 1984,
+      "player_name": "Bill Maas",
+      "position": "Defensive tackle",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 1985,
+      "player_name": "Duane Bickett",
+      "position": "Linebacker",
+      "team": "Indianapolis Colts"
+    },
+    {
+      "season": 1986,
+      "player_name": "Leslie O'Neal",
+      "position": "Defensive end",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 1987,
+      "player_name": "Shane Conlan",
+      "position": "Linebacker",
+      "team": "Buffalo Bills"
+    },
+    {
+      "season": 1988,
+      "player_name": "Erik McMillan",
+      "position": "Safety",
+      "team": "New York Jets"
+    },
+    {
+      "season": 1989,
+      "player_name": "Derrick Thomas",
+      "position": "Linebacker",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 1990,
+      "player_name": "Mark Carrier",
+      "position": "Safety",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 1991,
+      "player_name": "Mike Croel",
+      "position": "Linebacker",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 1992,
+      "player_name": "Dale Carter",
+      "position": "Cornerback",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 1993,
+      "player_name": "Dana Stubblefield",
+      "position": "Defensive tackle",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 1994,
+      "player_name": "Tim Bowens",
+      "position": "Defensive tackle",
+      "team": "Miami Dolphins"
+    },
+    {
+      "season": 1995,
+      "player_name": "Hugh Douglas",
+      "position": "Defensive end",
+      "team": "New York Jets"
+    },
+    {
+      "season": 1996,
+      "player_name": "Simeon Rice",
+      "position": "Defensive end",
+      "team": "Arizona Cardinals"
+    },
+    {
+      "season": 1997,
+      "player_name": "Peter Boulware",
+      "position": "Linebacker",
+      "team": "Baltimore Ravens"
+    },
+    {
+      "season": 1998,
+      "player_name": "Charles Woodson",
+      "position": "Cornerback",
+      "team": "Oakland Raiders"
+    },
+    {
+      "season": 1999,
+      "player_name": "Jevon Kearse",
+      "position": "Defensive end",
+      "team": "Tennessee Titans"
+    },
+    {
+      "season": 2000,
+      "player_name": "Brian Urlacher",
+      "position": "Linebacker",
+      "team": "Chicago Bears"
+    },
+    {
+      "season": 2001,
+      "player_name": "Kendrell Bell",
+      "position": "Linebacker",
+      "team": "Pittsburgh Steelers"
+    },
+    {
+      "season": 2002,
+      "player_name": "Julius Peppers",
+      "position": "Defensive end",
+      "team": "Carolina Panthers"
+    },
+    {
+      "season": 2003,
+      "player_name": "Terrell Suggs",
+      "position": "Linebacker",
+      "team": "Baltimore Ravens"
+    },
+    {
+      "season": 2004,
+      "player_name": "Jonathan Vilma",
+      "position": "Linebacker",
+      "team": "New York Jets"
+    },
+    {
+      "season": 2005,
+      "player_name": "Shawne Merriman",
+      "position": "Linebacker",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 2006,
+      "player_name": "DeMeco Ryans",
+      "position": "Linebacker",
+      "team": "Houston Texans"
+    },
+    {
+      "season": 2007,
+      "player_name": "Patrick Willis",
+      "position": "Linebacker",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 2008,
+      "player_name": "Jerod Mayo",
+      "position": "Linebacker",
+      "team": "New England Patriots"
+    },
+    {
+      "season": 2009,
+      "player_name": "Brian Cushing",
+      "position": "Linebacker",
+      "team": "Houston Texans"
+    },
+    {
+      "season": 2010,
+      "player_name": "Ndamukong Suh",
+      "position": "Defensive tackle",
+      "team": "Detroit Lions"
+    },
+    {
+      "season": 2011,
+      "player_name": "Von Miller",
+      "position": "Linebacker",
+      "team": "Denver Broncos"
+    },
+    {
+      "season": 2012,
+      "player_name": "Luke Kuechly",
+      "position": "Linebacker",
+      "team": "Carolina Panthers"
+    },
+    {
+      "season": 2013,
+      "player_name": "Sheldon Richardson",
+      "position": "Defensive end",
+      "team": "New York Jets"
+    },
+    {
+      "season": 2014,
+      "player_name": "Aaron Donald",
+      "position": "Defensive tackle",
+      "team": "St. Louis Rams"
+    },
+    {
+      "season": 2015,
+      "player_name": "Marcus Peters",
+      "position": "Cornerback",
+      "team": "Kansas City Chiefs"
+    },
+    {
+      "season": 2016,
+      "player_name": "Joey Bosa",
+      "position": "Defensive end",
+      "team": "San Diego Chargers"
+    },
+    {
+      "season": 2017,
+      "player_name": "Marshon Lattimore",
+      "position": "Cornerback",
+      "team": "New Orleans Saints"
+    },
+    {
+      "season": 2018,
+      "player_name": "Shaquille Leonard",
+      "position": "Linebacker",
+      "team": "Indianapolis Colts"
+    },
+    {
+      "season": 2019,
+      "player_name": "Nick Bosa",
+      "position": "Defensive end",
+      "team": "San Francisco 49ers"
+    },
+    {
+      "season": 2020,
+      "player_name": "Chase Young",
+      "position": "Defensive end",
+      "team": "Washington Football Team"
+    },
+    {
+      "season": 2021,
+      "player_name": "Micah Parsons",
+      "position": "Linebacker",
+      "team": "Dallas Cowboys"
+    },
+    {
+      "season": 2022,
+      "player_name": "Sauce Gardner",
+      "position": "Cornerback",
+      "team": "New York Jets"
+    },
+    {
+      "season": 2023,
+      "player_name": "Will Anderson Jr.",
+      "position": "Defensive end",
+      "team": "Houston Texans"
+    },
+    {
+      "season": 2024,
+      "player_name": "Jared Verse",
+      "position": "Linebacker",
+      "team": "Los Angeles Rams"
+    },
+    {
+      "season": 2025,
+      "player_name": "Carson Schwesinger",
+      "position": "Linebacker",
+      "team": "Cleveland Browns"
+    }
+  ]
+}
