@@ -46,6 +46,12 @@ ALLOWED_DOMAINS = frozenset({
     "NFL_OFFENSE_LINEUP_COLLEGE",  # position+college proof-game fix -- names-hidden variant, see registry.py
     "NFL_SUPER_BOWL",  # NFL Wikipedia history import -- Super Bowl game results
     "NFL_AWARDS",  # NFL Wikipedia history import -- AP MVP/OPOY/DPOY/OROY/DROY + Super Bowl MVP
+    "CFB_CHAMPIONSHIP",  # Creator-gap-audit operation -- cfb_champion_school_links
+    "NFL_SEASON_STATS",  # Creator-gap-audit operation -- player_season_stats
+    "CFB_SEASON_STATS",  # Creator-gap-audit operation -- cfb_player_season_stats_real
+    "NFL_COACHING",  # Creator-gap-audit operation -- coach_team_seasons
+    "CFB_TRANSFER",  # Creator-gap-audit operation -- cfb_transfer_summary_v17
+    "CFB_RIVALRY",  # Creator-gap-audit operation -- cfb_rivalries
 })
 
 ALLOWED_PREDICATES = frozenset({
@@ -61,8 +67,14 @@ ALLOWED_PREDICATES = frozenset({
                           # player" capability, built on draft_facts.college (see
                           # tools/quiz_export/adapters/draft_college.py). Same NFL_DRAFT domain as
                           # DRAFTED_BY (same underlying table), a new predicate, not a new domain.
-    "WON_CHAMPIONSHIP",  # NFL Wikipedia history import -- NFL_SUPER_BOWL
+    "WON_CHAMPIONSHIP",  # NFL Wikipedia history import -- NFL_SUPER_BOWL; also CFB_CHAMPIONSHIP (shared, like WON_GAME)
     "WON_AWARD",  # NFL Wikipedia history import -- NFL_AWARDS
+    "HAD_MORE_SACKS",  # Creator-gap-audit operation -- NFL_GAME_BOXSCORE
+    "HAD_FEWER_TURNOVERS",  # Creator-gap-audit operation -- NFL_GAME_BOXSCORE
+    "HAD_FEWER_PENALTIES",  # Creator-gap-audit operation -- NFL_GAME_BOXSCORE
+    "LED_LEAGUE_IN_STAT",  # Creator-gap-audit operation -- shared by NFL_SEASON_STATS and CFB_SEASON_STATS
+    "COACHED_TEAM",  # Creator-gap-audit operation -- NFL_COACHING
+    "RIVAL_OF",  # Creator-gap-audit operation -- CFB_RIVALRY
 })
 
 ALLOWED_DIFFICULTIES = frozenset({

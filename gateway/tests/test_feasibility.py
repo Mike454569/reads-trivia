@@ -259,11 +259,12 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
         registry.CAPABILITY_REGISTRY[key] = original
 
 
-def test_capability_summary_lists_all_twelve_registered_capabilities():
-    # 12, not 10, since the NFL Wikipedia history import registered two new
-    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS).
+def test_capability_summary_lists_all_twenty_one_registered_capabilities():
+    # 21, not 12: the NFL Wikipedia history import registered two new
+    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), and
+    # the Creator-gap-audit operation registered nine more.
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 12
+    assert len(summary) == 21
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
@@ -300,3 +301,68 @@ def test_supported_with_limitations_for_cfb_game_result_request():
     assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     assert r["capability"]["relationship_predicate"] == "WON_GAME"
     assert r["capability"]["domain"] == "CFB_GAME_RESULT"
+
+
+# --- Creator-gap-audit operation: nine new capabilities ----------------------
+
+def test_supported_for_nfl_boxscore_sacks_request():
+    r = feasibility.assess("Make a game where I guess which team had more sacks in an NFL game.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "HAD_MORE_SACKS"
+    assert r["capability"]["domain"] == "NFL_GAME_BOXSCORE"
+
+
+def test_supported_for_nfl_boxscore_turnovers_request():
+    r = feasibility.assess("Guess which team had fewer turnovers in an NFL game.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "HAD_FEWER_TURNOVERS"
+    assert r["capability"]["domain"] == "NFL_GAME_BOXSCORE"
+
+
+def test_supported_for_nfl_boxscore_penalties_request():
+    r = feasibility.assess("Guess which team was penalized fewer times in an NFL game.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "HAD_FEWER_PENALTIES"
+    assert r["capability"]["domain"] == "NFL_GAME_BOXSCORE"
+
+
+def test_supported_for_cfb_championship_request():
+    r = feasibility.assess("Guess which school won the national championship.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "WON_CHAMPIONSHIP"
+    assert r["capability"]["domain"] == "CFB_CHAMPIONSHIP"
+
+
+def test_supported_for_nfl_season_stat_leader_request():
+    r = feasibility.assess("Guess which player led the NFL in passing yards.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "LED_LEAGUE_IN_STAT"
+    assert r["capability"]["domain"] == "NFL_SEASON_STATS"
+
+
+def test_supported_for_cfb_season_stat_leader_request():
+    r = feasibility.assess("Guess which player led college football in rushing yards.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "LED_LEAGUE_IN_STAT"
+    assert r["capability"]["domain"] == "CFB_SEASON_STATS"
+
+
+def test_supported_for_nfl_coaching_request():
+    r = feasibility.assess("Guess which team this coach coached.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "COACHED_TEAM"
+    assert r["capability"]["domain"] == "NFL_COACHING"
+
+
+def test_supported_for_cfb_transfer_request():
+    r = feasibility.assess("Guess which school this transfer player played for.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "ATTENDED_COLLEGE"
+    assert r["capability"]["domain"] == "CFB_TRANSFER"
+
+
+def test_supported_for_cfb_rivalry_request():
+    r = feasibility.assess("Guess who this college football team's rival is.")
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["relationship_predicate"] == "RIVAL_OF"
+    assert r["capability"]["domain"] == "CFB_RIVALRY"

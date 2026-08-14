@@ -173,13 +173,15 @@ def test_creator_queue_invalid_review_status_filter_rejected(client, auth_header
 
 # --- capability reference (Part C) -------------------------------------------
 
-def test_creator_capabilities_lists_twelve_with_real_statuses(client, auth_headers):
-    # 12, not 10, since the NFL Wikipedia history import registered two new
-    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS).
+def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_headers):
+    # 21, not 12: the NFL Wikipedia history import registered two (WON_CHAMPIONSHIP/
+    # NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), and the Creator-gap-audit operation
+    # registered nine more (box score sacks/turnovers/penalties, CFB championship,
+    # NFL/CFB season stat leaders, NFL coaching, CFB transfer, CFB rivalry).
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 12
+    assert len(caps) == 21
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")
@@ -190,9 +192,29 @@ def test_creator_capabilities_lists_twelve_with_real_statuses(client, auth_heade
     assert len(game_results) == 2
     assert {c["domain"] for c in game_results} == {"NFL_GAME_RESULT", "CFB_GAME_RESULT"}
     assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in game_results)
-    super_bowl = next(c for c in caps if c["relationship_predicate"] == "WON_CHAMPIONSHIP")
-    assert super_bowl["domain"] == "NFL_SUPER_BOWL"
-    assert super_bowl["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    championship_results = [c for c in caps if c["relationship_predicate"] == "WON_CHAMPIONSHIP"]
+    assert len(championship_results) == 2
+    assert {c["domain"] for c in championship_results} == {"NFL_SUPER_BOWL", "CFB_CHAMPIONSHIP"}
+    assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in championship_results)
     awards = next(c for c in caps if c["relationship_predicate"] == "WON_AWARD")
     assert awards["domain"] == "NFL_AWARDS"
     assert awards["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    stat_leaders = [c for c in caps if c["relationship_predicate"] == "LED_LEAGUE_IN_STAT"]
+    assert len(stat_leaders) == 2
+    assert {c["domain"] for c in stat_leaders} == {"NFL_SEASON_STATS", "CFB_SEASON_STATS"}
+    assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in stat_leaders)
+    boxscore_extras = [c for c in caps if c["relationship_predicate"] in
+                        ("HAD_MORE_SACKS", "HAD_FEWER_TURNOVERS", "HAD_FEWER_PENALTIES")]
+    assert len(boxscore_extras) == 3
+    assert all(c["domain"] == "NFL_GAME_BOXSCORE" for c in boxscore_extras)
+    assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in boxscore_extras)
+    coaching = next(c for c in caps if c["relationship_predicate"] == "COACHED_TEAM")
+    assert coaching["domain"] == "NFL_COACHING"
+    assert coaching["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    attended_college_results = [c for c in caps if c["relationship_predicate"] == "ATTENDED_COLLEGE"]
+    assert len(attended_college_results) == 2
+    assert {c["domain"] for c in attended_college_results} == {"NFL_DRAFT", "CFB_TRANSFER"}
+    assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in attended_college_results)
+    rivalry = next(c for c in caps if c["relationship_predicate"] == "RIVAL_OF")
+    assert rivalry["domain"] == "CFB_RIVALRY"
+    assert rivalry["support_status"] == "SUPPORTED_WITH_LIMITATIONS"

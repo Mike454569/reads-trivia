@@ -108,6 +108,20 @@ _SCHOOL_WORDS = {"school", "schools"}
 _PLAYER_OF_THE_YEAR_RE = re.compile(r"player of the year")
 _ROOKIE_OF_THE_YEAR_RE = re.compile(r"rookie of the year")
 
+# Creator-gap-audit operation: keyword sets for the 9 new capabilities
+# registered against real, previously-unused Engine tables (team_game_stats'
+# sacks/turnovers/penalties columns, cfb_champion_school_links,
+# player_season_stats/cfb_player_season_stats_real, coach_team_seasons,
+# cfb_transfer_summary_v17, cfb_rivalries).
+_SACKS_WORDS = {"sack", "sacks"}
+_TURNOVER_WORDS = {"turnover", "turnovers"}
+_PENALTY_WORDS = {"penalty", "penalties", "penalized"}
+_NATIONAL_CHAMPIONSHIP_RE = re.compile(r"national championship|national champion")
+_LEADER_WORDS = {"leader", "leaders", "led", "leading"}
+_COACH_WORDS = {"coach", "coached", "coaching"}
+_TRANSFER_WORDS = {"transfer", "transferred", "transfers"}
+_RIVALRY_WORDS = {"rival", "rivals", "rivalry"}
+
 
 def _words(text: str) -> set[str]:
     # No apostrophe in the character class -- "team's" tokenizes to "team"
@@ -176,6 +190,14 @@ class MockDeterministicTranslator(Translator):
         has_award_word = bool(words & _AWARD_WORDS)
         has_player_of_year_phrase = bool(_PLAYER_OF_THE_YEAR_RE.search(text.lower()))
         has_rookie_of_year_phrase = bool(_ROOKIE_OF_THE_YEAR_RE.search(text.lower()))
+        has_sacks_word = bool(words & _SACKS_WORDS)
+        has_turnover_word = bool(words & _TURNOVER_WORDS)
+        has_penalty_word = bool(words & _PENALTY_WORDS)
+        has_national_championship_phrase = bool(_NATIONAL_CHAMPIONSHIP_RE.search(text.lower()))
+        has_leader_word = bool(words & _LEADER_WORDS)
+        has_coach_word = bool(words & _COACH_WORDS)
+        has_transfer_word = bool(words & _TRANSFER_WORDS)
+        has_rivalry_word = bool(words & _RIVALRY_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
         has_who_am_i = _has_who_am_i_phrase(text)
@@ -316,6 +338,22 @@ class MockDeterministicTranslator(Translator):
                 "WON_CHAMPIONSHIP guess capability (which team won a specific Super Bowl game).",
             )
 
+        # CFB National Championship (WON_CHAMPIONSHIP), Creator-gap-audit
+        # operation. "National championship" is inherently a CFB-only term
+        # (the NFL's own title game is always called the Super Bowl, never
+        # this) -- no explicit "cfb"/"college" word is required for this
+        # phrase alone to route here, unlike other CFB patterns in this file
+        # that default to NFL absent an explicit signal.
+        if has_national_championship_phrase:
+            spec = {
+                "mechanic": "guess", "domain": "CFB_CHAMPIONSHIP", "relationship_predicate": "WON_CHAMPIONSHIP",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'national championship'/'national champion' phrase -> "
+                            "WON_CHAMPIONSHIP (CFB) guess capability.")
+
         # NFL Season Awards (WON_AWARD), added the same operation -- AP MVP/
         # OPOY/DPOY/OROY/DROY plus Super Bowl MVP. "mvp"/"award"/"awards"/
         # "trophy" alone, or the "player of the year"/"rookie of the year"
@@ -336,6 +374,67 @@ class MockDeterministicTranslator(Translator):
                 "Matched award/MVP/trophy/'player of the year'/'rookie of the year' keywords -> "
                 "WON_AWARD guess capability (AP MVP/OPOY/DPOY/OROY/DROY + Super Bowl MVP).",
             )
+
+        # NFL/CFB Season Stat Leaders (LED_LEAGUE_IN_STAT), Creator-gap-audit
+        # operation. "not has_game_word" guards against a hypothetical
+        # single-game phrasing colliding with this season-long-leaderboard
+        # capability -- competition-aware the same way WON_GAME is (explicit
+        # CFB signal with no contradicting NFL token routes to CFB; a bare
+        # request defaults to NFL).
+        if has_leader_word and not has_game_word:
+            if has_cfb_signal and not has_nfl:
+                domain, note = "CFB_SEASON_STATS", "Matched leader/led keywords with a CFB signal -> LED_LEAGUE_IN_STAT (CFB) guess capability."
+            else:
+                domain, note = "NFL_SEASON_STATS", "Matched leader/led keywords -> LED_LEAGUE_IN_STAT (NFL) guess capability."
+            spec = {
+                "mechanic": "guess", "domain": domain, "relationship_predicate": "LED_LEAGUE_IN_STAT",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec, note)
+
+        # NFL Coaching History (COACHED_TEAM), Creator-gap-audit operation.
+        # "coach"/"coached"/"coaching" alone is unambiguous enough in a
+        # football-trivia context (same single-keyword discipline "heisman"/
+        # award words already use above) -- no CFB equivalent is registered
+        # (cfb_coaches has real, disclosed data-quality problems -- see
+        # tools/quiz_export/adapters/cfb_heisman.py's own module docstring
+        # for the precedent of NOT building on a table with known parsing
+        # artifacts), so this always routes to NFL, never CFB.
+        if has_coach_word:
+            spec = {
+                "mechanic": "guess", "domain": "NFL_COACHING", "relationship_predicate": "COACHED_TEAM",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched coach/coached/coaching keyword -> COACHED_TEAM (NFL) guess capability.")
+
+        # CFB Transfer Portal (ATTENDED_COLLEGE via CFB_TRANSFER domain),
+        # Creator-gap-audit operation. Checked BEFORE the general "guess the
+        # college of a player" fallback further below, which would otherwise
+        # also match a transfer-worded request and send it to the NFL_DRAFT/
+        # ATTENDED_COLLEGE capability instead -- "transfer" is a real,
+        # distinct signal for the CFB-specific multi-school capability.
+        if has_transfer_word:
+            spec = {
+                "mechanic": "guess", "domain": "CFB_TRANSFER", "relationship_predicate": "ATTENDED_COLLEGE",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched transfer/transferred keyword -> ATTENDED_COLLEGE (CFB_TRANSFER) guess capability.")
+
+        # CFB Rivalries (RIVAL_OF), Creator-gap-audit operation. "rival(s)"/
+        # "rivalry" alone is unambiguous in a football-trivia context.
+        if has_rivalry_word:
+            spec = {
+                "mechanic": "guess", "domain": "CFB_RIVALRY", "relationship_predicate": "RIVAL_OF",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched rival/rivalry keyword -> RIVAL_OF (CFB) guess capability.")
 
         if has_team and has_postseason:
             spec = {
@@ -459,6 +558,38 @@ class MockDeterministicTranslator(Translator):
         # this is a genuinely different question (which team gained more
         # yards, not who won). NFL-only -- team_game_stats has no CFB
         # equivalent yet.
+        # Creator-gap-audit operation: sacks/turnovers/penalties box-score
+        # comparisons -- checked BEFORE the plain yards pattern below (a
+        # "which team had more sacks" request also contains "game" and could
+        # otherwise fall through to the generic WON_GAME result pattern).
+        # Each is its own real capability, not a filter on HAD_MORE_YARDS --
+        # see registry.py's own comment on why. NFL-only, same real reason
+        # HAD_MORE_YARDS is NFL-only (team_game_stats has no CFB equivalent).
+        if has_game_word and has_sacks_word:
+            spec = {
+                "mechanic": "guess", "domain": "NFL_GAME_BOXSCORE", "relationship_predicate": "HAD_MORE_SACKS",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'game' + sack(s) keywords -> HAD_MORE_SACKS (NFL) guess capability.")
+        if has_game_word and has_turnover_word:
+            spec = {
+                "mechanic": "guess", "domain": "NFL_GAME_BOXSCORE", "relationship_predicate": "HAD_FEWER_TURNOVERS",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'game' + turnover(s) keywords -> HAD_FEWER_TURNOVERS (NFL) guess capability.")
+        if has_game_word and has_penalty_word:
+            spec = {
+                "mechanic": "guess", "domain": "NFL_GAME_BOXSCORE", "relationship_predicate": "HAD_FEWER_PENALTIES",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'game' + penalty/penalties keywords -> HAD_FEWER_PENALTIES (NFL) guess capability.")
+
         if has_game_word and has_boxscore_word:
             spec = {
                 "mechanic": "guess",

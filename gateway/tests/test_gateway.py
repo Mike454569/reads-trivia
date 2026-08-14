@@ -31,7 +31,7 @@ def test_health_unauthenticated(client):
     assert body["api_version"] == "v1"
 
 
-def test_capabilities_unauthenticated_and_exactly_twelve(client):
+def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     # v1.8, Part F: a 4th capability (the starting-lineup proof game) was
     # added to the registry that phase. The CFB data enrichment operation
     # added a 5th (CFB_HEISMAN). The App-Wide Engine Migration operation
@@ -42,12 +42,14 @@ def test_capabilities_unauthenticated_and_exactly_twelve(client):
     # stale-college-feasibility fix added a 10th (ATTENDED_COLLEGE, built on
     # the draft_facts.college backfill). The NFL Wikipedia history import
     # added an 11th and 12th (WON_CHAMPIONSHIP/NFL_SUPER_BOWL,
-    # WON_AWARD/NFL_AWARDS) -- this baseline count/set is a real, deliberate
-    # change, not a regression.
+    # WON_AWARD/NFL_AWARDS). The Creator-gap-audit operation added nine more,
+    # 13th-21st (box score sacks/turnovers/penalties, CFB championship, NFL/CFB
+    # season stat leaders, NFL coaching, CFB transfer, CFB rivalry) -- this
+    # baseline count/set is a real, deliberate change, not a regression.
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 12
+    assert len(caps) == 21
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
         ("guess", "NFL_DRAFT", "DRAFTED_BY"),
@@ -62,6 +64,15 @@ def test_capabilities_unauthenticated_and_exactly_twelve(client):
         ("guess", "NFL_DRAFT", "ATTENDED_COLLEGE"),
         ("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP"),
         ("guess", "NFL_AWARDS", "WON_AWARD"),
+        ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_SACKS"),
+        ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_TURNOVERS"),
+        ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_PENALTIES"),
+        ("guess", "CFB_CHAMPIONSHIP", "WON_CHAMPIONSHIP"),
+        ("guess", "NFL_SEASON_STATS", "LED_LEAGUE_IN_STAT"),
+        ("guess", "CFB_SEASON_STATS", "LED_LEAGUE_IN_STAT"),
+        ("guess", "NFL_COACHING", "COACHED_TEAM"),
+        ("guess", "CFB_TRANSFER", "ATTENDED_COLLEGE"),
+        ("guess", "CFB_RIVALRY", "RIVAL_OF"),
     }
     # Part C: the frontend must never see Engine internals -- confirm no
     # response field leaks a Python module/adapter/table name.

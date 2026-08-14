@@ -28,6 +28,19 @@ sentence in feasibility.py is, and both go stale the same way if a new
 capability is registered without updating every place that describes the
 registry in English.
 
+CREATOR-GAP-AUDIT SYNC: found this SYSTEM_PROMPT was stale by ELEVEN
+capabilities, not just the nine newly built in this pass -- the NFL_SUPER_BOWL/
+WON_CHAMPIONSHIP and NFL_AWARDS/WON_AWARD capabilities (registered during the
+earlier NFL Wikipedia history import operation) had ALSO never been added
+here, meaning any live request for "who won the Super Bowl" or "guess the NFL
+MVP" phrased in a way the mock translator's keyword patterns wouldn't catch
+was silently invisible to the real LLM path this whole time. All eleven
+missing capabilities (11-21) are added in this pass, along with the new
+NFL/CFB paired-domain league-routing rules (WON_CHAMPIONSHIP and
+LED_LEAGUE_IN_STAT now behave like the existing WON_GAME NFL/CFB pair) and
+the CFB_TRANSFER-vs-NFL_DRAFT ATTENDED_COLLEGE disambiguation (mirrors the
+"transfer" keyword rule mock.py already used).
+
 Credential required: environment variable `ANTHROPIC_API_KEY`. Never read
 from a file, never hardcoded, never logged, never included in any package
 output. If unset, `translate()` raises `RuntimeError` immediately -- callers
@@ -129,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -142,7 +155,7 @@ this shape:
   "clarifying_question": null or "<a short question to show the user>"
 }
 
---- THE TEN SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
+--- THE TWENTY-ONE SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
 
 1. mechanic=guess, domain=NFL_DRAFT, relationship_predicate=DRAFTED_BY
    The player sees a real NFL player's name and picks which team drafted them.
@@ -210,26 +223,104 @@ capability 8: capability 8 additionally requires season-specific team-starting-l
 membership and only covers 5 skill positions for 68 team-seasons; capability 10 has no team or \
 lineup framing at all -- just "this one drafted player, which college."
 
+11. mechanic=guess, domain=NFL_SUPER_BOWL, relationship_predicate=WON_CHAMPIONSHIP
+    The player sees a specific real Super Bowl and picks which team won it -- this is about the \
+GAME ITSELF (who beat whom in that one game), genuinely different from capability 2 (which asks \
+how a team's whole SEASON ended, not who won a specific Super Bowl). NFL only. Real coverage: \
+only 24 of 60 real Super Bowls (2002-2025 seasons) resolve to a real team identity; the rest are \
+honestly excluded, never guessed at.
+
+12. mechanic=guess, domain=NFL_AWARDS, relationship_predicate=WON_AWARD
+    The player sees a real NFL individual season award (AP MVP, AP Offensive/Defensive Player of \
+the Year, AP Offensive/Defensive Rookie of the Year, or Super Bowl MVP -- the award itself named \
+in the question) and picks which player won it. NFL only. "Guess the [MVP/DPOY/OROY/etc]" or \
+"guess who won [an NFL individual award]" means this -- distinct from capability 5 (Heisman is \
+CFB, a college award, not this).
+
+13. mechanic=guess, domain=NFL_GAME_BOXSCORE, relationship_predicate=HAD_MORE_SACKS
+    The player sees a specific real, completed NFL game and picks which team recorded more \
+(defensive) sacks. NFL only.
+
+14. mechanic=guess, domain=NFL_GAME_BOXSCORE, relationship_predicate=HAD_FEWER_TURNOVERS
+    The player sees a specific real, completed NFL game and picks which team committed fewer \
+turnovers (interceptions thrown + fumbles lost). NFL only.
+
+15. mechanic=guess, domain=NFL_GAME_BOXSCORE, relationship_predicate=HAD_FEWER_PENALTIES
+    The player sees a specific real, completed NFL game and picks which team was penalized fewer \
+times (a COUNT of penalties, not penalty yardage). NFL only. Matches "penalty"/"penalties"/ \
+"penalized" wording.
+
+16. mechanic=guess, domain=CFB_CHAMPIONSHIP, relationship_predicate=WON_CHAMPIONSHIP
+    The player sees a real CFB national championship season (1936-2025) and picks which school \
+won it -- the CFB mirror of capability 11, sharing the WON_CHAMPIONSHIP predicate the same way \
+capabilities 6/7 share WON_GAME. "National championship" or "CFB/college football champion[ship]" \
+means this. CFB only.
+
+17. mechanic=guess, domain=NFL_SEASON_STATS, relationship_predicate=LED_LEAGUE_IN_STAT
+    The player sees a real NFL season and statistical category (passing yards, rushing yards, \
+receiving yards, sacks, or defensive interceptions) and picks which player led the league in it \
+that season. NFL only.
+
+18. mechanic=guess, domain=CFB_SEASON_STATS, relationship_predicate=LED_LEAGUE_IN_STAT
+    The CFB mirror of capability 17 -- same predicate, same 5 categories, 2002-2025 seasons, \
+sharing LED_LEAGUE_IN_STAT the same way 6/7 share WON_GAME. "Led college football in [stat]" or \
+an explicit CFB signal on a stat-leader request means this. CFB only.
+
+19. mechanic=guess, domain=NFL_COACHING, relationship_predicate=COACHED_TEAM
+    The player sees a real NFL head coach and season and picks which team they coached that \
+season. NFL only. Covers 1999-2026 seasons.
+
+20. mechanic=guess, domain=CFB_TRANSFER, relationship_predicate=ATTENDED_COLLEGE
+    The player sees a real CFB player who is on record at 2+ real schools (a transfer) and picks \
+one school they played for. CFB only. This is NOT the same capability as 10 despite sharing the \
+ATTENDED_COLLEGE predicate name (the same real-world relationship, different domain/table, like \
+WON_GAME shared across 6/7): capability 10 is about an NFL DRAFTED player's one college of \
+record; capability 20 is specifically about a CFB player's TRANSFER between multiple schools. \
+The word "transfer"/"transferred"/"transfers" is the deciding signal -- a request using that \
+word about a college player's school means capability 20, never capability 10, even though both \
+are nominally about "college". A plain "guess an NFL player's college" (capability 10's normal \
+phrasing, no transfer wording) is unaffected by this rule.
+
+21. mechanic=guess, domain=CFB_RIVALRY, relationship_predicate=RIVAL_OF
+    The player sees a real CFB school in a real, named rivalry (e.g. Iron Bowl, Red River \
+Rivalry) and picks the rival school. CFB only. Covers 48 real, named rivalries. Only \
+"difficulty":"any" or "medium" is ever valid for this capability (a standing rivalry has no real \
+recency/difficulty axis) -- if the request asks for "easy" or "hard", still set difficulty to \
+"any" and briefly note in translator_notes that this capability has no other difficulty levels; \
+do NOT reject the request over this.
+
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
-Capabilities 3 (player-from-clues), 4 (starting lineup), 8 (starting lineup by college), 9 (box \
-score yards), and 10 (player's college) are NFL-only -- there is NO registered CFB equivalent of \
-any of them. If a request clearly asks for a CFB/college-football version of one of these ideas \
-(an explicit "CFB" mention, "college football" as its own phrase, or unambiguous college-only \
-framing with no NFL signal at all), you MUST NOT silently answer with the NFL capability. Use \
-"UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, and say plainly in translator_notes that this is a \
-real, understandable request but no registered CFB capability covers it yet (name which NFL \
-capability is the closest analog, for context, but do not set spec to it). A bare request with \
-NO league signal at all (neither "NFL" nor "CFB"/"college") still defaults to the NFL capability \
-for 1, 2, 3, 4, 8, 9, and 10, consistent across all of them -- only an EXPLICIT CFB signal with \
-no contradicting "NFL" token should route away from NFL. (Note: capabilities 8 and 10 are \
-themselves inherently about colleges, but that is NOT the same signal as an explicit \
-CFB/college-FOOTBALL LEAGUE request -- a request for an NFL player's/lineup's college is still \
-an NFL-competition request; only route to UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request \
-explicitly asks about a CFB/college-football player or team, which is a different, unregistered \
-concept entirely.) Capabilities 5-7 are inherently CFB-specific (5) or come in both an NFL (6) \
-and CFB (7) form -- for 6 vs 7, the same rule applies: an explicit CFB signal (with no \
-contradicting NFL token) selects domain=CFB_GAME_RESULT; everything else defaults to \
-domain=NFL_GAME_RESULT.
+Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \
+4 (starting lineup), 8 (starting lineup by college), 9 (box score yards), 10 (player's college), \
+12 (NFL awards), 13/14/15 (box score sacks/turnovers/penalties), and 19 (coaching). If a request \
+clearly asks for a CFB/college-football version of one of THESE (an explicit "CFB" mention, \
+"college football" as its own phrase, or unambiguous college-only framing with no NFL signal at \
+all), you MUST NOT silently answer with the NFL capability. Use "UNDERSTOOD_UNSUPPORTED_MECHANIC" \
+instead, and say plainly in translator_notes that this is a real, understandable request but no \
+registered CFB capability covers it yet (name which NFL capability is the closest analog, for \
+context, but do not set spec to it). A bare request with NO league signal at all (neither "NFL" \
+nor "CFB"/"college") still defaults to the NFL capability for every one of 1, 2, 3, 4, 8, 9, 10, \
+12, 13, 14, 15, and 19 -- only an EXPLICIT CFB signal with no contradicting "NFL" token should \
+route away from NFL. (Note: capabilities 8 and 10 are themselves inherently about colleges, but \
+that is NOT the same signal as an explicit CFB/college-FOOTBALL LEAGUE request -- a request for \
+an NFL player's/lineup's college is still an NFL-competition request; only route to \
+UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request explicitly asks about a CFB/college-football \
+player or team, which is a different, unregistered concept entirely.)
+
+Other capabilities come in a real, registered NFL/CFB PAIR sharing one predicate name across two \
+domains -- for these, an explicit CFB signal (with no contradicting NFL token) selects the CFB \
+domain; everything else (including no league signal at all) defaults to the NFL domain, exactly \
+like the NFL-only group above, except here the CFB request is ALSO a real "TRANSLATED" answer \
+(not UNDERSTOOD_UNSUPPORTED_MECHANIC) since a CFB capability genuinely exists to route to:
+  - WON_GAME: domain=NFL_GAME_RESULT (6, default) vs domain=CFB_GAME_RESULT (7, explicit CFB)
+  - WON_CHAMPIONSHIP: domain=NFL_SUPER_BOWL (11, default) vs domain=CFB_CHAMPIONSHIP (16, explicit CFB)
+  - LED_LEAGUE_IN_STAT: domain=NFL_SEASON_STATS (17, default) vs domain=CFB_SEASON_STATS (18, explicit CFB)
+
+Capability 5 (Heisman), 20 (CFB transfer), and 21 (CFB rivalry) are inherently CFB-only -- there \
+is no NFL equivalent registered for any of them, so no league-routing decision is needed for \
+these three; a request matching their description always means the CFB domain shown. See \
+capability 20's own note above for the specific "transfer" keyword rule that distinguishes it \
+from capability 10.
 
 --- RULE B: THE "POSITION + COLLEGE, NAMES HIDDEN" REQUEST -> CAPABILITY 8 ---
 A request that asks for a lineup/starters/offense-by-position game showing each player's \

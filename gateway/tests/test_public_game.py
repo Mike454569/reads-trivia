@@ -345,9 +345,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # proof-game fix an 8th, the Historical Engine Enrichment operation a
     # 9th (NFL_GAME_BOXSCORE), the stale-college-feasibility fix a 10th
     # (ATTENDED_COLLEGE), the NFL Wikipedia history import an 11th and 12th
-    # (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS) -- see
-    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_twelve.
-    assert len(r.json()["capabilities"]) == 12
+    # (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), the
+    # Creator-gap-audit operation nine more, 13th-21st -- see
+    # test_gateway.py::test_capabilities_unauthenticated_and_exactly_twenty_one.
+    assert len(r.json()["capabilities"]) == 21
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------

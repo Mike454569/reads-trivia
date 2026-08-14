@@ -29,9 +29,18 @@ from tools.quiz_export.adapters import draft_college as draft_college_adapter  #
 from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore as nfl_game_boxscore_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_game_boxscore_sacks as nfl_game_boxscore_sacks_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_game_boxscore_turnovers as nfl_game_boxscore_turnovers_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_game_boxscore_penalties as nfl_game_boxscore_penalties_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_super_bowl as nfl_super_bowl_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_season_awards as nfl_season_awards_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_championship as cfb_championship_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_season_stat_leader as nfl_season_stat_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_season_stat_leader as cfb_season_stat_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_coaching as nfl_coaching_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_transfer as cfb_transfer_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_rivalry as cfb_rivalry_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -452,6 +461,83 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "proven_in": ["historical-engine-enrichment-boxscore-proof"],
         "pipeline_id_start": 680000,
     },
+    # Creator-gap-audit operation: team_game_stats has real sacks/turnovers/
+    # penalties columns alongside the total_yards column HAD_MORE_YARDS
+    # already used -- these three were sitting unused. Each is its own
+    # capability (not a filter on HAD_MORE_YARDS) because the schema has no
+    # filter mechanism yet and because each is a genuinely distinct real
+    # question, not a variant of one. Shares its adapter's core logic with
+    # the two siblings below via tools/quiz_export/adapters/
+    # _boxscore_stat_common.py -- see that module's docstring.
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_SACKS"): {
+        "adapter": nfl_game_boxscore_sacks_adapter,
+        "category": nfl_game_boxscore_sacks_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Compares each team's own real recorded defensive sack total in a real completed game -- "
+            "games where both teams recorded exactly the same number of sacks are excluded (no correct "
+            "answer for a tie).",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_game",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-boxscore-stats"],
+        "pipeline_id_start": 720000,
+    },
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_TURNOVERS"): {
+        "adapter": nfl_game_boxscore_turnovers_adapter,
+        "category": nfl_game_boxscore_turnovers_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Compares each team's own real recorded turnover total (interceptions thrown + fumbles "
+            "lost) in a real completed game -- games where both teams committed exactly the same "
+            "number of turnovers are excluded (no correct answer for a tie).",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_game",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-boxscore-stats"],
+        "pipeline_id_start": 730000,
+    },
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_PENALTIES"): {
+        "adapter": nfl_game_boxscore_penalties_adapter,
+        "category": nfl_game_boxscore_penalties_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Compares each team's own real recorded penalty COUNT (not penalty yardage) in a real "
+            "completed game -- games where both teams were penalized the same number of times are "
+            "excluded (no correct answer for a tie).",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_game",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-boxscore-stats"],
+        "pipeline_id_start": 740000,
+    },
     # Added after the NFL Wikipedia history import (Super Bowl championships +
     # AP/SB awards, tools/data_refresh/nfl_wikipedia_history_import.py) --
     # importing the data into nfl_championship_events/nfl_season_awards and
@@ -530,6 +616,178 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["nfl-wikipedia-history-import"],
         "pipeline_id_start": 710000,
+    },
+    # Creator-gap-audit operation: cfb_champion_school_links (real school-
+    # resolved national championship winners, 1936-2025) had zero Creator
+    # capabilities despite being the CFB mirror of NFL_SUPER_BOWL above.
+    ("guess", "CFB_CHAMPIONSHIP", "WON_CHAMPIONSHIP"): {
+        "adapter": cfb_championship_adapter,
+        "category": cfb_championship_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "11 of the 91 real championship seasons (1936-2025) have more than one recognized "
+            "national champion (real historical selector disagreements, pre-BCS/CFP era) -- those "
+            "seasons are excluded entirely, never guessed at.",
+            "Distractor schools are not season-scoped (cfb_school_seasons only covers 2002-2025; "
+            "championships go back to 1936) -- every option is a real school, but a distractor could "
+            "be one without a program in that exact historical year.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_championship_season",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 91,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-cfb-championship"],
+        "pipeline_id_start": 750000,
+    },
+    # Creator-gap-audit operation: player_season_stats (43,819 rows, fully
+    # populated) had zero Creator capabilities before this.
+    ("guess", "NFL_SEASON_STATS", "LED_LEAGUE_IN_STAT"): {
+        "adapter": nfl_season_stat_leader_adapter,
+        "category": nfl_season_stat_leader_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers 5 real statistical categories (passing/rushing/receiving yards, sacks, "
+            "interceptions) -- interceptions here is DEFENSIVE interceptions, verified directly "
+            "against real 2019 leader data (Stephon Gilmore/Anthony Harris/Tre'Davious White).",
+            "Any (season, category) with a real tie for the league lead is excluded entirely, never "
+            "guessed at.",
+            "Distractors are the real next-highest finishers in that same season and category (not "
+            "random players), for a genuinely plausible, hard question.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_season_stat_leaderboard",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-stat-leaders"],
+        "pipeline_id_start": 760000,
+    },
+    # The CFB mirror of the above -- cfb_player_season_stats_real (78,651
+    # rows). This table is CLEANER than the NFL one for interceptions (a
+    # real, separate `defensive_interceptions` column already exists, no
+    # ambiguity to verify).
+    ("guess", "CFB_SEASON_STATS", "LED_LEAGUE_IN_STAT"): {
+        "adapter": cfb_season_stat_leader_adapter,
+        "category": cfb_season_stat_leader_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers 5 real statistical categories (passing/rushing/receiving yards, sacks, "
+            "defensive interceptions), 2002-2025 seasons.",
+            "Any (season, category) with a real tie for the national lead is excluded entirely, "
+            "never guessed at.",
+            "Distractors are the real next-highest finishers in that same season and category.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_season_stat_leaderboard",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-stat-leaders"],
+        "pipeline_id_start": 770000,
+    },
+    # Creator-gap-audit operation: coach_team_seasons (936 rows, 1999-2026,
+    # fully populated) had zero Creator capabilities before this.
+    ("guess", "NFL_COACHING", "COACHED_TEAM"): {
+        "adapter": nfl_coaching_adapter,
+        "category": nfl_coaching_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers real (coach, season) -> team records, 1999-2026. Verified directly before "
+            "building: zero (coach, season) pairs map to more than one team, so this direction of "
+            "the question is never ambiguous (43 team-seasons DO have two coaches, e.g. a mid-season "
+            "interim change -- that's a different, unused direction, not a problem for this one).",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_coach_season",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-coaching"],
+        "pipeline_id_start": 780000,
+    },
+    # Creator-gap-audit operation: cfb_transfer_summary_v17 (109,221 rows;
+    # 15,495 real multi-school careers) had zero Creator capabilities
+    # before this. Reuses the ATTENDED_COLLEGE predicate (same real-world
+    # relationship -- player attended school X -- as the NFL_DRAFT/
+    # ATTENDED_COLLEGE capability, just a different domain/table, matching
+    # the existing WON_GAME-shared-across-NFL/CFB-domains pattern).
+    ("guess", "CFB_TRANSFER", "ATTENDED_COLLEGE"): {
+        "adapter": cfb_transfer_adapter,
+        "category": cfb_transfer_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only real players with 2+ real schools on record (15,495 of 109,221 total CFB "
+            "players) -- a single-school player is not eligible for this capability at all.",
+            "This source table has no per-row source_id/verification_status columns (unlike most "
+            "tables in this Engine) -- every row is independently cross-checked against the real, "
+            "verified `cfb_roster_seasons_real` table instead (100% of eligible rows verified this way).",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_transfer_player",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-transfer-portal"],
+        "pipeline_id_start": 790000,
+    },
+    # Creator-gap-audit operation: cfb_rivalries (48 real, named rivalries)
+    # had zero Creator capabilities before this.
+    ("guess", "CFB_RIVALRY", "RIVAL_OF"): {
+        "adapter": cfb_rivalry_adapter,
+        "category": cfb_rivalry_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers 48 real, named rivalries (96 real question directions, since each rivalry can be "
+            "asked from either school's perspective) -- a small, fixed, real domain, not exhaustive "
+            "of every real CFB rivalry that exists.",
+            "Difficulty is fixed at Medium for every question (no real season/recency axis exists for "
+            "a standing rivalry fact) rather than a fabricated recency score -- requesting 'easy' or "
+            "'hard' will correctly yield zero results rather than mislabel a question.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_school",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 96,
+        "supported_difficulties": frozenset({"any", "medium"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-gap-audit-rivalry"],
+        "pipeline_id_start": 800000,
     },
 }
 

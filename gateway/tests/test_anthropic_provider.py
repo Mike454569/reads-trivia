@@ -60,10 +60,14 @@ def _fake_credential(monkeypatch):
     monkeypatch.setenv(anthropic_provider.CREDENTIAL_ENV_VAR, FAKE_KEY)
 
 
-# --- schema coverage: all 10 capabilities are reachable ---------------------
+# --- schema coverage: all 21 capabilities are reachable ----------------------
 # (NFL_GAME_BOXSCORE/HAD_MORE_YARDS was a pre-existing gap in this list, not
 # a new one -- found and fixed alongside the stale-college-feasibility fix's
-# own new NFL_DRAFT/ATTENDED_COLLEGE entry.)
+# own new NFL_DRAFT/ATTENDED_COLLEGE entry. The Creator-gap-audit operation
+# later found this list was ALSO stale by two more pre-existing capabilities
+# -- NFL_SUPER_BOWL/WON_CHAMPIONSHIP and NFL_AWARDS/WON_AWARD -- that had
+# never been added here despite being registered earlier; those two plus the
+# nine genuinely new capabilities from that operation are all added below.)
 
 CAPABILITY_REPLIES = [
     ("guess", "NFL_DRAFT", "DRAFTED_BY"),
@@ -76,12 +80,23 @@ CAPABILITY_REPLIES = [
     ("guess", "NFL_OFFENSE_LINEUP_COLLEGE", "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"),
     ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_YARDS"),
     ("guess", "NFL_DRAFT", "ATTENDED_COLLEGE"),
+    ("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP"),
+    ("guess", "NFL_AWARDS", "WON_AWARD"),
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_MORE_SACKS"),
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_TURNOVERS"),
+    ("guess", "NFL_GAME_BOXSCORE", "HAD_FEWER_PENALTIES"),
+    ("guess", "CFB_CHAMPIONSHIP", "WON_CHAMPIONSHIP"),
+    ("guess", "NFL_SEASON_STATS", "LED_LEAGUE_IN_STAT"),
+    ("guess", "CFB_SEASON_STATS", "LED_LEAGUE_IN_STAT"),
+    ("guess", "NFL_COACHING", "COACHED_TEAM"),
+    ("guess", "CFB_TRANSFER", "ATTENDED_COLLEGE"),
+    ("guess", "CFB_RIVALRY", "RIVAL_OF"),
 ]
 
 
 @pytest.mark.parametrize("mechanic,domain,predicate", CAPABILITY_REPLIES)
 def test_each_registered_capability_is_a_valid_translated_reply(mechanic, domain, predicate):
-    """Simulates the model correctly naming each of the 10 real registered
+    """Simulates the model correctly naming each of the 21 real registered
     capabilities -- proves the schema in anthropic_provider.py's translate()
     parsing path accepts every one of them and validator.py accepts the
     resulting spec as READY (not just schema-shaped, actually registered)."""
