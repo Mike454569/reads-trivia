@@ -66,9 +66,10 @@ def _runners():
     Keyed by dataset_key (the Gateway route's own path segment) -> (module,
     run_fn, league label, real dataset_name stored in refresh_runs)."""
     from tools.data_refresh import (
-        cfb_games_refresh, cfb_player_season_stats_refresh, cfb_refresh, nfl_draft_refresh,
-        nfl_games_refresh, nfl_player_game_stats_refresh, nfl_player_stats_refresh, nfl_refresh,
-        nfl_team_game_stats_refresh,
+        cfb_all_america_import, cfb_games_refresh, cfb_player_season_stats_refresh, cfb_refresh,
+        nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh, nfl_injuries_refresh,
+        nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
+        nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh,
     )
 
     return {
@@ -103,6 +104,22 @@ def _runners():
         # source, keeping it current going forward too.
         "cfb_player_stats": (cfb_player_season_stats_refresh, cfb_player_season_stats_refresh.run_cfb_player_season_stats_refresh,
                               "CFB", cfb_player_season_stats_refresh.DATASET),
+        # Engine-gap-audit operation: five new real domains had real,
+        # verified import scripts but were never wired into this dispatcher
+        # -- without this, none of them could ever run in production
+        # (manually or on a schedule), regardless of `fly deploy`.
+        "nfl_contracts": (nfl_contracts_refresh, nfl_contracts_refresh.run_nfl_contracts_refresh,
+                           "NFL", nfl_contracts_refresh.DATASET),
+        "nfl_injuries": (nfl_injuries_refresh, nfl_injuries_refresh.run_nfl_injuries_refresh,
+                          "NFL", nfl_injuries_refresh.DATASET),
+        "nfl_pbp": (nfl_pbp_refresh, nfl_pbp_refresh.run_nfl_pbp_refresh, "NFL", nfl_pbp_refresh.DATASET),
+        # Derived-only (no external download) -- must run AFTER nfl_player_stats
+        # so real pass_interceptions data is fresh before computing ratings
+        # from it; scheduled to a later slot in netlify.toml for this reason.
+        "nfl_passer_rating": (nfl_passer_rating_compute, nfl_passer_rating_compute.run_nfl_passer_rating_compute,
+                               "NFL", nfl_passer_rating_compute.DATASET),
+        "cfb_all_america": (cfb_all_america_import, cfb_all_america_import.run_cfb_all_america_import,
+                             "CFB", cfb_all_america_import.DATASET),
     }
 
 
@@ -240,10 +257,15 @@ def refresh_status() -> dict:
             "player_stats": _safe_run_summary(runners["nfl_player_stats"][0].last_run_status()),
             "player_game_stats": _safe_run_summary(runners["nfl_player_game_stats"][0].last_run_status()),
             "team_game_stats": _safe_run_summary(runners["nfl_team_game_stats"][0].last_run_status()),
+            "contracts": _safe_run_summary(runners["nfl_contracts"][0].last_run_status()),
+            "injuries": _safe_run_summary(runners["nfl_injuries"][0].last_run_status()),
+            "pbp": _safe_run_summary(runners["nfl_pbp"][0].last_run_status()),
+            "passer_rating": _safe_run_summary(runners["nfl_passer_rating"][0].last_run_status()),
         },
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),
             "games": _safe_run_summary(runners["cfb_games"][0].last_run_status()),
             "player_stats": _safe_run_summary(runners["cfb_player_stats"][0].last_run_status()),
+            "all_america": _safe_run_summary(runners["cfb_all_america"][0].last_run_status()),
         },
     }

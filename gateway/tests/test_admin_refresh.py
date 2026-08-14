@@ -146,9 +146,13 @@ def test_refresh_status_shape_and_no_path_leakage():
     status = admin_refresh.refresh_status()
     assert set(status.keys()) == {"nfl", "cfb"}
     # Historical Engine Enrichment operation: nfl_draft_refresh.py and
-    # nfl_player_stats_refresh.py added.
-    assert set(status["nfl"].keys()) == {"rosters", "games", "draft", "player_stats", "player_game_stats", "team_game_stats"}
-    assert set(status["cfb"].keys()) == {"rosters", "games", "player_stats"}
+    # nfl_player_stats_refresh.py added. Engine-gap-audit operation: contracts/
+    # injuries/pbp/passer_rating (NFL) and all_america (CFB) added.
+    assert set(status["nfl"].keys()) == {
+        "rosters", "games", "draft", "player_stats", "player_game_stats", "team_game_stats",
+        "contracts", "injuries", "pbp", "passer_rating",
+    }
+    assert set(status["cfb"].keys()) == {"rosters", "games", "player_stats", "all_america"}
     for league_block in status.values():
         for run_status in league_block.values():
             if run_status is None:
@@ -184,6 +188,28 @@ def test_run_fn_for_covers_cfb_player_stats():
 def test_refresh_status_includes_cfb_player_stats():
     status = admin_refresh.refresh_status()
     assert "player_stats" in status["cfb"]
+
+
+def test_run_fn_for_covers_engine_gap_audit_datasets():
+    from tools.data_refresh import (
+        cfb_all_america_import, nfl_contracts_refresh, nfl_injuries_refresh,
+        nfl_passer_rating_compute, nfl_pbp_refresh,
+    )
+
+    assert admin_refresh.run_fn_for("nfl_contracts") is nfl_contracts_refresh.run_nfl_contracts_refresh
+    assert admin_refresh.run_fn_for("nfl_injuries") is nfl_injuries_refresh.run_nfl_injuries_refresh
+    assert admin_refresh.run_fn_for("nfl_pbp") is nfl_pbp_refresh.run_nfl_pbp_refresh
+    assert admin_refresh.run_fn_for("nfl_passer_rating") is nfl_passer_rating_compute.run_nfl_passer_rating_compute
+    assert admin_refresh.run_fn_for("cfb_all_america") is cfb_all_america_import.run_cfb_all_america_import
+    for key in ("nfl_contracts", "nfl_injuries", "nfl_pbp", "nfl_passer_rating", "cfb_all_america"):
+        assert admin_refresh.check_can_start(key)["status"] == "OK"
+
+
+def test_refresh_status_includes_engine_gap_audit_datasets():
+    status = admin_refresh.refresh_status()
+    for key in ("contracts", "injuries", "pbp", "passer_rating"):
+        assert key in status["nfl"]
+    assert "all_america" in status["cfb"]
 
 
 # --- Gateway routes ----------------------------------------------------------

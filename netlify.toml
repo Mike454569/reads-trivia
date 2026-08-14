@@ -83,3 +83,35 @@
 # Ninth dataset, same 30-minutes-apart stagger.
 [functions."trigger-refresh-cfb-player-stats"]
   schedule = "10 13 * * *"
+
+# Engine-gap-audit operation: five more real datasets. Cadences follow the
+# source pack's own explicit guidance (READS_ENGINE_MISSING_DATA_SOURCE_PACK's
+# 00_READ_ME) rather than uniform daily -- contracts/PBP change slowly and
+# are real backup/download/parse cost on this shared-CPU 1GB machine
+# (gateway/fly.toml), so weekly is the honest right cadence, not daily for
+# its own sake. Injuries genuinely change day to day in-season ("in-season
+# frequent" per the source pack) so stay daily. All-America is 137 years of
+# mostly-static history plus at most one new year per season -- monthly.
+
+# Tenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-nfl-contracts"]
+  schedule = "40 13 * * 0"
+
+# Eleventh dataset -- daily, same 30-minutes-apart stagger.
+[functions."trigger-refresh-nfl-injuries"]
+  schedule = "10 14 * * *"
+
+# Twelfth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-nfl-pbp"]
+  schedule = "40 14 * * 0"
+
+# Thirteenth dataset -- daily, deliberately scheduled well after
+# trigger-refresh-nfl-player-stats' own 11:40am slot (real dependency: this
+# computes ratings FROM that dataset's real pass_interceptions column, so
+# it must run after that data is fresh, not before).
+[functions."trigger-refresh-nfl-passer-rating"]
+  schedule = "10 15 * * *"
+
+# Fourteenth dataset -- monthly (1st of each month).
+[functions."trigger-refresh-cfb-all-america"]
+  schedule = "40 15 1 * *"

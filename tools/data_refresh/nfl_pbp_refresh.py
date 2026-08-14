@@ -315,3 +315,14 @@ def run_nfl_pbp_refresh(seasons: list[int] | None = None) -> dict:
         )
         c2.close()
         return {"status": "FAILED_RESTORED", "run_id": run_id, "reason": repr(e), "backup": backup}
+
+
+def last_run_status() -> dict | None:
+    c = engine_bootstrap.connect()
+    safety.ensure_refresh_tables(c)
+    row = c.execute(
+        "SELECT * FROM refresh_runs WHERE league=? AND dataset_name=? ORDER BY started_at DESC LIMIT 1",
+        (LEAGUE, DATASET),
+    ).fetchone()
+    c.close()
+    return dict(row) if row else None
