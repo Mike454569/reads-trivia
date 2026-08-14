@@ -2142,12 +2142,11 @@ function openOnboarding(steps) {
   }, 0);
 }
 function closeOnboarding() {
-  // The sample question's crowd-cheer SFX has no max-duration cap (unlike
-  // 'wrong') because in every other mode the next playSound() call cuts it
-  // off naturally. Onboarding's sample question is answered exactly once —
-  // nothing after it calls playSound() again — so without this, a correct
-  // guess here just keeps the crowd noise playing indefinitely through the
-  // rest of the walkthrough and beyond.
+  // The correct-answer crowd-cheer SFX now has its own max-duration cap
+  // (sound.js's SFX_MAX_DURATION), but onboarding's sample question is
+  // answered exactly once — nothing after it calls playSound() again to
+  // cut it off the way every other mode naturally does — so this stops it
+  // immediately on close rather than waiting out the cap.
   if (typeof stopSfx === 'function') stopSfx();
   var modal = document.getElementById('onboarding-modal');
   var backdrop = document.getElementById('onboarding-backdrop');

@@ -66,8 +66,8 @@ def _runners():
     Keyed by dataset_key (the Gateway route's own path segment) -> (module,
     run_fn, league label, real dataset_name stored in refresh_runs)."""
     from tools.data_refresh import (
-        cfb_games_refresh, cfb_refresh, nfl_draft_refresh, nfl_games_refresh,
-        nfl_player_game_stats_refresh, nfl_player_stats_refresh, nfl_refresh,
+        cfb_games_refresh, cfb_player_season_stats_refresh, cfb_refresh, nfl_draft_refresh,
+        nfl_games_refresh, nfl_player_game_stats_refresh, nfl_player_stats_refresh, nfl_refresh,
         nfl_team_game_stats_refresh,
     )
 
@@ -96,6 +96,13 @@ def _runners():
         # totals, same real canonical game_id linkage.
         "nfl_team_game_stats": (nfl_team_game_stats_refresh, nfl_team_game_stats_refresh.run_nfl_team_game_stats_refresh,
                                  "NFL", nfl_team_game_stats_refresh.DATASET),
+        # Football Knowledge Expansion operation: cfb_player_season_stats_real
+        # only covered 2024-2025 and was flagged production_safe=0 pending
+        # reconciliation -- this dataset key re-derives and extends it back
+        # to 2014 from the same real, already-approved SPORTSDATAVERSE_CFB
+        # source, keeping it current going forward too.
+        "cfb_player_stats": (cfb_player_season_stats_refresh, cfb_player_season_stats_refresh.run_cfb_player_season_stats_refresh,
+                              "CFB", cfb_player_season_stats_refresh.DATASET),
     }
 
 
@@ -237,5 +244,6 @@ def refresh_status() -> dict:
         "cfb": {
             "rosters": _safe_run_summary(runners["cfb"][0].last_run_status()),
             "games": _safe_run_summary(runners["cfb_games"][0].last_run_status()),
+            "player_stats": _safe_run_summary(runners["cfb_player_stats"][0].last_run_status()),
         },
     }

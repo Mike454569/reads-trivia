@@ -148,7 +148,7 @@ def test_refresh_status_shape_and_no_path_leakage():
     # Historical Engine Enrichment operation: nfl_draft_refresh.py and
     # nfl_player_stats_refresh.py added.
     assert set(status["nfl"].keys()) == {"rosters", "games", "draft", "player_stats", "player_game_stats", "team_game_stats"}
-    assert set(status["cfb"].keys()) == {"rosters", "games"}
+    assert set(status["cfb"].keys()) == {"rosters", "games", "player_stats"}
     for league_block in status.values():
         for run_status in league_block.values():
             if run_status is None:
@@ -172,6 +172,18 @@ def test_run_fn_for_covers_games_datasets_too():
 
     assert admin_refresh.run_fn_for("nfl_games") is nfl_games_refresh.run_nfl_games_refresh
     assert admin_refresh.run_fn_for("cfb_games") is cfb_games_refresh.run_cfb_games_refresh
+
+
+def test_run_fn_for_covers_cfb_player_stats():
+    from tools.data_refresh import cfb_player_season_stats_refresh
+
+    assert admin_refresh.run_fn_for("cfb_player_stats") is cfb_player_season_stats_refresh.run_cfb_player_season_stats_refresh
+    assert admin_refresh.check_can_start("cfb_player_stats")["status"] == "OK"
+
+
+def test_refresh_status_includes_cfb_player_stats():
+    status = admin_refresh.refresh_status()
+    assert "player_stats" in status["cfb"]
 
 
 # --- Gateway routes ----------------------------------------------------------

@@ -77,3 +77,9 @@
 # 30-minutes-apart stagger.
 [functions."trigger-refresh-nfl-team-game-stats"]
   schedule = "40 12 * * *"
+
+# Football Knowledge Expansion operation: extends cfb_player_season_stats_real
+# from 2024-2025-only back to 2014, and keeps it current going forward.
+# Ninth dataset, same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-player-stats"]
+  schedule = "10 13 * * *"

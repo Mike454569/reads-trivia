@@ -64,9 +64,11 @@ function sfxElement(name) {
 }
 // The wrong-answer whistle file is a longer clip than needed for a quick
 // "wrong" cue — cut it off after roughly one blast instead of letting the
-// whole thing play out. (No audio-editing tooling available to actually trim
-// the file itself, so this trims playback in code instead.)
-var SFX_MAX_DURATION = { wrong: 900 };
+// whole thing play out. Same for the correct-answer crowd cheer, which ran
+// much longer than a quick answer-feedback cue needs. (No audio-editing
+// tooling available to actually trim the files themselves, so this trims
+// playback in code instead.)
+var SFX_MAX_DURATION = { wrong: 900, correct: 2500 };
 // Only one correct/wrong/complete effect plays at a time — starting a new one
 // (or advancing past the one currently playing, via stopSfx()) always cuts off
 // whatever's already going, so a long crowd-cheer/whistle clip never bleeds
