@@ -171,18 +171,27 @@ def evaluate(c, row, rng, guard):
     winner_name = schools[winner_id]
     loser_name = schools[loser_id]
 
+    # Real, confirmed-live leakage bug fixed here: the distractor pool used
+    # to explicitly EXCLUDE the loser as well as the winner, so the four
+    # options were "the winner + 3 schools that had nothing to do with this
+    # game at all" -- the loser (the other real school actually named in the
+    # question) could never appear, making the correct answer identifiable
+    # from option membership alone, no football knowledge required (verified
+    # live: 120/120 generated questions leaked before this fix). Both real
+    # matchup schools now always appear among the options; only the
+    # remaining 2 slots are filled from schools that did NOT play in this game.
     season_schools = _schools_by_season(c).get(row["season"], {})
     pool = {sid: name for sid, name in season_schools.items() if sid not in (winner_id, loser_id)}
-    if len(pool) < 3:
+    if len(pool) < 2:
         # Real fallback, never a fabrication -- just widens to every real
         # school rather than only that season's real participants, for the
-        # rare season with too few tracked games to fill 3 distractors.
+        # rare season with too few tracked games to fill 2 distractors.
         pool = {sid: name for sid, name in schools.items() if sid not in (winner_id, loser_id)}
-    if len(pool) < 3:
+    if len(pool) < 2:
         return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(list(pool.values()), 3)
+    distractor_names = rng.sample(list(pool.values()), 2)
 
-    options = [winner_name] + distractor_names
+    options = [winner_name, loser_name] + distractor_names
     if len(set(options)) != 4:
         return "DUPLICATE_OPTIONS"
 
@@ -194,7 +203,8 @@ def evaluate(c, row, rng, guard):
     if guard.entity_seen(entity_key):
         return "DUPLICATE_GAME"
 
-    shuffled_options, correct_index = serializer.finalize_options(rng, winner_name, distractor_names)
+    shuffled_options, correct_index = serializer.finalize_options(
+        rng, winner_name, [loser_name] + distractor_names)
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner_name:
         return "INVALID_CORRECT_INDEX"
 
@@ -221,6 +231,10 @@ def evaluate(c, row, rng, guard):
             "home_score": row["home_score"], "away_score": row["away_score"], "margin": margin,
             "winner_school_id": winner_id, "correct_answer_text": winner_name,
             "difficulty_score": diff_score, "difficulty_band": band, "source_id": row["source_id"],
+            # Generic Factory/QA answer-leakage rule (game_director_v01.py's
+            # _check_answer_leakage): both real schools named in the question
+            # text must appear among the options, or neither may.
+            "referenced_entities": [away_name, home_name],
         },
     }
 

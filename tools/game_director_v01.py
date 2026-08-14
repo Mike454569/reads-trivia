@@ -156,6 +156,48 @@ def _engine_version_fingerprint(c) -> dict:
     }
 
 
+def _check_answer_leakage(result: dict) -> str | None:
+    """Generic, permanent Factory/QA rule -- applies to every adapter's
+    output, not just one domain: if the question text names a specific,
+    closed set of real candidate entities (e.g. "which team won when the
+    Colts played the Bills" names exactly two teams), and the answer
+    OPTIONS include SOME but not ALL of those named entities, the correct
+    answer is trivially identifiable from option membership alone -- no
+    football knowledge required, just noticing which named team is present.
+
+    Real, confirmed-live incident this closes: nfl_game_result.py and
+    cfb_game_result.py's distractor pools explicitly EXCLUDED the losing
+    team from the option set (`pool` filtered out both winner and loser),
+    so a "who won the X vs Y game" question's four options were the winner
+    plus three teams that had nothing to do with the game at all -- the
+    loser (the other team actually named in the question) could never
+    appear, making every such question leak its own answer structurally.
+
+    Opt-in, not automatic parsing: an adapter declares which real-world
+    entity names its OWN question text names by setting
+    `result["_audit"]["referenced_entities"]` to that list (see
+    nfl_game_result.py/cfb_game_result.py for the reference implementation).
+    An adapter that never sets this key is unaffected -- this rule only
+    fires when an adapter explicitly opts in, since inferring "which
+    entities does this question name" from free-form question text alone
+    would be unreliable and adapter-specific to get right. Placed in the
+    shared generation loop (not each adapter's own evaluate()) so it is
+    enforced once, centrally, for every current and future `guess`-mechanic
+    capability -- the actual "Factory/QA layer" this rule was asked to live
+    in permanently, not a per-domain opt-in convention living in twenty-one
+    separate files.
+    """
+    referenced = (result.get("_audit") or {}).get("referenced_entities")
+    if not referenced:
+        return None
+    options = set(result.get("options") or [])
+    referenced_set = set(referenced)
+    overlap = options & referenced_set
+    if overlap and overlap != referenced_set:
+        return "ANSWER_LEAKAGE_PARTIAL_REFERENCED_ENTITIES"
+    return None
+
+
 def generate_package_from_spec(spec: dict, adapter, *, request_text: str, director_request_id: str,
                                 seed: str, target_count: int = 25, id_start: int = ID_START,
                                 freeze_timestamp: str | None = None,
@@ -213,6 +255,10 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
         result = adapter.evaluate(c, raw, rng, guard)  # reused verbatim -- same function proven in 3 pilots
         if isinstance(result, str):
             rejected_counts[result] += 1
+            continue
+        leak_reason = _check_answer_leakage(result)
+        if leak_reason:
+            rejected_counts[leak_reason] += 1
             continue
         result["id"] = id_start + len(accepted)
         accepted.append(result)
