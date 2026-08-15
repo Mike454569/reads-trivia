@@ -66,9 +66,10 @@ def _runners():
     Keyed by dataset_key (the Gateway route's own path segment) -> (module,
     run_fn, league label, real dataset_name stored in refresh_runs)."""
     from tools.data_refresh import (
-        cfb_all_america_import, cfb_games_refresh, cfb_player_season_stats_refresh, cfb_refresh,
-        nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh, nfl_injuries_refresh,
-        nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
+        cfb_all_america_import, cfb_betting_lines_refresh, cfb_games_postseason_refresh, cfb_games_refresh,
+        cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_refresh,
+        cfb_standings_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
+        nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
         nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh,
     )
 
@@ -120,6 +121,24 @@ def _runners():
                                "NFL", nfl_passer_rating_compute.DATASET),
         "cfb_all_america": (cfb_all_america_import, cfb_all_america_import.run_cfb_all_america_import,
                              "CFB", cfb_all_america_import.DATASET),
+        # Engine-gap-audit operation, continuation: five more real CFB
+        # domains, all CFBD-key-dependent (tools/data_refresh/_cfbd_client.py).
+        # Each of these defaults to a CURRENT-SEASON-ONLY refresh when called
+        # with no arguments (see each script's own target_seasons comment) --
+        # CFBD is a metered, paid API (free tier: 1000 calls/month), unlike
+        # every nflverse/cfbfastR source elsewhere in this dispatcher, so a
+        # scheduled no-args call must never re-sweep 2002-present on every
+        # run. The real 2002-2025 historical backfill is already imported;
+        # a further manual backfill is one explicit `seasons=` call away.
+        "cfb_betting_lines": (cfb_betting_lines_refresh, cfb_betting_lines_refresh.run_cfb_betting_lines_refresh,
+                               "CFB", cfb_betting_lines_refresh.DATASET),
+        "cfb_games_postseason": (cfb_games_postseason_refresh, cfb_games_postseason_refresh.run_cfb_games_postseason_refresh,
+                                  "CFB", cfb_games_postseason_refresh.DATASET),
+        "cfb_pbp": (cfb_pbp_refresh, cfb_pbp_refresh.run_cfb_pbp_refresh, "CFB", cfb_pbp_refresh.DATASET),
+        "cfb_rankings": (cfb_rankings_refresh, cfb_rankings_refresh.run_cfb_rankings_refresh,
+                          "CFB", cfb_rankings_refresh.DATASET),
+        "cfb_standings": (cfb_standings_refresh, cfb_standings_refresh.run_cfb_standings_refresh,
+                           "CFB", cfb_standings_refresh.DATASET),
     }
 
 
@@ -267,5 +286,10 @@ def refresh_status() -> dict:
             "games": _safe_run_summary(runners["cfb_games"][0].last_run_status()),
             "player_stats": _safe_run_summary(runners["cfb_player_stats"][0].last_run_status()),
             "all_america": _safe_run_summary(runners["cfb_all_america"][0].last_run_status()),
+            "betting_lines": _safe_run_summary(runners["cfb_betting_lines"][0].last_run_status()),
+            "games_postseason": _safe_run_summary(runners["cfb_games_postseason"][0].last_run_status()),
+            "pbp": _safe_run_summary(runners["cfb_pbp"][0].last_run_status()),
+            "rankings": _safe_run_summary(runners["cfb_rankings"][0].last_run_status()),
+            "standings": _safe_run_summary(runners["cfb_standings"][0].last_run_status()),
         },
     }

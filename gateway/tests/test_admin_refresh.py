@@ -147,12 +147,17 @@ def test_refresh_status_shape_and_no_path_leakage():
     assert set(status.keys()) == {"nfl", "cfb"}
     # Historical Engine Enrichment operation: nfl_draft_refresh.py and
     # nfl_player_stats_refresh.py added. Engine-gap-audit operation: contracts/
-    # injuries/pbp/passer_rating (NFL) and all_america (CFB) added.
+    # injuries/pbp/passer_rating (NFL) and all_america (CFB) added. Engine-gap-
+    # audit operation, continuation: betting_lines/games_postseason/pbp/
+    # rankings/standings (CFB, CFBD-key-dependent) added.
     assert set(status["nfl"].keys()) == {
         "rosters", "games", "draft", "player_stats", "player_game_stats", "team_game_stats",
         "contracts", "injuries", "pbp", "passer_rating",
     }
-    assert set(status["cfb"].keys()) == {"rosters", "games", "player_stats", "all_america"}
+    assert set(status["cfb"].keys()) == {
+        "rosters", "games", "player_stats", "all_america",
+        "betting_lines", "games_postseason", "pbp", "rankings", "standings",
+    }
     for league_block in status.values():
         for run_status in league_block.values():
             if run_status is None:
@@ -210,6 +215,27 @@ def test_refresh_status_includes_engine_gap_audit_datasets():
     for key in ("contracts", "injuries", "pbp", "passer_rating"):
         assert key in status["nfl"]
     assert "all_america" in status["cfb"]
+
+
+def test_run_fn_for_covers_engine_gap_audit_continuation_cfbd_datasets():
+    from tools.data_refresh import (
+        cfb_betting_lines_refresh, cfb_games_postseason_refresh, cfb_pbp_refresh,
+        cfb_rankings_refresh, cfb_standings_refresh,
+    )
+
+    assert admin_refresh.run_fn_for("cfb_betting_lines") is cfb_betting_lines_refresh.run_cfb_betting_lines_refresh
+    assert admin_refresh.run_fn_for("cfb_games_postseason") is cfb_games_postseason_refresh.run_cfb_games_postseason_refresh
+    assert admin_refresh.run_fn_for("cfb_pbp") is cfb_pbp_refresh.run_cfb_pbp_refresh
+    assert admin_refresh.run_fn_for("cfb_rankings") is cfb_rankings_refresh.run_cfb_rankings_refresh
+    assert admin_refresh.run_fn_for("cfb_standings") is cfb_standings_refresh.run_cfb_standings_refresh
+    for key in ("cfb_betting_lines", "cfb_games_postseason", "cfb_pbp", "cfb_rankings", "cfb_standings"):
+        assert admin_refresh.check_can_start(key)["status"] == "OK"
+
+
+def test_refresh_status_includes_engine_gap_audit_continuation_cfbd_datasets():
+    status = admin_refresh.refresh_status()
+    for key in ("betting_lines", "games_postseason", "pbp", "rankings", "standings"):
+        assert key in status["cfb"]
 
 
 # --- Gateway routes ----------------------------------------------------------

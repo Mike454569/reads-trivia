@@ -115,3 +115,35 @@
 # Fourteenth dataset -- monthly (1st of each month).
 [functions."trigger-refresh-cfb-all-america"]
   schedule = "40 15 1 * *"
+
+# Engine-gap-audit operation, continuation: five more real CFB domains, all
+# CFBD-key-dependent (tools/data_refresh/_cfbd_client.py). CFBD is a
+# metered, PAID API (free tier: 1000 calls/month) -- unlike every other
+# scheduled dataset in this file, which sources from free/unlimited
+# nflverse or cfbfastR-data. Each of these five scripts defaults to a
+# CURRENT-SEASON-ONLY refresh when called with no arguments (see each
+# script's own target_seasons comment), so a weekly cadence here costs on
+# the order of tens of real API calls a month total across all five, not
+# hundreds -- the real 2002-2025 historical backfill already imported is
+# never re-fetched by the schedule, only ever by an explicit manual
+# `seasons=` call.
+
+# Fifteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-betting-lines"]
+  schedule = "10 16 * * 0"
+
+# Sixteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-games-postseason"]
+  schedule = "40 16 * * 0"
+
+# Seventeenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-pbp"]
+  schedule = "10 17 * * 0"
+
+# Eighteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-rankings"]
+  schedule = "40 17 * * 0"
+
+# Nineteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
+[functions."trigger-refresh-cfb-standings"]
+  schedule = "10 18 * * 0"
