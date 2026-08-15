@@ -8,3 +8,13 @@ fastapi==0.128.8
 uvicorn==0.39.0
 pydantic==2.13.4
 httpx==0.28.1
+# beautifulsoup4: real production gap found live -- tools/data_refresh/
+# cfb_all_america_import.py (Engine-gap-audit operation) imports bs4 to
+# parse Wikipedia's All-America selection tables (stdlib html.parser
+# backend, no lxml needed), but it was never added here. Since
+# gateway/services/admin_refresh.py's _runners() imports every
+# tools.data_refresh dataset module in ONE combined statement, this
+# ImportError broke EVERY dataset refresh in production, not just
+# cfb_all_america -- confirmed live via a real 503 SERVICE_UNAVAILABLE
+# ("No module named 'bs4'") triggering an unrelated dataset (cfb_betting_lines).
+beautifulsoup4==4.15.0
