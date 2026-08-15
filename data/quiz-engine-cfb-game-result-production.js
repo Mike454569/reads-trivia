@@ -18,9 +18,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Army played Notre Dame in Week 13, 2024?",
     "options": [
-      "UTEP",
-      "North Central",
-      "Coastal Carolina",
+      "Ouachita Baptist",
+      "Army",
+      "Wisconsin-Eau Claire",
       "Notre Dame"
     ],
     "correctIndex": 3,
@@ -33,9 +33,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Anna Maria College played Mass Maritime in Week 4, 2025?",
     "options": [
       "Anna Maria College",
-      "St. Norbert",
-      "Glenville State",
-      "Trinity (CT)"
+      "Mass Maritime",
+      "Case Western Reserve",
+      "Louisville"
     ],
     "correctIndex": 0,
     "notes": "Anna Maria College beat Mass Maritime 33-27."
@@ -46,12 +46,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Lamar played Abilene Christian in Week 7, 2021?",
     "options": [
-      "Keiser (Fl)",
-      "Idaho",
-      "UNLV",
-      "Abilene Christian"
+      "Virginia University Of Lynchburg",
+      "Abilene Christian",
+      "Lamar",
+      "McNeese"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Abilene Christian beat Lamar 24-17."
   },
   {
@@ -60,12 +60,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when North Texas played Florida International in Week 12, 2021?",
     "options": [
-      "Vanderbilt",
-      "North Texas",
-      "New England College",
-      "St. Petersburg"
+      "Florida International",
+      "Colorado State",
+      "Limestone",
+      "North Texas"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "North Texas beat Florida International 49-7."
   },
   {
@@ -74,12 +74,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Augustana (IL) played North Central College in Week 11, 2022?",
     "options": [
-      "North Central College",
-      "USC",
-      "Florida Memorial University",
-      "Berry College"
+      "Augustana (IL)",
+      "Missouri S&T",
+      "Concordia University St Paul",
+      "North Central College"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "North Central College beat Augustana (IL) 63-3."
   },
   {
@@ -88,12 +88,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Curry College played Biddeford in Week 5, 2022?",
     "options": [
-      "North Dakota State",
-      "Tennessee Tech",
-      "Maine",
-      "Biddeford"
+      "Maryville College (TN)",
+      "Biddeford",
+      "Western Kentucky",
+      "Curry College"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Biddeford beat Curry College 37-21."
   },
   {
@@ -102,12 +102,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Virginia Union played Wingate in Week 13, 2024?",
     "options": [
-      "Endicott College",
-      "Nebraska-Kearney",
-      "Virginia Union",
-      "Kentucky"
+      "Wingate",
+      "Merchant Marine Academy",
+      "Tulane",
+      "Virginia Union"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Virginia Union beat Wingate 34-31."
   },
   {
@@ -116,12 +116,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Georgia played Kentucky in Week 11, 2004?",
     "options": [
-      "Concordia-Wisconsin",
       "Georgia",
-      "Wilmington (OH)",
-      "Simpson College (IA)"
+      "Utah State",
+      "Minnesota",
+      "Kentucky"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Georgia beat Kentucky 62-17."
   },
   {
@@ -130,12 +130,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Tulane played Rutgers in Week 5, 2010?",
     "options": [
-      "Fayetteville State",
-      "Thiel",
+      "Louisiana Monroe",
       "Tulane",
-      "TCU"
+      "Rutgers",
+      "Ball State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Tulane beat Rutgers 17-14."
   },
   {
@@ -144,12 +144,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Southern Virginia played Averett in Week 3, 2025?",
     "options": [
-      "Southern Virginia",
-      "Temple",
-      "SUNY Cortland",
-      "Morehead State"
+      "UAB",
+      "Post University",
+      "Averett",
+      "Southern Virginia"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Southern Virginia beat Averett 46-14."
   },
   {
@@ -158,9 +158,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Concordia University St Paul played Minot State in Week 11, 2021?",
     "options": [
-      "Virginia Lynchburg",
-      "Midwestern State",
-      "Northeastern",
+      "Concordia University St Paul",
+      "Bethel Col",
+      "Montana",
       "Minot State"
     ],
     "correctIndex": 3,
@@ -172,10 +172,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when North Carolina played Virginia Tech in Week 6, 2013?",
     "options": [
-      "South Alabama",
+      "Alabama A&M",
       "Virginia Tech",
-      "Walsh",
-      "Coast Guard"
+      "Kent State",
+      "North Carolina"
     ],
     "correctIndex": 1,
     "notes": "Virginia Tech beat North Carolina 27-17."
@@ -186,12 +186,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Point University played Birmingham-Southern in Week 4, 2022?",
     "options": [
-      "Southern Utah",
-      "Florida A&M",
       "Birmingham-Southern",
-      "St. Louis"
+      "North Alabama",
+      "Point University",
+      "Southwest Minnesota State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Birmingham-Southern beat Point University 34-14."
   },
   {
@@ -200,12 +200,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Fort Lewis played Chadron St in Week 8, 2024?",
     "options": [
-      "Sul Ross State",
-      "Webber International",
+      "Fort Lewis",
       "Chadron St",
-      "Southwestern College"
+      "Columbia",
+      "Clarion"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Chadron St beat Fort Lewis 55-13."
   },
   {
@@ -214,12 +214,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Tennessee State played Jackson State in Week 3, 2019?",
     "options": [
+      "Alcorn State",
+      "Tennessee State",
       "Jackson State",
-      "Calvin University",
-      "Minnesota State Moorhead",
-      "Southern Miss"
+      "The Citadel"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Jackson State beat Tennessee State 49-44."
   },
   {
@@ -228,12 +228,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Middle Tennessee played UTEP in Week 9, 2022?",
     "options": [
-      "Rhodes College",
+      "West Georgia",
+      "Wilson",
       "Middle Tennessee",
-      "Westfield State",
-      "Keystone"
+      "UTEP"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Middle Tennessee beat UTEP 24-13."
   },
   {
@@ -242,12 +242,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Edinboro University played Bloomsburg in Week 3, 2023?",
     "options": [
-      "Alabama State",
-      "Lagrange College",
-      "St. Anselm",
-      "Edinboro University"
+      "Bloomsburg",
+      "Edinboro University",
+      "West Liberty",
+      "Greeneville"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Edinboro University beat Bloomsburg 23-13."
   },
   {
@@ -256,12 +256,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when SMU played UCF in Week 10, 2012?",
     "options": [
-      "Marietta",
-      "Manchester",
-      "Cal Poly",
-      "UCF"
+      "UCF",
+      "Louisiana Monroe",
+      "SMU",
+      "Western Michigan"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "UCF beat SMU 42-17."
   },
   {
@@ -270,9 +270,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Minnesota State Mankato played Northwest Missouri St in Week 1, 2024?",
     "options": [
-      "Concordia University St Paul",
-      "Elmhurst",
-      "Heidelberg",
+      "Oregon State",
+      "Plymouth State",
+      "Northwest Missouri St",
       "Minnesota State Mankato"
     ],
     "correctIndex": 3,
@@ -284,12 +284,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when UAB played South Carolina in Week 5, 2008?",
     "options": [
-      "Curry College",
-      "South Carolina",
-      "Chadron State",
-      "Houston"
+      "Southeastern Louisiana",
+      "UAB",
+      "Murray State",
+      "South Carolina"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "South Carolina beat UAB 26-13."
   },
   {
@@ -298,12 +298,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Wofford played The Citadel in Week 7, 2017?",
     "options": [
-      "Lamar",
-      "Frostburg State",
-      "Worcester St",
-      "Wofford"
+      "Wofford",
+      "UL Monroe",
+      "SMU",
+      "The Citadel"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Wofford beat The Citadel 20-16."
   },
   {
@@ -312,12 +312,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Alabama A&M played Middle Tennessee in Week 1, 2016?",
     "options": [
-      "Middle Tennessee",
-      "Texas Southern",
-      "Alfred University",
-      "Hendrix College"
+      "Arizona State",
+      "Alabama A&M",
+      "Tarleton State",
+      "Middle Tennessee"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Middle Tennessee beat Alabama A&M 55-0."
   },
   {
@@ -326,12 +326,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Augustana University (SD) played University of Mary in Week 3, 2025?",
     "options": [
+      "University of Mary",
       "Augustana University (SD)",
-      "Sam Houston",
-      "Wagner",
-      "Stetson"
+      "St. Francis (PA)",
+      "Rice"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Augustana University (SD) beat University of Mary 21-20."
   },
   {
@@ -340,10 +340,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Ohio played Eastern Michigan in Week 5, 2010?",
     "options": [
-      "St. Andrews",
+      "Eastern Michigan",
       "Ohio",
-      "Taylor",
-      "CSU Pueblo"
+      "SMU",
+      "South Carolina"
     ],
     "correctIndex": 1,
     "notes": "Ohio beat Eastern Michigan 30-17."
@@ -354,12 +354,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Georgia Tech played Pittsburgh in Week 3, 2018?",
     "options": [
-      "South Carolina",
-      "Elmhurst",
-      "FDU-Florham",
-      "Pittsburgh"
+      "Notre Dame",
+      "Georgia Tech",
+      "Pittsburgh",
+      "St. Augustine's"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Pittsburgh beat Georgia Tech 24-19."
   },
   {
@@ -368,12 +368,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Valparaiso played Campbell in Week 6, 2017?",
     "options": [
-      "Benedict College",
-      "Valdosta State",
       "Campbell",
-      "Allen"
+      "Stephen F. Austin",
+      "Valparaiso",
+      "Hawai'i"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Campbell beat Valparaiso 49-10."
   },
   {
@@ -382,12 +382,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when UC Davis played North Dakota in Week 4, 2015?",
     "options": [
+      "UC Davis",
       "North Dakota",
-      "Wingate",
-      "Michigan",
-      "William & Mary"
+      "Nebraska",
+      "Villanova"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "North Dakota beat UC Davis 31-24."
   },
   {
@@ -396,12 +396,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Thiel played Carnegie Mellon in Week 6, 2023?",
     "options": [
-      "Edinboro University",
-      "Warner",
-      "Carnegie Mellon",
-      "Keystone"
+      "Amherst",
+      "Thiel",
+      "Wisconsin-Stevens Pt",
+      "Carnegie Mellon"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Carnegie Mellon beat Thiel 80-22."
   },
   {
@@ -410,12 +410,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Presbyterian played Campbell in Week 6, 2019?",
     "options": [
-      "Colorado State",
-      "Pace",
+      "Taylor",
       "Campbell",
-      "Greensboro College"
+      "Presbyterian",
+      "Fort Valley State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Campbell beat Presbyterian 28-14."
   },
   {
@@ -424,12 +424,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Southeast Missouri State played Lindenwood in Week 11, 2024?",
     "options": [
-      "Lindenwood",
-      "Concordia-Michigan",
-      "SMU",
-      "Bowdoin"
+      "Wisconsin-Platteville",
+      "Southeast Missouri State",
+      "Thiel",
+      "Lindenwood"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Lindenwood beat Southeast Missouri State 24-12."
   },
   {
@@ -438,10 +438,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Purdue played Indiana in Week 14, 2003?",
     "options": [
-      "American International",
+      "Maryland",
       "Purdue",
-      "St. Thomas University (Fl)",
-      "Assumption"
+      "Indiana",
+      "Texas State"
     ],
     "correctIndex": 1,
     "notes": "Purdue beat Indiana 24-16."
@@ -452,12 +452,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when William Paterson played College Of New Jersey in Week 7, 2025?",
     "options": [
-      "UT Permian Basin",
-      "College Of New Jersey",
-      "Heidelberg",
-      "Washington & Jefferson"
+      "Central State (OH)",
+      "William Paterson",
+      "University of Rochester (NY)",
+      "College Of New Jersey"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "College Of New Jersey beat William Paterson 42-0."
   },
   {
@@ -466,12 +466,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Fresno State played UNLV in Week 7, 2014?",
     "options": [
+      "Fresno State",
+      "Colgate",
       "UNLV",
-      "Southern Oregon",
-      "Southeast Missouri State",
-      "Adrian"
+      "South Florida"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "UNLV beat Fresno State 30-27."
   },
   {
@@ -480,12 +480,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Houston played Kansas in Week 8, 2024?",
     "options": [
-      "Temple",
       "Kansas",
-      "Fort Valley State",
-      "Bluefield State"
+      "Westfield State",
+      "Houston",
+      "TCU"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Kansas beat Houston 42-14."
   },
   {
@@ -494,12 +494,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Minnesota Duluth played Concordia University St Paul in Week 2, 2025?",
     "options": [
-      "Arkansas Baptist",
-      "Reinhardt University",
+      "Southern Oregon",
       "Minnesota Duluth",
-      "Hamilton"
+      "Framingham State",
+      "Concordia University St Paul"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Minnesota Duluth beat Concordia University St Paul 61-7."
   },
   {
@@ -508,12 +508,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Clemson played Miami in Week 8, 2023?",
     "options": [
-      "Coastal Carolina",
-      "William Jewell College",
-      "Millersville",
-      "Miami"
+      "Clemson",
+      "Miami",
+      "Winston-Salem",
+      "Albion"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Miami beat Clemson 28-20."
   },
   {
@@ -522,12 +522,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Bethany (WV) played Thiel in Week 11, 2025?",
     "options": [
-      "Lawrence Tech",
-      "Wingate",
-      "Bethany (WV)",
-      "Franklin & Marshall"
+      "Valparaiso",
+      "West Chester",
+      "Thiel",
+      "Bethany (WV)"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Bethany (WV) beat Thiel 17-12."
   },
   {
@@ -536,12 +536,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Kennesaw State played Campbell in Week 8, 2021?",
     "options": [
-      "Central Oklahoma",
-      "Bluefield State",
+      "Samford",
       "Kennesaw State",
-      "Sewanee"
+      "Campbell",
+      "Point University"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Kennesaw State beat Campbell 30-7."
   },
   {
@@ -550,12 +550,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Missouri State played Oklahoma State in Week 3, 2008?",
     "options": [
+      "Missouri State",
       "Oklahoma State",
-      "SUNY Morrisville",
-      "McNeese",
-      "Stony Brook"
+      "Michigan State",
+      "Cal Poly"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Oklahoma State beat Missouri State 57-13."
   },
   {
@@ -564,12 +564,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pace played Franklin Pierce in Week 5, 2024?",
     "options": [
+      "North Dakota State",
+      "Dickinson State University",
       "Franklin Pierce",
-      "Sacred Heart",
-      "Southern Utah",
-      "Sioux Falls"
+      "Pace"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Franklin Pierce beat Pace 48-20."
   },
   {
@@ -578,12 +578,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Colorado State played BYU in Week 7, 2005?",
     "options": [
-      "Dakota State University",
-      "Valdosta State",
-      "BYU",
-      "Mass Maritime"
+      "Colorado State",
+      "Tulane",
+      "Florida State",
+      "BYU"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "BYU beat Colorado State 24-14."
   },
   {
@@ -592,12 +592,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western New Mexico played West Texas A&M in Week 7, 2024?",
     "options": [
-      "Ball State",
-      "Iowa",
-      "Southern Arkansas",
-      "West Texas A&M"
+      "Western New Mexico",
+      "Methodist",
+      "West Texas A&M",
+      "Brevard College"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "West Texas A&M beat Western New Mexico 42-17."
   },
   {
@@ -606,12 +606,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Alabama played Mississippi State in Week 11, 2015?",
     "options": [
-      "Bridgewater (VA)",
-      "Boston College",
-      "Illinois College",
-      "Alabama"
+      "Eastern Michigan",
+      "Southern Illinois",
+      "Alabama",
+      "Mississippi State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Alabama beat Mississippi State 31-6."
   },
   {
@@ -620,12 +620,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Fordham played Lehigh in Week 9, 2016?",
     "options": [
-      "Western Carolina",
       "Lehigh",
-      "Wartburg",
-      "Missouri Southern State"
+      "Rice",
+      "Prairie View A&M",
+      "Fordham"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Lehigh beat Fordham 58-37."
   },
   {
@@ -634,10 +634,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Louisiana Tech played Kennesaw State in Week 7, 2025?",
     "options": [
-      "Georgia Southern",
-      "Roosevelt",
+      "Berry College",
+      "Lewis & Clark College",
       "Kennesaw State",
-      "Savannah State"
+      "Louisiana Tech"
     ],
     "correctIndex": 2,
     "notes": "Kennesaw State beat Louisiana Tech 35-7."
@@ -648,12 +648,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when UConn played Army in Week 12, 2022?",
     "options": [
-      "William Woods",
-      "Wofford",
       "Army",
-      "Presentation"
+      "Sacramento State",
+      "UConn",
+      "Southern Miss"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Army beat UConn 34-17."
   },
   {
@@ -662,12 +662,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Concord University played Glenville State in Week 8, 2023?",
     "options": [
-      "Savannah State",
-      "Ball State",
-      "Northwestern (IA)",
-      "Glenville State"
+      "Concord University",
+      "Boston College",
+      "Glenville State",
+      "Mount St. Joseph"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Glenville State beat Concord University 44-7."
   },
   {
@@ -676,12 +676,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Moravian played Franklin & Marshall in Week 10, 2022?",
     "options": [
-      "Fairmont State",
-      "St. Anselm",
+      "Notre Dame",
       "Franklin & Marshall",
-      "Concord University"
+      "Moravian",
+      "Dubuque"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Franklin & Marshall beat Moravian 56-7."
   },
   {
@@ -690,12 +690,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when St. Francis (PA) played Mercyhurst in Week 13, 2024?",
     "options": [
-      "Mercyhurst",
-      "Richmond",
-      "Union (NY)",
-      "Rowan"
+      "St. Francis (PA)",
+      "Southern Connecticut State",
+      "Central College",
+      "Mercyhurst"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Mercyhurst beat St. Francis (PA) 21-20."
   },
   {
@@ -704,12 +704,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Georgia played South Carolina in Week 13, 2020?",
     "options": [
-      "Catholic",
-      "Missouri Western",
-      "Sacred Heart",
-      "Georgia"
+      "Tulane",
+      "Georgia",
+      "Kansas State",
+      "South Carolina"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Georgia beat South Carolina 45-16."
   },
   {
@@ -718,12 +718,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Carnegie Mellon played Allegheny in Week 5, 2023?",
     "options": [
-      "Point University",
+      "Montclair State",
+      "Allegheny",
       "Carnegie Mellon",
-      "Lamar",
-      "Wisconsin-Eau Claire"
+      "Central Connecticut"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Carnegie Mellon beat Allegheny 19-3."
   },
   {
@@ -732,12 +732,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when New Mexico played BYU in Week 13, 2002?",
     "options": [
-      "Ursinus",
-      "Ohio Wesleyan",
       "New Mexico",
-      "Benedictine University"
+      "Clemson",
+      "Duke",
+      "BYU"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "New Mexico beat BYU 20-16."
   },
   {
@@ -746,12 +746,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when LSU played Florida State in Week 1, 2022?",
     "options": [
-      "Huntingdon College (AL)",
-      "Kenyon",
-      "Delaware",
-      "Florida State"
+      "South Carolina",
+      "Florida State",
+      "LSU",
+      "Findlay"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Florida State beat LSU 24-23."
   },
   {
@@ -760,12 +760,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Morgan State played Savannah St in Week 7, 2018?",
     "options": [
-      "UFTL",
       "Morgan State",
-      "Findlay",
-      "North Central"
+      "UNLV",
+      "Lincoln (MO)",
+      "Savannah St"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Morgan State beat Savannah St 18-11."
   },
   {
@@ -774,12 +774,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Houston played Arizona State in Week 9, 2025?",
     "options": [
-      "Texas A&M-Commerce",
       "Houston",
-      "Wayland Baptist",
-      "Springfield"
+      "Arizona State",
+      "Anna Maria College",
+      "Rose-Hulman"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Houston beat Arizona State 24-16."
   },
   {
@@ -788,10 +788,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Allen played Johnson C Smith in Week 2, 2021?",
     "options": [
-      "Texas A&M-Kingsville",
+      "Wayne State (NE)",
       "Allen",
-      "Kansas",
-      "North Greenville"
+      "Mercer",
+      "Johnson C Smith"
     ],
     "correctIndex": 1,
     "notes": "Allen beat Johnson C Smith 20-19."
@@ -802,12 +802,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pittsburgh played Boston College in Week 14, 2024?",
     "options": [
-      "Loras College",
-      "Georgia State",
-      "Arkansas Baptist",
-      "Boston College"
+      "Boston College",
+      "Pittsburgh",
+      "Southwestern University",
+      "Methodist"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Boston College beat Pittsburgh 34-23."
   },
   {
@@ -816,12 +816,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Connecticut St played New Haven in Week 7, 2025?",
     "options": [
-      "Southwest Minnesota State",
-      "Virginia Lynchburg",
-      "Lewis & Clark College",
-      "New Haven"
+      "Western Connecticut St",
+      "New Haven",
+      "UTSA",
+      "Franklin & Marshall"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "New Haven beat Western Connecticut St 69-0."
   },
   {
@@ -830,10 +830,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Central State (OH) played Miles College in Week 6, 2024?",
     "options": [
-      "West Chester",
+      "Bates",
       "Miles College",
-      "St Ambrose University  Iowa",
-      "Virginia"
+      "Minnesota Morris",
+      "Central State (OH)"
     ],
     "correctIndex": 1,
     "notes": "Miles College beat Central State (OH) 16-7."
@@ -845,9 +845,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Memphis played East Carolina in Week 12, 2025?",
     "options": [
       "East Carolina",
-      "Centre College Kentucky",
-      "North Carolina Wesleyan",
-      "Oklahoma Panhandle St"
+      "Memphis",
+      "Nebraska",
+      "Liberty"
     ],
     "correctIndex": 0,
     "notes": "East Carolina beat Memphis 31-27."
@@ -858,12 +858,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Rutgers played Maryland in Week 4, 2009?",
     "options": [
-      "Rutgers",
-      "East Texas Baptist University",
-      "Indianapolis",
-      "West Liberty"
+      "Central Michigan",
+      "Maryland",
+      "Delaware State",
+      "Rutgers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Rutgers beat Maryland 34-13."
   },
   {
@@ -872,12 +872,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Sacramento State played Colorado in Week 2, 2012?",
     "options": [
-      "Angelo State",
-      "Sacramento State",
-      "New Haven",
-      "Denison University"
+      "Air Force",
+      "Colorado",
+      "Villanova",
+      "Sacramento State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Sacramento State beat Colorado 30-28."
   },
   {
@@ -886,12 +886,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Florida Atlantic played Florida in Week 1, 2021?",
     "options": [
+      "Florida Atlantic",
       "Florida",
-      "SUNY Cortland",
-      "Bates",
-      "Elizabeth City State"
+      "Shippensburg",
+      "Shaw"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Florida beat Florida Atlantic 35-14."
   },
   {
@@ -900,12 +900,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when West Virginia played Texas in Week 11, 2014?",
     "options": [
-      "Texas",
-      "Bethany (WV)",
-      "East Texas Baptist University",
-      "Loras College"
+      "West Virginia",
+      "Toledo",
+      "Massachusetts",
+      "Texas"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Texas beat West Virginia 33-16."
   },
   {
@@ -914,12 +914,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Western New Mexico played San Diego in Week 2, 2015?",
     "options": [
-      "Colorado State",
-      "Concordia Moorhead",
-      "San Diego",
-      "Central Arkansas"
+      "Texas A&M",
+      "Western New Mexico",
+      "Illinois",
+      "San Diego"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "San Diego beat Western New Mexico 45-21."
   },
   {
@@ -928,9 +928,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northern Iowa played Illinois State in Week 9, 2023?",
     "options": [
-      "Miami (FL)",
-      "Eastern Michigan",
-      "Edinboro",
+      "Illinois State",
+      "Kentucky",
+      "Bethel (MN)",
       "Northern Iowa"
     ],
     "correctIndex": 3,
@@ -942,10 +942,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Wingate played ERSKINE in Week 5, 2022?",
     "options": [
-      "South Dakota State",
+      "ERSKINE",
       "Wingate",
-      "Wittenberg",
-      "UL Monroe"
+      "Duke",
+      "Navy"
     ],
     "correctIndex": 1,
     "notes": "Wingate beat ERSKINE 31-7."
@@ -956,12 +956,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Butler played North Dakota State in Week 1, 2019?",
     "options": [
+      "Princeton",
+      "Butler",
       "North Dakota State",
-      "Shippensburg",
-      "Virginia Lynchburg",
-      "Carnegie Mellon"
+      "Washington"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "North Dakota State beat Butler 57-10."
   },
   {
@@ -970,12 +970,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Maine played New Mexico in Week 1, 2022?",
     "options": [
-      "St. Anselm",
-      "Illinois College",
-      "UL Monroe",
-      "New Mexico"
+      "New Mexico",
+      "Valdosta State",
+      "East Texas Baptist University",
+      "Maine"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "New Mexico beat Maine 41-0."
   },
   {
@@ -985,9 +985,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Texas State played UT San Antonio in Week 13, 2012?",
     "options": [
       "UT San Antonio",
-      "Davidson",
-      "Alcorn State",
-      "Western Kentucky"
+      "Troy",
+      "Texas State",
+      "UNLV"
     ],
     "correctIndex": 0,
     "notes": "UT San Antonio beat Texas State 38-31."
@@ -998,12 +998,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Augustana (IL) played Wheaton in Week 4, 2024?",
     "options": [
-      "Southern Virginia",
-      "Eastern University",
-      "McDaniel College",
-      "Wheaton"
+      "Gallaudet",
+      "Wheaton",
+      "Augustana (IL)",
+      "Quincy"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Wheaton beat Augustana (IL) 42-3."
   },
   {
@@ -1012,12 +1012,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Delaware Valley played Kings College (PA) in Week 3, 2022?",
     "options": [
+      "Kings College (PA)",
+      "Ripon",
       "Delaware Valley",
-      "Incarnate Word",
-      "Southwestern Oklahoma State",
-      "Malone"
+      "Chowan"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Delaware Valley beat Kings College (PA) 26-6."
   },
   {
@@ -1026,12 +1026,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Lindenwood played Findlay in Week 4, 2021?",
     "options": [
-      "Westminster (PA)",
-      "UMass Dartmouth",
-      "Carson-Newman College",
-      "Lindenwood"
+      "Findlay",
+      "Lindenwood",
+      "Missouri",
+      "Henderson State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Lindenwood beat Findlay 28-16."
   },
   {
@@ -1040,12 +1040,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Robert Morris played North Dakota State in Week 4, 2017?",
     "options": [
-      "UMass Dartmouth",
+      "Robert Morris",
+      "Johnson C Smith",
       "North Dakota State",
-      "Incarnate Word",
-      "Randolph-Macon"
+      "Florida A&M"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "North Dakota State beat Robert Morris 56-0."
   },
   {
@@ -1054,12 +1054,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when NC State played Notre Dame in Week 7, 2025?",
     "options": [
-      "Union (NY)",
-      "Chapman",
-      "College of Idaho",
-      "Notre Dame"
+      "Notre Dame",
+      "Ferrum",
+      "NC State",
+      "BYU"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Notre Dame beat NC State 36-7."
   },
   {
@@ -1068,12 +1068,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northern Arizona played Utah Tech in Week 3, 2024?",
     "options": [
-      "Augsburg",
-      "Carson-Newman College",
-      "Dickinson (PA)",
-      "Northern Arizona"
+      "Bethany (WV)",
+      "Northern Arizona",
+      "Laurinburg",
+      "Utah Tech"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Northern Arizona beat Utah Tech 45-17."
   },
   {
@@ -1082,12 +1082,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pace played East Stroudsburg University in Week 2, 2025?",
     "options": [
-      "Central Washington",
-      "East Stroudsburg University",
-      "Walsh",
-      "Wayland Baptist"
+      "Pace",
+      "Florida State",
+      "Texas A&M",
+      "East Stroudsburg University"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "East Stroudsburg University beat Pace 31-12."
   },
   {
@@ -1096,12 +1096,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Syracuse played Virginia in Week 7, 2015?",
     "options": [
-      "Florida International",
-      "Dubuque",
-      "New Haven",
-      "Virginia"
+      "Virginia",
+      "Syracuse",
+      "Jacksonville State",
+      "Arkansas State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Virginia beat Syracuse 44-38."
   },
   {
@@ -1110,12 +1110,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northwood (MI) played Tiffin in Week 2, 2021?",
     "options": [
-      "Tiffin",
-      "Central Missouri",
-      "Averett",
-      "Carthage"
+      "Northwood (MI)",
+      "North Dakota State",
+      "Pittsburgh",
+      "Tiffin"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Tiffin beat Northwood (MI) 40-6."
   },
   {
@@ -1125,9 +1125,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when South Dakota Mines played CSU Pueblo in Week 10, 2022?",
     "options": [
       "CSU Pueblo",
-      "Bethany (WV)",
-      "Glenville State",
-      "Tulsa"
+      "South Dakota Mines",
+      "Northern State",
+      "Southeastern Oklahoma State"
     ],
     "correctIndex": 0,
     "notes": "CSU Pueblo beat South Dakota Mines 45-20."
@@ -1138,12 +1138,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Iowa played Penn State in Week 4, 2009?",
     "options": [
-      "UFTL",
-      "Navy",
-      "Iowa",
-      "Albany"
+      "Penn State",
+      "Liberty",
+      "Kent State",
+      "Iowa"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Iowa beat Penn State 21-10."
   },
   {
@@ -1153,9 +1153,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Lamar played Abilene Christian in Week 1, 2022?",
     "options": [
       "Abilene Christian",
-      "Indiana",
-      "UVA Wise",
-      "Hanover College"
+      "Lamar",
+      "Aurora",
+      "East Texas A&M"
     ],
     "correctIndex": 0,
     "notes": "Abilene Christian beat Lamar 28-14."
@@ -1166,12 +1166,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Cal Poly played North Dakota in Week 5, 2016?",
     "options": [
-      "Kenyon",
-      "Buffalo",
-      "Valparaiso",
-      "North Dakota"
+      "Chattanooga",
+      "North Dakota",
+      "North Texas",
+      "Cal Poly"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "North Dakota beat Cal Poly 31-24."
   },
   {
@@ -1180,12 +1180,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when The Citadel played Ole Miss in Week 11, 2025?",
     "options": [
-      "Ole Miss",
-      "Louisiana",
-      "Ferris State",
-      "Michigan State"
+      "The Citadel",
+      "Mississippi State",
+      "Luther",
+      "Ole Miss"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Ole Miss beat The Citadel 49-0."
   },
   {
@@ -1194,12 +1194,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Toledo played Western Michigan in Week 2, 2006?",
     "options": [
-      "Greenville",
-      "Western Kentucky",
-      "Norfolk State",
-      "Western Michigan"
+      "Missouri",
+      "Toledo",
+      "Western Michigan",
+      "Northeastern"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Western Michigan beat Toledo 31-10."
   },
   {
@@ -1208,12 +1208,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Mississippi State played Arkansas in Week 12, 2015?",
     "options": [
-      "MONTANASTN",
-      "Southwest Minnesota State",
-      "Gardner-Webb",
-      "Mississippi State"
+      "Temple",
+      "Mississippi State",
+      "UCLA",
+      "Arkansas"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Mississippi State beat Arkansas 51-50."
   },
   {
@@ -1222,10 +1222,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Long Island University played Sacred Heart in Week 12, 2022?",
     "options": [
-      "Charlotte",
-      "Millersville",
+      "Missouri State",
+      "Texas Southern",
       "Long Island University",
-      "Northwood (MI)"
+      "Sacred Heart"
     ],
     "correctIndex": 2,
     "notes": "Long Island University beat Sacred Heart 37-34."
@@ -1236,12 +1236,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Florida Atlantic played Miami in Week 1, 2013?",
     "options": [
-      "Towson",
-      "Ave Maria University",
-      "Wayland Baptist",
-      "Miami"
+      "Miami",
+      "Maine",
+      "Michigan",
+      "Florida Atlantic"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Miami beat Florida Atlantic 34-6."
   },
   {
@@ -1250,12 +1250,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Greeneville played Catawba in Week 12, 2024?",
     "options": [
-      "Findlay",
       "Catawba",
-      "Colorado State",
-      "Husson"
+      "Southern Nazarene",
+      "Greeneville",
+      "Wisconsin-Whitewater"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Catawba beat Greeneville 47-15."
   },
   {
@@ -1264,12 +1264,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Minnesota played California in Week 2, 2006?",
     "options": [
-      "Slippery Rock",
-      "Thiel",
       "California",
-      "Gustavus Adolphus"
+      "Baylor",
+      "Texas A&M",
+      "Minnesota"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "California beat Minnesota 42-17."
   },
   {
@@ -1278,12 +1278,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Western Carolina played Samford in Week 11, 2014?",
     "options": [
-      "Bluefield State",
-      "North Carolina Central",
-      "Samford",
-      "Florida Atlantic"
+      "Arkansas",
+      "Western Carolina",
+      "James Madison",
+      "Samford"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Samford beat Western Carolina 34-20."
   },
   {
@@ -1292,10 +1292,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pacific (OR) played Howard Payne in Week 2, 2025?",
     "options": [
-      "Furman",
+      "Western New Mexico",
       "Howard Payne",
-      "Minnesota Duluth",
-      "San Diego State"
+      "CENTENARY",
+      "Pacific (OR)"
     ],
     "correctIndex": 1,
     "notes": "Howard Payne beat Pacific (OR) 21-13."
@@ -1307,9 +1307,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Charlotte played Georgia in Week 13, 2025?",
     "options": [
       "Georgia",
-      "Air Force",
-      "St. Andrews",
-      "Eastern Kentucky"
+      "LSU",
+      "Fairmont State",
+      "Charlotte"
     ],
     "correctIndex": 0,
     "notes": "Georgia beat Charlotte 35-3."
@@ -1320,12 +1320,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when NC State played Boston College in Week 11, 2011?",
     "options": [
-      "Boston College",
-      "Morehouse College",
+      "NC State",
       "Georgia Tech",
-      "Beloit"
+      "Boston College",
+      "Stanford"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Boston College beat NC State 14-10."
   },
   {
@@ -1334,9 +1334,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Boston College played Massachusetts in Week 2, 2021?",
     "options": [
-      "Georgetown",
-      "South Dakota",
-      "Mars Hill",
+      "Drake",
+      "Massachusetts",
+      "Incarnate Word",
       "Boston College"
     ],
     "correctIndex": 3,
@@ -1348,9 +1348,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when UTEP played Colorado State in Week 4, 2024?",
     "options": [
-      "Colorado Mesa",
-      "Johnson C Smith",
-      "Miami (OH)",
+      "Lafayette",
+      "UTEP",
+      "Morehead State",
       "Colorado State"
     ],
     "correctIndex": 3,
@@ -1362,10 +1362,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Houston played Michigan in Week 3, 2003?",
     "options": [
-      "Wayne State (NE)",
+      "Utah State",
       "Michigan",
-      "North Dakota State",
-      "Tufts"
+      "UAB",
+      "Houston"
     ],
     "correctIndex": 1,
     "notes": "Michigan beat Houston 50-3."
@@ -1376,12 +1376,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Hampden-Sydney played Randolph-Macon in Week 11, 2023?",
     "options": [
-      "Florida Atlantic",
-      "Hofstra",
-      "Southern Nazarene",
-      "Randolph-Macon"
+      "Hampden-Sydney",
+      "New Mexico",
+      "Randolph-Macon",
+      "Indiana Wesleyan"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Randolph-Macon beat Hampden-Sydney 49-10."
   },
   {
@@ -1390,10 +1390,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when UFTL played Presbyterian in Week 2, 2021?",
     "options": [
-      "Saint Xavier (IL)",
+      "Greeneville",
       "Presbyterian",
-      "Virginia State",
-      "Worcester Polytechnic Institute"
+      "UFTL",
+      "Franklin Pierce"
     ],
     "correctIndex": 1,
     "notes": "Presbyterian beat UFTL 68-3."
@@ -1404,12 +1404,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when West Virginia State played Notre Dame College in Week 6, 2023?",
     "options": [
-      "Worcester Polytechnic Institute",
-      "Norwich",
-      "Lawrence University",
-      "Notre Dame College"
+      "West Virginia State",
+      "Notre Dame College",
+      "Minnesota Duluth",
+      "Defiance College"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Notre Dame College beat West Virginia State 31-24."
   },
   {
@@ -1418,12 +1418,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Cornell College (IA) played Grinnell in Week 12, 2025?",
     "options": [
-      "East Texas Baptist University",
-      "Idaho State",
-      "Eastern Michigan",
-      "Cornell College (IA)"
+      "West Texas A&M",
+      "Cornell College (IA)",
+      "Texas Lutheran",
+      "Grinnell"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Cornell College (IA) beat Grinnell 22-17."
   },
   {
@@ -1432,12 +1432,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Southern Utah played Central Arkansas in Week 12, 2024?",
     "options": [
-      "VMI",
-      "Carson-Newman College",
+      "Western Kentucky",
       "Southern Utah",
-      "Kennesaw State"
+      "Lawrence University",
+      "Central Arkansas"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Southern Utah beat Central Arkansas 38-31."
   },
   {
@@ -1446,10 +1446,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when McNeese played Incarnate Word in Week 4, 2021?",
     "options": [
-      "Winona State",
+      "McNeese",
       "Incarnate Word",
-      "Northwestern (MN)",
-      "Colorado Mesa"
+      "McKendree",
+      "Cornell"
     ],
     "correctIndex": 1,
     "notes": "Incarnate Word beat McNeese 31-0."
@@ -1460,12 +1460,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Army played LSU in Week 8, 2023?",
     "options": [
-      "Georgia Southern",
-      "Faulkner",
-      "Martin Luther",
-      "LSU"
+      "LSU",
+      "Southwest Minnesota State",
+      "Gardner-Webb",
+      "Army"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "LSU beat Army 62-0."
   },
   {
@@ -1474,12 +1474,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when UCF played Michigan in Week 2, 2016?",
     "options": [
-      "Nichols College",
-      "Elmhurst",
-      "Murray State",
-      "Michigan"
+      "Morgan State",
+      "Michigan",
+      "Central Michigan",
+      "UCF"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Michigan beat UCF 51-14."
   },
   {
@@ -1488,10 +1488,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when SE Louisiana played Stephen F. Austin in Week 7, 2016?",
     "options": [
-      "CSU Pueblo",
-      "Rockford",
+      "Fordham",
+      "Georgia",
       "SE Louisiana",
-      "South Dakota Mines"
+      "Stephen F. Austin"
     ],
     "correctIndex": 2,
     "notes": "SE Louisiana beat Stephen F. Austin 58-34."
@@ -1502,10 +1502,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Chattanooga played Florida State in Week 3, 2008?",
     "options": [
-      "Hawai'i",
-      "Colorado State",
+      "Chattanooga",
+      "Oregon State",
       "Florida State",
-      "North Alabama"
+      "Central Michigan"
     ],
     "correctIndex": 2,
     "notes": "Florida State beat Chattanooga 46-7."
@@ -1516,12 +1516,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Westfield State played Dean College in Week 4, 2025?",
     "options": [
-      "Westfield State",
-      "Central College",
-      "Tulsa",
-      "Air Force"
+      "Dean College",
+      "Fresno State",
+      "Gannon",
+      "Westfield State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Westfield State beat Dean College 48-6."
   },
   {
@@ -1530,12 +1530,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Northern Illinois played Idaho in Week 3, 2013?",
     "options": [
-      "Thomas More College",
-      "Jacksonville State",
+      "South Alabama",
       "Northern Illinois",
-      "Susquehanna"
+      "Alabama State",
+      "Idaho"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Northern Illinois beat Idaho 45-35."
   },
   {
@@ -1544,12 +1544,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Chadron St played Western Colorado in Week 4, 2022?",
     "options": [
-      "Ashland",
-      "Washington State",
-      "North Alabama",
-      "Western Colorado"
+      "Chadron St",
+      "Western Colorado",
+      "Thomas More College",
+      "Wisconsin-River Falls"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Western Colorado beat Chadron St 56-28."
   },
   {
@@ -1558,12 +1558,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Hampden-Sydney played Washington and Lee in Week 7, 2024?",
     "options": [
-      "Campbell",
-      "Southwestern Oklahoma State",
       "Washington and Lee",
-      "Macalester"
+      "Hampden-Sydney",
+      "South Dakota State",
+      "Tennessee"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Washington and Lee beat Hampden-Sydney 28-26."
   },
   {
@@ -1572,12 +1572,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Navy played South Florida in Week 11, 2024?",
     "options": [
-      "Navy",
-      "Heidelberg",
-      "Des Moines",
-      "Hamilton"
+      "Fayetteville State",
+      "South Florida",
+      "Guilford College",
+      "Navy"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Navy beat South Florida 28-7."
   },
   {
@@ -1586,12 +1586,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Kansas State played Iowa State in Week 9, 2016?",
     "options": [
-      "Massachusetts",
-      "Kansas State",
-      "Texas A&M",
-      "Albany"
+      "VMI",
+      "Ohio",
+      "Iowa State",
+      "Kansas State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Kansas State beat Iowa State 31-26."
   },
   {
@@ -1600,10 +1600,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Tufts played Hamilton in Week 8, 2025?",
     "options": [
-      "Heidelberg",
-      "Wisconsin-River Falls",
+      "Hamilton",
+      "St John Fisher University",
       "Tufts",
-      "Averett"
+      "Minnesota"
     ],
     "correctIndex": 2,
     "notes": "Tufts beat Hamilton 38-28."
@@ -1614,12 +1614,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when New Mexico Highlands played Fort Lewis in Week 1, 2021?",
     "options": [
-      "Montana-Western",
+      "Army",
+      "Bowling Green",
       "New Mexico Highlands",
-      "Presentation",
-      "Widener"
+      "Fort Lewis"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "New Mexico Highlands beat Fort Lewis 44-7."
   },
   {
@@ -1628,12 +1628,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Texas A&M played Texas Tech in Week 8, 2009?",
     "options": [
-      "Western Carolina",
-      "Amherst",
+      "Northern Illinois",
       "Texas A&M",
-      "Nebraska Wesleyan"
+      "Texas Tech",
+      "Arizona"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Texas A&M beat Texas Tech 52-30."
   },
   {
@@ -1642,12 +1642,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Austin Peay played Troy in Week 1, 2016?",
     "options": [
+      "Austin Peay",
       "Troy",
-      "Castleton",
-      "Columbia",
-      "Southern California"
+      "Bryant",
+      "Youngstown State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Troy beat Austin Peay 57-17."
   },
   {
@@ -1656,10 +1656,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Old Dominion played Florida Atlantic in Week 12, 2016?",
     "options": [
-      "Indiana-Pennsylvania",
-      "USC",
+      "Florida Atlantic",
+      "Lehigh",
       "Old Dominion",
-      "South Carolina"
+      "Benedict College"
     ],
     "correctIndex": 2,
     "notes": "Old Dominion beat Florida Atlantic 42-24."
@@ -1670,12 +1670,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Edward Waters played Clark Atlanta in Week 9, 2025?",
     "options": [
+      "Grand Valley State University",
       "Edward Waters",
-      "Kennesaw State",
-      "Minnesota State Moorhead",
-      "App State"
+      "Denison University",
+      "Clark Atlanta"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Edward Waters beat Clark Atlanta 55-41."
   },
   {
@@ -1684,9 +1684,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Towson played Elon in Week 4, 2015?",
     "options": [
-      "Southern Connecticut State",
-      "Washington University (St. Louis)",
-      "Indiana-Pennsylvania",
+      "Towson",
+      "Old Dominion",
+      "Austin Peay",
       "Elon"
     ],
     "correctIndex": 3,
@@ -1698,12 +1698,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Lafayette played Harvard in Week 7, 2017?",
     "options": [
-      "Bethel University Tennessee",
+      "Maryland",
+      "Idaho State",
       "Harvard",
-      "Slippery Rock",
-      "Pacific (OR)"
+      "Lafayette"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Harvard beat Lafayette 38-10."
   },
   {
@@ -1712,12 +1712,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Northwestern played Ohio State in Week 14, 2018?",
     "options": [
-      "Arkansas-Monticello",
       "Ohio State",
-      "Mars Hill",
-      "Louisiana Monroe"
+      "USC",
+      "Northwestern",
+      "Fort Valley State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Ohio State beat Northwestern 45-24."
   },
   {
@@ -1726,10 +1726,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Worcester Polytechnic Institute played Merchant Marine Academy in Week 8, 2023?",
     "options": [
-      "Benedict College",
+      "Northeastern State",
       "Merchant Marine Academy",
-      "Northwood (MI)",
-      "Alabama"
+      "Worcester Polytechnic Institute",
+      "Incarnate Word"
     ],
     "correctIndex": 1,
     "notes": "Merchant Marine Academy beat Worcester Polytechnic Institute 40-28."
@@ -1740,12 +1740,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Bates played Hamilton in Week 11, 2022?",
     "options": [
-      "Lafayette",
-      "Bates",
-      "Adams State",
-      "Morehouse"
+      "Texas A&M-Kingsville",
+      "Wagner",
+      "Hamilton",
+      "Bates"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Bates beat Hamilton 19-14."
   },
   {
@@ -1754,12 +1754,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Wooster played Hiram College in Week 10, 2024?",
     "options": [
-      "Hope College",
-      "Buena Vista",
+      "Emporia State University",
       "Wooster",
-      "Pomona Pitzer"
+      "Hiram College",
+      "Colby College"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Wooster beat Hiram College 30-20."
   },
   {
@@ -1768,12 +1768,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Virginia St played Lincoln (PA) in Week 9, 2022?",
     "options": [
+      "Lincoln (PA)",
       "Virginia St",
-      "William Jewell College",
-      "Tarleton State",
-      "Marshall"
+      "Loras College",
+      "Rhode Island"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Virginia St beat Lincoln (PA) 42-21."
   },
   {
@@ -1782,12 +1782,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when James Madison played Troy in Week 3, 2023?",
     "options": [
-      "Ohio",
+      "Montana-Western",
+      "Troy",
       "James Madison",
-      "Bridgewater (VA)",
-      "Franklin Pierce"
+      "Furman"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "James Madison beat Troy 16-14."
   },
   {
@@ -1797,9 +1797,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Idaho State played Cal Poly in Week 11, 2018?",
     "options": [
       "Cal Poly",
-      "Manchester",
-      "Cincinnati",
-      "Florida State"
+      "Idaho State",
+      "South Dakota",
+      "Kansas State"
     ],
     "correctIndex": 0,
     "notes": "Cal Poly beat Idaho State 37-14."
@@ -1810,12 +1810,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Utah played Notre Dame in Week 11, 2010?",
     "options": [
-      "Jackson State",
-      "Notre Dame",
-      "Kenyon",
-      "Ole Miss"
+      "Towson",
+      "Ohio",
+      "Utah",
+      "Notre Dame"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Notre Dame beat Utah 28-3."
   },
   {
@@ -1824,12 +1824,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when USC played Washington State in Week 5, 2017?",
     "options": [
-      "UMass",
-      "Greeneville",
-      "Washington State",
-      "Saint Vincent"
+      "USC",
+      "Mississippi Valley State",
+      "West Virginia Wesleyan",
+      "Washington State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Washington State beat USC 30-27."
   },
   {
@@ -1838,12 +1838,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Memphis played Arkansas State in Week 2, 2011?",
     "options": [
-      "North Carolina",
-      "Norwich",
-      "East Texas Baptist University",
-      "Arkansas State"
+      "Toledo",
+      "Tennessee",
+      "Arkansas State",
+      "Memphis"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Arkansas State beat Memphis 47-3."
   },
   {
@@ -1852,12 +1852,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Albion played Kalamazoo in Week 5, 2022?",
     "options": [
-      "Tusculum",
       "Albion",
-      "App State",
-      "Manchester"
+      "Puget Sound",
+      "Kalamazoo",
+      "Kentucky Wesleyan"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Albion beat Kalamazoo 48-6."
   },
   {
@@ -1866,12 +1866,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Slippery Rock played Kutztown University in Week 11, 2021?",
     "options": [
-      "Shenandoah",
+      "Slippery Rock",
+      "TCU",
       "Kutztown University",
-      "Salve Regina",
-      "Allen"
+      "Nebraska"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Kutztown University beat Slippery Rock 38-32."
   },
   {
@@ -1880,12 +1880,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Indiana played Ohio State in Week 6, 2016?",
     "options": [
-      "Cortland",
+      "USC",
+      "Nicholls",
       "Ohio State",
-      "Trinity (CT)",
-      "UCF"
+      "Indiana"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Ohio State beat Indiana 38-17."
   },
   {
@@ -1894,12 +1894,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Tulane played Memphis in Week 13, 2021?",
     "options": [
-      "Wayne State (NE)",
       "Memphis",
-      "Carnegie Mellon",
-      "North Central College"
+      "Tiffin",
+      "Tulane",
+      "Ohio Dominican"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Memphis beat Tulane 33-28."
   },
   {
@@ -1908,12 +1908,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Central Michigan played Ball State in Week 6, 2007?",
     "options": [
-      "Central Michigan",
-      "Waynesburg",
-      "Minnesota State Mankato",
-      "Montclair State"
+      "Ball State",
+      "Liberty",
+      "Western Kentucky",
+      "Central Michigan"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Central Michigan beat Ball State 58-38."
   },
   {
@@ -1922,12 +1922,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pikeville played Maryville College (TN) in Week 5, 2025?",
     "options": [
-      "UT San Antonio",
-      "Rhode Island",
-      "Liberty",
-      "Maryville College (TN)"
+      "Maine Maritime",
+      "Pikeville",
+      "Maryville College (TN)",
+      "Central Methodist"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Maryville College (TN) beat Pikeville 34-30."
   },
   {
@@ -1936,12 +1936,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Idaho State played BYU in Week 12, 2013?",
     "options": [
-      "Albright",
-      "Franklin",
       "BYU",
-      "Austin"
+      "Idaho State",
+      "Florida A&M",
+      "Northern Illinois"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "BYU beat Idaho State 59-13."
   },
   {
@@ -1950,9 +1950,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Pennsylvania played Princeton in Week 12, 2022?",
     "options": [
-      "University of Rio Grande",
-      "Cincinnati",
-      "Slippery Rock",
+      "South Dakota State",
+      "William & Mary",
+      "Princeton",
       "Pennsylvania"
     ],
     "correctIndex": 3,
@@ -1964,12 +1964,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Louisiana Tech played Middle Tennessee in Week 7, 2023?",
     "options": [
-      "Stetson",
-      "Tuskegee",
-      "Maine Maritime",
-      "Middle Tennessee"
+      "Saginaw Valley State",
+      "Middle Tennessee",
+      "Western Connecticut St",
+      "Louisiana Tech"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Middle Tennessee beat Louisiana Tech 31-23."
   },
   {
@@ -1978,12 +1978,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Alabama played LSU in Week 13, 2002?",
     "options": [
-      "Alabama",
-      "Knox College",
-      "Illinois College",
-      "Southeastern Louisiana"
+      "Southern Utah",
+      "LSU",
+      "New Hampshire",
+      "Alabama"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Alabama beat LSU 31-0."
   },
   {
@@ -1992,12 +1992,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Florida International played Indiana in Week 1, 2024?",
     "options": [
-      "Florida A&M",
-      "Northwestern (IA)",
-      "Indiana",
-      "Washburn"
+      "Florida International",
+      "Campbellsville University",
+      "Northwest Missouri St",
+      "Indiana"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Indiana beat Florida International 31-7."
   },
   {
@@ -2006,12 +2006,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Notre Dame played Miami in Week 11, 2017?",
     "options": [
-      "Bridgewater State",
-      "Florida Tech",
-      "Northwestern",
-      "Miami"
+      "Arizona State",
+      "Miami",
+      "Notre Dame",
+      "Jackson State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Miami beat Notre Dame 41-8."
   },
   {
@@ -2020,12 +2020,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Auburn played Tennessee in Week 11, 2013?",
     "options": [
-      "Cumberland (TN)",
-      "Florida A&M",
-      "Washburn",
-      "Auburn"
+      "Notre Dame",
+      "Auburn",
+      "Tennessee",
+      "North Carolina"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Auburn beat Tennessee 55-23."
   },
   {
@@ -2034,12 +2034,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Campbell played Davidson in Week 10, 2017?",
     "options": [
-      "Claremont-Mudd-Scripps College",
-      "Campbell",
-      "Lindsey Wilson College",
-      "Alfred State"
+      "North Carolina A&T",
+      "Delaware",
+      "Davidson",
+      "Campbell"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Campbell beat Davidson 42-29."
   },
   {
@@ -2048,12 +2048,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when VMI played Georgia Tech in Week 3, 2024?",
     "options": [
-      "Eastern Kentucky",
-      "Gettysburg",
-      "Georgia Tech",
-      "Benedict College"
+      "Illinois Wesleyan",
+      "VMI",
+      "Lebanon Valley",
+      "Georgia Tech"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Georgia Tech beat VMI 59-7."
   },
   {
@@ -2062,12 +2062,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Nevada played San José State in Week 9, 2022?",
     "options": [
+      "Texas Lutheran",
+      "Ouachita Baptist",
       "San José State",
-      "Northeastern State",
-      "Crown College",
-      "Southeast Missouri State"
+      "Nevada"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "San José State beat Nevada 35-28."
   },
   {
@@ -2076,12 +2076,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Oregon played UCLA in Week 6, 2009?",
     "options": [
-      "Westminster (PA)",
-      "Oregon",
-      "Kutztown University",
-      "Texas Lutheran"
+      "UCLA",
+      "Arkansas State",
+      "Baylor",
+      "Oregon"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Oregon beat UCLA 24-10."
   },
   {
@@ -2090,12 +2090,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Robert Morris played Southeast Missouri State in Week 10, 2023?",
     "options": [
-      "North Carolina Central",
-      "UT San Antonio",
       "Robert Morris",
-      "Minnesota"
+      "Widener",
+      "Kentucky",
+      "Southeast Missouri State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Robert Morris beat Southeast Missouri State 21-20."
   },
   {
@@ -2104,12 +2104,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when SMU played Tulsa in Week 11, 2020?",
     "options": [
-      "Mississippi College",
-      "Southwest Minnesota State",
-      "Southwestern College",
-      "Tulsa"
+      "SMU",
+      "Tulsa",
+      "Ball State",
+      "Utah"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Tulsa beat SMU 28-24."
   },
   {
@@ -2118,10 +2118,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when South Alabama played Louisiana Tech in Week 5, 2017?",
     "options": [
-      "Texas A&M-Kingsville",
+      "Trinity International (IL)",
       "Louisiana Tech",
-      "Limestone",
-      "CENTENARY"
+      "North Carolina A&T",
+      "South Alabama"
     ],
     "correctIndex": 1,
     "notes": "Louisiana Tech beat South Alabama 34-16."
@@ -2132,12 +2132,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Carnegie Mellon played Thiel in Week 4, 2022?",
     "options": [
-      "Wofford",
-      "Memphis",
-      "Rutgers",
-      "Carnegie Mellon"
+      "Thiel",
+      "Carnegie Mellon",
+      "Indiana-Pennsylvania",
+      "Bates"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Carnegie Mellon beat Thiel 35-6."
   },
   {
@@ -2146,12 +2146,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Oregon played Arizona in Week 4, 2011?",
     "options": [
-      "Union College",
       "Oregon",
-      "The Citadel",
-      "Montana Tech"
+      "UMass",
+      "Arizona",
+      "Texas Tech"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Oregon beat Arizona 56-31."
   },
   {
@@ -2160,12 +2160,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Buffalo played Tennessee in Week 5, 2011?",
     "options": [
-      "Georgetown College Kentucky",
+      "Eastern Washington",
+      "Buffalo",
       "Tennessee",
-      "Hawaii",
-      "Otterbein"
+      "South Dakota State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Tennessee beat Buffalo 41-10."
   },
   {
@@ -2175,9 +2175,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Cal Poly played UC Davis in Week 9, 2022?",
     "options": [
       "UC Davis",
-      "Concordia Moorhead",
-      "Carthage",
-      "Northwestern State"
+      "Cal Poly",
+      "Virginia Tech",
+      "Arizona"
     ],
     "correctIndex": 0,
     "notes": "UC Davis beat Cal Poly 59-17."
@@ -2188,12 +2188,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Fairmont State played West Virginia State in Week 3, 2022?",
     "options": [
-      "American International",
-      "Weber State",
+      "Fairmont State",
       "West Virginia State",
-      "Sewanee"
+      "Mississippi College",
+      "Greensboro College"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "West Virginia State beat Fairmont State 34-29."
   },
   {
@@ -2202,12 +2202,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Colorado State played California in Week 5, 2008?",
     "options": [
-      "Franklin",
-      "Dickinson State University",
-      "California",
-      "Arkansas-Pine Bluff"
+      "Arizona State",
+      "Samford",
+      "Colorado State",
+      "California"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "California beat Colorado State 42-7."
   },
   {
@@ -2216,10 +2216,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Alma played Adrian in Week 12, 2024?",
     "options": [
-      "Tennessee Tech",
-      "Mayville State",
+      "Post University",
+      "Adrian",
       "Alma",
-      "Southern California"
+      "New Haven"
     ],
     "correctIndex": 2,
     "notes": "Alma beat Adrian 31-7."
@@ -2230,12 +2230,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Michigan played Michigan State in Week 1, 2022?",
     "options": [
-      "Coastal Carolina",
-      "UT Martin",
       "Michigan State",
-      "Stephen F. Austin"
+      "Western Michigan",
+      "Hope College",
+      "Fresno State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Michigan State beat Western Michigan 35-13."
   },
   {
@@ -2244,12 +2244,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Tennessee played Arkansas in Week 11, 2006?",
     "options": [
-      "California Lutheran University",
+      "Tennessee",
+      "LSU",
       "Arkansas",
-      "Central Missouri",
-      "Lafayette"
+      "The Citadel"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Arkansas beat Tennessee 31-14."
   },
   {
@@ -2258,12 +2258,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Carolina played Wofford in Week 8, 2019?",
     "options": [
-      "North Dakota",
-      "Wofford",
-      "Bethany (WV)",
-      "UT San Antonio"
+      "Samford",
+      "Western Carolina",
+      "Eastern Oregon",
+      "Wofford"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Wofford beat Western Carolina 59-7."
   },
   {
@@ -2272,12 +2272,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when SMU played Tulane in Week 14, 2023?",
     "options": [
-      "Missouri Western",
-      "University Of St Francis IN",
-      "SMU",
-      "Rhodes College"
+      "Tulane",
+      "Holy Cross",
+      "Western Illinois",
+      "SMU"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "SMU beat Tulane 26-14."
   },
   {
@@ -2286,12 +2286,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Chicago played Illinois College in Week 7, 2024?",
     "options": [
-      "Pittsburgh",
-      "Southern Utah",
-      "Shepherd",
-      "Illinois College"
+      "Coe College",
+      "Illinois College",
+      "Chicago",
+      "West Alabama"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Illinois College beat Chicago 50-37."
   },
   {
@@ -2300,12 +2300,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Marshall played Florida Atlantic in Week 7, 2013?",
     "options": [
-      "Kean",
-      "Whittier",
-      "Seton Hill",
-      "Marshall"
+      "Wofford",
+      "Marshall",
+      "Florida Atlantic",
+      "Abilene Christian"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Marshall beat Florida Atlantic 24-23."
   },
   {
@@ -2314,12 +2314,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Notre Dame played Clemson in Week 10, 2023?",
     "options": [
-      "Lakeland",
-      "Clemson",
-      "Mary Hardin-Baylor",
-      "South Dakota State"
+      "Abilene Christian",
+      "Houston",
+      "Notre Dame",
+      "Clemson"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Clemson beat Notre Dame 31-23."
   },
   {
@@ -2328,12 +2328,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when East Central (OK) played Southern Nazarene in Week 3, 2022?",
     "options": [
-      "North Park",
-      "Prairie View A&M",
+      "Madonna University",
       "East Central (OK)",
-      "Marist"
+      "Southern Nazarene",
+      "CSU Pueblo"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "East Central (OK) beat Southern Nazarene 44-21."
   },
   {
@@ -2342,12 +2342,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Washington and Lee played Randolph-Macon in Week 5, 2025?",
     "options": [
-      "Wisconsin-Stevens Pt",
+      "Washington and Lee",
+      "Pittsburgh",
       "Randolph-Macon",
-      "Youngstown State",
-      "Westminster College (MO)"
+      "Wittenberg"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Randolph-Macon beat Washington and Lee 24-6."
   },
   {
@@ -2356,12 +2356,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Shenandoah played Randolph-Macon in Week 8, 2023?",
     "options": [
-      "Randolph-Macon",
-      "Hamilton",
-      "Reading",
-      "Southwest Minnesota State"
+      "Shenandoah",
+      "NEWBERG",
+      "South Florida",
+      "Randolph-Macon"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Randolph-Macon beat Shenandoah 48-13."
   },
   {
@@ -2370,12 +2370,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Arkansas State played SMU in Week 4, 2006?",
     "options": [
-      "Prairie View",
-      "Richmond",
-      "Wabash College",
-      "SMU"
+      "South Florida",
+      "SMU",
+      "Arkansas State",
+      "Chattanooga"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "SMU beat Arkansas State 55-9."
   },
   {
@@ -2384,10 +2384,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when South Dakota played Missouri State in Week 8, 2014?",
     "options": [
-      "Simpson College (IA)",
+      "Iowa State",
       "Missouri State",
-      "Bridgewater State",
-      "Edinboro University"
+      "Alabama",
+      "South Dakota"
     ],
     "correctIndex": 1,
     "notes": "Missouri State beat South Dakota 31-12."
@@ -2398,12 +2398,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Maryland played Georgia Tech in Week 10, 2003?",
     "options": [
-      "Florida International",
-      "Guilford College",
+      "Montana",
       "Georgia Tech",
-      "Middle Tennessee"
+      "Maryland",
+      "Western Michigan"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Georgia Tech beat Maryland 7-3."
   },
   {
@@ -2412,12 +2412,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Yale played Brown in Week 10, 2021?",
     "options": [
-      "Elmhurst",
-      "Virginia Lynchburg",
-      "Harding",
-      "Yale"
+      "Brown",
+      "Yale",
+      "UConn",
+      "Austin Peay"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Yale beat Brown 63-38."
   },
   {
@@ -2427,9 +2427,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Widener played Wilkes in Week 3, 2022?",
     "options": [
       "Wilkes",
-      "Keystone",
-      "ERSKINE",
-      "Southwest Minnesota State"
+      "Concordia Moorhead",
+      "Widener",
+      "Eastern Michigan"
     ],
     "correctIndex": 0,
     "notes": "Wilkes beat Widener 44-20."
@@ -2440,12 +2440,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Louisiana Tech played UTEP in Week 12, 2015?",
     "options": [
-      "Bowling Green",
-      "Rensselaer",
-      "Susquehanna",
-      "Louisiana Tech"
+      "Louisiana Tech",
+      "UTEP",
+      "Kentucky State",
+      "Iowa"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Louisiana Tech beat UTEP 17-15."
   },
   {
@@ -2454,12 +2454,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Montana State played New Mexico in Week 1, 2024?",
     "options": [
-      "Clemson",
-      "ERSKINE",
+      "McDaniel College",
       "Montana State",
-      "Edinboro University"
+      "Wofford",
+      "New Mexico"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Montana State beat New Mexico 35-31."
   },
   {
@@ -2468,12 +2468,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Central Connecticut played Wagner in Week 8, 2025?",
     "options": [
-      "College of Idaho",
-      "Wisconsin-Stevens Pt",
-      "Shenandoah",
-      "Central Connecticut"
+      "Depauw",
+      "Wagner",
+      "Central Connecticut",
+      "Jacksonville State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Central Connecticut beat Wagner 24-17."
   },
   {
@@ -2482,9 +2482,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Rhode Island played Towson in Week 12, 2017?",
     "options": [
-      "Washington University (St. Louis)",
-      "Miles",
-      "Menlo",
+      "North Carolina A&T",
+      "Holy Cross",
+      "Rhode Island",
       "Towson"
     ],
     "correctIndex": 3,
@@ -2496,10 +2496,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Arkansas played Texas A&M in Week 5, 2024?",
     "options": [
-      "West Virginia",
+      "Wheaton",
       "Texas A&M",
-      "Washington State",
-      "Manchester"
+      "St John Fisher University",
+      "Arkansas"
     ],
     "correctIndex": 1,
     "notes": "Texas A&M beat Arkansas 21-17."
@@ -2510,9 +2510,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Florida A&M played Alabama State in Week 6, 2024?",
     "options": [
-      "Sioux Falls",
-      "Saint Xavier (IL)",
-      "Marian College",
+      "South Dakota Mines",
+      "Brevard College",
+      "Alabama State",
       "Florida A&M"
     ],
     "correctIndex": 3,
@@ -2524,12 +2524,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Northwestern State played Texas A&M in Week 1, 2018?",
     "options": [
-      "Middle Tennessee",
+      "LSU",
+      "Temple",
       "Texas A&M",
-      "New Mexico State",
-      "Air Force"
+      "Northwestern State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Texas A&M beat Northwestern State 59-7."
   },
   {
@@ -2538,12 +2538,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northern Illinois played Western Michigan in Week 13, 2020?",
     "options": [
-      "Lake Forest College",
-      "Western Michigan",
-      "Castleton",
-      "Wilson"
+      "UTSA",
+      "Northern Illinois",
+      "Nebraska",
+      "Western Michigan"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Western Michigan beat Northern Illinois 30-27."
   },
   {
@@ -2552,12 +2552,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Florida Atlantic played Florida A&M in Week 10, 2004?",
     "options": [
-      "St. Augustine's",
-      "Florida Atlantic",
-      "Lenoir-Rhyne",
-      "Cortland"
+      "Western Illinois",
+      "Florida A&M",
+      "New Mexico",
+      "Florida Atlantic"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Florida Atlantic beat Florida A&M 38-8."
   },
   {
@@ -2566,12 +2566,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Kent State played Illinois in Week 1, 2018?",
     "options": [
-      "Emory & Henry College",
-      "MONTANASTN",
+      "Princeton",
       "Illinois",
-      "Southern Virginia"
+      "Kent State",
+      "Charleston Southern"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Illinois beat Kent State 31-24."
   },
   {
@@ -2580,12 +2580,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Louisiana Monroe played Alabama in Week 3, 2006?",
     "options": [
-      "Arkansas",
-      "SE Louisiana",
-      "Hampden-Sydney",
-      "Alabama"
+      "Alabama",
+      "Louisiana Monroe",
+      "Connecticut",
+      "UNLV"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Alabama beat Louisiana Monroe 41-7."
   },
   {
@@ -2595,9 +2595,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Iowa State played Oklahoma in Week 12, 2013?",
     "options": [
       "Oklahoma",
-      "Tiffin",
-      "Minnesota Morris",
-      "Malone"
+      "Syracuse",
+      "Rice",
+      "Iowa State"
     ],
     "correctIndex": 0,
     "notes": "Oklahoma beat Iowa State 48-10."
@@ -2608,12 +2608,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Utah played Air Force in Week 12, 2006?",
     "options": [
-      "Dickinson State University",
-      "Georgetown",
       "Utah",
-      "Lakeland"
+      "Air Force",
+      "New Mexico State",
+      "Nicholls"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Utah beat Air Force 17-14."
   },
   {
@@ -2622,12 +2622,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Western Michigan played Akron in Week 13, 2006?",
     "options": [
-      "North Dakota State",
-      "Cal Poly",
-      "Texas State",
-      "Western Michigan"
+      "Western Michigan",
+      "Akron",
+      "Liberty",
+      "Tennessee"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Western Michigan beat Akron 17-0."
   },
   {
@@ -2636,12 +2636,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Minnesota State Mankato played Southwest Minnesota State in Week 10, 2021?",
     "options": [
-      "Dayton",
-      "Grambling",
-      "Defiance College",
-      "Minnesota State Mankato"
+      "Minnesota State Mankato",
+      "Southwest Minnesota State",
+      "Southern Connecticut State",
+      "UT Permian Basin"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Minnesota State Mankato beat Southwest Minnesota State 52-0."
   },
   {
@@ -2650,12 +2650,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Savannah St played Middle Tennessee in Week 1, 2014?",
     "options": [
+      "James Madison",
       "Middle Tennessee",
-      "Apprentice School",
-      "Wisconsin-Lacrosse",
-      "Minnesota"
+      "Savannah St",
+      "Truman State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Middle Tennessee beat Savannah St 61-7."
   },
   {
@@ -2664,12 +2664,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when North Texas played Western Kentucky in Week 9, 2010?",
     "options": [
-      "Presbyterian",
-      "Denison University",
-      "Pacific Lutheran",
-      "North Texas"
+      "North Texas",
+      "Washington State",
+      "Appalachian State",
+      "Western Kentucky"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "North Texas beat Western Kentucky 33-6."
   },
   {
@@ -2678,12 +2678,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Chapman played Claremont-Mudd-Scripps College in Week 7, 2024?",
     "options": [
+      "Claremont-Mudd-Scripps College",
+      "Franklin & Marshall",
       "Chapman",
-      "Lake Erie",
-      "Bowdoin",
-      "Northern Iowa"
+      "Kalamazoo"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Chapman beat Claremont-Mudd-Scripps College 41-13."
   },
   {
@@ -2693,9 +2693,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Butler played Valparaiso in Week 9, 2016?",
     "options": [
       "Butler",
-      "SE Louisiana",
-      "ERSKINE",
-      "Livingstone"
+      "Valparaiso",
+      "Rutgers",
+      "Louisville"
     ],
     "correctIndex": 0,
     "notes": "Butler beat Valparaiso 23-12."
@@ -2706,10 +2706,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when California played Notre Dame in Week 3, 2022?",
     "options": [
-      "UVA Wise",
-      "University of Rochester (NY)",
+      "Beloit",
+      "California",
       "Notre Dame",
-      "North Alabama"
+      "Worcester Polytechnic Institute"
     ],
     "correctIndex": 2,
     "notes": "Notre Dame beat California 24-17."
@@ -2720,12 +2720,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when UTEP played East Carolina in Week 5, 2012?",
     "options": [
-      "VMI",
-      "Sam Houston State",
-      "The Citadel",
-      "East Carolina"
+      "New Hampshire",
+      "Texas A&M-Commerce",
+      "East Carolina",
+      "UTEP"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "East Carolina beat UTEP 28-18."
   },
   {
@@ -2734,12 +2734,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Maryland played Indiana in Week 9, 2016?",
     "options": [
-      "Winona State",
-      "Georgetown",
-      "Indiana",
-      "Texas College"
+      "Middle Tennessee",
+      "Southern Utah",
+      "Maryland",
+      "Indiana"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Indiana beat Maryland 42-36."
   },
   {
@@ -2748,12 +2748,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when East Texas Baptist University played Howard Payne in Week 11, 2024?",
     "options": [
-      "East Texas Baptist University",
-      "UT San Antonio",
-      "Texas",
-      "Northwestern Oklahoma State"
+      "Howard Payne",
+      "Ole Miss",
+      "Trinity University TX",
+      "East Texas Baptist University"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "East Texas Baptist University beat Howard Payne 38-17."
   },
   {
@@ -2762,12 +2762,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Grinnell played Beloit in Week 3, 2023?",
     "options": [
+      "Beloit",
+      "Oklahoma Baptist",
       "Grinnell",
-      "Bloomsburg",
-      "Central College",
-      "Northern State"
+      "Texas State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Grinnell beat Beloit 33-23."
   },
   {
@@ -2776,12 +2776,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Old Dominion played North Carolina in Week 13, 2013?",
     "options": [
-      "Colorado",
-      "Bluffton",
-      "Tufts",
-      "North Carolina"
+      "Old Dominion",
+      "North Carolina",
+      "Penn State",
+      "Miami (OH)"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "North Carolina beat Old Dominion 80-20."
   },
   {
@@ -2790,12 +2790,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Texas played Oklahoma in Week 7, 2012?",
     "options": [
-      "Castleton",
-      "Carthage",
-      "Oklahoma",
-      "Florida International"
+      "Texas",
+      "Liberty",
+      "Florida A&M",
+      "Oklahoma"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Oklahoma beat Texas 63-21."
   },
   {
@@ -2804,12 +2804,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Austin Peay played Tennessee Tech in Week 11, 2015?",
     "options": [
-      "Northeastern State",
-      "Valparaiso",
       "Tennessee Tech",
-      "Pomona Pitzer"
+      "Austin Peay",
+      "Syracuse",
+      "Presbyterian"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Tennessee Tech beat Austin Peay 42-24."
   },
   {
@@ -2819,9 +2819,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Harvard played Dartmouth in Week 9, 2018?",
     "options": [
       "Dartmouth",
-      "Missouri S&T",
-      "Georgetown College Kentucky",
-      "Rice"
+      "East Carolina",
+      "Newberry",
+      "Harvard"
     ],
     "correctIndex": 0,
     "notes": "Dartmouth beat Harvard 24-17."
@@ -2832,12 +2832,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when SUNY Maritime played Merchant Marine Academy in Week 3, 2022?",
     "options": [
-      "Yale",
-      "Centre College Kentucky",
-      "Buffalo State",
-      "Merchant Marine Academy"
+      "Ole Miss",
+      "Merchant Marine Academy",
+      "Knox College",
+      "SUNY Maritime"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Merchant Marine Academy beat SUNY Maritime 48-13."
   },
   {
@@ -2846,12 +2846,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Kent State played Buffalo in Week 14, 2024?",
     "options": [
-      "Albany State GA",
-      "Bethany (KS)",
+      "Kent State",
       "Buffalo",
-      "Colorado Mesa"
+      "Florida State",
+      "Ohio Northern"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Buffalo beat Kent State 43-7."
   },
   {
@@ -2860,12 +2860,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Oklahoma Baptist played Arkansas Tech in Week 2, 2024?",
     "options": [
-      "Johns Hopkins University",
-      "Wisconsin-Oshkosh",
-      "Southwestern Assemblies Of God",
-      "Arkansas Tech"
+      "Wisconsin-Whitewater",
+      "Oklahoma Baptist",
+      "Arkansas Tech",
+      "Case Western Reserve"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Arkansas Tech beat Oklahoma Baptist 44-41."
   },
   {
@@ -2874,12 +2874,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Aurora played Wisconsin-Lutheran in Week 10, 2025?",
     "options": [
-      "North Central",
+      "Newberry",
+      "Benedictine University",
       "Aurora",
-      "Ithaca College",
-      "Hillsdale"
+      "Wisconsin-Lutheran"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Aurora beat Wisconsin-Lutheran 49-42."
   },
   {
@@ -2888,12 +2888,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northeastern State played William Jewell in Week 8, 2025?",
     "options": [
-      "Black Hills State",
       "Northeastern State",
-      "Morgan State",
-      "Idaho State"
+      "Furman",
+      "Hilbert College",
+      "William Jewell"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Northeastern State beat William Jewell 35-7."
   },
   {
@@ -2902,12 +2902,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Presbyterian played St. Thomas (MN) in Week 12, 2025?",
     "options": [
-      "Texas",
-      "Carroll University (WI)",
+      "Biddeford",
       "Presbyterian",
-      "Monmouth (IL)"
+      "Knox College",
+      "St. Thomas (MN)"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Presbyterian beat St. Thomas (MN) 23-9."
   },
   {
@@ -2916,12 +2916,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when UConn played Navy in Week 2, 2016?",
     "options": [
-      "Oregon",
-      "St. Lawrence",
+      "Nevada",
       "Navy",
-      "Bethel (MN)"
+      "Arkansas",
+      "UConn"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Navy beat UConn 28-24."
   },
   {
@@ -2930,12 +2930,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Midwestern State played UT Permian Basin in Week 8, 2022?",
     "options": [
-      "Bethel Col",
-      "Grambling",
+      "Westminster College (MO)",
       "Midwestern State",
-      "Capital"
+      "Huntingdon College (AL)",
+      "UT Permian Basin"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Midwestern State beat UT Permian Basin 24-23."
   },
   {
@@ -2944,12 +2944,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Michigan State played Indiana in Week 5, 2016?",
     "options": [
-      "Alcorn State",
-      "Juniata College",
-      "Davenport",
-      "Indiana"
+      "Kansas State",
+      "Michigan State",
+      "Indiana",
+      "Davidson"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Indiana beat Michigan State 24-21."
   },
   {
@@ -2958,10 +2958,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Missouri Southern State played Washburn in Week 8, 2024?",
     "options": [
-      "Lawrence Tech",
+      "Missouri Southern State",
       "Washburn",
-      "Utah",
-      "Weber State"
+      "Georgetown College Kentucky",
+      "Biddeford"
     ],
     "correctIndex": 1,
     "notes": "Washburn beat Missouri Southern State 42-21."
@@ -2972,12 +2972,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Charleston Southern played North Alabama in Week 8, 2021?",
     "options": [
-      "North Dakota State",
-      "Weber State",
+      "Charleston Southern",
       "North Alabama",
-      "UAlbany"
+      "UT Permian Basin",
+      "Villanova"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "North Alabama beat Charleston Southern 45-22."
   },
   {
@@ -2986,12 +2986,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when New Mexico Highlands played Colorado School Of Mines in Week 2, 2021?",
     "options": [
-      "Jackson State",
-      "University of Mary",
-      "Benedictine University",
-      "Colorado School Of Mines"
+      "Colorado School Of Mines",
+      "Quincy",
+      "New Mexico Highlands",
+      "Duquesne"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Colorado School Of Mines beat New Mexico Highlands 31-21."
   },
   {
@@ -3000,10 +3000,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Villanova played Monmouth in Week 4, 2025?",
     "options": [
-      "Curry College",
-      "Bethel University Tennessee",
+      "Villanova",
+      "San José State",
       "Monmouth",
-      "West Florida"
+      "Colorado Mesa"
     ],
     "correctIndex": 2,
     "notes": "Monmouth beat Villanova 51-33."
@@ -3014,12 +3014,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Murray State played Southern Illinois in Week 3, 2016?",
     "options": [
-      "Linfield College",
-      "Southern Illinois",
-      "Otterbein",
-      "William Penn"
+      "Prairie View A&M",
+      "Bryant",
+      "Murray State",
+      "Southern Illinois"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Southern Illinois beat Murray State 50-17."
   },
   {
@@ -3028,12 +3028,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Towson played Cincinnati in Week 1, 2024?",
     "options": [
-      "North Carolina Wesleyan",
-      "Southern Mississippi",
+      "St. Olaf",
       "Cincinnati",
-      "Concordia-Michigan"
+      "Central State (OH)",
+      "Towson"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Cincinnati beat Towson 38-20."
   },
   {
@@ -3042,10 +3042,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Memphis played Southern Mississippi in Week 11, 2007?",
     "options": [
-      "Fitchburg State",
-      "Reinhardt University",
+      "Georgia Southern",
+      "Southern Mississippi",
       "Memphis",
-      "Northwestern State"
+      "North Carolina Central"
     ],
     "correctIndex": 2,
     "notes": "Memphis beat Southern Mississippi 29-26."
@@ -3056,9 +3056,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Missouri played Kansas State in Week 2, 2022?",
     "options": [
-      "Pacific Lutheran",
-      "Maryville College (TN)",
-      "Western Connecticut St",
+      "Brockport",
+      "Wagner",
+      "Missouri",
       "Kansas State"
     ],
     "correctIndex": 3,
@@ -3070,10 +3070,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Minot State played Northern State in Week 7, 2021?",
     "options": [
-      "Arkansas-Pine Bluff",
+      "Minot State",
       "Northern State",
-      "Cortland",
-      "Ohio Wesleyan"
+      "Eastern Michigan",
+      "PennWest California"
     ],
     "correctIndex": 1,
     "notes": "Northern State beat Minot State 36-35."
@@ -3084,12 +3084,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Southern Mississippi played East Carolina in Week 15, 2003?",
     "options": [
-      "Ashland",
       "Southern Mississippi",
-      "Methodist",
-      "East Texas Baptist University"
+      "East Carolina",
+      "Eastern Illinois",
+      "South Florida"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Southern Mississippi beat East Carolina 38-21."
   },
   {
@@ -3098,12 +3098,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Maryland played UCLA in Week 8, 2025?",
     "options": [
-      "Wyoming",
-      "Alfred State",
-      "UCLA",
-      "MARIAN (IN"
+      "Maryland",
+      "Presbyterian",
+      "Miami",
+      "UCLA"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "UCLA beat Maryland 20-17."
   },
   {
@@ -3112,12 +3112,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Texas A&M played Baylor in Week 8, 2002?",
     "options": [
-      "Northwestern (MN)",
-      "Thomas More College",
+      "Boise State",
       "Texas A&M",
-      "North Carolina Wesleyan"
+      "Tennessee Tech",
+      "Baylor"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Texas A&M beat Baylor 41-0."
   },
   {
@@ -3126,12 +3126,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Cincinnati played Southern Mississippi in Week 11, 2004?",
     "options": [
-      "Navy",
-      "Pittsburgh",
+      "Washington",
       "Cincinnati",
-      "Carson-Newman College"
+      "Southern Mississippi",
+      "The Citadel"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Cincinnati beat Southern Mississippi 52-24."
   },
   {
@@ -3140,12 +3140,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Oklahoma State played Kansas State in Week 5, 2024?",
     "options": [
+      "Lake Forest College",
       "Kansas State",
-      "Northwestern Oklahoma State",
-      "Rockford",
-      "Middlebury"
+      "South Dakota State",
+      "Oklahoma State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Kansas State beat Oklahoma State 42-20."
   },
   {
@@ -3154,12 +3154,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when New Mexico played Air Force in Week 3, 2002?",
     "options": [
-      "Dubuque",
-      "Texas Southern",
-      "Air Force",
-      "Endicott College"
+      "Wofford",
+      "New Mexico",
+      "Virginia",
+      "Air Force"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Air Force beat New Mexico 38-31."
   },
   {
@@ -3168,12 +3168,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when UCLA played Nebraska in Week 10, 2024?",
     "options": [
+      "UT Permian Basin",
       "UCLA",
-      "San Diego State",
-      "Lindenwood",
-      "West Liberty"
+      "Westminster College (MO)",
+      "Nebraska"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "UCLA beat Nebraska 27-20."
   },
   {
@@ -3182,9 +3182,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Colorado played Washington State in Week 12, 2023?",
     "options": [
-      "North Greenville",
-      "NEWBERG",
-      "Alabama State",
+      "Union College",
+      "Colorado",
+      "Susquehanna",
       "Washington State"
     ],
     "correctIndex": 3,
@@ -3197,9 +3197,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when CENTENARY played Austin in Week 6, 2025?",
     "options": [
       "Austin",
-      "Wisconsin-Eau Claire",
-      "Williams",
-      "Southern Arkansas"
+      "UT Martin",
+      "CENTENARY",
+      "Cortland"
     ],
     "correctIndex": 0,
     "notes": "Austin beat CENTENARY 41-15."
@@ -3210,12 +3210,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Case Western Reserve played Washington & Jefferson in Week 9, 2023?",
     "options": [
-      "UT San Antonio",
-      "Buena Vista",
-      "Southwestern University",
-      "Washington & Jefferson"
+      "Washington & Jefferson",
+      "Case Western Reserve",
+      "Valparaiso",
+      "Ferris State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Washington & Jefferson beat Case Western Reserve 38-33."
   },
   {
@@ -3224,12 +3224,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Cornell played Harvard in Week 6, 2023?",
     "options": [
-      "Lawrence University",
-      "Harvard",
-      "Oklahoma Panhandle St",
-      "Ohio Wesleyan"
+      "Wheaton",
+      "Glenville State",
+      "Cornell",
+      "Harvard"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Harvard beat Cornell 41-23."
   },
   {
@@ -3238,12 +3238,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Missouri S&T played Indianapolis in Week 9, 2022?",
     "options": [
+      "Luther",
       "Indianapolis",
-      "Alcorn State",
-      "Northern Iowa",
-      "Chattanooga"
+      "Maine",
+      "Missouri S&T"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Indianapolis beat Missouri S&T 42-16."
   },
   {
@@ -3253,9 +3253,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Clark Atlanta played Shorter in Week 7, 2023?",
     "options": [
       "Shorter",
-      "Widener",
-      "Northwestern (MN)",
-      "William Penn"
+      "Harvard",
+      "West Virginia State",
+      "Clark Atlanta"
     ],
     "correctIndex": 0,
     "notes": "Shorter beat Clark Atlanta 19-13."
@@ -3266,12 +3266,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Gettysburg played Muhlenberg in Week 5, 2022?",
     "options": [
-      "Bluffton",
-      "Muhlenberg",
-      "Middlebury",
-      "West Virginia State"
+      "Kentucky Wesleyan",
+      "Birmingham-Southern",
+      "Gettysburg",
+      "Muhlenberg"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Muhlenberg beat Gettysburg 56-17."
   },
   {
@@ -3280,12 +3280,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when New Mexico State played New Mexico in Week 5, 2025?",
     "options": [
+      "Nicholls",
+      "New Mexico State",
       "New Mexico",
-      "Idaho",
-      "Central Connecticut",
-      "SUNY Cortland"
+      "Millikin"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "New Mexico beat New Mexico State 38-20."
   },
   {
@@ -3294,10 +3294,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Alabama played Tennessee in Week 8, 2012?",
     "options": [
-      "Averett",
-      "Missouri",
+      "South Florida",
+      "Marshall",
       "Alabama",
-      "Hartwick"
+      "Tennessee"
     ],
     "correctIndex": 2,
     "notes": "Alabama beat Tennessee 44-13."
@@ -3308,12 +3308,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Utah played Utah State in Week 2, 2002?",
     "options": [
+      "Miami (OH)",
       "Utah",
-      "Florida Atlantic",
-      "Tufts",
-      "Miami"
+      "Tulsa",
+      "Utah State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Utah beat Utah State 23-3."
   },
   {
@@ -3322,12 +3322,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Oregon played Simon Fraser in Week 4, 2021?",
     "options": [
-      "Faulkner University",
-      "Western Oregon",
-      "Towson",
-      "Concord University"
+      "Simon Fraser",
+      "San Diego State",
+      "Upper Iowa University",
+      "Western Oregon"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Western Oregon beat Simon Fraser 24-7."
   },
   {
@@ -3336,12 +3336,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Princeton played Lehigh in Week 4, 2016?",
     "options": [
+      "North Texas",
       "Lehigh",
-      "Knox College",
-      "Lake Forest College",
-      "Newberry"
+      "Princeton",
+      "Delaware"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Lehigh beat Princeton 42-28."
   },
   {
@@ -3350,12 +3350,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Eastern Michigan played Toledo in Week 10, 2007?",
     "options": [
-      "Muhlenberg",
-      "Liberty",
-      "California",
-      "Toledo"
+      "Eastern Michigan",
+      "Toledo",
+      "Stanford",
+      "Samford"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Toledo beat Eastern Michigan 52-28."
   },
   {
@@ -3364,12 +3364,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when UAlbany played Baylor in Week 1, 2022?",
     "options": [
+      "Mercyhurst",
+      "Delaware State",
       "Baylor",
-      "Claremont-Mudd-Scripps College",
-      "Ave Maria University",
-      "Rowan"
+      "UAlbany"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Baylor beat UAlbany 69-10."
   },
   {
@@ -3378,12 +3378,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Wartburg played Monmouth (IL) in Week 1, 2022?",
     "options": [
-      "Saginaw Valley State",
-      "Coast Guard",
+      "Utah Tech",
       "Wartburg",
-      "SUNY Cortland"
+      "Puget Sound",
+      "Monmouth (IL)"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Wartburg beat Monmouth (IL) 34-7."
   },
   {
@@ -3392,12 +3392,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Indianapolis played Truman State in Week 5, 2025?",
     "options": [
+      "Truman State",
       "Indianapolis",
-      "Oklahoma Panhandle St",
-      "NEWBERG",
-      "UT Martin"
+      "Eureka College",
+      "Howard"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Indianapolis beat Truman State 30-20."
   },
   {
@@ -3407,9 +3407,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Syracuse played Florida State in Week 9, 2019?",
     "options": [
       "Florida State",
-      "Fordham",
-      "Whitworth",
-      "Memphis"
+      "UAlbany",
+      "Rhode Island",
+      "Syracuse"
     ],
     "correctIndex": 0,
     "notes": "Florida State beat Syracuse 35-17."
@@ -3420,12 +3420,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Ohio State played Northwestern in Week 11, 2006?",
     "options": [
-      "Southern",
       "Ohio State",
-      "USC",
-      "Concordia University Chicago"
+      "Northwestern",
+      "Tennessee State",
+      "Temple"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Ohio State beat Northwestern 54-10."
   },
   {
@@ -3434,12 +3434,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Kansas played UNLV in Week 1, 2023?",
     "options": [
-      "Albright",
+      "William Jewell",
+      "South Carolina",
       "Kansas",
-      "Lake Erie",
-      "Beloit"
+      "UNLV"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Kansas beat UNLV 49-36."
   },
   {
@@ -3448,12 +3448,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Hope College played Aurora in Week 1, 2023?",
     "options": [
-      "Southwestern Oklahoma State",
-      "ERSKINE",
       "Aurora",
-      "Greenville"
+      "Lawrence University",
+      "Buffalo",
+      "Hope College"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Aurora beat Hope College 38-17."
   },
   {
@@ -3462,10 +3462,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Missouri played Vanderbilt in Week 12, 2017?",
     "options": [
-      "Trinity (CT)",
-      "Colgate",
+      "New Mexico",
+      "Cal Poly",
       "Missouri",
-      "UL Monroe"
+      "Vanderbilt"
     ],
     "correctIndex": 2,
     "notes": "Missouri beat Vanderbilt 45-17."
@@ -3476,10 +3476,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Washington played Oregon in Week 14, 2024?",
     "options": [
-      "Wisconsin-Whitewater",
+      "Wheaton",
       "Oregon",
-      "Cortland",
-      "Fairmont State"
+      "Cincinnati",
+      "Washington"
     ],
     "correctIndex": 1,
     "notes": "Oregon beat Washington 49-21."
@@ -3490,12 +3490,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Tennessee Tech played Tennessee State in Week 7, 2021?",
     "options": [
-      "Washington & Jefferson",
       "Tennessee State",
-      "Kean",
-      "Albany"
+      "Tennessee Tech",
+      "Texas Tech",
+      "Maryland"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Tennessee State beat Tennessee Tech 20-13."
   },
   {
@@ -3504,12 +3504,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Texas played Texas A&M in Week 13, 2009?",
     "options": [
-      "Anderson (IN)",
-      "Knox College",
-      "North Alabama",
-      "Texas"
+      "Texas",
+      "Texas A&M",
+      "Maine",
+      "Delaware State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Texas beat Texas A&M 49-39."
   },
   {
@@ -3518,12 +3518,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Bryant played UNLV in Week 1, 2023?",
     "options": [
-      "Cornell",
-      "UNLV",
-      "Elmhurst",
-      "Wayne State (MI)"
+      "Bryant",
+      "West Virginia State",
+      "McMurry",
+      "UNLV"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "UNLV beat Bryant 44-14."
   },
   {
@@ -3532,12 +3532,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when CSU Pueblo played Colorado School Of Mines in Week 4, 2022?",
     "options": [
-      "Sul Ross State",
-      "Maryland",
-      "Pittsburg St",
-      "Colorado School Of Mines"
+      "Colorado School Of Mines",
+      "CSU Pueblo",
+      "Savannah St",
+      "Southern"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Colorado School Of Mines beat CSU Pueblo 45-17."
   },
   {
@@ -3546,12 +3546,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Ohio State played Iowa in Week 12, 2010?",
     "options": [
-      "Campbellsville University",
+      "Arkansas-Pine Bluff",
+      "Iowa",
       "Ohio State",
-      "Clarion",
-      "Malone"
+      "Tennessee Tech"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Ohio State beat Iowa 20-17."
   },
   {
@@ -3560,12 +3560,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Eastern Kentucky played Austin Peay in Week 6, 2014?",
     "options": [
-      "Concord University",
-      "Loras College",
-      "Norfolk State",
-      "Eastern Kentucky"
+      "Eastern Kentucky",
+      "Wisconsin-Oshkosh",
+      "Arizona",
+      "Austin Peay"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Eastern Kentucky beat Austin Peay 31-0."
   },
   {
@@ -3574,12 +3574,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Florida International played UTSA in Week 1, 2025?",
     "options": [
-      "SUNY Maritime",
-      "Hamline University",
-      "UTSA",
-      "Ferrum"
+      "California Lutheran University",
+      "Cornell",
+      "Florida International",
+      "UTSA"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "UTSA beat Florida International 57-20."
   },
   {
@@ -3588,12 +3588,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Oklahoma Panhandle St played Sam Houston in Week 2, 2019?",
     "options": [
-      "Crown College",
-      "Indiana",
-      "Johnson C Smith",
-      "Sam Houston"
+      "Oregon State",
+      "Sam Houston",
+      "Oklahoma Panhandle St",
+      "Georgia Southern"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Sam Houston beat Oklahoma Panhandle St 77-0."
   },
   {
@@ -3602,12 +3602,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Puget Sound played NEWBERG in Week 9, 2025?",
     "options": [
-      "Jackson State",
       "NEWBERG",
-      "Midland Lutheran College",
-      "Western Kentucky"
+      "Merrimack",
+      "Puget Sound",
+      "Nicholls"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "NEWBERG beat Puget Sound 48-23."
   },
   {
@@ -3616,12 +3616,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when San Diego State played Michigan in Week 4, 2004?",
     "options": [
-      "Pittsburg St",
-      "Miami",
-      "North Dakota",
-      "Michigan"
+      "Michigan",
+      "Boise State",
+      "San Diego State",
+      "Tennessee"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "Michigan beat San Diego State 24-21."
   },
   {
@@ -3630,12 +3630,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Florida State played Boston College in Week 9, 2017?",
     "options": [
-      "Guilford College",
-      "Tennessee Tech",
+      "Florida State",
       "Boston College",
-      "Lenoir-Rhyne"
+      "St. Anselm",
+      "Montana-Western"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Boston College beat Florida State 35-3."
   },
   {
@@ -3644,12 +3644,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Kentucky State played Morehouse College in Week 4, 2025?",
     "options": [
-      "North American University",
       "Kentucky State",
-      "College of Idaho",
-      "Lagrange College"
+      "Buffalo",
+      "Coastal Carolina",
+      "Morehouse College"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Kentucky State beat Morehouse College 35-17."
   },
   {
@@ -3658,10 +3658,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Brevard College played Liberty in Week 3, 2014?",
     "options": [
-      "Oregon State",
+      "Memphis",
       "Liberty",
-      "Troy",
-      "Whittier"
+      "Brevard College",
+      "McNeese"
     ],
     "correctIndex": 1,
     "notes": "Liberty beat Brevard College 56-31."
@@ -3672,12 +3672,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Louisiana played Boise State in Week 4, 2014?",
     "options": [
-      "Carthage",
-      "Virginia Lynchburg",
-      "Boise State",
-      "Keystone"
+      "Michigan State",
+      "Louisiana",
+      "Villanova",
+      "Boise State"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "Boise State beat Louisiana 34-9."
   },
   {
@@ -3686,10 +3686,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when St. Thomas (MN) played San Diego in Week 5, 2021?",
     "options": [
-      "North Carolina A&T",
+      "Mercyhurst",
       "San Diego",
-      "Apprentice School",
-      "Barton College"
+      "Nebraska-Kearney",
+      "St. Thomas (MN)"
     ],
     "correctIndex": 1,
     "notes": "San Diego beat St. Thomas (MN) 27-24."
@@ -3700,12 +3700,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Midwestern State played Sul Ross State in Week 7, 2025?",
     "options": [
-      "Virginia Union",
       "Midwestern State",
-      "Princeton",
-      "Robert Morris"
+      "Hiram College",
+      "Sul Ross State",
+      "Hope College"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Midwestern State beat Sul Ross State 69-23."
   },
   {
@@ -3714,9 +3714,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Iowa played Minnesota in Week 12, 2022?",
     "options": [
-      "St Francis Illinois",
-      "Wartburg",
-      "Hilbert College",
+      "Minnesota",
+      "Wisconsin-Stevens Pt",
+      "Oklahoma State",
       "Iowa"
     ],
     "correctIndex": 3,
@@ -3729,9 +3729,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Abilene Christian played Baylor in Week 1, 2018?",
     "options": [
       "Baylor",
-      "Elmhurst",
-      "California",
-      "Harding"
+      "Abilene Christian",
+      "Syracuse",
+      "SUNY Maritime"
     ],
     "correctIndex": 0,
     "notes": "Baylor beat Abilene Christian 55-27."
@@ -3743,9 +3743,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Texas A&M played Baylor in Week 11, 2010?",
     "options": [
       "Texas A&M",
-      "University of Rochester (NY)",
-      "UVA Wise",
-      "Lafayette"
+      "Baylor",
+      "UCLA",
+      "New Mexico State"
     ],
     "correctIndex": 0,
     "notes": "Texas A&M beat Baylor 42-30."
@@ -3756,12 +3756,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Michigan played Wisconsin in Week 1, 2024?",
     "options": [
-      "Georgia State",
+      "Western Michigan",
+      "Averett",
       "Wisconsin",
-      "Wisconsin-Eau Claire",
-      "Rice"
+      "Washington"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Wisconsin beat Western Michigan 28-14."
   },
   {
@@ -3770,12 +3770,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Grambling played Pittsburgh in Week 2, 2007?",
     "options": [
-      "UVA Wise",
       "Pittsburgh",
-      "Arkansas",
-      "Redlands"
+      "Northern Colorado",
+      "Grambling",
+      "USC"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "Pittsburgh beat Grambling 34-10."
   },
   {
@@ -3784,9 +3784,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Troy played New Mexico State in Week 8, 2015?",
     "options": [
-      "Ripon",
-      "Elizabeth City State",
-      "Western New England",
+      "Northwestern",
+      "Samford",
+      "New Mexico State",
       "Troy"
     ],
     "correctIndex": 3,
@@ -3798,9 +3798,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Arizona played BYU in Week 7, 2024?",
     "options": [
-      "Montclair State",
-      "Wisconsin-Platteville",
-      "Utah Tech",
+      "Northwestern (MN)",
+      "Chapman",
+      "Arizona",
       "BYU"
     ],
     "correctIndex": 3,
@@ -3813,9 +3813,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Lake Forest College played Monmouth (IL) in Week 10, 2023?",
     "options": [
       "Monmouth (IL)",
-      "West Virginia Tech",
-      "Denison University",
-      "Colorado"
+      "Lake Forest College",
+      "Fort Lewis",
+      "North Central College"
     ],
     "correctIndex": 0,
     "notes": "Monmouth (IL) beat Lake Forest College 16-14."
@@ -3826,12 +3826,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Western Michigan played Ball State in Week 6, 2024?",
     "options": [
-      "Savannah St",
-      "Angelo State",
-      "Dayton",
-      "Western Michigan"
+      "Ball State",
+      "Austin Peay",
+      "Western Michigan",
+      "Hawai'i"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "Western Michigan beat Ball State 45-42."
   },
   {
@@ -3840,12 +3840,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Northwestern (MN) played Bethel (MN) in Week 3, 2025?",
     "options": [
-      "Catawba",
-      "Lycoming",
+      "Northwestern (MN)",
       "Bethel (MN)",
-      "Gardner-Webb"
+      "Albright",
+      "MIT"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Bethel (MN) beat Northwestern (MN) 50-3."
   },
   {
@@ -3854,12 +3854,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Georgia Southern played UL Monroe in Week 10, 2018?",
     "options": [
-      "Lebanon Valley",
+      "North Texas",
+      "Florida A&M",
       "UL Monroe",
-      "Kentucky Wesleyan",
-      "CENTENARY"
+      "Georgia Southern"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "UL Monroe beat Georgia Southern 44-25."
   },
   {
@@ -3868,12 +3868,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when William & Mary played Stony Brook in Week 5, 2022?",
     "options": [
-      "Northern Colorado",
-      "Millsaps",
-      "William & Mary",
-      "Kenyon"
+      "UAB",
+      "Stony Brook",
+      "McMurry",
+      "William & Mary"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "William & Mary beat Stony Brook 27-10."
   },
   {
@@ -3882,12 +3882,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Kansas State played Texas Tech in Week 7, 2023?",
     "options": [
-      "Chadron State",
+      "Texas Tech",
+      "Denison University",
       "Kansas State",
-      "Westminster (PA)",
-      "Shenandoah"
+      "Shaw"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Kansas State beat Texas Tech 38-21."
   },
   {
@@ -3896,10 +3896,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Cincinnati played East Carolina in Week 13, 2021?",
     "options": [
-      "Faulkner University",
+      "Idaho State",
       "Cincinnati",
-      "Dartmouth",
-      "Wilmington (OH)"
+      "East Carolina",
+      "South Florida"
     ],
     "correctIndex": 1,
     "notes": "Cincinnati beat East Carolina 35-13."
@@ -3910,12 +3910,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Prairie View A&M played Northwestern State in Week 2, 2024?",
     "options": [
+      "Northwestern State",
       "Prairie View A&M",
-      "Albion",
-      "Purdue",
-      "St John Fisher University"
+      "Massachusetts",
+      "Arizona"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Prairie View A&M beat Northwestern State 37-31."
   },
   {
@@ -3924,12 +3924,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Sam Houston played Abilene Christian in Week 11, 2017?",
     "options": [
-      "Stetson",
-      "Sam Houston",
-      "Warner University",
-      "Wingate"
+      "Grambling",
+      "Abilene Christian",
+      "San José State",
+      "Sam Houston"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "Sam Houston beat Abilene Christian 44-35."
   },
   {
@@ -3938,10 +3938,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Valley City State played Augsburg in Week 2, 2024?",
     "options": [
-      "Mercer",
-      "Muskingum University",
+      "Roosevelt",
+      "Augsburg",
       "Valley City State",
-      "East Stroudsburg University"
+      "SUNY Maritime"
     ],
     "correctIndex": 2,
     "notes": "Valley City State beat Augsburg 24-14."
@@ -3952,12 +3952,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Washington played Oregon State in Week 13, 2013?",
     "options": [
-      "Washington",
-      "Keiser (Fl)",
-      "Western Kentucky",
-      "Sam Houston State"
+      "Boise State",
+      "Oregon State",
+      "North Carolina Central",
+      "Washington"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Washington beat Oregon State 69-27."
   },
   {
@@ -3966,12 +3966,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Indiana State played Liberty in Week 3, 2017?",
     "options": [
+      "Lock Haven University",
+      "Colgate",
       "Liberty",
-      "Puget Sound",
-      "Delaware",
-      "Troy"
+      "Indiana State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Liberty beat Indiana State 42-41."
   },
   {
@@ -3980,12 +3980,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when UNLV played New Mexico in Week 12, 2017?",
     "options": [
-      "UNLV",
-      "UT Rio Grande Valley",
-      "Virginia Union",
-      "North Park"
+      "Methodist",
+      "New Mexico",
+      "Florida International",
+      "UNLV"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "UNLV beat New Mexico 38-35."
   },
   {
@@ -3994,12 +3994,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Bemidji State played Minnesota Duluth in Week 9, 2023?",
     "options": [
-      "Edinboro",
-      "BLUEFIELD",
-      "Wayne State (NE)",
-      "Bemidji State"
+      "Warner University",
+      "Bemidji State",
+      "Minnesota Duluth",
+      "Harding University"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Bemidji State beat Minnesota Duluth 38-31."
   },
   {
@@ -4008,12 +4008,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Drake played St. Thomas (MN) in Week 7, 2022?",
     "options": [
+      "Dakota State University",
+      "Drake",
       "St. Thomas (MN)",
-      "Kings College (PA)",
-      "Trinity International (IL)",
-      "North Central College"
+      "South Carolina State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "St. Thomas (MN) beat Drake 26-14."
   },
   {
@@ -4022,12 +4022,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when California played Oregon in Week 7, 2021?",
     "options": [
-      "Biddeford",
+      "Kansas State",
+      "California",
       "Oregon",
-      "Western Colorado",
-      "Baldwin Wallace"
+      "Western Oregon"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "Oregon beat California 24-17."
   },
   {
@@ -4036,12 +4036,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Arkansas played Georgia in Week 8, 2005?",
     "options": [
-      "UL Monroe",
-      "Wayland Baptist",
-      "Allegheny",
-      "Georgia"
+      "Chattanooga",
+      "Georgia",
+      "Arkansas",
+      "Illinois State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Georgia beat Arkansas 23-20."
   },
   {
@@ -4050,12 +4050,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Miami (OH) played Northwestern in Week 1, 2024?",
     "options": [
-      "Presbyterian",
-      "Fitchburg State",
-      "South Carolina",
-      "Northwestern"
+      "Miami (OH)",
+      "Northwestern",
+      "Concordia-Michigan",
+      "Mass Maritime"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Northwestern beat Miami (OH) 13-6."
   },
   {
@@ -4064,12 +4064,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when NC State played Boston College in Week 2, 2007?",
     "options": [
+      "Clemson",
+      "East Carolina",
       "Boston College",
-      "Madonna University (Mich.)",
-      "UMass",
-      "Mississippi College"
+      "NC State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "Boston College beat NC State 37-17."
   },
   {
@@ -4078,12 +4078,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when Robert Morris played Duquesne in Week 7, 2016?",
     "options": [
+      "Middle Tennessee",
       "Duquesne",
-      "Villanova",
-      "Dakota State University",
-      "Cornell"
+      "Robert Morris",
+      "UNLV"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Duquesne beat Robert Morris 31-24."
   },
   {
@@ -4092,12 +4092,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when New Mexico State played UTEP in Week 3, 2014?",
     "options": [
-      "East Carolina",
       "UTEP",
-      "Augsburg",
-      "East Central (OK)"
+      "Des Moines",
+      "Eastern Illinois",
+      "New Mexico State"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "UTEP beat New Mexico State 42-24."
   },
   {
@@ -4106,12 +4106,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Toledo played Buffalo in Week 9, 2012?",
     "options": [
+      "Buffalo",
       "Toledo",
-      "James Madison",
-      "South Alabama",
-      "MARIAN (IN"
+      "Stanford",
+      "NC State"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "Toledo beat Buffalo 25-20."
   },
   {
@@ -4120,10 +4120,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Florida Atlantic played Clemson in Week 1, 2006?",
     "options": [
-      "Hilbert College",
-      "Wake Forest",
+      "Samford",
+      "Florida Atlantic",
       "Clemson",
-      "Memphis"
+      "Oklahoma"
     ],
     "correctIndex": 2,
     "notes": "Clemson beat Florida Atlantic 54-6."
@@ -4134,12 +4134,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Merchant Marine Academy played Curry College in Week 13, 2025?",
     "options": [
-      "Northwestern (MN)",
-      "Kean",
+      "Tennessee State",
       "Merchant Marine Academy",
-      "Tarleton State"
+      "Curry College",
+      "SE Louisiana"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "Merchant Marine Academy beat Curry College 27-24."
   },
   {
@@ -4149,9 +4149,9 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "question": "Which team won when Akron played Ohio State in Week 2, 2007?",
     "options": [
       "Ohio State",
-      "Alabama State",
-      "Slippery Rock",
-      "Louisiana"
+      "Arizona State",
+      "Akron",
+      "Rhode Island"
     ],
     "correctIndex": 0,
     "notes": "Ohio State beat Akron 20-2."
@@ -4162,12 +4162,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Iowa State played Texas in Week 7, 2022?",
     "options": [
-      "Texas",
-      "New Haven",
-      "Lycoming",
-      "Tulsa"
+      "Iowa State",
+      "Ithaca College",
+      "Concordia Moorhead",
+      "Texas"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "Texas beat Iowa State 24-21."
   },
   {
@@ -4176,12 +4176,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when Kent State played Ohio in Week 5, 2011?",
     "options": [
-      "Edinboro University",
-      "Shepherd",
-      "Ferris State",
-      "Ohio"
+      "North Dakota State",
+      "Ohio",
+      "Connecticut",
+      "Kent State"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "Ohio beat Kent State 17-10."
   },
   {
@@ -4190,12 +4190,12 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when Minnesota Morris played Crown College in Week 4, 2025?",
     "options": [
-      "New Mexico",
-      "Tufts",
       "Crown College",
-      "Dean College"
+      "Ferrum",
+      "Minnesota Morris",
+      "SMU"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "Crown College beat Minnesota Morris 30-20."
   },
   {
@@ -4204,10 +4204,10 @@ window.QUIZ_DATA_ENGINE_CFB_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when North Carolina played California in Week 1, 2018?",
     "options": [
-      "Gardner-Webb",
+      "North Carolina",
       "California",
-      "UT Permian Basin",
-      "Northwestern"
+      "Colorado State",
+      "Richmond"
     ],
     "correctIndex": 1,
     "notes": "California beat North Carolina 24-17."

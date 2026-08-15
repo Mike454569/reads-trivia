@@ -22,10 +22,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Jacksonville Jaguars played the Atlanta Falcons in Week 16, 2019?",
     "options": [
-      "Oakland Raiders",
+      "Jacksonville Jaguars",
       "Atlanta Falcons",
-      "New York Jets",
-      "Seattle Seahawks"
+      "Oakland Raiders",
+      "New York Jets"
     ],
     "correctIndex": 1,
     "notes": "The Atlanta Falcons beat the Jacksonville Jaguars 24-12 (12-point margin)."
@@ -36,12 +36,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Pittsburgh Steelers in Week 14, 2002?",
     "options": [
-      "Dallas Cowboys",
       "Houston Texans",
       "Buffalo Bills",
-      "Cleveland Browns"
+      "Dallas Cowboys",
+      "Pittsburgh Steelers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Houston Texans beat the Pittsburgh Steelers 24-6 (18-point margin)."
   },
   {
@@ -50,9 +50,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Oakland Raiders played the Chicago Bears in Week 5, 2003?",
     "options": [
-      "Seattle Seahawks",
+      "Atlanta Falcons",
+      "Oakland Raiders",
       "Indianapolis Colts",
-      "Buffalo Bills",
       "Chicago Bears"
     ],
     "correctIndex": 3,
@@ -65,9 +65,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Cleveland Browns played the New York Jets in Week 10, 2025?",
     "options": [
       "New York Jets",
-      "Green Bay Packers",
-      "Tennessee Titans",
-      "Minnesota Vikings"
+      "Cleveland Browns",
+      "Minnesota Vikings",
+      "Green Bay Packers"
     ],
     "correctIndex": 0,
     "notes": "The New York Jets beat the Cleveland Browns 27-20 (7-point margin)."
@@ -79,9 +79,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Seattle Seahawks played the San Francisco 49ers in Week 17, 2020?",
     "options": [
       "Seattle Seahawks",
+      "San Francisco 49ers",
       "Chicago Bears",
-      "Las Vegas Raiders",
-      "Miami Dolphins"
+      "Las Vegas Raiders"
     ],
     "correctIndex": 0,
     "notes": "The Seattle Seahawks beat the San Francisco 49ers 26-23 (3-point margin)."
@@ -92,9 +92,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Jacksonville Jaguars played the Chicago Bears in Week 6, 2024?",
     "options": [
-      "Washington Commanders",
       "Carolina Panthers",
       "San Francisco 49ers",
+      "Jacksonville Jaguars",
       "Chicago Bears"
     ],
     "correctIndex": 3,
@@ -107,9 +107,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Carolina Panthers played the St Louis Rams in Week 1, 2007?",
     "options": [
       "Carolina Panthers",
-      "Detroit Lions",
-      "Washington Redskins",
-      "Baltimore Ravens"
+      "Baltimore Ravens",
+      "St Louis Rams",
+      "Washington Redskins"
     ],
     "correctIndex": 0,
     "notes": "The Carolina Panthers beat the St Louis Rams 27-13 (14-point margin)."
@@ -120,12 +120,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Philadelphia Eagles played the Atlanta Falcons in Week 2, 2011?",
     "options": [
+      "Philadelphia Eagles",
+      "Atlanta Falcons",
       "St Louis Rams",
-      "Jacksonville Jaguars",
-      "New York Giants",
-      "Atlanta Falcons"
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Atlanta Falcons beat the Philadelphia Eagles 35-31 (4-point margin)."
   },
   {
@@ -134,12 +134,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Chicago Bears played the Carolina Panthers in Week 5, 2014?",
     "options": [
-      "Pittsburgh Steelers",
-      "San Diego Chargers",
-      "Carolina Panthers",
-      "Minnesota Vikings"
+      "Cleveland Browns",
+      "Chicago Bears",
+      "St Louis Rams",
+      "Carolina Panthers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Carolina Panthers beat the Chicago Bears 31-24 (7-point margin)."
   },
   {
@@ -148,12 +148,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Buffalo Bills played the Houston Texans in Week 4, 2014?",
     "options": [
-      "Oakland Raiders",
-      "Houston Texans",
-      "Cincinnati Bengals",
-      "Green Bay Packers"
+      "Buffalo Bills",
+      "San Diego Chargers",
+      "Indianapolis Colts",
+      "Houston Texans"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Houston Texans beat the Buffalo Bills 23-17 (6-point margin)."
   },
   {
@@ -162,12 +162,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Oakland Raiders played the Minnesota Vikings in Week 11, 2007?",
     "options": [
-      "Chicago Bears",
-      "Cincinnati Bengals",
+      "New York Jets",
       "Minnesota Vikings",
-      "Washington Redskins"
+      "Oakland Raiders",
+      "Detroit Lions"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Minnesota Vikings beat the Oakland Raiders 29-22 (7-point margin)."
   },
   {
@@ -176,12 +176,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New England Patriots played the Las Vegas Raiders in Week 15, 2022?",
     "options": [
-      "Jacksonville Jaguars",
-      "Atlanta Falcons",
-      "Pittsburgh Steelers",
-      "Las Vegas Raiders"
+      "New England Patriots",
+      "Chicago Bears",
+      "Las Vegas Raiders",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Las Vegas Raiders beat the New England Patriots 30-24 (6-point margin)."
   },
   {
@@ -190,12 +190,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Minnesota Vikings played the Detroit Lions in Week 18, 2023?",
     "options": [
-      "Detroit Lions",
+      "Minnesota Vikings",
+      "Kansas City Chiefs",
       "Pittsburgh Steelers",
-      "Denver Broncos",
-      "Dallas Cowboys"
+      "Detroit Lions"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Detroit Lions beat the Minnesota Vikings 30-20 (10-point margin)."
   },
   {
@@ -204,12 +204,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the New England Patriots in Week 15, 2007?",
     "options": [
+      "Seattle Seahawks",
+      "New York Jets",
       "New England Patriots",
-      "New Orleans Saints",
-      "Cleveland Browns",
-      "Cincinnati Bengals"
+      "Dallas Cowboys"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the New York Jets 20-10 (10-point margin)."
   },
   {
@@ -218,12 +218,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Miami Dolphins played the San Francisco 49ers in Week 13, 2022?",
     "options": [
-      "Washington Commanders",
-      "Pittsburgh Steelers",
       "San Francisco 49ers",
-      "Arizona Cardinals"
+      "Cleveland Browns",
+      "Green Bay Packers",
+      "Miami Dolphins"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The San Francisco 49ers beat the Miami Dolphins 33-17 (16-point margin)."
   },
   {
@@ -232,12 +232,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the San Diego Chargers played the Baltimore Ravens in Week 13, 2014?",
     "options": [
-      "Green Bay Packers",
-      "San Diego Chargers",
-      "Philadelphia Eagles",
-      "Chicago Bears"
+      "Miami Dolphins",
+      "Indianapolis Colts",
+      "Baltimore Ravens",
+      "San Diego Chargers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The San Diego Chargers beat the Baltimore Ravens 34-33 (1-point margin)."
   },
   {
@@ -246,12 +246,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Indianapolis Colts in Week 17, 2012?",
     "options": [
-      "Philadelphia Eagles",
+      "Denver Broncos",
+      "Houston Texans",
       "Indianapolis Colts",
-      "Oakland Raiders",
-      "Seattle Seahawks"
+      "New England Patriots"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Indianapolis Colts beat the Houston Texans 28-16 (12-point margin)."
   },
   {
@@ -261,9 +261,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Green Bay Packers played the Chicago Bears in Week 16, 2025?",
     "options": [
       "Chicago Bears",
-      "Tennessee Titans",
-      "Minnesota Vikings",
-      "Miami Dolphins"
+      "New Orleans Saints",
+      "Denver Broncos",
+      "Green Bay Packers"
     ],
     "correctIndex": 0,
     "notes": "The Chicago Bears beat the Green Bay Packers 22-16 in overtime (6-point margin)."
@@ -274,10 +274,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Indianapolis Colts played the Tennessee Titans in Week 2, 2004?",
     "options": [
-      "Miami Dolphins",
+      "Green Bay Packers",
       "Indianapolis Colts",
-      "San Diego Chargers",
-      "Carolina Panthers"
+      "St Louis Rams",
+      "Tennessee Titans"
     ],
     "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the Tennessee Titans 31-17 (14-point margin)."
@@ -288,12 +288,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the Green Bay Packers in Week 2, 2005?",
     "options": [
-      "San Diego Chargers",
-      "Jacksonville Jaguars",
+      "Seattle Seahawks",
       "Cleveland Browns",
-      "Cincinnati Bengals"
+      "Green Bay Packers",
+      "New York Jets"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Cleveland Browns beat the Green Bay Packers 26-24 (2-point margin)."
   },
   {
@@ -302,12 +302,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Diego Chargers played the Oakland Raiders in Week 17, 2007?",
     "options": [
-      "Philadelphia Eagles",
-      "Baltimore Ravens",
-      "Jacksonville Jaguars",
-      "San Diego Chargers"
+      "Oakland Raiders",
+      "San Diego Chargers",
+      "St Louis Rams",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The San Diego Chargers beat the Oakland Raiders 30-17 (13-point margin)."
   },
   {
@@ -316,12 +316,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Kansas City Chiefs played the Tampa Bay Buccaneers in Week 9, 2004?",
     "options": [
-      "St Louis Rams",
+      "Houston Texans",
+      "Cincinnati Bengals",
       "Tampa Bay Buccaneers",
-      "Oakland Raiders",
-      "Seattle Seahawks"
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Tampa Bay Buccaneers beat the Kansas City Chiefs 34-31 (3-point margin)."
   },
   {
@@ -330,9 +330,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Chicago Bears played the San Francisco 49ers in Week 16, 2018?",
     "options": [
-      "Los Angeles Rams",
+      "San Francisco 49ers",
+      "New York Jets",
       "Kansas City Chiefs",
-      "Green Bay Packers",
       "Chicago Bears"
     ],
     "correctIndex": 3,
@@ -344,10 +344,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Los Angeles Chargers played the Denver Broncos in Week 1, 2017?",
     "options": [
-      "Dallas Cowboys",
-      "Carolina Panthers",
+      "Tennessee Titans",
+      "Los Angeles Chargers",
       "Denver Broncos",
-      "Buffalo Bills"
+      "Tampa Bay Buccaneers"
     ],
     "correctIndex": 2,
     "notes": "The Denver Broncos beat the Los Angeles Chargers 24-21 (3-point margin)."
@@ -358,12 +358,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Carolina Panthers played the Tennessee Titans in Week 10, 2015?",
     "options": [
-      "Cleveland Browns",
-      "Detroit Lions",
-      "Green Bay Packers",
-      "Carolina Panthers"
+      "Carolina Panthers",
+      "Pittsburgh Steelers",
+      "Tennessee Titans",
+      "Baltimore Ravens"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Carolina Panthers beat the Tennessee Titans 27-10 (17-point margin)."
   },
   {
@@ -372,12 +372,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Green Bay Packers played the Minnesota Vikings in Week 7, 2005?",
     "options": [
-      "New York Jets",
-      "Kansas City Chiefs",
-      "Philadelphia Eagles",
-      "Minnesota Vikings"
+      "Pittsburgh Steelers",
+      "Baltimore Ravens",
+      "Minnesota Vikings",
+      "Green Bay Packers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Minnesota Vikings beat the Green Bay Packers 23-20 (3-point margin)."
   },
   {
@@ -386,12 +386,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Indianapolis Colts played the Arizona Cardinals in Week 3, 2009?",
     "options": [
-      "Green Bay Packers",
-      "Baltimore Ravens",
-      "Kansas City Chiefs",
-      "Indianapolis Colts"
+      "Arizona Cardinals",
+      "Chicago Bears",
+      "Indianapolis Colts",
+      "Carolina Panthers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Indianapolis Colts beat the Arizona Cardinals 31-10 (21-point margin)."
   },
   {
@@ -400,12 +400,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New Orleans Saints played the Seattle Seahawks in Week 6, 2007?",
     "options": [
-      "Carolina Panthers",
-      "Arizona Cardinals",
+      "Seattle Seahawks",
       "New Orleans Saints",
-      "Pittsburgh Steelers"
+      "Cincinnati Bengals",
+      "Denver Broncos"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The New Orleans Saints beat the Seattle Seahawks 28-17 (11-point margin)."
   },
   {
@@ -414,12 +414,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New Orleans Saints played the Jacksonville Jaguars in Week 6, 2019?",
     "options": [
-      "Buffalo Bills",
-      "San Francisco 49ers",
-      "Detroit Lions",
-      "New Orleans Saints"
+      "Baltimore Ravens",
+      "New Orleans Saints",
+      "Jacksonville Jaguars",
+      "Washington Redskins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The New Orleans Saints beat the Jacksonville Jaguars 13-6 (7-point margin)."
   },
   {
@@ -428,10 +428,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Buffalo Bills played the Cincinnati Bengals in Week 9, 2023?",
     "options": [
-      "Las Vegas Raiders",
-      "Miami Dolphins",
+      "Jacksonville Jaguars",
+      "Buffalo Bills",
       "Cincinnati Bengals",
-      "Kansas City Chiefs"
+      "Cleveland Browns"
     ],
     "correctIndex": 2,
     "notes": "The Cincinnati Bengals beat the Buffalo Bills 24-18 (6-point margin)."
@@ -442,12 +442,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Washington Redskins played the Carolina Panthers in Week 7, 2011?",
     "options": [
-      "Philadelphia Eagles",
-      "St Louis Rams",
-      "Buffalo Bills",
-      "Carolina Panthers"
+      "Baltimore Ravens",
+      "Pittsburgh Steelers",
+      "Carolina Panthers",
+      "Washington Redskins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Carolina Panthers beat the Washington Redskins 33-20 (13-point margin)."
   },
   {
@@ -456,12 +456,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Cleveland Browns played the Houston Texans in the Wild Card round, 2023?",
     "options": [
-      "Houston Texans",
-      "Arizona Cardinals",
       "Carolina Panthers",
-      "New York Jets"
+      "Cleveland Browns",
+      "Houston Texans",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Houston Texans beat the Cleveland Browns 45-14 (31-point margin)."
   },
   {
@@ -470,12 +470,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the New England Patriots in Week 4, 2009?",
     "options": [
-      "Carolina Panthers",
-      "Buffalo Bills",
-      "New England Patriots",
-      "St Louis Rams"
+      "St Louis Rams",
+      "Baltimore Ravens",
+      "Green Bay Packers",
+      "New England Patriots"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The New England Patriots beat the Baltimore Ravens 27-21 (6-point margin)."
   },
   {
@@ -484,12 +484,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Chicago Bears played the Minnesota Vikings in Week 18, 2021?",
     "options": [
-      "Baltimore Ravens",
-      "Pittsburgh Steelers",
-      "Indianapolis Colts",
-      "Minnesota Vikings"
+      "Las Vegas Raiders",
+      "Jacksonville Jaguars",
+      "Minnesota Vikings",
+      "Chicago Bears"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Minnesota Vikings beat the Chicago Bears 31-17 (14-point margin)."
   },
   {
@@ -498,12 +498,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Houston Texans played the Jacksonville Jaguars in Week 3, 2023?",
     "options": [
+      "Buffalo Bills",
+      "Jacksonville Jaguars",
       "Tampa Bay Buccaneers",
-      "Baltimore Ravens",
-      "Houston Texans",
-      "Tennessee Titans"
+      "Houston Texans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Houston Texans beat the Jacksonville Jaguars 37-17 (20-point margin)."
   },
   {
@@ -512,12 +512,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New England Patriots played the Cincinnati Bengals in Week 4, 2006?",
     "options": [
-      "Dallas Cowboys",
+      "Pittsburgh Steelers",
+      "Arizona Cardinals",
       "New England Patriots",
-      "Kansas City Chiefs",
-      "Jacksonville Jaguars"
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Cincinnati Bengals 38-13 (25-point margin)."
   },
   {
@@ -526,12 +526,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Minnesota Vikings played the Seattle Seahawks in Week 11, 2013?",
     "options": [
-      "Cleveland Browns",
+      "Minnesota Vikings",
+      "Miami Dolphins",
       "Seattle Seahawks",
-      "Jacksonville Jaguars",
-      "Pittsburgh Steelers"
+      "Tennessee Titans"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Seattle Seahawks beat the Minnesota Vikings 41-20 (21-point margin)."
   },
   {
@@ -540,12 +540,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Jacksonville Jaguars in Week 12, 2011?",
     "options": [
-      "Minnesota Vikings",
-      "Houston Texans",
-      "San Francisco 49ers",
-      "Atlanta Falcons"
+      "Jacksonville Jaguars",
+      "St Louis Rams",
+      "Miami Dolphins",
+      "Houston Texans"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Houston Texans beat the Jacksonville Jaguars 20-13 (7-point margin)."
   },
   {
@@ -554,12 +554,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Buffalo Bills played the Jacksonville Jaguars in Week 12, 2007?",
     "options": [
+      "Buffalo Bills",
       "Seattle Seahawks",
-      "Jacksonville Jaguars",
-      "New England Patriots",
-      "Miami Dolphins"
+      "Indianapolis Colts",
+      "Jacksonville Jaguars"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Jacksonville Jaguars beat the Buffalo Bills 36-14 (22-point margin)."
   },
   {
@@ -568,10 +568,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Arizona Cardinals played the Green Bay Packers in Week 13, 2018?",
     "options": [
+      "Green Bay Packers",
       "Tampa Bay Buccaneers",
-      "Minnesota Vikings",
       "Arizona Cardinals",
-      "Philadelphia Eagles"
+      "Buffalo Bills"
     ],
     "correctIndex": 2,
     "notes": "The Arizona Cardinals beat the Green Bay Packers 20-17 (3-point margin)."
@@ -582,12 +582,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the Cleveland Browns in Week 9, 2008?",
     "options": [
+      "Miami Dolphins",
       "Baltimore Ravens",
-      "Tampa Bay Buccaneers",
-      "Tennessee Titans",
-      "Washington Redskins"
+      "Kansas City Chiefs",
+      "Cleveland Browns"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Baltimore Ravens beat the Cleveland Browns 37-27 (10-point margin)."
   },
   {
@@ -596,12 +596,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Oakland Raiders played the Dallas Cowboys in Week 13, 2013?",
     "options": [
-      "Denver Broncos",
-      "San Diego Chargers",
-      "Dallas Cowboys",
-      "Buffalo Bills"
+      "Minnesota Vikings",
+      "Pittsburgh Steelers",
+      "Oakland Raiders",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Dallas Cowboys beat the Oakland Raiders 31-24 (7-point margin)."
   },
   {
@@ -610,12 +610,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the San Francisco 49ers played the Los Angeles Rams in Week 2, 2023?",
     "options": [
-      "Cincinnati Bengals",
-      "Kansas City Chiefs",
+      "Cleveland Browns",
       "San Francisco 49ers",
-      "Cleveland Browns"
+      "Los Angeles Rams",
+      "New York Jets"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The San Francisco 49ers beat the Los Angeles Rams 30-23 (7-point margin)."
   },
   {
@@ -624,12 +624,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Denver Broncos played the Detroit Lions in Week 3, 2015?",
     "options": [
+      "Detroit Lions",
       "Atlanta Falcons",
       "Denver Broncos",
-      "Kansas City Chiefs",
-      "Chicago Bears"
+      "San Francisco 49ers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Denver Broncos beat the Detroit Lions 24-12 (12-point margin)."
   },
   {
@@ -638,12 +638,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Philadelphia Eagles played the New York Giants in Week 18, 2023?",
     "options": [
-      "Cincinnati Bengals",
-      "Los Angeles Chargers",
+      "Jacksonville Jaguars",
       "New York Giants",
-      "Washington Commanders"
+      "Pittsburgh Steelers",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The New York Giants beat the Philadelphia Eagles 27-10 (17-point margin)."
   },
   {
@@ -652,12 +652,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Washington Redskins played the Philadelphia Eagles in Week 2, 2007?",
     "options": [
-      "Cleveland Browns",
+      "Philadelphia Eagles",
+      "Pittsburgh Steelers",
       "Washington Redskins",
-      "San Diego Chargers",
-      "Seattle Seahawks"
+      "St Louis Rams"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Washington Redskins beat the Philadelphia Eagles 20-12 (8-point margin)."
   },
   {
@@ -666,12 +666,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Arizona Cardinals played the Miami Dolphins in Week 8, 2024?",
     "options": [
-      "Jacksonville Jaguars",
-      "Denver Broncos",
       "Arizona Cardinals",
-      "Dallas Cowboys"
+      "Miami Dolphins",
+      "Tampa Bay Buccaneers",
+      "Tennessee Titans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Arizona Cardinals beat the Miami Dolphins 28-27 (1-point margin)."
   },
   {
@@ -680,12 +680,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Pittsburgh Steelers played the Buffalo Bills in the Wild Card round, 2023?",
     "options": [
-      "Philadelphia Eagles",
-      "New England Patriots",
-      "Buffalo Bills",
-      "Atlanta Falcons"
+      "Denver Broncos",
+      "New York Jets",
+      "Pittsburgh Steelers",
+      "Buffalo Bills"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Buffalo Bills beat the Pittsburgh Steelers 31-17 (14-point margin)."
   },
   {
@@ -694,12 +694,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Seattle Seahawks played the Tampa Bay Buccaneers in Week 12, 2016?",
     "options": [
-      "Detroit Lions",
-      "Washington Redskins",
-      "Los Angeles Rams",
-      "Tampa Bay Buccaneers"
+      "Carolina Panthers",
+      "Seattle Seahawks",
+      "Tampa Bay Buccaneers",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Tampa Bay Buccaneers beat the Seattle Seahawks 14-5 (9-point margin)."
   },
   {
@@ -709,11 +709,11 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Atlanta Falcons played the New Orleans Saints in Week 7, 2007?",
     "options": [
       "Cincinnati Bengals",
-      "Detroit Lions",
-      "Buffalo Bills",
-      "New Orleans Saints"
+      "New Orleans Saints",
+      "Oakland Raiders",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The New Orleans Saints beat the Atlanta Falcons 22-16 (6-point margin)."
   },
   {
@@ -722,12 +722,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Indianapolis Colts played the Houston Texans in Week 3, 2002?",
     "options": [
+      "New York Giants",
       "Indianapolis Colts",
-      "San Francisco 49ers",
-      "Chicago Bears",
-      "Dallas Cowboys"
+      "Houston Texans",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the Houston Texans 23-3 (20-point margin)."
   },
   {
@@ -737,9 +737,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Miami Dolphins played the Buffalo Bills in the Wild Card round, 2022?",
     "options": [
       "Buffalo Bills",
-      "Green Bay Packers",
-      "Cincinnati Bengals",
-      "Las Vegas Raiders"
+      "Washington Commanders",
+      "Las Vegas Raiders",
+      "Miami Dolphins"
     ],
     "correctIndex": 0,
     "notes": "The Buffalo Bills beat the Miami Dolphins 34-31 (3-point margin)."
@@ -750,12 +750,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the Cincinnati Bengals in Week 3, 2004?",
     "options": [
-      "Cleveland Browns",
-      "New Orleans Saints",
-      "Houston Texans",
-      "Baltimore Ravens"
+      "Baltimore Ravens",
+      "Chicago Bears",
+      "Kansas City Chiefs",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Baltimore Ravens beat the Cincinnati Bengals 23-9 (14-point margin)."
   },
   {
@@ -764,12 +764,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Kansas City Chiefs played the Cleveland Browns in Week 2, 2010?",
     "options": [
-      "Cincinnati Bengals",
-      "Jacksonville Jaguars",
-      "Kansas City Chiefs",
-      "Miami Dolphins"
+      "St Louis Rams",
+      "Cleveland Browns",
+      "Seattle Seahawks",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Kansas City Chiefs beat the Cleveland Browns 16-14 (2-point margin)."
   },
   {
@@ -778,12 +778,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Giants played the Dallas Cowboys in Week 13, 2024?",
     "options": [
-      "Green Bay Packers",
-      "Atlanta Falcons",
-      "Carolina Panthers",
-      "Dallas Cowboys"
+      "Denver Broncos",
+      "Los Angeles Chargers",
+      "Dallas Cowboys",
+      "New York Giants"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Dallas Cowboys beat the New York Giants 27-20 (7-point margin)."
   },
   {
@@ -792,12 +792,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Minnesota Vikings played the Green Bay Packers in Week 8, 2020?",
     "options": [
+      "New Orleans Saints",
+      "Atlanta Falcons",
       "Minnesota Vikings",
-      "Washington Football Team",
-      "Philadelphia Eagles",
-      "Los Angeles Chargers"
+      "Green Bay Packers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Minnesota Vikings beat the Green Bay Packers 28-22 (6-point margin)."
   },
   {
@@ -806,12 +806,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the New York Giants in Week 2, 2011?",
     "options": [
-      "Houston Texans",
-      "Cleveland Browns",
-      "New York Giants",
-      "Detroit Lions"
+      "Miami Dolphins",
+      "Detroit Lions",
+      "St Louis Rams",
+      "New York Giants"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The New York Giants beat the St Louis Rams 28-16 (12-point margin)."
   },
   {
@@ -820,12 +820,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Philadelphia Eagles played the Atlanta Falcons in Week 13, 2009?",
     "options": [
-      "Detroit Lions",
-      "Chicago Bears",
+      "Atlanta Falcons",
       "Philadelphia Eagles",
-      "Miami Dolphins"
+      "Cincinnati Bengals",
+      "Buffalo Bills"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Philadelphia Eagles beat the Atlanta Falcons 34-7 (27-point margin)."
   },
   {
@@ -834,10 +834,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Giants played the Chicago Bears in Week 2, 2020?",
     "options": [
-      "Los Angeles Rams",
-      "Houston Texans",
+      "New York Giants",
+      "Baltimore Ravens",
       "Chicago Bears",
-      "New Orleans Saints"
+      "Houston Texans"
     ],
     "correctIndex": 2,
     "notes": "The Chicago Bears beat the New York Giants 17-13 (4-point margin)."
@@ -848,12 +848,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Chicago Bears played the Washington Commanders in Week 6, 2025?",
     "options": [
-      "Detroit Lions",
       "Chicago Bears",
-      "New Orleans Saints",
-      "Dallas Cowboys"
+      "Washington Commanders",
+      "Philadelphia Eagles",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Chicago Bears beat the Washington Commanders 25-24 (1-point margin)."
   },
   {
@@ -862,12 +862,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Jacksonville Jaguars in Week 14, 2012?",
     "options": [
-      "San Francisco 49ers",
-      "Carolina Panthers",
-      "Arizona Cardinals",
-      "New York Jets"
+      "Chicago Bears",
+      "Jacksonville Jaguars",
+      "New York Jets",
+      "New England Patriots"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The New York Jets beat the Jacksonville Jaguars 17-10 (7-point margin)."
   },
   {
@@ -876,10 +876,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Indianapolis Colts played the Miami Dolphins in Week 4, 2021?",
     "options": [
-      "New Orleans Saints",
-      "Los Angeles Chargers",
+      "Detroit Lions",
+      "Las Vegas Raiders",
       "Indianapolis Colts",
-      "Tennessee Titans"
+      "Miami Dolphins"
     ],
     "correctIndex": 2,
     "notes": "The Indianapolis Colts beat the Miami Dolphins 27-17 (10-point margin)."
@@ -890,12 +890,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Atlanta Falcons played the San Francisco 49ers in Week 16, 2013?",
     "options": [
-      "Jacksonville Jaguars",
-      "Dallas Cowboys",
-      "Cleveland Browns",
-      "San Francisco 49ers"
+      "San Francisco 49ers",
+      "Denver Broncos",
+      "Atlanta Falcons",
+      "Cleveland Browns"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The San Francisco 49ers beat the Atlanta Falcons 34-24 (10-point margin)."
   },
   {
@@ -904,12 +904,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Miami Dolphins in Week 4, 2004?",
     "options": [
-      "Cincinnati Bengals",
-      "Atlanta Falcons",
-      "Minnesota Vikings",
-      "New York Jets"
+      "Tampa Bay Buccaneers",
+      "Seattle Seahawks",
+      "New York Jets",
+      "Miami Dolphins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The New York Jets beat the Miami Dolphins 17-9 (8-point margin)."
   },
   {
@@ -918,12 +918,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tampa Bay Buccaneers played the Denver Broncos in Week 13, 2012?",
     "options": [
-      "Denver Broncos",
-      "Seattle Seahawks",
-      "Jacksonville Jaguars",
-      "San Francisco 49ers"
+      "Green Bay Packers",
+      "Tampa Bay Buccaneers",
+      "Carolina Panthers",
+      "Denver Broncos"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Denver Broncos beat the Tampa Bay Buccaneers 31-23 (8-point margin)."
   },
   {
@@ -932,12 +932,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Green Bay Packers played the San Francisco 49ers in Week 14, 2006?",
     "options": [
-      "Tennessee Titans",
-      "Indianapolis Colts",
       "Green Bay Packers",
-      "Detroit Lions"
+      "Pittsburgh Steelers",
+      "Minnesota Vikings",
+      "San Francisco 49ers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Green Bay Packers beat the San Francisco 49ers 30-19 (11-point margin)."
   },
   {
@@ -946,10 +946,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Las Vegas Raiders played the Jacksonville Jaguars in Week 9, 2022?",
     "options": [
-      "Indianapolis Colts",
-      "Chicago Bears",
+      "Houston Texans",
+      "Detroit Lions",
       "Jacksonville Jaguars",
-      "Atlanta Falcons"
+      "Las Vegas Raiders"
     ],
     "correctIndex": 2,
     "notes": "The Jacksonville Jaguars beat the Las Vegas Raiders 27-20 (7-point margin)."
@@ -960,12 +960,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Baltimore Ravens played the New England Patriots in Week 10, 2020?",
     "options": [
-      "Denver Broncos",
-      "Kansas City Chiefs",
+      "Los Angeles Rams",
       "New England Patriots",
-      "Los Angeles Chargers"
+      "Baltimore Ravens",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The New England Patriots beat the Baltimore Ravens 23-17 (6-point margin)."
   },
   {
@@ -975,9 +975,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the San Francisco 49ers played the New Orleans Saints in Week 10, 2014?",
     "options": [
       "San Francisco 49ers",
-      "Pittsburgh Steelers",
-      "Washington Redskins",
-      "Chicago Bears"
+      "Cleveland Browns",
+      "New Orleans Saints",
+      "Atlanta Falcons"
     ],
     "correctIndex": 0,
     "notes": "The San Francisco 49ers beat the New Orleans Saints 27-24 in overtime (3-point margin)."
@@ -988,12 +988,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Chicago Bears played the Kansas City Chiefs in Week 5, 2015?",
     "options": [
-      "Indianapolis Colts",
-      "Jacksonville Jaguars",
-      "San Francisco 49ers",
-      "Chicago Bears"
+      "Houston Texans",
+      "Chicago Bears",
+      "Baltimore Ravens",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Chicago Bears beat the Kansas City Chiefs 18-17 (1-point margin)."
   },
   {
@@ -1002,9 +1002,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the San Francisco 49ers played the Carolina Panthers in the Divisional round, 2013?",
     "options": [
-      "Tennessee Titans",
-      "Washington Redskins",
-      "New Orleans Saints",
+      "Carolina Panthers",
+      "Indianapolis Colts",
+      "Philadelphia Eagles",
       "San Francisco 49ers"
     ],
     "correctIndex": 3,
@@ -1017,9 +1017,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Atlanta Falcons played the New York Giants in Week 6, 2002?",
     "options": [
       "Atlanta Falcons",
-      "Baltimore Ravens",
-      "New York Jets",
-      "Minnesota Vikings"
+      "New York Giants",
+      "San Francisco 49ers",
+      "Carolina Panthers"
     ],
     "correctIndex": 0,
     "notes": "The Atlanta Falcons beat the New York Giants 17-10 (7-point margin)."
@@ -1030,12 +1030,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Detroit Lions played the San Francisco 49ers in Week 2, 2018?",
     "options": [
+      "Cleveland Browns",
       "San Francisco 49ers",
-      "Pittsburgh Steelers",
-      "New Orleans Saints",
-      "Carolina Panthers"
+      "Detroit Lions",
+      "Tennessee Titans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The San Francisco 49ers beat the Detroit Lions 30-27 (3-point margin)."
   },
   {
@@ -1044,12 +1044,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Dallas Cowboys played the Philadelphia Eagles in Week 8, 2020?",
     "options": [
-      "Las Vegas Raiders",
-      "Philadelphia Eagles",
-      "Buffalo Bills",
-      "Cleveland Browns"
+      "Dallas Cowboys",
+      "Miami Dolphins",
+      "Cleveland Browns",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Philadelphia Eagles beat the Dallas Cowboys 23-9 (14-point margin)."
   },
   {
@@ -1058,12 +1058,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the Denver Broncos in Week 11, 2024?",
     "options": [
-      "Denver Broncos",
-      "Minnesota Vikings",
-      "Carolina Panthers",
-      "Buffalo Bills"
+      "Atlanta Falcons",
+      "Las Vegas Raiders",
+      "Cleveland Browns",
+      "Denver Broncos"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Denver Broncos beat the Atlanta Falcons 38-6 (32-point margin)."
   },
   {
@@ -1073,9 +1073,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Arizona Cardinals played the Los Angeles Rams in Week 18, 2025?",
     "options": [
       "Los Angeles Rams",
-      "San Francisco 49ers",
-      "Las Vegas Raiders",
-      "Detroit Lions"
+      "Pittsburgh Steelers",
+      "New York Jets",
+      "Arizona Cardinals"
     ],
     "correctIndex": 0,
     "notes": "The Los Angeles Rams beat the Arizona Cardinals 37-20 (17-point margin)."
@@ -1087,9 +1087,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the New England Patriots played the Buffalo Bills in Week 8, 2016?",
     "options": [
       "New England Patriots",
-      "Minnesota Vikings",
-      "Atlanta Falcons",
-      "San Diego Chargers"
+      "Jacksonville Jaguars",
+      "Buffalo Bills",
+      "San Francisco 49ers"
     ],
     "correctIndex": 0,
     "notes": "The New England Patriots beat the Buffalo Bills 41-25 (16-point margin)."
@@ -1100,12 +1100,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Carolina Panthers played the New Orleans Saints in Week 6, 2016?",
     "options": [
-      "Dallas Cowboys",
-      "Tennessee Titans",
-      "Baltimore Ravens",
-      "New Orleans Saints"
+      "Green Bay Packers",
+      "Carolina Panthers",
+      "New Orleans Saints",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The New Orleans Saints beat the Carolina Panthers 41-38 (3-point margin)."
   },
   {
@@ -1114,12 +1114,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Detroit Lions in Week 9, 2022?",
     "options": [
-      "Minnesota Vikings",
-      "Dallas Cowboys",
-      "Detroit Lions",
-      "San Francisco 49ers"
+      "Atlanta Falcons",
+      "Green Bay Packers",
+      "Chicago Bears",
+      "Detroit Lions"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Detroit Lions beat the Green Bay Packers 15-9 (6-point margin)."
   },
   {
@@ -1128,12 +1128,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Pittsburgh Steelers played the Los Angeles Chargers in Week 6, 2019?",
     "options": [
-      "Carolina Panthers",
-      "Minnesota Vikings",
-      "Houston Texans",
-      "Pittsburgh Steelers"
+      "Cincinnati Bengals",
+      "Pittsburgh Steelers",
+      "Philadelphia Eagles",
+      "Los Angeles Chargers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Los Angeles Chargers 24-17 (7-point margin)."
   },
   {
@@ -1142,12 +1142,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Carolina Panthers played the Arizona Cardinals in Week 10, 2021?",
     "options": [
+      "Arizona Cardinals",
       "Carolina Panthers",
-      "Washington Football Team",
-      "Detroit Lions",
-      "Seattle Seahawks"
+      "Los Angeles Rams",
+      "Las Vegas Raiders"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Carolina Panthers beat the Arizona Cardinals 34-10 (24-point margin)."
   },
   {
@@ -1156,12 +1156,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Philadelphia Eagles played the Seattle Seahawks in Week 13, 2011?",
     "options": [
-      "Buffalo Bills",
-      "Seattle Seahawks",
       "Tampa Bay Buccaneers",
-      "Atlanta Falcons"
+      "San Diego Chargers",
+      "Seattle Seahawks",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Seattle Seahawks beat the Philadelphia Eagles 31-14 (17-point margin)."
   },
   {
@@ -1170,12 +1170,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Buffalo Bills played the New York Jets in Week 10, 2015?",
     "options": [
-      "Seattle Seahawks",
       "Buffalo Bills",
-      "Tennessee Titans",
-      "Washington Redskins"
+      "Indianapolis Colts",
+      "New York Jets",
+      "Jacksonville Jaguars"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Buffalo Bills beat the New York Jets 22-17 (5-point margin)."
   },
   {
@@ -1184,9 +1184,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Buffalo Bills played the Green Bay Packers in Week 4, 2018?",
     "options": [
-      "Miami Dolphins",
-      "Houston Texans",
-      "Baltimore Ravens",
+      "Jacksonville Jaguars",
+      "Buffalo Bills",
+      "Seattle Seahawks",
       "Green Bay Packers"
     ],
     "correctIndex": 3,
@@ -1198,9 +1198,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Francisco 49ers played the Chicago Bears in Week 10, 2005?",
     "options": [
-      "Seattle Seahawks",
-      "St Louis Rams",
-      "New Orleans Saints",
+      "San Francisco 49ers",
+      "Tennessee Titans",
+      "Washington Redskins",
       "Chicago Bears"
     ],
     "correctIndex": 3,
@@ -1212,12 +1212,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Seattle Seahawks played the Atlanta Falcons in Week 8, 2019?",
     "options": [
-      "Miami Dolphins",
-      "Seattle Seahawks",
-      "Indianapolis Colts",
-      "Washington Redskins"
+      "Los Angeles Chargers",
+      "Atlanta Falcons",
+      "New England Patriots",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Seattle Seahawks beat the Atlanta Falcons 27-20 (7-point margin)."
   },
   {
@@ -1226,12 +1226,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tampa Bay Buccaneers played the Pittsburgh Steelers in Week 6, 2022?",
     "options": [
-      "Washington Commanders",
-      "Indianapolis Colts",
-      "Los Angeles Rams",
-      "Pittsburgh Steelers"
+      "Tampa Bay Buccaneers",
+      "Pittsburgh Steelers",
+      "Las Vegas Raiders",
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Tampa Bay Buccaneers 20-18 (2-point margin)."
   },
   {
@@ -1240,12 +1240,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Giants played the New York Jets in Week 10, 2019?",
     "options": [
+      "New York Giants",
       "New York Jets",
-      "Tennessee Titans",
-      "Washington Redskins",
-      "Los Angeles Chargers"
+      "Green Bay Packers",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The New York Jets beat the New York Giants 34-27 (7-point margin)."
   },
   {
@@ -1254,12 +1254,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Rams played the Detroit Lions in the Wild Card round, 2023?",
     "options": [
-      "New York Giants",
-      "Jacksonville Jaguars",
-      "Cincinnati Bengals",
-      "Detroit Lions"
+      "Los Angeles Rams",
+      "Detroit Lions",
+      "San Francisco 49ers",
+      "Buffalo Bills"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Detroit Lions beat the Los Angeles Rams 24-23 (1-point margin)."
   },
   {
@@ -1268,12 +1268,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the Seattle Seahawks in Week 10, 2006?",
     "options": [
-      "Atlanta Falcons",
-      "Denver Broncos",
       "Seattle Seahawks",
-      "Minnesota Vikings"
+      "Baltimore Ravens",
+      "St Louis Rams",
+      "Buffalo Bills"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Seattle Seahawks beat the St Louis Rams 24-22 (2-point margin)."
   },
   {
@@ -1282,12 +1282,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cincinnati Bengals played the Baltimore Ravens in Week 10, 2002?",
     "options": [
-      "Seattle Seahawks",
-      "Arizona Cardinals",
       "Baltimore Ravens",
-      "Pittsburgh Steelers"
+      "Cincinnati Bengals",
+      "New England Patriots",
+      "St Louis Rams"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Baltimore Ravens beat the Cincinnati Bengals 38-27 (11-point margin)."
   },
   {
@@ -1296,12 +1296,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Pittsburgh Steelers played the Tennessee Titans in the Divisional round, 2002?",
     "options": [
-      "Tennessee Titans",
-      "Philadelphia Eagles",
-      "Miami Dolphins",
-      "Dallas Cowboys"
+      "Pittsburgh Steelers",
+      "Kansas City Chiefs",
+      "Minnesota Vikings",
+      "Tennessee Titans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Tennessee Titans beat the Pittsburgh Steelers 34-31 in overtime (3-point margin)."
   },
   {
@@ -1310,12 +1310,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Redskins played the New Orleans Saints in Week 5, 2018?",
     "options": [
-      "Atlanta Falcons",
+      "Detroit Lions",
+      "Los Angeles Chargers",
       "New Orleans Saints",
-      "Kansas City Chiefs",
-      "Oakland Raiders"
+      "Washington Redskins"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The New Orleans Saints beat the Washington Redskins 43-19 (24-point margin)."
   },
   {
@@ -1324,12 +1324,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the New Orleans Saints played the Minnesota Vikings in Week 1, 2017?",
     "options": [
+      "Cleveland Browns",
       "Minnesota Vikings",
-      "Carolina Panthers",
-      "Cincinnati Bengals",
-      "Detroit Lions"
+      "New Orleans Saints",
+      "New York Giants"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Minnesota Vikings beat the New Orleans Saints 29-19 (10-point margin)."
   },
   {
@@ -1338,12 +1338,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Denver Broncos played the Philadelphia Eagles in Week 16, 2009?",
     "options": [
-      "Houston Texans",
-      "Pittsburgh Steelers",
-      "Detroit Lions",
-      "Philadelphia Eagles"
+      "New York Giants",
+      "Philadelphia Eagles",
+      "San Diego Chargers",
+      "Denver Broncos"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Philadelphia Eagles beat the Denver Broncos 30-27 (3-point margin)."
   },
   {
@@ -1353,9 +1353,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Jacksonville Jaguars played the Tampa Bay Buccaneers in Week 5, 2015?",
     "options": [
       "Tampa Bay Buccaneers",
-      "San Francisco 49ers",
-      "Kansas City Chiefs",
-      "Minnesota Vikings"
+      "Houston Texans",
+      "Buffalo Bills",
+      "Jacksonville Jaguars"
     ],
     "correctIndex": 0,
     "notes": "The Tampa Bay Buccaneers beat the Jacksonville Jaguars 38-31 (7-point margin)."
@@ -1366,12 +1366,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Denver Broncos played the Kansas City Chiefs in Week 8, 2017?",
     "options": [
-      "Tennessee Titans",
       "Kansas City Chiefs",
-      "Cleveland Browns",
-      "Buffalo Bills"
+      "Washington Redskins",
+      "Denver Broncos",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Kansas City Chiefs beat the Denver Broncos 29-19 (10-point margin)."
   },
   {
@@ -1380,12 +1380,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tampa Bay Buccaneers played the Philadelphia Eagles in the Conference Championship, 2002?",
     "options": [
-      "Tampa Bay Buccaneers",
-      "Green Bay Packers",
-      "Dallas Cowboys",
-      "San Francisco 49ers"
+      "Buffalo Bills",
+      "St Louis Rams",
+      "Philadelphia Eagles",
+      "Tampa Bay Buccaneers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Tampa Bay Buccaneers beat the Philadelphia Eagles 27-10 (17-point margin)."
   },
   {
@@ -1394,12 +1394,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Kansas City Chiefs played the Las Vegas Raiders in Week 10, 2021?",
     "options": [
-      "Philadelphia Eagles",
-      "Houston Texans",
-      "Buffalo Bills",
-      "Kansas City Chiefs"
+      "Tampa Bay Buccaneers",
+      "Kansas City Chiefs",
+      "Miami Dolphins",
+      "Las Vegas Raiders"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Kansas City Chiefs beat the Las Vegas Raiders 41-14 (27-point margin)."
   },
   {
@@ -1408,12 +1408,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Houston Texans played the Pittsburgh Steelers in Week 7, 2014?",
     "options": [
-      "New Orleans Saints",
-      "Denver Broncos",
-      "Cincinnati Bengals",
-      "Pittsburgh Steelers"
+      "Kansas City Chiefs",
+      "Pittsburgh Steelers",
+      "St Louis Rams",
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Houston Texans 30-23 (7-point margin)."
   },
   {
@@ -1422,9 +1422,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Commanders played the Tampa Bay Buccaneers in the Wild Card round, 2024?",
     "options": [
-      "Chicago Bears",
-      "Kansas City Chiefs",
-      "Atlanta Falcons",
+      "Tampa Bay Buccaneers",
+      "Baltimore Ravens",
+      "Detroit Lions",
       "Washington Commanders"
     ],
     "correctIndex": 3,
@@ -1436,12 +1436,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Washington Redskins played the Dallas Cowboys in Week 11, 2009?",
     "options": [
+      "Miami Dolphins",
       "Dallas Cowboys",
-      "New Orleans Saints",
-      "Minnesota Vikings",
-      "Houston Texans"
+      "Washington Redskins",
+      "St Louis Rams"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Dallas Cowboys beat the Washington Redskins 7-6 (1-point margin)."
   },
   {
@@ -1450,12 +1450,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the New Orleans Saints in the Divisional round, 2009?",
     "options": [
-      "Green Bay Packers",
-      "Philadelphia Eagles",
+      "Arizona Cardinals",
       "New Orleans Saints",
-      "Miami Dolphins"
+      "New England Patriots",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The New Orleans Saints beat the Arizona Cardinals 45-14 (31-point margin)."
   },
   {
@@ -1465,9 +1465,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Arizona Cardinals played the Jacksonville Jaguars in Week 2, 2009?",
     "options": [
       "Arizona Cardinals",
-      "Tennessee Titans",
-      "Washington Redskins",
-      "Minnesota Vikings"
+      "San Francisco 49ers",
+      "San Diego Chargers",
+      "Jacksonville Jaguars"
     ],
     "correctIndex": 0,
     "notes": "The Arizona Cardinals beat the Jacksonville Jaguars 31-17 (14-point margin)."
@@ -1478,12 +1478,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New England Patriots played the Indianapolis Colts in Week 15, 2021?",
     "options": [
-      "Seattle Seahawks",
-      "San Francisco 49ers",
-      "Philadelphia Eagles",
-      "Indianapolis Colts"
+      "Tampa Bay Buccaneers",
+      "Indianapolis Colts",
+      "New England Patriots",
+      "San Francisco 49ers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the New England Patriots 27-17 (10-point margin)."
   },
   {
@@ -1492,12 +1492,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Dallas Cowboys played the New York Giants in Week 10, 2007?",
     "options": [
-      "San Francisco 49ers",
       "Dallas Cowboys",
-      "Detroit Lions",
-      "St Louis Rams"
+      "Buffalo Bills",
+      "Seattle Seahawks",
+      "New York Giants"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Dallas Cowboys beat the New York Giants 31-20 (11-point margin)."
   },
   {
@@ -1506,12 +1506,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the New York Jets played the Oakland Raiders in Week 8, 2015?",
     "options": [
-      "New Orleans Saints",
+      "San Francisco 49ers",
+      "Atlanta Falcons",
       "Oakland Raiders",
-      "Philadelphia Eagles",
-      "Kansas City Chiefs"
+      "New York Jets"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Oakland Raiders beat the New York Jets 34-20 (14-point margin)."
   },
   {
@@ -1520,12 +1520,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Dallas Cowboys played the Philadelphia Eagles in Week 1, 2025?",
     "options": [
-      "Houston Texans",
-      "Baltimore Ravens",
-      "Washington Commanders",
-      "Philadelphia Eagles"
+      "Arizona Cardinals",
+      "Dallas Cowboys",
+      "Philadelphia Eagles",
+      "Pittsburgh Steelers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Philadelphia Eagles beat the Dallas Cowboys 24-20 (4-point margin)."
   },
   {
@@ -1534,12 +1534,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Chargers played the Washington Football Team in Week 1, 2021?",
     "options": [
+      "Los Angeles Chargers",
       "Dallas Cowboys",
-      "New York Giants",
-      "Los Angeles Rams",
-      "Los Angeles Chargers"
+      "New York Jets",
+      "Washington Football Team"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Los Angeles Chargers beat the Washington Football Team 20-16 (4-point margin)."
   },
   {
@@ -1549,8 +1549,8 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the New York Giants played the Philadelphia Eagles in the Divisional round, 2022?",
     "options": [
       "Philadelphia Eagles",
-      "Pittsburgh Steelers",
-      "Denver Broncos",
+      "New York Giants",
+      "Atlanta Falcons",
       "New York Jets"
     ],
     "correctIndex": 0,
@@ -1562,12 +1562,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Chargers played the Tennessee Titans in Week 9, 2025?",
     "options": [
-      "New York Jets",
-      "Los Angeles Chargers",
-      "Cleveland Browns",
-      "Los Angeles Rams"
+      "Tennessee Titans",
+      "Tampa Bay Buccaneers",
+      "Miami Dolphins",
+      "Los Angeles Chargers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Los Angeles Chargers beat the Tennessee Titans 27-20 (7-point margin)."
   },
   {
@@ -1576,12 +1576,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Jacksonville Jaguars played the San Francisco 49ers in Week 4, 2025?",
     "options": [
-      "Denver Broncos",
-      "New York Jets",
       "Jacksonville Jaguars",
-      "Minnesota Vikings"
+      "Detroit Lions",
+      "San Francisco 49ers",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Jacksonville Jaguars beat the San Francisco 49ers 26-21 (5-point margin)."
   },
   {
@@ -1590,10 +1590,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Buffalo Bills in Week 6, 2005?",
     "options": [
-      "Chicago Bears",
+      "New York Jets",
       "Buffalo Bills",
-      "Houston Texans",
-      "Tennessee Titans"
+      "Detroit Lions",
+      "Pittsburgh Steelers"
     ],
     "correctIndex": 1,
     "notes": "The Buffalo Bills beat the New York Jets 27-17 (10-point margin)."
@@ -1604,12 +1604,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Detroit Lions played the Los Angeles Chargers in Week 10, 2023?",
     "options": [
-      "Denver Broncos",
       "Detroit Lions",
-      "New England Patriots",
-      "Los Angeles Rams"
+      "Los Angeles Chargers",
+      "New York Giants",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Detroit Lions beat the Los Angeles Chargers 41-38 (3-point margin)."
   },
   {
@@ -1619,9 +1619,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Indianapolis Colts played the Oakland Raiders in Week 16, 2010?",
     "options": [
       "Indianapolis Colts",
-      "Houston Texans",
-      "Atlanta Falcons",
-      "Cleveland Browns"
+      "Oakland Raiders",
+      "Tampa Bay Buccaneers",
+      "Cincinnati Bengals"
     ],
     "correctIndex": 0,
     "notes": "The Indianapolis Colts beat the Oakland Raiders 31-26 (5-point margin)."
@@ -1632,12 +1632,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New Orleans Saints played the Dallas Cowboys in Week 14, 2006?",
     "options": [
-      "Carolina Panthers",
-      "New York Giants",
-      "New Orleans Saints",
-      "Green Bay Packers"
+      "Tennessee Titans",
+      "Cleveland Browns",
+      "Dallas Cowboys",
+      "New Orleans Saints"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The New Orleans Saints beat the Dallas Cowboys 42-17 (25-point margin)."
   },
   {
@@ -1646,12 +1646,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Indianapolis Colts played the Carolina Panthers in Week 9, 2023?",
     "options": [
-      "Jacksonville Jaguars",
-      "Miami Dolphins",
       "Houston Texans",
-      "Indianapolis Colts"
+      "Carolina Panthers",
+      "Indianapolis Colts",
+      "San Francisco 49ers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Indianapolis Colts beat the Carolina Panthers 27-13 (14-point margin)."
   },
   {
@@ -1660,12 +1660,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the New York Jets played the New England Patriots in Week 7, 2015?",
     "options": [
+      "New York Jets",
+      "San Diego Chargers",
       "New England Patriots",
-      "Denver Broncos",
-      "Chicago Bears",
-      "San Diego Chargers"
+      "Dallas Cowboys"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the New York Jets 30-23 (7-point margin)."
   },
   {
@@ -1674,12 +1674,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Minnesota Vikings played the Detroit Lions in Week 4, 2012?",
     "options": [
-      "Baltimore Ravens",
-      "Houston Texans",
-      "Minnesota Vikings",
-      "Chicago Bears"
+      "Detroit Lions",
+      "St Louis Rams",
+      "Chicago Bears",
+      "Minnesota Vikings"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Minnesota Vikings beat the Detroit Lions 20-13 (7-point margin)."
   },
   {
@@ -1688,12 +1688,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Denver Broncos played the Oakland Raiders in Week 1, 2019?",
     "options": [
-      "Oakland Raiders",
-      "Arizona Cardinals",
+      "Denver Broncos",
       "Tampa Bay Buccaneers",
-      "Pittsburgh Steelers"
+      "Detroit Lions",
+      "Oakland Raiders"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Oakland Raiders beat the Denver Broncos 24-16 (8-point margin)."
   },
   {
@@ -1702,12 +1702,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Baltimore Ravens played the New England Patriots in the Divisional round, 2014?",
     "options": [
+      "Baltimore Ravens",
       "Miami Dolphins",
-      "Carolina Panthers",
-      "New England Patriots",
-      "Dallas Cowboys"
+      "Cincinnati Bengals",
+      "New England Patriots"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The New England Patriots beat the Baltimore Ravens 35-31 (4-point margin)."
   },
   {
@@ -1716,12 +1716,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Atlanta Falcons played the San Francisco 49ers in Week 5, 2009?",
     "options": [
-      "Kansas City Chiefs",
       "Atlanta Falcons",
-      "Cincinnati Bengals",
-      "Minnesota Vikings"
+      "San Francisco 49ers",
+      "New Orleans Saints",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Atlanta Falcons beat the San Francisco 49ers 45-10 (35-point margin)."
   },
   {
@@ -1731,9 +1731,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Green Bay Packers played the Minnesota Vikings in Week 16, 2019?",
     "options": [
       "Green Bay Packers",
-      "Dallas Cowboys",
-      "Philadelphia Eagles",
-      "Los Angeles Chargers"
+      "Minnesota Vikings",
+      "New York Giants",
+      "Denver Broncos"
     ],
     "correctIndex": 0,
     "notes": "The Green Bay Packers beat the Minnesota Vikings 23-10 (13-point margin)."
@@ -1744,12 +1744,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the Denver Broncos in Week 12, 2010?",
     "options": [
-      "Tampa Bay Buccaneers",
       "St Louis Rams",
-      "New York Giants",
-      "Minnesota Vikings"
+      "Chicago Bears",
+      "Atlanta Falcons",
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The St Louis Rams beat the Denver Broncos 36-33 (3-point margin)."
   },
   {
@@ -1758,12 +1758,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Detroit Lions played the New Orleans Saints in Week 15, 2015?",
     "options": [
-      "Cleveland Browns",
-      "Green Bay Packers",
-      "Detroit Lions",
-      "New England Patriots"
+      "Miami Dolphins",
+      "New Orleans Saints",
+      "Minnesota Vikings",
+      "Detroit Lions"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Detroit Lions beat the New Orleans Saints 35-27 (8-point margin)."
   },
   {
@@ -1773,11 +1773,11 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Jacksonville Jaguars played the New Orleans Saints in Week 7, 2023?",
     "options": [
       "San Francisco 49ers",
-      "Denver Broncos",
       "Jacksonville Jaguars",
-      "Philadelphia Eagles"
+      "New Orleans Saints",
+      "Denver Broncos"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Jacksonville Jaguars beat the New Orleans Saints 31-24 (7-point margin)."
   },
   {
@@ -1786,12 +1786,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Carolina Panthers played the Pittsburgh Steelers in Week 16, 2010?",
     "options": [
+      "Miami Dolphins",
       "Pittsburgh Steelers",
-      "New York Giants",
-      "Washington Redskins",
-      "Houston Texans"
+      "Carolina Panthers",
+      "Oakland Raiders"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Carolina Panthers 27-3 (24-point margin)."
   },
   {
@@ -1800,12 +1800,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the San Francisco 49ers played the Seattle Seahawks in Week 17, 2019?",
     "options": [
-      "Houston Texans",
-      "New York Jets",
-      "Denver Broncos",
-      "San Francisco 49ers"
+      "Baltimore Ravens",
+      "Seattle Seahawks",
+      "San Francisco 49ers",
+      "Washington Redskins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The San Francisco 49ers beat the Seattle Seahawks 26-21 (5-point margin)."
   },
   {
@@ -1814,12 +1814,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Indianapolis Colts played the Pittsburgh Steelers in Week 7, 2002?",
     "options": [
+      "Indianapolis Colts",
+      "Pittsburgh Steelers",
       "Kansas City Chiefs",
-      "Denver Broncos",
-      "Baltimore Ravens",
-      "Pittsburgh Steelers"
+      "Tampa Bay Buccaneers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Indianapolis Colts 28-10 (18-point margin)."
   },
   {
@@ -1828,12 +1828,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the New England Patriots in Week 15, 2006?",
     "options": [
-      "Tampa Bay Buccaneers",
-      "New York Giants",
-      "Arizona Cardinals",
-      "New England Patriots"
+      "Cleveland Browns",
+      "Houston Texans",
+      "New England Patriots",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Houston Texans 40-7 (33-point margin)."
   },
   {
@@ -1842,12 +1842,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Carolina Panthers played the Tennessee Titans in Week 9, 2007?",
     "options": [
-      "Indianapolis Colts",
-      "Arizona Cardinals",
+      "Carolina Panthers",
       "Tennessee Titans",
-      "Atlanta Falcons"
+      "Pittsburgh Steelers",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Tennessee Titans beat the Carolina Panthers 20-7 (13-point margin)."
   },
   {
@@ -1856,8 +1856,8 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New England Patriots played the Miami Dolphins in Week 14, 2018?",
     "options": [
-      "Kansas City Chiefs",
-      "Tennessee Titans",
+      "Philadelphia Eagles",
+      "New England Patriots",
       "Miami Dolphins",
       "Denver Broncos"
     ],
@@ -1870,12 +1870,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New Orleans Saints played the Los Angeles Chargers in Week 8, 2024?",
     "options": [
+      "Carolina Panthers",
+      "New Orleans Saints",
       "Los Angeles Chargers",
-      "Los Angeles Rams",
-      "New York Jets",
-      "Atlanta Falcons"
+      "Tennessee Titans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Los Angeles Chargers beat the New Orleans Saints 26-8 (18-point margin)."
   },
   {
@@ -1884,12 +1884,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Jets played the Pittsburgh Steelers in Week 4, 2022?",
     "options": [
-      "Denver Broncos",
-      "Carolina Panthers",
-      "San Francisco 49ers",
-      "New York Jets"
+      "New York Jets",
+      "Miami Dolphins",
+      "Pittsburgh Steelers",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The New York Jets beat the Pittsburgh Steelers 24-20 (4-point margin)."
   },
   {
@@ -1898,10 +1898,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Minnesota Vikings played the New York Giants in Week 7, 2013?",
     "options": [
-      "Detroit Lions",
+      "Kansas City Chiefs",
       "New York Giants",
-      "Arizona Cardinals",
-      "Tennessee Titans"
+      "Tampa Bay Buccaneers",
+      "Minnesota Vikings"
     ],
     "correctIndex": 1,
     "notes": "The New York Giants beat the Minnesota Vikings 23-7 (16-point margin)."
@@ -1912,12 +1912,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Minnesota Vikings in Week 1, 2020?",
     "options": [
-      "New England Patriots",
-      "Tampa Bay Buccaneers",
-      "Los Angeles Rams",
-      "Green Bay Packers"
+      "Green Bay Packers",
+      "Minnesota Vikings",
+      "Cleveland Browns",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Green Bay Packers beat the Minnesota Vikings 43-34 (9-point margin)."
   },
   {
@@ -1926,12 +1926,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Cincinnati Bengals played the Oakland Raiders in Week 11, 2019?",
     "options": [
-      "Arizona Cardinals",
       "Minnesota Vikings",
       "Oakland Raiders",
-      "San Francisco 49ers"
+      "Green Bay Packers",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Oakland Raiders beat the Cincinnati Bengals 17-10 (7-point margin)."
   },
   {
@@ -1940,12 +1940,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Cincinnati Bengals played the Pittsburgh Steelers in Week 18, 2024?",
     "options": [
+      "Atlanta Falcons",
       "Cincinnati Bengals",
-      "Dallas Cowboys",
-      "Los Angeles Chargers",
-      "Cleveland Browns"
+      "Pittsburgh Steelers",
+      "Baltimore Ravens"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Cincinnati Bengals beat the Pittsburgh Steelers 19-17 (2-point margin)."
   },
   {
@@ -1954,12 +1954,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Dallas Cowboys played the New England Patriots in Week 12, 2019?",
     "options": [
-      "Carolina Panthers",
       "New England Patriots",
-      "Houston Texans",
-      "New York Jets"
+      "Jacksonville Jaguars",
+      "Cleveland Browns",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The New England Patriots beat the Dallas Cowboys 13-9 (4-point margin)."
   },
   {
@@ -1968,12 +1968,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Arizona Cardinals played the Minnesota Vikings in Week 6, 2018?",
     "options": [
-      "Minnesota Vikings",
-      "Cincinnati Bengals",
-      "Chicago Bears",
-      "Green Bay Packers"
+      "Kansas City Chiefs",
+      "Jacksonville Jaguars",
+      "Arizona Cardinals",
+      "Minnesota Vikings"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Minnesota Vikings beat the Arizona Cardinals 27-17 (10-point margin)."
   },
   {
@@ -1982,12 +1982,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Diego Chargers played the Denver Broncos in Week 17, 2010?",
     "options": [
-      "Washington Redskins",
+      "Seattle Seahawks",
+      "Jacksonville Jaguars",
       "San Diego Chargers",
-      "Baltimore Ravens",
-      "Minnesota Vikings"
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The San Diego Chargers beat the Denver Broncos 33-28 (5-point margin)."
   },
   {
@@ -1996,12 +1996,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Buffalo Bills played the Miami Dolphins in Week 13, 2004?",
     "options": [
-      "Indianapolis Colts",
-      "Denver Broncos",
-      "Cincinnati Bengals",
-      "Buffalo Bills"
+      "Buffalo Bills",
+      "Miami Dolphins",
+      "Tampa Bay Buccaneers",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Buffalo Bills beat the Miami Dolphins 42-32 (10-point margin)."
   },
   {
@@ -2010,12 +2010,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the Philadelphia Eagles in Week 2, 2024?",
     "options": [
+      "Philadelphia Eagles",
       "Atlanta Falcons",
-      "Green Bay Packers",
-      "Indianapolis Colts",
-      "Baltimore Ravens"
+      "Dallas Cowboys",
+      "Carolina Panthers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Atlanta Falcons beat the Philadelphia Eagles 22-21 (1-point margin)."
   },
   {
@@ -2024,12 +2024,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Pittsburgh Steelers played the Cleveland Browns in Week 12, 2013?",
     "options": [
-      "Detroit Lions",
-      "Carolina Panthers",
+      "New Orleans Saints",
+      "Pittsburgh Steelers",
       "Dallas Cowboys",
-      "Pittsburgh Steelers"
+      "Cleveland Browns"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Cleveland Browns 27-11 (16-point margin)."
   },
   {
@@ -2038,12 +2038,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Indianapolis Colts in the Conference Championship, 2009?",
     "options": [
+      "Minnesota Vikings",
       "Indianapolis Colts",
-      "Philadelphia Eagles",
-      "Tennessee Titans",
-      "New England Patriots"
+      "Kansas City Chiefs",
+      "New York Jets"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the New York Jets 30-17 (13-point margin)."
   },
   {
@@ -2052,12 +2052,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Kansas City Chiefs played the Buffalo Bills in Week 2, 2012?",
     "options": [
-      "New York Jets",
       "Buffalo Bills",
-      "New York Giants",
-      "Tampa Bay Buccaneers"
+      "Kansas City Chiefs",
+      "New England Patriots",
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Buffalo Bills beat the Kansas City Chiefs 35-17 (18-point margin)."
   },
   {
@@ -2066,10 +2066,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Carolina Panthers played the Detroit Lions in Week 6, 2005?",
     "options": [
-      "Oakland Raiders",
+      "New York Jets",
       "Carolina Panthers",
-      "Philadelphia Eagles",
-      "New York Giants"
+      "Detroit Lions",
+      "Tampa Bay Buccaneers"
     ],
     "correctIndex": 1,
     "notes": "The Carolina Panthers beat the Detroit Lions 21-20 (1-point margin)."
@@ -2080,10 +2080,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Seattle Seahawks played the Detroit Lions in Week 1, 2006?",
     "options": [
-      "New England Patriots",
-      "Jacksonville Jaguars",
+      "Detroit Lions",
+      "Cleveland Browns",
       "Seattle Seahawks",
-      "New York Jets"
+      "New England Patriots"
     ],
     "correctIndex": 2,
     "notes": "The Seattle Seahawks beat the Detroit Lions 9-6 (3-point margin)."
@@ -2094,12 +2094,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tampa Bay Buccaneers played the Atlanta Falcons in Week 11, 2005?",
     "options": [
-      "Indianapolis Colts",
-      "Cincinnati Bengals",
-      "Cleveland Browns",
-      "Tampa Bay Buccaneers"
+      "Tampa Bay Buccaneers",
+      "Atlanta Falcons",
+      "San Francisco 49ers",
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Tampa Bay Buccaneers beat the Atlanta Falcons 30-27 (3-point margin)."
   },
   {
@@ -2109,9 +2109,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Buffalo Bills played the Kansas City Chiefs in Week 14, 2023?",
     "options": [
       "Buffalo Bills",
-      "Seattle Seahawks",
-      "Chicago Bears",
-      "New York Jets"
+      "Kansas City Chiefs",
+      "Dallas Cowboys",
+      "Arizona Cardinals"
     ],
     "correctIndex": 0,
     "notes": "The Buffalo Bills beat the Kansas City Chiefs 20-17 (3-point margin)."
@@ -2122,12 +2122,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the Carolina Panthers in the Divisional round, 2008?",
     "options": [
-      "Cincinnati Bengals",
-      "San Diego Chargers",
-      "New Orleans Saints",
-      "Arizona Cardinals"
+      "Arizona Cardinals",
+      "Carolina Panthers",
+      "Detroit Lions",
+      "St Louis Rams"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Arizona Cardinals beat the Carolina Panthers 33-13 (20-point margin)."
   },
   {
@@ -2136,12 +2136,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Philadelphia Eagles played the Kansas City Chiefs in Week 2, 2025?",
     "options": [
-      "Los Angeles Chargers",
-      "Tennessee Titans",
-      "Philadelphia Eagles",
-      "New Orleans Saints"
+      "New England Patriots",
+      "Kansas City Chiefs",
+      "Houston Texans",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Philadelphia Eagles beat the Kansas City Chiefs 20-17 (3-point margin)."
   },
   {
@@ -2150,12 +2150,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Rams played the Arizona Cardinals in Week 16, 2018?",
     "options": [
-      "Cincinnati Bengals",
-      "Tampa Bay Buccaneers",
-      "Los Angeles Rams",
-      "Oakland Raiders"
+      "Arizona Cardinals",
+      "Detroit Lions",
+      "Kansas City Chiefs",
+      "Los Angeles Rams"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Los Angeles Rams beat the Arizona Cardinals 31-9 (22-point margin)."
   },
   {
@@ -2164,10 +2164,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Buffalo Bills played the Miami Dolphins in Week 11, 2014?",
     "options": [
-      "Jacksonville Jaguars",
-      "Green Bay Packers",
+      "Buffalo Bills",
+      "New England Patriots",
       "Miami Dolphins",
-      "Dallas Cowboys"
+      "New York Jets"
     ],
     "correctIndex": 2,
     "notes": "The Miami Dolphins beat the Buffalo Bills 22-9 (13-point margin)."
@@ -2178,12 +2178,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Chicago Bears played the St Louis Rams in Week 10, 2015?",
     "options": [
-      "Denver Broncos",
-      "Cleveland Browns",
+      "San Diego Chargers",
       "Chicago Bears",
-      "Miami Dolphins"
+      "St Louis Rams",
+      "Detroit Lions"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Chicago Bears beat the St Louis Rams 37-13 (24-point margin)."
   },
   {
@@ -2192,12 +2192,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Seattle Seahawks played the St Louis Rams in Week 5, 2005?",
     "options": [
-      "Carolina Panthers",
-      "Oakland Raiders",
-      "New Orleans Saints",
-      "Seattle Seahawks"
+      "St Louis Rams",
+      "Atlanta Falcons",
+      "Seattle Seahawks",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Seattle Seahawks beat the St Louis Rams 37-31 (6-point margin)."
   },
   {
@@ -2206,12 +2206,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the New Orleans Saints in Week 15, 2022?",
     "options": [
+      "Detroit Lions",
+      "Los Angeles Rams",
       "New Orleans Saints",
-      "Washington Commanders",
-      "Cincinnati Bengals",
-      "Los Angeles Chargers"
+      "Atlanta Falcons"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The New Orleans Saints beat the Atlanta Falcons 21-18 (3-point margin)."
   },
   {
@@ -2220,12 +2220,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Diego Chargers played the Tampa Bay Buccaneers in Week 10, 2012?",
     "options": [
-      "Cleveland Browns",
-      "Seattle Seahawks",
       "Tampa Bay Buccaneers",
-      "Houston Texans"
+      "Atlanta Falcons",
+      "Miami Dolphins",
+      "San Diego Chargers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Tampa Bay Buccaneers beat the San Diego Chargers 34-24 (10-point margin)."
   },
   {
@@ -2234,12 +2234,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Green Bay Packers played the New York Jets in Week 17, 2002?",
     "options": [
-      "New York Jets",
+      "Carolina Panthers",
+      "Green Bay Packers",
       "Denver Broncos",
-      "Philadelphia Eagles",
-      "Tampa Bay Buccaneers"
+      "New York Jets"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The New York Jets beat the Green Bay Packers 42-17 (25-point margin)."
   },
   {
@@ -2248,12 +2248,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Philadelphia Eagles played the Kansas City Chiefs in Week 4, 2005?",
     "options": [
-      "Tampa Bay Buccaneers",
-      "Philadelphia Eagles",
-      "Pittsburgh Steelers",
-      "Arizona Cardinals"
+      "Tennessee Titans",
+      "Kansas City Chiefs",
+      "Detroit Lions",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Philadelphia Eagles beat the Kansas City Chiefs 37-31 (6-point margin)."
   },
   {
@@ -2262,9 +2262,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Diego Chargers played the Denver Broncos in Week 11, 2009?",
     "options": [
-      "Baltimore Ravens",
-      "Houston Texans",
-      "Seattle Seahawks",
+      "Washington Redskins",
+      "New England Patriots",
+      "Denver Broncos",
       "San Diego Chargers"
     ],
     "correctIndex": 3,
@@ -2276,12 +2276,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Oakland Raiders played the Arizona Cardinals in Week 3, 2010?",
     "options": [
-      "Arizona Cardinals",
-      "San Diego Chargers",
-      "Detroit Lions",
-      "Buffalo Bills"
+      "Denver Broncos",
+      "Indianapolis Colts",
+      "Oakland Raiders",
+      "Arizona Cardinals"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Arizona Cardinals beat the Oakland Raiders 24-23 (1-point margin)."
   },
   {
@@ -2290,12 +2290,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Giants played the Dallas Cowboys in Week 8, 2012?",
     "options": [
-      "St Louis Rams",
       "New York Giants",
-      "Kansas City Chiefs",
-      "Tennessee Titans"
+      "Cleveland Browns",
+      "Green Bay Packers",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The New York Giants beat the Dallas Cowboys 29-24 (5-point margin)."
   },
   {
@@ -2304,12 +2304,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tennessee Titans played the Houston Texans in Week 11, 2009?",
     "options": [
-      "Washington Redskins",
-      "Philadelphia Eagles",
-      "Miami Dolphins",
-      "Tennessee Titans"
+      "New England Patriots",
+      "Houston Texans",
+      "Tennessee Titans",
+      "Washington Redskins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Tennessee Titans beat the Houston Texans 20-17 (3-point margin)."
   },
   {
@@ -2318,10 +2318,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Miami Dolphins played the Los Angeles Rams in Week 10, 2024?",
     "options": [
-      "Detroit Lions",
-      "Los Angeles Chargers",
+      "Dallas Cowboys",
+      "Pittsburgh Steelers",
       "Miami Dolphins",
-      "Pittsburgh Steelers"
+      "Los Angeles Rams"
     ],
     "correctIndex": 2,
     "notes": "The Miami Dolphins beat the Los Angeles Rams 23-15 (8-point margin)."
@@ -2332,12 +2332,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Dallas Cowboys played the Tennessee Titans in Week 4, 2006?",
     "options": [
-      "Seattle Seahawks",
-      "Denver Broncos",
-      "New Orleans Saints",
-      "Dallas Cowboys"
+      "Tennessee Titans",
+      "Dallas Cowboys",
+      "Carolina Panthers",
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Dallas Cowboys beat the Tennessee Titans 45-14 (31-point margin)."
   },
   {
@@ -2346,12 +2346,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Atlanta Falcons played the Minnesota Vikings in Week 16, 2008?",
     "options": [
-      "Atlanta Falcons",
-      "Kansas City Chiefs",
-      "Philadelphia Eagles",
-      "Seattle Seahawks"
+      "Tampa Bay Buccaneers",
+      "Houston Texans",
+      "Minnesota Vikings",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Atlanta Falcons beat the Minnesota Vikings 24-17 (7-point margin)."
   },
   {
@@ -2360,12 +2360,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Miami Dolphins played the Buffalo Bills in Week 1, 2010?",
     "options": [
-      "Dallas Cowboys",
-      "Miami Dolphins",
-      "Indianapolis Colts",
-      "Jacksonville Jaguars"
+      "Buffalo Bills",
+      "Cincinnati Bengals",
+      "Tennessee Titans",
+      "Miami Dolphins"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Miami Dolphins beat the Buffalo Bills 15-10 (5-point margin)."
   },
   {
@@ -2374,12 +2374,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Dallas Cowboys played the Philadelphia Eagles in Week 5, 2006?",
     "options": [
-      "New York Giants",
-      "San Diego Chargers",
       "Philadelphia Eagles",
-      "Kansas City Chiefs"
+      "Atlanta Falcons",
+      "Dallas Cowboys",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Philadelphia Eagles beat the Dallas Cowboys 38-24 (14-point margin)."
   },
   {
@@ -2388,12 +2388,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Detroit Lions played the Kansas City Chiefs in Week 1, 2023?",
     "options": [
+      "Denver Broncos",
+      "Houston Texans",
       "Detroit Lions",
-      "Cleveland Browns",
-      "Dallas Cowboys",
-      "New York Giants"
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Detroit Lions beat the Kansas City Chiefs 21-20 (1-point margin)."
   },
   {
@@ -2402,12 +2402,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Las Vegas Raiders played the Kansas City Chiefs in Week 5, 2020?",
     "options": [
-      "Denver Broncos",
-      "Washington Football Team",
-      "Cleveland Browns",
-      "Las Vegas Raiders"
+      "Las Vegas Raiders",
+      "Tennessee Titans",
+      "Kansas City Chiefs",
+      "Cleveland Browns"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Las Vegas Raiders beat the Kansas City Chiefs 40-32 (8-point margin)."
   },
   {
@@ -2416,12 +2416,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Oakland Raiders played the San Diego Chargers in Week 10, 2011?",
     "options": [
-      "Minnesota Vikings",
       "Tampa Bay Buccaneers",
-      "St Louis Rams",
-      "Oakland Raiders"
+      "Oakland Raiders",
+      "San Diego Chargers",
+      "New England Patriots"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Oakland Raiders beat the San Diego Chargers 24-17 (7-point margin)."
   },
   {
@@ -2430,12 +2430,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Detroit Lions played the Green Bay Packers in Week 17, 2007?",
     "options": [
-      "Denver Broncos",
-      "Dallas Cowboys",
+      "Detroit Lions",
       "Green Bay Packers",
-      "Seattle Seahawks"
+      "Oakland Raiders",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Green Bay Packers beat the Detroit Lions 34-13 (21-point margin)."
   },
   {
@@ -2444,12 +2444,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New England Patriots played the New York Jets in Week 2, 2006?",
     "options": [
-      "New England Patriots",
-      "Seattle Seahawks",
       "Indianapolis Colts",
+      "New York Jets",
+      "New England Patriots",
       "Minnesota Vikings"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the New York Jets 24-17 (7-point margin)."
   },
   {
@@ -2458,10 +2458,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Buffalo Bills played the Arizona Cardinals in Week 5, 2008?",
     "options": [
-      "Green Bay Packers",
-      "Tennessee Titans",
+      "Cleveland Browns",
+      "Buffalo Bills",
       "Arizona Cardinals",
-      "Tampa Bay Buccaneers"
+      "Dallas Cowboys"
     ],
     "correctIndex": 2,
     "notes": "The Arizona Cardinals beat the Buffalo Bills 41-17 (24-point margin)."
@@ -2472,12 +2472,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Miami Dolphins played the New York Jets in Week 18, 2024?",
     "options": [
-      "Pittsburgh Steelers",
-      "Dallas Cowboys",
       "New York Jets",
-      "New Orleans Saints"
+      "Carolina Panthers",
+      "Miami Dolphins",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The New York Jets beat the Miami Dolphins 32-20 (12-point margin)."
   },
   {
@@ -2486,12 +2486,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the Indianapolis Colts in Week 7, 2012?",
     "options": [
-      "New England Patriots",
-      "Indianapolis Colts",
-      "Green Bay Packers",
-      "Tennessee Titans"
+      "Cleveland Browns",
+      "Carolina Panthers",
+      "San Diego Chargers",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Indianapolis Colts beat the Cleveland Browns 17-13 (4-point margin)."
   },
   {
@@ -2500,12 +2500,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the New Orleans Saints in Week 7, 2010?",
     "options": [
+      "New Orleans Saints",
       "Philadelphia Eagles",
       "Cleveland Browns",
-      "Houston Texans",
-      "Seattle Seahawks"
+      "Minnesota Vikings"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Cleveland Browns beat the New Orleans Saints 30-17 (13-point margin)."
   },
   {
@@ -2514,12 +2514,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the Washington Redskins in Week 3, 2008?",
     "options": [
+      "St Louis Rams",
+      "Philadelphia Eagles",
       "Washington Redskins",
-      "Baltimore Ravens",
-      "Denver Broncos",
-      "Houston Texans"
+      "Arizona Cardinals"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Washington Redskins beat the Arizona Cardinals 24-17 (7-point margin)."
   },
   {
@@ -2529,9 +2529,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Cleveland Browns played the Indianapolis Colts in Week 3, 2017?",
     "options": [
       "Indianapolis Colts",
-      "Philadelphia Eagles",
-      "Carolina Panthers",
-      "Minnesota Vikings"
+      "Atlanta Falcons",
+      "Green Bay Packers",
+      "Cleveland Browns"
     ],
     "correctIndex": 0,
     "notes": "The Indianapolis Colts beat the Cleveland Browns 31-28 (3-point margin)."
@@ -2542,12 +2542,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Baltimore Ravens played the Pittsburgh Steelers in Week 14, 2017?",
     "options": [
-      "Minnesota Vikings",
-      "Dallas Cowboys",
-      "Buffalo Bills",
-      "Pittsburgh Steelers"
+      "Chicago Bears",
+      "Baltimore Ravens",
+      "Pittsburgh Steelers",
+      "Washington Redskins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Pittsburgh Steelers beat the Baltimore Ravens 39-38 (1-point margin)."
   },
   {
@@ -2556,9 +2556,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New Orleans Saints played the Oakland Raiders in Week 7, 2004?",
     "options": [
-      "Indianapolis Colts",
-      "Tampa Bay Buccaneers",
-      "New York Jets",
+      "Kansas City Chiefs",
+      "Jacksonville Jaguars",
+      "Oakland Raiders",
       "New Orleans Saints"
     ],
     "correctIndex": 3,
@@ -2570,12 +2570,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the Washington Redskins in Week 7, 2008?",
     "options": [
-      "Oakland Raiders",
-      "Washington Redskins",
-      "Indianapolis Colts",
-      "Houston Texans"
+      "Cleveland Browns",
+      "Philadelphia Eagles",
+      "New York Giants",
+      "Washington Redskins"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Washington Redskins beat the Cleveland Browns 14-11 (3-point margin)."
   },
   {
@@ -2584,12 +2584,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tampa Bay Buccaneers played the Atlanta Falcons in Week 1, 2025?",
     "options": [
-      "Philadelphia Eagles",
-      "Tennessee Titans",
-      "Cleveland Browns",
-      "Tampa Bay Buccaneers"
+      "Los Angeles Chargers",
+      "Washington Commanders",
+      "Tampa Bay Buccaneers",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Tampa Bay Buccaneers beat the Atlanta Falcons 23-20 (3-point margin)."
   },
   {
@@ -2598,12 +2598,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cincinnati Bengals played the St Louis Rams in Week 16, 2003?",
     "options": [
-      "Denver Broncos",
-      "Atlanta Falcons",
-      "Tennessee Titans",
-      "St Louis Rams"
+      "Detroit Lions",
+      "Cincinnati Bengals",
+      "St Louis Rams",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The St Louis Rams beat the Cincinnati Bengals 27-10 (17-point margin)."
   },
   {
@@ -2612,12 +2612,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tennessee Titans played the Miami Dolphins in Week 14, 2023?",
     "options": [
-      "Arizona Cardinals",
-      "Denver Broncos",
-      "San Francisco 49ers",
-      "Tennessee Titans"
+      "Tennessee Titans",
+      "Green Bay Packers",
+      "Miami Dolphins",
+      "Chicago Bears"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Tennessee Titans beat the Miami Dolphins 28-27 (1-point margin)."
   },
   {
@@ -2626,12 +2626,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Philadelphia Eagles played the St Louis Rams in Week 15, 2005?",
     "options": [
-      "Philadelphia Eagles",
-      "Carolina Panthers",
-      "Tennessee Titans",
-      "Miami Dolphins"
+      "Oakland Raiders",
+      "Detroit Lions",
+      "St Louis Rams",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Philadelphia Eagles beat the St Louis Rams 17-16 (1-point margin)."
   },
   {
@@ -2640,10 +2640,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the New Orleans Saints played the New York Jets in Week 9, 2013?",
     "options": [
-      "San Francisco 49ers",
+      "Oakland Raiders",
       "New York Jets",
-      "Detroit Lions",
-      "Kansas City Chiefs"
+      "Seattle Seahawks",
+      "New Orleans Saints"
     ],
     "correctIndex": 1,
     "notes": "The New York Jets beat the New Orleans Saints 26-20 (6-point margin)."
@@ -2654,12 +2654,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Francisco 49ers played the New Orleans Saints in Week 2, 2004?",
     "options": [
-      "Cleveland Browns",
       "New Orleans Saints",
-      "Kansas City Chiefs",
-      "Seattle Seahawks"
+      "Atlanta Falcons",
+      "San Francisco 49ers",
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The New Orleans Saints beat the San Francisco 49ers 30-27 (3-point margin)."
   },
   {
@@ -2668,12 +2668,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tampa Bay Buccaneers played the Minnesota Vikings in Week 8, 2012?",
     "options": [
-      "Green Bay Packers",
-      "Cleveland Browns",
       "Tampa Bay Buccaneers",
-      "Cincinnati Bengals"
+      "Pittsburgh Steelers",
+      "Minnesota Vikings",
+      "Baltimore Ravens"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Tampa Bay Buccaneers beat the Minnesota Vikings 36-17 (19-point margin)."
   },
   {
@@ -2682,12 +2682,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cincinnati Bengals played the Baltimore Ravens in Week 1, 2012?",
     "options": [
-      "New Orleans Saints",
-      "Buffalo Bills",
+      "Miami Dolphins",
       "Baltimore Ravens",
-      "Denver Broncos"
+      "Tennessee Titans",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Baltimore Ravens beat the Cincinnati Bengals 44-13 (31-point margin)."
   },
   {
@@ -2696,12 +2696,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Indianapolis Colts played the Jacksonville Jaguars in Week 4, 2016?",
     "options": [
+      "Indianapolis Colts",
+      "Washington Redskins",
       "Jacksonville Jaguars",
-      "Baltimore Ravens",
-      "Arizona Cardinals",
-      "Seattle Seahawks"
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Jacksonville Jaguars beat the Indianapolis Colts 30-27 (3-point margin)."
   },
   {
@@ -2710,12 +2710,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the Chicago Bears in Week 8, 2009?",
     "options": [
-      "Baltimore Ravens",
-      "Minnesota Vikings",
-      "Washington Redskins",
-      "Chicago Bears"
+      "New England Patriots",
+      "Chicago Bears",
+      "Cleveland Browns",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Chicago Bears beat the Cleveland Browns 30-6 (24-point margin)."
   },
   {
@@ -2724,12 +2724,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Indianapolis Colts in Week 11, 2003?",
     "options": [
+      "New York Jets",
       "Indianapolis Colts",
-      "Philadelphia Eagles",
-      "Arizona Cardinals",
-      "Jacksonville Jaguars"
+      "San Francisco 49ers",
+      "Houston Texans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the New York Jets 38-31 (7-point margin)."
   },
   {
@@ -2738,12 +2738,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Carolina Panthers played the New Orleans Saints in Week 17, 2008?",
     "options": [
-      "Miami Dolphins",
+      "Carolina Panthers",
       "Atlanta Falcons",
-      "Tennessee Titans",
-      "Carolina Panthers"
+      "Seattle Seahawks",
+      "New Orleans Saints"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Carolina Panthers beat the New Orleans Saints 33-31 (2-point margin)."
   },
   {
@@ -2752,12 +2752,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Pittsburgh Steelers played the Atlanta Falcons in Week 15, 2014?",
     "options": [
-      "New York Giants",
-      "Arizona Cardinals",
+      "Kansas City Chiefs",
       "Pittsburgh Steelers",
-      "New York Jets"
+      "Atlanta Falcons",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Pittsburgh Steelers beat the Atlanta Falcons 27-20 (7-point margin)."
   },
   {
@@ -2766,12 +2766,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Houston Texans played the Dallas Cowboys in Week 5, 2014?",
     "options": [
-      "Chicago Bears",
-      "Arizona Cardinals",
+      "Houston Texans",
       "Dallas Cowboys",
-      "New Orleans Saints"
+      "Jacksonville Jaguars",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Dallas Cowboys beat the Houston Texans 20-17 in overtime (3-point margin)."
   },
   {
@@ -2780,12 +2780,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Las Vegas Raiders played the Cincinnati Bengals in Week 9, 2024?",
     "options": [
+      "Kansas City Chiefs",
+      "Las Vegas Raiders",
       "Cincinnati Bengals",
-      "Minnesota Vikings",
-      "New York Jets",
-      "New Orleans Saints"
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Cincinnati Bengals beat the Las Vegas Raiders 41-24 (17-point margin)."
   },
   {
@@ -2794,12 +2794,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Chicago Bears in Week 15, 2004?",
     "options": [
-      "San Francisco 49ers",
-      "Tennessee Titans",
-      "San Diego Chargers",
-      "Houston Texans"
+      "Denver Broncos",
+      "Houston Texans",
+      "Philadelphia Eagles",
+      "Chicago Bears"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Houston Texans beat the Chicago Bears 24-5 (19-point margin)."
   },
   {
@@ -2808,12 +2808,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Green Bay Packers played the Tennessee Titans in Week 10, 2016?",
     "options": [
-      "Los Angeles Rams",
-      "Tampa Bay Buccaneers",
+      "Philadelphia Eagles",
       "Tennessee Titans",
-      "San Francisco 49ers"
+      "Green Bay Packers",
+      "Miami Dolphins"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Tennessee Titans beat the Green Bay Packers 47-25 (22-point margin)."
   },
   {
@@ -2822,9 +2822,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Washington Commanders in Week 7, 2022?",
     "options": [
-      "New England Patriots",
-      "Pittsburgh Steelers",
-      "San Francisco 49ers",
+      "Tampa Bay Buccaneers",
+      "Green Bay Packers",
+      "Atlanta Falcons",
       "Washington Commanders"
     ],
     "correctIndex": 3,
@@ -2836,12 +2836,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Tennessee Titans in Week 12, 2008?",
     "options": [
+      "San Francisco 49ers",
       "Minnesota Vikings",
-      "New York Jets",
-      "Houston Texans",
-      "San Francisco 49ers"
+      "Tennessee Titans",
+      "New York Jets"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The New York Jets beat the Tennessee Titans 34-13 (21-point margin)."
   },
   {
@@ -2850,12 +2850,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the New England Patriots in the Divisional round, 2012?",
     "options": [
+      "Dallas Cowboys",
+      "Houston Texans",
       "New England Patriots",
-      "Baltimore Ravens",
-      "New York Jets",
-      "San Diego Chargers"
+      "Denver Broncos"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Houston Texans 41-28 (13-point margin)."
   },
   {
@@ -2864,12 +2864,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Dallas Cowboys played the Chicago Bears in Week 14, 2013?",
     "options": [
-      "New England Patriots",
-      "Cincinnati Bengals",
-      "Carolina Panthers",
-      "Chicago Bears"
+      "Chicago Bears",
+      "Dallas Cowboys",
+      "Seattle Seahawks",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Chicago Bears beat the Dallas Cowboys 45-28 (17-point margin)."
   },
   {
@@ -2878,10 +2878,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Baltimore Ravens played the Tennessee Titans in Week 6, 2023?",
     "options": [
-      "Houston Texans",
-      "Carolina Panthers",
+      "Tennessee Titans",
+      "Detroit Lions",
       "Baltimore Ravens",
-      "Cincinnati Bengals"
+      "Tampa Bay Buccaneers"
     ],
     "correctIndex": 2,
     "notes": "The Baltimore Ravens beat the Tennessee Titans 24-16 (8-point margin)."
@@ -2892,12 +2892,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Philadelphia Eagles played the Washington Redskins in Week 6, 2016?",
     "options": [
-      "Arizona Cardinals",
+      "Dallas Cowboys",
+      "Philadelphia Eagles",
       "Washington Redskins",
-      "Green Bay Packers",
-      "Tennessee Titans"
+      "Pittsburgh Steelers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Washington Redskins beat the Philadelphia Eagles 27-20 (7-point margin)."
   },
   {
@@ -2906,12 +2906,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Seattle Seahawks played the Detroit Lions in Week 4, 2022?",
     "options": [
+      "Tennessee Titans",
       "Seattle Seahawks",
-      "Dallas Cowboys",
-      "New England Patriots",
-      "Pittsburgh Steelers"
+      "Detroit Lions",
+      "Los Angeles Chargers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Seattle Seahawks beat the Detroit Lions 48-45 (3-point margin)."
   },
   {
@@ -2920,12 +2920,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Denver Broncos in Week 15, 2025?",
     "options": [
+      "Indianapolis Colts",
       "Denver Broncos",
-      "New Orleans Saints",
-      "Buffalo Bills",
-      "Las Vegas Raiders"
+      "Pittsburgh Steelers",
+      "Green Bay Packers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Denver Broncos beat the Green Bay Packers 34-26 (8-point margin)."
   },
   {
@@ -2934,12 +2934,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the Pittsburgh Steelers in Week 1, 2003?",
     "options": [
-      "Pittsburgh Steelers",
-      "Philadelphia Eagles",
       "Houston Texans",
-      "Cleveland Browns"
+      "Denver Broncos",
+      "Baltimore Ravens",
+      "Pittsburgh Steelers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Pittsburgh Steelers beat the Baltimore Ravens 34-15 (19-point margin)."
   },
   {
@@ -2948,12 +2948,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Rams played the New York Jets in Week 16, 2024?",
     "options": [
-      "Dallas Cowboys",
-      "New England Patriots",
+      "New York Jets",
       "Los Angeles Rams",
-      "Denver Broncos"
+      "New England Patriots",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Los Angeles Rams beat the New York Jets 19-9 (10-point margin)."
   },
   {
@@ -2962,12 +2962,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Jacksonville Jaguars played the Tennessee Titans in Week 14, 2024?",
     "options": [
+      "Tennessee Titans",
+      "Chicago Bears",
       "Jacksonville Jaguars",
-      "Seattle Seahawks",
-      "Cleveland Browns",
-      "Atlanta Falcons"
+      "Los Angeles Rams"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Jacksonville Jaguars beat the Tennessee Titans 10-6 (4-point margin)."
   },
   {
@@ -2976,12 +2976,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Diego Chargers played the Arizona Cardinals in Week 3, 2002?",
     "options": [
-      "Cincinnati Bengals",
-      "Denver Broncos",
-      "Seattle Seahawks",
-      "San Diego Chargers"
+      "San Diego Chargers",
+      "New Orleans Saints",
+      "Arizona Cardinals",
+      "Buffalo Bills"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The San Diego Chargers beat the Arizona Cardinals 23-15 (8-point margin)."
   },
   {
@@ -2990,12 +2990,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Jets played the Arizona Cardinals in Week 12, 2004?",
     "options": [
+      "Tampa Bay Buccaneers",
       "New York Giants",
-      "Cleveland Browns",
-      "New York Jets",
-      "Philadelphia Eagles"
+      "Arizona Cardinals",
+      "New York Jets"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The New York Jets beat the Arizona Cardinals 13-3 (10-point margin)."
   },
   {
@@ -3004,12 +3004,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the Carolina Panthers in Week 14, 2004?",
     "options": [
-      "Detroit Lions",
-      "Dallas Cowboys",
+      "Houston Texans",
       "Carolina Panthers",
-      "Cincinnati Bengals"
+      "St Louis Rams",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Carolina Panthers beat the St Louis Rams 20-7 (13-point margin)."
   },
   {
@@ -3018,9 +3018,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Pittsburgh Steelers played the Houston Texans in Week 2, 2005?",
     "options": [
-      "New York Jets",
-      "Washington Redskins",
-      "Tampa Bay Buccaneers",
+      "Houston Texans",
+      "Cincinnati Bengals",
+      "Seattle Seahawks",
       "Pittsburgh Steelers"
     ],
     "correctIndex": 3,
@@ -3032,12 +3032,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Las Vegas Raiders played the Indianapolis Colts in Week 17, 2021?",
     "options": [
-      "Philadelphia Eagles",
-      "Denver Broncos",
-      "Las Vegas Raiders",
-      "New Orleans Saints"
+      "Indianapolis Colts",
+      "Dallas Cowboys",
+      "Tennessee Titans",
+      "Las Vegas Raiders"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Las Vegas Raiders beat the Indianapolis Colts 23-20 (3-point margin)."
   },
   {
@@ -3046,12 +3046,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Commanders played the New England Patriots in Week 9, 2023?",
     "options": [
-      "New Orleans Saints",
-      "Jacksonville Jaguars",
+      "Detroit Lions",
       "Washington Commanders",
-      "Arizona Cardinals"
+      "Philadelphia Eagles",
+      "New England Patriots"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Washington Commanders beat the New England Patriots 20-17 (3-point margin)."
   },
   {
@@ -3060,12 +3060,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New Orleans Saints played the Atlanta Falcons in Week 18, 2025?",
     "options": [
-      "Atlanta Falcons",
-      "Detroit Lions",
-      "San Francisco 49ers",
-      "Los Angeles Rams"
+      "Tampa Bay Buccaneers",
+      "Arizona Cardinals",
+      "New Orleans Saints",
+      "Atlanta Falcons"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Atlanta Falcons beat the New Orleans Saints 19-17 (2-point margin)."
   },
   {
@@ -3074,12 +3074,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Seattle Seahawks played the New York Giants in Week 15, 2013?",
     "options": [
-      "Green Bay Packers",
-      "New England Patriots",
-      "New York Jets",
-      "Seattle Seahawks"
+      "Seattle Seahawks",
+      "Tennessee Titans",
+      "Philadelphia Eagles",
+      "New York Giants"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Seattle Seahawks beat the New York Giants 23-0 (23-point margin)."
   },
   {
@@ -3088,12 +3088,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Atlanta Falcons played the Philadelphia Eagles in Week 8, 2012?",
     "options": [
-      "Seattle Seahawks",
-      "Indianapolis Colts",
-      "Pittsburgh Steelers",
-      "Atlanta Falcons"
+      "Green Bay Packers",
+      "Atlanta Falcons",
+      "Miami Dolphins",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Atlanta Falcons beat the Philadelphia Eagles 30-17 (13-point margin)."
   },
   {
@@ -3102,12 +3102,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Detroit Lions played the Indianapolis Colts in Week 1, 2016?",
     "options": [
+      "Miami Dolphins",
       "Detroit Lions",
-      "New England Patriots",
-      "San Francisco 49ers",
-      "Arizona Cardinals"
+      "Indianapolis Colts",
+      "Cleveland Browns"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Detroit Lions beat the Indianapolis Colts 39-35 (4-point margin)."
   },
   {
@@ -3116,10 +3116,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the Arizona Cardinals in Week 16, 2009?",
     "options": [
-      "Cincinnati Bengals",
+      "Houston Texans",
       "Arizona Cardinals",
-      "Chicago Bears",
-      "New York Giants"
+      "Dallas Cowboys",
+      "St Louis Rams"
     ],
     "correctIndex": 1,
     "notes": "The Arizona Cardinals beat the St Louis Rams 31-10 (21-point margin)."
@@ -3130,12 +3130,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the Carolina Panthers in Week 11, 2004?",
     "options": [
-      "Kansas City Chiefs",
-      "New Orleans Saints",
-      "Carolina Panthers",
-      "Atlanta Falcons"
+      "San Diego Chargers",
+      "Arizona Cardinals",
+      "Cincinnati Bengals",
+      "Carolina Panthers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Carolina Panthers beat the Arizona Cardinals 35-10 (25-point margin)."
   },
   {
@@ -3144,12 +3144,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Miami Dolphins played the Houston Texans in Week 6, 2008?",
     "options": [
-      "Arizona Cardinals",
+      "Miami Dolphins",
+      "Cincinnati Bengals",
       "Houston Texans",
-      "Chicago Bears",
-      "Denver Broncos"
+      "Tennessee Titans"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Houston Texans beat the Miami Dolphins 29-28 (1-point margin)."
   },
   {
@@ -3158,10 +3158,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Seattle Seahawks played the Minnesota Vikings in Week 13, 2015?",
     "options": [
-      "Oakland Raiders",
+      "Denver Broncos",
       "Seattle Seahawks",
-      "Green Bay Packers",
-      "Jacksonville Jaguars"
+      "Minnesota Vikings",
+      "Cincinnati Bengals"
     ],
     "correctIndex": 1,
     "notes": "The Seattle Seahawks beat the Minnesota Vikings 38-7 (31-point margin)."
@@ -3172,12 +3172,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tennessee Titans played the Miami Dolphins in Week 10, 2010?",
     "options": [
-      "Pittsburgh Steelers",
-      "Miami Dolphins",
-      "New York Giants",
-      "Tampa Bay Buccaneers"
+      "Washington Redskins",
+      "Baltimore Ravens",
+      "Tennessee Titans",
+      "Miami Dolphins"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Miami Dolphins beat the Tennessee Titans 29-17 (12-point margin)."
   },
   {
@@ -3186,12 +3186,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tennessee Titans played the Indianapolis Colts in Week 12, 2020?",
     "options": [
-      "Green Bay Packers",
-      "New England Patriots",
-      "San Francisco 49ers",
-      "Tennessee Titans"
+      "Tennessee Titans",
+      "New Orleans Saints",
+      "Indianapolis Colts",
+      "Jacksonville Jaguars"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Tennessee Titans beat the Indianapolis Colts 45-26 (19-point margin)."
   },
   {
@@ -3200,9 +3200,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Seattle Seahawks played the Arizona Cardinals in Week 14, 2006?",
     "options": [
-      "Jacksonville Jaguars",
-      "New England Patriots",
       "Tennessee Titans",
+      "Seattle Seahawks",
+      "Miami Dolphins",
       "Arizona Cardinals"
     ],
     "correctIndex": 3,
@@ -3214,12 +3214,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Carolina Panthers played the Tampa Bay Buccaneers in Week 8, 2017?",
     "options": [
-      "Dallas Cowboys",
-      "Chicago Bears",
-      "Carolina Panthers",
-      "Seattle Seahawks"
+      "Tampa Bay Buccaneers",
+      "Minnesota Vikings",
+      "Seattle Seahawks",
+      "Carolina Panthers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Carolina Panthers beat the Tampa Bay Buccaneers 17-3 (14-point margin)."
   },
   {
@@ -3228,10 +3228,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Denver Broncos played the Tampa Bay Buccaneers in Week 3, 2024?",
     "options": [
-      "New Orleans Saints",
+      "Cleveland Browns",
       "Denver Broncos",
-      "San Francisco 49ers",
-      "Green Bay Packers"
+      "Minnesota Vikings",
+      "Tampa Bay Buccaneers"
     ],
     "correctIndex": 1,
     "notes": "The Denver Broncos beat the Tampa Bay Buccaneers 26-7 (19-point margin)."
@@ -3242,12 +3242,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Oakland Raiders played the Pittsburgh Steelers in Week 9, 2015?",
     "options": [
+      "Arizona Cardinals",
+      "Oakland Raiders",
       "Pittsburgh Steelers",
-      "Tampa Bay Buccaneers",
-      "New York Giants",
-      "Indianapolis Colts"
+      "Chicago Bears"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Pittsburgh Steelers beat the Oakland Raiders 38-35 (3-point margin)."
   },
   {
@@ -3256,12 +3256,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Oakland Raiders played the Green Bay Packers in Week 7, 2019?",
     "options": [
-      "Tampa Bay Buccaneers",
       "Green Bay Packers",
-      "Arizona Cardinals",
-      "New Orleans Saints"
+      "Oakland Raiders",
+      "New Orleans Saints",
+      "Minnesota Vikings"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Green Bay Packers beat the Oakland Raiders 42-24 (18-point margin)."
   },
   {
@@ -3270,12 +3270,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Jets played the Buffalo Bills in Week 1, 2020?",
     "options": [
-      "Atlanta Falcons",
-      "Arizona Cardinals",
-      "Buffalo Bills",
-      "Houston Texans"
+      "Philadelphia Eagles",
+      "New York Jets",
+      "Tennessee Titans",
+      "Buffalo Bills"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Buffalo Bills beat the New York Jets 27-17 (10-point margin)."
   },
   {
@@ -3284,12 +3284,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the Green Bay Packers in Week 9, 2012?",
     "options": [
-      "Oakland Raiders",
-      "San Francisco 49ers",
-      "Washington Redskins",
-      "Green Bay Packers"
+      "Arizona Cardinals",
+      "Tampa Bay Buccaneers",
+      "Green Bay Packers",
+      "Tennessee Titans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Green Bay Packers beat the Arizona Cardinals 31-17 (14-point margin)."
   },
   {
@@ -3298,12 +3298,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New England Patriots played the San Diego Chargers in Week 4, 2002?",
     "options": [
-      "Chicago Bears",
-      "San Diego Chargers",
-      "Minnesota Vikings",
-      "New York Jets"
+      "Cleveland Browns",
+      "Tampa Bay Buccaneers",
+      "New England Patriots",
+      "San Diego Chargers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The San Diego Chargers beat the New England Patriots 21-14 (7-point margin)."
   },
   {
@@ -3312,12 +3312,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Arizona Cardinals played the Seattle Seahawks in Week 12, 2014?",
     "options": [
-      "Philadelphia Eagles",
-      "Dallas Cowboys",
+      "Indianapolis Colts",
       "Seattle Seahawks",
-      "Chicago Bears"
+      "Arizona Cardinals",
+      "New England Patriots"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Seattle Seahawks beat the Arizona Cardinals 19-3 (16-point margin)."
   },
   {
@@ -3326,12 +3326,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Minnesota Vikings played the Philadelphia Eagles in Week 16, 2010?",
     "options": [
-      "Green Bay Packers",
       "Minnesota Vikings",
-      "San Francisco 49ers",
-      "Baltimore Ravens"
+      "San Diego Chargers",
+      "Baltimore Ravens",
+      "Philadelphia Eagles"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Minnesota Vikings beat the Philadelphia Eagles 24-14 (10-point margin)."
   },
   {
@@ -3340,12 +3340,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Chargers played the Miami Dolphins in Week 4, 2019?",
     "options": [
-      "Denver Broncos",
+      "Carolina Panthers",
+      "Los Angeles Rams",
       "Los Angeles Chargers",
-      "Pittsburgh Steelers",
-      "Seattle Seahawks"
+      "Miami Dolphins"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Los Angeles Chargers beat the Miami Dolphins 30-10 (20-point margin)."
   },
   {
@@ -3354,12 +3354,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Tennessee Titans in Week 8, 2006?",
     "options": [
-      "Tennessee Titans",
-      "Arizona Cardinals",
-      "Buffalo Bills",
-      "Kansas City Chiefs"
+      "Houston Texans",
+      "St Louis Rams",
+      "Washington Redskins",
+      "Tennessee Titans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Tennessee Titans beat the Houston Texans 28-22 (6-point margin)."
   },
   {
@@ -3368,10 +3368,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Pittsburgh Steelers played the Cleveland Browns in Week 9, 2002?",
     "options": [
-      "Cincinnati Bengals",
+      "Tampa Bay Buccaneers",
       "Houston Texans",
       "Pittsburgh Steelers",
-      "Tennessee Titans"
+      "Cleveland Browns"
     ],
     "correctIndex": 2,
     "notes": "The Pittsburgh Steelers beat the Cleveland Browns 23-20 (3-point margin)."
@@ -3382,12 +3382,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Los Angeles Rams played the Tampa Bay Buccaneers in the Divisional round, 2021?",
     "options": [
-      "Cincinnati Bengals",
-      "Indianapolis Colts",
+      "Green Bay Packers",
       "Los Angeles Rams",
-      "Philadelphia Eagles"
+      "Tampa Bay Buccaneers",
+      "Arizona Cardinals"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Los Angeles Rams beat the Tampa Bay Buccaneers 30-27 (3-point margin)."
   },
   {
@@ -3396,12 +3396,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Commanders played the Detroit Lions in Week 2, 2022?",
     "options": [
+      "New England Patriots",
+      "Washington Commanders",
       "Detroit Lions",
-      "Los Angeles Rams",
-      "New York Giants",
-      "Kansas City Chiefs"
+      "Pittsburgh Steelers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Detroit Lions beat the Washington Commanders 36-27 (9-point margin)."
   },
   {
@@ -3410,12 +3410,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New York Giants played the Dallas Cowboys in Week 15, 2008?",
     "options": [
-      "Pittsburgh Steelers",
-      "Chicago Bears",
-      "Dallas Cowboys",
-      "Washington Redskins"
+      "Minnesota Vikings",
+      "Oakland Raiders",
+      "New York Giants",
+      "Dallas Cowboys"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Dallas Cowboys beat the New York Giants 20-8 (12-point margin)."
   },
   {
@@ -3425,9 +3425,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Arizona Cardinals played the Dallas Cowboys in Week 8, 2005?",
     "options": [
       "Dallas Cowboys",
-      "San Diego Chargers",
-      "Buffalo Bills",
-      "Green Bay Packers"
+      "Cleveland Browns",
+      "Arizona Cardinals",
+      "Indianapolis Colts"
     ],
     "correctIndex": 0,
     "notes": "The Dallas Cowboys beat the Arizona Cardinals 34-13 (21-point margin)."
@@ -3438,10 +3438,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the Pittsburgh Steelers in Week 16, 2006?",
     "options": [
-      "Cincinnati Bengals",
+      "Detroit Lions",
       "Baltimore Ravens",
-      "Tampa Bay Buccaneers",
-      "Cleveland Browns"
+      "Pittsburgh Steelers",
+      "New York Jets"
     ],
     "correctIndex": 1,
     "notes": "The Baltimore Ravens beat the Pittsburgh Steelers 31-7 (24-point margin)."
@@ -3452,9 +3452,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New Orleans Saints played the Arizona Cardinals in Week 4, 2004?",
     "options": [
-      "San Diego Chargers",
-      "Green Bay Packers",
-      "New York Jets",
+      "Dallas Cowboys",
+      "Houston Texans",
+      "New Orleans Saints",
       "Arizona Cardinals"
     ],
     "correctIndex": 3,
@@ -3466,12 +3466,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the Arizona Cardinals in Week 10, 2023?",
     "options": [
-      "Los Angeles Chargers",
-      "Philadelphia Eagles",
+      "Green Bay Packers",
+      "Arizona Cardinals",
       "Pittsburgh Steelers",
-      "Arizona Cardinals"
+      "Atlanta Falcons"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Arizona Cardinals beat the Atlanta Falcons 25-23 (2-point margin)."
   },
   {
@@ -3480,12 +3480,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Denver Broncos played the Kansas City Chiefs in Week 5, 2003?",
     "options": [
-      "Kansas City Chiefs",
-      "Chicago Bears",
-      "Pittsburgh Steelers",
-      "Carolina Panthers"
+      "Denver Broncos",
+      "New York Giants",
+      "Indianapolis Colts",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Kansas City Chiefs beat the Denver Broncos 24-23 (1-point margin)."
   },
   {
@@ -3494,12 +3494,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Pittsburgh Steelers in Week 8, 2025?",
     "options": [
-      "Cincinnati Bengals",
-      "Denver Broncos",
-      "Los Angeles Rams",
-      "Green Bay Packers"
+      "Pittsburgh Steelers",
+      "Miami Dolphins",
+      "Green Bay Packers",
+      "New York Jets"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The Green Bay Packers beat the Pittsburgh Steelers 35-25 (10-point margin)."
   },
   {
@@ -3509,9 +3509,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Las Vegas Raiders played the Los Angeles Chargers in Week 4, 2021?",
     "options": [
       "Los Angeles Chargers",
-      "Jacksonville Jaguars",
-      "Philadelphia Eagles",
-      "Baltimore Ravens"
+      "Denver Broncos",
+      "Cleveland Browns",
+      "Las Vegas Raiders"
     ],
     "correctIndex": 0,
     "notes": "The Los Angeles Chargers beat the Las Vegas Raiders 28-14 (14-point margin)."
@@ -3522,12 +3522,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Football Team played the Dallas Cowboys in Week 12, 2020?",
     "options": [
+      "Dallas Cowboys",
       "Washington Football Team",
-      "Jacksonville Jaguars",
-      "Seattle Seahawks",
-      "New York Giants"
+      "New Orleans Saints",
+      "Buffalo Bills"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Washington Football Team beat the Dallas Cowboys 41-16 (25-point margin)."
   },
   {
@@ -3536,12 +3536,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Las Vegas Raiders played the Cincinnati Bengals in the Wild Card round, 2021?",
     "options": [
+      "Cincinnati Bengals",
       "Kansas City Chiefs",
-      "Indianapolis Colts",
-      "New England Patriots",
-      "Cincinnati Bengals"
+      "New York Giants",
+      "Las Vegas Raiders"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Cincinnati Bengals beat the Las Vegas Raiders 26-19 (7-point margin)."
   },
   {
@@ -3550,12 +3550,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tampa Bay Buccaneers played the Detroit Lions in the Divisional round, 2023?",
     "options": [
-      "New Orleans Saints",
       "New England Patriots",
-      "Baltimore Ravens",
-      "Detroit Lions"
+      "Detroit Lions",
+      "Tampa Bay Buccaneers",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Detroit Lions beat the Tampa Bay Buccaneers 31-23 (8-point margin)."
   },
   {
@@ -3564,12 +3564,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New Orleans Saints played the Philadelphia Eagles in Week 11, 2021?",
     "options": [
+      "Tennessee Titans",
+      "New Orleans Saints",
       "Philadelphia Eagles",
-      "Detroit Lions",
-      "New England Patriots",
-      "Kansas City Chiefs"
+      "New England Patriots"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Philadelphia Eagles beat the New Orleans Saints 40-29 (11-point margin)."
   },
   {
@@ -3578,12 +3578,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Buffalo Bills played the New England Patriots in Week 10, 2004?",
     "options": [
-      "Kansas City Chiefs",
       "New England Patriots",
       "Miami Dolphins",
-      "New Orleans Saints"
+      "Detroit Lions",
+      "Buffalo Bills"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The New England Patriots beat the Buffalo Bills 29-6 (23-point margin)."
   },
   {
@@ -3592,12 +3592,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Washington Football Team played the Pittsburgh Steelers in Week 13, 2020?",
     "options": [
-      "Denver Broncos",
-      "Philadelphia Eagles",
+      "Pittsburgh Steelers",
       "Washington Football Team",
-      "Baltimore Ravens"
+      "Las Vegas Raiders",
+      "Minnesota Vikings"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Washington Football Team beat the Pittsburgh Steelers 23-17 (6-point margin)."
   },
   {
@@ -3606,10 +3606,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the New York Jets played the New England Patriots in Week 17, 2018?",
     "options": [
-      "Kansas City Chiefs",
+      "Pittsburgh Steelers",
       "New England Patriots",
-      "Arizona Cardinals",
-      "Oakland Raiders"
+      "New York Jets",
+      "Houston Texans"
     ],
     "correctIndex": 1,
     "notes": "The New England Patriots beat the New York Jets 38-3 (35-point margin)."
@@ -3620,12 +3620,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Houston Texans played the Cleveland Browns in Week 12, 2008?",
     "options": [
-      "Tampa Bay Buccaneers",
-      "Indianapolis Colts",
-      "Houston Texans",
-      "Chicago Bears"
+      "Detroit Lions",
+      "Cleveland Browns",
+      "Baltimore Ravens",
+      "Houston Texans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 3,
     "notes": "The Houston Texans beat the Cleveland Browns 16-6 (10-point margin)."
   },
   {
@@ -3634,10 +3634,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Detroit Lions played the Oakland Raiders in Week 15, 2011?",
     "options": [
-      "Jacksonville Jaguars",
-      "Miami Dolphins",
+      "Oakland Raiders",
+      "Green Bay Packers",
       "Detroit Lions",
-      "Green Bay Packers"
+      "San Diego Chargers"
     ],
     "correctIndex": 2,
     "notes": "The Detroit Lions beat the Oakland Raiders 28-27 (1-point margin)."
@@ -3648,12 +3648,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Jacksonville Jaguars played the Cincinnati Bengals in Week 2, 2025?",
     "options": [
-      "Cincinnati Bengals",
-      "Baltimore Ravens",
-      "Indianapolis Colts",
-      "Tennessee Titans"
+      "New England Patriots",
+      "Jacksonville Jaguars",
+      "Los Angeles Rams",
+      "Cincinnati Bengals"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Cincinnati Bengals beat the Jacksonville Jaguars 31-27 (4-point margin)."
   },
   {
@@ -3662,12 +3662,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Detroit Lions played the Minnesota Vikings in Week 17, 2013?",
     "options": [
-      "Minnesota Vikings",
-      "St Louis Rams",
-      "Green Bay Packers",
-      "Indianapolis Colts"
+      "Cincinnati Bengals",
+      "Detroit Lions",
+      "New Orleans Saints",
+      "Minnesota Vikings"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Minnesota Vikings beat the Detroit Lions 14-13 (1-point margin)."
   },
   {
@@ -3676,10 +3676,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Jacksonville Jaguars played the Indianapolis Colts in Week 3, 2003?",
     "options": [
-      "Cincinnati Bengals",
-      "Buffalo Bills",
+      "Denver Broncos",
+      "Arizona Cardinals",
       "Indianapolis Colts",
-      "Houston Texans"
+      "Jacksonville Jaguars"
     ],
     "correctIndex": 2,
     "notes": "The Indianapolis Colts beat the Jacksonville Jaguars 23-13 (10-point margin)."
@@ -3690,12 +3690,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tennessee Titans played the Indianapolis Colts in Week 8, 2025?",
     "options": [
-      "Arizona Cardinals",
       "Indianapolis Colts",
-      "New York Jets",
-      "Detroit Lions"
+      "Tennessee Titans",
+      "Buffalo Bills",
+      "Green Bay Packers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Indianapolis Colts beat the Tennessee Titans 38-14 (24-point margin)."
   },
   {
@@ -3704,12 +3704,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Cleveland Browns played the Los Angeles Rams in Week 13, 2023?",
     "options": [
+      "Cleveland Browns",
       "Los Angeles Rams",
-      "Denver Broncos",
-      "Green Bay Packers",
+      "Chicago Bears",
       "Houston Texans"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Los Angeles Rams beat the Cleveland Browns 36-19 (17-point margin)."
   },
   {
@@ -3718,12 +3718,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the St Louis Rams played the New England Patriots in Week 8, 2008?",
     "options": [
+      "St Louis Rams",
       "New England Patriots",
-      "Detroit Lions",
-      "New Orleans Saints",
-      "Baltimore Ravens"
+      "New York Jets",
+      "Tampa Bay Buccaneers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The New England Patriots beat the St Louis Rams 23-16 (7-point margin)."
   },
   {
@@ -3732,12 +3732,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Miami Dolphins played the New England Patriots in Week 8, 2015?",
     "options": [
-      "San Diego Chargers",
-      "New England Patriots",
       "Indianapolis Colts",
-      "Jacksonville Jaguars"
+      "Miami Dolphins",
+      "New England Patriots",
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Miami Dolphins 36-7 (29-point margin)."
   },
   {
@@ -3746,12 +3746,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Denver Broncos played the Pittsburgh Steelers in Week 9, 2006?",
     "options": [
-      "New England Patriots",
+      "Pittsburgh Steelers",
+      "Cleveland Browns",
       "Denver Broncos",
-      "Atlanta Falcons",
-      "Minnesota Vikings"
+      "Carolina Panthers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The Denver Broncos beat the Pittsburgh Steelers 31-20 (11-point margin)."
   },
   {
@@ -3760,12 +3760,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the Indianapolis Colts in Week 10, 2025?",
     "options": [
-      "Kansas City Chiefs",
-      "Washington Commanders",
-      "Miami Dolphins",
-      "Indianapolis Colts"
+      "Green Bay Packers",
+      "Indianapolis Colts",
+      "Atlanta Falcons",
+      "Tampa Bay Buccaneers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the Atlanta Falcons 31-25 in overtime (6-point margin)."
   },
   {
@@ -3774,12 +3774,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Denver Broncos played the Indianapolis Colts in Week 9, 2015?",
     "options": [
-      "Detroit Lions",
       "Indianapolis Colts",
-      "St Louis Rams",
-      "Cleveland Browns"
+      "Denver Broncos",
+      "Tampa Bay Buccaneers",
+      "Oakland Raiders"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Indianapolis Colts beat the Denver Broncos 27-24 (3-point margin)."
   },
   {
@@ -3788,12 +3788,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New England Patriots played the Buffalo Bills in Week 16, 2010?",
     "options": [
-      "Tennessee Titans",
+      "Washington Redskins",
+      "Buffalo Bills",
       "New England Patriots",
-      "Green Bay Packers",
-      "Pittsburgh Steelers"
+      "Tennessee Titans"
     ],
-    "correctIndex": 1,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Buffalo Bills 34-3 (31-point margin)."
   },
   {
@@ -3802,10 +3802,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Kansas City Chiefs played the New York Giants in Week 3, 2025?",
     "options": [
-      "Las Vegas Raiders",
-      "Houston Texans",
+      "New York Giants",
+      "Carolina Panthers",
       "Kansas City Chiefs",
-      "Green Bay Packers"
+      "Dallas Cowboys"
     ],
     "correctIndex": 2,
     "notes": "The Kansas City Chiefs beat the New York Giants 22-9 (13-point margin)."
@@ -3816,12 +3816,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Seattle Seahawks played the Tampa Bay Buccaneers in Week 2, 2004?",
     "options": [
-      "Detroit Lions",
-      "St Louis Rams",
+      "Tampa Bay Buccaneers",
       "Seattle Seahawks",
-      "Philadelphia Eagles"
+      "Cincinnati Bengals",
+      "Cleveland Browns"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Seattle Seahawks beat the Tampa Bay Buccaneers 10-6 (4-point margin)."
   },
   {
@@ -3830,12 +3830,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Baltimore Ravens played the Oakland Raiders in Week 17, 2009?",
     "options": [
-      "Carolina Panthers",
-      "Denver Broncos",
-      "Tennessee Titans",
-      "Baltimore Ravens"
+      "New England Patriots",
+      "Baltimore Ravens",
+      "New York Giants",
+      "Oakland Raiders"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Baltimore Ravens beat the Oakland Raiders 21-13 (8-point margin)."
   },
   {
@@ -3845,11 +3845,11 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Pittsburgh Steelers played the Denver Broncos in the Divisional round, 2015?",
     "options": [
       "Tennessee Titans",
-      "Houston Texans",
       "Denver Broncos",
-      "Tampa Bay Buccaneers"
+      "Pittsburgh Steelers",
+      "New York Giants"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Denver Broncos beat the Pittsburgh Steelers 23-16 (7-point margin)."
   },
   {
@@ -3858,12 +3858,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Miami Dolphins played the New England Patriots in Week 9, 2009?",
     "options": [
-      "Philadelphia Eagles",
-      "Detroit Lions",
-      "Minnesota Vikings",
-      "New England Patriots"
+      "Cleveland Browns",
+      "Carolina Panthers",
+      "New England Patriots",
+      "Miami Dolphins"
     ],
-    "correctIndex": 3,
+    "correctIndex": 2,
     "notes": "The New England Patriots beat the Miami Dolphins 27-17 (10-point margin)."
   },
   {
@@ -3872,12 +3872,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Cincinnati Bengals played the Cleveland Browns in Week 15, 2014?",
     "options": [
+      "Cleveland Browns",
       "Cincinnati Bengals",
-      "Seattle Seahawks",
-      "St Louis Rams",
-      "Baltimore Ravens"
+      "Baltimore Ravens",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Cincinnati Bengals beat the Cleveland Browns 30-0 (30-point margin)."
   },
   {
@@ -3886,12 +3886,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New Orleans Saints played the Green Bay Packers in Week 1, 2011?",
     "options": [
-      "Arizona Cardinals",
-      "Indianapolis Colts",
-      "Jacksonville Jaguars",
-      "Green Bay Packers"
+      "New Orleans Saints",
+      "Green Bay Packers",
+      "Denver Broncos",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Green Bay Packers beat the New Orleans Saints 42-34 (8-point margin)."
   },
   {
@@ -3900,9 +3900,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Jacksonville Jaguars played the Tennessee Titans in Week 17, 2017?",
     "options": [
-      "Oakland Raiders",
-      "Chicago Bears",
-      "Los Angeles Chargers",
+      "Kansas City Chiefs",
+      "Buffalo Bills",
+      "Jacksonville Jaguars",
       "Tennessee Titans"
     ],
     "correctIndex": 3,
@@ -3914,12 +3914,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the San Francisco 49ers played the Arizona Cardinals in Week 16, 2002?",
     "options": [
+      "Jacksonville Jaguars",
       "San Francisco 49ers",
-      "New Orleans Saints",
-      "Dallas Cowboys",
-      "Green Bay Packers"
+      "Tennessee Titans",
+      "Arizona Cardinals"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The San Francisco 49ers beat the Arizona Cardinals 17-14 (3-point margin)."
   },
   {
@@ -3928,12 +3928,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Green Bay Packers played the Detroit Lions in Week 18, 2021?",
     "options": [
-      "Detroit Lions",
-      "Pittsburgh Steelers",
       "Arizona Cardinals",
-      "Kansas City Chiefs"
+      "Detroit Lions",
+      "Los Angeles Chargers",
+      "Green Bay Packers"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": "The Detroit Lions beat the Green Bay Packers 37-30 (7-point margin)."
   },
   {
@@ -3942,12 +3942,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Atlanta Falcons played the Chicago Bears in Week 17, 2023?",
     "options": [
-      "Seattle Seahawks",
       "Chicago Bears",
-      "Kansas City Chiefs",
-      "Las Vegas Raiders"
+      "Atlanta Falcons",
+      "Pittsburgh Steelers",
+      "Carolina Panthers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 0,
     "notes": "The Chicago Bears beat the Atlanta Falcons 37-17 (20-point margin)."
   },
   {
@@ -3956,12 +3956,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Minnesota Vikings played the Philadelphia Eagles in Week 2, 2022?",
     "options": [
-      "Carolina Panthers",
-      "Pittsburgh Steelers",
       "Philadelphia Eagles",
-      "Chicago Bears"
+      "New York Giants",
+      "Minnesota Vikings",
+      "Kansas City Chiefs"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Philadelphia Eagles beat the Minnesota Vikings 24-7 (17-point margin)."
   },
   {
@@ -3970,12 +3970,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the New England Patriots played the Chicago Bears in Week 14, 2010?",
     "options": [
-      "Detroit Lions",
-      "Minnesota Vikings",
+      "Pittsburgh Steelers",
       "New England Patriots",
-      "Jacksonville Jaguars"
+      "Washington Redskins",
+      "Chicago Bears"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The New England Patriots beat the Chicago Bears 36-7 (29-point margin)."
   },
   {
@@ -3984,12 +3984,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Houston Texans played the Los Angeles Chargers in Week 17, 2025?",
     "options": [
-      "New York Jets",
-      "Carolina Panthers",
-      "Denver Broncos",
-      "Houston Texans"
+      "Houston Texans",
+      "Los Angeles Chargers",
+      "Baltimore Ravens",
+      "Cleveland Browns"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Houston Texans beat the Los Angeles Chargers 20-16 (4-point margin)."
   },
   {
@@ -3998,12 +3998,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Arizona Cardinals played the Philadelphia Eagles in Week 10, 2011?",
     "options": [
+      "Philadelphia Eagles",
+      "Tampa Bay Buccaneers",
       "Arizona Cardinals",
-      "Baltimore Ravens",
-      "Dallas Cowboys",
-      "San Diego Chargers"
+      "Detroit Lions"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Arizona Cardinals beat the Philadelphia Eagles 21-17 (4-point margin)."
   },
   {
@@ -4012,12 +4012,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Jacksonville Jaguars played the San Diego Chargers in Week 5, 2004?",
     "options": [
-      "Pittsburgh Steelers",
-      "New York Giants",
+      "Jacksonville Jaguars",
       "San Diego Chargers",
-      "Baltimore Ravens"
+      "Cincinnati Bengals",
+      "Tampa Bay Buccaneers"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The San Diego Chargers beat the Jacksonville Jaguars 34-21 (13-point margin)."
   },
   {
@@ -4026,12 +4026,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Oakland Raiders played the Denver Broncos in Week 4, 2012?",
     "options": [
-      "New England Patriots",
-      "Denver Broncos",
-      "Tennessee Titans",
-      "Detroit Lions"
+      "Green Bay Packers",
+      "New York Giants",
+      "Oakland Raiders",
+      "Denver Broncos"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Denver Broncos beat the Oakland Raiders 37-6 (31-point margin)."
   },
   {
@@ -4040,12 +4040,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Minnesota Vikings played the Chicago Bears in Week 2, 2013?",
     "options": [
-      "Carolina Panthers",
-      "Chicago Bears",
-      "Oakland Raiders",
-      "New England Patriots"
+      "Minnesota Vikings",
+      "Miami Dolphins",
+      "San Diego Chargers",
+      "Chicago Bears"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": "The Chicago Bears beat the Minnesota Vikings 31-30 (1-point margin)."
   },
   {
@@ -4054,12 +4054,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Cincinnati Bengals played the Cleveland Browns in Week 1, 2025?",
     "options": [
+      "New York Jets",
+      "Carolina Panthers",
       "Cincinnati Bengals",
-      "Minnesota Vikings",
-      "Philadelphia Eagles",
-      "Arizona Cardinals"
+      "Cleveland Browns"
     ],
-    "correctIndex": 0,
+    "correctIndex": 2,
     "notes": "The Cincinnati Bengals beat the Cleveland Browns 17-16 (1-point margin)."
   },
   {
@@ -4069,9 +4069,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "question": "Which team won when the Cincinnati Bengals played the Arizona Cardinals in Week 11, 2015?",
     "options": [
       "Arizona Cardinals",
-      "Carolina Panthers",
-      "Tampa Bay Buccaneers",
-      "Dallas Cowboys"
+      "Houston Texans",
+      "Kansas City Chiefs",
+      "Cincinnati Bengals"
     ],
     "correctIndex": 0,
     "notes": "The Arizona Cardinals beat the Cincinnati Bengals 34-31 (3-point margin)."
@@ -4082,12 +4082,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Cleveland Browns played the Kansas City Chiefs in Week 8, 2013?",
     "options": [
-      "New England Patriots",
-      "Buffalo Bills",
-      "Indianapolis Colts",
-      "Kansas City Chiefs"
+      "Tampa Bay Buccaneers",
+      "Kansas City Chiefs",
+      "Arizona Cardinals",
+      "Cleveland Browns"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Kansas City Chiefs beat the Cleveland Browns 23-17 (6-point margin)."
   },
   {
@@ -4096,12 +4096,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Atlanta Falcons played the New Orleans Saints in Week 8, 2002?",
     "options": [
-      "St Louis Rams",
-      "Jacksonville Jaguars",
       "Atlanta Falcons",
-      "San Francisco 49ers"
+      "New Orleans Saints",
+      "San Diego Chargers",
+      "Houston Texans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Atlanta Falcons beat the New Orleans Saints 37-35 (2-point margin)."
   },
   {
@@ -4110,12 +4110,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Easy",
     "question": "Which team won when the Tampa Bay Buccaneers played the Carolina Panthers in Week 9, 2018?",
     "options": [
-      "Denver Broncos",
-      "New Orleans Saints",
-      "Atlanta Falcons",
-      "Carolina Panthers"
+      "Carolina Panthers",
+      "Tampa Bay Buccaneers",
+      "New England Patriots",
+      "Houston Texans"
     ],
-    "correctIndex": 3,
+    "correctIndex": 0,
     "notes": "The Carolina Panthers beat the Tampa Bay Buccaneers 42-28 (14-point margin)."
   },
   {
@@ -4124,10 +4124,10 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Atlanta Falcons played the New Orleans Saints in Week 10, 2012?",
     "options": [
-      "Tampa Bay Buccaneers",
-      "Cleveland Browns",
+      "New York Jets",
+      "Atlanta Falcons",
       "New Orleans Saints",
-      "Kansas City Chiefs"
+      "Indianapolis Colts"
     ],
     "correctIndex": 2,
     "notes": "The New Orleans Saints beat the Atlanta Falcons 31-27 (4-point margin)."
@@ -4138,12 +4138,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Indianapolis Colts played the Houston Texans in Week 5, 2015?",
     "options": [
-      "Indianapolis Colts",
-      "Tennessee Titans",
-      "San Diego Chargers",
-      "Washington Redskins"
+      "Houston Texans",
+      "Oakland Raiders",
+      "Minnesota Vikings",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 0,
+    "correctIndex": 3,
     "notes": "The Indianapolis Colts beat the Houston Texans 27-20 (7-point margin)."
   },
   {
@@ -4152,12 +4152,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Cleveland Browns played the Pittsburgh Steelers in the Wild Card round, 2002?",
     "options": [
-      "St Louis Rams",
-      "Tampa Bay Buccaneers",
       "Pittsburgh Steelers",
-      "New England Patriots"
+      "Philadelphia Eagles",
+      "Cleveland Browns",
+      "Seattle Seahawks"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Pittsburgh Steelers beat the Cleveland Browns 36-33 (3-point margin)."
   },
   {
@@ -4166,12 +4166,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Indianapolis Colts played the Jacksonville Jaguars in Week 4, 2013?",
     "options": [
-      "Cleveland Browns",
-      "Houston Texans",
       "Indianapolis Colts",
-      "Baltimore Ravens"
+      "St Louis Rams",
+      "Jacksonville Jaguars",
+      "Houston Texans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 0,
     "notes": "The Indianapolis Colts beat the Jacksonville Jaguars 37-3 (34-point margin)."
   },
   {
@@ -4180,12 +4180,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Indianapolis Colts played the Tennessee Titans in Week 14, 2010?",
     "options": [
-      "St Louis Rams",
-      "Atlanta Falcons",
+      "Green Bay Packers",
       "Indianapolis Colts",
-      "New York Giants"
+      "Oakland Raiders",
+      "Tennessee Titans"
     ],
-    "correctIndex": 2,
+    "correctIndex": 1,
     "notes": "The Indianapolis Colts beat the Tennessee Titans 30-28 (2-point margin)."
   },
   {
@@ -4194,9 +4194,9 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Medium",
     "question": "Which team won when the Seattle Seahawks played the Los Angeles Rams in Week 2, 2016?",
     "options": [
-      "Arizona Cardinals",
-      "Carolina Panthers",
-      "Green Bay Packers",
+      "Seattle Seahawks",
+      "Chicago Bears",
+      "Houston Texans",
       "Los Angeles Rams"
     ],
     "correctIndex": 3,
@@ -4208,12 +4208,12 @@ window.QUIZ_DATA_ENGINE_GAME_RESULT = [
     "difficulty": "Hard",
     "question": "Which team won when the Tampa Bay Buccaneers played the Carolina Panthers in Week 11, 2012?",
     "options": [
-      "Dallas Cowboys",
-      "Buffalo Bills",
-      "San Diego Chargers",
-      "Tampa Bay Buccaneers"
+      "New York Giants",
+      "Tampa Bay Buccaneers",
+      "Miami Dolphins",
+      "Carolina Panthers"
     ],
-    "correctIndex": 3,
+    "correctIndex": 1,
     "notes": "The Tampa Bay Buccaneers beat the Carolina Panthers 27-21 in overtime (6-point margin)."
   }
 ];
