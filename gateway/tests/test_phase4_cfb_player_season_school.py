@@ -130,7 +130,8 @@ def test_multi_school_seasons_are_excluded_with_an_explicit_reason():
 def test_caleb_williams_2023_five_way_collision_is_excluded():
     """A real, dramatic case: 5 distinct real players named 'Caleb Williams'
     were active in CFB in 2023 (Furman, Lamar, Pittsburgh, Tennessee, USC --
-    including the actual 2023 Heisman winner at USC). None may appear as a
+    including the real 2022 Heisman Trophy winner at USC; Jayden Daniels,
+    not Caleb Williams, won the 2023 Heisman). None may appear as a
     generated candidate."""
     from tools.quiz_export.adapters import cfb_player_season_school as pst
 

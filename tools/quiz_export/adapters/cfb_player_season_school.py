@@ -10,15 +10,16 @@ Real data investigation behind this spec (Phase 4):
   canonical_cfb_players (109,221 rows) the real identity table -- joined on
   cfb_player_id, never on name. Zero unjoined rows (perfect referential
   integrity, checked directly).
-- Unlike NFL franchises, CFB school identity is STABLE across seasons in
-  this Engine's data: zero school_ids have more than one distinct
-  school_name across cfb_school_seasons' full 2002-2025 range (checked
-  directly) -- no season-scoped franchise resolution or code-history
-  override is needed at all. identity_resolution_strategy=
-  "stable_identity_table" resolves school_id -> schools.school_name with a
-  direct lookup; distractors are drawn from cfb_school_seasons (schools
-  with a real recorded season that year), the same real season-scoping
-  discipline the NFL capability uses via team_aliases.
+- Within the Engine's current 2002-2025 data, zero school_ids map to more
+  than one distinct school_name across cfb_school_seasons' full range
+  (checked directly) -- a statement about what THIS dataset currently
+  contains, not a claim that CFB schools never rename in the real world.
+  No season-scoped franchise resolution or code-history override is needed
+  today. identity_resolution_strategy="stable_identity_table" resolves
+  school_id -> schools.school_name with a direct lookup; distractors are
+  drawn from cfb_school_seasons (schools with a real recorded season that
+  year), the same real season-scoping discipline the NFL capability uses
+  via team_aliases.
 - Season completeness uses "aggregate_presence" (cfb_school_seasons real
   row presence), not a fixed week-count floor -- CFB has no single
   real per-season week count (division/conference/playoff-format variation,
@@ -28,11 +29,23 @@ Real data investigation behind this spec (Phase 4):
   marker). This deliberately avoids repeating the exact "flat threshold"
   flaw the owner flagged for the NFL capability (Phase 3 closeout) -- see
   compiler.py's RelationshipSpec.season_completeness_strategy docstring.
+  RELEASE SAFEGUARD tracked for Phase 7 before PUBLIC_ENABLED (owner-
+  required): presence alone proves SOME real aggregate data exists, not
+  that the season is FINISHED -- if cfb_school_seasons is ever updated
+  incrementally mid-season, an active season could become eligible (and
+  phrased in the past tense) after its first aggregate update. Must be
+  replaced with a schedule-derived or explicit finalized-season status
+  check before public release.
 - Real, dramatic same-name-collision finding: FIVE distinct real players
   named "Caleb Williams" were active in CFB in 2023 alone (Furman, Lamar,
-  Pittsburgh, Tennessee, USC -- including the actual 2023 Heisman winner at
-  USC) -- all five correctly excluded by the existing name-collision rule,
-  proving the protection matters even for a single, real, famous name.
+  Pittsburgh, Tennessee, USC -- including Caleb Williams, the real 2022
+  Heisman Trophy winner, at USC) -- all five correctly excluded by the
+  existing name-collision rule, proving the protection matters even for a
+  single, real, famous name. (Jayden Daniels, not Caleb Williams, won the
+  2023 Heisman.)
+- PERFORMANCE TARGET tracked for Phase 5 (not a Phase 4 blocker): a real
+  target_count=5 generation call takes ~4s after the max_fetched_candidates
+  fix below (was 116s) -- still slow relative to the other 22 capabilities.
 """
 from tools.director_v02 import compiler
 

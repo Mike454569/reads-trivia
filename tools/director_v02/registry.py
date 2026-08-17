@@ -850,10 +850,12 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     # real proof of the conservative relationship compiler's generalization
     # (tools/director_v02/compiler.py) -- same "entity+season->object" shape
     # as Phase 3's NFL capability, a different sport, a different identity-
-    # resolution strategy (CFB school identity is stable across seasons, no
-    # relocation/rename history to normalize) and a different season-
-    # completeness strategy (real aggregate-outcomes presence, not a fixed
-    # week-count floor -- CFB has no single real per-season week count).
+    # resolution strategy (within the Engine's current 2002-2025 data, zero
+    # school IDs map to multiple school names -- no relocation/rename
+    # history to normalize TODAY; not a claim CFB schools never rename) and
+    # a different season-completeness strategy (real aggregate-outcomes
+    # presence, not a fixed week-count floor -- CFB has no single real
+    # per-season week count).
     ("guess", "CFB_PLAYER_SEASON", "SCHOOL_OF_SEASON"): {
         "adapter": cfb_player_season_school_adapter,
         "category": cfb_player_season_school_adapter.CATEGORY,
@@ -867,7 +869,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "Same-name collisions (two or more distinct real players sharing a display name in the "
             "same season) are excluded entirely -- real, dramatic example found and verified: FIVE "
             "distinct real players named 'Caleb Williams' were active in CFB in 2023 alone (including "
-            "the real 2023 Heisman winner at USC), all five correctly excluded.",
+            "the real 2022 Heisman Trophy winner at USC -- Jayden Daniels, not Caleb Williams, won the "
+            "2023 Heisman), all five correctly excluded.",
             "This capability proves ROSTER MEMBERSHIP only (cfb_roster_seasons_real), not game "
             "participation -- generated questions ask which school a player 'was/is ON', never "
             "'played for'. See compiler.EvidenceType.",
@@ -875,6 +878,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "entirely, never presented as a completed-season fact -- see the adapter's real "
             "season_status(). No CFB season is currently mid-progress (ACTIVE) in the real data; only "
             "COMPLETE (2004-2025, all real) or FUTURE (2026+, no data yet) are reachable today.",
+            "RELEASE SAFEGUARD tracked for Phase 7 before PUBLIC_ENABLED: aggregate-presence proves "
+            "SOME real season data exists, not that the season is FINISHED -- must be replaced with "
+            "schedule-derived or explicit finalized-season status so an active season cannot become "
+            "eligible after its first aggregate update.",
+            "PERFORMANCE TARGET tracked for Phase 5 (not a Phase 4 blocker): a real target_count=5 "
+            "generation call takes ~4s (down from a real, measured 116s before the "
+            "max_fetched_candidates fix) -- still slow relative to the other 22 capabilities.",
         ],
         "competition_id": "CFB",
         "entity_type": "cfb_player_season",

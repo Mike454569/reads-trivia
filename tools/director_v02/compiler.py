@@ -142,6 +142,14 @@ class RelationshipSpec:
     # strategy (an aggregate table doesn't reliably distinguish "empty
     # because not started" from "partially populated mid-season") --
     # only COMPLETE or FUTURE.
+    #
+    # RELEASE SAFEGUARD tracked for Phase 7 before any aggregate_presence
+    # capability reaches PUBLIC_ENABLED (owner-required): presence alone
+    # proves SOME real aggregate data exists, not that the season is
+    # FINISHED -- if the aggregate table is ever updated incrementally
+    # mid-season, an active season could become eligible (and phrased in
+    # the past tense) after its first partial update. Must be replaced
+    # with a schedule-derived or explicit finalized-season status check.
     season_completeness_strategy: str = "weekly_evidence"
     # Real, weekly-grain source used ONLY to determine season completeness
     # under the "weekly_evidence" strategy (never joined per-entity -- that
@@ -254,12 +262,13 @@ def _normalize_franchise(c, spec: RelationshipSpec, team_code: str, season: int)
     team_aliases has "STL" 2002-2015 and "LA" 2016+) -- resolved by
     franchise_id directly rather than guessing a season-blind code.
 
-    "stable_identity_table" (CFB): real, checked finding -- unlike NFL
-    franchises, CFB school_id/school_name never changes across seasons in
-    this Engine's data (verified directly: zero school_ids have more than
-    one distinct school_name across cfb_school_seasons' full 2002-2025
-    range) -- no season-scoping or code-history override is needed at all,
-    a direct id->name lookup is honestly sufficient."""
+    "stable_identity_table" (CFB): real, checked finding -- within the
+    Engine's current 2002-2025 data, zero school_ids map to more than one
+    distinct school_name across cfb_school_seasons' full range (verified
+    directly). This describes what THIS dataset currently contains, not a
+    claim that CFB schools never rename in the real world -- no season-
+    scoping or code-history override is needed TODAY, so a direct id->name
+    lookup is honestly sufficient for now."""
     if spec.identity_resolution_strategy == "stable_identity_table":
         row = c.execute(
             f"SELECT {spec.identity_id_column} AS id, {spec.identity_name_column} AS name "

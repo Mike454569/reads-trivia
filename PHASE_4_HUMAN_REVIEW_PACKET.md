@@ -12,13 +12,15 @@ differences chosen to match what CFB's own data actually supports honestly — s
 
 ---
 
-## 1. Identity resolution: stable, not season-scoped
+## 1. Identity resolution: stable in the Engine's current data, not season-scoped
 
-Unlike NFL franchises (which relocate/rename), CFB school identity is **stable** in this Engine's data: zero
-`school_id`s have more than one distinct `school_name` across `cfb_school_seasons`' full 2002–2025 range (checked
-directly). `identity_resolution_strategy="stable_identity_table"` resolves `school_id → schools.school_name` with a
-direct lookup — no season-scoping or code-history override needed at all, unlike the NFL capability's three
-Rams/Chargers/Raiders overrides.
+Within the Engine's current 2002–2025 data, zero school IDs map to multiple school names (checked directly against
+`cfb_school_seasons`' full range). This is a statement about what this dataset currently contains, **not** a claim
+that CFB schools never rename in the real world. `identity_resolution_strategy="stable_identity_table"` resolves
+`school_id → schools.school_name` with a direct lookup — no season-scoping or code-history override needed today,
+unlike the NFL capability's three Rams/Chargers/Raiders overrides (which exist because that data genuinely does
+contain code-history variation). If a real school rename or split is ever ingested, this direct-lookup strategy
+would need revisiting — not a currently-known gap, just an honest limit of what "checked directly" can promise.
 
 ## 2. Season completeness: real aggregate presence, not a fixed week floor
 
@@ -30,6 +32,14 @@ verified 2020 COVID-shortened season) — a flat week floor would repeat that ex
 aggregate-outcomes table, populated only once a season's real results exist) as the completeness signal. No `ACTIVE`
 state is reachable under this strategy (an aggregate table doesn't reliably distinguish "not started" from
 "partially populated") — only `COMPLETE` or `FUTURE`.
+
+**Phase 7 release safeguard (owner-required, tracked, not blocking Phase 4):** presence alone proves a season has
+*some* real aggregate data, not that the season is *finished*. If `cfb_school_seasons` is ever updated incrementally
+during a season (e.g. after only a few early weeks), the first such update would make that season eligible and
+phrased in the past tense before it has actually concluded — the same class of risk the NFL capability's own
+release safeguard addresses, just via a different real signal. Before `PUBLIC_ENABLED`, replace `aggregate_presence`
+with a schedule-derived or explicit finalized-season status check so an active season cannot become eligible after
+its first aggregate update.
 
 ## 3. Real evidence-semantics carryover (Phase 3 closeout, applied from the start)
 
@@ -49,6 +59,10 @@ every candidate `fetch_ordered_candidates()` returns, unconditionally, regardles
 capped sample. Real result: the same request now completes in **~4 seconds**. Full regression suite for this
 capability re-run after the fix — all pass, including a dedicated test proving `eligible_pool_size` (269,882) and
 `exported_count` (5,000, the capped sample) are never confused with each other.
+
+**Phase 5 performance-optimization target (tracked, not blocking Phase 4):** ~4 seconds for a 5-question generation
+call is a large real improvement over 116s, but is still slow relative to the other 22 capabilities (sub-second to
+low-single-digit seconds). Recorded as a real target to revisit during Phase 5, not a Phase 4 blocker.
 
 ---
 
@@ -105,12 +119,13 @@ Williams" in this database; **5 of them** were simultaneously active in CFB in 2
 | `ESPN_CFB:4428884` | Lamar |
 | `ESPN_CFB:5154304` | Pittsburgh |
 | `ESPN_CFB:5081725` | Tennessee |
-| `ESPN_CFB:4431611` | **USC** (the real 2023 Heisman Trophy winner) |
+| `ESPN_CFB:4431611` | **USC** (Caleb Williams, the real 2022 Heisman Trophy winner) |
 
 All five are excluded from the eligible pool — confirmed directly, zero rows where `entity_name == "Caleb Williams"`
 and `season == 2023` appear in `fetch_ordered_candidates()`'s output. This proves the protection matters even for a
 single real, famous name: without the `cfb_player_id` join, a naive "Caleb Williams — 2023" prompt could not
-distinguish the Heisman winner from four other unrelated real people.
+distinguish the 2022 Heisman winner from four other unrelated real people. (Jayden Daniels, not Caleb Williams, won
+the 2023 Heisman -- his own 2023/LSU example appears correctly, unrelated to this collision, in Section 7.)
 
 ## 10. Future-season exclusion evidence: season 2026
 
@@ -162,9 +177,13 @@ Phase 3 and applies identically.
 - A real, measured 116s-per-request performance problem (found during this phase, at CFB's real ~270K-row scale)
   was fixed with a bounded, honestly-labeled sampling cap — eligibility reporting stays true throughout.
 - 11,672 same-name collision exclusions (much higher than NFL's 588, expected at CFB's scale) verified with a
-  dramatic real example (5 distinct "Caleb Williams" in 2023 alone, including the actual Heisman winner).
+  dramatic real example (5 distinct "Caleb Williams" in 2023 alone, including the 2022 Heisman winner).
 - 284 multi-school exclusions verified real and distinct from the existing `CFB_TRANSFER` capability's own,
   different real question shape.
+- Two items tracked, not blocking Phase 4: a Phase 7 release safeguard (replace `aggregate_presence` with a
+  schedule-derived or explicit finalized-season status check, so an active season can't become eligible after its
+  first aggregate update) and a Phase 5 performance target (the ~4s generation time, down from 116s, is still slow
+  relative to the other 22 capabilities).
 
 **Catalog state:** `GENERATION_VERIFIED`, `human_review_status=AWAITING_HUMAN_REVIEW`. Awaiting the owner's explicit
 `HUMAN_APPROVED` decision — not self-certified.
