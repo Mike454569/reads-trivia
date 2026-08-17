@@ -218,6 +218,27 @@ def catalog_status_for(mechanic: str, domain: str, predicate: str) -> str | None
         return None
     return _CATALOG_STATE_TO_VOCAB.get(row["verification_status"], "UNDERSTOOD_NOT_IMPLEMENTED")
 
+
+def raw_catalog_state_for(mechanic: str, domain: str, predicate: str) -> str | None:
+    """Phase 2 correction: returns the ACTUAL internal capability_catalog
+    lifecycle state (e.g. "LEGACY_PUBLIC_PENDING_REVALIDATION",
+    "PUBLIC_ENABLED") -- never the mapped, user-facing vocabulary term
+    (that's `catalog_status_for()` above). `assess()`'s `catalog_status`
+    field now returns THIS, kept deliberately distinct from the user-facing
+    `support_status` field: a caller who wants the corrected 7-term
+    vocabulary instead should call `catalog_status_for()` directly, or use
+    `assess()`'s `catalog_vocabulary_status` field."""
+    from tools.director_v02 import catalog
+    from tools.quiz_export import engine
+
+    c = engine.connect()
+    try:
+        row = catalog.get_capability_by_triple(c, mechanic, domain, predicate)
+    finally:
+        c.close()
+    return row["verification_status"] if row else None
+
+
 # Real, audited signals for concepts this database genuinely does not have
 # data for -- each backed by a real query result recorded here, not a guess.
 # Checked ONLY when the request does NOT already resolve to a registered
@@ -362,7 +383,16 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
         "closest_supported_capability": None,
         "translator_notes": translation.get("translator_notes"),
         "translation_status": translation.get("translation_status"),
-        "catalog_status": None,  # Phase 1: populated only on the READY path today, see below
+        # Phase 2 correction: `catalog_status` is the RAW internal lifecycle
+        # state (e.g. "LEGACY_PUBLIC_PENDING_REVALIDATION"), deliberately
+        # kept separate from the user-facing `support_status` above --
+        # never a second copy of it. `catalog_vocabulary_status` is the
+        # mapped, corrected 7-term vocabulary value for callers that want
+        # that instead. Both populated only on the READY path today (Phase
+        # 1/2 scope: every real catalog row is currently one of the 21
+        # already-registered capabilities).
+        "catalog_status": None,
+        "catalog_vocabulary_status": None,
     }
 
     if gate_status == "READY":
@@ -382,19 +412,22 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
             "category": capability.get("category"),
         }
         result["visual_template"] = capability.get("visual_template", "DEFAULT_MULTIPLE_CHOICE")
-        # Reliability-design Phase 1: a diagnostic-only cross-check against
-        # capability_catalog, attached as a NEW field -- never changes
+        # Reliability-design Phase 1/2: a diagnostic-only cross-check against
+        # capability_catalog, attached as NEW fields -- never changes
         # support_status above. Defensively wrapped: a catalog lookup
         # failure (e.g. the table doesn't exist in some other environment)
         # must never break a real feasibility response, only skip the
-        # diagnostic. `verify_registry_consistency` is Phase 1's registry-
-        # drift check reused here for real live traffic, not just tests.
+        # diagnostic.
         try:
-            result["catalog_status"] = catalog_status_for(
+            result["catalog_status"] = raw_catalog_state_for(
+                validated_spec["mechanic"], validated_spec["domain"], validated_spec["relationship_predicate"],
+            )
+            result["catalog_vocabulary_status"] = catalog_status_for(
                 validated_spec["mechanic"], validated_spec["domain"], validated_spec["relationship_predicate"],
             )
         except Exception:
             result["catalog_status"] = None
+            result["catalog_vocabulary_status"] = None
         return result
 
     if gate_status == "UNDERSTOOD_BUT_UNSUPPORTED":

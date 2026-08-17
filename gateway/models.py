@@ -133,6 +133,17 @@ class PublicCoachConnectionsRevealRequest(BaseModel):
     game_id: str = Field(min_length=1, max_length=64)
 
 
+class CreatorJobTier2CertificationRequest(BaseModel):
+    """POST /v1/admin/creator-jobs/tier2-certification (Phase 2). Admin-only
+    (require_admin, same as every other /v1/admin/* route). capability_ids
+    is an explicit allow-list, never "all registered capabilities" implied
+    by an empty/missing field -- a caller must name what it wants certified,
+    matching this whole design's "never silently do more than asked" rule."""
+    model_config = ConfigDict(extra="forbid")
+
+    capability_ids: list[str] = Field(min_length=1, max_length=100)
+
+
 class CreatorFeasibilityRequest(BaseModel):
     """POST /v1/creator/feasibility (v1.8, Part B/C). request_text-only --
     unlike GameRequestBase, the Creator never accepts a raw `spec` dict from

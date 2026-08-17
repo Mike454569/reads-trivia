@@ -79,11 +79,60 @@ def list_capabilities(c, *, verification_status: str | None = None) -> list[dict
     return [dict(r) for r in rows]
 
 
+def _gate_registry_consistency(c, capability_id: str) -> dict:
+    """Gates entry into IMPLEMENTED and PUBLIC_ENABLED: registry.py must
+    have exactly one entry for this capability's (mechanic, domain,
+    predicate) triple, and its runtime_adapter_module must actually import.
+    Re-checked at PUBLIC_ENABLED (not just IMPLEMENTED) as a final
+    drift-safety net -- the registry can drift between when a capability was
+    first implemented and when it's later approved for release."""
+    return verify_registry_consistency(capability_id)
+
+
+def _gate_passing_tier2_probe(c, capability_id: str) -> dict:
+    """Gates entry into GENERATION_VERIFIED: a real Tier-2 (100-round)
+    certification probe (health_probe.py, Phase 2) must exist for this
+    capability and have passed. This is the literal meaning of
+    GENERATION_VERIFIED -- claiming it without a passing behavioral probe on
+    record is exactly the "labeled SUPPORTED but generation returned Load
+    failed" failure mode this whole catalog exists to prevent."""
+    row = c.execute(
+        "SELECT passed, failure_reason, probed_at FROM capability_health_probes "
+        "WHERE capability_id=? AND tier='TIER2' ORDER BY probed_at DESC LIMIT 1",
+        (capability_id,),
+    ).fetchone()
+    if row is None:
+        return {"ok": False, "reason": "no Tier-2 certification probe has ever been run for this capability"}
+    if not row["passed"]:
+        return {"ok": False, "reason": f"latest Tier-2 probe ({row['probed_at']}) failed: {row['failure_reason']}"}
+    return {"ok": True, "capability_id": capability_id, "probed_at": row["probed_at"]}
+
+
+# Gated by destination state, not by (from_state, to_state) pair -- the
+# invariant is about what the destination state MEANS, regardless of which
+# allowed path was used to reach it (e.g. a reset from BLOCKED straight back
+# to IMPLEMENTED must satisfy the same real check as the first time).
+_TRANSITION_GATES = {
+    "IMPLEMENTED": _gate_registry_consistency,
+    "GENERATION_VERIFIED": _gate_passing_tier2_probe,
+    "PUBLIC_ENABLED": _gate_registry_consistency,
+}
+
+
 def transition(c, capability_id: str, to_state: str, *, reason: str | None = None) -> dict:
     """The one and only way a capability's verification_status may change.
     Raises InvalidTransitionError (never silently clamps or guesses) if
     `to_state` is not reachable from the row's current state -- this is the
-    real enforcement mechanism, not just documentation of intended states."""
+    real enforcement mechanism, not just documentation of intended states.
+
+    Phase 2: transitions into IMPLEMENTED, GENERATION_VERIFIED, and
+    PUBLIC_ENABLED are additionally gated by _TRANSITION_GATES -- a real,
+    automated check, not just a graph-reachability rule. Rows already
+    sitting in these states (including every LEGACY_PUBLIC_PENDING_REVALIDATION
+    row's PUBLIC_ENABLED-equivalent public_availability, and every capability
+    the Phase 1 backfill already placed at PUBLIC_ENABLED) are untouched --
+    these gates only apply to NEW transition() calls going forward, matching
+    "preserve existing public behavior"."""
     if to_state not in VALID_STATES:
         raise InvalidTransitionError(f"{to_state!r} is not a valid lifecycle state")
 
@@ -98,6 +147,14 @@ def transition(c, capability_id: str, to_state: str, *, reason: str | None = Non
             f"{capability_id}: {current!r} -> {to_state!r} is not an allowed transition "
             f"(allowed from {current!r}: {sorted(allowed)})"
         )
+
+    gate = _TRANSITION_GATES.get(to_state)
+    if gate is not None:
+        gate_result = gate(c, capability_id)
+        if not gate_result["ok"]:
+            raise InvalidTransitionError(
+                f"{capability_id}: cannot transition {current!r} -> {to_state!r} -- {gate_result['reason']}"
+            )
 
     now = _dt.datetime.now(_dt.timezone.utc).isoformat()
     c.execute(

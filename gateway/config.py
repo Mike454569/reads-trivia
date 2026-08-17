@@ -208,6 +208,16 @@ PUBLIC_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
 PUBLIC_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_ANSWER_RATE_LIMIT", "60"))
 PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 
+# Reliability-design Phase 2: async Creator jobs -- admin-only routes
+# (already gated by require_admin), so this rate limit exists to protect
+# against a runaway script or a fat-fingered loop, not public abuse.
+# Tighter for job creation (each one can kick off a real, multi-minute
+# 100-round-per-capability Tier-2 sweep) than for status polling.
+CREATOR_JOB_CREATE_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_CREATOR_JOB_CREATE_RATE_LIMIT", "5"))
+CREATOR_JOB_CREATE_RATE_LIMIT_WINDOW_SECONDS = 60.0
+CREATOR_JOB_STATUS_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_CREATOR_JOB_STATUS_RATE_LIMIT", "30"))
+CREATOR_JOB_STATUS_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
 # Draft-guessing (v1.2), championship-guessing (v1.3), lineup-guessing
 # (v1.8), and cfb_heisman_guess (CFB data enrichment operation) are
 # public-safe (Part 3/33: explicit, hand-certified mode allow-list, never

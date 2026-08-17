@@ -48,7 +48,8 @@ director_audit_log.LOG_PATH = director_audit_log.LOG_DIR / "audit_log.jsonl"
 
 from gateway.app import (  # noqa: E402
     app, coach_connections_game_limiter, coach_connections_move_limiter,
-    coach_connections_search_limiter, generate_limiter, graph_limiter, graph_path_limiter,
+    coach_connections_search_limiter, creator_job_create_limiter, creator_job_status_limiter,
+    generate_limiter, graph_limiter, graph_path_limiter,
     grid_board_limiter, grid_lookup_limiter, preview_limiter,
     public_answer_limiter, public_game_limiter,
     public_six_degrees_answer_limiter, public_six_degrees_game_limiter,
@@ -89,6 +90,8 @@ def _reset_rate_limiters():
     coach_connections_game_limiter.reset()
     coach_connections_move_limiter.reset()
     coach_connections_search_limiter.reset()
+    creator_job_create_limiter.reset()
+    creator_job_status_limiter.reset()
     yield
 
 

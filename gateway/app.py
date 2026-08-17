@@ -37,7 +37,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorReviewRequest,  # noqa: E402
+from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorJobTier2CertificationRequest,  # noqa: E402
+                      CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
                       PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
@@ -85,6 +86,12 @@ coach_connections_move_limiter = SlidingWindowRateLimiter(
 coach_connections_search_limiter = SlidingWindowRateLimiter(
     max_requests=config.COACH_CONNECTIONS_SEARCH_RATE_LIMIT_MAX,
     window_seconds=config.COACH_CONNECTIONS_SEARCH_RATE_LIMIT_WINDOW_SECONDS)
+creator_job_create_limiter = SlidingWindowRateLimiter(
+    max_requests=config.CREATOR_JOB_CREATE_RATE_LIMIT_MAX,
+    window_seconds=config.CREATOR_JOB_CREATE_RATE_LIMIT_WINDOW_SECONDS)
+creator_job_status_limiter = SlidingWindowRateLimiter(
+    max_requests=config.CREATOR_JOB_STATUS_RATE_LIMIT_MAX,
+    window_seconds=config.CREATOR_JOB_STATUS_RATE_LIMIT_WINDOW_SECONDS)
 
 
 def _validate_origins_or_die() -> list[str]:
@@ -240,6 +247,14 @@ def rate_limit_coach_connections_move(request: Request) -> None:
 
 def rate_limit_coach_connections_search(request: Request) -> None:
     _rate_limit(coach_connections_search_limiter, request)
+
+
+def rate_limit_creator_job_create(request: Request) -> None:
+    _rate_limit(creator_job_create_limiter, request)
+
+
+def rate_limit_creator_job_status(request: Request) -> None:
+    _rate_limit(creator_job_status_limiter, request)
 
 
 @app.exception_handler(GatewayError)
@@ -421,6 +436,101 @@ def admin_refresh_trigger(dataset_key: str, request: Request, background_tasks: 
 @app.get("/v1/admin/refresh/status")
 def admin_refresh_status_route(request: Request, _admin=Depends(require_admin)):
     return _refresh_import_guard(admin_refresh.refresh_status)
+
+
+# --- Reliability-design Phase 2: async Creator jobs -------------------------
+# Same lazy-import-guard reasoning as _refresh_import_guard above (creator_jobs
+# -> health_probe -> registry imports EVERY adapter module in one combined
+# statement -- one missing dependency on a given deployment must degrade
+# this ONE feature to a clean 503, never crash-loop the whole app).
+
+def _creator_jobs_import_guard(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except ImportError as e:
+        raise GatewayError("SERVICE_UNAVAILABLE", f"Creator jobs are unavailable on this deployment: {e}")
+
+
+@app.post("/v1/admin/creator-jobs/tier2-certification")
+def creator_job_create_tier2_certification(
+    body: CreatorJobTier2CertificationRequest, request: Request,
+    background_tasks: BackgroundTasks, _admin=Depends(require_admin), _rl=Depends(rate_limit_creator_job_create),
+):
+    from tools.director_v02 import creator_jobs
+    from tools.quiz_export import engine as engine_bootstrap
+
+    def _create_and_start():
+        c = engine_bootstrap.connect()
+        try:
+            if creator_jobs.any_job_running(c):
+                return None
+            job_id = creator_jobs.create_job(
+                c, job_type="TIER2_CERTIFICATION_SWEEP",
+                capability_ids=body.capability_ids, created_by="admin",
+            )
+            return job_id
+        finally:
+            c.close()
+
+    job_id = _creator_jobs_import_guard(_create_and_start)
+    if job_id is None:
+        return {"status": "ALREADY_RUNNING"}
+    background_tasks.add_task(_creator_jobs_import_guard, creator_jobs.run_job, job_id)
+    return {"status": "STARTED", "job_id": job_id, "requested_count": len(body.capability_ids)}
+
+
+@app.get("/v1/admin/creator-jobs/{job_id}")
+def creator_job_status_route(job_id: str, request: Request,
+                              _admin=Depends(require_admin), _rl=Depends(rate_limit_creator_job_status)):
+    from tools.director_v02 import creator_jobs
+    from tools.quiz_export import engine as engine_bootstrap
+
+    def _get():
+        c = engine_bootstrap.connect()
+        try:
+            status = creator_jobs.get_job_status(c, job_id)
+            if status is None:
+                raise GatewayError("INVALID_REQUEST", f"No such job {job_id!r}.")
+            return status
+        finally:
+            c.close()
+
+    return _creator_jobs_import_guard(_get)
+
+
+@app.post("/v1/admin/creator-jobs/{job_id}/cancel")
+def creator_job_cancel_route(job_id: str, request: Request,
+                              _admin=Depends(require_admin), _rl=Depends(rate_limit_creator_job_status)):
+    from tools.director_v02 import creator_jobs
+    from tools.quiz_export import engine as engine_bootstrap
+
+    def _cancel():
+        c = engine_bootstrap.connect()
+        try:
+            return creator_jobs.cancel_job(c, job_id)
+        finally:
+            c.close()
+
+    return _creator_jobs_import_guard(_cancel)
+
+
+@app.post("/v1/admin/creator-jobs/{job_id}/retry")
+def creator_job_retry_route(job_id: str, request: Request, background_tasks: BackgroundTasks,
+                             _admin=Depends(require_admin), _rl=Depends(rate_limit_creator_job_create)):
+    from tools.director_v02 import creator_jobs
+    from tools.quiz_export import engine as engine_bootstrap
+
+    def _retry():
+        c = engine_bootstrap.connect()
+        try:
+            return creator_jobs.retry_failed_items(c, job_id)
+        finally:
+            c.close()
+
+    result = _creator_jobs_import_guard(_retry)
+    if result.get("ok"):
+        background_tasks.add_task(_creator_jobs_import_guard, creator_jobs.run_job, job_id)
+    return result
 
 
 @app.get("/v1/capabilities")

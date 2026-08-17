@@ -66,7 +66,10 @@ def test_assess_support_status_unchanged_for_real_supported_request():
         "Make a guessing game where I see an NFL player and have to guess which NFL team drafted him."
     )
     assert r["support_status"] == "SUPPORTED"
-    assert r["catalog_status"] == "SUPPORTED"
+    # Phase 2 correction: catalog_status is the RAW internal state, kept
+    # separate from user-facing support_status -- never a duplicate of it.
+    assert r["catalog_status"] == "LEGACY_PUBLIC_PENDING_REVALIDATION"
+    assert r["catalog_vocabulary_status"] == "SUPPORTED"
 
 
 def test_assess_support_status_unchanged_for_real_unsupported_request():
@@ -100,6 +103,16 @@ def test_assess_never_raises_when_catalog_lookup_fails(monkeypatch):
     )
     assert r["support_status"] == "SUPPORTED"  # unaffected
     assert r["catalog_status"] is None  # diagnostic degraded, not the real response
+    assert r["catalog_vocabulary_status"] is None
+
+
+def test_raw_catalog_state_for_real_legacy_capability_is_the_actual_lifecycle_state():
+    """Phase 2 correction, tested directly: raw_catalog_state_for() exposes
+    the real internal state, distinct from the mapped vocabulary term."""
+    from tools.director_v02 import feasibility
+
+    assert feasibility.raw_catalog_state_for("guess", "NFL_DRAFT", "DRAFTED_BY") == "LEGACY_PUBLIC_PENDING_REVALIDATION"
+    assert feasibility.catalog_status_for("guess", "NFL_DRAFT", "DRAFTED_BY") == "SUPPORTED"
 
 
 def test_all_21_legacy_capabilities_resolve_to_supported_via_catalog_status_for():

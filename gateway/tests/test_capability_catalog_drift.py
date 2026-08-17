@@ -71,6 +71,36 @@ def test_anthropic_prompt_matches_catalog():
     assert result["ok"], result
 
 
+def test_anthropic_prompt_snapshot_unchanged():
+    """Phase 2's rollback-capability check: SYSTEM_PROMPT is hand-authored
+    prose, not yet catalog-generated (see
+    catalog_readiness_for_structured_description_generation() for the real,
+    checked reason) -- any change to it, from any source, must be a
+    deliberate edit to the recorded hash in generate_schema_and_prompt.py,
+    never a silent diff."""
+    from tools.director_v02 import generate_schema_and_prompt as gen
+
+    result = gen.verify_anthropic_prompt_snapshot_unchanged()
+    assert result["ok"], (
+        f"SYSTEM_PROMPT changed unexpectedly (recorded {result['recorded_sha256']}, "
+        f"now {result['current_sha256']}) -- if intentional, update "
+        f"_SYSTEM_PROMPT_SNAPSHOT_SHA256 in generate_schema_and_prompt.py"
+    )
+
+
+def test_catalog_not_yet_ready_for_structured_description_generation():
+    """Documents the real, checked Phase 2 finding: every capability is
+    missing all four scoping fields the prose would need to be generated
+    from. This test is expected to start failing once Phase 7's gradual
+    audit populates them -- at that point, revisit whether generation is
+    safe rather than silently leaving this stale."""
+    from tools.director_v02 import generate_schema_and_prompt as gen
+
+    result = gen.catalog_readiness_for_structured_description_generation()
+    assert result["safe_to_generate"] is False
+    assert result["capabilities_missing_scoping_fields"] == result["total_capabilities"] == 21
+
+
 def test_every_catalog_row_has_exactly_one_registry_entry_and_an_importable_adapter():
     from tools.director_v02 import catalog
 
