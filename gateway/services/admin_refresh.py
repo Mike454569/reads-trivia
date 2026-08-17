@@ -68,7 +68,7 @@ def _runners():
     from tools.data_refresh import (
         cfb_all_america_import, cfb_betting_lines_refresh, cfb_games_postseason_refresh, cfb_games_refresh,
         cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_refresh,
-        cfb_standings_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
+        cfb_standings_refresh, cfb_weather_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
         nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh,
     )
@@ -139,6 +139,12 @@ def _runners():
                           "CFB", cfb_rankings_refresh.DATASET),
         "cfb_standings": (cfb_standings_refresh, cfb_standings_refresh.run_cfb_standings_refresh,
                            "CFB", cfb_standings_refresh.DATASET),
+        # Sixth CFBD-dependent domain -- unblocked only after the user
+        # upgraded their CFBD Patreon subscription to Tier 1+ AND
+        # regenerated their API key (see cfb_weather_refresh.py's own module
+        # docstring for the real, confirmed-live sequence this took).
+        "cfb_weather": (cfb_weather_refresh, cfb_weather_refresh.run_cfb_weather_refresh,
+                         "CFB", cfb_weather_refresh.DATASET),
     }
 
 
@@ -291,5 +297,6 @@ def refresh_status() -> dict:
             "pbp": _safe_run_summary(runners["cfb_pbp"][0].last_run_status()),
             "rankings": _safe_run_summary(runners["cfb_rankings"][0].last_run_status()),
             "standings": _safe_run_summary(runners["cfb_standings"][0].last_run_status()),
+            "weather": _safe_run_summary(runners["cfb_weather"][0].last_run_status()),
         },
     }

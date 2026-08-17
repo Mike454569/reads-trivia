@@ -147,3 +147,10 @@
 # Nineteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
 [functions."trigger-refresh-cfb-standings"]
   schedule = "10 18 * * 0"
+
+# Twentieth dataset -- weather, unblocked only after a Patreon Tier 1+
+# upgrade on the underlying CFBD API key (see cfb_weather_refresh.py's own
+# module docstring). Same weekly (Sundays), 30-minutes-apart stagger and
+# current-season-only default as its five CFBD siblings above.
+[functions."trigger-refresh-cfb-weather"]
+  schedule = "40 18 * * 0"
