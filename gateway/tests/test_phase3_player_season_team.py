@@ -176,10 +176,38 @@ def test_100_generation_executions_succeed_with_independent_pool_reporting():
         # Independently reported, not derived from execution count:
         assert checks["eligible_pool_size"] > 50_000
         assert checks["unique_questions_exercised"] == 100  # pool is large, no repeats needed
-        assert checks["coverage_rate"] < 0.01  # honest, tiny fraction of the real pool
+        # test_sample_rate (renamed from the misleading "coverage_rate"): what
+        # fraction of the ELIGIBLE pool this one run sampled -- honest, tiny,
+        # and NOT a claim about data coverage or eligibility (see below).
+        assert checks["test_sample_rate"] < 0.01
     finally:
         c.execute("DELETE FROM capability_health_probes WHERE capability_id='TEST_PHASE3_TIER2'")
         c.commit()
+        c.close()
+
+
+def test_eligibility_report_matches_the_owner_corrected_figures():
+    """Real, exact figures the owner specified after flagging the
+    coverage_rate naming confusion: raw_candidate_count=55,404,
+    eligible_candidate_count=54,010, eligibility_rate~=97.48%,
+    excluded_candidate_count=1,394, exclusion_rate~=2.52%. This is
+    ELIGIBILITY -- computed once from the real candidate set, never from
+    the 100-execution certification sample above."""
+    from tools.quiz_export.adapters import player_season_team as pst
+
+    c = engine_bootstrap.connect()
+    try:
+        pst.fetch_ordered_candidates(c, "eligibility-report-test")
+        report = pst.eligibility_report()
+        assert report["raw_candidate_count"] == 55_404
+        assert report["eligible_candidate_count"] == 54_010
+        assert report["excluded_candidate_count"] == 1_394
+        assert report["eligibility_rate"] == pytest.approx(0.9748, abs=0.0001)
+        assert report["exclusion_rate"] == pytest.approx(0.0252, abs=0.0001)
+        assert report["excluded_breakdown"]["multi_team_exclusions"] == 806
+        assert report["excluded_breakdown"]["name_collision_exclusions"] == 588
+        assert report["eligible_candidate_count"] + report["excluded_candidate_count"] == report["raw_candidate_count"]
+    finally:
         c.close()
 
 

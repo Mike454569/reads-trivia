@@ -103,9 +103,15 @@ class CompiledAdapter:
         self.CATEGORY = spec.category
         self.TRACK_ENTITY = True
         # Populated by the most recent fetch_ordered_candidates() call --
-        # real, checked exclusion counts, never estimated. Consumed by the
-        # capability's own coverage-reporting helpers, not by the generation
-        # pipeline itself.
+        # real, checked exclusion counts, never estimated. Consumed by
+        # eligibility_report() below, not by the generation pipeline
+        # itself. Naming correction (owner-flagged): these are ELIGIBILITY
+        # numbers (how much of the raw real-world pair set survives this
+        # capability's own exclusion rules), a DIFFERENT concept from
+        # health_probe.py's test_sample_rate (how much of the eligible pool
+        # one certification run happened to sample) -- never conflate the
+        # two; eligibility_report() below is the one place both are shown
+        # side by side, deliberately labeled apart.
         self.multi_team_exclusions = 0
         self.name_collision_exclusions = 0
         self.raw_pair_count = 0
@@ -207,6 +213,32 @@ class CompiledAdapter:
                 "franchise_id": franchise["franchise_id"], "correct_answer_text": franchise["full_name"],
                 "difficulty_score": round(diff_score, 4), "difficulty_band": band, "entity_key": entity_key,
                 "verification_status": row["verification_status"], "source_id": row["source_id"],
+            },
+        }
+
+    def eligibility_report(self) -> dict:
+        """Real, computed from the most recent fetch_ordered_candidates()
+        call -- raw_candidate_count is the total real (entity, season)
+        pairs before this capability's own exclusion rules; eligible_
+        candidate_count is what remains after multi-team and same-name-
+        collision exclusion; eligibility_rate/exclusion_rate are the two
+        ratios, always summing to 1.0. This is ELIGIBILITY (how much of the
+        raw real-world pair set is usable), not test sampling (how much of
+        the eligible pool one certification run happened to draw from --
+        see health_probe.py's test_sample_rate) and not a general coverage
+        claim -- the three are never interchangeable."""
+        raw = self.raw_pair_count
+        excluded = self.multi_team_exclusions + self.name_collision_exclusions
+        eligible = raw - excluded
+        return {
+            "raw_candidate_count": raw,
+            "eligible_candidate_count": eligible,
+            "excluded_candidate_count": excluded,
+            "eligibility_rate": round(eligible / raw, 4) if raw else 0.0,
+            "exclusion_rate": round(excluded / raw, 4) if raw else 0.0,
+            "excluded_breakdown": {
+                "multi_team_exclusions": self.multi_team_exclusions,
+                "name_collision_exclusions": self.name_collision_exclusions,
             },
         }
 

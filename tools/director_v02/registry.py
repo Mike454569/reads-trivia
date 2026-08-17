@@ -812,6 +812,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "Same-name collisions (two distinct real players sharing a display name in the same "
             "season) are excluded entirely rather than risk an ambiguous prompt -- see "
             "name_collision_exclusions().",
+            "Eligibility (not test coverage): 55,404 raw real (player, season) pairs 2002-2026; "
+            "54,010 eligible after exclusions (eligibility_rate 97.48%, exclusion_rate 2.52% -- "
+            "806 multi-team + 588 name-collision exclusions). See the adapter's real "
+            "eligibility_report() for live numbers.",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_player_season",

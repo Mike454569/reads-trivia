@@ -118,12 +118,28 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
     evaluate() pass 100 times would cost 100x the real DB/CPU work for zero
     additional real signal), then TIER2_MIN_ROUNDS "executions" are recorded
     by cycling through that real accepted set with wraparound. Runtime
-    health (passed) and data coverage (coverage_rate) are reported as two
-    SEPARATE facts -- a capability can be operational (100/100 executions
-    succeed) while still having a low coverage_rate (a real, disclosed data
-    gap, not a health failure). Tier-1 is unaffected: TIER1_MIN_ROUNDS=5 is
-    always well within every real capability's pool (min observed: 24), so
-    a single batched call already gives 5 genuinely distinct rounds."""
+    health (passed) and test sampling depth (test_sample_rate) are reported
+    as two SEPARATE facts -- a capability can be operational (100/100
+    executions succeed) while this one certification run still only sampled
+    a small fraction of a large eligible pool. Tier-1 is unaffected:
+    TIER1_MIN_ROUNDS=5 is always well within every real capability's pool
+    (min observed: 24), so a single batched call already gives 5 genuinely
+    distinct rounds.
+
+    Naming correction (owner-flagged): `test_sample_rate` is NOT data
+    coverage and NOT eligibility -- it is unique_questions_exercised /
+    eligible_pool_size, i.e. what fraction of THIS capability's real
+    eligible pool THIS ONE certification run happened to sample. It says
+    nothing about how much of the real world the eligible pool itself
+    represents (that's a capability-specific eligibility/exclusion question
+    -- see tools/quiz_export/adapters/player_season_team.py's
+    eligibility_report() for the one capability that currently tracks a
+    raw-vs-eligible distinction) and nothing about a genuine real-world data
+    gap (that's what check_coverage_regression()'s "coverage" below
+    means -- historical drift in `considered`, a different, correctly-named
+    concept). Never call `test_sample_rate` "coverage" anywhere else in this
+    codebase -- that conflation is exactly what caused it to need renaming
+    here in the first place."""
     checks: dict = {}
     passed = True
     failure_reason = None
@@ -148,7 +164,7 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
     successful_generations = 0
     eligible_pool_size = 0
     unique_questions_exercised = 0
-    coverage_rate = 0.0
+    test_sample_rate = 0.0
 
     if passed:
         fetch_n = TIER1_MIN_ROUNDS if tier == "TIER1" else max(TIER2_MIN_ROUNDS, 1_000_000)
@@ -186,13 +202,15 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
                 exercised_rounds = [rounds[i % unique_available] for i in range(TIER2_MIN_ROUNDS)]
 
         unique_questions_exercised = min(unique_available, TIER2_MIN_ROUNDS) if tier == "TIER2" else unique_available
-        coverage_rate = (unique_questions_exercised / eligible_pool_size) if eligible_pool_size else 0.0
+        test_sample_rate = (unique_questions_exercised / eligible_pool_size) if eligible_pool_size else 0.0
 
         checks["eligible_pool_size"] = eligible_pool_size
         checks["generation_attempts"] = generation_attempts
         checks["successful_generations"] = successful_generations
         checks["unique_questions_exercised"] = unique_questions_exercised
-        checks["coverage_rate"] = round(coverage_rate, 4)
+        # What fraction of the eligible pool THIS RUN sampled -- never
+        # "coverage" (see this function's own docstring correction).
+        checks["test_sample_rate"] = round(test_sample_rate, 4)
         # Backward-compatible alias -- check_coverage_regression() and
         # existing callers read "considered" as the eligible-pool signal.
         checks["considered"] = eligible_pool_size
@@ -216,12 +234,14 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
         eval_result = _check_answer_evaluation(distinct_for_checks, mechanic)
         checks["answer_evaluation"] = eval_result
 
-        # Runtime health, kept separate from data coverage: a capability is
-        # operationally healthy if every one of the required generation
-        # executions actually succeeded -- NOT if eligible_pool_size/
-        # coverage_rate clears some threshold. A real, low-coverage
-        # capability (e.g. 24 of 60 real Super Bowls) can still be fully
-        # healthy; a capability with zero eligible candidates cannot.
+        # Runtime health, kept separate from test-sampling depth: a
+        # capability is operationally healthy if every one of the required
+        # generation executions actually succeeded -- NOT if
+        # eligible_pool_size/test_sample_rate clears some threshold. A
+        # capability whose eligible pool is a small real-world universe
+        # (e.g. 24 of 60 real Super Bowls resolve to a team identity) can
+        # still be fully healthy; a capability with zero eligible
+        # candidates cannot.
         if successful_generations < generation_attempts:
             passed = False
             failure_reason = failure_reason or (

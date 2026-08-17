@@ -90,3 +90,14 @@ def name_collision_exclusions() -> int:
 
 def raw_pair_count() -> int:
     return _adapter.raw_pair_count
+
+
+def eligibility_report() -> dict:
+    """raw_candidate_count / eligible_candidate_count / excluded_candidate_count
+    / eligibility_rate / exclusion_rate -- real, computed from the most
+    recent fetch_ordered_candidates() call. This is ELIGIBILITY, distinct
+    from health_probe.py's test_sample_rate (what fraction of the eligible
+    pool one certification run sampled) -- see compiler.py's
+    eligibility_report() docstring for why the two must never be
+    conflated (the mistake this function's naming exists to correct)."""
+    return _adapter.eligibility_report()

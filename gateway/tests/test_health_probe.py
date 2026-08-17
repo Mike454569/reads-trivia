@@ -98,7 +98,15 @@ def test_tier1_probe_fails_closed_on_unimportable_adapter():
 
 
 # --- Phase 3 measurement corrections: generation_attempts/successful_ -----
-# --- generations/unique_questions_exercised/eligible_pool_size/coverage_rate
+# --- generations/unique_questions_exercised/eligible_pool_size/test_sample_rate
+#
+# Naming correction (owner-flagged after the Phase 3 report): the field was
+# originally called "coverage_rate", which was misleading -- it does not
+# measure data coverage or eligibility, only what fraction of the eligible
+# pool ONE certification run happened to sample. Renamed to
+# `test_sample_rate` everywhere; see health_probe.run_probe()'s own
+# docstring for the full three-way distinction (test sampling vs.
+# eligibility vs. coverage-regression drift).
 
 def test_tier2_runs_100_executions_even_when_pool_is_smaller_than_100():
     """Real regression test for the Phase 2 -> Phase 3 correction: a pool of
@@ -120,13 +128,14 @@ def test_tier2_runs_100_executions_even_when_pool_is_smaller_than_100():
         assert checks["successful_generations"] == 100
         assert checks["eligible_pool_size"] == 60
         assert checks["unique_questions_exercised"] == 24  # the real, honest ceiling -- never padded
-        assert checks["coverage_rate"] == pytest.approx(24 / 60)
+        assert checks["test_sample_rate"] == pytest.approx(24 / 60)
+        assert "coverage_rate" not in checks  # renamed, never left as a stale alias
     finally:
         _cleanup(c, "TEST_SUPER_BOWL_TIER2")
         c.close()
 
 
-def test_tier2_reports_full_coverage_when_pool_exceeds_100():
+def test_tier2_reports_full_sampling_when_pool_exceeds_100():
     from tools.director_v02 import health_probe, registry
 
     c = engine_bootstrap.connect()
@@ -140,16 +149,17 @@ def test_tier2_reports_full_coverage_when_pool_exceeds_100():
         assert checks["generation_attempts"] == checks["successful_generations"] == 100
         assert checks["unique_questions_exercised"] == 100  # pool is large -- no repeats needed
         assert checks["eligible_pool_size"] > 100
-        assert 0 < checks["coverage_rate"] < 1
+        assert 0 < checks["test_sample_rate"] < 1
     finally:
         _cleanup(c, "TEST_DRAFT_TIER2")
         c.close()
 
 
-def test_tier2_runtime_health_is_separate_from_low_coverage():
+def test_tier2_runtime_health_is_separate_from_low_test_sample_rate():
     """A capability can be operationally healthy (100/100 executions
     succeed, zero leakage, correct answer evaluation) while still having a
-    real, low, disclosed coverage_rate -- coverage is never treated as a
+    real, low test_sample_rate (a large eligible pool relative to 100
+    sampled executions) -- test sampling depth is never treated as a
     pass/fail runtime-health signal."""
     from tools.director_v02 import health_probe, registry
 
@@ -160,7 +170,7 @@ def test_tier2_runtime_health_is_separate_from_low_coverage():
             c, "TEST_SUPER_BOWL_HEALTH", "guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP", cap,
         )
         assert result["passed"] is True
-        assert result["checks"]["coverage_rate"] < 0.5  # real, low coverage
+        assert result["checks"]["test_sample_rate"] < 0.5  # real, low sampling fraction for this run
         assert result["checks"]["leakage"]["leaks_found"] == 0
         assert result["checks"]["answer_evaluation"]["checked"] is True
     finally:
