@@ -438,25 +438,26 @@ def test_original_bug_reproduced_before_fix_and_resolved_after(monkeypatch):
 
 def test_catalog_never_claims_supported_before_generation_verified():
     """The actual architectural fix (not just this one capability): a
-    catalog row that exists but hasn't reached GENERATION_VERIFIED must
-    never be reported SUPPORTED by feasibility.assess() -- registry
+    catalog row that exists but hasn't reached at least GENERATION_VERIFIED
+    must never be reported SUPPORTED by feasibility.assess() -- registry
     presence alone is exactly the claim this whole effort exists to stop
-    trusting."""
-    import datetime as _dt
-
+    trusting. This capability has since progressed to HUMAN_APPROVED (owner
+    approval, commit 261444a) -- both GENERATION_VERIFIED and HUMAN_APPROVED
+    map to VERIFIED_NOT_RELEASED, real and proven to generate, good enough
+    for admin-only private preview."""
     from tools.director_v02 import catalog, feasibility
 
     c = engine_bootstrap.connect()
     try:
         row = catalog.get_capability(c, "NFL_PLAYER_SEASON__TEAM_OF_SEASON")
-        original_status = row["verification_status"]
+        current_status = row["verification_status"]
         # Simulate the pre-verification state directly against a throwaway
         # copy of the real transition history is unnecessary here -- assert
         # against the DISCOVERED case using the same mapping function the
         # real gate uses, which is what actually matters.
         assert feasibility._CATALOG_STATE_TO_VOCAB["DISCOVERED"] == "UNDERSTOOD_NOT_IMPLEMENTED"
-        assert original_status == "GENERATION_VERIFIED"
-        assert feasibility._CATALOG_STATE_TO_VOCAB["GENERATION_VERIFIED"] == "VERIFIED_NOT_RELEASED"
+        assert current_status == "HUMAN_APPROVED"
+        assert feasibility._CATALOG_STATE_TO_VOCAB["HUMAN_APPROVED"] == "VERIFIED_NOT_RELEASED"
     finally:
         c.close()
 
@@ -480,7 +481,7 @@ def test_creator_interpretation_routes_a_real_request_to_the_new_capability():
     assert result["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     assert result["capability"]["domain"] == "NFL_PLAYER_SEASON"
     assert result["capability"]["relationship_predicate"] == "TEAM_OF_SEASON"
-    assert result["catalog_status"] == "GENERATION_VERIFIED"
+    assert result["catalog_status"] == "HUMAN_APPROVED"
 
 
 def test_translator_does_not_hijack_a_real_draft_request():
@@ -507,7 +508,7 @@ def test_private_preview_full_lifecycle_through_real_gateway_routes(client, auth
     """feasibility -> generate -> load -> review, entirely through the real
     admin-only Gateway routes -- this IS "private preview through the
     Gateway": nothing here touches /v1/public/* or PUBLIC_MODES, matching
-    that this capability is GENERATION_VERIFIED, not PUBLIC_ENABLED."""
+    that this capability is HUMAN_APPROVED, not PUBLIC_ENABLED."""
     feas = client.post("/v1/creator/feasibility", json={"request_text": PLAYER_SEASON_REQUEST}, headers=auth_headers)
     assert feas.status_code == 200
     assert feas.json()["support_status"] == "SUPPORTED_WITH_LIMITATIONS"

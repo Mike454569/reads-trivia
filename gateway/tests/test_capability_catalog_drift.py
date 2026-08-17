@@ -104,9 +104,10 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
 
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 22
+    assert result["total_capabilities"] == 23
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
+    assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]
 
 
 def test_every_catalog_row_has_exactly_one_registry_entry_and_an_importable_adapter():

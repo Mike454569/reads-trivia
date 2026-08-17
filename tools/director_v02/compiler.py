@@ -91,10 +91,17 @@ class EvidenceType:
 
 
 # A season needs real weekly regular-season evidence covering at least this
-# many distinct weeks before it counts as COMPLETE -- verified directly
-# against player_game_stats for every real season 2002-2025 in this
-# capability's range (every one reaches 17 or 18; 17 is the real, checked
-# floor, never assumed from a hardcoded per-era games-played constant).
+# many distinct weeks before it counts as COMPLETE (the "weekly_evidence"
+# completeness strategy) -- verified directly against player_game_stats for
+# every real NFL season 2002-2025 (every one reaches 17 or 18; 17 is the
+# real, checked floor, never assumed from a hardcoded per-era constant).
+#
+# Owner-flagged release safeguard (Phase 3 closeout): this floor is real and
+# currently correct for every season in range, but is not itself a
+# season-specific schedule check across the 17-week (2002-2020) and 18-week
+# (2021+) eras -- tracked for replacement with real schedule-derived
+# per-season completion before any weekly_evidence-strategy capability
+# reaches PUBLIC_ENABLED (see the NFL capability's own known_limitations).
 _COMPLETE_SEASON_MIN_WEEKS = 17
 
 
@@ -108,50 +115,113 @@ class RelationshipSpec:
     entity_id_column: str          # e.g. "player_id" -- must exist on both tables
     entity_name_column: str        # e.g. "display_name" (on entity_table)
     season_column: str             # e.g. "season" (on membership_table)
-    team_code_column: str          # e.g. "team_code" (on membership_table)
+    team_code_column: str          # e.g. "team_code" (on membership_table) -- the season-membership object's code
     required_verification_status: str
     required_source_ids: tuple     # one or more approved source_id values
     min_season: int                # real, checked lower bound (never guessed)
     max_season: int
     entity_label: str              # e.g. "player" -- used in the generated question text
+    object_label: str = "team"     # e.g. "team" (NFL) or "school" (CFB) -- used in generated wording
     evidence_type: str = EvidenceType.ROSTER_MEMBERSHIP  # what THIS capability's join actually proves
+    # Season-completeness strategy -- which real signal decides
+    # COMPLETE/ACTIVE/FUTURE. Two real strategies exist, chosen per capability
+    # to match what its sport's real data actually supports honestly:
+    #
+    # "weekly_evidence" (NFL): a per-week participation source
+    # (weekly_evidence_*) with a real, uniform league-wide week count --
+    # supports distinguishing ACTIVE (partial weeks) from COMPLETE.
+    #
+    # "aggregate_presence" (CFB): CFB has no single real per-season week
+    # count (division/conference/playoff-format variation, e.g. the 2020
+    # COVID-shortened season) -- using a fixed week floor here would repeat
+    # the exact flaw flagged for the NFL capability. Instead, completeness
+    # is real presence in a post-season AGGREGATE OUTCOMES table
+    # (aggregate_presence_*, e.g. cfb_school_seasons) -- that table is only
+    # populated once a season's real results exist, so its presence IS the
+    # real completeness signal. No ACTIVE state is claimed under this
+    # strategy (an aggregate table doesn't reliably distinguish "empty
+    # because not started" from "partially populated mid-season") --
+    # only COMPLETE or FUTURE.
+    season_completeness_strategy: str = "weekly_evidence"
     # Real, weekly-grain source used ONLY to determine season completeness
-    # (never joined per-entity -- that would upgrade evidence_type, which
-    # this capability deliberately does not do). None of these three
-    # columns need to be on membership_table/entity_table.
+    # under the "weekly_evidence" strategy (never joined per-entity -- that
+    # would upgrade evidence_type, which no capability using this strategy
+    # does). None of these columns need to be on membership_table/entity_table.
     weekly_evidence_table: str | None = None            # e.g. "player_game_stats"
     weekly_evidence_season_column: str | None = None     # e.g. "season"
     weekly_evidence_week_column: str | None = None        # e.g. "week"
     weekly_evidence_season_type_column: str | None = None  # e.g. "season_type"
     weekly_evidence_regular_season_value: str | None = None  # e.g. "REG"
+    # Real aggregate-outcomes source used ONLY under the "aggregate_presence"
+    # strategy.
+    aggregate_presence_table: str | None = None            # e.g. "cfb_school_seasons"
+    aggregate_presence_season_column: str | None = None     # e.g. "season"
     team_code_overrides: dict = field(default_factory=dict)  # {roster_code: franchise_id}, evidence-based only
+    # Identity-resolution strategy -- see _normalize_franchise()/
+    # _active_objects_in_season() below. "team_aliases" (default, NFL) uses
+    # the existing season-scoped franchise machinery; "stable_identity_table"
+    # (CFB) uses a direct id->name lookup plus a season-scoped active pool
+    # for distractors, since CFB school identity doesn't change by season.
+    identity_resolution_strategy: str = "team_aliases"
+    identity_table: str | None = None           # e.g. "schools" (stable_identity_table only)
+    identity_id_column: str | None = None        # e.g. "school_id"
+    identity_name_column: str | None = None       # e.g. "school_name"
+    identity_pool_table: str | None = None          # e.g. "cfb_school_seasons" -- real season-active objects
+    identity_pool_season_column: str | None = None   # e.g. "season"
+    identity_pool_id_column: str | None = None        # e.g. "school_id"
+    # Real performance safeguard: game_director_v01.generate_package_from_spec()
+    # calls evaluate() on EVERY row fetch_ordered_candidates() returns,
+    # unconditionally -- fine for pools up to tens of thousands of rows
+    # (the NFL capability's real ~54K pool costs ~2-3s), but a real,
+    # measured problem at CFB's real ~270K-row scale: a single
+    # target_count=5 generation call took 116s (confirmed by direct
+    # timing), well past any reasonable request timeout. None = no cap
+    # (NFL's existing, already-approved behavior, unchanged). When set, the
+    # ALREADY-SHUFFLED final candidate list is truncated to this many rows
+    # AFTER every real exclusion count (multi-team/collision/future-season)
+    # is computed from the FULL real set -- eligibility_report() stays
+    # honest (reports the true eligible pool, never the truncated sample
+    # size); only the per-call evaluate() workload is bounded.
+    max_fetched_candidates: int | None = None
 
 
 def _phrase_membership_question(*, competition_id: str, entity_name: str, team_full_name: str,
-                                 season: int, season_status: str) -> tuple[str, str]:
+                                 season: int, season_status: str, object_label: str = "team") -> tuple[str, str]:
     """Pure, DB-free wording function -- independently testable without
     needing real franchise/distractor resolution. `season_status` must be
     "ACTIVE" or "COMPLETE" (never "FUTURE" -- that's excluded upstream).
     Returns (question, notes)."""
     if season_status == "ACTIVE":
-        question = f"Which {competition_id} team is {entity_name} on for the {season} season?"
+        question = f"Which {competition_id} {object_label} is {entity_name} on for the {season} season?"
         notes = f"{entity_name} is on the {team_full_name} roster for the {season} season."
     else:  # COMPLETE
-        question = f"Which {competition_id} team was {entity_name} on during the {season} season?"
+        question = f"Which {competition_id} {object_label} was {entity_name} on during the {season} season?"
         notes = f"{entity_name} was on the {team_full_name} roster during the {season} season."
     return question, notes
 
 
 def _season_status(c, spec: RelationshipSpec, season: int, *, _cache: dict) -> str:
     """Returns "COMPLETE", "ACTIVE", or "FUTURE" for a real season, driven
-    entirely by real weekly-evidence rows -- never wall-clock date, so this
-    self-corrects automatically as real data is refreshed (a season that is
-    FUTURE today becomes ACTIVE, then COMPLETE, purely by the normal data
-    pipeline adding real weeks -- no code change needed). `_cache` is a
-    plain dict the caller keeps alive across a whole fetch/evaluate run, so
-    this is one query per distinct season, not one per candidate row."""
+    entirely by real data (see RelationshipSpec.season_completeness_strategy)
+    -- never wall-clock date, so this self-corrects automatically as real
+    data is refreshed. `_cache` is a plain dict the caller keeps alive
+    across a whole fetch/evaluate run, so this is one query per distinct
+    season, not one per candidate row."""
     if season in _cache:
         return _cache[season]
+
+    if spec.season_completeness_strategy == "aggregate_presence":
+        if not spec.aggregate_presence_table:
+            _cache[season] = "COMPLETE"  # no aggregate source configured -- nothing to gate on
+            return _cache[season]
+        exists = c.execute(
+            f"SELECT 1 FROM {spec.aggregate_presence_table} WHERE {spec.aggregate_presence_season_column}=? LIMIT 1",
+            (season,),
+        ).fetchone()
+        status = "COMPLETE" if exists else "FUTURE"
+        _cache[season] = status
+        return status
+
     if not spec.weekly_evidence_table:
         _cache[season] = "COMPLETE"  # no weekly-evidence source configured -- nothing to gate on
         return _cache[season]
@@ -171,15 +241,35 @@ def _season_status(c, spec: RelationshipSpec, season: int, *, _cache: dict) -> s
 
 
 def _normalize_franchise(c, spec: RelationshipSpec, team_code: str, season: int):
-    """Resolves a membership-table team_code to a season-accurate franchise.
-    Most codes go straight through team_aliases (resolve_franchise, the same
-    helper every other team-guessing adapter in this codebase already uses).
-    `team_code_overrides` exists only for a real, checked divergence: a
-    membership table using one stable code across a franchise's whole
-    history while team_aliases correctly splits it by season (e.g. the Rams:
-    canonical_roster_seasons always says "LAR"; team_aliases has "STL"
-    2002-2015 and "LA" 2016+) -- resolved by franchise_id directly rather
-    than guessing a season-blind code."""
+    """Resolves a membership-table team_code to a season-accurate franchise,
+    or (for capabilities that don't need season-scoping) a stable identity.
+    Two real strategies, chosen per RelationshipSpec.identity_resolution_strategy:
+
+    "team_aliases" (NFL): most codes go straight through team_aliases
+    (resolve_franchise, the same helper every other team-guessing adapter in
+    this codebase already uses). `team_code_overrides` exists only for a
+    real, checked divergence: a membership table using one stable code
+    across a franchise's whole history while team_aliases correctly splits
+    it by season (e.g. the Rams: canonical_roster_seasons always says "LAR";
+    team_aliases has "STL" 2002-2015 and "LA" 2016+) -- resolved by
+    franchise_id directly rather than guessing a season-blind code.
+
+    "stable_identity_table" (CFB): real, checked finding -- unlike NFL
+    franchises, CFB school_id/school_name never changes across seasons in
+    this Engine's data (verified directly: zero school_ids have more than
+    one distinct school_name across cfb_school_seasons' full 2002-2025
+    range) -- no season-scoping or code-history override is needed at all,
+    a direct id->name lookup is honestly sufficient."""
+    if spec.identity_resolution_strategy == "stable_identity_table":
+        row = c.execute(
+            f"SELECT {spec.identity_id_column} AS id, {spec.identity_name_column} AS name "
+            f"FROM {spec.identity_table} WHERE {spec.identity_id_column}=?",
+            (team_code,),
+        ).fetchone()
+        if row is None:
+            return None, "TEAM_UNRESOLVED"
+        return {"franchise_id": row["id"], "full_name": row["name"]}, None
+
     override_franchise_id = spec.team_code_overrides.get(team_code)
     if override_franchise_id:
         row = c.execute(
@@ -191,6 +281,25 @@ def _normalize_franchise(c, spec: RelationshipSpec, team_code: str, season: int)
             return None, "TEAM_UNRESOLVED"
         return {"franchise_id": row["franchise_id"], "full_name": row["full_name"]}, None
     return resolve_franchise(c, team_code, season)
+
+
+def _active_objects_in_season(c, spec: RelationshipSpec, season: int) -> dict:
+    """Real, season-scoped pool of {id: name} objects eligible as distractors.
+    "team_aliases" (NFL): the existing teams_active_in_season() helper.
+    "stable_identity_table" (CFB): schools with a real recorded season that
+    year (identity_pool_table, e.g. cfb_school_seasons) -- schools that
+    didn't field a real season that year are never offered as a distractor
+    for it."""
+    if spec.identity_resolution_strategy == "stable_identity_table":
+        rows = c.execute(
+            f"SELECT DISTINCT p.{spec.identity_pool_id_column} AS id, i.{spec.identity_name_column} AS name "
+            f"FROM {spec.identity_pool_table} p "
+            f"JOIN {spec.identity_table} i ON i.{spec.identity_id_column} = p.{spec.identity_pool_id_column} "
+            f"WHERE p.{spec.identity_pool_season_column}=?",
+            (season,),
+        ).fetchall()
+        return {r["id"]: r["name"] for r in rows}
+    return teams_active_in_season(c, season)
 
 
 class CompiledAdapter:
@@ -279,6 +388,11 @@ class CompiledAdapter:
         rng_order = engine.seeded(seed)
         final_rows = list(final_rows)
         rng_order.shuffle(final_rows)
+        # Applied AFTER every real exclusion count above is already computed
+        # from the full set -- see max_fetched_candidates' own docstring for
+        # why this is a performance bound, never an eligibility claim.
+        if spec.max_fetched_candidates is not None:
+            final_rows = final_rows[:spec.max_fetched_candidates]
         return final_rows
 
     def evaluate(self, c, row, rng, guard):
@@ -303,7 +417,7 @@ class CompiledAdapter:
         if err:
             return err
 
-        active = teams_active_in_season(c, season)
+        active = _active_objects_in_season(c, spec, season)
         pool = {fid: name for fid, name in active.items() if fid != franchise["franchise_id"]}
         if len(pool) < 3:
             return "INSUFFICIENT_DISTRACTOR_POOL"
@@ -321,6 +435,7 @@ class CompiledAdapter:
         question, notes = _phrase_membership_question(
             competition_id=spec.competition_id, entity_name=row["entity_name"],
             team_full_name=franchise["full_name"], season=season, season_status=season_status,
+            object_label=spec.object_label,
         )
 
         if guard.question_seen(question):

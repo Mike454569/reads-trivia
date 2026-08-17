@@ -321,32 +321,50 @@ class MockDeterministicTranslator(Translator):
                 "-> DRAFTED_BY guess capability.",
             )
 
-        # NFL Player + Season -> Team (TEAM_OF_SEASON), Reliability-design
-        # Phase 3's first conservative-compiler vertical slice. Requires
-        # player + team + season with NO draft/postseason/lineup/coaching/
-        # boxscore signal -- each of those is a genuinely different real
-        # question already matched by its own pattern (draft: which team
-        # DRAFTED a player; postseason: how a team's SEASON ended; lineup:
-        # a team's full starting offense; coaching: which team a COACH
-        # coached) that must keep winning over this one when its own signal
-        # is present, checked via the `not (...)` guard below rather than
-        # ordering alone, since "season" can co-occur with any of them.
+        # Player + Season -> Team/School (TEAM_OF_SEASON / SCHOOL_OF_SEASON),
+        # Reliability-design Phase 3 (NFL) and Phase 4 (CFB) conservative-
+        # compiler vertical slices -- same real question shape, two real
+        # sports. Requires player + season + (team OR college/school signal)
+        # with NO draft/postseason/lineup/coaching/boxscore/transfer signal
+        # -- each of those is a genuinely different real question already
+        # matched by its own pattern (draft: which team DRAFTED a player;
+        # postseason: how a team's SEASON ended; lineup: a team's full
+        # starting offense; coaching: which team a COACH coached; transfer:
+        # CFB_TRANSFER's own "one of several schools across a whole career"
+        # question, never a specific season) that must keep winning over
+        # this one when its own signal is present, checked via the
+        # `not (...)` guard rather than ordering alone, since "season" can
+        # co-occur with any of them. Competition-aware the same way the
+        # shared-predicate NFL/CFB pairs elsewhere in this file are: an
+        # explicit CFB signal (with no contradicting NFL token) routes to
+        # the CFB capability; everything else defaults to NFL.
         if (
-            has_player and has_team and has_season_word
-            and not (has_draft or has_postseason or has_lineup or has_offense or has_coach_word or has_boxscore_word)
+            has_player and has_season_word and (has_team or has_college_or_school)
+            and not (has_draft or has_postseason or has_lineup or has_offense or has_coach_word
+                     or has_boxscore_word or has_transfer_word)
             and not (has_game_word and has_result_word)
         ):
+            if has_cfb_signal and not has_nfl:
+                domain, predicate = "CFB_PLAYER_SEASON", "SCHOOL_OF_SEASON"
+                note = (
+                    "Matched player + season + college/school keywords with a CFB signal and no "
+                    "draft/postseason/lineup/coaching/boxscore/transfer signal -> SCHOOL_OF_SEASON (CFB) "
+                    "guess capability (which real school a player was on in a given season, not a "
+                    "multi-school career like CFB_TRANSFER)."
+                )
+            else:
+                domain, predicate = "NFL_PLAYER_SEASON", "TEAM_OF_SEASON"
+                note = (
+                    "Matched player + team + season keywords with no draft/postseason/lineup/coaching/"
+                    "boxscore signal -> TEAM_OF_SEASON (NFL) guess capability (which real team a player "
+                    "was on in a given season, not who drafted them or how their team's season ended)."
+                )
             spec = {
-                "mechanic": "guess", "domain": "NFL_PLAYER_SEASON", "relationship_predicate": "TEAM_OF_SEASON",
+                "mechanic": "guess", "domain": domain, "relationship_predicate": predicate,
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
                 "filters": {}, "exclusions": [],
             }
-            return _result(
-                request_text, "TRANSLATED", spec,
-                "Matched player + team + season keywords with no draft/postseason/lineup/coaching/boxscore "
-                "signal -> TEAM_OF_SEASON guess capability (which real team a player played FOR in a given "
-                "season, not who drafted them or how their team's season ended).",
-            )
+            return _result(request_text, "TRANSLATED", spec, note)
 
         # NFL Super Bowl History (WON_CHAMPIONSHIP), added after the NFL
         # Wikipedia history import. Checked BEFORE the older team+postseason

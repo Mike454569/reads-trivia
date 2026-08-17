@@ -1,3 +1,9 @@
+> **✅ APPROVED.** Owner approved this capability for `HUMAN_APPROVED` based on corrective commit
+> `261444a`. One release safeguard was recorded for Phase 7 before `PUBLIC_ENABLED`: replace the
+> flat "17+ weeks = COMPLETE" rule with season-specific completion derived from the verified real
+> NFL schedule (17-week era 2002-2020, 18-week era 2021+). Catalog state: `HUMAN_APPROVED`,
+> `human_review_status=OWNER_APPROVED`.
+
 # Phase 3 Human-Review Packet — NFL_PLAYER_SEASON__TEAM_OF_SEASON
 
 Prepared for the owner's `GENERATION_VERIFIED -> HUMAN_APPROVED` review decision.

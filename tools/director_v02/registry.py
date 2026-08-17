@@ -42,6 +42,7 @@ from tools.quiz_export.adapters import nfl_coaching as nfl_coaching_adapter  # n
 from tools.quiz_export.adapters import cfb_transfer as cfb_transfer_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_rivalry as cfb_rivalry_adapter  # noqa: E402
 from tools.quiz_export.adapters import player_season_team as player_season_team_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_player_season_school as cfb_player_season_school_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -825,6 +826,11 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "51,104 eligible after exclusions (eligibility_rate 92.24%, exclusion_rate 7.76% -- "
             "806 multi-team + 588 name-collision + 2,906 future-season exclusions). See the "
             "adapter's real eligibility_report() for live numbers.",
+            "RELEASE SAFEGUARD tracked for Phase 7 before PUBLIC_ENABLED: the current COMPLETE-season "
+            "rule is a flat >=17-real-weeks floor, correct for every real season 2002-2025 today but "
+            "not itself a season-specific schedule check across the 17-week (2002-2020) and 18-week "
+            "(2021+) eras -- must be replaced with real schedule-derived per-season completion before "
+            "public release.",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_player_season",
@@ -839,6 +845,50 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["reliability-design-phase-3"],
         "pipeline_id_start": 810000,
+    },
+    # Reliability-design Phase 4: CFB Player + Season -> School, the second
+    # real proof of the conservative relationship compiler's generalization
+    # (tools/director_v02/compiler.py) -- same "entity+season->object" shape
+    # as Phase 3's NFL capability, a different sport, a different identity-
+    # resolution strategy (CFB school identity is stable across seasons, no
+    # relocation/rename history to normalize) and a different season-
+    # completeness strategy (real aggregate-outcomes presence, not a fixed
+    # week-count floor -- CFB has no single real per-season week count).
+    ("guess", "CFB_PLAYER_SEASON", "SCHOOL_OF_SEASON"): {
+        "adapter": cfb_player_season_school_adapter,
+        "category": cfb_player_season_school_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Season coverage is 2004-2025 (cfb_roster_seasons_real's real range).",
+            "Multi-school seasons (a player with more than one real school the same season) are "
+            "excluded entirely, not resolved to either school -- see the adapter's real, counted "
+            "multi_team_exclusions(). Distinct from the existing CFB_TRANSFER capability, which asks "
+            "about a real multi-school CAREER (any school they ever attended), never a specific season.",
+            "Same-name collisions (two or more distinct real players sharing a display name in the "
+            "same season) are excluded entirely -- real, dramatic example found and verified: FIVE "
+            "distinct real players named 'Caleb Williams' were active in CFB in 2023 alone (including "
+            "the real 2023 Heisman winner at USC), all five correctly excluded.",
+            "This capability proves ROSTER MEMBERSHIP only (cfb_roster_seasons_real), not game "
+            "participation -- generated questions ask which school a player 'was/is ON', never "
+            "'played for'. See compiler.EvidenceType.",
+            "A season with zero real aggregate-outcomes evidence yet (cfb_school_seasons) is excluded "
+            "entirely, never presented as a completed-season fact -- see the adapter's real "
+            "season_status(). No CFB season is currently mid-progress (ACTIVE) in the real data; only "
+            "COMPLETE (2004-2025, all real) or FUTURE (2026+, no data yet) are reachable today.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_player_season",
+        "object_type": "school",
+        "answer_type": "school",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["reliability-design-phase-4"],
+        "pipeline_id_start": 820000,
     },
 }
 

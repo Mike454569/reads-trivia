@@ -187,6 +187,23 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
         # incorrectly reported passed=False) -- caught by inspecting the
         # actual returned dict, not assumed from the "guess" mechanic's shape.
         eligible_pool_size = funnel.get("considered", funnel.get("attempted", 0))
+        # Phase 4 correction: a compiler-generated adapter may bound how
+        # many shuffled candidates it hands to evaluate() per call for real
+        # performance reasons (RelationshipSpec.max_fetched_candidates --
+        # see compiler.py's own docstring: a real, measured 116s single
+        # request against CFB's ~270K-row pool, capped after every real
+        # exclusion count is already computed). When that happens,
+        # funnel["considered"] reflects the CAPPED sample, not the true
+        # eligible universe -- eligible_pool_size must never silently
+        # report that smaller number as if it were real eligibility. If the
+        # adapter module exposes its own eligibility_report(), that TRUE,
+        # uncapped count wins.
+        try:
+            adapter_module = importlib.import_module(module_path)
+            if hasattr(adapter_module, "eligibility_report"):
+                eligible_pool_size = adapter_module.eligibility_report()["eligible_candidate_count"]
+        except Exception:
+            pass  # falls back to funnel["considered"] -- never breaks a real probe over this
         unique_available = len(rounds)  # real, already-verified, deduplicated accepted candidates
 
         if tier == "TIER1":
