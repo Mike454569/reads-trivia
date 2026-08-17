@@ -37,8 +37,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorIdeasRequest,  # noqa: E402
-                      CreatorJobTier2CertificationRequest,
+from .models import (CreatorConceptsRequest, CreatorFeasibilityRequest, CreatorGenerateRequest,  # noqa: E402
+                      CreatorIdeasRequest, CreatorJobTier2CertificationRequest,
                       CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
@@ -624,6 +624,25 @@ def creator_ideas(body: CreatorIdeasRequest, request: Request,
 
     ideas = creator_intelligence.generate_ideas(body.request_text, max_ideas=body.max_ideas)
     return {"ideas": ideas}
+
+
+@app.post("/v1/creator/concepts")
+def creator_concepts(body: CreatorConceptsRequest, request: Request,
+                      _rl=Depends(rate_limit_generate), _admin=Depends(require_admin)):
+    """Phase 5 correction -- real, packaged CONCEPTS (mechanic + round
+    structure + scoring + hints + candidate-pool requirements + honest
+    feasibility), not bare registry rows. Builds on /v1/creator/ideas'
+    retrieval (creator_intelligence.generate_ideas(), unchanged) via
+    tools/director_v02/concepts.py. Rate-limited like /v1/creator/generate
+    (not /v1/creator/feasibility's cheaper limiter) since request_type=
+    PLAYABLE_IDEAS/MIXED triggers real generation calls for each playable
+    result, the same real cost as any other generation request."""
+    from tools.director_v02 import concepts
+
+    return concepts.generate_concepts(
+        body.request_text, request_type=body.request_type, requested_count=body.requested_count,
+        exclude_concept_ids=body.exclude_concept_ids,
+    )
 
 
 @app.post("/v1/creator/generate")

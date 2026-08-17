@@ -167,6 +167,19 @@ class CreatorIdeasRequest(BaseModel):
     max_ideas: Optional[int] = Field(default=10, ge=1, le=25)
 
 
+class CreatorConceptsRequest(BaseModel):
+    """POST /v1/creator/concepts (Phase 5 correction). Builds real,
+    packaged CONCEPTS (mechanic + round structure + scoring + ...) on top
+    of CreatorIdeasRequest's retrieval, via tools.director_v02.concepts.py.
+    Same request_text-only restriction -- never a client-supplied spec."""
+    model_config = ConfigDict(extra="forbid")
+
+    request_text: str = Field(min_length=1, max_length=config.MAX_REQUEST_TEXT_CHARS)
+    request_type: Literal["IDEAS", "PLAYABLE_IDEAS", "MIXED"] = "IDEAS"
+    requested_count: int = Field(default=10, ge=1, le=25)
+    exclude_concept_ids: Optional[List[str]] = Field(default=None, max_length=200)
+
+
 class CreatorGenerateRequest(BaseModel):
     """POST /v1/creator/generate -- same request_text-only restriction as
     CreatorFeasibilityRequest, plus the same puzzle_count/difficulty/seed
