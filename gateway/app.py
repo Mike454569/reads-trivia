@@ -37,7 +37,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorJobTier2CertificationRequest,  # noqa: E402
+from .models import (CreatorFeasibilityRequest, CreatorGenerateRequest, CreatorIdeasRequest,  # noqa: E402
+                      CreatorJobTier2CertificationRequest,
                       CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
@@ -606,6 +607,23 @@ def games_get(package_id: str, _admin=Depends(require_admin)):
 def creator_feasibility(body: CreatorFeasibilityRequest, request: Request,
                          _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
     return creator_service.assess_feasibility(body.request_text)
+
+
+@app.post("/v1/creator/ideas")
+def creator_ideas(body: CreatorIdeasRequest, request: Request,
+                   _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    """Phase 5, Creator Intelligence -- tightly scoped: plain-language
+    request -> distinct ranked ideas -> honest feasibility -> no
+    duplicates. Reuses the same rate limiter as /v1/creator/feasibility
+    (same cost profile -- fast, synchronous, no Engine DB candidate
+    generation). Playable preview for any returned idea is the EXISTING,
+    unchanged POST /v1/games/generate (spec={mechanic, domain,
+    relationship_predicate, ...}) + GET /v1/games/{package_id} + POST
+    /v1/creator/review flow -- no new generation code."""
+    from tools.director_v02 import creator_intelligence
+
+    ideas = creator_intelligence.generate_ideas(body.request_text, max_ideas=body.max_ideas)
+    return {"ideas": ideas}
 
 
 @app.post("/v1/creator/generate")

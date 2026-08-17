@@ -156,6 +156,17 @@ class CreatorFeasibilityRequest(BaseModel):
     request_text: str = Field(min_length=1, max_length=config.MAX_REQUEST_TEXT_CHARS)
 
 
+class CreatorIdeasRequest(BaseModel):
+    """POST /v1/creator/ideas (Phase 5, Creator Intelligence). Same
+    request_text-only restriction as CreatorFeasibilityRequest -- ideas are
+    retrieved purely from tools.director_v02.creator_intelligence.py's real,
+    registry-derived matching, never from a client-supplied spec."""
+    model_config = ConfigDict(extra="forbid")
+
+    request_text: str = Field(min_length=1, max_length=config.MAX_REQUEST_TEXT_CHARS)
+    max_ideas: Optional[int] = Field(default=10, ge=1, le=25)
+
+
 class CreatorGenerateRequest(BaseModel):
     """POST /v1/creator/generate -- same request_text-only restriction as
     CreatorFeasibilityRequest, plus the same puzzle_count/difficulty/seed
