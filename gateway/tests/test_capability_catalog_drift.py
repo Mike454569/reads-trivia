@@ -89,16 +89,24 @@ def test_anthropic_prompt_snapshot_unchanged():
 
 
 def test_catalog_not_yet_ready_for_structured_description_generation():
-    """Documents the real, checked Phase 2 finding: every capability is
-    missing all four scoping fields the prose would need to be generated
-    from. This test is expected to start failing once Phase 7's gradual
-    audit populates them -- at that point, revisit whether generation is
-    safe rather than silently leaving this stale."""
+    """Documents the real, checked Phase 2 finding: every one of the 21
+    legacy-backfilled capabilities is missing all four scoping fields the
+    prose would need to be generated from. Phase 3's new capability
+    (NFL_PLAYER_SEASON__TEAM_OF_SEASON) was registered WITH those fields
+    populated from the start (register_new_capability(), not the legacy
+    backfill path), so it's correctly excluded from the missing count --
+    proof the gap is specific to the legacy import, not a permanent schema
+    limitation. This test is expected to start failing (in the direction of
+    a SMALLER missing count) once Phase 7's gradual audit backfills the
+    legacy 21 -- at that point, revisit whether generation is safe rather
+    than silently leaving this stale."""
     from tools.director_v02 import generate_schema_and_prompt as gen
 
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["capabilities_missing_scoping_fields"] == result["total_capabilities"] == 21
+    assert result["total_capabilities"] == 22
+    assert result["capabilities_missing_scoping_fields"] == 21
+    assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
 
 
 def test_every_catalog_row_has_exactly_one_registry_entry_and_an_importable_adapter():

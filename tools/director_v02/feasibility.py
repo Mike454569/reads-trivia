@@ -402,8 +402,6 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
             result["support_status"] = "UNSAFE"
             result["reason"] = "This capability is flagged unsafe in the registry and cannot be generated."
             return result
-        result["support_status"] = "SUPPORTED_WITH_LIMITATIONS" if limitations else "SUPPORTED"
-        result["known_limitations"] = limitations
         validated_spec = gate["validated_spec"]
         result["capability"] = {
             "mechanic": validated_spec["mechanic"],
@@ -412,12 +410,16 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
             "category": capability.get("category"),
         }
         result["visual_template"] = capability.get("visual_template", "DEFAULT_MULTIPLE_CHOICE")
-        # Reliability-design Phase 1/2: a diagnostic-only cross-check against
-        # capability_catalog, attached as NEW fields -- never changes
-        # support_status above. Defensively wrapped: a catalog lookup
-        # failure (e.g. the table doesn't exist in some other environment)
-        # must never break a real feasibility response, only skip the
-        # diagnostic.
+        # Reliability-design Phase 1/2/3: catalog cross-check, computed
+        # BEFORE support_status is decided (Phase 1/2 attached these as
+        # diagnostic-only fields that never changed support_status --
+        # Phase 3 closes that gap for real, now that a genuinely new,
+        # not-yet-verified capability exists to prove it against).
+        # Defensively wrapped: a catalog lookup failure (e.g. the table
+        # doesn't exist in some other environment) must never break a real
+        # feasibility response -- falls back to registry-presence-only
+        # behavior rather than raising, same as before this correction.
+        catalog_lookup_ok = True
         try:
             result["catalog_status"] = raw_catalog_state_for(
                 validated_spec["mechanic"], validated_spec["domain"], validated_spec["relationship_predicate"],
@@ -428,6 +430,38 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
         except Exception:
             result["catalog_status"] = None
             result["catalog_vocabulary_status"] = None
+            catalog_lookup_ok = False
+
+        # Phase 3 correction: never report SUPPORTED/SUPPORTED_WITH_LIMITATIONS
+        # from registry presence alone -- this is the EXACT real bug this
+        # whole reliability effort exists to close ("PLAYER + SEASON -> TEAM
+        # was labeled SUPPORTED, but generation returned Load failed"). Only
+        # gates on a DEFINITE, successfully-retrieved not-yet-proven catalog
+        # state -- a catalog LOOKUP FAILURE (infrastructure hiccup, caught
+        # above) or no row found at all falls back to the old registry-
+        # presence behavior rather than blocking every real capability over
+        # a diagnostic side-channel problem; this matches the module's
+        # existing "a catalog lookup failure must never break a real
+        # feasibility response" guarantee. GENERATION_VERIFIED and
+        # HUMAN_APPROVED (both map to VERIFIED_NOT_RELEASED) are real and
+        # proven to generate -- good enough for admin-only private preview,
+        # just not public release, so they are NOT gated here.
+        _NOT_YET_PROVEN_VOCAB = {
+            "UNDERSTOOD_NOT_IMPLEMENTED", "DATA_EXISTS_UNVERIFIED",
+            "IMPLEMENTED_NOT_VERIFIED", "TEMPORARILY_UNAVAILABLE",
+        }
+        if catalog_lookup_ok and result["catalog_vocabulary_status"] in _NOT_YET_PROVEN_VOCAB:
+            result["support_status"] = "UNDERSTOOD_BUT_UNSUPPORTED"
+            result["reason"] = (
+                f"This capability is recognized but has not yet been verified as actually working "
+                f"(catalog lifecycle state: {result['catalog_status']}). Not reporting SUPPORTED from "
+                f"registry presence alone."
+            )
+            result["known_limitations"] = []
+            return result
+
+        result["support_status"] = "SUPPORTED_WITH_LIMITATIONS" if limitations else "SUPPORTED"
+        result["known_limitations"] = limitations
         return result
 
     if gate_status == "UNDERSTOOD_BUT_UNSUPPORTED":
@@ -463,12 +497,32 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
 
 
 def list_capability_support_summary() -> list[dict]:
-    """Every registered capability's own support status, for the Creator's
-    'what's already possible' reference view -- always SUPPORTED or
-    SUPPORTED_WITH_LIMITATIONS by construction (only registered capabilities
-    reach this list), never generates anything."""
+    """Every registry-registered capability that has ALSO been verified in
+    the catalog (at least GENERATION_VERIFIED), for the Creator's 'what's
+    already possible' reference view -- always SUPPORTED or
+    SUPPORTED_WITH_LIMITATIONS by construction, never generates anything.
+
+    Phase 3 correction: this used to include every registry entry
+    unconditionally ("only registered capabilities reach this list" was
+    true but not sufficient -- registry presence alone is exactly the
+    claim this whole reliability effort exists to stop trusting). A
+    capability whose catalog row hasn't reached a proven state yet
+    (DISCOVERED/DATA_PRESENT/STRUCTURALLY_VALIDATED/IMPLEMENTED/BLOCKED) is
+    real and registered but not yet verified to actually generate --
+    excluded from this specific "what's already possible" list rather than
+    claimed SUPPORTED, honest with itself the same way assess() now is. A
+    capability the catalog lookup fails to resolve at all (should not
+    happen for a real registered one, but never silently trusted) is
+    conservatively excluded too."""
+    _PROVEN_VOCAB = {"SUPPORTED", "VERIFIED_NOT_RELEASED"}
     out = []
     for (mechanic, domain, predicate), cap in registry.CAPABILITY_REGISTRY.items():
+        try:
+            vocab_status = catalog_status_for(mechanic, domain, predicate)
+        except Exception:
+            vocab_status = None
+        if vocab_status not in _PROVEN_VOCAB:
+            continue
         limitations = list(cap.get("known_limitations", []))
         out.append({
             "mechanic": mechanic, "domain": domain, "relationship_predicate": predicate,

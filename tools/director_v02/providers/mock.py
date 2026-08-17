@@ -122,6 +122,15 @@ _COACH_WORDS = {"coach", "coached", "coaching"}
 _TRANSFER_WORDS = {"transfer", "transferred", "transfers"}
 _RIVALRY_WORDS = {"rival", "rivals", "rivalry"}
 
+# Reliability-design Phase 3: NFL Player + Season -> Team, the first
+# conservative-compiler vertical slice. "season" alone (with player + team,
+# and no draft/postseason/lineup/coaching/boxscore signal) is the real,
+# distinguishing marker: "which team did [player] play for in [season]" is
+# a genuinely different question from "which team drafted [player]"
+# (DRAFTED_BY, needs a draft word) or "how did [team]'s season end"
+# (TEAM_POSTSEASON_RESULT, needs a postseason word).
+_SEASON_WORDS = {"season"}
+
 
 def _words(text: str) -> set[str]:
     # No apostrophe in the character class -- "team's" tokenizes to "team"
@@ -198,6 +207,7 @@ class MockDeterministicTranslator(Translator):
         has_coach_word = bool(words & _COACH_WORDS)
         has_transfer_word = bool(words & _TRANSFER_WORDS)
         has_rivalry_word = bool(words & _RIVALRY_WORDS)
+        has_season_word = bool(words & _SEASON_WORDS)
         has_offtopic = bool(words & _OFFTOPIC_WORDS)
         has_mixed_signal = bool(words & _MIXED_SIGNAL_WORDS)
         has_who_am_i = _has_who_am_i_phrase(text)
@@ -309,6 +319,33 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched player + drafted/picked + team/franchise keywords "
                 "-> DRAFTED_BY guess capability.",
+            )
+
+        # NFL Player + Season -> Team (TEAM_OF_SEASON), Reliability-design
+        # Phase 3's first conservative-compiler vertical slice. Requires
+        # player + team + season with NO draft/postseason/lineup/coaching/
+        # boxscore signal -- each of those is a genuinely different real
+        # question already matched by its own pattern (draft: which team
+        # DRAFTED a player; postseason: how a team's SEASON ended; lineup:
+        # a team's full starting offense; coaching: which team a COACH
+        # coached) that must keep winning over this one when its own signal
+        # is present, checked via the `not (...)` guard below rather than
+        # ordering alone, since "season" can co-occur with any of them.
+        if (
+            has_player and has_team and has_season_word
+            and not (has_draft or has_postseason or has_lineup or has_offense or has_coach_word or has_boxscore_word)
+            and not (has_game_word and has_result_word)
+        ):
+            spec = {
+                "mechanic": "guess", "domain": "NFL_PLAYER_SEASON", "relationship_predicate": "TEAM_OF_SEASON",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched player + team + season keywords with no draft/postseason/lineup/coaching/boxscore "
+                "signal -> TEAM_OF_SEASON guess capability (which real team a player played FOR in a given "
+                "season, not who drafted them or how their team's season ended).",
             )
 
         # NFL Super Bowl History (WON_CHAMPIONSHIP), added after the NFL

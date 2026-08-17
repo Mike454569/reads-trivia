@@ -174,14 +174,19 @@ def test_creator_queue_invalid_review_status_filter_rejected(client, auth_header
 # --- capability reference (Part C) -------------------------------------------
 
 def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_headers):
-    # 21, not 12: the NFL Wikipedia history import registered two (WON_CHAMPIONSHIP/
-    # NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), and the Creator-gap-audit operation
+    # 22, not 12: the NFL Wikipedia history import registered two (WON_CHAMPIONSHIP/
+    # NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), the Creator-gap-audit operation
     # registered nine more (box score sacks/turnovers/penalties, CFB championship,
-    # NFL/CFB season stat leaders, NFL coaching, CFB transfer, CFB rivalry).
+    # NFL/CFB season stat leaders, NFL coaching, CFB transfer, CFB rivalry), and
+    # Reliability-design Phase 3 registered one real, GENERATION_VERIFIED (not yet
+    # publicly released) capability, NFL_PLAYER_SEASON/TEAM_OF_SEASON -- included
+    # here because this route reflects real catalog-verified state (Phase 3's
+    # feasibility.py correction), and GENERATION_VERIFIED is proven enough for
+    # this admin-only "what's already possible" reference view.
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 21
+    assert len(caps) == 22
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

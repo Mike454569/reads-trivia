@@ -45,11 +45,50 @@ _BEGIN_MARKER = "    # BEGIN GENERATED -- see tools/director_v02/generate_schema
 _END_MARKER = "    # END GENERATED"
 
 
+# Phase 1 scope: only PUBLIC_ENABLED/LEGACY_PUBLIC_PENDING_REVALIDATION
+# existed, so the schema allowlist and "what's publicly released" were the
+# same set by coincidence. Phase 3 (the first capability to ever sit at
+# GENERATION_VERIFIED for real -- proven to generate, but deliberately not
+# yet publicly released, pending real human review) splits them for real:
+# schema.py's ALLOWED_DOMAINS/ALLOWED_PREDICATES is a STRUCTURAL/security
+# allowlist (validator.py's own docstring: never a code/table/path trust
+# boundary) -- it must include any REAL, registered relationship shape,
+# whether or not it's public yet, so an admin-only private-preview request
+# can reach feasibility.assess()'s catalog-vocabulary gate at all (the gate
+# that actually decides SUPPORTED vs. not, per capability_catalog's real
+# lifecycle state -- see feasibility.py's Phase 3 correction). Whether a
+# capability is PUBLICLY announced is a completely separate question, owned
+# by `catalog_public_domains_and_predicates()` below.
+_SCHEMA_ALLOWLIST_STATES = (
+    "PUBLIC_ENABLED", "LEGACY_PUBLIC_PENDING_REVALIDATION", "GENERATION_VERIFIED", "HUMAN_APPROVED",
+)
+
+
 def catalog_domains_and_predicates() -> tuple[set[str], set[str]]:
-    """Real, live capability_catalog rows -- LEGACY_PUBLIC_PENDING_REVALIDATION
-    and PUBLIC_ENABLED are both real, currently-supported capabilities and
-    both count; any other state is not yet released and must NOT appear in
-    the translator's allowlist."""
+    """Real, live capability_catalog rows whose relationship SHAPE is
+    real and structurally validator-safe -- see _SCHEMA_ALLOWLIST_STATES'
+    comment for why this is broader than "publicly released"."""
+    c = engine_bootstrap.connect()
+    try:
+        placeholders = ",".join("?" for _ in _SCHEMA_ALLOWLIST_STATES)
+        rows = c.execute(
+            f"SELECT DISTINCT domain, relationship_predicate FROM capability_catalog "
+            f"WHERE verification_status IN ({placeholders})",
+            _SCHEMA_ALLOWLIST_STATES,
+        ).fetchall()
+    finally:
+        c.close()
+    domains = {r["domain"] for r in rows}
+    predicates = {r["relationship_predicate"] for r in rows}
+    return domains, predicates
+
+
+def catalog_public_domains_and_predicates() -> tuple[set[str], set[str]]:
+    """The narrower, PUBLIC-only set -- LEGACY_PUBLIC_PENDING_REVALIDATION
+    and PUBLIC_ENABLED are real, currently publicly-supported capabilities;
+    any other state (including GENERATION_VERIFIED/HUMAN_APPROVED -- real
+    and working, but not yet released) must NOT be claimed as something the
+    real, user-facing Anthropic system prompt already covers."""
     c = engine_bootstrap.connect()
     try:
         rows = c.execute(
@@ -205,7 +244,7 @@ def verify_anthropic_prompt() -> dict:
     from tools.director_v02.providers import anthropic_provider
 
     prompt = anthropic_provider.SYSTEM_PROMPT
-    catalog_domains, catalog_predicates = catalog_domains_and_predicates()
+    catalog_domains, catalog_predicates = catalog_public_domains_and_predicates()
 
     domain_enum_match = _ENUM_LINE_RE.search(prompt)
     pred_enum_match = _PRED_ENUM_LINE_RE.search(prompt)

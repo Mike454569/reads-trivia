@@ -41,6 +41,7 @@ from tools.quiz_export.adapters import cfb_season_stat_leader as cfb_season_stat
 from tools.quiz_export.adapters import nfl_coaching as nfl_coaching_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_transfer as cfb_transfer_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_rivalry as cfb_rivalry_adapter  # noqa: E402
+from tools.quiz_export.adapters import player_season_team as player_season_team_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -788,6 +789,43 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["creator-gap-audit-rivalry"],
         "pipeline_id_start": 800000,
+    },
+    # Reliability-design Phase 3: NFL Player + Season -> Team, the first
+    # vertical slice proof for the conservative relationship compiler
+    # (tools/director_v02/compiler.py). This is NOT the draft capability
+    # (which team drafted a player) and NOT the postseason capability (how a
+    # team's season ended) -- it answers "which real team did this player
+    # play FOR in this real season", built on canonical_roster_seasons
+    # (60,246 rows, 1999-2026) joined to canonical_players by player_id.
+    ("guess", "NFL_PLAYER_SEASON", "TEAM_OF_SEASON"): {
+        "adapter": player_season_team_adapter,
+        "category": player_season_team_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Season coverage is 2002-2026, not the full 1999-2026 canonical_roster_seasons range -- "
+            "team_aliases/team_seasons (the season-accurate franchise-identity source every "
+            "team-guessing adapter in this codebase uses) only covers 2002 forward; 1999-2001 "
+            "player-seasons are honestly excluded rather than resolved with a guessed team name.",
+            "Multi-team seasons (a player with more than one real team the same season, e.g. a "
+            "trade) are excluded entirely, not resolved to either team -- see the adapter's real, "
+            "counted multi_team_exclusions().",
+            "Same-name collisions (two distinct real players sharing a display name in the same "
+            "season) are excluded entirely rather than risk an ambiguous prompt -- see "
+            "name_collision_exclusions().",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_player_season",
+        "object_type": "team",
+        "answer_type": "team",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["reliability-design-phase-3"],
+        "pipeline_id_start": 810000,
     },
 }
 

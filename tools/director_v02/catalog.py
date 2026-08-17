@@ -14,6 +14,7 @@ across every caller.
 from __future__ import annotations
 
 import datetime as _dt
+import json
 import sys
 from pathlib import Path
 
@@ -66,6 +67,62 @@ def get_capability_by_triple(c, mechanic: str, domain: str, predicate: str) -> d
         (mechanic, domain, predicate),
     ).fetchone()
     return dict(row) if row else None
+
+
+_REGISTERABLE_METADATA_COLUMNS = frozenset({
+    "input_entity_type", "input_scoping_fields", "output_entity_type",
+    "source_tables", "source_columns", "required_joins",
+    "canonical_identity_fields", "identity_resolution_method", "identity_resolution_rate",
+    "season_coverage_min", "season_coverage_max", "season_coverage_notes",
+    "team_or_school_coverage", "player_coverage", "game_coverage",
+    "source_id", "refresh_dataset_key", "freshness_category", "freshness_notes",
+    "tie_rule", "ambiguity_rule", "eligible_answer_rule", "distractor_scoping_rule",
+    "min_candidate_pool_size", "known_limitations",
+})
+
+
+def register_new_capability(c, *, mechanic: str, domain: str, predicate: str,
+                             runtime_adapter_module: str, compiler_support: str = "HAND_WRITTEN",
+                             **metadata) -> str:
+    """Registers a brand-new capability at DISCOVERED -- the real entry
+    point into the lifecycle graph for a capability that has never existed
+    before (as opposed to backfill_legacy_capabilities()'s one-time import
+    of pre-existing production capabilities). Unlike the legacy backfill,
+    this accepts real relationship metadata up front (source tables,
+    identity/season/tie/ambiguity/distractor rules) -- a new capability has
+    no excuse for the NULL scoping fields Phase 2 found on every legacy row.
+
+    `compiler_support` should be "COMPILER_GENERATED" for an adapter built
+    via tools/director_v02/compiler.py's compile_adapter(), "HAND_WRITTEN"
+    otherwise -- an honest, checkable distinction, not decoration.
+
+    Raises ValueError if a row for this (mechanic, domain, predicate) triple
+    already exists -- never silently overwrites or reuses one."""
+    capability_id = f"{domain}__{predicate}"
+    existing = get_capability_by_triple(c, mechanic, domain, predicate)
+    if existing is not None:
+        raise ValueError(f"capability already registered for {(mechanic, domain, predicate)!r}: {existing['capability_id']!r}")
+
+    unknown_keys = set(metadata) - _REGISTERABLE_METADATA_COLUMNS
+    if unknown_keys:
+        raise ValueError(f"unknown metadata field(s): {sorted(unknown_keys)}")
+
+    columns = ["capability_id", "version", "mechanic", "domain", "relationship_predicate",
+               "verification_status", "human_review_status", "compiler_support",
+               "runtime_adapter_module", "public_availability", "created_at", "updated_at"]
+    now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    values = [capability_id, 1, mechanic, domain, predicate,
+              "DISCOVERED", None, compiler_support,
+              runtime_adapter_module, "PRIVATE", now, now]
+
+    for key, value in metadata.items():
+        columns.append(key)
+        values.append(json.dumps(value) if key == "known_limitations" else value)
+
+    placeholders = ",".join("?" for _ in values)
+    c.execute(f"INSERT INTO capability_catalog({','.join(columns)}) VALUES ({placeholders})", values)
+    c.commit()
+    return capability_id
 
 
 def list_capabilities(c, *, verification_status: str | None = None) -> list[dict]:

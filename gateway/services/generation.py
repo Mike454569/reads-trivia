@@ -110,9 +110,27 @@ def list_capabilities() -> list[dict]:
     dict: strips the `adapter`/`generate_fn` Python object references (never
     serializable, and exactly the kind of Engine-internals leak Part C's
     'the frontend must never know... Python module names, adapter names'
-    rule forbids) down to plain, documented, JSON-safe fields."""
+    rule forbids) down to plain, documented, JSON-safe fields.
+
+    Reliability-design Phase 3: this is an UNAUTHENTICATED, public endpoint
+    -- unlike /v1/creator/capabilities (admin-only, correctly includes
+    GENERATION_VERIFIED-but-not-yet-released capabilities for private
+    preview), this one is filtered to PUBLICLY released capabilities only
+    (catalog state PUBLIC_ENABLED/LEGACY_PUBLIC_PENDING_REVALIDATION), so a
+    capability still in private preview (e.g. Phase 3's
+    NFL_PLAYER_SEASON/TEAM_OF_SEASON) is never listed to an unauthenticated
+    caller before it's actually released -- "preserve existing public
+    behavior" for the 21 legacy capabilities means exactly that: unchanged."""
+    from tools.director_v02 import feasibility as feasibility_mod
+
     out = []
     for (mechanic, domain, predicate), cap in director_registry.CAPABILITY_REGISTRY.items():
+        try:
+            vocab_status = feasibility_mod.catalog_status_for(mechanic, domain, predicate)
+        except Exception:
+            vocab_status = None
+        if vocab_status != "SUPPORTED":
+            continue
         out.append({
             "mechanic": mechanic,
             "domain": domain,

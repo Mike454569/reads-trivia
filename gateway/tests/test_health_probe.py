@@ -97,6 +97,132 @@ def test_tier1_probe_fails_closed_on_unimportable_adapter():
         c.close()
 
 
+# --- Phase 3 measurement corrections: generation_attempts/successful_ -----
+# --- generations/unique_questions_exercised/eligible_pool_size/coverage_rate
+
+def test_tier2_runs_100_executions_even_when_pool_is_smaller_than_100():
+    """Real regression test for the Phase 2 -> Phase 3 correction: a pool of
+    24 real Super Bowls resolving to a team identity must still complete
+    100 real generation executions (by cycling through the 24 real,
+    already-verified candidates) -- never truncate rounds_run to the pool
+    size, and never fabricate a 25th candidate to reach 100."""
+    from tools.director_v02 import health_probe, registry
+
+    c = engine_bootstrap.connect()
+    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP")]
+    try:
+        result = health_probe.run_tier2_certification(
+            c, "TEST_SUPER_BOWL_TIER2", "guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP", cap,
+        )
+        checks = result["checks"]
+        assert result["passed"] is True, result
+        assert checks["generation_attempts"] == health_probe.TIER2_MIN_ROUNDS == 100
+        assert checks["successful_generations"] == 100
+        assert checks["eligible_pool_size"] == 60
+        assert checks["unique_questions_exercised"] == 24  # the real, honest ceiling -- never padded
+        assert checks["coverage_rate"] == pytest.approx(24 / 60)
+    finally:
+        _cleanup(c, "TEST_SUPER_BOWL_TIER2")
+        c.close()
+
+
+def test_tier2_reports_full_coverage_when_pool_exceeds_100():
+    from tools.director_v02 import health_probe, registry
+
+    c = engine_bootstrap.connect()
+    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_DRAFT", "DRAFTED_BY")]
+    try:
+        result = health_probe.run_tier2_certification(
+            c, "TEST_DRAFT_TIER2", "guess", "NFL_DRAFT", "DRAFTED_BY", cap,
+        )
+        checks = result["checks"]
+        assert result["passed"] is True, result
+        assert checks["generation_attempts"] == checks["successful_generations"] == 100
+        assert checks["unique_questions_exercised"] == 100  # pool is large -- no repeats needed
+        assert checks["eligible_pool_size"] > 100
+        assert 0 < checks["coverage_rate"] < 1
+    finally:
+        _cleanup(c, "TEST_DRAFT_TIER2")
+        c.close()
+
+
+def test_tier2_runtime_health_is_separate_from_low_coverage():
+    """A capability can be operationally healthy (100/100 executions
+    succeed, zero leakage, correct answer evaluation) while still having a
+    real, low, disclosed coverage_rate -- coverage is never treated as a
+    pass/fail runtime-health signal."""
+    from tools.director_v02 import health_probe, registry
+
+    c = engine_bootstrap.connect()
+    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP")]
+    try:
+        result = health_probe.run_tier2_certification(
+            c, "TEST_SUPER_BOWL_HEALTH", "guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP", cap,
+        )
+        assert result["passed"] is True
+        assert result["checks"]["coverage_rate"] < 0.5  # real, low coverage
+        assert result["checks"]["leakage"]["leaks_found"] == 0
+        assert result["checks"]["answer_evaluation"]["checked"] is True
+    finally:
+        _cleanup(c, "TEST_SUPER_BOWL_HEALTH")
+        c.close()
+
+
+def test_tier2_fails_closed_on_a_genuinely_empty_pool():
+    """Distinguishes a healthy-but-low-coverage capability from a genuinely
+    broken one: zero eligible candidates means zero successful generations,
+    which must fail the runtime-health check even though the code path
+    doesn't crash."""
+    from tools.director_v02 import health_probe
+
+    c = engine_bootstrap.connect()
+    empty_cap = {
+        "adapter": type("FakeAdapter", (), {
+            "__name__": "tools.director_v02.catalog",  # any real, importable module
+        })(),
+    }
+
+    import types
+    fake_module = types.ModuleType("tools.director_v02.catalog")
+
+    def fake_generate_fn(*args, **kwargs):
+        return {"funnel": {"considered": 0}, "questions": []}
+
+    try:
+        import tools.director_v02.registry as registry_mod
+        orig = registry_mod._generate_guess_package
+        registry_mod._generate_guess_package = fake_generate_fn
+        try:
+            result = health_probe.run_probe(
+                "TEST_EMPTY_POOL", "guess", "FAKE_DOMAIN", "FAKE_PREDICATE", empty_cap,
+                tier="TIER2", seed_prefix="test-empty",
+            )
+        finally:
+            registry_mod._generate_guess_package = orig
+        assert result["passed"] is False
+        assert result["checks"]["eligible_pool_size"] == 0
+        assert result["checks"]["successful_generations"] == 0
+        assert "0/100" in result["failure_reason"]
+    finally:
+        c.close()
+
+
+def test_tier1_still_uses_single_batched_call_not_100_executions():
+    """Tier-1 is unaffected by the Tier-2 measurement correction -- it stays
+    a cheap, single batched call for TIER1_MIN_ROUNDS rounds."""
+    from tools.director_v02 import health_probe, registry
+
+    c = engine_bootstrap.connect()
+    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_DRAFT", "DRAFTED_BY")]
+    try:
+        result = health_probe.get_cached_tier1(c, "TEST_TIER1_UNCHANGED", "guess", "NFL_DRAFT", "DRAFTED_BY", cap, force=True)
+        assert result["checks"]["generation_attempts"] == health_probe.TIER1_MIN_ROUNDS == 5
+        assert result["rounds_run"] == 5
+    finally:
+        _cleanup(c, "TEST_TIER1_UNCHANGED")
+        c.close()
+
+
 def test_coverage_regression_needs_at_least_two_tier2_runs():
     from tools.director_v02 import health_probe
 

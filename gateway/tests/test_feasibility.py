@@ -260,11 +260,16 @@ def test_unsafe_status_is_mechanically_reachable_via_registry_flag(monkeypatch):
 
 
 def test_capability_summary_lists_all_twenty_one_registered_capabilities():
-    # 21, not 12: the NFL Wikipedia history import registered two new
-    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), and
-    # the Creator-gap-audit operation registered nine more.
+    # 22, not 12: the NFL Wikipedia history import registered two new
+    # capabilities (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), the
+    # Creator-gap-audit operation registered nine more, and Reliability-design
+    # Phase 3 registered one real, GENERATION_VERIFIED capability
+    # (NFL_PLAYER_SEASON/TEAM_OF_SEASON) -- included here (unlike the public,
+    # unauthenticated /v1/capabilities route) because this function backs the
+    # admin-only Creator "what's already possible" view, where a verified-but-
+    # not-yet-released capability is legitimately already usable for preview.
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 21
+    assert len(summary) == 22
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
