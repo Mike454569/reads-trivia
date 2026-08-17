@@ -51,6 +51,14 @@ def test_brandin_cooks_2020_resolves_to_houston_texans():
         result = pst.evaluate(c, match, rng, guard)
         assert result["options"][result["correctIndex"]] == "Houston Texans"
         assert result["_audit"]["correct_answer_text"] == "Houston Texans"
+        # Owner-required correction: roster-membership wording, past tense
+        # (2020 is a real, complete season -- 17+ real regular-season weeks
+        # on record), never "played for" (that would claim game-participation
+        # evidence this capability doesn't join).
+        assert result["question"] == "Which NFL team was Brandin Cooks on during the 2020 season?"
+        assert "played for" not in result["question"].lower()
+        assert result["_audit"]["evidence_type"] == "ROSTER_MEMBERSHIP"
+        assert result["_audit"]["season_status"] == "COMPLETE"
     finally:
         c.close()
 
@@ -187,12 +195,13 @@ def test_100_generation_executions_succeed_with_independent_pool_reporting():
 
 
 def test_eligibility_report_matches_the_owner_corrected_figures():
-    """Real, exact figures the owner specified after flagging the
-    coverage_rate naming confusion: raw_candidate_count=55,404,
-    eligible_candidate_count=54,010, eligibility_rate~=97.48%,
-    excluded_candidate_count=1,394, exclusion_rate~=2.52%. This is
-    ELIGIBILITY -- computed once from the real candidate set, never from
-    the 100-execution certification sample above."""
+    """Real, exact figures after the Phase 3 closeout correction (roster-
+    membership evidence semantics + future-season gating):
+    raw_candidate_count=55,404, eligible_candidate_count=51,104,
+    eligibility_rate~=92.24%, excluded_candidate_count=4,300,
+    exclusion_rate~=7.76% (806 multi-team + 588 name-collision + 2,906
+    future-season). This is ELIGIBILITY -- computed once from the real
+    candidate set, never from the 100-execution certification sample above."""
     from tools.quiz_export.adapters import player_season_team as pst
 
     c = engine_bootstrap.connect()
@@ -200,15 +209,133 @@ def test_eligibility_report_matches_the_owner_corrected_figures():
         pst.fetch_ordered_candidates(c, "eligibility-report-test")
         report = pst.eligibility_report()
         assert report["raw_candidate_count"] == 55_404
-        assert report["eligible_candidate_count"] == 54_010
-        assert report["excluded_candidate_count"] == 1_394
-        assert report["eligibility_rate"] == pytest.approx(0.9748, abs=0.0001)
-        assert report["exclusion_rate"] == pytest.approx(0.0252, abs=0.0001)
+        assert report["eligible_candidate_count"] == 51_104
+        assert report["excluded_candidate_count"] == 4_300
+        assert report["eligibility_rate"] == pytest.approx(0.9224, abs=0.0001)
+        assert report["exclusion_rate"] == pytest.approx(0.0776, abs=0.0001)
         assert report["excluded_breakdown"]["multi_team_exclusions"] == 806
         assert report["excluded_breakdown"]["name_collision_exclusions"] == 588
+        assert report["excluded_breakdown"]["future_season_exclusions"] == 2_906
         assert report["eligible_candidate_count"] + report["excluded_candidate_count"] == report["raw_candidate_count"]
     finally:
         c.close()
+
+
+# --- Evidence semantics: ROSTER_MEMBERSHIP wording + season status ---------
+
+def test_no_generated_question_ever_says_played_for():
+    """Real, direct check across a real batch: this capability must never
+    claim game-participation evidence it doesn't join."""
+    pkg = _generate(50, seed="no-played-for-check")
+    assert pkg["qa_status"] == "PASSED"
+    for q in pkg["questions"]:
+        assert "played for" not in q["question"].lower()
+        assert q["provenance"]["evidence_type"] == "ROSTER_MEMBERSHIP"
+
+
+def test_completed_season_uses_past_tense_membership_wording():
+    pkg = _generate(20, seed="completed-season-wording")
+    assert pkg["qa_status"] == "PASSED"
+    for q in pkg["questions"]:
+        assert " was " in q["question"] and " on during " in q["question"]
+
+
+def test_future_season_2026_is_excluded_from_the_pool():
+    """As of this writing, season 2026 has zero verified real regular-season
+    weekly evidence (player_game_stats has zero REG rows for it) -- it must
+    never appear in the eligible pool as a completed-season fact, regardless
+    of the real roster snapshot rows that already exist for it."""
+    from tools.quiz_export.adapters import player_season_team as pst
+
+    c = engine_bootstrap.connect()
+    try:
+        assert c.execute(
+            "SELECT COUNT(*) FROM player_game_stats WHERE season=2026 AND season_type='REG'"
+        ).fetchone()[0] == 0  # confirms this really is the FUTURE case, not assumed
+
+        assert pst.season_status(c, 2026) == "FUTURE"
+        rows = pst.fetch_ordered_candidates(c, "future-season-test")
+        assert not any(r["season"] == 2026 for r in rows)
+        assert pst.future_season_exclusions() > 0
+    finally:
+        c.close()
+
+
+def test_season_status_detects_active_from_real_partial_weekly_evidence():
+    """No real season is currently ACTIVE (mid-progress) -- 2002-2025 are
+    all COMPLETE and 2026 is FUTURE (zero real weeks yet). Exercises the
+    real _season_status() function directly using real temporary
+    weekly-evidence rows (9 of the real 17-week floor) for a disposable,
+    out-of-range season number, cleaned up after."""
+    from tools.quiz_export.adapters import player_season_team as pst
+
+    c = engine_bootstrap.connect()
+    fake_season = 1900  # disposable, real DB has no legitimate rows at this season
+    try:
+        for week in range(1, 10):  # 9 real weeks -- below the 17-week COMPLETE floor
+            c.execute(
+                "INSERT INTO player_game_stats(game_id, player_key, season, week, season_type, team_code) "
+                "VALUES (?,?,?,?,?,?)",
+                (f"TESTGAME:{week}", "TESTPLAYER", fake_season, week, "REG", "KC"),
+            )
+        c.commit()
+        assert pst.season_status(c, fake_season) == "ACTIVE"
+    finally:
+        c.execute("DELETE FROM player_game_stats WHERE season=?", (fake_season,))
+        c.commit()
+        c.close()
+
+
+def test_season_status_detects_future_from_zero_weekly_evidence():
+    from tools.quiz_export.adapters import player_season_team as pst
+
+    c = engine_bootstrap.connect()
+    fake_season = 1901  # disposable, guaranteed zero real rows
+    try:
+        assert pst.season_status(c, fake_season) == "FUTURE"
+    finally:
+        c.close()
+
+
+def test_season_status_detects_complete_from_17_real_weeks():
+    from tools.quiz_export.adapters import player_season_team as pst
+
+    c = engine_bootstrap.connect()
+    fake_season = 1902  # disposable
+    try:
+        for week in range(1, 18):  # exactly 17 -- the real, verified floor
+            c.execute(
+                "INSERT INTO player_game_stats(game_id, player_key, season, week, season_type, team_code) "
+                "VALUES (?,?,?,?,?,?)",
+                (f"TESTGAME2:{week}", "TESTPLAYER", fake_season, week, "REG", "KC"),
+            )
+        c.commit()
+        assert pst.season_status(c, fake_season) == "COMPLETE"
+    finally:
+        c.execute("DELETE FROM player_game_stats WHERE season=?", (fake_season,))
+        c.commit()
+        c.close()
+
+
+def test_phrase_membership_question_is_tense_correct_and_never_says_played_for():
+    """The pure, DB-free wording function evaluate() calls internally --
+    independently testable without needing real franchise/distractor
+    resolution machinery."""
+    from tools.director_v02.compiler import _phrase_membership_question
+
+    active_q, active_notes = _phrase_membership_question(
+        competition_id="NFL", entity_name="Test Player", team_full_name="Kansas City Chiefs",
+        season=2026, season_status="ACTIVE",
+    )
+    assert active_q == "Which NFL team is Test Player on for the 2026 season?"
+    assert "is on" in active_notes and "played for" not in active_notes.lower()
+
+    complete_q, complete_notes = _phrase_membership_question(
+        competition_id="NFL", entity_name="Test Player", team_full_name="Kansas City Chiefs",
+        season=2020, season_status="COMPLETE",
+    )
+    assert complete_q == "Which NFL team was Test Player on during the 2020 season?"
+    assert "was on" in complete_notes and "played for" not in complete_notes.lower()
 
 
 # --- 8. Multiple complete games played consecutively ------------------------

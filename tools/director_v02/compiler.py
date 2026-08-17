@@ -33,7 +33,7 @@ Reusing this same compiler for a DIFFERENT relationship of the same shape
 this generalizes -- that reuse is left to a later phase; Phase 3 proves the
 shape once, for real, end-to-end, against NFL_PLAYER_SEASON/TEAM_OF_SEASON.
 
-Two exclusion rules are baked into fetch_ordered_candidates(), both
+Three exclusion rules are baked into fetch_ordered_candidates(), all
 conservative (exclude and count, never guess):
 
 1. Multi-team seasons: a real (entity_id, season) pair with more than one
@@ -42,7 +42,36 @@ conservative (exclude and count, never guess):
 2. Same-name collisions: two distinct real entities sharing a (name, season)
    among the single-team-season set would make the generated prompt
    ("Name -- Season") genuinely ambiguous to answer -- both are excluded.
-"""
+3. Seasons with no verified regular-season weekly evidence yet ("FUTURE" --
+   see EvidenceType/_season_status below) are excluded entirely, never
+   treated as completed-season facts.
+
+--- EVIDENCE SEMANTICS (owner-required correction, Phase 3 closeout) -------
+`canonical_roster_seasons` proves ROSTER MEMBERSHIP for a season -- it does
+NOT prove the player actually appeared in a game. The generated question
+wording and `evidence_type` reflect exactly that:
+
+  ROSTER_MEMBERSHIP  -- this capability's evidence today. "was on / is on
+                        the roster", never "played for".
+  GAME_PARTICIPATION -- would require joining a real per-game appearance
+                        source (e.g. player_game_stats) for THIS entity in
+                        THIS season -- not done by this capability; a
+                        future capability that does this join may use
+                        "played" wording, but only then.
+  STARTED_GAME       -- a strictly narrower claim than GAME_PARTICIPATION
+                        (a starting-lineup record) -- same rule: only a
+                        capability that actually joins that evidence may
+                        claim it.
+
+A season's own COMPLETENESS is a separate, real, measured fact: `weekly_
+evidence_table` (player_game_stats for this capability) is checked for real
+regular-season week rows for that season, independent of entity. Zero such
+rows -> FUTURE (excluded from the pool entirely -- a preseason/training-camp
+roster snapshot is not a completed-season fact). 1-16 rows worth of weeks ->
+ACTIVE (present tense: "is on ... for"). Reaching the real, verified
+17-week regular-season floor (true for every season 2002-2025 in this
+capability's range, confirmed directly, never assumed per-era) -> COMPLETE
+(past tense: "was on ... during")."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -50,6 +79,23 @@ from dataclasses import dataclass, field
 from tools.quiz_export import difficulty as difficulty_mod
 from tools.quiz_export import engine, safety, serializer
 from tools.quiz_export.adapters.draft import resolve_franchise, teams_active_in_season
+
+
+class EvidenceType:
+    """What kind of real evidence backs a generated round's relationship
+    claim -- stored internally (_audit / package provenance), never
+    silently upgraded to a stronger claim than the join actually proves."""
+    ROSTER_MEMBERSHIP = "ROSTER_MEMBERSHIP"
+    GAME_PARTICIPATION = "GAME_PARTICIPATION"
+    STARTED_GAME = "STARTED_GAME"
+
+
+# A season needs real weekly regular-season evidence covering at least this
+# many distinct weeks before it counts as COMPLETE -- verified directly
+# against player_game_stats for every real season 2002-2025 in this
+# capability's range (every one reaches 17 or 18; 17 is the real, checked
+# floor, never assumed from a hardcoded per-era games-played constant).
+_COMPLETE_SEASON_MIN_WEEKS = 17
 
 
 @dataclass(frozen=True)
@@ -68,7 +114,60 @@ class RelationshipSpec:
     min_season: int                # real, checked lower bound (never guessed)
     max_season: int
     entity_label: str              # e.g. "player" -- used in the generated question text
+    evidence_type: str = EvidenceType.ROSTER_MEMBERSHIP  # what THIS capability's join actually proves
+    # Real, weekly-grain source used ONLY to determine season completeness
+    # (never joined per-entity -- that would upgrade evidence_type, which
+    # this capability deliberately does not do). None of these three
+    # columns need to be on membership_table/entity_table.
+    weekly_evidence_table: str | None = None            # e.g. "player_game_stats"
+    weekly_evidence_season_column: str | None = None     # e.g. "season"
+    weekly_evidence_week_column: str | None = None        # e.g. "week"
+    weekly_evidence_season_type_column: str | None = None  # e.g. "season_type"
+    weekly_evidence_regular_season_value: str | None = None  # e.g. "REG"
     team_code_overrides: dict = field(default_factory=dict)  # {roster_code: franchise_id}, evidence-based only
+
+
+def _phrase_membership_question(*, competition_id: str, entity_name: str, team_full_name: str,
+                                 season: int, season_status: str) -> tuple[str, str]:
+    """Pure, DB-free wording function -- independently testable without
+    needing real franchise/distractor resolution. `season_status` must be
+    "ACTIVE" or "COMPLETE" (never "FUTURE" -- that's excluded upstream).
+    Returns (question, notes)."""
+    if season_status == "ACTIVE":
+        question = f"Which {competition_id} team is {entity_name} on for the {season} season?"
+        notes = f"{entity_name} is on the {team_full_name} roster for the {season} season."
+    else:  # COMPLETE
+        question = f"Which {competition_id} team was {entity_name} on during the {season} season?"
+        notes = f"{entity_name} was on the {team_full_name} roster during the {season} season."
+    return question, notes
+
+
+def _season_status(c, spec: RelationshipSpec, season: int, *, _cache: dict) -> str:
+    """Returns "COMPLETE", "ACTIVE", or "FUTURE" for a real season, driven
+    entirely by real weekly-evidence rows -- never wall-clock date, so this
+    self-corrects automatically as real data is refreshed (a season that is
+    FUTURE today becomes ACTIVE, then COMPLETE, purely by the normal data
+    pipeline adding real weeks -- no code change needed). `_cache` is a
+    plain dict the caller keeps alive across a whole fetch/evaluate run, so
+    this is one query per distinct season, not one per candidate row."""
+    if season in _cache:
+        return _cache[season]
+    if not spec.weekly_evidence_table:
+        _cache[season] = "COMPLETE"  # no weekly-evidence source configured -- nothing to gate on
+        return _cache[season]
+    max_week = c.execute(
+        f"SELECT MAX({spec.weekly_evidence_week_column}) FROM {spec.weekly_evidence_table} "
+        f"WHERE {spec.weekly_evidence_season_column}=? AND {spec.weekly_evidence_season_type_column}=?",
+        (season, spec.weekly_evidence_regular_season_value),
+    ).fetchone()[0]
+    if max_week is None:
+        status = "FUTURE"
+    elif max_week >= _COMPLETE_SEASON_MIN_WEEKS:
+        status = "COMPLETE"
+    else:
+        status = "ACTIVE"
+    _cache[season] = status
+    return status
 
 
 def _normalize_franchise(c, spec: RelationshipSpec, team_code: str, season: int):
@@ -114,7 +213,9 @@ class CompiledAdapter:
         # side by side, deliberately labeled apart.
         self.multi_team_exclusions = 0
         self.name_collision_exclusions = 0
+        self.future_season_exclusions = 0
         self.raw_pair_count = 0
+        self._season_status_cache: dict = {}
 
     def safety_check(self, c) -> dict:
         return safety.check_table_wide_safety(c, self.spec.membership_table, self.spec.required_source_ids)
@@ -157,7 +258,23 @@ class CompiledAdapter:
             1 for r in single_team_rows if (r["entity_name"], r["season"]) in colliding_keys
         )
 
-        final_rows = [r for r in single_team_rows if (r["entity_name"], r["season"]) not in colliding_keys]
+        non_colliding_rows = [r for r in single_team_rows if (r["entity_name"], r["season"]) not in colliding_keys]
+
+        # Future-season exclusion: a season with zero verified real
+        # regular-season weekly evidence is never treated as a completed-
+        # season fact -- excluded from the pool entirely (see module
+        # docstring's EVIDENCE SEMANTICS section). Cached per distinct
+        # season, not queried per row.
+        self._season_status_cache = {}
+        final_rows = []
+        future_excluded = 0
+        for r in non_colliding_rows:
+            status = _season_status(c, self.spec, r["season"], _cache=self._season_status_cache)
+            if status == "FUTURE":
+                future_excluded += 1
+                continue
+            final_rows.append(r)
+        self.future_season_exclusions = future_excluded
 
         rng_order = engine.seeded(seed)
         final_rows = list(final_rows)
@@ -174,6 +291,14 @@ class CompiledAdapter:
             return "MISSING_FIELD"
 
         season = row["season"]
+        # A FUTURE-status season should already be excluded upstream by
+        # fetch_ordered_candidates() -- re-checked here defensively (e.g. a
+        # caller invoking evaluate() directly against a raw row) rather than
+        # trusted blindly; never emit a completed-season claim for one.
+        season_status = _season_status(c, spec, season, _cache=self._season_status_cache)
+        if season_status == "FUTURE":
+            return "SEASON_NOT_YET_VERIFIED"
+
         franchise, err = _normalize_franchise(c, spec, row["team_code"], season)
         if err:
             return err
@@ -188,7 +313,16 @@ class CompiledAdapter:
         if len(set(options)) != 4:
             return "DUPLICATE_OPTIONS"
 
-        question = f"Which {spec.competition_id} team did {row['entity_name']} play for in the {season} season?"
+        # Evidence-correct wording (owner-required, Phase 3 closeout): this
+        # capability's evidence_type is ROSTER_MEMBERSHIP -- "was/is ON",
+        # never "played for" (that would claim GAME_PARTICIPATION, which
+        # nothing here actually joins). Tense follows the season's real,
+        # measured completeness, never wall-clock guessing.
+        question, notes = _phrase_membership_question(
+            competition_id=spec.competition_id, entity_name=row["entity_name"],
+            team_full_name=franchise["full_name"], season=season, season_status=season_status,
+        )
+
         if guard.question_seen(question):
             return "DUPLICATE_QUESTION"
         entity_key = f"{spec.capability_id}:{row['entity_id']}:{season}"
@@ -203,8 +337,6 @@ class CompiledAdapter:
         band = engine.band(diff_score)
         diff_label = difficulty_mod.map_band(band)
 
-        notes = f"{row['entity_name']} played for the {franchise['full_name']} in {season}."
-
         return {
             "category": spec.category, "difficulty": diff_label, "question": question,
             "options": shuffled_options, "correctIndex": correct_index, "notes": notes,
@@ -213,6 +345,7 @@ class CompiledAdapter:
                 "franchise_id": franchise["franchise_id"], "correct_answer_text": franchise["full_name"],
                 "difficulty_score": round(diff_score, 4), "difficulty_band": band, "entity_key": entity_key,
                 "verification_status": row["verification_status"], "source_id": row["source_id"],
+                "evidence_type": spec.evidence_type, "season_status": season_status,
             },
         }
 
@@ -228,7 +361,7 @@ class CompiledAdapter:
         see health_probe.py's test_sample_rate) and not a general coverage
         claim -- the three are never interchangeable."""
         raw = self.raw_pair_count
-        excluded = self.multi_team_exclusions + self.name_collision_exclusions
+        excluded = self.multi_team_exclusions + self.name_collision_exclusions + self.future_season_exclusions
         eligible = raw - excluded
         return {
             "raw_candidate_count": raw,
@@ -239,6 +372,7 @@ class CompiledAdapter:
             "excluded_breakdown": {
                 "multi_team_exclusions": self.multi_team_exclusions,
                 "name_collision_exclusions": self.name_collision_exclusions,
+                "future_season_exclusions": self.future_season_exclusions,
             },
         }
 

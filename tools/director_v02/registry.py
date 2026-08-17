@@ -812,10 +812,19 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "Same-name collisions (two distinct real players sharing a display name in the same "
             "season) are excluded entirely rather than risk an ambiguous prompt -- see "
             "name_collision_exclusions().",
+            "This capability proves ROSTER MEMBERSHIP only (canonical_roster_seasons), not game "
+            "participation -- generated questions ask which team a player 'was/is ON', never "
+            "'played for' (that would claim evidence this capability doesn't actually join). See "
+            "compiler.EvidenceType.",
+            "A season with zero verified real regular-season weekly evidence yet (e.g. a "
+            "preseason-only snapshot for a season that hasn't started) is excluded entirely, never "
+            "presented as a completed-season fact -- see the adapter's real season_status(). An "
+            "in-progress season is asked in present tense ('is on ... for'); a finished season "
+            "(17+ real regular-season weeks) is asked in past tense ('was on ... during').",
             "Eligibility (not test coverage): 55,404 raw real (player, season) pairs 2002-2026; "
-            "54,010 eligible after exclusions (eligibility_rate 97.48%, exclusion_rate 2.52% -- "
-            "806 multi-team + 588 name-collision exclusions). See the adapter's real "
-            "eligibility_report() for live numbers.",
+            "51,104 eligible after exclusions (eligibility_rate 92.24%, exclusion_rate 7.76% -- "
+            "806 multi-team + 588 name-collision + 2,906 future-season exclusions). See the "
+            "adapter's real eligibility_report() for live numbers.",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_player_season",

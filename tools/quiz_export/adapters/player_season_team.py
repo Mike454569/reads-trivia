@@ -36,6 +36,20 @@ Real data investigation behind this spec (Phase 3):
   caught. All three overrides resolve via franchise_id directly rather than
   guessing a season-blind code -- verified against both eras of each
   franchise before being trusted.
+
+Phase 3 closeout (owner-required correction): canonical_roster_seasons
+proves ROSTER MEMBERSHIP, not game participation -- evidence_type is
+explicitly ROSTER_MEMBERSHIP (compiler.EvidenceType), and generated question
+wording says "was/is ON [team]", never "played for". Season completeness
+(COMPLETE/ACTIVE/FUTURE) is measured live against player_game_stats'
+real regular-season week rows (weekly_evidence_* fields below) -- a season
+with zero such rows (a preseason/training-camp-only roster snapshot, e.g.
+season 2026 as of this writing) is excluded from the pool entirely, never
+presented as a completed-season fact; a season with 1-16 real weeks gets
+present-tense wording ("is on ... for"); 17+ real weeks (the verified real
+floor for every complete season 2002-2025) gets past tense ("was on ...
+during"). This is a real, self-correcting, data-driven check -- no
+wall-clock date is read anywhere in this module.
 """
 from tools.director_v02 import compiler
 
@@ -57,6 +71,12 @@ SPEC = compiler.RelationshipSpec(
     min_season=MIN_SEASON,
     max_season=MAX_SEASON,
     entity_label="player",
+    evidence_type=compiler.EvidenceType.ROSTER_MEMBERSHIP,
+    weekly_evidence_table="player_game_stats",
+    weekly_evidence_season_column="season",
+    weekly_evidence_week_column="week",
+    weekly_evidence_season_type_column="season_type",
+    weekly_evidence_regular_season_value="REG",
     team_code_overrides={"LAR": "FR_LAR", "LAC": "FR_LAC", "LV": "FR_LV"},
 )
 
@@ -88,8 +108,23 @@ def name_collision_exclusions() -> int:
     return _adapter.name_collision_exclusions
 
 
+def future_season_exclusions() -> int:
+    """Real count of (entity, season) pairs excluded because that season
+    has zero verified real regular-season weekly evidence yet -- see
+    compiler.py's _season_status()."""
+    return _adapter.future_season_exclusions
+
+
 def raw_pair_count() -> int:
     return _adapter.raw_pair_count
+
+
+def season_status(c, season: int) -> str:
+    """"COMPLETE" / "ACTIVE" / "FUTURE" for a real season -- see
+    compiler.py's _season_status() for the real, live weekly-evidence check
+    this is driven by."""
+    from tools.director_v02.compiler import _season_status
+    return _season_status(c, SPEC, season, _cache=_adapter._season_status_cache)
 
 
 def eligibility_report() -> dict:

@@ -325,6 +325,12 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
                 "difficulty_score": a.get("difficulty_score"),
                 "difficulty_band": a.get("difficulty_band"),
                 "engine_qa_issues": a.get("engine_qa_issues"),
+                # Additive, backward-compatible: None for every capability that
+                # never sets it. Real evidence-type semantics (ROSTER_MEMBERSHIP /
+                # GAME_PARTICIPATION / STARTED_GAME) for capabilities that
+                # distinguish "on the roster" from "actually played" -- see
+                # tools/director_v02/compiler.py's EvidenceType.
+                "evidence_type": a.get("evidence_type"),
             },
         })
 
