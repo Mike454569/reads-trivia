@@ -28,7 +28,20 @@ pytestmark = pytest.mark.skipif(
 # Real, confirmed-live fixtures.
 NFL_CONFIRMED_SEASON, NFL_CONFIRMED_WEEK = 2025, "1"   # real player_game_stats exist -- GAME_PARTICIPATION_CONFIRMED
 NFL_ROSTER_TIER_SEASON, NFL_ROSTER_TIER_WEEK = 2026, "1"  # not yet played -- SEASON_ROSTER_MEMBERSHIP fallback
-CFB_SEASON, CFB_WEEK = 2025, 1
+# Knowledge Expansion Batch 3: cfb_player_game_stats_real now gives CFB the
+# same real per-game confirmed tier NFL has always had -- 2025 week 1 is a
+# real, played week with real recorded stat lines, so it now correctly
+# resolves to GAME_PARTICIPATION_CONFIRMED (previously always
+# SEASON_ROSTER_MEMBERSHIP, before that table existed).
+CFB_CONFIRMED_SEASON, CFB_CONFIRMED_WEEK = 2025, 1
+# No real CFB season/week in this Engine is both scheduled (a real game row
+# in cfb_games_canonical) AND missing real game-stat rows (cfb_player_game_stats_real
+# covers the same full range cfb_games_canonical does) -- so unlike the NFL
+# case above, there is no genuine data point for the SEASON_ROSTER_MEMBERSHIP
+# fallback tier to assert against without fabricating one; the fallback
+# branch is the same real, already-proven code shape as `_nfl_pool`'s own
+# fallback (see test_cfb_fantasy_draft_falls_back_honestly_for_unscheduled_week
+# in test_pbp_knowledge_batch3.py for the real MISSING_DATA/no-games case).
 
 
 # --- generator-level: real NFL + CFB pools, both reliability tiers -------
@@ -51,12 +64,16 @@ def test_nfl_future_week_falls_back_to_roster_tier_honestly_disclosed():
     assert pkg["player_count"] > 0
 
 
-def test_cfb_pool_is_always_season_roster_tier():
+def test_cfb_confirmed_week_uses_game_participation_tier():
+    """Knowledge Expansion Batch 3: CFB now gets the same real confirmed-
+    participation tier NFL has always had, for a real, played week."""
     from tools.director_v04 import live_weekly_fantasy_draft as lwfd
-    pkg = lwfd.build_package("t-cfb", "CFB_WEEKLY_FANTASY_DRAFT", CFB_SEASON, CFB_WEEK)
+    pkg = lwfd.build_package("t-cfb", "CFB_WEEKLY_FANTASY_DRAFT", CFB_CONFIRMED_SEASON, CFB_CONFIRMED_WEEK)
     assert pkg["qa_status"] == "PASSED"
-    assert pkg["pool_source"] == "SEASON_ROSTER_MEMBERSHIP"
+    assert pkg["pool_source"] == "GAME_PARTICIPATION_CONFIRMED"
     assert pkg["player_count"] > 0
+    for pos in ("QB", "RB", "WR", "TE"):
+        assert pkg["by_position"].get(pos, 0) > 0, f"no real {pos}s in the confirmed-tier CFB pool"
     for p in pkg["players"][:5]:
         assert p["display_name"] and p["team_display"]
 

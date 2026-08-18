@@ -23,20 +23,22 @@ multiplayer transport this phase invents.
 
 Two real, honestly DISTINCT player-pool reliability tiers, never blurred
 together silently (surfaced as `pool_source` on every generated package):
-  - GAME_PARTICIPATION_CONFIRMED (NFL only): the target week has already
-    been played and `player_game_stats` has real, recorded rows for it --
-    the strongest possible signal, "this exact player recorded a real stat
-    line in this exact game."
-  - SEASON_ROSTER_MEMBERSHIP (CFB always; NFL when the target week hasn't
-    been played yet, so no per-game evidence can exist): real season-level
-    roster presence + real position, for the real teams that have a real
-    scheduled/played game that week (per `games`/`cfb_games_canonical`,
-    the SAME tables weekly_pickem.py already reads) -- a real, weaker,
-    disclosed tier, never claimed to mean "confirmed active this week."
-    This is the identical honest-tiering discipline
-    cfb_player_season_school.py's own "aggregate_presence" strategy
-    already established for the same underlying reason: CFB (and a
-    not-yet-played NFL week) has no per-game participation table to check.
+  - GAME_PARTICIPATION_CONFIRMED: the target week has already been played
+    and a real per-game stat table has real, recorded rows for it -- the
+    strongest possible signal, "this exact player recorded a real stat
+    line in this exact game." NFL uses `player_game_stats`; CFB uses
+    `cfb_player_game_stats_real` (Knowledge Expansion Batch 3 -- before
+    that table existed, CFB had no per-game evidence source and always
+    fell back to the tier below).
+  - SEASON_ROSTER_MEMBERSHIP (either league, whenever the target week
+    hasn't been played yet so no per-game evidence can exist): real
+    season-level roster presence + real position, for the real teams that
+    have a real scheduled/played game that week (per `games`/
+    `cfb_games_canonical`, the SAME tables weekly_pickem.py already
+    reads) -- a real, weaker, disclosed tier, never claimed to mean
+    "confirmed active this week." This is the identical honest-tiering
+    discipline cfb_player_season_school.py's own "aggregate_presence"
+    strategy already established for the same underlying reason.
 
 Only real, fantasy-relevant skill positions are drafted (QB/RB/WR/TE) --
 the same "not enough reliably-distinguished per-player position detail to
@@ -145,6 +147,31 @@ def _cfb_pool(c, season: int, week: int) -> tuple[dict, str]:
     if not teams:
         return {}, "SEASON_ROSTER_MEMBERSHIP"
     placeholders = ",".join("?" for _ in teams)
+
+    # Knowledge Expansion Batch 3: `cfb_player_game_stats_real` now gives
+    # CFB a real, per-game participation signal for completed weeks,
+    # matching the exact tiering the NFL pool has always used -- try it
+    # first, exactly like `_nfl_pool` tries `player_game_stats` first.
+    confirmed_rows = c.execute(
+        f"SELECT DISTINCT pgs.cfb_player_id, p.display_name, rs.position, pgs.school_id "
+        f"FROM cfb_player_game_stats_real pgs "
+        f"JOIN canonical_cfb_players p ON p.cfb_player_id = pgs.cfb_player_id "
+        f"JOIN cfb_roster_seasons_real rs ON rs.cfb_player_id = pgs.cfb_player_id AND rs.season = pgs.season "
+        f"WHERE pgs.season=? AND pgs.week=? AND pgs.school_id IN ({placeholders}) "
+        f"AND rs.position IN ('QB','RB','WR','TE')",
+        [season, week, *teams],
+    ).fetchall()
+    if confirmed_rows:
+        pool = {
+            r["cfb_player_id"]: {"display_name": r["display_name"], "position": r["position"], "team_code": r["school_id"]}
+            for r in confirmed_rows
+        }
+        return pool, "GAME_PARTICIPATION_CONFIRMED"
+
+    # Real, disclosed fallback -- this exact week hasn't been played yet
+    # (or has no real game-stat rows for it), so no per-game participation
+    # evidence CAN exist. Season roster membership is still real, not
+    # fabricated -- just a weaker, honestly-labeled tier.
     rows = c.execute(
         f"SELECT DISTINCT rs.cfb_player_id, p.display_name, rs.position, rs.school_id "
         f"FROM cfb_roster_seasons_real rs JOIN canonical_cfb_players p ON p.cfb_player_id = rs.cfb_player_id "
