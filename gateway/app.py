@@ -713,6 +713,13 @@ def mechanics_start_round(body: MechanicRoundRequest, request: Request,
             raise GatewayError("INVALID_REQUEST", "WEEKLY_PICKEM requires both season and week.")
         package = mechanic_engine.generate_weekly_pickem_round(
             variant=body.variant, season=body.season, week=body.week, seed=body.seed or "mechanics-round")
+    elif t == "LIVE_WEEKLY_FANTASY_DRAFT":
+        if body.variant not in mechanic_engine.VARIANTS["LIVE_WEEKLY_FANTASY_DRAFT"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['LIVE_WEEKLY_FANTASY_DRAFT'])}.")
+        if body.season is None or body.week is None:
+            raise GatewayError("INVALID_REQUEST", "LIVE_WEEKLY_FANTASY_DRAFT requires both season and week.")
+        package = mechanic_engine.generate_fantasy_draft_round(
+            variant=body.variant, season=body.season, week=body.week, seed=body.seed or "mechanics-round")
     else:
         raise GatewayError("INVALID_REQUEST", f"Unknown taxonomy_id {t!r}.")
 

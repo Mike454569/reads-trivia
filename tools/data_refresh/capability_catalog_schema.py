@@ -216,6 +216,13 @@ _TAXONOMY_SEED = [
     ("WEEKLY_PICKEM", "Weekly pick'em",
      "A real (league, season, week) slate of scheduled NFL/CFB games -- pick each winner, graded "
      "automatically, fresh from the live games/cfb_games_canonical tables, once each game goes final.", 1, 0, None),
+    # Reliability Design Phase 7B: same schedule-driven shape as
+    # WEEKLY_PICKEM -- see tools/director_v04/live_weekly_fantasy_draft.py's
+    # own module docstring for why this has no capability-registry triple.
+    ("LIVE_WEEKLY_FANTASY_DRAFT", "Live weekly fantasy draft",
+     "A real (league, season, week) player pool (game-participation-confirmed where available, real "
+     "season-roster membership otherwise, always honestly disclosed) -- draft a real 7-slot roster one "
+     "real, not-yet-drafted, position-eligible player at a time.", 1, 0, None),
 ]
 
 

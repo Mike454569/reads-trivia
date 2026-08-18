@@ -131,6 +131,27 @@ def test_client_view_never_leaks_result_for_scheduled_games():
     assert view["completed"] is False
 
 
+def test_client_view_exposes_the_raw_team_code_a_real_caller_must_submit():
+    """Regression guard for a real defect caught by Phase 7B's own
+    playthrough QA: the view used to expose only home_team/away_team as
+    DISPLAY names ("Cincinnati Bengals"), but evaluate_submission checks
+    predicted_winner against the raw team/school code ("CIN") -- a real
+    caller had no way to know what value to submit. Both must now be
+    present, explicitly paired, and the raw code must actually work."""
+    from tools.director_v02 import mechanic_engine
+    pkg = mechanic_engine.generate_weekly_pickem_round(
+        variant="NFL_WEEKLY_PICKEM", season=NFL_FUTURE_SEASON, week=NFL_FUTURE_WEEK, seed="t-raw-code-view")
+    progress = mechanic_engine.initial_progress("WEEKLY_PICKEM")
+    view = mechanic_engine.client_safe_view("WEEKLY_PICKEM", pkg, progress)
+    game = view["games"][0]
+    assert game["home_team_code"] and game["away_team_code"]
+    assert game["home_team"] != game["home_team_code"]  # display name, not the raw code itself
+
+    result, progress = mechanic_engine.evaluate_submission(
+        "WEEKLY_PICKEM", pkg, progress, {"game_id": game["game_id"], "predicted_winner": game["home_team_code"]})
+    assert result["status"] == "PENDING"
+
+
 def test_evaluate_rejects_invalid_team_selection():
     from tools.director_v02 import mechanic_engine
     pkg = mechanic_engine.generate_weekly_pickem_round(

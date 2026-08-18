@@ -29,7 +29,7 @@ from typing import Any, Optional
 TAXONOMY_IDS = frozenset({
     "MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
     "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
-    "WEEKLY_PICKEM",
+    "WEEKLY_PICKEM", "LIVE_WEEKLY_FANTASY_DRAFT",
 })
 
 # Real, disclosed variant catalog -- the "Required relationship shape" per
@@ -71,6 +71,12 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "WEEKLY_PICKEM": {
         "NFL_WEEKLY_PICKEM": {"competition": "NFL"},
         "CFB_WEEKLY_PICKEM": {"competition": "CFB"},
+    },
+    # Phase 7B: same schedule-driven shape as WEEKLY_PICKEM above -- see
+    # tools/director_v04/live_weekly_fantasy_draft.py's own module docstring.
+    "LIVE_WEEKLY_FANTASY_DRAFT": {
+        "NFL_WEEKLY_FANTASY_DRAFT": {"competition": "NFL"},
+        "CFB_WEEKLY_FANTASY_DRAFT": {"competition": "CFB"},
     },
 }
 
@@ -310,7 +316,16 @@ def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
     for g in games:
         live_g = live.get(g["game_id"], {"status": "UNKNOWN", "winner_code": None, "home_score": None, "away_score": None})
         entry = {
-            "game_id": g["game_id"], "home_team": g["home_display"], "away_team": g["away_display"],
+            "game_id": g["game_id"],
+            # Real, genuine defect caught by Phase 7B's own playthrough QA,
+            # fixed here: the display names alone gave a real caller no
+            # value it could actually submit as `predicted_winner` (which
+            # is checked against the raw team/school code, never the
+            # display name -- see _weekly_pickem_evaluate). Both are now
+            # exposed, explicitly paired, so "which value do I submit" is
+            # never a guess.
+            "home_team": g["home_display"], "home_team_code": g["home_team"],
+            "away_team": g["away_display"], "away_team_code": g["away_team"],
             "kickoff": g["kickoff"], "status": live_g["status"],
         }
         # Never leak a score/winner before the game is genuinely FINAL --
@@ -319,6 +334,12 @@ def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
             entry["home_score"] = live_g["home_score"]
             entry["away_score"] = live_g["away_score"]
             entry["winner"] = live_g["winner_code"]
+            if live_g["winner_code"] == g["home_team"]:
+                entry["winner_display"] = g["home_display"]
+            elif live_g["winner_code"] == g["away_team"]:
+                entry["winner_display"] = g["away_display"]
+            else:
+                entry["winner_display"] = "TIE"
         pick = picks.get(g["game_id"])
         if pick:
             entry["your_pick"] = pick["predicted_winner"]
@@ -363,6 +384,87 @@ def _weekly_pickem_evaluate(package: dict, progress: dict, submission: dict) -> 
             "message": "Pick recorded -- will grade automatically once this game is final."}
 
 
+# --- LIVE_WEEKLY_FANTASY_DRAFT (sequential slot-filling, real player pool,
+# no hidden solution -- every eligible player is real, visible data, never
+# a secret to reveal) ---
+#
+# The one thing this mechanic needs that no other one does: real protection
+# against a stale write silently clobbering a newer one (a duplicate/rapid
+# double-submit on the SAME round_id -- the one realistic race in this
+# still-single-session, poll-based architecture; see
+# live_weekly_fantasy_draft.py's own module docstring for why no new
+# realtime backend was built). progress carries a `state_version` counter;
+# evaluate re-reads the REAL current on-disk state immediately before
+# accepting a pick and rejects if it has moved since the caller's own
+# load_state() call -- contained entirely in this function, so the shared
+# Gateway route/other mechanics are untouched.
+
+def generate_fantasy_draft_round(*, variant: str, season: int, week, seed: str) -> dict:
+    from tools.director_v04 import live_weekly_fantasy_draft
+    return live_weekly_fantasy_draft.build_package(seed, variant, season, week)
+
+
+def _fantasy_draft_client_view(package: dict, progress: dict) -> dict:
+    from tools.director_v04 import live_weekly_fantasy_draft as lwfd
+
+    slots = package["draft_slots"]
+    drafted = progress.get("drafted", [])
+    drafted_ids = set(progress.get("drafted_player_ids", []))
+    current_index = progress.get("current_slot_index", 0)
+    completed = current_index >= len(slots)
+
+    current_slot = None if completed else slots[current_index]
+    remaining_pool = []
+    if not completed:
+        eligible_positions = lwfd.FLEX_ELIGIBLE_POSITIONS if current_slot == "FLEX" else {current_slot}
+        remaining_pool = [
+            {"player_id": p["player_id"], "display_name": p["display_name"],
+             "position": p["position"], "team_display": p["team_display"]}
+            for p in package["players"]
+            if p["position"] in eligible_positions and p["player_id"] not in drafted_ids
+        ]
+    return {
+        "season": package["season"], "week": package["week"], "variant": package["domain_variant"],
+        "pool_source": package["pool_source"], "draft_slots": slots,
+        "current_slot_index": current_index, "current_slot": current_slot,
+        "roster": drafted, "picks_made": len(drafted), "slots_total": len(slots),
+        "remaining_pool_size": len(remaining_pool), "remaining_pool": remaining_pool,
+        "completed": completed, "state_version": progress.get("state_version", 0),
+    }
+
+
+def _fantasy_draft_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    from tools.director_v04 import live_weekly_fantasy_draft as lwfd
+    from gateway.services import game_state
+
+    slots = package["draft_slots"]
+    current_index = progress.get("current_slot_index", 0)
+    if current_index >= len(slots):
+        raise MechanicError("this draft is already complete")
+
+    fresh = game_state.load_state(package["package_id"])
+    if fresh is not None and fresh.get("state_version", 0) != progress.get("state_version", 0):
+        raise MechanicError("stale draft state -- another pick was already recorded, reload and retry")
+
+    player_id = submission.get("player_id")
+    players_by_id = {p["player_id"]: p for p in package["players"]}
+    player = players_by_id.get(player_id)
+    if player is None:
+        raise MechanicError(f"player_id {player_id!r} is not in this draft's real eligible pool")
+
+    drafted_ids = set(progress.get("drafted_player_ids", []))
+    if player_id in drafted_ids:
+        raise MechanicError(f"player {player_id!r} has already been drafted -- no player can be drafted twice")
+
+    current_slot = slots[current_index]
+    eligible_positions = lwfd.FLEX_ELIGIBLE_POSITIONS if current_slot == "FLEX" else {current_slot}
+    if player["position"] not in eligible_positions:
+        raise MechanicError(f"player {player_id!r} plays {player['position']!r}, not eligible for slot {current_slot!r}")
+
+    return {"slot": current_slot, "player_id": player_id, "display_name": player["display_name"],
+            "position": player["position"], "team_display": player["team_display"]}
+
+
 # --- Generic dispatch used by the Gateway routes ---
 
 def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
@@ -380,6 +482,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _elimination_client_view(package, progress["current_index"], progress.get("survived", 0), progress.get("ended", False))
     if taxonomy_id == "WEEKLY_PICKEM":
         return _weekly_pickem_client_view(package, progress)
+    if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
+        return _fantasy_draft_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -443,6 +547,20 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         }
         progress["picks"] = picks
         return result, progress
+    if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
+        result = _fantasy_draft_evaluate(package, progress, submission)
+        drafted = list(progress.get("drafted", []))
+        drafted.append({
+            "slot": result["slot"], "player_id": result["player_id"], "display_name": result["display_name"],
+            "position": result["position"], "team_display": result["team_display"],
+            "picked_at": datetime.now(timezone.utc).isoformat(),
+        })
+        progress["drafted"] = drafted
+        progress["drafted_player_ids"] = list(progress.get("drafted_player_ids", [])) + [result["player_id"]]
+        progress["current_slot_index"] = progress.get("current_slot_index", 0) + 1
+        progress["completed"] = progress["current_slot_index"] >= len(package["draft_slots"])
+        progress["state_version"] = progress.get("state_version", 0) + 1
+        return result, progress
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -455,4 +573,6 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"current_index": 0, "survived": 0, "ended": False}
     if taxonomy_id == "WEEKLY_PICKEM":
         return {"picks": {}}
+    if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
+        return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}
     return {"current_index": 0, "completed": False}

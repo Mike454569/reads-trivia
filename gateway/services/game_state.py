@@ -33,7 +33,7 @@ from pathlib import Path
 
 from .. import config
 
-STATE_ID_RE = re.compile(r"^GGP[4-9]?:[0-9a-f]{24}$")  # same shape as packages.PACKAGE_ID_RE -- state is always keyed by a real game_id
+STATE_ID_RE = re.compile(r"^GGP([4-9]|10)?:[0-9a-f]{24}$")  # same shape as packages.PACKAGE_ID_RE -- state is always keyed by a real game_id
 
 _write_lock = threading.Lock()
 
