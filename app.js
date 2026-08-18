@@ -8269,7 +8269,13 @@ function renderEncyclopediaConceptDetail() {
     node = encyclopediaConceptByCanonicalId(id);
     if (!node) return renderEncyclopediaDomains();
     title = node.label;
-    badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : node.verification_status;
+    // UI/UX pass: this used to fall back to the raw backend
+    // verification_status enum (e.g. "SOURCE_BACKED_DERIVED",
+    // "WIKIPEDIA_STRUCTURED_SECONDARY") whenever it wasn't exactly
+    // "SOURCE_BACKED" -- real technical leakage a player would see as a
+    // badge on the page. Every real tier still gets honest, player-facing
+    // copy; nothing backend-shaped is ever shown verbatim.
+    badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : 'Documented';
     badgeClass = 'encyc-badge-verified';
     fields = node.fields || {};
     sourceRows = node.source_rows;

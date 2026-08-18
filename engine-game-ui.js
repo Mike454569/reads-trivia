@@ -591,6 +591,40 @@ function mechanicPilotAdvance() {
 function mechanicPilotToolbarHtml() {
   return '<div class="mode-toolbar"><button class="btn-tiny" data-mechanic-exit>' + icon('close') + ' Exit to Home</button></div>';
 }
+/* UI/UX pass: this used to render 'Result: ' + JSON.stringify(s.result) --
+   the raw backend response object -- directly as the player's feedback
+   text (a real correct/wrong/canonical_mapping/notes payload shown
+   verbatim). Replaced with real, mechanic-specific human copy, matching
+   the same correct/wrong feedback shape every other mode already uses
+   (see renderQuizSummary and friends in app.js). Never leaks a field name. */
+function renderMechanicPilotFeedback(cfg, s) {
+  var r = s.result || {};
+  var wasCorrect = r.all_correct === true || r.exact_match === true || r.correct === true;
+  var headline, detail;
+  if (cfg.kind === 'matching') {
+    headline = wasCorrect ? 'All matched correctly!' : 'Not quite.';
+    detail = r.correct_count + ' of ' + r.total_pairs + ' matched correctly.';
+  } else if (cfg.kind === 'sorting') {
+    headline = wasCorrect ? 'Perfect order!' : 'Not quite.';
+    detail = r.correct_positions + ' of ' + r.total_items + ' in the correct spot.';
+  } else if (cfg.kind === 'higher_lower') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = esc(r.revealed_next_label) + ' was ' + esc(r.actual_direction) + '.';
+  } else if (cfg.kind === 'elimination') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.actual_membership ? 'That one was real.' : 'That one wasn’t real.';
+  } else {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = '';
+  }
+  // Same real .quiz-feedback/.feedback-good/.feedback-bad shell every
+  // other mode in app.js already uses (e.g. the Engine Pilot render just
+  // above this file's own line ~474) -- no parallel feedback style.
+  return '<div class="quiz-feedback" aria-live="polite">' +
+    '<span class="' + (wasCorrect ? 'feedback-good' : 'feedback-bad') + '">' +
+    (wasCorrect ? icon('check') : icon('xMark')) + ' ' + esc(headline) + '</span>' +
+    (detail ? ' ' + esc(detail) : '') + '</div>';
+}
 function renderMechanicPilotBody(cfg, s) {
   var v = s.view;
   if (cfg.kind === 'matching') {
@@ -663,7 +697,7 @@ function renderMechanicPilotScreen() {
       '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
   }
   return '<div class="panel">' + mechanicPilotToolbarHtml() + renderMechanicPilotBody(cfg, s) +
-    (answered ? '<div class="quiz-feedback" aria-live="polite">Result: ' + esc(JSON.stringify(s.result)) + '</div>' +
+    (answered ? renderMechanicPilotFeedback(cfg, s) +
       '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
     '</div>';
 }

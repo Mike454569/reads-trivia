@@ -44,6 +44,37 @@
   .clue-list li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
   .status-line { font-size: 12.5px; color: var(--text-dim); margin: 8px 0; }
   .leak-warning { background: #b91c1c; color: white; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px; }
+
+  /* Weekly Pick'em */
+  .pickem-record { display: flex; gap: 18px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; font-size: 13px; }
+  .pickem-record b { font-size: 17px; display: block; }
+  .matchup-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .matchup-teams { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .matchup-side { flex: 1; text-align: center; padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; background: var(--bg-card); }
+  .matchup-side.picked { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+  .matchup-side.winner { border-color: var(--good); }
+  .matchup-side[disabled], .matchup-side.locked { cursor: default; opacity: 0.85; }
+  .matchup-vs { font-size: 11px; color: var(--text-dim); padding: 0 6px; }
+  .matchup-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11.5px; color: var(--text-dim); }
+  .matchup-outcome { font-size: 11.5px; font-weight: 700; margin-top: 6px; }
+  .matchup-outcome.correct { color: var(--good); }
+  .matchup-outcome.incorrect { color: var(--bad); }
+  .matchup-outcome.tie, .matchup-outcome.pending { color: var(--text-dim); }
+  .status-chip { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+
+  /* Live Weekly Fantasy Draft */
+  .draft-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .draft-slot { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 12px; min-width: 90px; text-align: center; }
+  .draft-slot.filled { background: var(--bg-card); }
+  .draft-slot.current { border-color: var(--accent); border-width: 2px; }
+  .draft-slot-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .draft-slot-player { font-weight: 700; margin-top: 2px; }
+  .draft-pool-list { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
+  .draft-pool-player { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--bg-card); }
+  .draft-pool-player:active { border-color: var(--accent); }
+  .draft-pool-player[disabled] { opacity: 0.5; pointer-events: none; }
+  .draft-pool-name { font-weight: 600; }
+  .draft-pool-meta { font-size: 11.5px; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -59,6 +90,10 @@
   <div class="mech-select-row">
     <select id="taxonomySelect"></select>
     <select id="variantSelect"></select>
+  </div>
+  <div class="mech-select-row" id="seasonWeekRow" style="display:none;">
+    <input id="seasonInput" placeholder="Season (e.g. 2025)" inputmode="numeric">
+    <input id="weekInput" placeholder="Week (e.g. 1)" inputmode="numeric">
   </div>
   <div class="btn-row">
     <button class="btn-primary" id="startBtn">Start Round</button>
@@ -91,7 +126,20 @@ const TAXONOMY_VARIANTS = {
     {value:'NFL_SUPER_BOWL_CHAMPION_SURVIVAL', label:'NFL Super Bowl Champion Survival'},
     {value:'CFB_NATIONAL_CHAMPION_SURVIVAL', label:'CFB National Champion Survival'},
   ],
+  WEEKLY_PICKEM: [
+    {value:'NFL_WEEKLY_PICKEM', label:'NFL Weekly Pick’em'},
+    {value:'CFB_WEEKLY_PICKEM', label:'CFB Weekly Pick’em'},
+  ],
+  LIVE_WEEKLY_FANTASY_DRAFT: [
+    {value:'NFL_WEEKLY_FANTASY_DRAFT', label:'NFL Weekly Fantasy Draft'},
+    {value:'CFB_WEEKLY_FANTASY_DRAFT', label:'CFB Weekly Fantasy Draft'},
+  ],
 };
+// These two mechanics are schedule-driven (a real season+week, not a
+// generated round count) -- see tools/director_v02/mechanic_engine.py's
+// generate_weekly_pickem_round/generate_fantasy_draft_round, both of
+// which require season+week. Every other taxonomy has no such field.
+const SEASON_WEEK_TAXONOMIES = new Set(['WEEKLY_PICKEM', 'LIVE_WEEKLY_FANTASY_DRAFT']);
 
 const taxonomySelect = document.getElementById('taxonomySelect');
 const variantSelect = document.getElementById('variantSelect');
@@ -106,6 +154,7 @@ function refreshVariants() {
   (TAXONOMY_VARIANTS[taxonomySelect.value] || []).forEach(v => {
     const opt = document.createElement('option'); opt.value = v.value; opt.textContent = v.label; variantSelect.appendChild(opt);
   });
+  document.getElementById('seasonWeekRow').style.display = SEASON_WEEK_TAXONOMIES.has(taxonomySelect.value) ? 'grid' : 'none';
 }
 taxonomySelect.addEventListener('change', refreshVariants);
 refreshVariants();
@@ -135,6 +184,18 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   if (taxonomy_id === 'MATCHING') { body.round_count = 3; body.pair_count = 4; }
   if (taxonomy_id === 'SORTING_TIMELINE') { body.round_count = 3; body.item_count = 4; }
   if (taxonomy_id === 'HIGHER_LOWER_STREAK' || taxonomy_id === 'ELIMINATION_SURVIVAL') body.sequence_length = 10;
+  if (SEASON_WEEK_TAXONOMIES.has(taxonomy_id)) {
+    const season = parseInt(document.getElementById('seasonInput').value, 10);
+    const week = document.getElementById('weekInput').value;
+    if (!season || !week) { gameArea.innerHTML = '<div class="panel leak-warning">Enter a real season and week first.</div>'; return; }
+    body.season = season;
+    // Real, verified directly against the live gateway: MechanicRoundRequest.week
+    // is Optional[str] for BOTH leagues -- CFB's real integer week column
+    // still matches correctly via SQLite's own INTEGER-affinity coercion,
+    // and NFL's real postseason weeks are non-numeric codes ("WC","DIV",
+    // "CON","SB") that a number would corrupt. Always sent as a string.
+    body.week = week;
+  }
 
   const res = await gatewayFetch('/v1/creator/mechanics/round', {method: 'POST', body: JSON.stringify(body)});
   if (!res.ok) { gameArea.innerHTML = '<div class="panel leak-warning">' + JSON.stringify(res.body) + '</div>'; return; }
@@ -239,7 +300,171 @@ function render(view, leaks) {
       ${view.ended ? '' : `<div class="btn-row"><button class="btn-primary" data-guess="true">True</button><button class="btn-primary" data-guess="false">False</button></div>`}
     </div>`;
     gameArea.querySelectorAll('[data-guess]').forEach(b => b.addEventListener('click', () => submit({guess: b.dataset.guess === 'true'})));
+  } else if (currentTaxonomy === 'WEEKLY_PICKEM') {
+    renderPickem(view, leaks);
+  } else if (currentTaxonomy === 'LIVE_WEEKLY_FANTASY_DRAFT') {
+    renderFantasyDraft(view, leaks);
   }
+}
+
+/* ============================== Weekly Pick'em ==============================
+   Real fields only -- see tools/director_v02/mechanic_engine.py's
+   _weekly_pickem_client_view. A game's home_score/away_score/winner/
+   winner_display keys DO NOT EXIST on the object at all until the real
+   backend considers the game FINAL (weekly_pickem.py's _status_for) --
+   this renderer never fabricates or infers them, it only ever reads what
+   the server actually sent. `status` is one of the three real values the
+   backend produces: SCHEDULED, FINAL, or UNKNOWN (a game whose kickoff has
+   passed but no score exists yet -- honestly unknown, never presented as
+   "live"). No multiplayer/standings concept is invented here -- this is
+   one drafter's own picks against real schedule + real results only. */
+function renderPickem(view, leaks) {
+  const record = `<div class="panel pickem-record">
+    <div><b>${view.correct_count}/${view.graded_count}</b>correct so far</div>
+    <div><b>${view.picks_made}/${view.game_count}</b>picks made</div>
+  </div>`;
+
+  const cards = view.games.map(g => {
+    const isFinal = g.status === 'FINAL';
+    const picked = g.your_pick;
+    const statusLabel = isFinal ? 'Final' : (g.status === 'SCHEDULED' ? 'Scheduled' : 'Status pending');
+    function side(teamCode, teamLabel) {
+      const classes = ['matchup-side'];
+      if (picked === teamCode) classes.push('picked');
+      if (isFinal && g.winner === teamCode) classes.push('winner');
+      if (isFinal) classes.push('locked');
+      const scoreHtml = isFinal ? `<div class="status-line">${teamCode === g.home_team_code ? g.home_score : g.away_score}</div>` : '';
+      return `<button class="${classes.join(' ')}" ${isFinal ? 'disabled' : ''} data-pickem-game="${g.game_id}" data-pickem-team="${teamCode}">
+        ${teamLabel}${scoreHtml}</button>`;
+    }
+    let outcomeHtml = '';
+    if (picked && g.outcome) {
+      const cls = g.outcome.toLowerCase();
+      const text = g.outcome === 'CORRECT' ? 'Your pick was correct' : g.outcome === 'INCORRECT' ? 'Your pick was incorrect' :
+        g.outcome === 'TIE' ? 'Game ended in a tie' : 'Pick recorded -- grades once final';
+      outcomeHtml = `<div class="matchup-outcome ${cls}">${text}</div>`;
+    }
+    return `<div class="matchup-card">
+      <div class="matchup-teams">
+        ${side(g.away_team_code, g.away_team)}
+        <span class="matchup-vs">@</span>
+        ${side(g.home_team_code, g.home_team)}
+      </div>
+      <div class="matchup-meta"><span>${g.kickoff ? new Date(g.kickoff).toLocaleString() : ''}</span><span class="status-chip">${statusLabel}</span></div>
+      ${outcomeHtml}
+    </div>`;
+  }).join('');
+
+  gameArea.innerHTML = leakBanner(leaks) + record + `<div class="panel">
+    <div class="status-line">${view.season} &middot; Week ${view.week}</div>
+    ${cards}
+  </div>`;
+  gameArea.querySelectorAll('[data-pickem-game]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    submitPickemPick(btn.dataset.pickemGame, btn.dataset.pickemTeam);
+  }));
+}
+
+function submitPickemPick(gameId, teamCode) {
+  gatewayFetch(`/v1/creator/mechanics/round/${currentRoundId}/submit`, {
+    method: 'POST', body: JSON.stringify({submission: {game_id: gameId, predicted_winner: teamCode}}),
+  }).then(res => {
+    if (!res.ok) {
+      // Real, expected rejection reasons: game already final (picks
+      // closed) or an invalid team code. gateway/errors.py's real
+      // GatewayError body shape is {"error":{"code","message",
+      // "request_id"}} -- read directly, never a guessed/raw dump.
+      const banner = document.createElement('div');
+      banner.className = 'panel leak-warning';
+      banner.textContent = (res.body && res.body.error && res.body.error.message) || 'Couldn’t record that pick -- it may already be final.';
+      gameArea.prepend(banner);
+      return;
+    }
+    const leaks = leakCheck(res.body.view);
+    render(res.body.view, leaks);
+  });
+}
+
+/* ============================== Live Weekly Fantasy Draft ==============================
+   Real fields only -- see mechanic_engine.py's _fantasy_draft_client_view.
+   `remaining_pool` is ALREADY filtered server-side to the current slot's
+   eligible position AND already excludes every drafted player_id -- this
+   UI never re-derives or second-guesses that filter, so it can never
+   offer a duplicate or position-ineligible pick (the one hard rule this
+   screen has to satisfy). Buttons are disabled while a pick is in flight
+   to prevent a double-submit race. `pool_source` (a real backend enum --
+   GAME_PARTICIPATION_CONFIRMED or SEASON_ROSTER_MEMBERSHIP) is translated
+   to honest player-facing copy, never shown raw. No draft-room/other-
+   drafters concept exists in the real backend, so none is shown here --
+   this is one real drafter building one real roster. */
+const POOL_SOURCE_COPY = {
+  GAME_PARTICIPATION_CONFIRMED: 'Eligible players confirmed from real game participation this week.',
+  SEASON_ROSTER_MEMBERSHIP: 'Eligible players based on real season rosters (this week hasn’t been played yet).',
+};
+let draftSubmitInFlight = false;
+
+function renderFantasyDraft(view, leaks) {
+  const slotsHtml = view.draft_slots.map((slot, i) => {
+    const filled = view.roster[i];
+    const classes = ['draft-slot'];
+    if (filled) classes.push('filled');
+    if (i === view.current_slot_index && !view.completed) classes.push('current');
+    return `<div class="${classes.join(' ')}">
+      <div class="draft-slot-label">${slot}</div>
+      <div class="draft-slot-player">${filled ? filled.display_name : (i === view.current_slot_index && !view.completed ? 'On the clock' : 'Empty')}</div>
+      ${filled ? `<div class="status-line">${filled.team_display}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const poolHtml = view.completed ? '' : `<div class="draft-pool-list">${
+    view.remaining_pool.map(p => `<button class="draft-pool-player" data-draft-player="${p.player_id}">
+      <span class="draft-pool-name">${p.display_name}<div class="draft-pool-meta">${p.team_display}</div></span>
+      <span class="status-chip">${p.position}</span>
+    </button>`).join('') || '<div class="status-line">No real eligible players remain for this slot.</div>'
+  }</div>`;
+
+  gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+    <div class="status-line">${view.season} &middot; Week ${view.week} &middot; ${view.picks_made}/${view.slots_total} picks made</div>
+    <div class="status-line">${POOL_SOURCE_COPY[view.pool_source] || ''}</div>
+    <div class="draft-slots">${slotsHtml}</div>
+    ${view.completed ? '<div class="matchup-outcome correct">Draft complete.</div>' :
+      `<div class="status-line">Choose a real ${view.current_slot} for this slot (${view.remaining_pool_size} eligible):</div>${poolHtml}`}
+  </div>`;
+  gameArea.querySelectorAll('[data-draft-player]').forEach(btn => btn.addEventListener('click', () => {
+    if (draftSubmitInFlight) return;
+    submitDraftPick(btn.dataset.draftPlayer);
+  }));
+}
+
+function submitDraftPick(playerId) {
+  draftSubmitInFlight = true;
+  gameArea.querySelectorAll('[data-draft-player]').forEach(b => b.disabled = true);
+  gatewayFetch(`/v1/creator/mechanics/round/${currentRoundId}/submit`, {
+    method: 'POST', body: JSON.stringify({submission: {player_id: playerId}}),
+  }).then(res => {
+    draftSubmitInFlight = false;
+    if (!res.ok) {
+      const banner = document.createElement('div');
+      banner.className = 'panel leak-warning';
+      // The one real race this mechanic defends against: a stale pick if
+      // two submits land out of order. Real, honest copy instead of the
+      // raw "stale draft state" backend message.
+      banner.textContent = 'That pick didn’t go through -- reloading the latest draft state.';
+      gameArea.prepend(banner);
+      loadMechanicRoundView();
+      return;
+    }
+    const leaks = leakCheck(res.body.view);
+    render(res.body.view, leaks);
+  });
+}
+
+function loadMechanicRoundView() {
+  gatewayFetch(`/v1/creator/mechanics/round/${currentRoundId}`).then(res => {
+    if (!res.ok) return;
+    const leaks = leakCheck(res.body.view);
+    render(res.body.view, leaks);
+  });
 }
 </script>
 </body>
