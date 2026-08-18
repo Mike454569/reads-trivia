@@ -103,6 +103,26 @@ _public_executor = ThreadPoolExecutor(
     max_workers=config.PUBLIC_GENERATION_MAX_CONCURRENCY, thread_name_prefix="gateway-public-generation"
 )
 
+# --- POSITION_LINEUP_GRID isolation (public-readiness punch-list) -----------
+# Root cause of the reproduced cascading-502 starvation defect: a real
+# O(candidates x bridge_size) bug in tools/quiz_export/adapters/lineup.py's
+# certified_college_lookup() (see that function's own docstring for the
+# fix -- now cached, no longer rebuilt per candidate). That perf fix alone
+# should keep this domain well under GENERATION_TIMEOUT_SECONDS going
+# forward, but `Future.result(timeout=...)` still cannot cancel an
+# underlying thread if some FUTURE slow query or a cold-cache first call
+# ever exceeds it again -- so this isolation is real defense-in-depth, not
+# just a perf optimization: a timed-out lineup generation call can now only
+# ever occupy ITS OWN dedicated single-worker executor/lock pair, never the
+# shared admin one every other mechanic (and Creator) depends on. A second
+# admin generation call for ANY OTHER domain, submitted immediately after a
+# stuck lineup call, is structurally guaranteed to acquire the (separate,
+# free) shared lock and its (separate, free) executor slot without waiting
+# on the lineup call at all.
+_LINEUP_ISOLATED_DOMAINS = frozenset({"NFL_OFFENSE_LINEUP", "NFL_OFFENSE_LINEUP_COLLEGE"})
+_lineup_generation_lock = threading.Lock()
+_lineup_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gateway-lineup-generation")
+
 
 def list_capabilities() -> list[dict]:
     """Read-only reflection of the capability registry -- GET /v1/capabilities.
@@ -229,15 +249,31 @@ def generate(*, request_text: str | None, spec: dict | None, provider: str,
     passing arbitrary request_text/spec) -- runs the real Director pipeline
     under the single-slot concurrency guard and a hard timeout, unchanged
     from v0.6/Part H. See module docstring for why this stays maximally
-    conservative while `generate_public()` below does not."""
+    conservative while `generate_public()` below does not.
+
+    Public-readiness punch-list: a lineup-domain spec is routed onto its
+    own isolated lock/executor pair (see _LINEUP_ISOLATED_DOMAINS above) so
+    it can never starve every other admin/Creator mechanic -- the only
+    change from v0.6/Part H's behavior for every non-lineup domain is that
+    this check now happens; the gate/executor selected for them is
+    byte-identical to before."""
+    domain = (spec or {}).get("domain")
+    if domain in _LINEUP_ISOLATED_DOMAINS:
+        gate, executor, busy_message = (
+            _lineup_generation_lock, _lineup_executor,
+            "A Starting Lineups generation job is already running -- this domain is "
+            "isolated to its own single slot so it can never block other generation. Retry shortly.",
+        )
+    else:
+        gate, executor, busy_message = (
+            _generation_lock, _executor,
+            "Another generation job is already running. This Gateway allows only one "
+            "generation job at a time (Director v0.6, Part H) -- retry shortly.",
+        )
     return _run_pipeline_bounded(
         request_text=request_text, spec=spec, provider=provider,
         puzzle_count=puzzle_count, difficulty=difficulty, seed=seed,
-        gate=_generation_lock, executor=_executor,
-        busy_message=(
-            "Another generation job is already running. This Gateway allows only one "
-            "generation job at a time (Director v0.6, Part H) -- retry shortly."
-        ),
+        gate=gate, executor=executor, busy_message=busy_message,
     )
 
 

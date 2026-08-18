@@ -234,6 +234,32 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
     # TEAM_UNRESOLVED, same disclosed pattern as nfl_game_result_guess),
     # all three difficulty bands genuinely well-represented (Easy 2,187 /
     # Medium 1,144 / Hard 2,407).
+    # Public-readiness punch-list: the college-identity variant of the
+    # lineup board. Was previously safe-but-never-exposed while the real
+    # generation-timeout starvation defect for this domain was open (see
+    # gateway/services/generation.py's _LINEUP_ISOLATED_DOMAINS docstring
+    # for the fix) -- certified public only after that fix was verified.
+    # Real candidate survey this pass, out of 412 real team-seasons: 66
+    # accepted (Easy 48, Medium 13, Hard 5), 344 rejected as
+    # COLLEGE_UNRESOLVED (a real, disclosed data ceiling -- see
+    # tools/quiz_export/adapters/lineup_college.py's own module docstring),
+    # 3 TEAM_UNRESOLVED, 2 DUPLICATE_QUESTION.
+    "lineup_college_guess": {
+        "competition": "NFL",
+        "title": "NFL Starting Lineups: Guess the Team (By College)",
+        "instructions": "You'll be shown a real NFL team's starting offense, by position and college "
+                        "(player names hidden). Pick the team.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_OFFENSE_LINEUP_COLLEGE",
+            "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
     "nfl_game_boxscore_guess": {
         "competition": "NFL",
         "title": "NFL Box Scores: Guess Who Gained More Yards",

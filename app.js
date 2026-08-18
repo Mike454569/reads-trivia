@@ -58,6 +58,22 @@ var ENABLE_ENGINE_LINEUP_PILOT_V01 = READS_CONFIG.enableEngineLineupPilot === tr
 // CFB data enrichment operation: same fail-closed pattern -- the first CFB
 // engine mode, default OFF.
 var ENABLE_ENGINE_HEISMAN_PILOT_V01 = READS_CONFIG.enableEngineHeismanPilot === true;
+// Public-readiness punch-list: same fail-closed pattern for every mode
+// this pass either newly certified public (lineupCollege, after its
+// starvation fix) or found already-public-but-frontend-invisible
+// (nflGameResult/cfbGameResult/nflGameBoxscore -- real, live capabilities
+// with zero UI entry point before this). All default OFF until
+// individually canary-verified, same as every pilot above.
+var ENABLE_ENGINE_LINEUP_COLLEGE_PILOT_V01 = READS_CONFIG.enableEngineLineupCollegePilot === true;
+var ENABLE_ENGINE_NFL_GAME_RESULT_PILOT_V01 = READS_CONFIG.enableEngineNflGameResultPilot === true;
+var ENABLE_ENGINE_CFB_GAME_RESULT_PILOT_V01 = READS_CONFIG.enableEngineCfbGameResultPilot === true;
+var ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01 = READS_CONFIG.enableEngineNflGameBoxscorePilot === true;
+// The four new mechanic-shaped public modes (matching/sorting/higher-lower/
+// elimination) -- same fail-closed pattern, default OFF.
+var ENABLE_ENGINE_MATCHING_PILOT_V01 = READS_CONFIG.enableEngineMatchingPilot === true;
+var ENABLE_ENGINE_SORTING_PILOT_V01 = READS_CONFIG.enableEngineSortingPilot === true;
+var ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01 = READS_CONFIG.enableEngineHigherLowerPilot === true;
+var ENABLE_ENGINE_ELIMINATION_PILOT_V01 = READS_CONFIG.enableEngineEliminationPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -322,6 +338,7 @@ var state = {
   silhouette: null,
   playerClues: null,
   enginePilot: null,
+  mechanicPilot: null,
   sixDegrees: null,
   creator: null,
   iq: null,
@@ -999,6 +1016,7 @@ function resetModeState(mode) {
   else if (mode === 'silhouette') state.silhouette = null;
   else if (mode === 'playerClues') state.playerClues = null;
   else if (mode === 'enginePilot') state.enginePilot = null;
+  else if (mode === 'mechanicPilot') state.mechanicPilot = null;
   else if (mode === 'iq') state.iq = null;
   else if (mode === 'legends') state.legends = null;
   else if (mode === 'cfbQuiz') state.cfbQuiz = { screen: 'setup', category: '', difficulty: '', roundSize: (state.cfbQuiz && state.cfbQuiz.roundSize) || 10, queue: [], index: 0, correctCount: 0, answeredIndex: null, missed: [] };
@@ -8533,6 +8551,7 @@ function renderAll() {
   else if (state.screen === 'study') html += renderStudyScreen();
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
   else if (state.screen === 'enginePilot') html += renderEnginePilotScreen();
+  else if (state.screen === 'mechanicPilot') html += renderMechanicPilotScreen();
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
   else if (state.screen === 'creator') html += renderCreatorScreen();
   app.innerHTML = html;
@@ -8697,6 +8716,9 @@ document.addEventListener('click', function (e) {
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
+    '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
+    '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
+    '[data-mechanic-hl-guess], [data-elim-guess], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], ' +
@@ -8932,6 +8954,35 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
   if (t.dataset.pilotFallback !== undefined) { enginePilotFallback(); return; }
 
+  if (t.dataset.mechanicStart !== undefined) { startMechanicPilotRound(); return; }
+  if (t.dataset.mechanicRetry !== undefined) { loadMechanicPilotRound(); return; }
+  if (t.dataset.mechanicFallback !== undefined) { mechanicPilotFallback(); return; }
+  if (t.dataset.mechanicNext !== undefined) { mechanicPilotAdvance(); return; }
+  if (t.dataset.mechanicExit !== undefined) { state.mechanicPilot = null; goToMode('home'); return; }
+  if (t.dataset.matchLeft !== undefined) {
+    if (state.mechanicPilot) { state.mechanicPilot.matchSelection[t.dataset.matchLeft] = t.dataset.matchRight; renderAll(); }
+    return;
+  }
+  if (t.dataset.matchSubmit !== undefined) {
+    if (state.mechanicPilot) submitMechanicPilotAction({ mapping: state.mechanicPilot.matchSelection });
+    return;
+  }
+  if (t.dataset.sortUp !== undefined || t.dataset.sortDown !== undefined) {
+    var s = state.mechanicPilot;
+    if (s && s.sortOrder) {
+      var i = parseInt(t.dataset.sortUp !== undefined ? t.dataset.sortUp : t.dataset.sortDown, 10);
+      var j = t.dataset.sortUp !== undefined ? i - 1 : i + 1;
+      if (j >= 0 && j < s.sortOrder.length) { var tmp = s.sortOrder[i]; s.sortOrder[i] = s.sortOrder[j]; s.sortOrder[j] = tmp; renderAll(); }
+    }
+    return;
+  }
+  if (t.dataset.sortSubmit !== undefined) {
+    if (state.mechanicPilot) { submitMechanicPilotAction({ order: state.mechanicPilot.sortOrder }); state.mechanicPilot.sortOrder = null; }
+    return;
+  }
+  if (t.dataset.mechanicHlGuess !== undefined) { submitMechanicPilotAction({ guess: t.dataset.mechanicHlGuess }); return; }
+  if (t.dataset.elimGuess !== undefined) { submitMechanicPilotAction({ guess: t.dataset.elimGuess === 'true' }); return; }
+
   if (t.dataset.sixdegreesStart !== undefined) { startSixDegreesRound(); return; }
   if (t.dataset.sixdegreesPickId !== undefined) {
     submitSixDegreesMove(t.dataset.sixdegreesPickType, t.dataset.sixdegreesPickId, t.dataset.sixdegreesPickName);
@@ -9155,6 +9206,20 @@ if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01) HIDDEN_ROUTES['#championshippilot'] = 'enginePilot';
 if (ENABLE_ENGINE_LINEUP_PILOT_V01) HIDDEN_ROUTES['#lineuppilot'] = 'enginePilot';
 if (ENABLE_ENGINE_HEISMAN_PILOT_V01) HIDDEN_ROUTES['#heismanpilot'] = 'enginePilot';
+// Public-readiness punch-list: same registration pattern for the 4 modes
+// this pass wired into the shared Engine Pilot shell.
+if (ENABLE_ENGINE_LINEUP_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#lineupcollegepilot'] = 'enginePilot';
+if (ENABLE_ENGINE_NFL_GAME_RESULT_PILOT_V01) HIDDEN_ROUTES['#nflgameresultpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_GAME_RESULT_PILOT_V01) HIDDEN_ROUTES['#cfbgameresultpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01) HIDDEN_ROUTES['#nflgameboxscorepilot'] = 'enginePilot';
+// Public-readiness punch-list: the 4 new-shape mechanic-pilot modes route
+// to their own 'mechanicPilot' screen (a separate shared shell -- see
+// engine-game-ui.js's own module comment for why these don't fit the
+// single-question enginePilot shell).
+if (ENABLE_ENGINE_MATCHING_PILOT_V01) HIDDEN_ROUTES['#matchingpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_SORTING_PILOT_V01) HIDDEN_ROUTES['#sortingpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01) HIDDEN_ROUTES['#higherlowerenginepilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_ELIMINATION_PILOT_V01) HIDDEN_ROUTES['#eliminationpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
@@ -9164,6 +9229,14 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_PILOT_MODES.draft.hash) enginePilotCurrentModeKey = 'draft';
   else if (location.hash === ENGINE_PILOT_MODES.lineup.hash) enginePilotCurrentModeKey = 'lineup';
   else if (location.hash === ENGINE_PILOT_MODES.heisman.hash) enginePilotCurrentModeKey = 'heisman';
+  else if (location.hash === ENGINE_PILOT_MODES.lineupCollege.hash) enginePilotCurrentModeKey = 'lineupCollege';
+  else if (location.hash === ENGINE_PILOT_MODES.nflGameResult.hash) enginePilotCurrentModeKey = 'nflGameResult';
+  else if (location.hash === ENGINE_PILOT_MODES.cfbGameResult.hash) enginePilotCurrentModeKey = 'cfbGameResult';
+  else if (location.hash === ENGINE_PILOT_MODES.nflGameBoxscore.hash) enginePilotCurrentModeKey = 'nflGameBoxscore';
+  else if (location.hash === ENGINE_MECHANIC_MODES.matching.hash) mechanicPilotCurrentModeKey = 'matching';
+  else if (location.hash === ENGINE_MECHANIC_MODES.sorting.hash) mechanicPilotCurrentModeKey = 'sorting';
+  else if (location.hash === ENGINE_MECHANIC_MODES.higherLowerEngine.hash) mechanicPilotCurrentModeKey = 'higherLowerEngine';
+  else if (location.hash === ENGINE_MECHANIC_MODES.elimination.hash) mechanicPilotCurrentModeKey = 'elimination';
   if (state.screen === 'creator') {
     state.creator = {
       screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,

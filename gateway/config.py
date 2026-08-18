@@ -208,6 +208,24 @@ PUBLIC_GAME_RATE_LIMIT_WINDOW_SECONDS = 60.0
 PUBLIC_ANSWER_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_ANSWER_RATE_LIMIT", "60"))
 PUBLIC_ANSWER_RATE_LIMIT_WINDOW_SECONDS = 60.0
 
+# --- Public mechanics (punch-list closure pass) -----------------------------
+# Same reasoning as PUBLIC_GAME_RATE_LIMIT_MAX above, mirrored for the new
+# public MATCHING/SORTING_TIMELINE/HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL
+# routes (gateway/services/public_mechanics.py) -- round-start is tighter
+# (real generation work) than submit (a cheap in-memory evaluation against
+# already-stored state, no generation).
+PUBLIC_MECHANIC_ROUND_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_MECHANIC_ROUND_RATE_LIMIT", "20"))
+PUBLIC_MECHANIC_ROUND_RATE_LIMIT_WINDOW_SECONDS = 60.0
+PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT", "60"))
+PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT_WINDOW_SECONDS = 60.0
+# Same non-blocking-backpressure shape as PUBLIC_GENERATION_MAX_CONCURRENCY
+# above -- these mechanics' generation isn't routed through generation.py's
+# executor/timeout machinery at all (they're fast, synchronous, read-only
+# calls straight into tools/director_v04/*.py, confirmed well under 1s each
+# in Phase 6 testing), so a simple bounded semaphore is real, proportionate
+# protection against an unbounded burst, not a redesign of anything.
+PUBLIC_MECHANIC_MAX_CONCURRENCY = int(os.environ.get("READS_ENGINE_PUBLIC_MECHANIC_MAX_CONCURRENCY", "4"))
+
 # Reliability-design Phase 2: async Creator jobs -- admin-only routes
 # (already gated by require_admin), so this rate limit exists to protect
 # against a runaway script or a fat-fingered loop, not public abuse.
@@ -234,6 +252,12 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     "nfl_game_result_guess", "cfb_game_result_guess",
     # Historical Engine Enrichment operation -- built on team_game_stats.
     "nfl_game_boxscore_guess",
+    # Public-readiness punch-list: certified public only after the real
+    # generation-timeout starvation defect (see gateway/services/
+    # generation.py's _LINEUP_ISOLATED_DOMAINS) was fixed and regression-
+    # tested -- real candidate survey this pass: 66 accepted (Easy 48,
+    # Medium 13, Hard 5), all three bands genuinely represented.
+    "lineup_college_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

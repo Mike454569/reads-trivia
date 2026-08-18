@@ -65,9 +65,13 @@ def test_public_modes_no_auth_needed(client):
     # generation, gateway/services/public_coach_connections.py) REPLACES the
     # old "six_degrees_guess" entry in this list -- same product slot, see
     # app.py's public_modes() docstring.
+    # Public-readiness punch-list: lineup_college_guess is the ninth mode --
+    # certified public only after the real generation-timeout starvation
+    # defect for this domain was fixed and regression-tested (see
+    # gateway/tests/test_lineup_starvation_fix.py).
     assert set(modes_by_id) == {
         "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
-        "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
+        "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess", "lineup_college_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -221,9 +225,12 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     # registry -- see that module's own docstring.)
     assert "grid" not in config.PUBLIC_MODE_ALLOWLIST
     assert "six_degrees" not in config.PUBLIC_MODE_ALLOWLIST
+    # Public-readiness punch-list: lineup_college_guess added, certified
+    # only after its real starvation defect was fixed and regression-tested.
     assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
+        "lineup_college_guess",
     })
 
 
@@ -529,7 +536,7 @@ def test_championship_question_is_a_real_postseason_fact(client):
 
 # --- v1.3: public mode registry ------------------------------------------------
 
-def test_all_seven_certified_guess_modes_registered(client):
+def test_all_eight_certified_guess_modes_registered(client):
     # Scoped to public_game's own Director-pipeline guess-mechanic registry
     # specifically (not the combined /v1/public/modes response, which as of
     # v1.7 also includes coach_connections -- a structurally different
@@ -539,12 +546,15 @@ def test_all_seven_certified_guess_modes_registered(client):
     # operation added the fourth: cfb_heisman_guess (the first CFB mode).
     # The App-Wide Engine Migration operation added the fifth and sixth:
     # nfl_game_result_guess / cfb_game_result_guess. The Historical Engine
-    # Enrichment operation added the seventh: nfl_game_boxscore_guess.
+    # Enrichment operation added the seventh: nfl_game_boxscore_guess. The
+    # public-readiness punch-list added the eighth: lineup_college_guess,
+    # certified only after its real starvation defect was fixed.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
+        "lineup_college_guess",
     }
 
 

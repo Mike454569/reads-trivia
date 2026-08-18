@@ -43,6 +43,7 @@ from .models import (CreatorConceptsRequest, CreatorFeasibilityRequest, CreatorG
                       GenerateRequest, GridBoardRequest, GridValidateRequest,
                       MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
+                      PublicMechanicSubmitRequest,
                       PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import creator as creator_service  # noqa: E402
@@ -52,6 +53,7 @@ from .services import grid as grid_service  # noqa: E402
 from .services import admin_refresh  # noqa: E402
 from .services import public_coach_connections  # noqa: E402
 from .services import public_game  # noqa: E402
+from .services import public_mechanics  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
 from .services import audit as gateway_audit  # noqa: E402
 from .services import oplog  # noqa: E402
@@ -94,6 +96,12 @@ creator_job_create_limiter = SlidingWindowRateLimiter(
 creator_job_status_limiter = SlidingWindowRateLimiter(
     max_requests=config.CREATOR_JOB_STATUS_RATE_LIMIT_MAX,
     window_seconds=config.CREATOR_JOB_STATUS_RATE_LIMIT_WINDOW_SECONDS)
+public_mechanic_round_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_WINDOW_SECONDS)
+public_mechanic_submit_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT_WINDOW_SECONDS)
 
 
 def _validate_origins_or_die() -> list[str]:
@@ -772,8 +780,19 @@ def mechanics_submit_round(round_id: str, body: MechanicSubmitRequest, request: 
         result, new_progress = mechanic_engine.evaluate_submission(taxonomy_id, stored, progress, body.submission)
     except mechanic_engine.MechanicError as e:
         raise GatewayError("INVALID_REQUEST", str(e))
-    except (KeyError, IndexError):
-        raise GatewayError("INVALID_REQUEST", "This round has no more rounds/items to submit against.")
+    except (KeyError, IndexError, TypeError, AttributeError, ValueError):
+        # Real bug found during the public-readiness punch-list's own
+        # malformed-input verification (item 7): a MATCHING submission
+        # shaped {"mapping": "not-a-dict"} crashed _matching_evaluate()'s
+        # `mapping.items()` call with an uncaught AttributeError -- a real
+        # 500, not a clean 400. TypeError/AttributeError/ValueError are
+        # exactly the class of error a wrong-shaped submission (string
+        # instead of dict/list, wrong nesting, etc.) raises across any
+        # mechanic's evaluate function -- caught here as a single, systemic
+        # safety net rather than defensively type-checking every mechanic's
+        # own evaluate() body.
+        raise GatewayError("INVALID_REQUEST", "This round has no more rounds/items to submit against, "
+                            "or the submission was not shaped correctly for this mechanic.")
 
     new_progress["taxonomy_id"] = taxonomy_id
     game_state.save_state(round_id, new_progress)
@@ -999,3 +1018,40 @@ def public_coach_connections_search_route(request: Request,
 def public_game_answer(body: PublicAnswerRequest, request: Request,
                         _rl=Depends(rate_limit_public_answer)):
     return public_game.validate_public_answer(game_id=body.game_id, answer=body.answer)
+
+
+# --- Public mechanics (punch-list closure pass) ------------------------------
+# NO require_admin on any route here -- same reasoning as the public_game
+# section above (Part 3/6): a real anonymous browser session never receives
+# the admin token. See gateway/services/public_mechanics.py's own module
+# docstring for the full "why these four, why this is safe" reasoning.
+
+def rate_limit_public_mechanic_round(request: Request) -> None:
+    _rate_limit(public_mechanic_round_limiter, request)
+
+
+def rate_limit_public_mechanic_submit(request: Request) -> None:
+    _rate_limit(public_mechanic_submit_limiter, request)
+
+
+@app.get("/v1/public/mechanics/modes")
+def public_mechanic_modes():
+    return {"modes": public_mechanics.list_public_mechanic_modes()}
+
+
+@app.get("/v1/public/mechanics/round")
+def public_mechanics_start_round(request: Request,
+                                  mode: str = Query(..., min_length=1, max_length=64),
+                                  _rl=Depends(rate_limit_public_mechanic_round)):
+    return public_mechanics.start_public_round(mode=mode)
+
+
+@app.get("/v1/public/mechanics/round/{round_id}")
+def public_mechanics_get_round(round_id: str, request: Request):
+    return public_mechanics.get_public_round(round_id=round_id)
+
+
+@app.post("/v1/public/mechanics/round/{round_id}/submit")
+def public_mechanics_submit_round(round_id: str, body: PublicMechanicSubmitRequest, request: Request,
+                                   _rl=Depends(rate_limit_public_mechanic_submit)):
+    return public_mechanics.submit_public_round(round_id=round_id, submission=body.submission)

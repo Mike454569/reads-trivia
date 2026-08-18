@@ -248,6 +248,18 @@ class CreatorReviewRequest(BaseModel):
     review_status: Literal["REVIEWED", "APPROVED", "REJECTED"]
 
 
+class PublicMechanicSubmitRequest(BaseModel):
+    """POST /v1/public/mechanics/round/{round_id}/submit (public-readiness
+    punch-list). `submission`'s exact shape is mechanic-specific (mapping/
+    order/guess), validated against the real stored round by
+    tools.director_v02.mechanic_engine.evaluate_submission() -- never
+    trusted as truth by this model. Same bounded-dict pattern as the admin
+    MechanicSubmitRequest."""
+    model_config = ConfigDict(extra="forbid")
+
+    submission: Dict[str, Any] = Field(default_factory=dict)
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

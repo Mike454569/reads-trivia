@@ -78,8 +78,18 @@ def fetch_ordered_candidates(c, seed: str):
     """Verbatim reuse of lineup.py's own real starter-selection query --
     see that module's docstring for the full audit trail on why `starts`
     is the honest starter signal and how ties are broken deterministically.
-    This adapter only differs in what it does with the result (evaluate())."""
-    return lineup_adapter.fetch_ordered_candidates(c, seed)
+    This adapter only differs in what it does with the result (evaluate()).
+
+    Public-readiness punch-list fix: also warms the certified-college
+    lookup cache HERE, exactly once per real generation call (this function
+    is called exactly once per run, before the per-candidate evaluate()
+    loop below runs once per candidate) -- see
+    lineup.refresh_college_lookup_cache()'s own docstring for the full
+    root-cause story on why doing this per-candidate inside evaluate() was
+    the real cause of the reproduced generation-timeout defect."""
+    candidates = lineup_adapter.fetch_ordered_candidates(c, seed)
+    lineup_adapter.refresh_college_lookup_cache(c)
+    return candidates
 
 
 def evaluate(c, raw, rng, guard):

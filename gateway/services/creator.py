@@ -48,7 +48,7 @@ forces every Creator request back to "mock" outright.
 from __future__ import annotations
 
 from tools.director_v02 import feasibility as feasibility_mod
-from tools.director_v04 import nl_schedule_bridge
+from tools.director_v04 import nl_mechanic_bridge, nl_schedule_bridge
 
 from .. import config
 from . import generation, packages, game_state
@@ -57,6 +57,89 @@ from ..errors import GatewayError
 
 def _creator_provider() -> str:
     return "auto" if config.CREATOR_LLM_ENABLED else "mock"
+
+
+# --- Public-readiness punch-list: direct-taxonomy mechanic NL bridge -------
+# Same real gap, same fix pattern as the schedule-driven bridge above, for
+# the other five real mechanics (MATCHING/SORTING_TIMELINE/HIGHER_LOWER_
+# STREAK/ELIMINATION_SURVIVAL/POSITION_LINEUP_GRID) -- see
+# tools/director_v04/nl_mechanic_bridge.py's own module docstring.
+
+_DIRECT_MECHANIC_TITLES = {
+    "MATCHING": "Matching", "SORTING_TIMELINE": "Sorting / Timeline",
+    "HIGHER_LOWER_STREAK": "Higher / Lower Streak", "ELIMINATION_SURVIVAL": "Elimination / Survival",
+    "POSITION_LINEUP_GRID": "Position Lineup Grid",
+}
+
+
+def _direct_mechanic_feasibility(bridged: dict) -> dict:
+    """Mirrors _schedule_driven_feasibility()'s response shape. Unlike the
+    schedule-driven mechanics, these five have no "is there a real slate
+    yet" question -- their real variant (tools/director_v02/
+    mechanic_engine.py's own VARIANTS registry) is already
+    template_status=PRODUCTION_READY with real, already-measured candidate
+    data (Phase 6/7), so a recognized request is always SUPPORTED; this
+    function never re-derives that from scratch, it reports the same real
+    fact concepts.py's own gating already established."""
+    taxonomy_id, variant = bridged["taxonomy_id"], bridged["variant"]
+    return {
+        "support_status": "SUPPORTED",
+        "reason": None,
+        "capability": {"mechanic": taxonomy_id, "domain": variant, "relationship_predicate": None,
+                        "category": _DIRECT_MECHANIC_TITLES[taxonomy_id]},
+        "known_limitations": [],
+        "visual_template": taxonomy_id,
+        "clarifying_question": None,
+        "closest_supported_capability": None,
+        "translator_notes": f"Matched real mechanic {taxonomy_id} (variant={variant}) via the natural-language "
+                              f"bridge (tools.director_v04.nl_mechanic_bridge) -- no (mechanic, domain, predicate) "
+                              f"triple involved.",
+        "translation_status": "TRANSLATED",
+        "catalog_status": None,
+        "catalog_vocabulary_status": None,
+        "taxonomy_id": taxonomy_id,
+        "variant": variant,
+    }
+
+
+def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
+    """Routes straight into mechanic_engine.py's existing generation
+    entrypoints -- the SAME functions POST /v1/creator/mechanics/round
+    calls -- so a natural-language request and an explicit taxonomy_id
+    request produce an identical, already-tested, already-playable round
+    through the same packages/game_state storage."""
+    from tools.director_v02 import mechanic_engine
+
+    taxonomy_id, variant = bridged["taxonomy_id"], bridged["variant"]
+    real_seed = seed or "creator-nl-mechanic-bridge"
+
+    if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
+        cfg = mechanic_engine.VARIANTS["POSITION_LINEUP_GRID"][variant]
+        package = mechanic_engine.generate_guess_round(
+            domain=cfg["domain"], relationship_predicate=cfg["relationship_predicate"],
+            question_count=5, seed=real_seed)
+    elif taxonomy_id == "MATCHING":
+        package = mechanic_engine.generate_matching_round(variant=variant, round_count=3, pair_count=4, seed=real_seed)
+    elif taxonomy_id == "SORTING_TIMELINE":
+        package = mechanic_engine.generate_sorting_round(variant=variant, round_count=3, item_count=4, seed=real_seed)
+    elif taxonomy_id == "HIGHER_LOWER_STREAK":
+        package = mechanic_engine.generate_higher_lower_round(variant=variant, sequence_length=12, seed=real_seed)
+    else:  # ELIMINATION_SURVIVAL
+        package = mechanic_engine.generate_elimination_round(variant=variant, sequence_length=12, seed=real_seed)
+
+    if package.get("qa_status") != "PASSED":
+        raise GatewayError(
+            "NO_ELIGIBLE_GAME",
+            package.get("shortfall_reason") or f"No qualifying {taxonomy_id} round could be generated right now.",
+        )
+
+    stored = packages.save_package(package)
+    progress = mechanic_engine.initial_progress(taxonomy_id)
+    progress["taxonomy_id"] = taxonomy_id
+    game_state.create_state(stored["package_id"], progress)
+
+    view = mechanic_engine.client_safe_view(taxonomy_id, stored, progress)
+    return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "view": view}
 
 
 def _schedule_driven_capability_label(bridged: dict) -> dict:
@@ -110,6 +193,9 @@ def assess_feasibility(request_text: str) -> dict:
     bridged = nl_schedule_bridge.detect(request_text)
     if bridged is not None:
         return _schedule_driven_feasibility(bridged)
+    direct = nl_mechanic_bridge.detect(request_text)
+    if direct is not None:
+        return _direct_mechanic_feasibility(direct)
     return feasibility_mod.assess(request_text, provider=_creator_provider())
 
 
@@ -165,6 +251,9 @@ def generate_for_review(*, request_text: str, puzzle_count, difficulty, seed) ->
     bridged = nl_schedule_bridge.detect(request_text)
     if bridged is not None:
         return _generate_schedule_driven(bridged, seed=seed)
+    direct = nl_mechanic_bridge.detect(request_text)
+    if direct is not None:
+        return _generate_direct_mechanic(direct, seed=seed)
 
     result = generation.generate(
         request_text=request_text, spec=None, provider=_creator_provider(),

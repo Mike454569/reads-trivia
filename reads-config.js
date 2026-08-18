@@ -44,4 +44,19 @@ window.READS_CONFIG = {
   // The first CFB engine mode -- see gateway/services/public_game.py's
   // cfb_heisman_guess entry.
   enableEngineHeismanPilot: true,
+
+  // Public-readiness punch-list closure pass: 8 more real, tested modes
+  // wired into the frontend this pass -- all OFF until each is
+  // individually canary-verified against production the same way every
+  // pilot above was, matching this file's own established rollout
+  // discipline. Never flip one of these to true without that real
+  // verification having actually happened.
+  enableEngineLineupCollegePilot: false,
+  enableEngineNflGameResultPilot: false,
+  enableEngineCfbGameResultPilot: false,
+  enableEngineNflGameBoxscorePilot: false,
+  enableEngineMatchingPilot: false,
+  enableEngineSortingPilot: false,
+  enableEngineHigherLowerPilot: false,
+  enableEngineEliminationPilot: false,
 };

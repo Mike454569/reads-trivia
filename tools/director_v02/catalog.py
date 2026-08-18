@@ -223,6 +223,48 @@ def transition(c, capability_id: str, to_state: str, *, reason: str | None = Non
             "reason": reason, "transitioned_at": now}
 
 
+def recompute_public_availability(c) -> dict:
+    """Public-readiness punch-list: fixes a real, found metadata/routing
+    mismatch. `public_availability` was only ever SET once, at the Phase 1
+    backfill migration (capability_catalog_schema.py), hardcoded to
+    'PUBLIC_ENABLED' for every legacy row regardless of whether it was
+    ACTUALLY reachable through gateway/config.py's PUBLIC_MODE_ALLOWLIST --
+    confirmed by direct audit: 21 rows claimed PUBLIC_ENABLED, only 7 were
+    real (a 14-row gap). `PUBLIC_MODE_ALLOWLIST` (via public_game.py's
+    PUBLIC_MODES, the ACTUAL routing table `/v1/public/game` reads) is the
+    one real source of truth for "can an anonymous player reach this" --
+    this function makes `public_availability` a faithful, recomputed
+    reflection of that table, never a second independently-drifting copy.
+    Never invents a new value: only ever writes 'PUBLIC_ENABLED' (a real
+    PUBLIC_MODES entry's spec matches this row's domain+predicate) or
+    'PRIVATE' (every other real value already used for the 2
+    HUMAN_APPROVED/GENERATION_VERIFIED rows) -- 'blindly making everything
+    public to make the field match' was explicitly out of scope; this only
+    ever tightens a false claim, never loosens a true one, and never
+    changes verification_status or actual routing itself."""
+    from gateway.services import public_game
+
+    public_predicates = {
+        (entry["spec"]["domain"], entry["spec"]["relationship_predicate"])
+        for entry in public_game.PUBLIC_MODES.values()
+    }
+
+    rows = c.execute("SELECT capability_id, domain, relationship_predicate, public_availability FROM capability_catalog").fetchall()
+    now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    changed = []
+    for row in rows:
+        correct_value = "PUBLIC_ENABLED" if (row["domain"], row["relationship_predicate"]) in public_predicates else "PRIVATE"
+        if row["public_availability"] != correct_value:
+            c.execute(
+                "UPDATE capability_catalog SET public_availability=?, updated_at=? WHERE capability_id=?",
+                (correct_value, now, row["capability_id"]),
+            )
+            changed.append({"capability_id": row["capability_id"],
+                             "from": row["public_availability"], "to": correct_value})
+    c.commit()
+    return {"rows_checked": len(rows), "rows_corrected": len(changed), "corrections": changed}
+
+
 def verify_registry_consistency(capability_id: str) -> dict:
     """Phase-1 scoped subset of the full drift check (revision 3, §4): for
     a single capability, confirms exactly one registry.py entry matches its

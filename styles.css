@@ -1027,6 +1027,28 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 .lineup-pos { color: var(--accent); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
 .lineup-name { font-size: 12.5px; font-weight: 600; margin-top: 3px; line-height: 1.25; word-break: break-word; }
+/* Mechanic Pilot shell (public-readiness punch-list) -- MATCHING/
+   SORTING_TIMELINE/HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL public modes.
+   Reuses existing design tokens (--border/--bg-card/--accent/--text/
+   --text-dim), same discipline as every other engine-game-ui.js style. */
+.status-line { font-size: 12.5px; color: var(--text-dim); margin: 0 0 10px; }
+.match-row { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.match-row.paired { border-color: var(--accent); }
+.match-left { flex: 0 0 40%; font-weight: 600; font-size: 13.5px; }
+.match-right-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.match-right-chip { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; background: var(--bg-card); color: var(--text); }
+.match-right-chip.selected { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+.sort-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13.5px; }
+.sort-controls button { margin-left: 4px; }
+.hl-compare { display: flex; justify-content: space-between; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }
+.hl-value { font-size: 20px; font-weight: 800; }
+.hl-hidden { font-size: 20px; font-weight: 800; color: var(--text-dim); }
+@media (max-width: 480px) {
+  .match-left { flex: 0 0 100%; margin-bottom: 4px; }
+  .match-row { flex-direction: column; align-items: flex-start; }
+  .hl-compare { padding: 10px; }
+  .hl-value, .hl-hidden { font-size: 17px; }
+}
 /* Game Creator (v1.8, Part B) -- admin-only hidden page, utilitarian
    styling reusing existing tokens/patterns rather than a parallel design
    language (same call as the pre-existing #stats owner-only page). */

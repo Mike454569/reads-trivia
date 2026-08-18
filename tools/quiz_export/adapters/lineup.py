@@ -239,14 +239,14 @@ MIN_FULL_LINEUP_COLLEGE_COVERAGE = 20
 # ideal.
 
 
-def certified_college_lookup(c) -> dict[str, str]:
-    """The single, real source of truth for "does this NFL player have a
-    certified college?", reused by both `lineup_college_coverage()` (the
-    Feasibility-facing measurement) and `adapters/lineup_college.py` (the
-    actual generation path) -- one lookup, not two independently-maintained
-    copies. Certified bridge first (highest confidence), ATTENDED_BEFORE_
-    DRAFT fills in anyone still missing (see module docstring above for why
-    both are real, already-vetted sources, not a new blind join)."""
+_college_lookup_cache: dict = {"data": None}
+
+
+def _rebuild_college_lookup_cache(c) -> dict[str, str]:
+    """Unconditionally rebuilds the real, current lookup from both source
+    tables and stores it. Always correct (never stale) because it is only
+    ever called once per real generation run -- see
+    `refresh_college_lookup_cache()`'s own docstring for why."""
     bridge = {
         r["nfl_player_key"]: r["school_name"]
         for r in c.execute(f"SELECT nfl_player_key, school_name FROM {CERTIFIED_BRIDGE_TABLE}")
@@ -256,7 +256,47 @@ def certified_college_lookup(c) -> dict[str, str]:
         "JOIN schools s ON s.school_id = r.subject_id WHERE r.predicate='ATTENDED_BEFORE_DRAFT'"
     ):
         bridge.setdefault(r["nfl_player_key"], r["school_name"])
+    _college_lookup_cache["data"] = bridge
     return bridge
+
+
+def refresh_college_lookup_cache(c) -> dict[str, str]:
+    """Real bug found and fixed during the public-readiness punch-list pass
+    -- the actual root cause of POSITION_LINEUP_GRID's reproduced 45s-
+    timeout starvation, confirmed by direct profiling (cProfile): `core.py`'s
+    generic export loop calls `adapter.evaluate(c, raw, rng, guard)` once
+    PER CANDIDATE (415 real team-seasons for this domain), and
+    `lineup_college.py`'s `evaluate()` called `certified_college_lookup()`
+    every time. A first attempted fix (cache keyed by the two source
+    tables' row counts) was ITSELF still slow: `relationships` has no index
+    leading with `predicate` alone (confirmed via `EXPLAIN QUERY PLAN` --
+    both real indexes are composite, leading with subject_type/object_type),
+    so even a bare `COUNT(*) WHERE predicate=...` against its 1.4M rows
+    costs ~0.4s on its own, still called on every one of the 415 candidates.
+
+    The real fix: warm this cache EXACTLY ONCE per real generation call, by
+    calling this function from `lineup_college.fetch_ordered_candidates()`
+    (itself called exactly once per generation, before the per-candidate
+    evaluate loop begins) -- never from inside `evaluate()` at all. This is
+    zero-staleness-risk (rebuilt fresh at the start of every real
+    generation run, using the live connection for that run) AND reduces
+    per-candidate cost to a pure in-memory dict lookup, not a query."""
+    return _rebuild_college_lookup_cache(c)
+
+
+def certified_college_lookup(c) -> dict[str, str]:
+    """The single, real source of truth for "does this NFL player have a
+    certified college?", reused by both `lineup_college_coverage()` (the
+    Feasibility-facing measurement, which calls this directly and should
+    always see current data) and `adapters/lineup_college.py`'s `evaluate()`
+    (which relies on `fetch_ordered_candidates()` having already called
+    `refresh_college_lookup_cache()` once for the current run -- see that
+    function's docstring). Falls back to a real rebuild if nothing has
+    warmed the cache yet (e.g. a standalone caller), so this is always
+    correct even though the hot generation path never takes this branch."""
+    if _college_lookup_cache["data"] is None:
+        return _rebuild_college_lookup_cache(c)
+    return _college_lookup_cache["data"]
 
 
 def lineup_college_coverage(c) -> dict:
@@ -291,7 +331,11 @@ def lineup_college_coverage(c) -> dict:
     guard = duplicates_mod.DuplicateGuard(track_entity=TRACK_ENTITY)
     playable_rows = [raw for raw in rows if not isinstance(evaluate(c, raw, rng, guard), str)]
 
-    bridge = certified_college_lookup(c)
+    # Forces a real rebuild (never the generation-path cache) -- this
+    # function's own contract is "recomputed from the database on every
+    # call," which must hold regardless of whatever an unrelated earlier
+    # generation call already warmed in-process.
+    bridge = refresh_college_lookup_cache(c)
 
     full_lineup_coverage = 0
     skill_only_coverage = 0

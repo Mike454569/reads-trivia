@@ -170,6 +170,53 @@ var ENGINE_PILOT_MODES = {
     // already-working, zero-network fallback, not a placeholder.
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
   },
+  // Public-readiness punch-list: the college-identity lineup variant --
+  // same "guess" mechanic/single-question contract as `lineup` above,
+  // just a different real capability (NFL_OFFENSE_LINEUP_COLLEGE), so it
+  // reuses this exact shared shell with zero new render/state code. Only
+  // certified public after the real generation-timeout starvation defect
+  // for this domain was fixed and regression-tested this pass.
+  lineupCollege: {
+    apiMode: 'lineup_college_guess',
+    hash: '#lineupcollegepilot',
+    flagOn: function () { return ENABLE_ENGINE_LINEUP_COLLEGE_PILOT_V01; },
+    title: 'NFL Starting Lineups: Guess the Team (By College)',
+    desc: "See a real NFL team's starting offense by position and college (names hidden), and guess the team.",
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
+  // Public-readiness punch-list: three real, already-live public
+  // capabilities (App-Wide Engine Migration / Historical Engine
+  // Enrichment operations) that had zero frontend entry point before this
+  // pass -- confirmed live on `/v1/public/modes` but absent from
+  // ENGINE_PILOT_MODES. Same shared shell, zero new render/state code.
+  nflGameResult: {
+    apiMode: 'nfl_game_result_guess',
+    hash: '#nflgameresultpilot',
+    flagOn: function () { return ENABLE_ENGINE_NFL_GAME_RESULT_PILOT_V01; },
+    title: 'NFL Game Results: Guess the Winner',
+    desc: "See a real NFL matchup, and guess which team won.",
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  cfbGameResult: {
+    apiMode: 'cfb_game_result_guess',
+    hash: '#cfbgameresultpilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_GAME_RESULT_PILOT_V01; },
+    title: 'CFB Game Results: Guess the Winner',
+    desc: "See a real college football matchup, and guess which team won.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  nflGameBoxscore: {
+    apiMode: 'nfl_game_boxscore_guess',
+    hash: '#nflgameboxscorepilot',
+    flagOn: function () { return ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01; },
+    title: 'NFL Box Scores: Guess Who Gained More Yards',
+    desc: "See a real NFL matchup, and guess which team gained more total yards.",
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var enginePilotCurrentModeKey = 'draft';
 function enginePilotModeConfig(modeKey) {
@@ -427,5 +474,196 @@ function renderEnginePilotScreen() {
       ? '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (s.answerResult.notes ? ' ' + esc(s.answerResult.notes) : '') + '</div>' +
         '<button class="btn-primary" data-pilot-next>' + (s.roundIndex + 1 >= s.roundSize ? 'See Results' : 'Next Question') + '</button>'
       : '') +
+    '</div>';
+}
+
+/* ============================== Mechanic Pilot shell (public-readiness punch-list) ==============================
+   A second shared shell, alongside Engine Pilot above, for the four
+   mechanics that do NOT share the "guess" single-question contract
+   (MATCHING/SORTING_TIMELINE/HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL --
+   pairing, ordering, streak, and survival are all genuinely different
+   interaction shapes, so this shell preserves each one's own real
+   mechanic rather than forcing them into multiple-choice, per this
+   pass's own instruction). Calls the new, unauthenticated
+   /v1/public/mechanics/* routes (gateway/services/public_mechanics.py) --
+   never the admin-gated /v1/creator/mechanics/* routes. Reuses
+   enginePilotFetchJson/ENGINE_GAME_ERROR_COPY/enginePilotUserFacingError
+   from the shell above unchanged (same timeout, same never-show-raw-
+   server-text discipline), and the same .panel/.btn-primary/.btn-secondary/
+   .quiz-feedback CSS classes -- no parallel visual language. */
+var ENGINE_MECHANIC_MODES = {
+  matching: {
+    publicMode: 'matching_nfl_draft', hash: '#matchingpilot',
+    flagOn: function () { return ENABLE_ENGINE_MATCHING_PILOT_V01; },
+    title: 'NFL Draft Class Matching', kind: 'matching',
+    desc: 'Match each real NFL Draft pick to the real team that drafted him.',
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
+  sorting: {
+    publicMode: 'sorting_cfb_heisman', hash: '#sortingpilot',
+    flagOn: function () { return ENABLE_ENGINE_SORTING_PILOT_V01; },
+    title: 'Heisman Timeline', kind: 'sorting',
+    desc: 'Put real Heisman Trophy winners in order, earliest year first.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  higherLowerEngine: {
+    publicMode: 'higher_lower_nfl_wins', hash: '#higherlowerenginepilot',
+    flagOn: function () { return ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01; },
+    title: 'NFL Wins Streak', kind: 'higher_lower',
+    desc: 'Guess whether the next real NFL team-season had a higher or lower win total.',
+    fallbackLabel: 'Play Higher or Lower Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'home'; },
+  },
+  elimination: {
+    publicMode: 'elimination_nfl_super_bowl', hash: '#eliminationpilot',
+    flagOn: function () { return ENABLE_ENGINE_ELIMINATION_PILOT_V01; },
+    title: 'Super Bowl Champion Survival', kind: 'elimination',
+    desc: 'One miss ends the run. Answer True or False for each real NFL team-season.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+};
+var mechanicPilotCurrentModeKey = 'matching';
+function mechanicPilotModeConfig(modeKey) {
+  return ENGINE_MECHANIC_MODES[modeKey] || ENGINE_MECHANIC_MODES.matching;
+}
+function startMechanicPilotRound(modeKey) {
+  if (modeKey) mechanicPilotCurrentModeKey = modeKey;
+  state.mechanicPilot = { modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null, result: null, error: null, matchSelection: {} };
+  state.screen = 'mechanicPilot';
+  renderAll();
+  loadMechanicPilotRound();
+}
+function mechanicPilotFallback() {
+  var modeKey = (state.mechanicPilot && state.mechanicPilot.modeKey) || mechanicPilotCurrentModeKey;
+  mechanicPilotModeConfig(modeKey).fallback();
+}
+function loadMechanicPilotRound() {
+  var s = state.mechanicPilot;
+  if (!s) return;
+  var cfg = mechanicPilotModeConfig(s.modeKey);
+  s.screen = ENGINE_GAME_SCREEN.LOADING; s.error = null; s.result = null; s.matchSelection = {};
+  renderAll();
+  enginePilotFetchJson('/v1/public/mechanics/round?mode=' + encodeURIComponent(cfg.publicMode))
+    .then(function (data) {
+      if (state.mechanicPilot !== s) return;
+      s.roundId = data.round_id; s.view = data.view;
+      s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
+      renderAll();
+    })
+    .catch(function (err) {
+      if (state.mechanicPilot !== s) return;
+      s.screen = ENGINE_GAME_SCREEN.ERROR; s.error = enginePilotUserFacingError(err);
+      renderAll();
+    });
+}
+function submitMechanicPilotAction(submission) {
+  var s = state.mechanicPilot;
+  if (!s || !s.roundId) return;
+  s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
+  renderAll();
+  enginePilotFetchJson('/v1/public/mechanics/round/' + encodeURIComponent(s.roundId) + '/submit', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ submission: submission }),
+  }).then(function (data) {
+    if (state.mechanicPilot !== s) return;
+    s.result = data.result; s.view = data.view; s.matchSelection = {};
+    var wasCorrect = data.result && (data.result.correct === true || data.result.all_correct === true || data.result.exact_match === true);
+    playSound(wasCorrect ? 'correct' : 'wrong');
+    s.screen = ENGINE_GAME_SCREEN.ANSWERED;
+    renderAll();
+  }).catch(function (err) {
+    if (state.mechanicPilot !== s) return;
+    s.screen = ENGINE_GAME_SCREEN.ERROR; s.error = enginePilotUserFacingError(err);
+    renderAll();
+  });
+}
+function mechanicPilotAdvance() {
+  var s = state.mechanicPilot;
+  if (!s) return;
+  var completed = s.view && (s.view.completed || s.view.ended || s.view.sequence_complete);
+  if (completed) { s.screen = ENGINE_GAME_SCREEN.COMPLETE; renderAll(); return; }
+  s.screen = ENGINE_GAME_SCREEN.QUESTION_READY; s.result = null;
+  renderAll();
+}
+function mechanicPilotToolbarHtml() {
+  return '<div class="mode-toolbar"><button class="btn-tiny" data-mechanic-exit>' + icon('close') + ' Exit to Home</button></div>';
+}
+function renderMechanicPilotBody(cfg, s) {
+  var v = s.view;
+  if (cfg.kind === 'matching') {
+    var mapping = s.matchSelection;
+    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+      v.left_items.map(function (li) {
+        var chosen = mapping[li.item_id];
+        return '<div class="match-row' + (chosen ? ' paired' : '') + '"><div class="match-left">' + esc(li.label) + '</div>' +
+          '<div class="match-right-list">' + v.right_items.map(function (ri) {
+            return '<span class="match-right-chip' + (chosen === ri.item_id ? ' selected' : '') + '" data-match-left="' + esc(li.item_id) + '" data-match-right="' + esc(ri.item_id) + '">' + esc(ri.label) + '</span>';
+          }).join('') + '</div></div>';
+      }).join('') +
+      '<div class="btn-row"><button class="btn-primary" data-match-submit' + (Object.keys(mapping).length < v.left_items.length ? ' disabled' : '') + '>Submit Matches</button></div>';
+  }
+  if (cfg.kind === 'sorting') {
+    if (!s.sortOrder) s.sortOrder = v.items_shuffled.map(function (it) { return it.item_id; });
+    var labelFor = function (id) { var it = v.items_shuffled.filter(function (x) { return x.item_id === id; })[0]; return it ? it.label : id; };
+    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+      s.sortOrder.map(function (id, i) {
+        return '<div class="sort-row"><span>' + (i + 1) + '. ' + esc(labelFor(id)) + '</span><span class="sort-controls">' +
+          '<button class="btn-tiny" data-sort-up="' + i + '">Up</button><button class="btn-tiny" data-sort-down="' + i + '">Down</button></span></div>';
+      }).join('') +
+      '<div class="btn-row"><button class="btn-primary" data-sort-submit>Submit Order</button></div>';
+  }
+  if (cfg.kind === 'higher_lower') {
+    return '<div class="status-line">Streak: ' + (v.streak || 0) + '</div>' +
+      '<div class="hl-compare"><span>' + esc(v.current_item.label) + '</span><span class="hl-value">' + esc(String(v.current_item.value)) + '</span></div>' +
+      '<div class="hl-compare"><span>' + (v.next_item ? esc(v.next_item.label) : '(no more real items)') + '</span>' +
+      '<span class="' + (v.next_item && v.next_item.value !== undefined ? 'hl-value' : 'hl-hidden') + '">' + (v.next_item && v.next_item.value !== undefined ? esc(String(v.next_item.value)) : '?') + '</span></div>' +
+      // data-mechanic-hl-guess, deliberately NOT data-hl-guess -- that
+      // attribute already belongs to the legacy, client-side higherLower
+      // mode's own buttons (app.js), which fire a completely different
+      // handler (submitHigherLowerGuess). Reusing it here would silently
+      // call the wrong function whenever this screen is showing.
+      (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-mechanic-hl-guess="higher">Higher</button><button class="btn-primary" data-mechanic-hl-guess="lower">Lower</button></div>');
+  }
+  if (cfg.kind === 'elimination') {
+    return '<div class="status-line">Survived: ' + (v.survived_count || 0) + '</div>' +
+      '<div class="quiz-question">' + esc(v.current_prompt || '(no more real items)') + '</div>' +
+      (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-elim-guess="true">True</button><button class="btn-primary" data-elim-guess="false">False</button></div>');
+  }
+  return '';
+}
+function renderMechanicPilotScreen() {
+  var s = state.mechanicPilot;
+  var cfg = mechanicPilotModeConfig(s ? s.modeKey : mechanicPilotCurrentModeKey);
+  if (!cfg.flagOn()) return renderHome();
+  if (!s) {
+    return '<div class="panel"><h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
+      '<p class="mode-desc">' + esc(cfg.desc) + '</p>' +
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Start</button></div></div>';
+  }
+  if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
+    return '<div class="panel">' + mechanicPilotToolbarHtml() + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
+  }
+  if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
+    return '<div class="panel">' + mechanicPilotToolbarHtml() +
+      '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-retry>Try Again</button>' +
+      '<button class="btn-secondary" data-mechanic-fallback>' + esc(cfg.fallbackLabel) + '</button></div></div>';
+  }
+  if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
+    return '<div class="panel">' + mechanicPilotToolbarHtml() + '<h2 class="panel-title">Round Complete</h2>' +
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button></div></div>';
+  }
+  var answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
+  var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
+  if (submitting) {
+    return '<div class="panel">' + mechanicPilotToolbarHtml() + renderMechanicPilotBody(cfg, s) +
+      '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
+  }
+  return '<div class="panel">' + mechanicPilotToolbarHtml() + renderMechanicPilotBody(cfg, s) +
+    (answered ? '<div class="quiz-feedback" aria-live="polite">Result: ' + esc(JSON.stringify(s.result)) + '</div>' +
+      '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
     '</div>';
 }

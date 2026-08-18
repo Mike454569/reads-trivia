@@ -72,9 +72,18 @@ def test_legacy_capabilities_are_not_marked_human_approved():
         assert row["human_review_status"] == "LEGACY_GRANDFATHERED"
 
 
-def test_legacy_capabilities_preserve_public_availability():
-    """Preserve existing runtime behavior: end-user availability is
-    unchanged for the 21 real, already-live capabilities."""
+def test_legacy_capability_public_availability_matches_real_routing():
+    """Superseded by the public-readiness punch-list: `public_availability`
+    used to be hardcoded 'PUBLIC_ENABLED' for every legacy row at backfill
+    time, regardless of whether gateway/config.py's PUBLIC_MODE_ALLOWLIST
+    actually routed to it -- a real, found 14-row metadata/routing mismatch
+    (see tools/director_v02/catalog.py's recompute_public_availability()
+    and gateway/tests/test_public_availability_truth.py for the full fix
+    and its own dedicated regression coverage). The real invariant now is
+    "matches PUBLIC_MODE_ALLOWLIST," not "always PUBLIC_ENABLED" -- this
+    test only confirms every legacy row still has SOME real, valid value,
+    never a blank/fabricated one; the exact-match invariant lives in
+    test_public_availability_truth.py, not duplicated here."""
     c = engine_bootstrap.connect()
     try:
         rows = c.execute(
@@ -84,7 +93,7 @@ def test_legacy_capabilities_preserve_public_availability():
     finally:
         c.close()
     assert rows
-    assert all(r["public_availability"] == "PUBLIC_ENABLED" for r in rows)
+    assert all(r["public_availability"] in ("PUBLIC_ENABLED", "PRIVATE") for r in rows)
 
 
 def test_no_coverage_fields_were_fabricated_on_backfill():
