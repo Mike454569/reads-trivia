@@ -44,6 +44,85 @@ _PASS_TD_RE = re.compile(r"^(?P<passer>.+?) pass complete to (?P<receiver>.+?) f
 _RETURN_TD_RE = re.compile(r"^(?P<name>.+?) \d+ Yds? (?:Interception|Kickoff|Punt) Return", re.IGNORECASE)
 _SACK_RE = re.compile(r"^(?P<passer>.+?) sacked by (?P<defender>.+?) for a loss")
 
+# --- Knowledge Expansion Batch 4: broader, non-scoring-only event parsing ---
+# Real, confirmed modern-era (~2013+) CFBD play_text patterns for events
+# beyond touchdowns. Each pattern was verified against real sample rows
+# before being adopted (see cfb_pbp_facts identity-coverage measurement);
+# older-era text (pre-~2013) uses different phrasing and is NOT covered by
+# these patterns -- those rows are honestly unresolved, never guessed.
+_RUSH_RE = re.compile(r"^(?P<rusher>.+?) run for")
+_PASS_RE = re.compile(r"^(?P<passer>.+?) pass complete to (?P<receiver>.+?) for")
+# Sack text has three real, distinct shapes: passer+defender named, passer
+# only (no defender identified), or defender only (passer name omitted
+# from this particular row) -- each is a real, distinct partial-identity
+# case, never force-filled from the other.
+_SACK_WITH_DEFENDER_RE = re.compile(r"^(?P<passer>.+?) sacked by (?P<defender>.+?)(?: and (?P<defender2>.+?))? for a loss")
+_SACK_NO_DEFENDER_RE = re.compile(r"^(?P<passer>.+?) sacked for a loss")
+_SACK_DEFENDER_ONLY_RE = re.compile(r"^sacked by (?P<defender>.+?)(?: and (?P<defender2>.+?))? for a loss")
+_INTERCEPTION_RE = re.compile(r"^(?P<passer>.+?) pass intercepted(?: by)? (?P<defender>.+?) return for")
+_FG_KICKER_RE = re.compile(r"^(?P<kicker>.+?) \d+ yd FG (?:GOOD|MISSED)")
+_XP_KICKER_RE = re.compile(r"^Extra point by (?P<kicker>.+?)(?:\s*\(|\s+is)")
+_KICKOFF_RETURN_RE = re.compile(r"^(?P<kicker>.+?) kickoff for \d+ yds\s*,\s*(?P<returner>\S.*?) return for")
+
+# Event-type -> (regex, roles) used by `extract_event_participants`.
+_EVENT_PATTERNS = {
+    "Rush": (_RUSH_RE, ("rusher",)),
+    "Rushing Touchdown": (_RUSH_RE, ("rusher",)),
+    "Pass Reception": (_PASS_RE, ("passer", "receiver")),
+    "Pass Completion": (_PASS_RE, ("passer", "receiver")),
+    "Passing Touchdown": (_PASS_RE, ("passer", "receiver")),
+    "Field Goal Good": (_FG_KICKER_RE, ("kicker",)),
+    "Field Goal Missed": (_FG_KICKER_RE, ("kicker",)),
+    "Extra Point Good": (_XP_KICKER_RE, ("kicker",)),
+    "Extra Point Missed": (_XP_KICKER_RE, ("kicker",)),
+    "Kickoff Return (Offense)": (_KICKOFF_RETURN_RE, ("kicker", "returner")),
+}
+
+
+def extract_event_participants(row: dict) -> dict:
+    """PLAY -> raw participant name(s) for the play's real event type.
+    Sack and interception get dedicated handling (multiple real text
+    shapes); everything else uses the `_EVENT_PATTERNS` table. Returns an
+    empty dict for a play type/text this module doesn't have a confirmed
+    pattern for -- never guesses a shape it hasn't verified."""
+    text = row.get("play_text") or ""
+    pt = row.get("play_type")
+
+    if pt == "Sack":
+        m = _SACK_WITH_DEFENDER_RE.match(text)
+        if m:
+            out = {"passer_name_raw": m.group("passer"), "defender_name_raw": m.group("defender")}
+            if m.group("defender2"):
+                out["defender2_name_raw"] = m.group("defender2")
+            return out
+        m = _SACK_NO_DEFENDER_RE.match(text)
+        if m:
+            return {"passer_name_raw": m.group("passer")}
+        m = _SACK_DEFENDER_ONLY_RE.match(text)
+        if m:
+            out = {"defender_name_raw": m.group("defender")}
+            if m.group("defender2"):
+                out["defender2_name_raw"] = m.group("defender2")
+            return out
+        return {}
+
+    if pt in ("Pass Interception", "Pass Interception Return", "Interception"):
+        m = _INTERCEPTION_RE.match(text)
+        return {"passer_name_raw": m.group("passer"), "defender_name_raw": m.group("defender")} if m else {}
+
+    if pt == "Interception Return Touchdown":
+        m = _RETURN_TD_RE.match(text)
+        return {"defender_name_raw": m.group("name")} if m else {}
+
+    entry = _EVENT_PATTERNS.get(pt)
+    if not entry:
+        return {}
+    pattern, roles = entry
+    m = pattern.match(text)
+    if not m:
+        return {}
+    return {f"{role}_name_raw": m.group(role) for role in roles}
+
 SCORING_PLAY_TYPE_MAP = {
     "Rushing Touchdown": "RUSHING_TOUCHDOWN",
     "Passing Touchdown": "PASSING_TOUCHDOWN",
@@ -162,6 +241,75 @@ def game_scoring_plays(c, *, game_id: str, resolve_identity: bool = True) -> lis
             entry["identity"] = resolved
         out.append(entry)
     return out
+
+
+# Roles resolved against the DEFENSE school (the play's tackler/defender
+# side); every other role resolves against the OFFENSE school. Kickoff
+# returns are a real exception -- see module docstring's kickoff-return
+# offense/defense-convention note: the kicking team is `offense_school_id`.
+_DEFENSE_SIDE_ROLES = frozenset({"defender", "defender2", "returner"})
+
+
+def game_play_events(c, *, game_id: str, event_types: tuple[str, ...] | None = None,
+                      resolve_identity: bool = True) -> list[dict]:
+    """GAME -> PLAY_EVENTS -- broader-than-scoring player-event coverage
+    (Knowledge Expansion Batch 4): rush/pass/sack/interception/kicker/
+    kickoff-return participants, resolved on demand for the plays a
+    caller actually asks about (never precomputed across all 3.7M rows --
+    see module docstring)."""
+    out = []
+    for row in game_plays(c, game_id=game_id):
+        pt = row["play_type"]
+        if event_types and pt not in event_types:
+            continue
+        participants = extract_event_participants(row)
+        if not participants:
+            continue
+        entry = {
+            "play_id": row["play_id"], "play_type": pt, "period": row["period"],
+            "yards": row["yards_gained"], "offense_school_id": row["offense_school_id"],
+            "defense_school_id": row["defense_school_id"], "play_text": row["play_text"],
+        }
+        if resolve_identity:
+            resolved = {}
+            for role_key, name in participants.items():
+                role = role_key.replace("_name_raw", "")
+                school_for_role = row["defense_school_id"] if role in _DEFENSE_SIDE_ROLES else row["offense_school_id"]
+                resolved[role] = _resolve_cfb_player_name(c, name=name, school_id=school_for_role, season=row["season"])
+            entry["identity"] = resolved
+        out.append(entry)
+    return out
+
+
+def broader_identity_coverage(c, *, game_id: str) -> dict:
+    """Measured, honest player-identity coverage across the BROADER event
+    set (rush/pass/sack/interception/kicker/kickoff-return), not just
+    scoring plays -- the real, expanded scope Batch 4 adds on top of
+    Batch 3's scoring-only measurement."""
+    events = game_play_events(c, game_id=game_id, resolve_identity=True)
+    by_event_type: dict[str, dict] = {}
+    total = resolved = unresolved = ambiguous = 0
+    for e in events:
+        et = e["play_type"]
+        stats = by_event_type.setdefault(et, {"slots": 0, "resolved": 0, "unresolved": 0, "ambiguous": 0})
+        for role, info in e.get("identity", {}).items():
+            total += 1
+            stats["slots"] += 1
+            if info["resolution"] == "UNIQUE_ROSTER_MATCH":
+                resolved += 1
+                stats["resolved"] += 1
+            elif info["resolution"].startswith("AMBIGUOUS"):
+                ambiguous += 1
+                stats["ambiguous"] += 1
+            else:
+                unresolved += 1
+                stats["unresolved"] += 1
+    return {
+        "game_id": game_id, "events_with_a_pattern_match": len(events),
+        "name_slots_found": total, "resolved": resolved, "unresolved": unresolved, "ambiguous": ambiguous,
+        "resolution_pct": round(100.0 * resolved / total, 1) if total else 0.0,
+        "by_event_type": by_event_type,
+    }
 
 
 def game_turnovers(c, *, game_id: str) -> list[dict]:
