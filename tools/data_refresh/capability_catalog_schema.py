@@ -154,6 +154,31 @@ def _ensure_schema(c) -> None:
         )
     """)
     c.commit()
+    _migrate_add_template_status_column(c)
+
+
+# Reliability Design Phase 6: real production-readiness status per template,
+# distinct from creator_pipeline_supported (which only ever meant "the
+# Creator pipeline knows this taxonomy exists", not "a real, tested,
+# client-safe, no-leakage round can actually be generated and played" --
+# exactly the ambiguity Phase 5's false-playability bug exploited). A plain
+# ALTER TABLE (not a table rebuild) since sqlite3 supports ADD COLUMN
+# directly and every existing row gets the same honest default.
+_TEMPLATE_STATUS_VALUES = frozenset({"NOT_BUILT", "SCHEMA_ONLY", "PRODUCTION_READY"})
+
+
+def _migrate_add_template_status_column(c) -> None:
+    cols = {row[1] for row in c.execute("PRAGMA table_info(mechanic_taxonomy)")}
+    if "template_status" not in cols:
+        c.execute("ALTER TABLE mechanic_taxonomy ADD COLUMN template_status TEXT NOT NULL DEFAULT 'NOT_BUILT'")
+        c.commit()
+
+
+def set_template_status(c, taxonomy_id: str, status: str) -> None:
+    if status not in _TEMPLATE_STATUS_VALUES:
+        raise ValueError(f"status must be one of {sorted(_TEMPLATE_STATUS_VALUES)}, got {status!r}")
+    c.execute("UPDATE mechanic_taxonomy SET template_status=? WHERE taxonomy_id=?", (status, taxonomy_id))
+    c.commit()
 
 
 _TAXONOMY_SEED = [
@@ -172,6 +197,18 @@ _TAXONOMY_SEED = [
      "Real, directly comparable numeric value between two same-type entities.", 0, 1, None),
     ("ELIMINATION_SURVIVAL", "Elimination / category survival",
      "Real, unambiguous category-membership test.", 0, 0, None),
+    # Reliability Design Phase 6: formalizes the pre-existing POSITION_LINEUP /
+    # POSITION_LINEUP_COLLEGE visual templates (tools/director_v02/
+    # visual_templates.py, engine-game-ui.js's renderPositionLineupBoard/
+    # renderPositionLineupCollegeBoard) as their own real taxonomy entry --
+    # same underlying "guess" mechanic/answer contract as
+    # MULTIPLE_CHOICE_SINGLE_FACT, but a genuinely different round shape
+    # (a position board, not a plain question sentence), so Creator-facing
+    # diversity treats it as its own template rather than silently
+    # collapsing into MATCHING (the bug this phase's audit found in
+    # concepts.py's old domain-substring compatibility rule).
+    ("POSITION_LINEUP_GRID", "Position lineup board",
+     "A real team-season's starting offense, shown by position, guessed by team (and optionally season).", 1, 1, None),
 ]
 
 

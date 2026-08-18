@@ -180,6 +180,44 @@ class CreatorConceptsRequest(BaseModel):
     exclude_concept_ids: Optional[List[str]] = Field(default=None, max_length=200)
 
 
+class MechanicRoundRequest(BaseModel):
+    """POST /v1/creator/mechanics/round (Phase 6, common mechanic execution
+    contract). Generates one real PRIVATE round/contest via
+    tools.director_v02.mechanic_engine.py -- the caller names a taxonomy_id
+    and the real knobs that taxonomy needs; unused knobs for a given
+    taxonomy_id are simply ignored by the route handler, never silently
+    reinterpreted. Never accepts an answer key, a private value, or any
+    other server-only field -- only generation PARAMETERS."""
+    model_config = ConfigDict(extra="forbid")
+
+    taxonomy_id: Literal[
+        "MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
+        "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
+    ]
+    variant: Optional[str] = Field(default=None, max_length=64)
+    domain: Optional[str] = Field(default=None, max_length=64)
+    relationship_predicate: Optional[str] = Field(default=None, max_length=64)
+    round_count: Optional[int] = Field(default=None, ge=1, le=25)
+    pair_count: Optional[int] = Field(default=None, ge=4, le=6)
+    item_count: Optional[int] = Field(default=None, ge=4, le=6)
+    sequence_length: Optional[int] = Field(default=None, ge=8, le=25)
+    question_count: Optional[int] = Field(default=None, ge=1, le=25)
+    seed: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
+class MechanicSubmitRequest(BaseModel):
+    """POST /v1/creator/mechanics/round/{round_id}/submit. `submission`'s
+    exact shape is mechanic-specific (answer/mapping/order/guess/
+    guess_name/action) -- validated by tools.director_v02.mechanic_engine.
+    evaluate_submission() against the real stored round, never trusted as
+    truth by this model. Bounded size (Part F's MAX_BODY_BYTES middleware
+    already caps the whole request; this field-level cap is defense in
+    depth against a pathologically large single field)."""
+    model_config = ConfigDict(extra="forbid")
+
+    submission: Dict[str, Any] = Field(default_factory=dict)
+
+
 class CreatorGenerateRequest(BaseModel):
     """POST /v1/creator/generate -- same request_text-only restriction as
     CreatorFeasibilityRequest, plus the same puzzle_count/difficulty/seed

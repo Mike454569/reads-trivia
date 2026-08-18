@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reads Engine -- Mechanic Preview (Admin Only, Phase 6)</title>
+<!--
+  Reliability Design Phase 6 -- real private-preview harness for the six
+  new/formalized mechanic templates (POSITION_LINEUP_GRID reuses the
+  MULTIPLE_CHOICE_SINGLE_FACT render path, same "guess" answer contract).
+
+  Deliberately NOT wired into index.html/app.js's public routing (Part 3/33's
+  "public exposure is always a separate, deliberate certification decision"
+  boundary applies here too -- see gateway/app.py's Phase 6 route-block
+  docstring) -- this is an admin-only tool that calls the ADMIN-gated
+  /v1/creator/mechanics/* routes with an admin token, structurally
+  unreachable by a real anonymous player regardless of whether this static
+  file happens to be deployed alongside the public site.
+
+  Reuses the live site's own styles.css classes (.panel, .btn-primary,
+  .quiz-question, .quiz-options, .quiz-option, .lineup-board, etc.) rather
+  than inventing a parallel visual language -- the same reuse discipline
+  engine-game-ui.js already established for the public Engine Pilot shell.
+-->
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { max-width: 720px; margin: 0 auto; padding: 20px 14px 60px; }
+  .admin-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .admin-bar input, .admin-bar select { flex: 1; min-width: 160px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 13px; }
+  .mech-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .match-row, .sort-row { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+  .match-row.paired { border-color: var(--accent); }
+  .match-left { flex: 1; font-weight: 600; }
+  .match-right-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .match-right-chip { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; font-size: 12.5px; background: var(--bg-card); }
+  .match-right-chip.used { opacity: 0.35; pointer-events: none; }
+  .match-right-chip.selected { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+  .sort-row { justify-content: space-between; }
+  .sort-controls button { margin-left: 4px; }
+  .hl-compare { display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 1px solid var(--border); border-radius: 10px; margin: 10px 0; }
+  .hl-value { font-size: 22px; font-weight: 800; }
+  .hl-hidden { font-size: 22px; font-weight: 800; color: var(--text-dim); }
+  .clue-list { list-style: none; padding: 0; margin: 0 0 12px; }
+  .clue-list li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 14px; }
+  .status-line { font-size: 12.5px; color: var(--text-dim); margin: 8px 0; }
+  .leak-warning { background: #b91c1c; color: white; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<h1 class="panel-title">Mechanic Preview (Admin Only)</h1>
+<p class="mode-desc">Phase 6 private-preview harness. Calls the admin-gated /v1/creator/mechanics/* routes directly -- never wired into the public site.</p>
+
+<div class="panel admin-bar">
+  <input id="gatewayUrl" placeholder="Gateway base URL" value="http://localhost:8850">
+  <input id="adminToken" placeholder="Admin token" type="password">
+</div>
+
+<div class="panel">
+  <div class="mech-select-row">
+    <select id="taxonomySelect"></select>
+    <select id="variantSelect"></select>
+  </div>
+  <div class="btn-row">
+    <button class="btn-primary" id="startBtn">Start Round</button>
+  </div>
+</div>
+
+<div id="gameArea"></div>
+
+<script>
+const TAXONOMY_VARIANTS = {
+  MULTIPLE_CHOICE_SINGLE_FACT: [{value:'', label:'(uses domain/predicate fields below)'}],
+  POSITION_LINEUP_GRID: [
+    {value:'NFL_OFFENSE_LINEUP_COLLEGE_TEAM_ONLY', label:'College Offense (colleges, team-only)'},
+    {value:'NFL_OFFENSE_LINEUP_NAMES_TEAM_ONLY', label:'Starting Lineup (names, team-only)'},
+  ],
+  PROGRESSIVE_CLUE_IDENTIFY: [{value:'', label:'(no variant needed)'}],
+  MATCHING: [
+    {value:'NFL_DRAFT_CLASS_MATCH', label:'NFL Draft Class Matching'},
+    {value:'CFB_HEISMAN_SCHOOL_MATCH', label:'CFB Heisman -> School Matching'},
+  ],
+  SORTING_TIMELINE: [
+    {value:'NFL_DRAFT_PICK_ORDER', label:'NFL Draft Pick Order'},
+    {value:'CFB_HEISMAN_YEAR_ORDER', label:'CFB Heisman Year Order'},
+  ],
+  HIGHER_LOWER_STREAK: [
+    {value:'NFL_TEAM_SEASON_WINS', label:'NFL Team-Season Wins'},
+    {value:'CFB_TEAM_SEASON_WINS', label:'CFB Team-Season Wins'},
+  ],
+  ELIMINATION_SURVIVAL: [
+    {value:'NFL_SUPER_BOWL_CHAMPION_SURVIVAL', label:'NFL Super Bowl Champion Survival'},
+    {value:'CFB_NATIONAL_CHAMPION_SURVIVAL', label:'CFB National Champion Survival'},
+  ],
+};
+
+const taxonomySelect = document.getElementById('taxonomySelect');
+const variantSelect = document.getElementById('variantSelect');
+const gameArea = document.getElementById('gameArea');
+let currentRoundId = null, currentTaxonomy = null, matchSelection = null, matchMapping = {};
+
+Object.keys(TAXONOMY_VARIANTS).forEach(t => {
+  const opt = document.createElement('option'); opt.value = t; opt.textContent = t; taxonomySelect.appendChild(opt);
+});
+function refreshVariants() {
+  variantSelect.innerHTML = '';
+  (TAXONOMY_VARIANTS[taxonomySelect.value] || []).forEach(v => {
+    const opt = document.createElement('option'); opt.value = v.value; opt.textContent = v.label; variantSelect.appendChild(opt);
+  });
+}
+taxonomySelect.addEventListener('change', refreshVariants);
+refreshVariants();
+
+function gatewayFetch(path, options) {
+  const base = document.getElementById('gatewayUrl').value.replace(/\/$/, '');
+  const token = document.getElementById('adminToken').value;
+  const opts = Object.assign({}, options, {
+    headers: Object.assign({'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token}, (options && options.headers) || {}),
+  });
+  return fetch(base + path, opts).then(r => r.json().then(body => ({ok: r.ok, status: r.status, body})));
+}
+
+const LEAK_PATTERNS = ['_private', 'correctIndex', '_audit', 'answer_key'];
+function leakCheck(obj) {
+  const s = JSON.stringify(obj);
+  return LEAK_PATTERNS.filter(p => s.includes(p));
+}
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+  const taxonomy_id = taxonomySelect.value;
+  const variant = variantSelect.value || undefined;
+  const body = {taxonomy_id};
+  if (variant) body.variant = variant;
+  if (taxonomy_id === 'MULTIPLE_CHOICE_SINGLE_FACT') { body.domain = 'NFL_DRAFT'; body.relationship_predicate = 'DRAFTED_BY'; body.question_count = 3; }
+  if (taxonomy_id === 'PROGRESSIVE_CLUE_IDENTIFY') body.round_count = 3;
+  if (taxonomy_id === 'MATCHING') { body.round_count = 3; body.pair_count = 4; }
+  if (taxonomy_id === 'SORTING_TIMELINE') { body.round_count = 3; body.item_count = 4; }
+  if (taxonomy_id === 'HIGHER_LOWER_STREAK' || taxonomy_id === 'ELIMINATION_SURVIVAL') body.sequence_length = 10;
+
+  const res = await gatewayFetch('/v1/creator/mechanics/round', {method: 'POST', body: JSON.stringify(body)});
+  if (!res.ok) { gameArea.innerHTML = '<div class="panel leak-warning">' + JSON.stringify(res.body) + '</div>'; return; }
+  currentRoundId = res.body.round_id; currentTaxonomy = res.body.taxonomy_id;
+  const leaks = leakCheck(res.body);
+  render(res.body.view, leaks);
+});
+
+function submit(submission) {
+  gatewayFetch(`/v1/creator/mechanics/round/${currentRoundId}/submit`, {method: 'POST', body: JSON.stringify({submission})})
+    .then(res => {
+      if (!res.ok) { alert(JSON.stringify(res.body)); return; }
+      const leaks = leakCheck(res.body.view);
+      renderResult(res.body.result);
+      render(res.body.view, leaks);
+    });
+}
+
+function renderResult(result) {
+  const div = document.createElement('div');
+  div.className = 'panel quiz-feedback';
+  div.textContent = 'Result: ' + JSON.stringify(result);
+  gameArea.prepend(div);
+}
+
+function leakBanner(leaks) {
+  if (!leaks.length) return '';
+  return `<div class="leak-warning">LEAKAGE SUSPECT: found ${leaks.join(', ')} in the client view!</div>`;
+}
+
+function render(view, leaks) {
+  matchSelection = null; matchMapping = {};
+  if (currentTaxonomy === 'MULTIPLE_CHOICE_SINGLE_FACT' || currentTaxonomy === 'POSITION_LINEUP_GRID') {
+    let board = '';
+    if (view.visual_payload && view.visual_payload.positions) {
+      board = '<div class="lineup-board"><div class="lineup-row">' +
+        view.visual_payload.positions.map(p => `<div class="lineup-cell"><div class="lineup-pos">${p.position}</div><div class="lineup-name">${p.college || p.name}</div></div>`).join('') +
+        '</div></div>';
+    }
+    gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+      <div class="status-line">Round ${view.round_index + 1} / ${view.round_count}</div>
+      <div class="quiz-question">${view.prompt}</div>
+      ${board}
+      <div class="quiz-options">${view.options.map(o => `<button class="quiz-option" data-answer="${o}">${o}</button>`).join('')}</div>
+    </div>`;
+    gameArea.querySelectorAll('[data-answer]').forEach(btn => btn.addEventListener('click', () => submit({answer: btn.dataset.answer})));
+  } else if (currentTaxonomy === 'PROGRESSIVE_CLUE_IDENTIFY') {
+    gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+      <div class="status-line">Round ${view.round_index + 1} / ${view.round_count} -- ${view.clues_revealed_count}/${view.total_clues} clues revealed</div>
+      <ul class="clue-list">${view.clues.map(c => `<li>${c.display_text}</li>`).join('')}</ul>
+      <div class="btn-row">
+        ${view.can_reveal_more ? '<button class="btn-secondary" id="revealBtn">Reveal Next Clue</button>' : ''}
+      </div>
+      <div class="btn-row">
+        <input id="guessInput" placeholder="Guess the player's name" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);">
+        <button class="btn-primary" id="guessBtn">Guess</button>
+      </div>
+    </div>`;
+    const revealBtn = document.getElementById('revealBtn');
+    if (revealBtn) revealBtn.addEventListener('click', () => submit({action: 'reveal_next_clue'}));
+    document.getElementById('guessBtn').addEventListener('click', () => submit({guess_name: document.getElementById('guessInput').value}));
+  } else if (currentTaxonomy === 'MATCHING') {
+    gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+      <div class="status-line">Round ${view.round_index + 1} / ${view.round_count}</div>
+      <div class="quiz-question">${view.prompt}</div>
+      <div id="matchRows">${view.left_items.map(li => `<div class="match-row" data-left="${li.item_id}"><div class="match-left">${li.label}</div><div class="match-right-list">${view.right_items.map(ri => `<span class="match-right-chip" data-left="${li.item_id}" data-right="${ri.item_id}">${ri.label}</span>`).join('')}</div></div>`).join('')}</div>
+      <div class="btn-row"><button class="btn-primary" id="submitMatch">Submit Matches (mobile tap-to-match: tap a right-side chip under each left item)</button></div>
+    </div>`;
+    gameArea.querySelectorAll('.match-right-chip').forEach(chip => chip.addEventListener('click', () => {
+      const left = chip.dataset.left, right = chip.dataset.right;
+      matchMapping[left] = right;
+      document.querySelectorAll(`.match-right-chip[data-left="${left}"]`).forEach(c => c.classList.toggle('selected', c === chip));
+    }));
+    document.getElementById('submitMatch').addEventListener('click', () => submit({mapping: matchMapping}));
+  } else if (currentTaxonomy === 'SORTING_TIMELINE') {
+    let order = view.items_shuffled.map(i => i.item_id);
+    const labelFor = id => view.items_shuffled.find(i => i.item_id === id).label;
+    function renderSort() {
+      gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+        <div class="status-line">Round ${view.round_index + 1} / ${view.round_count}</div>
+        <div class="quiz-question">${view.prompt}</div>
+        <div id="sortRows">${order.map((id, i) => `<div class="sort-row"><span>${i + 1}. ${labelFor(id)}</span><span class="sort-controls"><button class="btn-tiny" data-up="${i}">Up</button><button class="btn-tiny" data-down="${i}">Down</button></span></div>`).join('')}</div>
+        <div class="btn-row"><button class="btn-primary" id="submitSort">Submit Order</button></div>
+      </div>`;
+      gameArea.querySelectorAll('[data-up]').forEach(b => b.addEventListener('click', () => { const i = +b.dataset.up; if (i > 0) { [order[i-1], order[i]] = [order[i], order[i-1]]; renderSort(); } }));
+      gameArea.querySelectorAll('[data-down]').forEach(b => b.addEventListener('click', () => { const i = +b.dataset.down; if (i < order.length - 1) { [order[i+1], order[i]] = [order[i], order[i+1]]; renderSort(); } }));
+      document.getElementById('submitSort').addEventListener('click', () => submit({order}));
+    }
+    renderSort();
+  } else if (currentTaxonomy === 'HIGHER_LOWER_STREAK') {
+    gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+      <div class="status-line">Streak: ${view.streak} -- ${view.comparison_attribute}${view.ended ? ' -- ENDED' : ''}</div>
+      <div class="hl-compare"><span>${view.current_item.label}</span><span class="hl-value">${view.current_item.value}</span></div>
+      <div class="hl-compare"><span>${view.next_item ? view.next_item.label : '(sequence complete)'}</span><span class="${view.next_item && view.next_item.value !== undefined ? 'hl-value' : 'hl-hidden'}">${view.next_item && view.next_item.value !== undefined ? view.next_item.value : '?'}</span></div>
+      ${view.ended ? '' : `<div class="btn-row"><button class="btn-primary" data-guess="higher">Higher</button><button class="btn-primary" data-guess="lower">Lower</button></div>`}
+    </div>`;
+    gameArea.querySelectorAll('[data-guess]').forEach(b => b.addEventListener('click', () => submit({guess: b.dataset.guess})));
+  } else if (currentTaxonomy === 'ELIMINATION_SURVIVAL') {
+    gameArea.innerHTML = leakBanner(leaks) + `<div class="panel">
+      <div class="status-line">Survived: ${view.survived_count}${view.ended ? ' -- ELIMINATED' : ''}</div>
+      <div class="quiz-question">${view.current_prompt || '(sequence complete)'}</div>
+      ${view.ended ? '' : `<div class="btn-row"><button class="btn-primary" data-guess="true">True</button><button class="btn-primary" data-guess="false">False</button></div>`}
+    </div>`;
+    gameArea.querySelectorAll('[data-guess]').forEach(b => b.addEventListener('click', () => submit({guess: b.dataset.guess === 'true'})));
+  }
+}
+</script>
+</body>
+</html>

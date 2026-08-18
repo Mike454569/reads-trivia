@@ -40,12 +40,13 @@ from .errors import GatewayError  # noqa: E402
 from .models import (CreatorConceptsRequest, CreatorFeasibilityRequest, CreatorGenerateRequest,  # noqa: E402
                       CreatorIdeasRequest, CreatorJobTier2CertificationRequest,
                       CreatorReviewRequest,
-                      GenerateRequest, GridBoardRequest, GridValidateRequest, PreviewRequest,
+                      GenerateRequest, GridBoardRequest, GridValidateRequest,
+                      MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
                       PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import creator as creator_service  # noqa: E402
-from .services import generation, packages  # noqa: E402
+from .services import generation, packages, game_state  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
 from .services import admin_refresh  # noqa: E402
@@ -643,6 +644,127 @@ def creator_concepts(body: CreatorConceptsRequest, request: Request,
         body.request_text, request_type=body.request_type, requested_count=body.requested_count,
         exclude_concept_ids=body.exclude_concept_ids,
     )
+
+
+# --- Phase 6: real, private, playable mechanic rounds -----------------------
+# Admin-gated like every other Engine-DB-touching/generation route (Part F's
+# private-staging scope is unchanged by this phase -- these are PRIVATE
+# preview rounds, never wired into the unauthenticated /v1/public/* surface;
+# public rollout of any of these mechanics is a separate, later decision,
+# same boundary Part 3/33 already established for /v1/public/game's own
+# certified-mode allowlist). Round state (packages.py for the immutable
+# round definition, game_state.py for mutable progress) is the SAME
+# infrastructure Coach Connections v2 and every guess-mechanic package
+# already use -- no new storage layer.
+
+def _mechanic_round_not_found() -> "GatewayError":
+    return GatewayError("PACKAGE_NOT_FOUND", "No such round -- it may have expired or never existed.")
+
+
+@app.post("/v1/creator/mechanics/round")
+def mechanics_start_round(body: MechanicRoundRequest, request: Request,
+                           _rl=Depends(rate_limit_generate), _admin=Depends(require_admin)):
+    """Generates one real private round/contest for the given taxonomy_id
+    and returns only the client-safe view (never the private answer data --
+    see mechanic_engine.client_safe_view()'s per-mechanic allow-list)."""
+    from tools.director_v02 import mechanic_engine
+
+    t = body.taxonomy_id
+    if t in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
+        domain, predicate = body.domain, body.relationship_predicate
+        if t == "POSITION_LINEUP_GRID" and body.variant:
+            cfg = mechanic_engine.VARIANTS["POSITION_LINEUP_GRID"].get(body.variant)
+            if cfg is None:
+                raise GatewayError("INVALID_REQUEST", f"Unknown POSITION_LINEUP_GRID variant {body.variant!r}.")
+            domain, predicate = cfg["domain"], cfg["relationship_predicate"]
+        if not domain or not predicate:
+            raise GatewayError("INVALID_REQUEST", "domain and relationship_predicate (or a POSITION_LINEUP_GRID variant) are required.")
+        package = mechanic_engine.generate_guess_round(
+            domain=domain, relationship_predicate=predicate,
+            question_count=body.question_count or 5, seed=body.seed)
+    elif t == "PROGRESSIVE_CLUE_IDENTIFY":
+        package = mechanic_engine.generate_clue_round(target_count=body.round_count or 5, seed=body.seed or "mechanics-round")
+    elif t == "MATCHING":
+        if body.variant not in mechanic_engine.VARIANTS["MATCHING"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['MATCHING'])}.")
+        package = mechanic_engine.generate_matching_round(
+            variant=body.variant, round_count=body.round_count or 5, pair_count=body.pair_count or 4,
+            seed=body.seed or "mechanics-round")
+    elif t == "SORTING_TIMELINE":
+        if body.variant not in mechanic_engine.VARIANTS["SORTING_TIMELINE"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['SORTING_TIMELINE'])}.")
+        package = mechanic_engine.generate_sorting_round(
+            variant=body.variant, round_count=body.round_count or 5, item_count=body.item_count or 4,
+            seed=body.seed or "mechanics-round")
+    elif t == "HIGHER_LOWER_STREAK":
+        if body.variant not in mechanic_engine.VARIANTS["HIGHER_LOWER_STREAK"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['HIGHER_LOWER_STREAK'])}.")
+        package = mechanic_engine.generate_higher_lower_round(
+            variant=body.variant, sequence_length=body.sequence_length or 12, seed=body.seed or "mechanics-round")
+    elif t == "ELIMINATION_SURVIVAL":
+        if body.variant not in mechanic_engine.VARIANTS["ELIMINATION_SURVIVAL"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['ELIMINATION_SURVIVAL'])}.")
+        package = mechanic_engine.generate_elimination_round(
+            variant=body.variant, sequence_length=body.sequence_length or 12, seed=body.seed or "mechanics-round")
+    else:
+        raise GatewayError("INVALID_REQUEST", f"Unknown taxonomy_id {t!r}.")
+
+    if package.get("qa_status") != "PASSED":
+        raise GatewayError(
+            "NO_ELIGIBLE_GAME",
+            package.get("shortfall_reason") or f"No qualifying {t} round could be generated right now.",
+        )
+
+    stored = packages.save_package(package)
+    progress = mechanic_engine.initial_progress(t)
+    progress["taxonomy_id"] = t
+    game_state.create_state(stored["package_id"], progress)
+
+    view = mechanic_engine.client_safe_view(t, stored, progress)
+    return {"round_id": stored["package_id"], "taxonomy_id": t, "view": view}
+
+
+@app.get("/v1/creator/mechanics/round/{round_id}")
+def mechanics_get_round(round_id: str, request: Request, _admin=Depends(require_admin)):
+    from tools.director_v02 import mechanic_engine
+
+    try:
+        stored = packages.load_package(round_id)
+        progress = game_state.load_state(round_id)
+    except (packages.PackageIdInvalid, game_state.StateIdInvalid):
+        raise _mechanic_round_not_found()
+    if stored is None or progress is None:
+        raise _mechanic_round_not_found()
+
+    view = mechanic_engine.client_safe_view(progress["taxonomy_id"], stored, progress)
+    return {"round_id": round_id, "taxonomy_id": progress["taxonomy_id"], "view": view}
+
+
+@app.post("/v1/creator/mechanics/round/{round_id}/submit")
+def mechanics_submit_round(round_id: str, body: MechanicSubmitRequest, request: Request,
+                            _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    from tools.director_v02 import mechanic_engine
+
+    try:
+        stored = packages.load_package(round_id)
+        progress = game_state.load_state(round_id)
+    except (packages.PackageIdInvalid, game_state.StateIdInvalid):
+        raise _mechanic_round_not_found()
+    if stored is None or progress is None:
+        raise _mechanic_round_not_found()
+
+    taxonomy_id = progress["taxonomy_id"]
+    try:
+        result, new_progress = mechanic_engine.evaluate_submission(taxonomy_id, stored, progress, body.submission)
+    except mechanic_engine.MechanicError as e:
+        raise GatewayError("INVALID_REQUEST", str(e))
+    except (KeyError, IndexError):
+        raise GatewayError("INVALID_REQUEST", "This round has no more rounds/items to submit against.")
+
+    new_progress["taxonomy_id"] = taxonomy_id
+    game_state.save_state(round_id, new_progress)
+    view = mechanic_engine.client_safe_view(taxonomy_id, stored, new_progress)
+    return {"round_id": round_id, "taxonomy_id": taxonomy_id, "result": result, "view": view}
 
 
 @app.post("/v1/creator/generate")

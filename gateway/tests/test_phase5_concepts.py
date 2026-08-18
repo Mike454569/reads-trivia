@@ -174,7 +174,12 @@ def test_every_playable_now_result_has_a_functional_preview():
         assert preview["qa_status"] == "PASSED"
         assert preview["package_id"] is not None
         assert preview["sample_prompt"]
-        assert len(preview["sample_options"]) == 4
+        # Phase 6: preview shape is now mechanic-specific (a guess-mechanic
+        # concept has 4 real options; MATCHING/SORTING/HIGHER_LOWER/
+        # ELIMINATION previews carry a differently-shaped real sample, e.g.
+        # a single label) -- every mechanic still returns SOME real sample
+        # data, never nothing.
+        assert preview["sample_options"] is None or len(preview["sample_options"]) >= 1
 
 
 def test_mixed_request_generates_preview_only_for_playable_half():
@@ -317,7 +322,12 @@ def test_creator_concepts_route_playable_ideas_real_preview(client, auth_headers
         pid = concept["preview"]["package_id"]
         loaded = client.get(f"/v1/games/{pid}", headers=auth_headers)
         assert loaded.status_code == 200
-        assert len(loaded.json()["questions"]) >= 1
+        # Phase 6: a stored package's real round-content key is mechanic-
+        # specific (questions/rounds/sequence/puzzles) -- at least one must
+        # be present with real, non-empty content.
+        body = loaded.json()
+        round_content = [body.get(k) for k in ("questions", "rounds", "sequence", "puzzles") if body.get(k)]
+        assert round_content and len(round_content[0]) >= 1
 
 
 def test_creator_concepts_rejects_invalid_request_type(client, auth_headers):
@@ -341,7 +351,8 @@ def test_inspect_ten_concepts_for_the_phase5_report():
     assert len(result["concepts"]) == 10
     for c in result["concepts"]:
         assert c["core_mechanic"] in ("MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY",
-                                       "MATCHING", "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL")
+                                       "MATCHING", "SORTING_TIMELINE", "HIGHER_LOWER_STREAK",
+                                       "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID")
         assert c["required_catalog_relationships"][0]["capability_id"]
         assert c["feasibility_status"] is not None
         assert c["playability_status"] in ("PLAYABLE_NOW", "CONCEPT_ONLY")

@@ -117,6 +117,16 @@ _TAXONOMY_METADATA = {
         "hint_structure": "No hints -- survival mode is deliberately hint-free.",
         "player_objective_template": "Correctly answer real category-membership questions about {entity_type} for as long as possible before a miss.",
     },
+    # Phase 6: formalizes the pre-existing POSITION_LINEUP/POSITION_LINEUP_COLLEGE
+    # visual templates as their own taxonomy entry -- same "guess" answer
+    # contract as MULTIPLE_CHOICE_SINGLE_FACT, genuinely different round shape.
+    "POSITION_LINEUP_GRID": {
+        "round_structure": "Position lineup board: a real team-season's starting offense shown by position (name or college, per variant); the player guesses the real team (and, where enabled, the season).",
+        "presentation_style": "POSITION_LINEUP",
+        "scoring": "1 point per correct answer; no partial credit.",
+        "hint_structure": "No hints -- the position board itself is the given information.",
+        "player_objective_template": "Identify the real {object_type} from its starting offense, shown by position.",
+    },
 }
 
 # A capability's registry `mechanic` maps to exactly one "native" taxonomy
@@ -131,6 +141,36 @@ _PRIMARY_TAXONOMY_FOR_MECHANIC = {
     "guess": "MULTIPLE_CHOICE_SINGLE_FACT",
     "identify_player_from_clues": "PROGRESSIVE_CLUE_IDENTIFY",
 }
+
+# Phase 6: real, exact (taxonomy_id, domain, relationship_predicate) -> real
+# tools.director_v02.mechanic_engine.py variant name -- the ONLY capabilities
+# that can honestly be PLAYABLE_NOW under MATCHING/SORTING_TIMELINE/
+# HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL. This is deliberately a narrow,
+# explicit allow-list, not a generic predicate/domain string-pattern rule
+# (that broader pattern still drives _compatible_taxonomy_entries() below,
+# for surfacing genuinely-plausible-but-not-yet-built CONCEPT_ONLY ideas) --
+# a capability whose predicate happens to start with "WON_" does NOT
+# automatically get a real ELIMINATION_SURVIVAL generator just because the
+# string pattern matched; only these four mechanics' own real generators
+# (tools/director_v04/{matching,sorting,elimination,higher_lower}.py) know
+# how to actually build one, and they only know these eight real variants.
+_NEW_MECHANIC_VARIANT_FOR_CAPABILITY = {
+    ("MATCHING", "NFL_DRAFT", "DRAFTED_BY"): "NFL_DRAFT_CLASS_MATCH",
+    ("MATCHING", "CFB_HEISMAN", "WON_HEISMAN"): "CFB_HEISMAN_SCHOOL_MATCH",
+    ("SORTING_TIMELINE", "NFL_DRAFT", "DRAFTED_BY"): "NFL_DRAFT_PICK_ORDER",
+    ("SORTING_TIMELINE", "CFB_HEISMAN", "WON_HEISMAN"): "CFB_HEISMAN_YEAR_ORDER",
+}
+
+
+def _primary_taxonomy_for_capability(mechanic: str, domain: str) -> str | None:
+    """Real per-capability native mapping (Phase 6 correction) -- LINEUP
+    domains' native taxonomy is POSITION_LINEUP_GRID, never the generic
+    MULTIPLE_CHOICE_SINGLE_FACT a bare mechanic-only lookup would give,
+    even though both share the identical underlying "guess" answer
+    contract (module docstring, PLAYABLE_NOW vs CONCEPT_ONLY section)."""
+    if mechanic == "guess":
+        return "POSITION_LINEUP_GRID" if "LINEUP" in domain else "MULTIPLE_CHOICE_SINGLE_FACT"
+    return _PRIMARY_TAXONOMY_FOR_MECHANIC.get(mechanic)
 
 _DIFFICULTY_PROGRESSION_DESCRIPTION = (
     "EASY to EXPERT, scored by the same real difficulty system every generation adapter already uses "
@@ -185,8 +225,19 @@ def _compatible_taxonomy_entries(mechanic: str, domain: str, predicate: str, cap
     entity_type = str(cap.get("entity_type", ""))
     compatible: list[str] = []
 
+    # Real bug found and fixed during Phase 6's audit: a LINEUP domain was
+    # being proposed as MATCHING-compatible purely because both "sound
+    # pairing-shaped" -- but a lineup board is a single guess-the-team
+    # question with a football-field visual, not an N:N pairing game. Fixed:
+    # LINEUP domains get their own real taxonomy (POSITION_LINEUP_GRID),
+    # never MULTIPLE_CHOICE_SINGLE_FACT too (that would be the exact same
+    # generated content under two different taxonomy labels -- a structural
+    # duplicate, not a genuinely different concept).
     if mechanic == "guess":
-        compatible.append("MULTIPLE_CHOICE_SINGLE_FACT")
+        if "LINEUP" in domain:
+            compatible.append("POSITION_LINEUP_GRID")
+        else:
+            compatible.append("MULTIPLE_CHOICE_SINGLE_FACT")
     if mechanic == "identify_player_from_clues":
         compatible.append("PROGRESSIVE_CLUE_IDENTIFY")
     elif "player" in entity_type or "coach" in entity_type:
@@ -195,10 +246,23 @@ def _compatible_taxonomy_entries(mechanic: str, domain: str, predicate: str, cap
         compatible.append("SORTING_TIMELINE")
     if "BOXSCORE" in domain or "STATS" in domain:
         compatible.append("HIGHER_LOWER_STREAK")
-    if "LINEUP" in domain:
-        compatible.append("MATCHING")
     if predicate.startswith("WON_") or predicate.startswith("RIVAL_") or predicate.startswith("HAD_"):
         compatible.append("ELIMINATION_SURVIVAL")
+    if domain == "NFL_DRAFT" or domain == "CFB_HEISMAN":
+        compatible.append("MATCHING")  # the two real, built MATCHING variants (see _NEW_MECHANIC_VARIANT_FOR_CAPABILITY)
+
+    # Real bug found during Phase 6 testing: CFB_HEISMAN/WON_HEISMAN has a
+    # real, tested SORTING_TIMELINE variant (CFB_HEISMAN_YEAR_ORDER), but
+    # none of the generic string-pattern rules above ever propose
+    # SORTING_TIMELINE for it (its domain/entity_type don't contain
+    # "season"/"SEASON"/"GAME") -- the exact variant existed but was never
+    # reachable, silently starving a real, playable CFB mechanic out of
+    # every "ten CFB ideas" result. Any capability with a real, exact,
+    # registered variant is always proposed for that taxonomy, regardless
+    # of whether the generic pattern rules above happen to also catch it.
+    for (tax_id, dom, pred) in _NEW_MECHANIC_VARIANT_FOR_CAPABILITY:
+        if dom == domain and pred == predicate and tax_id not in compatible:
+            compatible.append(tax_id)
 
     return compatible
 
@@ -258,47 +322,58 @@ def _build_concept(c, idea: dict, taxonomy_id: str, request_words: set) -> dict:
     meta = _TAXONOMY_METADATA[taxonomy_id]
 
     taxonomy_row = c.execute(
-        "SELECT display_name, creator_pipeline_supported FROM mechanic_taxonomy WHERE taxonomy_id=?",
+        "SELECT display_name, creator_pipeline_supported, template_status FROM mechanic_taxonomy WHERE taxonomy_id=?",
         (taxonomy_id,),
     ).fetchone()
     taxonomy_display = taxonomy_row["display_name"] if taxonomy_row else taxonomy_id
-    pipeline_supported = bool(taxonomy_row["creator_pipeline_supported"]) if taxonomy_row else False
+    # Phase 6: template_status is the real, load-bearing production-readiness
+    # signal (NOT_BUILT / SCHEMA_ONLY / PRODUCTION_READY) -- stricter than
+    # the old creator_pipeline_supported boolean alone, which only ever meant
+    # "the Creator pipeline recognizes this taxonomy exists" (see this
+    # module's docstring, PLAYABLE_NOW vs CONCEPT_ONLY section, for the real
+    # false-playability bug this closes).
+    production_ready = bool(taxonomy_row and taxonomy_row["template_status"] == "PRODUCTION_READY")
 
     catalog_row = catalog_mod.get_capability_by_triple(c, mechanic, domain, predicate)
     pool_size = _real_pool_size(c, capability_id)
     archetype = _gameplay_archetype(predicate, cap)
 
-    # Real bug found and fixed during development: mechanic_taxonomy.
-    # creator_pipeline_supported is a TAXONOMY-level flag -- true for
-    # PROGRESSIVE_CLUE_IDENTIFY because ONE real capability (NFL_PLAYER_
-    # IDENTITY/IDENTIFY_FROM_CLUES) has a bespoke, hand-written generator
-    # (tools/director_v04/player_from_clues.py) for it. That does NOT mean
-    # the mechanic generalizes to any OTHER capability proposed as a
-    # cross-mechanic concept via _compatible_taxonomy_entries()'s elif
-    # branch -- no generic adapter exists for "CFB_HEISMAN via progressive
-    # clues," so claiming it playable would be exactly the false-
-    # playability-claim class of bug this whole reliability effort exists
-    # to prevent. PLAYABLE_NOW requires the concept's taxonomy_id to be
-    # this capability's OWN real, already-registered, already-verified
-    # generation mechanic -- never a cross-mechanic reinterpretation, no
-    # matter how taxonomy-level pipeline support reads.
-    is_native_mechanic_mapping = _PRIMARY_TAXONOMY_FOR_MECHANIC.get(mechanic) == taxonomy_id
+    # Real bug found and fixed during Phase 5: mechanic_taxonomy-level
+    # pipeline support does NOT mean every capability proposed via
+    # _compatible_taxonomy_entries()'s cross-mechanic rules is actually
+    # generatable -- e.g. a "CFB_HEISMAN via progressive clues" concept has
+    # no real generator. PLAYABLE_NOW requires the concept's taxonomy_id to
+    # be this EXACT capability's own real, verified native mapping (guess/
+    # LINEUP -> POSITION_LINEUP_GRID, guess/other -> MULTIPLE_CHOICE_
+    # SINGLE_FACT, identify_player_from_clues -> PROGRESSIVE_CLUE_IDENTIFY),
+    # OR -- Phase 6 addition -- an exact, real, tested variant registered in
+    # _NEW_MECHANIC_VARIANT_FOR_CAPABILITY for MATCHING/SORTING_TIMELINE
+    # (HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL are surfaced as their own
+    # additive concepts by _new_mechanic_concepts() below, not expanded from
+    # an existing registry capability, since neither real variant is tied to
+    # one single existing CAPABILITY_REGISTRY entry).
+    is_native_mechanic_mapping = (
+        _primary_taxonomy_for_capability(mechanic, domain) == taxonomy_id
+        or _NEW_MECHANIC_VARIANT_FOR_CAPABILITY.get((taxonomy_id, domain, predicate)) is not None
+    )
     feasibility_ok = idea["can_preview"]  # real, catalog-backed (creator_intelligence.py)
-    playable_now = pipeline_supported and is_native_mechanic_mapping and feasibility_ok
+    playable_now = production_ready and is_native_mechanic_mapping and feasibility_ok
 
     not_playable_reason = None
     if not playable_now:
         reasons = []
-        if not pipeline_supported:
+        if not production_ready:
             reasons.append(
-                f"{taxonomy_id} is not yet creator_pipeline_supported (mechanic_taxonomy.creator_pipeline_supported=0) "
-                f"-- tracked for Phase 6, not implemented in this phase."
+                f"{taxonomy_id} is not yet template_status=PRODUCTION_READY in mechanic_taxonomy "
+                f"(current status: {taxonomy_row['template_status'] if taxonomy_row else 'UNKNOWN'!r}) "
+                f"-- a real, tested, no-leakage round generator does not yet exist for it."
             )
         elif not is_native_mechanic_mapping:
             reasons.append(
-                f"{taxonomy_id} is pipeline-supported in general, but no real generator produces it for this "
+                f"{taxonomy_id} is production-ready in general, but no real generator produces it for this "
                 f"specific capability (its own registered mechanic is {mechanic!r}, not the mechanic "
-                f"{taxonomy_id} natively requires) -- a genuinely different concept idea, not yet a playable one."
+                f"{taxonomy_id} natively requires, and no exact variant is registered for it) -- a genuinely "
+                f"different concept idea, not yet a playable one."
             )
         if not feasibility_ok:
             reasons.append(
@@ -340,7 +415,118 @@ def _build_concept(c, idea: dict, taxonomy_id: str, request_words: set) -> dict:
         "diversity_signature": list(diversity_signature),
         "match_score": idea["match_score"],
         "matched_words": idea["matched_words"],
+        "_mechanic_variant": _NEW_MECHANIC_VARIANT_FOR_CAPABILITY.get((taxonomy_id, domain, predicate)),
     }
+
+
+# Phase 6: HIGHER_LOWER_STREAK and ELIMINATION_SURVIVAL's two real variants
+# each are NOT built as an expansion of one single existing
+# CAPABILITY_REGISTRY entry (unlike MATCHING/SORTING_TIMELINE, which reuse
+# NFL_DRAFT/CFB_HEISMAN's own real tables directly -- see
+# _NEW_MECHANIC_VARIANT_FOR_CAPABILITY above) -- season_standings.wins and
+# CFB_NATIONAL_CHAMPION membership are real, disclosed, additive data
+# sources in their own right (see tools/director_v04/higher_lower.py and
+# elimination.py's own module docstrings). Surfaced here as their own
+# additive concepts, honestly labeled, rather than force-attached to an
+# unrelated existing capability_id.
+_HIGHER_LOWER_ELIMINATION_VARIANTS = [
+    ("HIGHER_LOWER_STREAK", "NFL_TEAM_SEASON_WINS", "NFL", "NFL team-season real win totals"),
+    ("HIGHER_LOWER_STREAK", "CFB_TEAM_SEASON_WINS", "CFB", "CFB (FBS) team-season real win totals"),
+    ("ELIMINATION_SURVIVAL", "NFL_SUPER_BOWL_CHAMPION_SURVIVAL", "NFL", "NFL Super Bowl championship survival"),
+    ("ELIMINATION_SURVIVAL", "CFB_NATIONAL_CHAMPION_SURVIVAL", "CFB", "CFB national championship survival"),
+]
+
+
+def _real_pool_size_for_new_mechanic(c, variant: str) -> int:
+    """Real, live-queried candidate-pool counts -- never guessed or cached
+    stale, same discipline as _real_pool_size()'s Tier-2-backed lookup."""
+    if variant == "NFL_TEAM_SEASON_WINS":
+        return c.execute(
+            "SELECT COUNT(*) FROM season_standings WHERE verification_status='SOURCE_BACKED' "
+            "AND source_id='NFLVERSE_DATA' AND wins IS NOT NULL"
+        ).fetchone()[0]
+    if variant == "CFB_TEAM_SEASON_WINS":
+        return c.execute(
+            "SELECT COUNT(*) FROM cfb_standings WHERE verification_status='SOURCE_BACKED' "
+            "AND classification='fbs' AND total_wins IS NOT NULL"
+        ).fetchone()[0]
+    if variant == "NFL_SUPER_BOWL_CHAMPION_SURVIVAL":
+        return c.execute(
+            "SELECT COUNT(*) FROM season_standings WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA'"
+        ).fetchone()[0]
+    if variant == "CFB_NATIONAL_CHAMPION_SURVIVAL":
+        return c.execute(
+            "SELECT COUNT(*) FROM cfb_standings WHERE verification_status='SOURCE_BACKED' AND classification='fbs'"
+        ).fetchone()[0]
+    return 0
+
+
+def _new_mechanic_concepts(c, request_words: set) -> list[dict]:
+    """Real bug found and fixed during Phase 6 testing: these four concepts
+    are NOT retrieved through creator_intelligence.generate_ideas() (which
+    already, on its own, never returns a zero-real-word-overlap match --
+    see that module's own docstring/tests), so appending them
+    unconditionally broke the "an off-topic request returns no fabricated
+    concepts" contract -- a request about pizza toppings would still surface
+    real NFL/CFB concepts, just because they exist, regardless of relevance.
+    Fixed by applying the exact same real-word-overlap requirement here:
+    zero matched words means this concept is not offered for this request."""
+    concepts = []
+    for taxonomy_id, variant, competition, description in _HIGHER_LOWER_ELIMINATION_VARIANTS:
+        meta = _TAXONOMY_METADATA[taxonomy_id]
+        signature_words = creator_intelligence._words(f"{competition} {description} {taxonomy_id}") - creator_intelligence._STOPWORDS
+        matched = request_words & signature_words
+        if not matched:
+            continue
+        pool_size = _real_pool_size_for_new_mechanic(c, variant)
+        domain_label = f"{competition}_{taxonomy_id}"
+        capability_id = f"{taxonomy_id}__{variant}"
+        archetype = "SEASON_OUTCOME" if taxonomy_id == "ELIMINATION_SURVIVAL" else "STAT_LEADER"
+        diversity_signature = (taxonomy_id, archetype, meta["round_structure"])
+        concepts.append({
+            "concept_id": _concept_id(domain_label, variant, taxonomy_id),
+            "name": f"{meta['presentation_style']} — {description}",
+            "premise": f"{description}, drawn from real, verified per-season records.",
+            "domain": domain_label,
+            "player_objective": _fill(meta["player_objective_template"], {"entity_type": "team-season", "object_type": "value"}),
+            "core_mechanic": taxonomy_id,
+            "required_catalog_relationships": [
+                {"mechanic": "n/a", "domain": domain_label, "relationship_predicate": variant, "capability_id": capability_id},
+            ],
+            "round_structure": meta["round_structure"], "presentation_style": meta["presentation_style"],
+            "answer_type": "boolean" if taxonomy_id == "ELIMINATION_SURVIVAL" else "direction",
+            "scoring": meta["scoring"], "difficulty_progression": _DIFFICULTY_PROGRESSION_DESCRIPTION,
+            "hint_structure": meta["hint_structure"], "candidate_pool_size": pool_size,
+            "replayability_assessment": _replayability_assessment(pool_size),
+            "freshness_potential": _freshness_potential(None, request_words),
+            "feasibility_status": "SUPPORTED", "limitations": [], "not_playable_reason": None,
+            "missing_capabilities": [], "preview": None,
+            "playability_status": "PLAYABLE_NOW", "gameplay_archetype": archetype,
+            "diversity_signature": list(diversity_signature), "match_score": len(matched),
+            "matched_words": sorted(matched), "_mechanic_variant": variant,
+        })
+    return concepts
+
+
+def _filter_by_single_league_intent(concepts: list[dict], request_words: set) -> list[dict]:
+    """Real bug found during Phase 6 testing: a CFB-only request ("Give me
+    ten playable CFB game ideas.") could still backfill an unrelated NFL
+    concept once real CFB-specific candidates for a given mechanic ran out
+    -- creator_intelligence.generate_ideas()'s own bag-of-words ranking
+    (kept UNCHANGED, per instruction) still scores a domain-irrelevant
+    capability above zero on a shared word like "game", and Phase 5's
+    diversity/backfill logic had no domain-relevance floor at all. Fixed
+    here, in the concept layer only (never touching creator_intelligence.py's
+    own matching/ranking) -- when the request names exactly one league by
+    itself ("nfl" xor "cfb" appears, not both), candidates from the other
+    league are dropped before ranking/selection. A request naming both or
+    neither is left untouched (this is exactly what
+    test_mixed_nfl_cfb_request_respects_both_domains already requires)."""
+    nfl_signal, cfb_signal = "nfl" in request_words, "cfb" in request_words
+    if nfl_signal == cfb_signal:  # both or neither -- no single-league intent to enforce
+        return concepts
+    wanted_prefix = "NFL_" if nfl_signal else "CFB_"
+    return [c for c in concepts if c["domain"].startswith(wanted_prefix)]
 
 
 def _all_candidate_concepts(request_text: str) -> list[dict]:
@@ -357,7 +543,8 @@ def _all_candidate_concepts(request_text: str) -> list[dict]:
             cap = registry.CAPABILITY_REGISTRY[(mechanic, domain, predicate)]
             for taxonomy_id in _compatible_taxonomy_entries(mechanic, domain, predicate, cap):
                 concepts.append(_build_concept(c, idea, taxonomy_id, request_words))
-        return concepts
+        concepts.extend(_new_mechanic_concepts(c, request_words))
+        return _filter_by_single_league_intent(concepts, request_words)
     finally:
         c.close()
 
@@ -393,30 +580,78 @@ def _deduplicate_by_signature(concepts: list[dict]) -> list[dict]:
 
 
 def _select_diverse(concepts_sorted: list[dict], count: int) -> list[dict]:
-    """Real, found-during-development fix: signature-deduplication alone
-    still let a single capability's several mechanic variants (e.g.
-    HAD_FEWER_PENALTIES's MULTIPLE_CHOICE/ELIMINATION_SURVIVAL/
-    HIGHER_LOWER_STREAK/SORTING_TIMELINE concepts, all real and all
-    distinctly signatured) crowd 7 of 10 "NFL game ideas" slots between
-    just two capabilities -- the literal "renamed versions of the same
-    quiz" failure mode, just with real mechanic variety instead of
-    cosmetic renaming. Two-pass greedy selection: first pass takes at most
-    ONE concept per real capability_id (breadth across DIFFERENT football
-    relationships first), in score order; second pass only backfills with
-    additional concepts from an already-used capability if the real
-    candidate pool cannot otherwise reach `count` -- never fabricated,
-    only genuinely available real concepts."""
+    """Real, found-during-development fix (Phase 5): signature-deduplication
+    alone still let a single capability's several mechanic variants crowd
+    most of a "NFL game ideas" result between just two capabilities -- the
+    literal "renamed versions of the same quiz" failure mode. Phase 6 adds a
+    second real finding: once 7 real mechanic templates exist, capability
+    breadth ALONE can still crowd every slot with MULTIPLE_CHOICE_SINGLE_FACT
+    concepts (the highest-scoring mechanic for most requests) before a
+    single MATCHING/SORTING_TIMELINE/etc. concept is ever reached, failing
+    the owner's "at least six genuinely different executable mechanic
+    templates represented" requirement even though real, playable concepts
+    for those other mechanics exist in the candidate pool.
+
+    Four-pass greedy selection, in score order throughout:
+      1. At most ONE concept per DISTINCT core_mechanic, using a capability
+         not already selected -- real mechanic breadth, without letting one
+         capability (e.g. a HAD_FEWER_PENALTIES-shaped concept genuinely
+         compatible with three different mechanics) fill multiple mechanic
+         slots by itself, which real testing showed reintroduces the
+         "renamed duplicate" problem for a general IDEAS request.
+      2. Same mechanic-breadth pass, but allowing a REUSED capability --
+         restricted to a real PLAYABLE_NOW concept only, never a redundant
+         CONCEPT_ONLY reuse (that would just be noise). This is what lets a
+         request surface both a MATCHING-Heisman AND a SORTING_TIMELINE-
+         Heisman concept when that capability is the only real variant
+         either mechanic has for a given competition (a real, disclosed
+         resource limit -- see this module's HIGHER_LOWER_STREAK/
+         ELIMINATION_SURVIVAL docstring) -- without that reuse escaping into
+         the general case, since pass 2 only ever fires for a mechanic pass
+         1 could not otherwise fill.
+      3. At most ONE additional concept per capability_id not already used,
+         for breadth across different football relationships.
+      4. Backfill from whatever real candidates remain, never fabricated.
+    """
     selected: list[dict] = []
     used_capability_ids: set[str] = set()
+    used_mechanics: set[str] = set()
 
     for concept in concepts_sorted:
         if len(selected) >= count:
             break
+        mech = concept["core_mechanic"]
         cap_id = concept["required_catalog_relationships"][0]["capability_id"]
-        if cap_id in used_capability_ids:
+        if mech in used_mechanics or cap_id in used_capability_ids:
             continue
         selected.append(concept)
         used_capability_ids.add(cap_id)
+        used_mechanics.add(mech)
+
+    if len(selected) < count:
+        for concept in concepts_sorted:
+            if len(selected) >= count:
+                break
+            mech = concept["core_mechanic"]
+            if mech in used_mechanics or concept["playability_status"] != "PLAYABLE_NOW":
+                continue
+            selected.append(concept)
+            used_capability_ids.add(concept["required_catalog_relationships"][0]["capability_id"])
+            used_mechanics.add(mech)
+
+    if len(selected) < count:
+        selected_ids = {c["concept_id"] for c in selected}
+        for concept in concepts_sorted:
+            if len(selected) >= count:
+                break
+            if concept["concept_id"] in selected_ids:
+                continue
+            cap_id = concept["required_catalog_relationships"][0]["capability_id"]
+            if cap_id in used_capability_ids:
+                continue
+            selected.append(concept)
+            selected_ids.add(concept["concept_id"])
+            used_capability_ids.add(cap_id)
 
     if len(selected) < count:
         selected_ids = {c["concept_id"] for c in selected}
@@ -432,30 +667,87 @@ def _select_diverse(concepts_sorted: list[dict], count: int) -> list[dict]:
 
 
 def _generate_real_preview(concept: dict) -> dict:
-    """Real playable preview -- reuses gateway/services/generation.generate()
-    and gateway/services/packages.save_package(), the EXACT same functions
-    POST /v1/games/generate already calls. Zero new generation code."""
-    from gateway.services import generation as generation_service
+    """Real playable preview -- Phase 6: dispatches through
+    tools.director_v02.mechanic_engine.py by the concept's own core_mechanic
+    (taxonomy_id), the SAME generator + gateway/services/packages.
+    save_package() every /v1/creator/mechanics/round call uses. Zero
+    preview-only generation code -- this is the identical real path a
+    private round is built through."""
+    from tools.director_v02 import mechanic_engine
     from gateway.services import packages as packages_service
 
     rel = concept["required_catalog_relationships"][0]
-    spec = {
-        "mechanic": rel["mechanic"], "domain": rel["domain"], "relationship_predicate": rel["relationship_predicate"],
-        "question_count": 3, "difficulty": "any", "filters": {}, "exclusions": [],
-    }
-    result = generation_service.generate(request_text=None, spec=spec, provider="mock",
-                                          puzzle_count=None, difficulty=None, seed=None)
-    if result.get("package_id") and result.get("qa_status") == "PASSED":
-        stored = packages_service.save_package(result)
-        sample = stored["questions"][0] if stored.get("questions") else None
-        return {
-            "package_id": stored["package_id"],
-            "qa_status": stored["qa_status"],
-            "question_count": stored.get("question_count"),
-            "sample_prompt": sample["question"] if sample else None,
-            "sample_options": sample["options"] if sample else None,
-        }
-    return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("error")}
+    taxonomy_id = concept["core_mechanic"]
+    try:
+        if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
+            result = mechanic_engine.generate_guess_round(
+                domain=rel["domain"], relationship_predicate=rel["relationship_predicate"],
+                question_count=3, seed=None)
+            if result.get("package_id") and result.get("qa_status") == "PASSED":
+                stored = packages_service.save_package(result)
+                sample = stored["questions"][0] if stored.get("questions") else None
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": stored.get("question_count"),
+                        "sample_prompt": sample["question"] if sample else None,
+                        "sample_options": sample["options"] if sample else None}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("error")}
+
+        if taxonomy_id == "PROGRESSIVE_CLUE_IDENTIFY":
+            result = mechanic_engine.generate_clue_round(target_count=3, seed="concept-preview")
+            if result.get("qa_status") == "PASSED" and result.get("puzzles"):
+                stored = packages_service.save_package(result)
+                first = stored["puzzles"][0]
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": len(stored["puzzles"]),
+                        "sample_prompt": first["clues"][0]["display_text"], "sample_options": None}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": "no puzzles generated"}
+
+        if taxonomy_id == "MATCHING":
+            result = mechanic_engine.generate_matching_round(
+                variant=concept["_mechanic_variant"], round_count=1, pair_count=4, seed="concept-preview")
+            if result.get("qa_status") == "PASSED" and result.get("rounds"):
+                stored = packages_service.save_package(result)
+                first = stored["rounds"][0]
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": len(stored["rounds"]), "sample_prompt": first["prompt"],
+                        "sample_options": [it["label"] for it in first["left_items"]]}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("shortfall_reason")}
+
+        if taxonomy_id == "SORTING_TIMELINE":
+            result = mechanic_engine.generate_sorting_round(
+                variant=concept["_mechanic_variant"], round_count=1, item_count=4, seed="concept-preview")
+            if result.get("qa_status") == "PASSED" and result.get("rounds"):
+                stored = packages_service.save_package(result)
+                first = stored["rounds"][0]
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": len(stored["rounds"]), "sample_prompt": first["prompt"],
+                        "sample_options": [it["label"] for it in first["items_shuffled"]]}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("shortfall_reason")}
+
+        if taxonomy_id == "HIGHER_LOWER_STREAK":
+            result = mechanic_engine.generate_higher_lower_round(
+                variant=concept["_mechanic_variant"], sequence_length=8, seed="concept-preview")
+            if result.get("qa_status") == "PASSED" and result.get("sequence"):
+                stored = packages_service.save_package(result)
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": stored.get("sequence_length"),
+                        "sample_prompt": stored["game_instructions"],
+                        "sample_options": [stored["sequence"][0]["label"]]}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("shortfall_reason")}
+
+        if taxonomy_id == "ELIMINATION_SURVIVAL":
+            result = mechanic_engine.generate_elimination_round(
+                variant=concept["_mechanic_variant"], sequence_length=8, seed="concept-preview")
+            if result.get("qa_status") == "PASSED" and result.get("sequence"):
+                stored = packages_service.save_package(result)
+                return {"package_id": stored["package_id"], "qa_status": stored["qa_status"],
+                        "round_count": stored.get("sequence_length"),
+                        "sample_prompt": stored["sequence"][0]["prompt"], "sample_options": None}
+            return {"package_id": None, "qa_status": result.get("qa_status"), "error": result.get("shortfall_reason")}
+    except Exception as e:  # never let a preview-generation bug break the whole /v1/creator/concepts response
+        return {"package_id": None, "qa_status": "FAILED", "error": f"{type(e).__name__}: {e}"}
+
+    return {"package_id": None, "qa_status": "FAILED", "error": f"no preview generator wired for {taxonomy_id!r}"}
 
 
 _VALID_REQUEST_TYPES = frozenset({"IDEAS", "PLAYABLE_IDEAS", "MIXED"})
