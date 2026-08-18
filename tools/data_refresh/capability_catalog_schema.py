@@ -209,6 +209,13 @@ _TAXONOMY_SEED = [
     # concepts.py's old domain-substring compatibility rule).
     ("POSITION_LINEUP_GRID", "Position lineup board",
      "A real team-season's starting offense, shown by position, guessed by team (and optionally season).", 1, 1, None),
+    # Reliability Design Phase 7A: schedule-driven, not relationship-driven
+    # -- see tools/director_v04/weekly_pickem.py's own module docstring for
+    # why this mechanic has no (mechanic, domain, relationship_predicate)
+    # triple to backfill into capability_catalog at all.
+    ("WEEKLY_PICKEM", "Weekly pick'em",
+     "A real (league, season, week) slate of scheduled NFL/CFB games -- pick each winner, graded "
+     "automatically, fresh from the live games/cfb_games_canonical tables, once each game goes final.", 1, 0, None),
 ]
 
 

@@ -193,6 +193,7 @@ class MechanicRoundRequest(BaseModel):
     taxonomy_id: Literal[
         "MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
         "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
+        "WEEKLY_PICKEM",
     ]
     variant: Optional[str] = Field(default=None, max_length=64)
     domain: Optional[str] = Field(default=None, max_length=64)
@@ -200,6 +201,10 @@ class MechanicRoundRequest(BaseModel):
     round_count: Optional[int] = Field(default=None, ge=1, le=25)
     pair_count: Optional[int] = Field(default=None, ge=4, le=6)
     item_count: Optional[int] = Field(default=None, ge=4, le=6)
+    # WEEKLY_PICKEM only -- real (league, season, week) slate selection,
+    # never a free-form filter (see tools/director_v04/weekly_pickem.py).
+    season: Optional[int] = Field(default=None, ge=1999, le=2100)
+    week: Optional[str] = Field(default=None, max_length=8)
     sequence_length: Optional[int] = Field(default=None, ge=8, le=25)
     question_count: Optional[int] = Field(default=None, ge=1, le=25)
     seed: Optional[str] = Field(default=None, min_length=1, max_length=128)

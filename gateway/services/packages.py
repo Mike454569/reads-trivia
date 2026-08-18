@@ -10,12 +10,13 @@ POSITION_LINEUP_GRID -- same mechanic="guess" contract), `GGP4:<24 hex
 chars>` (v0.4+, Player From Clues / PROGRESSIVE_CLUE_IDENTIFY), and, added
 in Reliability Design Phase 6 for the four genuinely new mechanic
 templates, `GGP5:` (MATCHING), `GGP6:` (SORTING_TIMELINE), `GGP7:`
-(ELIMINATION_SURVIVAL), `GGP8:` (HIGHER_LOWER_STREAK) -- all are
-`"GGP" + optional single version digit + ":" + sha256(...)[:24]`, the same
-extension pattern GGP4 already established (a new mechanic gets the next
-digit, never a new ID scheme). Produced by `game_director_v01.
+(ELIMINATION_SURVIVAL), `GGP8:` (HIGHER_LOWER_STREAK), and, added in Phase
+7A, `GGP9:` (WEEKLY_PICKEM) -- all are `"GGP" + optional single version
+digit + ":" + sha256(...)[:24]`, the same extension pattern GGP4 already
+established (a new mechanic gets the next digit, never a new ID scheme).
+Produced by `game_director_v01.
 generate_package_from_spec()` / `player_from_clues.build_package()` /
-`tools/director_v04/{matching,sorting,elimination,higher_lower}.py`'s own
+`tools/director_v04/{matching,sorting,elimination,higher_lower,weekly_pickem}.py`'s own
 `build_package()` functions. `_safe_filename_for_id()` is the ONLY place a
 package_id ever touches a filesystem path, and it does so through a strict
 allowlist regex first -- never through direct string interpolation into a
@@ -32,7 +33,7 @@ from pathlib import Path
 
 from .. import config
 
-PACKAGE_ID_RE = re.compile(r"^GGP[4-8]?:[0-9a-f]{24}$")
+PACKAGE_ID_RE = re.compile(r"^GGP[4-9]?:[0-9a-f]{24}$")
 
 _write_lock = threading.Lock()
 

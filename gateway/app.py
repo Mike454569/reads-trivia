@@ -706,6 +706,13 @@ def mechanics_start_round(body: MechanicRoundRequest, request: Request,
             raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['ELIMINATION_SURVIVAL'])}.")
         package = mechanic_engine.generate_elimination_round(
             variant=body.variant, sequence_length=body.sequence_length or 12, seed=body.seed or "mechanics-round")
+    elif t == "WEEKLY_PICKEM":
+        if body.variant not in mechanic_engine.VARIANTS["WEEKLY_PICKEM"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['WEEKLY_PICKEM'])}.")
+        if body.season is None or body.week is None:
+            raise GatewayError("INVALID_REQUEST", "WEEKLY_PICKEM requires both season and week.")
+        package = mechanic_engine.generate_weekly_pickem_round(
+            variant=body.variant, season=body.season, week=body.week, seed=body.seed or "mechanics-round")
     else:
         raise GatewayError("INVALID_REQUEST", f"Unknown taxonomy_id {t!r}.")
 

@@ -120,15 +120,15 @@ def test_migration_backfill_is_idempotent():
     assert after_count == before_count
 
 
-def test_mechanic_taxonomy_seeded_with_seven_templates_honest_pipeline_support_flags():
+def test_mechanic_taxonomy_seeded_with_eight_templates_honest_pipeline_support_flags():
     """Phase 1 seeded 6 templates with only 2 genuinely pipeline-supported
     (the other 4 honest placeholders, never fabricated as built). Phase 6
     (Mechanic Execution Framework) added the 7th (POSITION_LINEUP_GRID,
     formalizing the pre-existing lineup-board visual templates) and built
-    real, tested generators for all 4 former placeholders -- so all 7 are
-    now honestly creator_pipeline_supported AND template_status=
-    PRODUCTION_READY (see tools/director_v04/{matching,sorting,elimination,
-    higher_lower}.py and mechanic_engine.py)."""
+    real, tested generators for all 4 former placeholders. Phase 7A added
+    the 8th (WEEKLY_PICKEM, tools/director_v04/weekly_pickem.py) -- all 8
+    are now honestly creator_pipeline_supported AND template_status=
+    PRODUCTION_READY."""
     c = engine_bootstrap.connect()
     try:
         rows = c.execute("SELECT taxonomy_id, creator_pipeline_supported, template_status FROM mechanic_taxonomy").fetchall()
@@ -136,8 +136,9 @@ def test_mechanic_taxonomy_seeded_with_seven_templates_honest_pipeline_support_f
         c.close()
     by_id = {r["taxonomy_id"]: r["creator_pipeline_supported"] for r in rows}
     status_by_id = {r["taxonomy_id"]: r["template_status"] for r in rows}
-    assert len(by_id) == 7
+    assert len(by_id) == 8
     for taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
-                         "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID"):
+                         "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
+                         "WEEKLY_PICKEM"):
         assert by_id[taxonomy_id] == 1
         assert status_by_id[taxonomy_id] == "PRODUCTION_READY"

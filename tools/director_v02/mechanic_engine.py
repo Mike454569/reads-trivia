@@ -23,11 +23,13 @@ field added to a generator's private package shape is excluded by default.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 TAXONOMY_IDS = frozenset({
     "MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
     "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
+    "WEEKLY_PICKEM",
 })
 
 # Real, disclosed variant catalog -- the "Required relationship shape" per
@@ -60,6 +62,15 @@ VARIANTS: dict[str, dict[str, dict]] = {
             "domain": "NFL_OFFENSE_LINEUP_COLLEGE", "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"},
         "NFL_OFFENSE_LINEUP_NAMES_TEAM_ONLY": {"competition": "NFL",
             "domain": "NFL_OFFENSE_LINEUP", "relationship_predicate": "TEAM_OF_STARTING_LINEUP"},
+    },
+    # Phase 7A: schedule-driven, not relationship-driven -- WEEKLY_PICKEM has
+    # no (mechanic, domain, relationship_predicate) triple in the capability
+    # registry at all (see tools/director_v04/weekly_pickem.py's own module
+    # docstring), so its "Required relationship shape" is a real (league,
+    # season, week) slate query instead of a table/predicate pair.
+    "WEEKLY_PICKEM": {
+        "NFL_WEEKLY_PICKEM": {"competition": "NFL"},
+        "CFB_WEEKLY_PICKEM": {"competition": "CFB"},
     },
 }
 
@@ -264,6 +275,94 @@ def _elimination_evaluate(package: dict, current_index: int, submission: dict) -
     return {"correct": guess == actual, "actual_membership": actual, "prompt": item["prompt"]}
 
 
+# --- WEEKLY_PICKEM (schedule-driven slate, real-world-async grading) ---
+#
+# Genuinely different shape from every mechanic above, and deliberately so
+# -- see tools/director_v04/weekly_pickem.py's own module docstring for the
+# full reasoning. Every other mechanic's "truth" is fully known at
+# generation time and baked once into the immutable package. WEEKLY_PICKEM's
+# truth (each game's real winner) is usually NOT known yet at generation
+# time -- it only becomes knowable later, as real scores are ingested by
+# the ordinary games/cfb_games_canonical refresh schedule. So:
+#   - the package stores only the STATIC slate (game_id, real team codes,
+#     kickoff date) -- never a result.
+#   - progress stores only the RAW pick per game_id (predicted_winner,
+#     picked_at) -- never a cached "graded"/"correct" flag.
+#   - correctness is recomputed FRESH from the live tables on every single
+#     view/evaluate call (weekly_pickem.live_game_statuses()) -- this is
+#     what makes "grading happens automatically once a game goes final"
+#     literally true, with no scheduled sweep/job to build or forget to run.
+
+def generate_weekly_pickem_round(*, variant: str, season: int, week, seed: str) -> dict:
+    from tools.director_v04 import weekly_pickem
+    return weekly_pickem.build_package(seed, variant, season, week)
+
+
+def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
+    from tools.director_v04 import weekly_pickem
+
+    variant = package["domain_variant"]
+    games = package["games"]
+    picks: dict = progress.get("picks", {})
+    live = weekly_pickem.live_game_statuses(variant, [g["game_id"] for g in games])
+
+    out_games = []
+    for g in games:
+        live_g = live.get(g["game_id"], {"status": "UNKNOWN", "winner_code": None, "home_score": None, "away_score": None})
+        entry = {
+            "game_id": g["game_id"], "home_team": g["home_display"], "away_team": g["away_display"],
+            "kickoff": g["kickoff"], "status": live_g["status"],
+        }
+        # Never leak a score/winner before the game is genuinely FINAL --
+        # the one hard rule this whole mechanic exists to satisfy.
+        if live_g["status"] == "FINAL":
+            entry["home_score"] = live_g["home_score"]
+            entry["away_score"] = live_g["away_score"]
+            entry["winner"] = live_g["winner_code"]
+        pick = picks.get(g["game_id"])
+        if pick:
+            entry["your_pick"] = pick["predicted_winner"]
+            if live_g["status"] == "FINAL":
+                entry["outcome"] = ("TIE" if live_g["winner_code"] == "TIE"
+                                     else ("CORRECT" if pick["predicted_winner"] == live_g["winner_code"] else "INCORRECT"))
+            else:
+                entry["outcome"] = "PENDING"
+        out_games.append(entry)
+
+    graded = [e for e in out_games if e.get("outcome") in ("CORRECT", "INCORRECT", "TIE")]
+    correct_count = sum(1 for e in graded if e["outcome"] == "CORRECT")
+    return {
+        "season": package["season"], "week": package["week"], "variant": variant,
+        "games": out_games, "game_count": len(out_games),
+        "picks_made": len(picks), "graded_count": len(graded), "correct_count": correct_count,
+        "completed": len(graded) == len(out_games) and len(picks) == len(out_games),
+    }
+
+
+def _weekly_pickem_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    from tools.director_v04 import weekly_pickem
+
+    variant = package["domain_variant"]
+    games_by_id = {g["game_id"]: g for g in package["games"]}
+    game_id = submission.get("game_id")
+    game = games_by_id.get(game_id)
+    if game is None:
+        raise MechanicError(f"game_id {game_id!r} is not part of this slate")
+
+    valid_sides = {game["home_team"], game["away_team"]}
+    predicted_winner = submission.get("predicted_winner")
+    if predicted_winner not in valid_sides:
+        raise MechanicError(f"predicted_winner must be one of {sorted(valid_sides)} for game {game_id!r}")
+
+    live = weekly_pickem.live_game_statuses(variant, [game_id]).get(
+        game_id, {"status": "UNKNOWN", "winner_code": None})
+    if live["status"] == "FINAL":
+        raise MechanicError(f"game {game_id!r} is already final -- picks are closed")
+
+    return {"game_id": game_id, "predicted_winner": predicted_winner, "status": "PENDING",
+            "message": "Pick recorded -- will grade automatically once this game is final."}
+
+
 # --- Generic dispatch used by the Gateway routes ---
 
 def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
@@ -279,6 +378,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _higher_lower_client_view(package, progress["current_index"], progress.get("streak", 0), progress.get("ended", False))
     if taxonomy_id == "ELIMINATION_SURVIVAL":
         return _elimination_client_view(package, progress["current_index"], progress.get("survived", 0), progress.get("ended", False))
+    if taxonomy_id == "WEEKLY_PICKEM":
+        return _weekly_pickem_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -333,6 +434,15 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         else:
             progress["ended"] = True
         return result, progress
+    if taxonomy_id == "WEEKLY_PICKEM":
+        result = _weekly_pickem_evaluate(package, progress, submission)
+        picks = dict(progress.get("picks", {}))
+        picks[result["game_id"]] = {
+            "predicted_winner": result["predicted_winner"],
+            "picked_at": datetime.now(timezone.utc).isoformat(),
+        }
+        progress["picks"] = picks
+        return result, progress
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -343,4 +453,6 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"current_index": 0, "streak": 0, "ended": False}
     if taxonomy_id == "ELIMINATION_SURVIVAL":
         return {"current_index": 0, "survived": 0, "ended": False}
+    if taxonomy_id == "WEEKLY_PICKEM":
+        return {"picks": {}}
     return {"current_index": 0, "completed": False}
