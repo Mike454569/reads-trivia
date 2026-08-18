@@ -300,7 +300,22 @@ def _general_college_missing_data_reason() -> str:
 
 
 def _missing_data_reason(request_text: str) -> str | None:
-    words = _words(request_text)
+    # Real defect found during the Creator audit: "college football" is the
+    # SPORT NAME (a real, legitimate CFB signal -- providers/mock.py's own
+    # has_cfb_signal check treats it the same way), never itself a claim
+    # about which college a PLAYER attended -- but the bare word-overlap
+    # check below used to fire on it anyway. A request with nothing to do
+    # with college attendance at all ("guess the winner of a real college
+    # football game", "a pick'em slate for college football games") was
+    # reporting the unrelated draft_facts.college-coverage explanation
+    # instead of its own real, correct MISSING_DATA/UNKNOWN reason (or,
+    # for CFB_GAME_RESULT/WEEKLY_PICKEM specifically, no reason to be
+    # MISSING_DATA at all). Stripping the "college football" phrase first
+    # means a GENUINE standalone "college"/"school" mention (e.g. "what
+    # college did this player attend") still reaches the real reason below.
+    import re
+    text_without_sport_name = re.sub(r"\bcollege football\b", "", request_text, flags=re.IGNORECASE)
+    words = _words(text_without_sport_name)
     if words & _GENERAL_COLLEGE_WORDS:
         return _general_college_missing_data_reason()
     for signal_words, reason in KNOWN_MISSING_DATA_SIGNALS.items():

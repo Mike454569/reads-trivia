@@ -88,7 +88,7 @@ _WIN_WORDS = {"won", "win", "wins", "winner"}
 _AWARD_WORDS = {"award", "awards", "trophy", "mvp"}
 _CFB_EXPLICIT_WORDS = {"cfb"}
 _GAME_WORDS = {"game", "games"}
-_RESULT_WORDS = {"result", "results", "won", "win", "score", "scored"}
+_RESULT_WORDS = {"result", "results", "won", "win", "winner", "winners", "score", "scored"}
 _BOXSCORE_WORDS = {"boxscore", "yards", "yardage"}  # "box" + "score" (two tokens) checked separately below
 _OFFTOPIC_WORDS = {"food", "foods", "favorite"}
 _MIXED_SIGNAL_WORDS = {"both"}
@@ -162,7 +162,37 @@ def _question_count_from_text(text: str, default: int = 25) -> int:
     return int(m.group(1)) if m else default
 
 
+def _clamp_question_count_to_capability_bounds(spec: dict) -> dict:
+    """Real defect found during the Creator audit: this translator's own
+    default question_count (25, used whenever the request text names no
+    explicit number -- see _question_count_from_text) can exceed a real
+    registered capability's own max_question_count (confirmed live: NFL_
+    SUPER_BOWL/WON_CHAMPIONSHIP's real max is 24, the exact size of its
+    resolved candidate pool). The practical effect: the single most natural
+    phrasing of a fully real, working request ("who won a Super Bowl?", no
+    number mentioned) failed validator.py's bounds check and reported
+    UNKNOWN -- a real capability, unreachable by its own default. Clamping
+    here, in the one function every TRANSLATED spec already passes through,
+    fixes this for every current and future capability at once rather than
+    hand-patching each mechanic's own branch above; a spec whose predicate
+    isn't (yet) a registered capability is left untouched -- validator.py's
+    own registry.lookup() is still the real, single source of truth for
+    whether it exists at all."""
+    if spec is None:
+        return spec
+    from .. import registry
+    cap = registry.lookup(spec.get("mechanic"), spec.get("domain"), spec.get("relationship_predicate"))
+    if cap is None:
+        return spec
+    count = spec.get("question_count")
+    if isinstance(count, int) and not isinstance(count, bool):
+        spec["question_count"] = max(cap["min_question_count"], min(count, cap["max_question_count"]))
+    return spec
+
+
 def _result(request_text: str, status: str, spec: dict | None, notes: str, **extra) -> dict:
+    if status == "TRANSLATED":
+        spec = _clamp_question_count_to_capability_bounds(spec)
     out = {
         "raw_request_text": request_text,
         "translator_id": TRANSLATOR_ID,
