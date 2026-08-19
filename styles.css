@@ -795,6 +795,8 @@ footer p { margin: 6px 0 0; }
   min-height: 36px;
 }
 .btn-tiny:hover { color: var(--text); border-color: var(--accent); }
+.btn-tiny:disabled { opacity: .4; cursor: default; }
+.btn-tiny:disabled:hover { color: var(--text-dim); border-color: var(--border); }
 
 /* home — see --space-* tokens above for the rhythm this all shares */
 .hero { text-align: center; margin: var(--space-sm) 0 var(--space-lg); }
@@ -1038,6 +1040,12 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .match-right-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .match-right-chip { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; background: var(--bg-card); color: var(--text); }
 .match-right-chip.selected { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+/* Same duplicate-prevention treatment the admin mechanic-preview harness
+   already established for this exact mechanic (admin-mechanic-preview.html's
+   own .match-right-chip.used) -- a right item already paired to a DIFFERENT
+   left item goes dim and inert here too, so a player can't silently assign
+   the same team to two different picks and only find out on submit. */
+.match-right-chip.used { opacity: 0.35; pointer-events: none; }
 .sort-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13.5px; }
 .sort-controls button { margin-left: 4px; }
 .hl-compare { display: flex; justify-content: space-between; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; }

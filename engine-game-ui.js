@@ -401,8 +401,17 @@ function renderEnginePilotPromptHtml(game) {
   }
   return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>';
 }
-function enginePilotToolbarHtml() {
-  return '<div class="mode-toolbar">' +
+/* Section 6/7/21 fix: cfg.title used to appear only on the pre-start IDLE
+   screen and vanish for the rest of the round -- once play started, the
+   only context left on screen was "Question X of Y" with no reminder of
+   which mode (or, for Higher/Lower kinds, which real stat) you're even
+   playing. Reuses .quiz-progress' existing small/dim text style (same
+   discipline as the rest of this file -- no parallel visual language),
+   never invents new copy: cfg.title is the same real, human-readable
+   string already shown on the Start screen. */
+function enginePilotToolbarHtml(cfg) {
+  return (cfg ? '<div class="quiz-progress">' + esc(cfg.title) + '</div>' : '') +
+    '<div class="mode-toolbar">' +
     '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
     '</div>';
 }
@@ -423,7 +432,7 @@ function renderEnginePilotScreen() {
     // "Gateway" wording (Part 44: the infrastructure should disappear
     // behind the experience), and aria-live so a screen reader announces
     // the transition instead of going silent between questions.
-    return '<div class="panel">' + enginePilotToolbarHtml() + '<p class="mode-desc" aria-live="polite">Finding your next question&hellip;</p></div>';
+    return '<div class="panel">' + enginePilotToolbarHtml(cfg) + '<p class="mode-desc" aria-live="polite">Finding your next question&hellip;</p></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
     // Part 11/43: s.error is always shell-owned, polished copy by this
@@ -431,7 +440,7 @@ function renderEnginePilotScreen() {
     // never an HTTP status code, never an internal error `code` like
     // GENERATION_BUSY shown as-is. aria-live="assertive" here (vs
     // "polite" elsewhere) since an error is worth interrupting for.
-    return '<div class="panel">' + enginePilotToolbarHtml() +
+    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row">' +
       '<button class="btn-primary" data-pilot-retry>Try Again</button>' +
@@ -439,7 +448,7 @@ function renderEnginePilotScreen() {
       '</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
-    return '<div class="panel">' + enginePilotToolbarHtml() +
+    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
       '<h2 class="panel-title">Round Complete</h2>' +
       '<p class="mode-desc">' + s.correctCount + ' / ' + s.roundSize + ' correct.</p>' +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button></div></div>';
@@ -451,7 +460,7 @@ function renderEnginePilotScreen() {
   // Quiz's own renderQuizQuestion() already does it.
   var game = s.current, answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
-  return '<div class="panel">' + enginePilotToolbarHtml() +
+  return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
     '<div class="quiz-progress">Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || '') + '</div>' +
     renderEnginePilotPromptHtml(game) +
     '<div class="quiz-options">' +
@@ -584,12 +593,52 @@ function mechanicPilotAdvance() {
   var s = state.mechanicPilot;
   if (!s) return;
   var completed = s.view && (s.view.completed || s.view.ended || s.view.sequence_complete);
-  if (completed) { s.screen = ENGINE_GAME_SCREEN.COMPLETE; renderAll(); return; }
+  if (completed) {
+    // Section 9/10/22 fix: the last real result/view is still sitting on `s`
+    // at this point (mechanicPilotAdvance only clears s.result on the
+    // non-complete branch below) -- renderMechanicPilotCompleteSummary reads
+    // it straight off s, no new fetch or state needed.
+    s.screen = ENGINE_GAME_SCREEN.COMPLETE;
+    renderAll();
+    return;
+  }
   s.screen = ENGINE_GAME_SCREEN.QUESTION_READY; s.result = null;
   renderAll();
 }
-function mechanicPilotToolbarHtml() {
-  return '<div class="mode-toolbar"><button class="btn-tiny" data-mechanic-exit>' + icon('close') + ' Exit to Home</button></div>';
+/* Section 9/10/22 fix: the COMPLETE screen used to render nothing but
+   "Round Complete" for all four mechanics -- no final score, no streak
+   reached, no survived count, no indication of why the round ended. Real
+   defect found by actually reading this render path end to end (not
+   assumed): every field used below already exists on s.result/s.view by
+   the time this screen shows (the last real server response is never
+   cleared before COMPLETE), so this is presentation-only, no new fetch,
+   no backend change. */
+function renderMechanicPilotCompleteSummary(cfg, s) {
+  var r = s.result || {};
+  var v = s.view || {};
+  if (cfg.kind === 'matching') {
+    return '<p class="mode-desc">' + (r.correct_count != null ? r.correct_count + ' of ' + r.total_pairs + ' matched correctly.' : '') + '</p>';
+  }
+  if (cfg.kind === 'sorting') {
+    return '<p class="mode-desc">' + (r.correct_positions != null ? r.correct_positions + ' of ' + r.total_items + ' in the correct spot.' : '') + '</p>';
+  }
+  if (cfg.kind === 'higher_lower') {
+    var finalStreak = v.streak != null ? v.streak : r.streak;
+    return '<p class="mode-desc">' + (finalStreak != null ? 'Final streak: ' + finalStreak + '.' : '') +
+      (v.next_item === null && r.actual_direction ? ' ' + esc(String(r.revealed_next_label)) + ' was ' + esc(r.actual_direction) + ' — that ended the run.' : '') + '</p>';
+  }
+  if (cfg.kind === 'elimination') {
+    var survived = v.survived_count != null ? v.survived_count : r.survived_count;
+    return '<p class="mode-desc">' + (survived != null ? 'Survived ' + survived + ' round' + (survived === 1 ? '' : 's') + '.' : '') +
+      (r.correct === false ? ' That one ended the run.' : '') + '</p>';
+  }
+  return '';
+}
+/* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
+   above, for the Mechanic Pilot shell. */
+function mechanicPilotToolbarHtml(cfg) {
+  return (cfg ? '<div class="quiz-progress">' + esc(cfg.title) + '</div>' : '') +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-mechanic-exit>' + icon('close') + ' Exit to Home</button></div>';
 }
 /* UI/UX pass: this used to render 'Result: ' + JSON.stringify(s.result) --
    the raw backend response object -- directly as the player's feedback
@@ -629,12 +678,22 @@ function renderMechanicPilotBody(cfg, s) {
   var v = s.view;
   if (cfg.kind === 'matching') {
     var mapping = s.matchSelection;
+    // Section 19/8 fix: same duplicate-prevention affordance the admin
+    // mechanic-preview harness already established for this exact mechanic
+    // (its own .match-right-chip.used) -- a right item already paired to a
+    // DIFFERENT left item is shown dim/inert here too, instead of letting
+    // the player silently assign the same team to two picks with no warning
+    // until submit.
+    var usedRightBy = {};
+    Object.keys(mapping).forEach(function (leftId) { usedRightBy[mapping[leftId]] = leftId; });
     return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
       v.left_items.map(function (li) {
         var chosen = mapping[li.item_id];
         return '<div class="match-row' + (chosen ? ' paired' : '') + '"><div class="match-left">' + esc(li.label) + '</div>' +
           '<div class="match-right-list">' + v.right_items.map(function (ri) {
-            return '<span class="match-right-chip' + (chosen === ri.item_id ? ' selected' : '') + '" data-match-left="' + esc(li.item_id) + '" data-match-right="' + esc(ri.item_id) + '">' + esc(ri.label) + '</span>';
+            var isChosenHere = chosen === ri.item_id;
+            var usedElsewhere = !isChosenHere && usedRightBy[ri.item_id] !== undefined && usedRightBy[ri.item_id] !== li.item_id;
+            return '<span class="match-right-chip' + (isChosenHere ? ' selected' : '') + (usedElsewhere ? ' used' : '') + '" data-match-left="' + esc(li.item_id) + '" data-match-right="' + esc(ri.item_id) + '">' + esc(ri.label) + '</span>';
           }).join('') + '</div></div>';
       }).join('') +
       '<div class="btn-row"><button class="btn-primary" data-match-submit' + (Object.keys(mapping).length < v.left_items.length ? ' disabled' : '') + '>Submit Matches</button></div>';
@@ -644,8 +703,14 @@ function renderMechanicPilotBody(cfg, s) {
     var labelFor = function (id) { var it = v.items_shuffled.filter(function (x) { return x.item_id === id; })[0]; return it ? it.label : id; };
     return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
       s.sortOrder.map(function (id, i) {
+        // Section 8 polish: the up/down click handler already no-ops safely
+        // at the ends (app.js's bounds check), but the buttons themselves
+        // looked identically active there -- disabling them at the actual
+        // boundary makes "this is already first/last" visible, not just safe.
+        var atTop = i === 0, atBottom = i === s.sortOrder.length - 1;
         return '<div class="sort-row"><span>' + (i + 1) + '. ' + esc(labelFor(id)) + '</span><span class="sort-controls">' +
-          '<button class="btn-tiny" data-sort-up="' + i + '">Up</button><button class="btn-tiny" data-sort-down="' + i + '">Down</button></span></div>';
+          '<button class="btn-tiny" data-sort-up="' + i + '"' + (atTop ? ' disabled' : '') + '>Up</button>' +
+          '<button class="btn-tiny" data-sort-down="' + i + '"' + (atBottom ? ' disabled' : '') + '>Down</button></span></div>';
       }).join('') +
       '<div class="btn-row"><button class="btn-primary" data-sort-submit>Submit Order</button></div>';
   }
@@ -678,25 +743,26 @@ function renderMechanicPilotScreen() {
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Start</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml() + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml() +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-retry>Try Again</button>' +
       '<button class="btn-secondary" data-mechanic-fallback>' + esc(cfg.fallbackLabel) + '</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml() + '<h2 class="panel-title">Round Complete</h2>' +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + '<h2 class="panel-title">Round Complete</h2>' +
+      renderMechanicPilotCompleteSummary(cfg, s) +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button></div></div>';
   }
   var answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
   if (submitting) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml() + renderMechanicPilotBody(cfg, s) +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + renderMechanicPilotBody(cfg, s) +
       '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
   }
-  return '<div class="panel">' + mechanicPilotToolbarHtml() + renderMechanicPilotBody(cfg, s) +
+  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + renderMechanicPilotBody(cfg, s) +
     (answered ? renderMechanicPilotFeedback(cfg, s) +
       '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
     '</div>';
