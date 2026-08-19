@@ -294,14 +294,24 @@ def test_ten_playable_cfb_ideas_stay_in_domain_and_never_pad():
         assert c["domain"].startswith("CFB_"), f"non-CFB concept leaked into a CFB-only request: {c['concept_id']}"
         assert c["playability_status"] == "PLAYABLE_NOW"
         assert c["preview"]["qa_status"] == "PASSED"
-    # Real, disclosed ceiling: CFB has no PROGRESSIVE_CLUE_IDENTIFY or
-    # POSITION_LINEUP_GRID capability at all (no CFB player-clues capability,
-    # no CFB lineup-board capability), so 5 distinct mechanics -- not 6 -- is
-    # CFB's genuine current maximum. Asserting the real number, not padding
-    # the requirement to a number the real data can't honestly support.
+    # Real, disclosed ceiling: CFB has no POSITION_LINEUP_GRID capability at
+    # all (no CFB lineup-board capability) -- 6 distinct mechanics, not 7,
+    # is CFB's genuine current maximum. Asserting the real number, not
+    # padding the requirement to a number the real data can't honestly
+    # support.
+    #
+    # Creator Semantic Routing + Who Am I pass: PROGRESSIVE_CLUE_IDENTIFY
+    # joined this set for real -- CFB_PLAYER_IDENTITY/IDENTIFY_FROM_CLUES
+    # (tools/director_v04/cfb_player_from_clues.py) is a real, registered,
+    # GENERATION_VERIFIED CFB capability now, and this test's own module
+    # docstring instruction ("never hard-code a static list just to make a
+    # test pass if Creator Intelligence already has a proper capability-
+    # discovery mechanism") is exactly why this assertion is updated to
+    # match concepts.py's real, live, capability-driven discovery rather
+    # than the previous ceiling being defended.
     mechanics = {c["core_mechanic"] for c in result["concepts"]}
     assert mechanics == {"MULTIPLE_CHOICE_SINGLE_FACT", "MATCHING", "SORTING_TIMELINE",
-                          "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL"}
+                          "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "PROGRESSIVE_CLUE_IDENTIFY"}
 
 
 def test_general_ideas_request_never_repeats_a_capability():

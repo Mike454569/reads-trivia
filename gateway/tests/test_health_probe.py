@@ -182,33 +182,36 @@ def test_tier2_fails_closed_on_a_genuinely_empty_pool():
     """Distinguishes a healthy-but-low-coverage capability from a genuinely
     broken one: zero eligible candidates means zero successful generations,
     which must fail the runtime-health check even though the code path
-    doesn't crash."""
+    doesn't crash.
+
+    Creator Semantic Routing pass fix: _generate_n_rounds() no longer
+    hardcodes a call to registry._generate_guess_package() by name -- it
+    calls cap["generate_fn"] directly (see health_probe.py's own updated
+    docstring: the old hardcoding would have silently probed a SECOND
+    identify_player_from_clues capability, e.g. CFB_PLAYER_IDENTITY, with
+    the wrong, NFL-specific generator). This test's fake capability now
+    supplies generate_fn directly, matching the real registry.py shape,
+    instead of monkey-patching a module-level function this code no longer
+    references."""
     from tools.director_v02 import health_probe
 
     c = engine_bootstrap.connect()
-    empty_cap = {
-        "adapter": type("FakeAdapter", (), {
-            "__name__": "tools.director_v02.catalog",  # any real, importable module
-        })(),
-    }
-
-    import types
-    fake_module = types.ModuleType("tools.director_v02.catalog")
 
     def fake_generate_fn(*args, **kwargs):
         return {"funnel": {"considered": 0}, "questions": []}
 
+    empty_cap = {
+        "adapter": type("FakeAdapter", (), {
+            "__name__": "tools.director_v02.catalog",  # any real, importable module
+        })(),
+        "generate_fn": fake_generate_fn,
+    }
+
     try:
-        import tools.director_v02.registry as registry_mod
-        orig = registry_mod._generate_guess_package
-        registry_mod._generate_guess_package = fake_generate_fn
-        try:
-            result = health_probe.run_probe(
-                "TEST_EMPTY_POOL", "guess", "FAKE_DOMAIN", "FAKE_PREDICATE", empty_cap,
-                tier="TIER2", seed_prefix="test-empty",
-            )
-        finally:
-            registry_mod._generate_guess_package = orig
+        result = health_probe.run_probe(
+            "TEST_EMPTY_POOL", "guess", "FAKE_DOMAIN", "FAKE_PREDICATE", empty_cap,
+            tier="TIER2", seed_prefix="test-empty",
+        )
         assert result["passed"] is False
         assert result["checks"]["eligible_pool_size"] == 0
         assert result["checks"]["successful_generations"] == 0

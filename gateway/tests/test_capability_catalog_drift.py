@@ -99,15 +99,30 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     limitation. This test is expected to start failing (in the direction of
     a SMALLER missing count) once Phase 7's gradual audit backfills the
     legacy 21 -- at that point, revisit whether generation is safe rather
-    than silently leaving this stale."""
+    than silently leaving this stale.
+
+    Creator Semantic Routing + Who Am I pass: total_capabilities grew 23 -> 29
+    (6 real new capabilities: NFL_ALL_PRO, NFL_PRO_BOWL, NFL_HALL_OF_FAME,
+    NFL_OFFENSIVE_COORDINATOR, NFL_DEFENSIVE_COORDINATOR,
+    CFB_PLAYER_IDENTITY/IDENTIFY_FROM_CLUES) -- every one of them registered
+    via register_new_capability() with real scoping fields populated from
+    the start, same as NFL_PLAYER_SEASON__TEAM_OF_SEASON above, so
+    capabilities_missing_scoping_fields is unchanged at 21 (confirmed live:
+    none of the 6 new capability_ids appear in missing_fields_by_capability)."""
     from tools.director_v02 import generate_schema_and_prompt as gen
 
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 23
+    assert result["total_capabilities"] == 29
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]
+    for new_cap_id in (
+        "NFL_ALL_PRO__SELECTED_ALL_PRO", "NFL_PRO_BOWL__SELECTED_PRO_BOWL",
+        "NFL_HALL_OF_FAME__INDUCTED_HOF", "NFL_OFFENSIVE_COORDINATOR__COORDINATED_OFFENSE",
+        "NFL_DEFENSIVE_COORDINATOR__COORDINATED_DEFENSE", "CFB_PLAYER_IDENTITY__IDENTIFY_FROM_CLUES",
+    ):
+        assert new_cap_id not in result["missing_fields_by_capability"]
 
 
 def test_every_catalog_row_has_exactly_one_registry_entry_and_an_importable_adapter():

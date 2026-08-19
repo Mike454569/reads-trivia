@@ -59,6 +59,21 @@ _PICKEM_WINNER_WORD = re.compile(r"\bwinners?\b", re.IGNORECASE)
 _PICKEM_SLATE_SIGNAL = re.compile(r"\b(week|weekly|slate)\b", re.IGNORECASE)
 _LEAGUE_SIGNAL = re.compile(r"\bnfl\b|\bcollege\s+football\b|\bcfb\b|\bncaa\b", re.IGNORECASE)
 _DRAFT_WORD = re.compile(r"\bdraft(ed|ing)?\b", re.IGNORECASE)
+# Creator Semantic Routing pass: a real, found over-trigger -- "week" alone,
+# paired only with the generic verb "pick" (as in "make me PICK who rushed
+# for more yards"), used to satisfy the has_slate_or_league+picks? fallback
+# below even though the request is a player-STAT comparison, not a weekly
+# matchup-winner slate. Weekly Pick'em is fundamentally "predict game
+# winners for a real week's slate" -- a request that names a per-game/
+# per-player STAT (yards, rushing, passing, receiving, sacks, comparison
+# language) is asking a genuinely different question, never this mechanic,
+# regardless of whether "week" also appears. See mock.py's own same-week
+# stat-comparison block for where this kind of request is honestly reported
+# UNDERSTOOD_UNSUPPORTED_MECHANIC instead.
+_STAT_COMPARISON_EXCLUSION_RE = re.compile(
+    r"\b(yards?|yardage|rushed|rushing|passing|receiving|sacks?|interceptions?|compare|comparison|stats?)\b",
+    re.IGNORECASE,
+)
 
 # --- LIVE_WEEKLY_FANTASY_DRAFT recognition ----------------------------------
 # Anchored on the word "fantasy" itself, paired with a roster-construction
@@ -83,7 +98,7 @@ def _detect_pickem(text: str) -> bool:
     # paired with a slate/week or league signal -- and never when "draft"
     # is also present ("draft picks" is NFL-Draft-trivia territory, a
     # completely different concept, not a predictive weekly slate).
-    if not _DRAFT_WORD.search(text):
+    if not _DRAFT_WORD.search(text) and not _STAT_COMPARISON_EXCLUSION_RE.search(text):
         has_slate_or_league = bool(_PICKEM_SLATE_SIGNAL.search(text) or _LEAGUE_SIGNAL.search(text))
         if has_slate_or_league and re.search(r"\bpicks?\b", text, re.IGNORECASE):
             return True

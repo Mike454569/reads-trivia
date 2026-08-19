@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools import game_director_v01 as v01  # noqa: E402
 from tools.director_v04 import player_from_clues  # noqa: E402
+from tools.director_v04 import cfb_player_from_clues  # noqa: E402
 from tools.quiz_export.adapters import cfb_game_result as cfb_game_result_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_heisman as cfb_heisman_adapter  # noqa: E402
 from tools.quiz_export.adapters import championship as championship_adapter  # noqa: E402
@@ -43,6 +44,11 @@ from tools.quiz_export.adapters import cfb_transfer as cfb_transfer_adapter  # n
 from tools.quiz_export.adapters import cfb_rivalry as cfb_rivalry_adapter  # noqa: E402
 from tools.quiz_export.adapters import player_season_team as player_season_team_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_player_season_school as cfb_player_season_school_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_all_pro as nfl_all_pro_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_pro_bowl as nfl_pro_bowl_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_hof as nfl_hof_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_offensive_coordinator as nfl_offensive_coordinator_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_defensive_coordinator as nfl_defensive_coordinator_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -97,6 +103,21 @@ def _generate_player_from_clues_package(validated_spec: dict, capability: dict, 
     than being forced through the guess-shaped function above. See
     PLAYER_FROM_CLUES_MECHANIC_SPEC.md."""
     package = player_from_clues.build_package(
+        seed=seed, target_count=target_count, id_start=id_start,
+        requested_description=request_text, freeze_timestamp=freeze_timestamp,
+    )
+    package["director_request_id"] = director_request_id
+    return package
+
+
+def _generate_cfb_player_from_clues_package(validated_spec: dict, capability: dict, *, request_text: str,
+                                             director_request_id: str, seed: str, target_count: int, id_start: int,
+                                             freeze_timestamp: str | None) -> dict:
+    """CFB parity for _generate_player_from_clues_package() above -- same
+    dispatch shape, calls tools.director_v04.cfb_player_from_clues.build_package()
+    instead (its own real, CFB-native identity universe -- see that
+    module's docstring)."""
+    package = cfb_player_from_clues.build_package(
         seed=seed, target_count=target_count, id_start=id_start,
         requested_description=request_text, freeze_timestamp=freeze_timestamp,
     )
@@ -899,6 +920,211 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["reliability-design-phase-4"],
         "pipeline_id_start": 820000,
+    },
+    # Creator Semantic Routing + Who Am I pass: nfl_all_pro_selections
+    # (4,964 rows, WIKIPEDIA_STRUCTURED_SECONDARY) had zero Creator
+    # capabilities before this -- the exact real gap behind the "First-Team
+    # All-Pro" request silently routing to TEAM_OF_SEASON above. Scoped to
+    # is_ap=1 (the AP All-Pro team specifically, 3,207 of 4,964 rows) --
+    # see tools/quiz_export/adapters/nfl_all_pro.py's own module docstring
+    # for why the other selecting bodies mixed into this table are not
+    # combined into one implied "the" All-Pro team.
+    ("guess", "NFL_ALL_PRO", "SELECTED_ALL_PRO"): {
+        "adapter": nfl_all_pro_adapter,
+        "category": nfl_all_pro_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only the AP All-Pro team (is_ap=1, 3,207 of 4,964 real selection rows) -- other "
+            "historical selecting bodies present in this table's own selectors_raw column (NYDN, PFW, "
+            "SN, UPI, etc.) are not surfaced as their own separate honor.",
+            "Distractor player names are drawn from the full AP All-Pro name pool, not scoped to the "
+            "same season or position -- position label text is inconsistent across eras (bracketed "
+            "footnote markers, spelling variants), so season/position-scoping would starve older "
+            "seasons of a real 3-name distractor pool. Same disclosed tradeoff CFB_HEISMAN's school "
+            "distractors already make.",
+            "Does not require player_id identity resolution (only 2,765 of 4,964 rows resolve) -- the "
+            "correct answer and every distractor are the real, source-verified player_name_raw string, "
+            "never a canonical_players join.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_all_pro_selection",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-all-pro"],
+        "pipeline_id_start": 830000,
+    },
+    # Creator Semantic Routing pass: nfl_pro_bowl_selections (4,216 rows,
+    # WIKIPEDIA_STRUCTURED_SECONDARY, seasons 1972-2025) -- same real gap,
+    # same fix pattern as NFL_ALL_PRO above. Pro Bowl is a genuinely
+    # different, distinct honor from All-Pro (different selection process,
+    # different real player pool per season), not a filter on it.
+    ("guess", "NFL_PRO_BOWL", "SELECTED_PRO_BOWL"): {
+        "adapter": nfl_pro_bowl_adapter,
+        "category": nfl_pro_bowl_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers all four real Pro Bowl selection tiers (Starter/Reserve/Alternate/Selected) as one "
+            "combined 'selected to the Pro Bowl' honor -- the specific tier is shown in the question's "
+            "own notes, but is not itself a filterable axis yet.",
+            "Distractor player names are drawn from the full Pro Bowl name pool, not scoped to the same "
+            "season or position -- same disclosed tradeoff NFL_ALL_PRO's distractors make, for the same "
+            "real reason (inconsistent historical position-label text).",
+            "Does not require player_id identity resolution (only 3,042 of 4,216 rows resolve) -- same "
+            "real-source-name discipline as NFL_ALL_PRO.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_pro_bowl_selection",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-pro-bowl"],
+        "pipeline_id_start": 840000,
+    },
+    # Creator Semantic Routing pass: nfl_hof_inductees (387 rows, 336
+    # players, WIKIPEDIA_STRUCTURED_SECONDARY, class years 1963-2026) --
+    # same real gap. Scoped to is_player=1 (336 of 387 rows) -- the other
+    # 51 rows are non-player inductees (coaches, contributors, executives),
+    # a genuinely different real question this capability does not ask.
+    ("guess", "NFL_HALL_OF_FAME", "INDUCTED_HOF"): {
+        "adapter": nfl_hof_adapter,
+        "category": nfl_hof_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only player inductees (is_player=1, 336 of 387 real rows) -- non-player Hall of Fame "
+            "inductees (coaches, contributors, executives) are excluded entirely, not asked about.",
+            "Distractor player names are drawn from the full HOF player-inductee pool, not scoped to the "
+            "same class year -- 336 real names is a comfortable pool for this, but a distractor's real "
+            "class year is not guaranteed to be close to the correct answer's.",
+            "Does not require player_id identity resolution (only 107 of 387 rows resolve) -- same "
+            "real-source-name discipline as NFL_ALL_PRO/NFL_PRO_BOWL.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_hof_inductee",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-hof"],
+        "pipeline_id_start": 850000,
+    },
+    # Creator Semantic Routing pass: nfl_coordinators (64 rows, ALL season
+    # 2026, WIKIPEDIA_STRUCTURED_SECONDARY) -- the exact real gap behind the
+    # "offensive coordinator"/"defensive coordinator" requests silently
+    # routing to TEAM_OF_STARTING_LINEUP above. Two real, distinct roles as
+    # two separate predicates (not a filter on one) -- "which team's OC" and
+    # "which team's DC" are different real questions with different real
+    # answer pools, same discipline the box-score sack/turnover/penalty
+    # split already uses. Coverage is genuinely, disclosedly 2026-only --
+    # see tools/quiz_export/adapters/nfl_coordinator.py's own module
+    # docstring; this capability never implies historical coverage it does
+    # not have.
+    ("guess", "NFL_OFFENSIVE_COORDINATOR", "COORDINATED_OFFENSE"): {
+        "adapter": nfl_offensive_coordinator_adapter,
+        "category": nfl_offensive_coordinator_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers the 2026 season ONLY -- nfl_coordinators has no historical seasons on file yet "
+            "(32 real offensive-coordinator rows total, one per NFL team). Requesting any other season "
+            "is out of bounds for this capability, not silently answered from 2026 data.",
+            "Does not require coach_id identity resolution beyond the team_franchise_id already "
+            "resolved for all 64 real rows -- the answer is the real, source-verified coach_name_raw.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_coordinator_season",
+        "object_type": "coach",
+        "answer_type": "coach",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 32,
+        "supported_difficulties": frozenset({"any", "medium"}),  # a single real season has no real recency axis
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-coordinators"],
+        "pipeline_id_start": 860000,
+    },
+    ("guess", "NFL_DEFENSIVE_COORDINATOR", "COORDINATED_DEFENSE"): {
+        "adapter": nfl_defensive_coordinator_adapter,
+        "category": nfl_defensive_coordinator_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers the 2026 season ONLY -- nfl_coordinators has no historical seasons on file yet "
+            "(32 real defensive-coordinator rows total, one per NFL team). Requesting any other season "
+            "is out of bounds for this capability, not silently answered from 2026 data.",
+            "Does not require coach_id identity resolution beyond the team_franchise_id already "
+            "resolved for all 64 real rows -- the answer is the real, source-verified coach_name_raw.",
+        ],
+        "competition_id": "NFL",
+        "entity_type": "nfl_coordinator_season",
+        "object_type": "coach",
+        "answer_type": "coach",
+        "group_size": 4,
+        "min_question_count": 1,
+        "max_question_count": 32,
+        "supported_difficulties": frozenset({"any", "medium"}),
+        "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-coordinators"],
+        "pipeline_id_start": 870000,
+    },
+    # Creator Semantic Routing + Who Am I pass: the CFB parity capability
+    # for identify_player_from_clues/NFL_PLAYER_IDENTITY above -- a real,
+    # independent CFB-native identity universe (cfb_roster_seasons_real +
+    # canonical_cfb_players, joined on cfb_player_id only, never on name),
+    # not an alias of the NFL one. See tools/director_v04/
+    # cfb_player_from_clues.py's own module docstring for the full real
+    # data audit (939 real certified All-Americans, real transfer-summary
+    # school counts, a real 3+ minute full-universe-scan timing that
+    # motivated its own scan_cap performance guard).
+    ("identify_player_from_clues", "CFB_PLAYER_IDENTITY", "IDENTIFY_FROM_CLUES"): {
+        "adapter": cfb_player_from_clues,
+        "category": cfb_player_from_clues.CATEGORY,
+        "generate_fn": _generate_cfb_player_from_clues_package,
+        "known_limitations": [
+            "Covers real seasons 2004-2025 (cfb_roster_seasons_real's real coverage) -- a player with no "
+            "roster rows in that range is not in the universe at all.",
+            "No Heisman clue type -- cfb_award_facts' Heisman winners are matched to a school via "
+            "WIKIPEDIA_STRUCTURED text, not to a canonical_cfb_players cfb_player_id, so there is no safe, "
+            "direct (never-join-on-name) bridge to this capability's identity key yet.",
+            "Real, measured performance guard: an unbounded scan of the full 109,221-player universe was "
+            "directly timed at 3+ minutes -- generation stops after scanning up to max(target_count*20, "
+            "2000) real candidates (in the deterministic seeded order), which is comfortably enough for "
+            "every real target_count this project uses but is not an exhaustive scan of every possible "
+            "puzzle.",
+            "Only 3-5 progressive clues per puzzle, same bound as the NFL sibling capability.",
+        ],
+        "competition_id": "CFB",
+        "entity_type": "cfb_player",
+        "object_type": "player",
+        "answer_type": "player",
+        "group_size": None,
+        "min_question_count": 1,
+        "max_question_count": 25,
+        "supported_difficulties": frozenset({"any"}),
+        "supports_difficulty_filter": False,
+        "supported_filter_keys": frozenset(),
+        "supports_exclusions": False,
+        "proven_in": ["creator-semantic-routing-cfb-who-am-i"],
+        "pipeline_id_start": 890000,
     },
 }
 

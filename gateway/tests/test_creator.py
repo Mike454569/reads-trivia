@@ -184,10 +184,15 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # included here because this route reflects real catalog-verified state
     # (Phase 3's feasibility.py correction), and GENERATION_VERIFIED/HUMAN_APPROVED
     # are proven enough for this admin-only "what's already possible" reference view.
+    # Creator Semantic Routing + Who Am I pass: 23 -> 29 -- 6 real new
+    # GENERATION_VERIFIED capabilities (NFL_ALL_PRO, NFL_PRO_BOWL,
+    # NFL_HALL_OF_FAME, NFL_OFFENSIVE_COORDINATOR, NFL_DEFENSIVE_COORDINATOR,
+    # CFB_PLAYER_IDENTITY/IDENTIFY_FROM_CLUES), each individually verified
+    # end-to-end via a real, passing 100-round Tier-2 certification probe.
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 23
+    assert len(caps) == 29
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

@@ -37,26 +37,27 @@ COVERAGE_REGRESSION_THRESHOLD = 0.20  # a >20% drop in eligible rows or
 
 
 def _generate_n_rounds(mechanic: str, domain: str, predicate: str, cap: dict, n: int, seed_prefix: str):
-    from tools.director_v02.registry import _generate_guess_package, _generate_player_from_clues_package
-
-    if mechanic == "identify_player_from_clues":
-        pkg = _generate_player_from_clues_package(
-            {"mechanic": mechanic, "domain": domain, "relationship_predicate": predicate,
-             "question_count": n, "difficulty": "any", "filters": {}, "exclusions": []},
-            cap, request_text="health probe", director_request_id="health-probe",
-            seed=f"{seed_prefix}-{domain}-{predicate}", target_count=n, id_start=1, freeze_timestamp=None,
-        )
-        rounds = pkg.get("puzzles", [])
-        return pkg, rounds
-
+    # Creator Semantic Routing pass fix: this used to hardcode a call to
+    # registry._generate_player_from_clues_package() (the NFL-specific
+    # builder) for EVERY identify_player_from_clues mechanic, regardless of
+    # which capability was actually being probed -- a real bug that would
+    # have silently probed a second identify_player_from_clues capability
+    # (e.g. CFB_PLAYER_IDENTITY, tools/director_v04/cfb_player_from_clues.py)
+    # with the WRONG generator. Every registry.py generate_fn already shares
+    # the identical call signature (validated_spec, capability, *, ...), so
+    # calling `cap["generate_fn"]` directly is both the fix and the more
+    # general, correct behavior for any future capability.
     validated_spec = {
         "mechanic": mechanic, "domain": domain, "relationship_predicate": predicate,
         "question_count": n, "difficulty": "any", "filters": {}, "exclusions": [],
     }
-    pkg = _generate_guess_package(
+    pkg = cap["generate_fn"](
         validated_spec, cap, request_text="health probe", director_request_id="health-probe",
         seed=f"{seed_prefix}-{domain}-{predicate}", target_count=n, id_start=1, freeze_timestamp=None,
     )
+    if mechanic == "identify_player_from_clues":
+        rounds = pkg.get("puzzles", [])
+        return pkg, rounds
     return pkg, pkg.get("questions", [])
 
 

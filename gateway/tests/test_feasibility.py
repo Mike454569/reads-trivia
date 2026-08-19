@@ -171,21 +171,30 @@ def test_understood_but_unsupported_for_mixed_request():
     assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
 
 
-def test_understood_but_unsupported_for_cfb_worded_clue_request():
+def test_supported_for_cfb_worded_clue_request():
     # Mission A5 fix: a CFB-worded player-from-clues request used to
     # silently resolve to SUPPORTED against the NFL-only IDENTIFY_FROM_CLUES
     # capability, since the translator never checked for a league signal at
-    # all. Now competition-aware: an explicit "cfb" token, "college
+    # all. Made competition-aware: an explicit "cfb" token, "college
     # football" phrase, or "college"/"colleges" word (with no contradicting
-    # "nfl" token) reports the real, honest gap instead of silently
+    # "nfl" token) reported the real, honest gap instead of silently
     # generating NFL content for a CFB-worded ask.
+    #
+    # Creator Semantic Routing + Who Am I pass: that honest gap is now
+    # closed for real -- CFB_PLAYER_IDENTITY/IDENTIFY_FROM_CLUES
+    # (tools/director_v04/cfb_player_from_clues.py) is a real, independent,
+    # GENERATION_VERIFIED CFB-native identity universe (never an alias of
+    # the NFL capability -- see that module's own docstring), so these same
+    # three prompts now correctly resolve SUPPORTED_WITH_LIMITATIONS against
+    # it instead.
     for text in [
         "Make me a CFB game where I identify a player from his college career.",
         "Identify a CFB player from clues about his career.",
         "Give me a who am i game about a college football player.",
     ]:
         r = feasibility.assess(text)
-        assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED", text
+        assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS", text
+        assert r["capability"]["domain"] == "CFB_PLAYER_IDENTITY", text
 
 
 def test_supported_for_nfl_clue_request_even_with_incidental_college_mention():
@@ -269,8 +278,10 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # unauthenticated /v1/capabilities route) because this function backs the
     # admin-only Creator "what's already possible" view, where a verified-but-
     # not-yet-released capability is legitimately already usable for preview.
+    # Creator Semantic Routing + Who Am I pass: 23 -> 29, same real reason as
+    # test_creator.py's sibling assertion (6 new GENERATION_VERIFIED capabilities).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 23
+    assert len(summary) == 29
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
