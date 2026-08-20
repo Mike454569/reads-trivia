@@ -361,6 +361,15 @@ var state = {
   // Challenge — see dailyChallengeTypeForToday() and completeDailyChallengeFrom().
   // Holds one of the DAILY_CHALLENGE_TYPES entries, or null the rest of the time.
   dailyChallengeActive: null,
+  // UI/UX upgrade pass: dailyChallengeActive gets cleared the instant
+  // completeDailyChallengeFrom() runs, which is BEFORE that mode's own
+  // summary/result screen renders — so a completion screen has no way to
+  // tell "was this just today's Daily Challenge" from dailyChallengeActive
+  // alone. This holds the daily type id for exactly one completion-screen
+  // render (set by completeDailyChallengeFrom, read by
+  // dailyCompletionBannerHtml()), so grid/blitz/silhouette/legends' own
+  // result screens can show the streak instead of going silent about it.
+  justCompletedDaily: null,
   // Same idea as dailyChallengeActive, but for a non-quiz-kind Head-to-Head
   // match currently being played inside another mode's own screen — see
   // h2hStartPlaying/h2hSubmitModeResult in the head-to-head section.
@@ -811,6 +820,7 @@ function completeDailyChallengeFrom(typeId, label, pct) {
   bumpStreak();
   if (state.name) lsSet(dailyKey(), { date: todayStr(), type: typeId, label: label, graceUsed: lastStreakGraceUsed });
   pushLeaderboard('daily', { completions: st.completions, bestPct: st.bestPct });
+  state.justCompletedDaily = { typeId: typeId };
 }
 // Loads a mode's data file (if not already loaded, same lazy-load path as
 // goToMode) then runs startFn — used to route the Daily Challenge into
@@ -969,7 +979,7 @@ function renderDailySummary() {
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + recommendedModeHtml() + '</div>';
 }
 function renderDailyScreen() {
   if (!state.daily) {
@@ -1935,6 +1945,24 @@ function recommendedModeHtml() {
     '<span class="recommend-card-mode">' + esc(pick.title) + '</span></span>' +
     '</button>';
 }
+// UI/UX upgrade pass: a completion screen shouldn't be a dead end past its
+// own "Play Again" button. Two real pieces, shown only when they apply —
+// never fabricated: (1) if this round WAS today's Daily Challenge (grid/
+// blitz/silhouette/legends all route through their own normal result
+// screen, not a separate daily one, so without this they finished with zero
+// acknowledgment that their streak just moved), say so with the real streak
+// count, same copy convention renderDailySummary() already uses; (2) the
+// same real, deterministic recommendedModeHtml() the home screen uses, so
+// there's always an obvious next thing to play besides repeating this one.
+function dailyCompletionBannerHtml(dailyTypeId) {
+  if (!state.justCompletedDaily || state.justCompletedDaily.typeId !== dailyTypeId) return '';
+  var streak = getStreak();
+  return '<div class="daily-complete-banner">' + icon('flame') + ' Today’s Daily Challenge complete' +
+    (streak.count > 0 ? ' — ' + streak.count + '-day streak' : '') + '. Come back tomorrow for a new one.</div>';
+}
+function postGameNextStepsHtml(dailyTypeId) {
+  return dailyCompletionBannerHtml(dailyTypeId) + recommendedModeHtml();
+}
 // UI re-audit: this used to be a hardcoded "12 ways to play" in the tagline
 // below -- real, live-verified stale copy (production actually offers 19:
 // 12 NFL + 7 CFB, once the engine-backed modes shipped). Computed from
@@ -1944,6 +1972,24 @@ function recommendedModeHtml() {
 function totalModeCount() {
   return LEAGUE_MODES.nfl.length + LEAGUE_MODES.cfb.length;
 }
+// UI/UX upgrade pass: the home screen used to stack the Daily Challenge,
+// Continue Playing, Recommended, Head-to-Head, Live Match, X's & O's, Film
+// Room, Friends, and Study cards full-width, one after another, ALL before
+// a visitor ever reached the actual NFL/CFB mode grids — up to 8 identical-
+// looking `.continue-card` rows of scrolling before "what can I actually
+// play" appeared. The three that are genuinely time-sensitive/personal
+// (Daily Challenge, Continue Playing, Recommended) stay full-width and
+// prominent right under the hero. Everything else — real features, but not
+// urgent — moves into one compact "More Ways to Play" grid, the same
+// pattern the NFL/CFB mode grids already use, so the page reaches real
+// game content much sooner without losing any discoverability.
+function discoverGridHtml() {
+  var cards = [h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
+    .filter(function (html) { return html; });
+  if (!cards.length) return '';
+  return '<h2 class="mode-section-title">More Ways to Play</h2>' +
+    '<div class="discover-grid">' + cards.join('') + '</div>';
+}
 function renderHome() {
   return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
     '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
@@ -1952,15 +1998,10 @@ function renderHome() {
     teamPickerPromptCardHtml() +
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
-    h2hCardHtml() +
-    h2hLiveCardHtml() +
-    xsoCardHtml() +
-    learnCardHtml() +
-    friendsCardHtml() +
-    studyCardHtml() +
     recommendedModeHtml() +
     modeSectionHtml('nfl') +
     modeSectionHtml('cfb') +
+    discoverGridHtml() +
     '<button class="btn-secondary leaderboard-link" data-go="leaderboard">' + icon('trophy') + ' View Leaderboard</button>' +
     (getRating() ? '<button class="btn-secondary leaderboard-link" data-retake-intro>' + icon('restart') + ' Retake Intro Test (resets Football Rating)</button>' : '') ;
 }
@@ -2371,7 +2412,7 @@ function renderQuizSummary() {
     '<button class="btn-secondary" data-share="quiz">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-quiz-setup>Change Filters</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml(null) + '</div>';
 }
 function renderQuizScreen() {
   var t = state.quiz;
@@ -2628,7 +2669,7 @@ function renderCfbSummary() {
     '<button class="btn-secondary" data-share="cfbQuiz">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-cfb-setup>Change Filters</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml(null) + '</div>';
 }
 function renderCfbScreen() {
   var t = state.cfbQuiz;
@@ -2821,6 +2862,11 @@ function buildGrid() {
   return best;
 }
 function startGridRound() {
+  // UI/UX upgrade pass: a fresh round is never "today's Daily Challenge"
+  // unless completeDailyChallengeFrom() sets this again -- clears any
+  // stale flag from an earlier, unrelated daily completion this session so
+  // dailyCompletionBannerHtml() can't show on a later non-daily round.
+  state.justCompletedDaily = null;
   var g = buildGrid();
   state.grid = { rows: g.rows, cols: g.cols, cells: g.cells, usedPlayers: [], activeIndex: null, input: '', screen: 'board', answeredCount: 0, totalScore: 0, lastError: '', ranked: state.rankedPref.grid !== false };
   state.screen = 'grid';
@@ -3006,7 +3052,7 @@ function renderGridSummary() {
     '<button class="btn-primary" data-grid-again>New Grid</button>' +
     '<button class="btn-secondary" data-share="grid">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('grid') + '</div>';
   return html;
 }
 function renderGridScreen() {
@@ -3082,6 +3128,7 @@ function buildCfbGrid() {
   return best;
 }
 function startCfbGridRound() {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   var g = buildCfbGrid();
   state.cfbGrid = { rows: g.rows, cols: g.cols, cells: g.cells, usedPlayers: [], activeIndex: null, input: '', screen: 'board', answeredCount: 0, totalScore: 0, lastError: '', ranked: state.rankedPref.cfbGrid !== false };
   state.screen = 'cfbGrid';
@@ -3210,7 +3257,7 @@ function renderCfbGridSummary() {
     '<button class="btn-primary" data-cfb-grid-again>New Grid</button>' +
     '<button class="btn-secondary" data-share="cfbGrid">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('cfbGrid') + '</div>';
   return html;
 }
 function renderCfbGridScreen() {
@@ -3222,6 +3269,7 @@ function renderCfbGridScreen() {
 /* ============================== blitz ============================== */
 function normalizeBlitzText(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim(); }
 function startBlitz(listId, timerLen) {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   var list = BLITZ_LISTS.find(function (l) { return l.id === listId; });
   state.blitz = { listId: listId, list: list, timerLen: timerLen, screen: 'playing', endsAt: Date.now() + timerLen * 1000, timeLeft: timerLen, matched: [], input: '', lastFeedback: '', ranked: state.rankedPref.blitz !== false };
   state.screen = 'blitz';
@@ -3336,7 +3384,7 @@ function renderBlitzResults() {
     '<button class="btn-primary" data-blitz-list="' + esc(b.listId) + '">Try Another List</button>' +
     '<button class="btn-secondary" data-share="blitz">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('blitz') + '</div>';
 }
 function renderBlitzScreen() {
   var b = state.blitz;
@@ -3349,6 +3397,7 @@ function renderBlitzScreen() {
 
 /* ============================== college football blitz ============================== */
 function startCfbBlitz(listId, timerLen) {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   var list = CFB_BLITZ_LISTS.find(function (l) { return l.id === listId; });
   state.cfbBlitz = { listId: listId, list: list, timerLen: timerLen, screen: 'playing', endsAt: Date.now() + timerLen * 1000, timeLeft: timerLen, matched: [], input: '', lastFeedback: '', ranked: state.rankedPref.cfbBlitz !== false };
   state.screen = 'cfbBlitz';
@@ -3460,7 +3509,7 @@ function renderCfbBlitzResults() {
     '<button class="btn-primary" data-cfb-blitz-list="' + esc(b.listId) + '">Try Another List</button>' +
     '<button class="btn-secondary" data-share="cfbBlitz">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('cfbBlitz') + '</div>';
 }
 function renderCfbBlitzScreen() {
   var b = state.cfbBlitz;
@@ -4105,6 +4154,7 @@ function loadSilhouetteItem() {
   s.lastPoints = 0;
 }
 function startSilhouetteRound(roundSize) {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   var size = Math.min(roundSize, SILHOUETTE_PLAYERS.length);
   var allNames = SILHOUETTE_PLAYERS.map(function (p) { return p.name; });
   var names = drawNoRepeat('silhouette', allNames, size);
@@ -4235,7 +4285,7 @@ function renderSilhouetteSummary() {
     '<button class="btn-primary" data-silhouette-start="' + s.roundSize + '">Play Again</button>' +
     '<button class="btn-secondary" data-share="silhouette">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('silhouette') + '</div>';
 }
 function renderSilhouetteScreen() {
   if (!state.silhouette) return renderSilhouetteSetup();
@@ -4772,6 +4822,7 @@ function legendsDoRoll(state_) {
   state_.rolledEntry = entry;
 }
 function startLegends() {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   var slots = {};
   LEGENDS_SLOTS.forEach(function (s) { slots[s] = null; });
   state.legends = { screen: 'draft', round: 1, slots: slots, teamRerollUsed: false, yearRerollUsed: false, rolledEntry: null, ranked: state.rankedPref.legends !== false };
@@ -4959,7 +5010,7 @@ function renderLegendsResult() {
     '<button class="btn-primary" data-legends-start>Draft Again</button>' +
     '<button class="btn-secondary" data-share="legends">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('legends') + '</div>';
 }
 function renderLegendsScreen() {
   if (!state.legends) return renderLegendsSetup();
@@ -5114,6 +5165,7 @@ function cfbLegendsDoRoll(state_) {
   if (state_.usedEntryIds.indexOf(picked.id) === -1) state_.usedEntryIds.push(picked.id);
 }
 function startCfbLegends() {
+  state.justCompletedDaily = null; // see startGridRound()'s comment
   CFB_LEGENDS_PERFECT_SCORE = null;
   var slots = {};
   CFB_LEGENDS_SLOTS.forEach(function (s) { slots[s] = null; });
@@ -5381,7 +5433,7 @@ function renderCfbLegendsResult() {
     '<button class="btn-primary" data-cfb-legends-start>Draft Again</button>' +
     '<button class="btn-secondary" data-share="cfbLegends">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + postGameNextStepsHtml('cfbLegends') + '</div>';
 }
 function renderCfbLegendsScreen() {
   if (!state.cfbLegends) return renderCfbLegendsSetup();

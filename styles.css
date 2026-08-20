@@ -945,6 +945,17 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .recommend-card-mode { font-size: 15.5px; font-weight: 800; }
 .recommend-card-label, .recommend-card-mode { display: block; }
 
+/* UI/UX upgrade pass: the secondary "not urgent but worth knowing about"
+   home-screen cards (Head-to-Head, Live Match, X's & O's, Film Room,
+   Friends, Study) used to stack full-width one after another, each an
+   identical .continue-card row — a long scroll of look-alike buttons
+   between the hero and the actual NFL/CFB mode grids. Same card markup,
+   just laid out as a compact grid instead, so this whole section reads as
+   one scannable "more ways to play" block rather than half the home
+   screen's height. */
+.discover-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-sm); margin-bottom: var(--space-lg); }
+.discover-grid .continue-card, .discover-grid .recommend-card { margin-bottom: 0; height: 100%; }
+
 /* generic panel */
 .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
 .panel-title { font-weight: 800; font-size: 19px; margin: 0 0 14px; }
@@ -1087,6 +1098,27 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .summary-score { font-size: 26px; font-weight: 800; margin: 6px 0; font-variant-numeric: tabular-nums; }
 .summary-note { color: var(--text-dim); font-size: 13.5px; }
 .streak-saved-note { color: var(--good); font-weight: 600; margin-top: 4px; }
+
+/* UI/UX upgrade pass: a completion screen shouldn't be a dead end. This
+   banner (only rendered when this round genuinely WAS today's Daily
+   Challenge, played via its host mode's own result screen) and the
+   .recommend-card that follows it turn "Play Again / Share / Home" into
+   "...and here's what's next" — same home-accent gold as the Daily
+   Challenge card itself, so the connection to "you just did today's
+   challenge" reads instantly even out of context. */
+.daily-complete-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: var(--space-md); padding: 10px 14px;
+  background: rgba(var(--home-glow-rgb), 0.12);
+  border: 1px solid rgba(var(--home-glow-rgb), 0.35);
+  border-radius: var(--radius-sm);
+  color: var(--home-accent); font-weight: 700; font-size: 13.5px;
+}
+.daily-complete-banner .icon { width: 16px; height: 16px; flex-shrink: 0; }
+/* .recommend-card already has its own margin-bottom for the home screen's
+   vertical rhythm; on a completion screen it's the LAST thing in the panel,
+   so give it breathing room from what's above instead. */
+.panel > .recommend-card:last-child, .panel > .daily-complete-banner + .recommend-card { margin-top: var(--space-sm); margin-bottom: 0; }
 
 /* grid mode */
 .grid-table { display: grid; grid-template-columns: 110px repeat(3, 1fr); gap: 6px; margin: 12px 0; }
