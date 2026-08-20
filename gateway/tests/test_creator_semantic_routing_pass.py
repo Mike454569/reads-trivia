@@ -29,9 +29,15 @@ pytestmark = pytest.mark.skipif(
 # ============================== the 13 real manual failures ==============================
 
 def test_manual_failure_01_cfb_rankings_recognized_not_misrouted():
+    """Creator Capability Completion pass: CFB_RANKING/RANKED_IN_POLL is now
+    a real, GENERATION_VERIFIED capability -- this asserts the recognition
+    the docstring's own name describes AND that it's no longer just
+    recognized-but-unsupported."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Make me a game about college football rankings.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CFB_RANKING"
+    assert r["capability"]["relationship_predicate"] == "RANKED_IN_POLL"
 
 
 def test_manual_failure_02_all_pro_routes_to_real_capability_not_team_of_season():
@@ -57,60 +63,93 @@ def test_manual_failure_04_defensive_coordinator_routes_correctly_not_generic_cl
 
 
 def test_manual_failure_05_first_touchdown_recognized_not_misrouted_to_won_game():
+    """Creator Capability Completion pass: NFL_SCORING_PLAY/FIRST_TOUCHDOWN_SCORER
+    is now real and GENERATION_VERIFIED -- the real protection this test
+    guards (never silently downgraded to the unrelated WON_GAME capability)
+    is asserted directly on the resolved domain now, not via capability=None."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Give me an NFL game and make me guess who scored the first touchdown.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "NFL_SCORING_PLAY"
+    assert r["capability"]["relationship_predicate"] == "FIRST_TOUCHDOWN_SCORER"
 
 
 def test_manual_failure_06_cfb_same_week_stat_comparison_not_misrouted_to_weekly_pickem():
+    """Creator Capability Completion pass: CFB_STAT_COMPARISON is now real
+    and GENERATION_VERIFIED -- still asserts the original real protection
+    (never silently routed to WEEKLY_PICKEM just because "week" appears)."""
     from gateway.services import creator
     r = creator.assess_feasibility(
         "Give me two college running backs from the same week and make me pick who rushed for more yards."
     )
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r.get("capability") is None or r["capability"].get("mechanic") != "WEEKLY_PICKEM"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CFB_STAT_COMPARISON"
+    assert r["capability"].get("mechanic") != "WEEKLY_PICKEM"
 
 
 def test_manual_failure_07_top_performer_not_misrouted_to_lineup():
+    """Creator Capability Completion pass: NFL_GAME_LEADER is now real and
+    GENERATION_VERIFIED -- still asserts the original real protection
+    (never silently routed to the unrelated NFL_OFFENSE_LINEUP capability)."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Give me a team and game and make me guess their top offensive performer.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "NFL_GAME_LEADER"
+    assert r["capability"]["domain"] != "NFL_OFFENSE_LINEUP"
 
 
 def test_manual_failure_08_all_american_to_all_pro_composition_recognized_not_downgraded():
+    """Creator Capability Completion pass: CROSS_LEAGUE_HONORS/
+    ALL_AMERICAN_TO_ALL_PRO is now real and GENERATION_VERIFIED."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Give me an All-American who later became an NFL All-Pro and make me guess the player.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CROSS_LEAGUE_HONORS"
+    assert r["capability"]["relationship_predicate"] == "ALL_AMERICAN_TO_ALL_PRO"
 
 
 def test_manual_failure_09_transfer_ordered_path_not_downgraded_to_plain_attended_college():
+    """Creator Capability Completion pass: CFB_TRANSFER_PATH/
+    ORDERED_PATH_NFL_BRIDGED is now real and GENERATION_VERIFIED -- still
+    asserts the original real protection (the ORDERED relationship is the
+    point, never silently downgraded to plain CFB_TRANSFER/ATTENDED_COLLEGE)."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Give me a transfer player who later made the NFL and make me guess his college path.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CFB_TRANSFER_PATH"
+    assert r["capability"]["relationship_predicate"] == "ORDERED_PATH_NFL_BRIDGED"
 
 
 def test_manual_failure_10_all_pro_plus_college_composition_not_misleading_missing_data():
+    """Creator Capability Completion pass: NFL_ALL_PRO_COLLEGE/
+    ATTENDED_COLLEGE_ALL_PRO is now real and GENERATION_VERIFIED."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Make me guess which NFL All-Pro attended this college.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "NFL_ALL_PRO_COLLEGE"
+    assert r["capability"]["relationship_predicate"] == "ATTENDED_COLLEGE_ALL_PRO"
 
 
 def test_manual_failure_11_cfb_upsets_recognized_never_no_match():
+    """Creator Capability Completion pass: CFB_UPSET (ranking + betting
+    variants) is now real and GENERATION_VERIFIED. Generic "upsets" phrasing
+    with no explicit betting signal resolves to the ranking-based definition."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Make me something about crazy college football upsets.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CFB_UPSET"
+    assert r["capability"]["relationship_predicate"] == "RANKING_UPSET"
 
 
 def test_manual_failure_12_fuzzy_college_to_nfl_stardom_grounded_not_downgraded():
+    """Creator Capability Completion pass: fuzzy "great in college / star in
+    the NFL" language is now grounded in the real CROSS_LEAGUE_HONORS
+    composition (All-American -> All-Pro), never a fabricated subjective
+    "stardom" score."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("Make me a game about dudes who were great in college and then became stars in the NFL.")
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
-    assert r["capability"] is None
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+    assert r["capability"]["domain"] == "CROSS_LEAGUE_HONORS"
 
 
 def test_manual_failure_13_cfb_who_am_i_now_genuinely_supported():
@@ -197,11 +236,14 @@ def test_collision_coordinator_beats_lineup():
 
 def test_collision_pbp_scoring_beats_game_result():
     """Prompt contains NFL + game + touchdown + first scorer -> PBP scoring
-    intent must win (never silently answered as WON_GAME)."""
+    intent must win (never silently answered as WON_GAME). Creator
+    Capability Completion pass: NFL_SCORING_PLAY is now real -- the
+    collision protection is asserted directly against WON_GAME now."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("In this NFL game, guess who scored the first touchdown.")
-    assert r["capability"] is None
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+    assert r["capability"]["domain"] == "NFL_SCORING_PLAY"
+    assert r["capability"]["relationship_predicate"] != "WON_GAME"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
 
 
 def test_collision_stat_comparison_beats_weekly_pickem():
@@ -216,11 +258,14 @@ def test_collision_stat_comparison_beats_weekly_pickem():
 
 def test_collision_upset_beats_generic_game_result():
     """Prompt contains CFB + game + upset + ranked -> upset/ranking intent
-    must win (never silently answered as plain WON_GAME)."""
+    must win (never silently answered as plain WON_GAME). Creator
+    Capability Completion pass: CFB_UPSET is now real -- the collision
+    protection is asserted directly against WON_GAME now."""
     from tools.director_v02 import feasibility
     r = feasibility.assess("CFB game, a real ranked-team upset -- make me guess it.")
-    assert r["capability"] is None
-    assert r["support_status"] == "UNDERSTOOD_BUT_UNSUPPORTED"
+    assert r["capability"]["domain"] == "CFB_UPSET"
+    assert r["capability"]["relationship_predicate"] != "WON_GAME"
+    assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
 
 
 def test_collision_cfb_who_am_i_never_routes_to_nfl():

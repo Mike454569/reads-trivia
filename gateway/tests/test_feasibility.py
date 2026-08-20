@@ -280,8 +280,10 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # not-yet-released capability is legitimately already usable for preview.
     # Creator Semantic Routing + Who Am I pass: 23 -> 29, same real reason as
     # test_creator.py's sibling assertion (6 new GENERATION_VERIFIED capabilities).
+    # Creator Capability Completion pass: 29 -> 53, same real reason as
+    # test_creator.py's sibling assertion (24 new GENERATION_VERIFIED capabilities).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 29
+    assert len(summary) == 53
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

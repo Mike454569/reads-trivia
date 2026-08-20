@@ -177,12 +177,15 @@ _UPSET_PHRASE_RE = re.compile(r"knocked off|unranked beat|beat.{0,20}ranked")
 _TOUCHDOWN_WORDS = {"touchdown", "touchdowns"}
 _SCORED_FIRST_RE = re.compile(r"scored the first|first (touchdown|score)|touchdown scorer|who scored")
 _DEFENSIVE_EVENT_WORDS = {"sack", "sacks", "interception", "interceptions", "fumble", "fumbles"}
-_WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored)\b")
+_WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored|picked)\b")
 _DRIVE_WORDS = {"drive", "drives"}
 
 _TOP_PERFORMER_RE = re.compile(r"top (offensive )?performer|leading performer|best performer")
 _SAME_WEEK_RE = re.compile(r"same week|same game")
-_STAT_COMPARE_RE = re.compile(r"who (had|rushed|threw|gained) more|more yards|higher\b|lower\b")
+_STAT_COMPARE_RE = re.compile(
+    r"who (had|rushed|threw|gained) more|more \w+ yards\b|more yards|had more|threw more|"
+    r"higher\b|lower\b|bigger game|who had the (bigger|better)"
+)
 
 _ORDERED_PATH_RE = re.compile(r"college path|ordered path|order (his|their|the) schools?|path to the nfl")
 _LATER_NFL_RE = re.compile(r"later (made|became|went to|reached) the nfl|later made the nfl")
@@ -190,6 +193,19 @@ _LATER_NFL_RE = re.compile(r"later (made|became|went to|reached) the nfl|later m
 _ALL_AMERICAN_RE = re.compile(r"all[\s-]?american")
 _GREAT_IN_COLLEGE_RE = re.compile(r"great in college|college star")
 _NFL_STAR_RE = re.compile(r"nfl star|star(red)? in the nfl|became (a )?star")
+
+# ============================== Creator Capability Completion pass ==============================
+# Finer-grained sub-category signals for the concepts that graduated from
+# "recognized but unsupported" to real, registered capabilities this pass.
+_BETTING_UPSET_WORDS = {"betting", "bet", "spread", "odds", "moneyline", "underdog", "underdogs"}
+_BETTING_UPSET_PHRASE_RE = re.compile(r"beat the spread|against the spread|outright")
+_SACK_PHRASE_RE = re.compile(r"\bsack(ed|s)?\b")
+_INTERCEPTION_PHRASE_RE = re.compile(r"\binterception(s)?\b|\bintercepted\b|picked off")
+_FORCED_FUMBLE_PHRASE_RE = re.compile(r"forced (the |a )?fumble|force a fumble|who forced")
+_FUMBLE_RECOVERY_PHRASE_RE = re.compile(r"recovered (the |a )?fumble|fumble recovery|who recovered")
+_RUSHING_CATEGORY_WORDS = {"rushing", "rush", "rusher", "running", "rb"}
+_PASSING_CATEGORY_WORDS = {"passing", "passer", "quarterback", "qb", "threw", "throwing"}
+_RECEIVING_CATEGORY_WORDS = {"receiving", "reception", "receptions", "receiver", "wr", "caught", "catching"}
 
 
 def _has_honor_level(text: str) -> str | None:
@@ -340,6 +356,13 @@ class MockDeterministicTranslator(Translator):
         has_scored_first_phrase = bool(_SCORED_FIRST_RE.search(text_lower))
         has_touchdown_word = bool(words & _TOUCHDOWN_WORDS)
         has_defensive_event_word = bool(words & _DEFENSIVE_EVENT_WORDS)
+        # A bare "fumble" mention never collides with a real team-boxscore
+        # capability (there is no HAD_MORE_FUMBLES the way HAD_MORE_SACKS
+        # exists for "sack"+"game") -- so it's always safe to consider,
+        # unlike sack/interception phrasing which must stay gated behind
+        # has_who_made_phrase/no-game-word to protect HAD_MORE_SACKS' own
+        # "game"+"sacks" routing below from being shadowed.
+        has_fumble_word = bool(words & {"fumble", "fumbles"})
         has_who_made_phrase = bool(_WHO_PHRASE_RE.search(text_lower))
         has_drive_word = bool(words & _DRIVE_WORDS)
         has_top_performer_phrase = bool(_TOP_PERFORMER_RE.search(text_lower))
@@ -350,30 +373,49 @@ class MockDeterministicTranslator(Translator):
         has_all_american_phrase = bool(_ALL_AMERICAN_RE.search(text_lower))
         has_great_in_college_phrase = bool(_GREAT_IN_COLLEGE_RE.search(text_lower))
         has_nfl_star_phrase = bool(_NFL_STAR_RE.search(text_lower))
+        has_betting_upset_signal = bool(words & _BETTING_UPSET_WORDS) or bool(_BETTING_UPSET_PHRASE_RE.search(text_lower))
+        has_sack_phrase = bool(_SACK_PHRASE_RE.search(text_lower))
+        has_interception_phrase = bool(_INTERCEPTION_PHRASE_RE.search(text_lower))
+        has_forced_fumble_phrase = bool(_FORCED_FUMBLE_PHRASE_RE.search(text_lower))
+        has_fumble_recovery_phrase = bool(_FUMBLE_RECOVERY_PHRASE_RE.search(text_lower))
+        has_rushing_category = bool(words & _RUSHING_CATEGORY_WORDS)
+        has_passing_category = bool(words & _PASSING_CATEGORY_WORDS)
+        has_receiving_category = bool(words & _RECEIVING_CATEGORY_WORDS)
 
-        # --- All-Pro (real capability: NFL_ALL_PRO/SELECTED_ALL_PRO) -----
-        # Section 4/26: must outrank the generic player+season+team pattern
-        # below (a request like "which player was First-Team All-Pro that
-        # season" also contains player+season+team keywords). Checked here,
-        # first, so it always wins that collision.
-        # Section 7/8 composition: an All-Pro request that ALSO names a
-        # college/school ("which All-Pro attended this college") or reads
-        # as a cross-league honors composition ("All-American who later
-        # became an All-Pro") is a genuinely different, composed question
-        # this pass did not build a capability for -- reported honestly as
-        # UNDERSTOOD_UNSUPPORTED_MECHANIC (never silently downgraded to the
-        # plain single-honor capability, and never silently answered as a
-        # generic college-attendance question) rather than matched here.
+        # --- All-Pro (real capabilities: NFL_ALL_PRO/SELECTED_ALL_PRO,
+        # NFL_ALL_PRO_COLLEGE/ATTENDED_COLLEGE_ALL_PRO, CROSS_LEAGUE_HONORS/
+        # ALL_AMERICAN_TO_ALL_PRO) -- Section 4/26: must outrank the generic
+        # player+season+team pattern below. Checked here, first, so it
+        # always wins that collision.
+        # Creator Capability Completion pass: the college-composition and
+        # cross-league-composition branches now route to real, registered
+        # capabilities instead of the honest-but-unsupported report this
+        # block used to return -- see nfl_all_pro_college.py and
+        # cfb_all_american_to_all_pro.py's own module docstrings.
         if has_all_pro_phrase:
-            if (has_college_or_school and not has_lineup) or has_all_american_phrase or has_later_nfl_phrase:
+            if has_all_american_phrase or has_later_nfl_phrase:
+                spec = {
+                    "mechanic": "guess", "domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": "ALL_AMERICAN_TO_ALL_PRO",
+                    "question_count": _question_count_from_text(text), "difficulty": "any",
+                    "filters": {}, "exclusions": [],
+                }
                 return _result(
-                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                    "Recognized a real All-Pro concept composed with a second real concept this pass did "
-                    "not build a capability for (All-Pro + college attendance, or an All-American-to-"
-                    "All-Pro cross-league composition). NFL_ALL_PRO/SELECTED_ALL_PRO (a standalone "
-                    "'which player was All-Pro' question) is registered and real; this composed question "
-                    "is not, and is not silently downgraded to the plain version.",
-                    understood={"concept": "NFL_ALL_PRO composed with a second concept"},
+                    request_text, "TRANSLATED", spec,
+                    "Matched All-Pro + All-American/cross-league-composition signal -> "
+                    "ALL_AMERICAN_TO_ALL_PRO (real, disclosed double-name-joined bridge; small real pool), "
+                    "never silently downgraded to the plain single-honor capability.",
+                )
+            if has_college_or_school and not has_lineup:
+                spec = {
+                    "mechanic": "guess", "domain": "NFL_ALL_PRO_COLLEGE", "relationship_predicate": "ATTENDED_COLLEGE_ALL_PRO",
+                    "question_count": _question_count_from_text(text), "difficulty": "any",
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(
+                    request_text, "TRANSLATED", spec,
+                    "Matched All-Pro + college composition -> ATTENDED_COLLEGE_ALL_PRO (real, "
+                    "player_id-joined composition), never stripping the All-Pro qualifier and never "
+                    "silently downgraded to generic college-attendance trivia.",
                 )
             spec = {
                 "mechanic": "guess", "domain": "NFL_ALL_PRO", "relationship_predicate": "SELECTED_ALL_PRO",
@@ -388,8 +430,31 @@ class MockDeterministicTranslator(Translator):
             )
             return _result(request_text, "TRANSLATED", spec, note)
 
-        # --- Pro Bowl (real capability: NFL_PRO_BOWL/SELECTED_PRO_BOWL) --
+        # --- Pro Bowl (real capabilities: NFL_PRO_BOWL/SELECTED_PRO_BOWL,
+        # NFL_PRO_BOWL_COLLEGE, CROSS_LEAGUE_HONORS/ALL_AMERICAN_TO_PRO_BOWL) --
         if has_pro_bowl_phrase:
+            if has_all_american_phrase or has_later_nfl_phrase:
+                spec = {
+                    "mechanic": "guess", "domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": "ALL_AMERICAN_TO_PRO_BOWL",
+                    "question_count": _question_count_from_text(text), "difficulty": "any",
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(
+                    request_text, "TRANSLATED", spec,
+                    "Matched Pro Bowl + All-American/cross-league-composition signal -> "
+                    "ALL_AMERICAN_TO_PRO_BOWL (real, disclosed double-name-joined bridge).",
+                )
+            if has_college_or_school and not has_lineup:
+                spec = {
+                    "mechanic": "guess", "domain": "NFL_PRO_BOWL_COLLEGE", "relationship_predicate": "ATTENDED_COLLEGE_PRO_BOWL",
+                    "question_count": _question_count_from_text(text), "difficulty": "any",
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(
+                    request_text, "TRANSLATED", spec,
+                    "Matched Pro Bowl + college composition -> ATTENDED_COLLEGE_PRO_BOWL (real, "
+                    "player_id-joined composition), never stripping the Pro Bowl qualifier.",
+                )
             spec = {
                 "mechanic": "guess", "domain": "NFL_PRO_BOWL", "relationship_predicate": "SELECTED_PRO_BOWL",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
@@ -401,28 +466,43 @@ class MockDeterministicTranslator(Translator):
                 "selected to the Pro Bowl), outranking the generic player+season+team pattern.",
             )
 
-        # --- Hall of Fame (real capability: NFL_HALL_OF_FAME/INDUCTED_HOF) --
-        # "identify" is one of _CLUE_WORDS, so a HOF request phrased as
-        # "identify a Hall of Fame player" would otherwise match the
-        # Player-From-Clues block above -- checked instead in THIS block's
-        # favor by placing this whole section before that block would be
-        # wrong (Player-From-Clues is a real, more specific mechanic when a
-        # genuine clue-sequence request is meant); in practice a bare HOF
-        # phrase without "clue"/"who am i" still reaches here because the
-        # Player-From-Clues block above requires has_clue-and-has_player or
-        # has_who_am_i, neither of which a plain "guess who's in the Hall
-        # of Fame" request trips.
+        # --- Hall of Fame (real capabilities: NFL_HALL_OF_FAME/INDUCTED_HOF,
+        # NFL_HOF_COLLEGE) -- "identify" is one of _CLUE_WORDS, so a HOF
+        # request phrased as "identify a Hall of Fame player" would
+        # otherwise match the Player-From-Clues block above -- checked
+        # instead in THIS block's favor by placing this whole section
+        # before that block would be wrong (Player-From-Clues is a real,
+        # more specific mechanic when a genuine clue-sequence request is
+        # meant); in practice a bare HOF phrase without "clue"/"who am i"
+        # still reaches here because the Player-From-Clues block above
+        # requires has_clue-and-has_player or has_who_am_i, neither of
+        # which a plain "guess who's in the Hall of Fame" request trips.
+        # All-American -> Hall of Fame composition is NOT registered (real,
+        # measured overlap: 0) -- that specific composed request is
+        # reported honestly further below, never silently downgraded here.
         if has_hof_signal:
-            spec = {
-                "mechanic": "guess", "domain": "NFL_HALL_OF_FAME", "relationship_predicate": "INDUCTED_HOF",
-                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                "filters": {}, "exclusions": [],
-            }
-            return _result(
-                request_text, "TRANSLATED", spec,
-                "Matched Hall of Fame/HOF/Canton/inducted keyword -> INDUCTED_HOF guess capability "
-                "(which real player was inducted), outranking the generic player+season+team pattern.",
-            )
+            if not (has_all_american_phrase or has_later_nfl_phrase):
+                if has_college_or_school and not has_lineup:
+                    spec = {
+                        "mechanic": "guess", "domain": "NFL_HOF_COLLEGE", "relationship_predicate": "ATTENDED_COLLEGE_HOF",
+                        "question_count": _question_count_from_text(text), "difficulty": "any",
+                        "filters": {}, "exclusions": [],
+                    }
+                    return _result(
+                        request_text, "TRANSLATED", spec,
+                        "Matched Hall of Fame + college composition -> ATTENDED_COLLEGE_HOF (real, "
+                        "player_id-joined composition), never stripping the HOF qualifier.",
+                    )
+                spec = {
+                    "mechanic": "guess", "domain": "NFL_HALL_OF_FAME", "relationship_predicate": "INDUCTED_HOF",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(
+                    request_text, "TRANSLATED", spec,
+                    "Matched Hall of Fame/HOF/Canton/inducted keyword -> INDUCTED_HOF guess capability "
+                    "(which real player was inducted), outranking the generic player+season+team pattern.",
+                )
 
         # --- Coordinators (real capabilities: NFL_OFFENSIVE_COORDINATOR/
         # NFL_DEFENSIVE_COORDINATOR) -- Section 9/10/26: must outrank the
@@ -461,108 +541,228 @@ class MockDeterministicTranslator(Translator):
                 f"generic team+offense/lineup pattern and the plain head-coach pattern.",
             )
 
-        # --- Recognized-but-not-yet-built real football concepts --------
-        # Section 27's positive-status contract cuts both ways: a request
-        # this specific must never fall through to a SUPPORTED capability
-        # that answers a different question. Each of these is a real,
-        # schema-expressible football concept with real underlying data
-        # (cfb_rankings, cfb_betting_lines, nfl_plays, nfl_plays_defense_ext,
-        # nfl_drives_real, cfb_player_game_stats_real, player_game_stats),
-        # just not one this pass built an adapter+registered capability for
-        # -- reported honestly, never silently answered by an unrelated
-        # registered capability.
+        # --- Creator Capability Completion pass: real, registered routing --
+        # Every concept below now maps to a real, GENERATION_VERIFIED
+        # capability instead of the honest-but-unsupported report this
+        # section used to return. Section 27's positive-status contract
+        # still cuts both ways: never falls through to an unrelated
+        # registered capability that answers a different question.
+        # CFB_RANKING/CFB_UPSET are CFB-only capabilities (built on
+        # cfb_rankings/cfb_games_canonical/cfb_betting_lines) -- an
+        # explicitly NFL-worded request with no CFB signal ("NFL power
+        # rankings", "Super Bowl upset") must never be silently routed to
+        # them. Reported honestly instead of falling through further down
+        # the chain to an unrelated capability.
+        nfl_exclusive = has_nfl and not has_cfb_signal
         if has_ranking_signal and not has_upset_signal:
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real CFB rankings/polls concept (cfb_rankings has real AP/Coaches/CFP "
-                "ranking data) -- no registered Creator capability exists for it yet. Not falling through "
-                "to an unrelated capability just because 'game'/'team' also appear.",
-                understood={"concept": "CFB rankings/polls"},
-            )
+            if nfl_exclusive:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a rankings concept worded as NFL-specific -- the only registered rankings "
+                    "capability (RANKED_IN_POLL) is CFB-only (cfb_rankings has no NFL equivalent).",
+                    understood={"concept": "NFL rankings"},
+                )
+            spec = {
+                "mechanic": "guess", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched CFB rankings/polls signal -> RANKED_IN_POLL guess capability (AP Top 25).")
+
         if has_upset_signal:
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real CFB upset concept (a lower-ranked/unranked team beating a higher-ranked "
-                "one via cfb_rankings, or a betting underdog winning outright via cfb_betting_lines -- two "
-                "genuinely different real definitions) -- no registered Creator capability exists for "
-                "either yet. Not falling through to the plain CFB_GAME_RESULT capability, which answers a "
-                "different question (who won, not who was upset).",
-                understood={"concept": "CFB upset (ranking or betting)"},
-            )
+            if nfl_exclusive:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized an upset concept worded as NFL-specific -- both registered upset "
+                    "capabilities (RANKING_UPSET, BETTING_UPSET) are CFB-only.",
+                    understood={"concept": "NFL upset"},
+                )
+            if has_betting_upset_signal and not has_ranking_signal:
+                spec = {
+                    "mechanic": "guess", "domain": "CFB_UPSET", "relationship_predicate": "BETTING_UPSET",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                "Matched an explicit betting/underdog/spread signal -> BETTING_UPSET guess "
+                                "capability (real pregame consensus underdog winning outright).")
+            spec = {
+                "mechanic": "guess", "domain": "CFB_UPSET", "relationship_predicate": "RANKING_UPSET",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched a general upset signal with no explicit betting/underdog/spread "
+                            "signal -> RANKING_UPSET guess capability (the default, clearly-labeled "
+                            "interpretation: a lower-ranked/unranked team beating a higher-ranked one).")
+
         if (has_scored_first_phrase or (has_touchdown_word and has_game_word)) and not (has_postseason or has_lineup):
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real play-by-play scoring-event concept (nfl_plays has real touchdown/scorer "
-                "data) -- no registered Creator capability exists for it yet. Not falling through to "
-                "WON_GAME, which answers a different question (who won, not who scored).",
-                understood={"concept": "NFL PBP scoring event"},
-            )
-        if has_defensive_event_word and (has_who_made_phrase or not has_game_word):
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real player-level defensive-event concept (nfl_plays_defense_ext has real "
-                "sack/interception/forced-fumble/recovery identities) -- no registered Creator capability "
-                "exists for a WHO-recorded-it question yet. Not falling through to the team-level "
-                "HAD_MORE_SACKS box-score capability, which answers a different question (which team, not "
-                "which player).",
-                understood={"concept": "NFL player-level defensive event"},
-            )
+            if has_cfb_signal and not has_nfl:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a real CFB play-by-play scoring-event concept, but cfb_plays has no "
+                    "player-identity columns at all (no passer/rusher/receiver key, confirmed directly "
+                    "against its real schema) -- a genuine data gap, not an unwritten adapter. Not falling "
+                    "through to CFB_GAME_RESULT/WON_GAME, which answers a different question.",
+                    understood={"concept": "CFB PBP scoring event"},
+                )
+            spec = {
+                "mechanic": "guess", "domain": "NFL_SCORING_PLAY", "relationship_predicate": "FIRST_TOUCHDOWN_SCORER",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched NFL PBP first-touchdown-scorer signal -> FIRST_TOUCHDOWN_SCORER guess "
+                            "capability, never downgraded to WON_GAME (who won, not who scored).")
+
+        # Creator Capability Completion pass fix: the original gate required
+        # has_defensive_event_word (a literal sack/interception/fumble
+        # word), which "who picked off the QB" never satisfies despite
+        # _INTERCEPTION_PHRASE_RE already handling "picked off" correctly --
+        # widened to accept any of the phrase-regexes actually used to pick
+        # the predicate below, not just the cruder word-set. has_fumble_word
+        # additionally bypasses the who-made/no-game requirement entirely
+        # (see its own comment above) so a genuinely ambiguous bare "fumble"
+        # mention -- e.g. "guess about a fumble in this game" -- still
+        # reaches the real disambiguating branch below instead of being
+        # silently dropped before ever being considered.
+        if has_fumble_word or (
+            (has_defensive_event_word or has_sack_phrase or has_interception_phrase)
+            and (has_who_made_phrase or not has_game_word)
+        ):
+            if has_sack_phrase:
+                domain, predicate, label = "NFL_DEFENSIVE_EVENT", "RECORDED_SACK", "sack"
+            elif has_interception_phrase:
+                domain, predicate, label = "NFL_DEFENSIVE_EVENT", "RECORDED_INTERCEPTION", "interception"
+            elif has_forced_fumble_phrase:
+                domain, predicate, label = "NFL_DEFENSIVE_EVENT", "FORCED_FUMBLE", "forced fumble"
+            elif has_fumble_recovery_phrase:
+                domain, predicate, label = "NFL_DEFENSIVE_EVENT", "RECOVERED_FUMBLE", "fumble recovery"
+            else:
+                # A bare "fumble" mention with neither "forced" nor
+                # "recovered" language is genuinely ambiguous between the
+                # two real, distinct capabilities -- ask, never guess.
+                return _result(
+                    request_text, "NEEDS_CLARIFICATION", None,
+                    "Recognized a real fumble-related defensive event but couldn't tell which -- who forced "
+                    "it, or who recovered it?",
+                    understood={"concept": "NFL fumble event"}, missing_fields=["relationship_predicate"],
+                    clarifying_question="Do you want to guess who forced the fumble, or who recovered it?",
+                )
+            spec = {
+                "mechanic": "guess", "domain": domain, "relationship_predicate": predicate,
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched player-level {label} signal -> {predicate} guess capability, never "
+                            f"downgraded to the team-level box-score comparison capability.")
+
         if has_drive_word:
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real drive-outcome concept (nfl_drives_real has real drive result/points "
-                "data) -- no registered Creator capability exists for it yet.",
-                understood={"concept": "NFL/CFB drive outcome"},
-            )
+            if has_cfb_signal and not has_nfl:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a real CFB drive-outcome concept, but this Engine has no cfb_drives-shaped "
+                    "table at all (cfb_plays has a drive_id column but no separate drive-level result/"
+                    "summary table) -- a genuine data gap, not an unwritten adapter.",
+                    understood={"concept": "CFB drive outcome"},
+                )
+            spec = {
+                "mechanic": "guess", "domain": "NFL_DRIVE", "relationship_predicate": "DRIVE_RESULT",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched NFL drive-outcome signal -> DRIVE_RESULT guess capability.")
+
         if has_same_week_phrase and has_stat_compare_phrase:
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real same-week player-stat comparison concept (cfb_player_game_stats_real/"
-                "player_game_stats have real per-game stat lines) -- no registered Creator capability "
-                "exists for it yet. Not falling through to WEEKLY_PICKEM, which is a schedule-driven "
-                "matchup-pick game, not a stat comparison -- a bare 'week' mention alone is never enough "
-                "to route there.",
-                understood={"concept": "same-week player stat comparison"},
-            )
+            if nfl_exclusive:
+                # Real, disclosed gap: this pass only built the CFB variant
+                # (cfb_player_game_stats_real) -- no NFL same-week player-
+                # stat comparison capability was registered this pass.
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a real same-week player-stat comparison concept worded as NFL-specific -- "
+                    "only the CFB variant (CFB_STAT_COMPARISON) is registered this pass; no NFL equivalent "
+                    "capability exists yet. Not falling through to WEEKLY_PICKEM or an unrelated capability.",
+                    understood={"concept": "NFL same-week player stat comparison"},
+                )
+            if has_passing_category:
+                domain, predicate = "CFB_STAT_COMPARISON", "PASSING_COMPARISON"
+            elif has_receiving_category:
+                domain, predicate = "CFB_STAT_COMPARISON", "RECEIVING_COMPARISON"
+            else:
+                domain, predicate = "CFB_STAT_COMPARISON", "RUSHING_COMPARISON"  # real, disclosed default
+            spec = {
+                "mechanic": "guess", "domain": domain, "relationship_predicate": predicate,
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched real same-week player-stat comparison signal -> {predicate} guess "
+                            f"capability. A bare 'week' mention alone never routes to WEEKLY_PICKEM.")
+
         if has_top_performer_phrase:
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real top-single-game-performer concept (player_game_stats/"
-                "cfb_player_game_stats_real have real per-game stat lines a passing/rushing/receiving "
-                "leader could be computed from) -- no registered Creator capability exists for it yet. "
-                "Not falling through to TEAM_OF_STARTING_LINEUP, which answers a different question "
-                "(the whole starting lineup, not a single game's leader).",
-                understood={"concept": "top single-game performer"},
-            )
+            if has_passing_category:
+                predicate = "PASSING_LEADER"
+            elif has_receiving_category:
+                predicate = "RECEIVING_LEADER"
+            else:
+                predicate = "RUSHING_LEADER"  # real, disclosed default -- the question always names the category
+            domain = "CFB_GAME_LEADER" if (has_cfb_signal and not has_nfl) else "NFL_GAME_LEADER"
+            spec = {
+                "mechanic": "guess", "domain": domain, "relationship_predicate": predicate,
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched 'top performer' signal -> {predicate} guess capability (an objective, "
+                            f"disclosed single-stat-category team leader -- never a fabricated cross-"
+                            f"position score), never downgraded to TEAM_OF_STARTING_LINEUP.")
+
         if has_ordered_path_phrase or (has_transfer_word and has_later_nfl_phrase):
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real transfer-path-with-NFL-qualifier concept (cfb_transfer_summary_v17 has "
-                "real multi-school career data, and an NFL bridge could filter to players who reached the "
-                "NFL) -- the existing CFB_TRANSFER/ATTENDED_COLLEGE capability answers a plain 'which "
-                "school did they attend' question, not an ORDERED path or an NFL-reached filter, so this "
-                "more specific request is reported unsupported rather than silently downgraded to the "
-                "plain version.",
-                understood={"concept": "CFB transfer ordered path + NFL qualifier"},
-            )
+            spec = {
+                "mechanic": "guess", "domain": "CFB_TRANSFER_PATH", "relationship_predicate": "ORDERED_PATH_NFL_BRIDGED",
+                "question_count": _question_count_from_text(text), "difficulty": "any",
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched transfer-path + NFL-reached qualifier -> ORDERED_PATH_NFL_BRIDGED guess "
+                            "capability (real, small, disclosed NFL-bridged pool), never downgraded to the "
+                            "plain CFB_TRANSFER/ATTENDED_COLLEGE 'which school' question.")
+
         if has_all_american_phrase and (has_nfl_star_phrase or has_later_nfl_phrase or has_pro_bowl_phrase or has_hof_signal):
-            return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized a real cross-league honors composition (All-American -> later NFL All-Pro/Pro "
-                "Bowl/Hall of Fame -- cfb_all_america_certified bridged to the new NFL honors tables) -- "
-                "no registered Creator capability composes these two real relationships yet. Not silently "
-                "downgraded to a plain college-attendance question.",
-                understood={"concept": "All-American -> NFL honors cross-league composition"},
-            )
+            if has_hof_signal and not (has_nfl_star_phrase or has_pro_bowl_phrase):
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a real All-American -> Hall of Fame cross-league composition, but the real, "
+                    "measured overlap between this Engine's certified All-America table and its Hall of "
+                    "Fame table (via the only real NFL<->CFB player bridge) is 0 -- a genuine data-gap "
+                    "limitation, not an unwritten adapter.",
+                    understood={"concept": "All-American -> NFL Hall of Fame cross-league composition"},
+                )
+            predicate = "ALL_AMERICAN_TO_PRO_BOWL" if has_pro_bowl_phrase else "ALL_AMERICAN_TO_ALL_PRO"
+            spec = {
+                "mechanic": "guess", "domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": predicate,
+                "question_count": _question_count_from_text(text), "difficulty": "any",
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched cross-league honors composition -> {predicate} guess capability (real, "
+                            f"disclosed double-name-joined bridge; a genuinely small real pool).")
+
         if has_great_in_college_phrase and has_nfl_star_phrase:
+            spec = {
+                "mechanic": "guess", "domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": "ALL_AMERICAN_TO_ALL_PRO",
+                "question_count": _question_count_from_text(text), "difficulty": "any",
+                "filters": {}, "exclusions": [],
+            }
             return _result(
-                request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
-                "Recognized fuzzy 'great in college, star in the NFL' language, grounded to real objective "
-                "honors (great in college -> All-American; NFL star -> All-Pro/Pro Bowl/Hall of Fame) "
-                "rather than an invented subjective greatness score -- no registered Creator capability "
-                "composes these two real relationships yet. Not silently downgraded to a plain "
-                "college-attendance question.",
-                understood={"concept": "fuzzy college-to-NFL-stardom, grounded to real honors"},
+                request_text, "TRANSLATED", spec,
+                "Matched fuzzy 'great in college, star in the NFL' language, grounded to real objective "
+                "honors (great in college -> All-American; NFL star -> All-Pro, the default composed honor) "
+                "-> ALL_AMERICAN_TO_ALL_PRO guess capability -- never an invented subjective greatness score.",
             )
 
         # Compound request explicitly asking for more than one thing, where

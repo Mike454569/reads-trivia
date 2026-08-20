@@ -136,8 +136,14 @@ def test_cross_mechanic_concept_is_never_falsely_marked_playable():
     CFB_HEISMAN via progressive clues, which no real generator produces)."""
     from tools.director_v02 import concepts
 
+    # requested_count=50, not 15: Creator Capability Completion pass grew the
+    # real registry from 23 to 47 capabilities, so a small top-15 sample of
+    # Heisman-relevant ideas no longer reliably includes this specific
+    # (capability, mechanic) combination -- it's still genuinely produced,
+    # just no longer guaranteed to win one of only 15 slots. A larger count
+    # restores deterministic coverage without weakening what's being tested.
     result = concepts.generate_concepts(
-        "Guess which CFB Heisman Trophy winner played for which school.", request_type="IDEAS", requested_count=15,
+        "Guess which CFB Heisman Trophy winner played for which school.", request_type="IDEAS", requested_count=50,
     )
     heisman_clue_concept = next(
         c for c in result["concepts"]

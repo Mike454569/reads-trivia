@@ -49,6 +49,30 @@ from tools.quiz_export.adapters import nfl_pro_bowl as nfl_pro_bowl_adapter  # n
 from tools.quiz_export.adapters import nfl_hof as nfl_hof_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_offensive_coordinator as nfl_offensive_coordinator_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_defensive_coordinator as nfl_defensive_coordinator_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_ranking as cfb_ranking_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_upset_ranking as cfb_upset_ranking_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_upset_betting as cfb_upset_betting_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_first_touchdown as nfl_first_touchdown_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_sack as nfl_sack_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_interception as nfl_interception_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_forced_fumble as nfl_forced_fumble_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_fumble_recovery as nfl_fumble_recovery_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_drive_result as nfl_drive_result_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_rushing_compare as cfb_rushing_compare_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_passing_compare as cfb_passing_compare_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_receiving_compare as cfb_receiving_compare_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_rushing_leader as nfl_rushing_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_passing_leader as nfl_passing_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_receiving_leader as nfl_receiving_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_rushing_leader as cfb_rushing_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_passing_leader as cfb_passing_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_receiving_leader as cfb_receiving_leader_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_transfer_path as cfb_transfer_path_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_all_pro_college as nfl_all_pro_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_pro_bowl_college as nfl_pro_bowl_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_hof_college as nfl_hof_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_all_american_to_all_pro as cfb_all_american_to_all_pro_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_american_to_pro_bowl_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -1125,6 +1149,285 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supports_exclusions": False,
         "proven_in": ["creator-semantic-routing-cfb-who-am-i"],
         "pipeline_id_start": 890000,
+    },
+    # ============================== Creator Capability Completion pass ==============================
+    # Converts every remaining data-backed manual-test category from the
+    # semantic-routing pass into a real, GENERATION_VERIFIED capability --
+    # see each adapter's own module docstring for its full real-data audit.
+    ("guess", "CFB_RANKING", "RANKED_IN_POLL"): {
+        "adapter": cfb_ranking_adapter, "category": cfb_ranking_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Scoped to poll='AP Top 25' only -- cfb_rankings also carries Coaches/CFP/FCS/D2/D3/BCS polls, "
+            "never silently combined into one implied ranking.",
+            "Distractors are drawn from the same real (season, week) ranking snapshot, not season-wide.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_ranking", "object_type": "school", "answer_type": "school",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-rankings"], "pipeline_id_start": 900000,
+    },
+    ("guess", "CFB_UPSET", "RANKING_UPSET"): {
+        "adapter": cfb_upset_ranking_adapter, "category": cfb_upset_ranking_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Definition: the losing team was ranked (AP Top 25) that week and the winning team was "
+            "unranked or ranked worse -- kept structurally distinct from CFB_UPSET/BETTING_UPSET.",
+            "Distractors are scoped to the 112 real schools that have ever appeared in the AP Top 25, not "
+            "the full 805-school universe (real, measured distractor-plausibility fix).",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_game", "object_type": "school", "answer_type": "school",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-upsets"], "pipeline_id_start": 901000,
+    },
+    ("guess", "CFB_UPSET", "BETTING_UPSET"): {
+        "adapter": cfb_upset_betting_adapter, "category": cfb_upset_betting_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Definition: the real pregame consensus betting underdog (provider='consensus') won outright "
+            "-- kept structurally distinct from CFB_UPSET/RANKING_UPSET.",
+            "'Spread' is the source's own recorded value, never labeled 'closing line' (the source does "
+            "not itself distinguish closing vs. opening beyond spread/spread_open column names).",
+            "Distractors are scoped to other real recorded betting-upset winners by this same definition.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_game", "object_type": "school", "answer_type": "school",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-upsets"], "pipeline_id_start": 902000,
+    },
+    ("guess", "NFL_SCORING_PLAY", "FIRST_TOUCHDOWN_SCORER"): {
+        "adapter": nfl_first_touchdown_adapter, "category": nfl_first_touchdown_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Covers only touchdowns with a real resolved receiver_player_key (91.8% of pass TDs) or "
+            "rusher_player_key (91.0% of rush TDs) -- unresolved plays and defensive/special-teams "
+            "touchdowns (no offensive scorer key) are excluded, never guessed at.",
+            "Answer is GAME -> WHO SCORED, never downgraded to GAME -> WHO WON.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_play", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-pbp-scoring"], "pipeline_id_start": 903000,
+    },
+    ("guess", "NFL_DEFENSIVE_EVENT", "RECORDED_SACK"): {
+        "adapter": nfl_sack_adapter, "category": nfl_sack_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Real resolution rate measured directly: 27,420/30,510 (89.9%) -- unresolved sacks are excluded, never guessed at."],
+        "competition_id": "NFL", "entity_type": "nfl_defensive_play", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-defensive-events"], "pipeline_id_start": 904000,
+    },
+    ("guess", "NFL_DEFENSIVE_EVENT", "RECORDED_INTERCEPTION"): {
+        "adapter": nfl_interception_adapter, "category": nfl_interception_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Real resolution rate measured directly: 11,826/13,354 (88.6%) -- unresolved interceptions are excluded, never guessed at."],
+        "competition_id": "NFL", "entity_type": "nfl_defensive_play", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-defensive-events"], "pipeline_id_start": 905000,
+    },
+    ("guess", "NFL_DEFENSIVE_EVENT", "FORCED_FUMBLE"): {
+        "adapter": nfl_forced_fumble_adapter, "category": nfl_forced_fumble_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Uses the primary (first) forced-fumble player field only -- a real, rare second-forcer field exists and is not used, to keep one clear answer."],
+        "competition_id": "NFL", "entity_type": "nfl_defensive_play", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-defensive-events"], "pipeline_id_start": 906000,
+    },
+    ("guess", "NFL_DEFENSIVE_EVENT", "RECOVERED_FUMBLE"): {
+        "adapter": nfl_fumble_recovery_adapter, "category": nfl_fumble_recovery_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Uses the primary (first) recovery player field only. Either team can recover a fumble -- this asks who recovered it, not which team's defense did."],
+        "competition_id": "NFL", "entity_type": "nfl_defensive_play", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-defensive-events"], "pipeline_id_start": 907000,
+    },
+    ("guess", "NFL_DRIVE", "DRIVE_RESULT"): {
+        "adapter": nfl_drive_result_adapter, "category": nfl_drive_result_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "No CFB equivalent exists -- this Engine has no cfb_drives-shaped table at all (cfb_plays has "
+            "a drive_id column but no separate drive-level result/summary table); a real, disclosed data "
+            "gap, not an unwritten adapter.",
+            "Answer is one of 9 real result categories (Punt/Touchdown/Field goal/Turnover/End of half/"
+            "Turnover on downs/Missed field goal/Opp touchdown/Safety).",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_drive", "object_type": "outcome", "answer_type": "outcome",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-drives"], "pipeline_id_start": 908000,
+    },
+    ("guess", "CFB_STAT_COMPARISON", "RUSHING_COMPARISON"): {
+        "adapter": cfb_rushing_compare_adapter, "category": cfb_rushing_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Both players are always from the same real (season, week) -- the word 'week' alone never routes here from a Weekly Pick'em request; this is a stat comparison, not a matchup pick.", "Ties are excluded, never resolved either way."],
+        "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 909000,
+    },
+    ("guess", "CFB_STAT_COMPARISON", "PASSING_COMPARISON"): {
+        "adapter": cfb_passing_compare_adapter, "category": cfb_passing_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same real same-week pairing and tie-exclusion discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
+        "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 910000,
+    },
+    ("guess", "CFB_STAT_COMPARISON", "RECEIVING_COMPARISON"): {
+        "adapter": cfb_receiving_compare_adapter, "category": cfb_receiving_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same real same-week pairing and tie-exclusion discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
+        "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 911000,
+    },
+    ("guess", "NFL_GAME_LEADER", "RUSHING_LEADER"): {
+        "adapter": nfl_rushing_leader_adapter, "category": nfl_rushing_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Objective, disclosed definition: the real player with the most rushing yards on their team in one real game. A real tie for the team lead is excluded, never arbitrarily broken."],
+        "competition_id": "NFL", "entity_type": "nfl_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 912000,
+    },
+    ("guess", "NFL_GAME_LEADER", "PASSING_LEADER"): {
+        "adapter": nfl_passing_leader_adapter, "category": nfl_passing_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same objective team-lead definition and tie-exclusion discipline as NFL_GAME_LEADER/RUSHING_LEADER, for passing yards."],
+        "competition_id": "NFL", "entity_type": "nfl_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 913000,
+    },
+    ("guess", "NFL_GAME_LEADER", "RECEIVING_LEADER"): {
+        "adapter": nfl_receiving_leader_adapter, "category": nfl_receiving_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same objective team-lead definition and tie-exclusion discipline as NFL_GAME_LEADER/RUSHING_LEADER, for receiving yards."],
+        "competition_id": "NFL", "entity_type": "nfl_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 914000,
+    },
+    ("guess", "CFB_GAME_LEADER", "RUSHING_LEADER"): {
+        "adapter": cfb_rushing_leader_adapter, "category": cfb_rushing_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same objective, disclosed team-lead definition as NFL_GAME_LEADER/RUSHING_LEADER, for real CFB team-games."],
+        "competition_id": "CFB", "entity_type": "cfb_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 915000,
+    },
+    ("guess", "CFB_GAME_LEADER", "PASSING_LEADER"): {
+        "adapter": cfb_passing_leader_adapter, "category": cfb_passing_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same objective, disclosed team-lead definition as NFL_GAME_LEADER/RUSHING_LEADER, for real CFB team-games, passing yards."],
+        "competition_id": "CFB", "entity_type": "cfb_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 916000,
+    },
+    ("guess", "CFB_GAME_LEADER", "RECEIVING_LEADER"): {
+        "adapter": cfb_receiving_leader_adapter, "category": cfb_receiving_leader_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": ["Same objective, disclosed team-lead definition as NFL_GAME_LEADER/RUSHING_LEADER, for real CFB team-games, receiving yards."],
+        "competition_id": "CFB", "entity_type": "cfb_team_game", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-top-performer"], "pipeline_id_start": 917000,
+    },
+    ("guess", "CFB_TRANSFER_PATH", "ORDERED_PATH_NFL_BRIDGED"): {
+        "adapter": cfb_transfer_path_adapter, "category": cfb_transfer_path_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Real, disclosed double-name-join: cfb_transfer_summary_v17's own display_name joined to "
+            "nfl_cfb_player_links (match_status='AUTO_HIGH', itself already a bare EXACT_NORMALIZED_NAME "
+            "match) -- neither table carries a shared id, and this Engine has no other NFL<->CFB player bridge.",
+            "Real, measured eligible pool: 12 total real players (this Engine's NFL<->CFB bridge has only "
+            "124 rows total) -- small, disclosed, never padded.",
+            "The ordered relationship is the point: every distractor is a real path in a real-but-wrong "
+            "order or a different real player's correctly-ordered path, never a same-player membership question.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_transfer_player", "object_type": "ordered_path", "answer_type": "ordered_path",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 12,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-transfer-path"], "pipeline_id_start": 918000,
+    },
+    ("guess", "NFL_ALL_PRO_COLLEGE", "ATTENDED_COLLEGE_ALL_PRO"): {
+        "adapter": nfl_all_pro_college_adapter, "category": nfl_all_pro_college_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Real, measured multi-valid-answer risk: 107 real colleges have more than one distinct real "
+            "AP All-Pro alumnus -- those colleges are excluded outright (AMBIGUOUS_MULTIPLE_HONORED_ALUMNI), "
+            "never resolved by arbitrarily picking one.",
+            "Real eligible pool: 58 unique candidates (of 842 real All-Pro-player-season rows with a "
+            "resolved college) after the ambiguity exclusion.",
+            "Never strips the All-Pro qualifier -- the question is always 'which All-Pro', never generic college trivia.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_all_pro_player", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 58,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-honors-college"], "pipeline_id_start": 919000,
+    },
+    ("guess", "NFL_PRO_BOWL_COLLEGE", "ATTENDED_COLLEGE_PRO_BOWL"): {
+        "adapter": nfl_pro_bowl_college_adapter, "category": nfl_pro_bowl_college_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Same real multi-valid-answer exclusion as NFL_ALL_PRO_COLLEGE -- a college with more than "
+            "one real Pro Bowl alumnus is excluded outright.",
+            "Real eligible pool: 75 unique candidates (of 1,092 real Pro-Bowl-player-season rows with a resolved college).",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_pro_bowl_player", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 75,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-honors-college"], "pipeline_id_start": 920000,
+    },
+    ("guess", "NFL_HOF_COLLEGE", "ATTENDED_COLLEGE_HOF"): {
+        "adapter": nfl_hof_college_adapter, "category": nfl_hof_college_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Same real multi-valid-answer exclusion as NFL_ALL_PRO_COLLEGE -- a college with more than "
+            "one real Hall of Fame alumnus is excluded outright.",
+            "Real eligible pool: 44 unique candidates (of 104 real HOF players with a resolved college).",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_hof_player", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 44,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-honors-college"], "pipeline_id_start": 921000,
+    },
+    ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_ALL_PRO"): {
+        "adapter": cfb_all_american_to_all_pro_adapter, "category": cfb_all_american_to_all_pro_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Real, disclosed double-name-join (same methodology as CFB_TRANSFER_PATH -- see that "
+            "capability's own known_limitations for the full disclosure).",
+            "Real, measured eligible pool: 4 total real players (Reggie Bush, Christian McCaffrey, Lamar "
+            "Jackson, Aidan Hutchinson) -- the smallest real pool in this registry, disclosed, never padded.",
+        ],
+        "competition_id": "NFL", "entity_type": "cross_league_player", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 4,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 922000,
+    },
+    ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_PRO_BOWL"): {
+        "adapter": cfb_all_american_to_pro_bowl_adapter, "category": cfb_all_american_to_pro_bowl_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Same real double-name-join methodology as CROSS_LEAGUE_HONORS/ALL_AMERICAN_TO_ALL_PRO.",
+            "Real, measured eligible pool: 11 total real players.",
+            "All-American -> Hall of Fame is NOT registered -- real, measured overlap is 0 (a genuine "
+            "data-gap limitation, not an unwritten adapter).",
+        ],
+        "competition_id": "NFL", "entity_type": "cross_league_player", "object_type": "player", "answer_type": "player",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 11,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 923000,
     },
 }
 

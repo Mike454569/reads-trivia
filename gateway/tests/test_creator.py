@@ -189,10 +189,16 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # NFL_HALL_OF_FAME, NFL_OFFENSIVE_COORDINATOR, NFL_DEFENSIVE_COORDINATOR,
     # CFB_PLAYER_IDENTITY/IDENTIFY_FROM_CLUES), each individually verified
     # end-to-end via a real, passing 100-round Tier-2 certification probe.
+    # Creator Capability Completion pass: 29 -> 53 -- 24 real new
+    # GENERATION_VERIFIED capabilities (rankings, upsets, NFL PBP scoring,
+    # NFL defensive events, drives, CFB same-week stat comparisons, top
+    # single-game performers, ordered transfer paths, honor+college
+    # compositions, cross-league honors), each individually verified
+    # end-to-end via a real, passing 100-round Tier-2 certification probe.
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 29
+    assert len(caps) == 53
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

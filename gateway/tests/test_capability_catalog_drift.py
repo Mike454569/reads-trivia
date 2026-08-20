@@ -108,12 +108,24 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     via register_new_capability() with real scoping fields populated from
     the start, same as NFL_PLAYER_SEASON__TEAM_OF_SEASON above, so
     capabilities_missing_scoping_fields is unchanged at 21 (confirmed live:
-    none of the 6 new capability_ids appear in missing_fields_by_capability)."""
+    none of the 6 new capability_ids appear in missing_fields_by_capability).
+
+    Creator Capability Completion pass: total_capabilities grew 29 -> 53 (24
+    real new capabilities: CFB_RANKING, CFB_UPSET x2, NFL_SCORING_PLAY,
+    NFL_DEFENSIVE_EVENT x4, NFL_DRIVE, CFB_STAT_COMPARISON x3, NFL_GAME_LEADER
+    x3, CFB_GAME_LEADER x3, CFB_TRANSFER_PATH, NFL_ALL_PRO_COLLEGE,
+    NFL_PRO_BOWL_COLLEGE, NFL_HOF_COLLEGE, CROSS_LEAGUE_HONORS x2) -- every
+    one registered with real scoping fields populated (backfilled for the 16
+    that were initially registered with only known_limitations set, matching
+    the same real-metadata-at-registration discipline as the 6 above), so
+    capabilities_missing_scoping_fields is again unchanged at 21 (the same
+    21 legacy-backfilled rows Phase 2 originally found -- confirmed live:
+    none of the 24 new capability_ids appear in missing_fields_by_capability)."""
     from tools.director_v02 import generate_schema_and_prompt as gen
 
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 29
+    assert result["total_capabilities"] == 53
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]
