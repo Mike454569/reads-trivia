@@ -275,6 +275,90 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Discovery/replayability pass: the first 4 modes promoted out of
+    # Creator-only status straight to public certification, following the
+    # exact same discipline as every mode above -- a real candidate survey
+    # run directly against generate_package_from_spec() (the identical
+    # function real gameplay uses, not a re-derivation) at target_count=5000
+    # per difficulty band, results in tools/director_v02/ (see this
+    # operation's own notes for the raw counts). Only bands with real,
+    # nonzero, QA-passed candidates are ever listed in
+    # certified_difficulties -- never assumed from supported_difficulties.
+    "offense_college_guess": {
+        "competition": "NFL",
+        "title": "NFL Offense by College: Guess the Team",
+        "instructions": "You'll be shown a real, current NFL team's starting offense by college and "
+                        "position (player names hidden). Pick the team.",
+        "kind": "multiple_choice",
+        # Real survey: 32 total (Easy 8 / Medium 19 / Hard 5) -- all three
+        # bands genuinely represented, all real, current (2026) team-seasons.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_OFFENSE_COLLEGE_CURATED",
+            "relationship_predicate": "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "sb_champion_offense_college_guess": {
+        "competition": "NFL",
+        "title": "Super Bowl Champions: Guess the Team by College",
+        "instructions": "You'll be shown a real Super Bowl-winning offense by college and position "
+                        "(player names hidden). Pick the team and season.",
+        "kind": "multiple_choice",
+        # Real survey: 52 total (Easy 31 / Medium 21 / Hard 0) -- "hard"
+        # deliberately absent, same discipline as draft_guess/
+        # championship_guess excluding a real-zero band rather than
+        # guessing at one.
+        "certified_difficulties": frozenset({"easy", "medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+            "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_ranking_guess": {
+        "competition": "CFB",
+        "title": "CFB Rankings: Guess the Team",
+        "instructions": "You'll be shown a real AP Top 25 ranking snapshot. Pick the team that held that rank.",
+        "kind": "multiple_choice",
+        # Real survey: 4,978 total (Easy 881 / Medium 1,404 / Hard 2,663) --
+        # all three bands genuinely well-represented.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_RANKING",
+            "relationship_predicate": "RANKED_IN_POLL",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_upset_guess": {
+        "competition": "CFB",
+        "title": "CFB Upsets: Guess the Winner",
+        "instructions": "You'll be shown a real college football matchup where the AP-ranked team lost. "
+                        "Pick the team that pulled off the upset.",
+        "kind": "multiple_choice",
+        # Real survey: 1,044 total (Easy 146 / Medium 154 / Hard 724) -- all
+        # three bands genuinely well-represented. RANKING_UPSET only (not
+        # its BETTING_UPSET sibling) -- the plainer, more universally
+        # understood "upset" definition for a first public certification.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_UPSET",
+            "relationship_predicate": "RANKING_UPSET",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

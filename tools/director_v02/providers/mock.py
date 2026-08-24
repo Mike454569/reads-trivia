@@ -73,7 +73,13 @@ from .base import Translator
 
 TRANSLATOR_ID = "mock-deterministic-v1"
 
-_PLAYER_WORDS = {"player", "players"}
+_PLAYER_WORDS = {
+    "player", "players",
+    # Creator stress-test pass: real casual phrasing for "player" -- "guy"/
+    # "dude"/"dudes" show up constantly in ugly real-user prompts ("clue
+    # game for college dudes", "identify the guy nfl").
+    "guy", "guys", "dude", "dudes",
+}
 _DRAFT_WORDS = {"draft", "drafted", "pick", "picked", "picks"}
 _TEAM_WORDS = {"team", "teams", "franchise", "franchises", "club"}
 _CLUE_WORDS = {"clue", "clues", "identify"}
@@ -249,7 +255,14 @@ _DEFENSE_SIDE_WORDS = {"defense", "defensive", "dc"}
 _RANKING_WORDS = {"ranking", "rankings", "ranked", "poll", "polls", "unranked"}
 _RANKING_PHRASE_RE = re.compile(r"top\s?25|ap poll|cfp ranking|coaches poll|moved up|dropped in the rankings")
 _UPSET_WORDS = {"upset", "upsets", "shocked", "underdog", "underdogs"}
-_UPSET_PHRASE_RE = re.compile(r"knocked off|unranked beat|beat.{0,20}ranked")
+_UPSET_PHRASE_RE = re.compile(
+    r"knocked off|unranked beat|beat.{0,20}ranked|"
+    # Creator stress-test pass: "ranked team lost, guess who beat them" is
+    # the exact same real upset concept in reversed word order (ranked-team
+    # loss stated BEFORE "beat", not after) -- the original pattern only
+    # ever looked for "beat" followed by "ranked", never the reverse.
+    r"ranked.{0,20}(lost|fell to)|lost.{0,25}(who beat|guess who beat)"
+)
 
 _TOUCHDOWN_WORDS = {"touchdown", "touchdowns"}
 _SCORED_FIRST_RE = re.compile(r"scored the first|first (touchdown|score)|touchdown scorer|who scored")
@@ -257,7 +270,16 @@ _DEFENSIVE_EVENT_WORDS = {"sack", "sacks", "interception", "interceptions", "fum
 _WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored|picked)\b")
 _DRIVE_WORDS = {"drive", "drives"}
 
-_TOP_PERFORMER_RE = re.compile(r"top (offensive )?performer|leading performer|best performer")
+_TOP_PERFORMER_RE = re.compile(
+    r"top (offensive )?performer|leading performer|best (offensive )?performer|"
+    # Creator stress-test pass: real fans say "top rusher"/"leading
+    # receiver"/"threw for more" far more often than the generic "top
+    # performer" phrasing this pattern originally required -- these are the
+    # same single-game-leader concept, just named by category instead of
+    # the generic word.
+    r"top (rusher|passer|receiver|quarterback)|leading (rusher|passer|receiver|quarterback)|"
+    r"threw for more"
+)
 # Universal Data Reuse pass: real bug found via the exact retest prompt
 # "two RBs from the same CFB week" -- the literal two-word "same week"/
 # "same game" phrase never matched when a league qualifier sat between
@@ -269,7 +291,12 @@ _TOP_PERFORMER_RE = re.compile(r"top (offensive )?performer|leading performer|be
 _SAME_WEEK_RE = re.compile(r"same (?:cfb|nfl|college)?\s*week|same (?:cfb|nfl)?\s*game")
 _STAT_COMPARE_RE = re.compile(
     r"who (had|rushed|threw|gained) more|more \w+ yards\b|more yards|had more|threw more|"
-    r"higher\b|lower\b|bigger game|who had the (bigger|better)"
+    r"higher\b|lower\b|bigger game|who had the (bigger|better)|"
+    # Creator stress-test pass: "compare"/"comparison" and a bare "who's
+    # better"/"whos better" are the same real comparison intent as the
+    # phrasings above -- only reached when has_same_week_phrase is already
+    # true, so this stays narrow in practice despite "better" being generic.
+    r"compare|comparison|who'?s better|balled out harder"
 )
 
 _ORDERED_PATH_RE = re.compile(r"college path|ordered path|order (his|their|the) schools?|path to the nfl")
@@ -285,7 +312,12 @@ _NFL_STAR_RE = re.compile(r"nfl star|star(red)? in the nfl|became (a )?star")
 _BETTING_UPSET_WORDS = {"betting", "bet", "spread", "odds", "moneyline", "underdog", "underdogs"}
 _BETTING_UPSET_PHRASE_RE = re.compile(r"beat the spread|against the spread|outright")
 _SACK_PHRASE_RE = re.compile(r"\bsack(ed|s)?\b")
-_INTERCEPTION_PHRASE_RE = re.compile(r"\binterception(s)?\b|\bintercepted\b|picked off")
+_INTERCEPTION_PHRASE_RE = re.compile(
+    # Creator stress-test pass: "picked it off" (pronoun between "picked"
+    # and "off") is more common real phrasing than the bare "picked off"
+    # this pattern originally required.
+    r"\binterception(s)?\b|\bintercepted\b|picked (it |him |them )?off"
+)
 _FORCED_FUMBLE_PHRASE_RE = re.compile(r"forced (the |a )?fumble|force a fumble|who forced")
 _FUMBLE_RECOVERY_PHRASE_RE = re.compile(r"recovered (the |a )?fumble|fumble recovery|who recovered")
 _RUSHING_CATEGORY_WORDS = {"rushing", "rush", "rusher", "running", "rb", "rbs"}
@@ -308,8 +340,27 @@ def _words(text: str) -> set[str]:
     return set(re.findall(r"[a-z]+", text.lower()))
 
 
+_SB_ABBREV_RE = re.compile(r"\bsb\b", re.IGNORECASE)
+
+
 def _has_super_bowl_phrase(text: str) -> bool:
-    return "super bowl" in text.lower()
+    # Creator stress-test pass: "sb" is a very common real abbreviation for
+    # "Super Bowl" in casual football-fan phrasing (e.g. "sb winning
+    # offense") -- whole-word only (\b...\b), never a substring match, so
+    # it can't false-positive inside an unrelated word.
+    return "super bowl" in text.lower() or bool(_SB_ABBREV_RE.search(text))
+
+
+_OLINE_RE = re.compile(r"\bo-?line\b", re.IGNORECASE)
+
+
+def _has_oline_phrase(text: str) -> bool:
+    # Creator stress-test pass: "o-line"/"oline" is standard football
+    # shorthand for "offensive line" -- the plain word tokenizer splits
+    # "o-line" into two separate tokens ("o", "line") that never match
+    # _OFFENSE_WORDS/_LINEUP_WORDS, so this needs its own regex on the raw
+    # text rather than the word-set intersection every other signal uses.
+    return bool(_OLINE_RE.search(text))
 
 
 def _has_who_am_i_phrase(text: str) -> bool:
@@ -386,13 +437,20 @@ class MockDeterministicTranslator(Translator):
         has_clue = bool(words & _CLUE_WORDS)
         has_postseason = bool(words & _POSTSEASON_WORDS) or _has_super_bowl_phrase(text)
         has_offense = bool(words & _OFFENSE_WORDS)
-        has_lineup = bool(words & _LINEUP_WORDS)
+        has_lineup = bool(words & _LINEUP_WORDS) or _has_oline_phrase(text)
         has_position = bool(words & _POSITION_WORDS)
         has_college = bool(words & _COLLEGE_WORDS)
         has_college_or_school = has_college or bool(words & _SCHOOL_WORDS)
         has_guess_college_phrase = bool(_GUESS_COLLEGE_PHRASE_RE.search(text.lower()))
         has_guess_player_phrase = bool(_GUESS_PLAYER_PHRASE_RE.search(text.lower()))
-        has_hidden_names = bool(words & _HIDDEN_NAMES_WORDS) or "no names" in text.lower() or "without names" in text.lower() or "names hidden" in text.lower()
+        has_hidden_names = (
+            bool(words & _HIDDEN_NAMES_WORDS)
+            or "no names" in text.lower() or "without names" in text.lower() or "names hidden" in text.lower()
+            # Creator stress-test pass: "not names" ("guess team from
+            # colleges not names") is the same real hidden-names request as
+            # "no names", just a slightly different casual negation.
+            or "not names" in text.lower()
+        )
         has_heisman = bool(words & _HEISMAN_WORDS)
         has_win_word = bool(words & _WIN_WORDS)
         has_award_word = bool(words & _AWARD_WORDS)
@@ -599,9 +657,33 @@ class MockDeterministicTranslator(Translator):
         # then by which side-word co-occurs with a bare "coordinator"
         # mention; genuinely ambiguous (neither side signaled) falls through
         # to an honest clarifying question rather than guessing a side.
-        if has_oc_phrase or has_dc_phrase or (has_coordinator_word and (bool(words & _OFFENSE_SIDE_WORDS) or bool(words & _DEFENSE_SIDE_WORDS))):
-            is_offense = has_oc_phrase or (not has_dc_phrase and bool(words & _OFFENSE_SIDE_WORDS) and not bool(words & _DEFENSE_SIDE_WORDS))
-            is_defense = has_dc_phrase or (not has_oc_phrase and bool(words & _DEFENSE_SIDE_WORDS) and not bool(words & _OFFENSE_SIDE_WORDS))
+        # Creator stress-test pass: a bare "coordinator" mention with no side
+        # word at all ("coordinator game", "given the coordinator guess his
+        # team") used to fall all the way through to a plain NO_MATCH --
+        # dropping the side-word requirement here means it now reaches the
+        # same honest NEEDS_CLARIFICATION branch below instead (is_offense/
+        # is_defense both resolve False with no side word, which was always
+        # the else-branch trigger).
+        if has_oc_phrase or has_dc_phrase or has_coordinator_word:
+            # Creator stress-test pass: a bare "oc"/"dc" abbreviation is a
+            # much stronger, more deliberate side signal than the generic
+            # "offense"/"defense" words -- a stacked-qualifier prompt like
+            # "nfl team OFFENSE and season 2019 guess the DC" legitimately
+            # contains BOTH an offense word (describing the team's own side
+            # of the ball, not the coordinator being asked about) AND "dc"
+            # (naming which coordinator to guess); the generic word-overlap
+            # check alone can't tell those apart and used to bounce this to
+            # a false clarifying question. A bare oc/dc abbreviation now
+            # wins outright whenever it's present and unambiguous on its own.
+            has_bare_oc = "oc" in words
+            has_bare_dc = "dc" in words
+            if has_oc_phrase or (has_bare_oc and not has_bare_dc):
+                is_offense, is_defense = True, False
+            elif has_dc_phrase or (has_bare_dc and not has_bare_oc):
+                is_offense, is_defense = False, True
+            else:
+                is_offense = bool(words & _OFFENSE_SIDE_WORDS) and not bool(words & _DEFENSE_SIDE_WORDS)
+                is_defense = bool(words & _DEFENSE_SIDE_WORDS) and not bool(words & _OFFENSE_SIDE_WORDS)
             if is_offense and not is_defense:
                 domain, predicate, side = "NFL_OFFENSIVE_COORDINATOR", "COORDINATED_OFFENSE", "offensive"
             elif is_defense and not is_offense:
@@ -638,7 +720,15 @@ class MockDeterministicTranslator(Translator):
         # rankings", "Super Bowl upset") must never be silently routed to
         # them. Reported honestly instead of falling through further down
         # the chain to an unrelated capability.
-        nfl_exclusive = has_nfl and not has_cfb_signal
+        # Creator stress-test pass: "cfb rankings but nfl" -- a trailing "but
+        # nfl" qualifier is a real league-override signal a real user would
+        # type when they start typing the CFB-worded version out of habit and
+        # then correct themselves. Both league words appear literally, so the
+        # plain has_cfb_signal/has_nfl word-set check alone can't tell "CFB
+        # AND NFL" apart from "CFB, no wait, NFL" -- needs its own regex on
+        # the raw text.
+        has_league_swap_to_nfl = bool(re.search(r"\bbut (for |the )*nfl\b", text.lower()))
+        nfl_exclusive = (has_nfl and not has_cfb_signal) or has_league_swap_to_nfl
         if has_ranking_signal and not has_upset_signal:
             if nfl_exclusive:
                 return _result(
@@ -1288,7 +1378,15 @@ class MockDeterministicTranslator(Translator):
         # historical year (`_YEAR_RE`) still routes to the original
         # bridge-sourced, season-scoped capability below -- unchanged
         # behavior for that narrower, more specific phrasing.
-        if (has_team or has_nfl) and has_college and has_hidden_names and (has_offense or has_lineup or has_position):
+        # Creator stress-test pass: team + college + explicit hidden-names is
+        # already an unambiguous match for this concept on its own -- a real
+        # prompt like "guess team from colleges not names 2026" never says
+        # "offense"/"lineup"/"position" outright, but there's no other
+        # sensible reading of that combination. has_college is already
+        # required above, so folding it into this OR just means the
+        # offense/lineup/position words are treated as optional
+        # reinforcement, not a hard requirement.
+        if (has_team or has_nfl) and has_college and has_hidden_names and (has_offense or has_lineup or has_position or has_college_or_school):
             if _YEAR_RE.search(text):
                 spec = {
                     "mechanic": "guess",

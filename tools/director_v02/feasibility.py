@@ -138,6 +138,8 @@ correction pass already established.
 """
 from __future__ import annotations
 
+import re
+
 from . import pipeline as director_pipeline
 from . import registry
 
@@ -249,7 +251,11 @@ def raw_catalog_state_for(mechanic: str, domain: str, predicate: str) -> str | N
 # below for why a bare college mention now needs a LIVE-measured reason,
 # never a hardcoded one (that was exactly the stale-college-feasibility bug).
 KNOWN_MISSING_DATA_SIGNALS = {
-    frozenset({"salary", "salaries", "contract", "contracts", "cap"}): (
+    # Creator stress-test pass: bare "cap" used to be in this word set and
+    # false-positived on slang like "no cap" (Gen-Z for "no lie", nothing to
+    # do with the salary cap) -- moved to _SALARY_CAP_PHRASE_RE below, which
+    # only fires on real multi-word salary-cap phrasing.
+    frozenset({"salary", "salaries", "contract", "contracts"}): (
         "No salary/contract/cap table exists in this database at all -- this is not a partial-coverage "
         "gap, there is no relevant table to query."
     ),
@@ -257,6 +263,10 @@ KNOWN_MISSING_DATA_SIGNALS = {
         "No injury table exists in this database."
     ),
 }
+
+_SALARY_CAP_PHRASE_RE = re.compile(
+    r"salary cap|cap space|cap hit|cap number|under the cap|against the cap"
+)
 
 
 def _words(text: str) -> set[str]:
@@ -318,6 +328,8 @@ def _missing_data_reason(request_text: str) -> str | None:
     words = _words(text_without_sport_name)
     if words & _GENERAL_COLLEGE_WORDS:
         return _general_college_missing_data_reason()
+    if _SALARY_CAP_PHRASE_RE.search(request_text.lower()):
+        return KNOWN_MISSING_DATA_SIGNALS[frozenset({"salary", "salaries", "contract", "contracts"})]
     for signal_words, reason in KNOWN_MISSING_DATA_SIGNALS.items():
         if words & signal_words:
             return reason

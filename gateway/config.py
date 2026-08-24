@@ -258,6 +258,12 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # tested -- real candidate survey this pass: 66 accepted (Easy 48,
     # Medium 13, Hard 5), all three bands genuinely represented.
     "lineup_college_guess",
+    # Discovery/replayability pass: the first 4 modes promoted straight
+    # from Creator-only to public certification -- real candidate surveys
+    # recorded in gateway/services/public_game.py's own PUBLIC_MODES
+    # entries for each.
+    "offense_college_guess", "sb_champion_offense_college_guess",
+    "cfb_ranking_guess", "cfb_upset_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

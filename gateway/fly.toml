@@ -162,7 +162,16 @@ primary_region = "iad"
   # cfb_game_result_guess added after real production verification (real
   # Super Bowl LX proof, real full-survey candidate counts) -- see
   # READS_APP_WIDE_ENGINE_MIGRATION_REPORT.md.
-  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess,nfl_game_result_guess,cfb_game_result_guess,nfl_game_boxscore_guess"
+  # Creator stress test / discovery pass: this env var had drifted out of
+  # sync with config.py's own PUBLIC_MODE_ALLOWLIST -- lineup_college_guess
+  # was code-certified public (public-readiness punch-list) but silently
+  # missing here, making it server-unavailable in production despite being
+  # a real, working, already-built mode (found by directly querying
+  # /v1/public/modes on production: it alone reported available=false).
+  # Re-synced to match the code allowlist exactly, plus the 4 modes newly
+  # certified this pass (real candidate surveys in gateway/services/
+  # public_game.py's own PUBLIC_MODES entries).
+  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess,nfl_game_result_guess,cfb_game_result_guess,nfl_game_boxscore_guess,lineup_college_guess,offense_college_guess,sb_champion_offense_college_guess,cfb_ranking_guess,cfb_upset_guess"
   READS_PUBLIC_SIX_DEGREES_ENABLED = "true"
 
 # --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --

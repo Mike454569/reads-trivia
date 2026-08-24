@@ -80,6 +80,15 @@ var ENABLE_ENGINE_MATCHING_PILOT_V01 = READS_CONFIG.enableEngineMatchingPilot ==
 var ENABLE_ENGINE_SORTING_PILOT_V01 = READS_CONFIG.enableEngineSortingPilot === true;
 var ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01 = READS_CONFIG.enableEngineHigherLowerPilot === true;
 var ENABLE_ENGINE_ELIMINATION_PILOT_V01 = READS_CONFIG.enableEngineEliminationPilot === true;
+// Creator stress test / discovery pass: the first 4 modes promoted
+// straight from Creator-only to public certification (real candidate
+// surveys in gateway/services/public_game.py) -- same fail-closed
+// pattern, default OFF until individually canary-verified against
+// production.
+var ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01 = READS_CONFIG.enableEngineOffenseCollegePilot === true;
+var ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01 = READS_CONFIG.enableEngineSbChampionOffenseCollegePilot === true;
+var ENABLE_ENGINE_CFB_RANKING_PILOT_V01 = READS_CONFIG.enableEngineCfbRankingPilot === true;
+var ENABLE_ENGINE_CFB_UPSET_PILOT_V01 = READS_CONFIG.enableEngineCfbUpsetPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -1455,6 +1464,66 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'cfb_heisman_guess', icon: 'cfpTrophy', title: ENGINE_PILOT_MODES.heisman.title,
       desc: ENGINE_PILOT_MODES.heisman.desc, engineMode: 'heisman', league: 'cfb', difficulty: 'casual',
+    });
+  }
+  // Creator stress test / discovery pass: 4 real, already-live capabilities
+  // (Public-readiness punch-list / Historical Engine Enrichment operations)
+  // that had a working flag + hidden route but NO discovery card at all --
+  // a real user browsing the homepage had no way to ever find them, only a
+  // direct hash link. Same registration pattern as every entry above.
+  if (ENGINE_PILOT_MODES.lineupCollege.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'lineup_college_guess', icon: 'graduationCap', title: ENGINE_PILOT_MODES.lineupCollege.title,
+      desc: ENGINE_PILOT_MODES.lineupCollege.desc, engineMode: 'lineupCollege', league: 'nfl', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_PILOT_MODES.nflGameResult.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'nfl_game_result_guess', icon: 'football', title: ENGINE_PILOT_MODES.nflGameResult.title,
+      desc: ENGINE_PILOT_MODES.nflGameResult.desc, engineMode: 'nflGameResult', league: 'nfl', difficulty: 'casual',
+    });
+  }
+  if (ENGINE_PILOT_MODES.nflGameBoxscore.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'nfl_game_boxscore_guess', icon: 'sync', title: ENGINE_PILOT_MODES.nflGameBoxscore.title,
+      desc: ENGINE_PILOT_MODES.nflGameBoxscore.desc, engineMode: 'nflGameBoxscore', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_PILOT_MODES.cfbGameResult.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_game_result_guess', icon: 'football', title: ENGINE_PILOT_MODES.cfbGameResult.title,
+      desc: ENGINE_PILOT_MODES.cfbGameResult.desc, engineMode: 'cfbGameResult', league: 'cfb', difficulty: 'casual',
+    });
+  }
+  // Creator stress test / discovery pass: the first 4 modes promoted
+  // straight from Creator-only to public certification this pass (real
+  // candidate surveys in gateway/services/public_game.py).
+  // featured:true on the three modes this task explicitly named as things
+  // "people can actually find" -- same first-tier grid treatment Quiz/Grid/
+  // IQ Test/Player From Clues already get (modeSectionHtml() below), not
+  // left to compete for attention in the larger unfeatured grid.
+  if (ENGINE_PILOT_MODES.offenseCollege.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'offense_college_guess', icon: 'users', title: ENGINE_PILOT_MODES.offenseCollege.title,
+      desc: ENGINE_PILOT_MODES.offenseCollege.desc, engineMode: 'offenseCollege', league: 'nfl', difficulty: 'competitive', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.sbChampionOffenseCollege.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'sb_champion_offense_college_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.sbChampionOffenseCollege.title,
+      desc: ENGINE_PILOT_MODES.sbChampionOffenseCollege.desc, engineMode: 'sbChampionOffenseCollege', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_PILOT_MODES.cfbRanking.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_ranking_guess', icon: 'arrowUp', title: ENGINE_PILOT_MODES.cfbRanking.title,
+      desc: ENGINE_PILOT_MODES.cfbRanking.desc, engineMode: 'cfbRanking', league: 'cfb', difficulty: 'competitive', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.cfbUpset.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_upset_guess', icon: 'flame', title: ENGINE_PILOT_MODES.cfbUpset.title,
+      desc: ENGINE_PILOT_MODES.cfbUpset.desc, engineMode: 'cfbUpset', league: 'cfb', difficulty: 'hardcore', featured: true,
     });
   }
 }
@@ -9478,6 +9547,12 @@ if (ENABLE_ENGINE_LINEUP_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#lineupcollegepilot']
 if (ENABLE_ENGINE_NFL_GAME_RESULT_PILOT_V01) HIDDEN_ROUTES['#nflgameresultpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CFB_GAME_RESULT_PILOT_V01) HIDDEN_ROUTES['#cfbgameresultpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01) HIDDEN_ROUTES['#nflgameboxscorepilot'] = 'enginePilot';
+// Creator stress test / discovery pass: same registration pattern for the
+// 4 modes newly promoted to public certification this pass.
+if (ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#offensecollegepilot'] = 'enginePilot';
+if (ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#sbchampionoffensecollegepilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_RANKING_PILOT_V01) HIDDEN_ROUTES['#cfbrankingpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_UPSET_PILOT_V01) HIDDEN_ROUTES['#cfbupsetpilot'] = 'enginePilot';
 // Public-readiness punch-list: the 4 new-shape mechanic-pilot modes route
 // to their own 'mechanicPilot' screen (a separate shared shell -- see
 // engine-game-ui.js's own module comment for why these don't fit the
@@ -9499,6 +9574,10 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_PILOT_MODES.nflGameResult.hash) enginePilotCurrentModeKey = 'nflGameResult';
   else if (location.hash === ENGINE_PILOT_MODES.cfbGameResult.hash) enginePilotCurrentModeKey = 'cfbGameResult';
   else if (location.hash === ENGINE_PILOT_MODES.nflGameBoxscore.hash) enginePilotCurrentModeKey = 'nflGameBoxscore';
+  else if (location.hash === ENGINE_PILOT_MODES.offenseCollege.hash) enginePilotCurrentModeKey = 'offenseCollege';
+  else if (location.hash === ENGINE_PILOT_MODES.sbChampionOffenseCollege.hash) enginePilotCurrentModeKey = 'sbChampionOffenseCollege';
+  else if (location.hash === ENGINE_PILOT_MODES.cfbRanking.hash) enginePilotCurrentModeKey = 'cfbRanking';
+  else if (location.hash === ENGINE_PILOT_MODES.cfbUpset.hash) enginePilotCurrentModeKey = 'cfbUpset';
   else if (location.hash === ENGINE_MECHANIC_MODES.matching.hash) mechanicPilotCurrentModeKey = 'matching';
   else if (location.hash === ENGINE_MECHANIC_MODES.sorting.hash) mechanicPilotCurrentModeKey = 'sorting';
   else if (location.hash === ENGINE_MECHANIC_MODES.higherLowerEngine.hash) mechanicPilotCurrentModeKey = 'higherLowerEngine';

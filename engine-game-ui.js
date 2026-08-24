@@ -217,6 +217,46 @@ var ENGINE_PILOT_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // Creator stress test / discovery pass: the first 4 modes promoted
+  // straight from Creator-only to public certification -- same shared
+  // shell, zero new render/state code. Real candidate surveys recorded in
+  // gateway/services/public_game.py's own PUBLIC_MODES entries.
+  offenseCollege: {
+    apiMode: 'offense_college_guess',
+    hash: '#offensecollegepilot',
+    flagOn: function () { return ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01; },
+    title: 'NFL Offense by College: Guess the Team',
+    desc: "See a real, current NFL team's starting offense by college and position (names hidden), and guess the team.",
+    fallbackLabel: 'Play NFL Draft History (Quiz) Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('NFL Draft History', '', 10); },
+  },
+  sbChampionOffenseCollege: {
+    apiMode: 'sb_champion_offense_college_guess',
+    hash: '#sbchampionoffensecollegepilot',
+    flagOn: function () { return ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01; },
+    title: 'Super Bowl Champions: Guess the Team by College',
+    desc: "See a real Super Bowl-winning offense by college and position (names hidden), and guess the team and season.",
+    fallbackLabel: 'Play Super Bowl History (Quiz) Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
+  },
+  cfbRanking: {
+    apiMode: 'cfb_ranking_guess',
+    hash: '#cfbrankingpilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_RANKING_PILOT_V01; },
+    title: 'CFB Rankings: Guess the Team',
+    desc: "See a real AP Top 25 ranking snapshot, and guess which team held that rank.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  cfbUpset: {
+    apiMode: 'cfb_upset_guess',
+    hash: '#cfbupsetpilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_UPSET_PILOT_V01; },
+    title: 'CFB Upsets: Guess the Winner',
+    desc: "See a real college football matchup where the AP-ranked team lost, and guess who pulled off the upset.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var enginePilotCurrentModeKey = 'draft';
 function enginePilotModeConfig(modeKey) {
