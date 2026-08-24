@@ -818,7 +818,23 @@ footer p { margin: 6px 0 0; }
 .mode-section-title::before { content: ''; width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
 .mode-section-title-nfl::before { background: var(--accent); }
 .mode-section-title-cfb::before { background: var(--accent-2); }
-.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-md); margin-bottom: var(--space-lg); }
+/* UI/UX upgrade pass, real mobile bug found and fixed: a bare minmax(220px,
+   1fr) forces every column to be AT LEAST 220px regardless of viewport --
+   at 390px (and definitely at 340px) that's still wide enough for
+   auto-fit to place TWO 220px+ columns side by side (440px+, before even
+   counting the gap), which is wider than the viewport itself. The grid
+   doesn't shrink to fit; the whole page grows a horizontal scrollbar
+   instead, silently clipping unrelated content (the hero tagline, the
+   onboarding modal) that has nothing to do with this grid. min(220px,100%)
+   caps the minimum at the container's actual width, so auto-fit correctly
+   falls back to a single column on narrow screens instead of overflowing. */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--space-md); margin-bottom: var(--space-lg); }
+/* UI/UX Upgrade Pass: featured modes (Quiz/Grid/IQ/Player From Clues) now
+   render in their own grid ahead of the rest of that league's modes (see
+   modeSectionHtml() in app.js) -- a slightly wider minmax than the regular
+   grid so these flagship cards read as visibly more prominent, not just
+   first-in-DOM-order. */
+.mode-grid-featured { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
 .mode-card {
   position: relative;
   text-align: left;
@@ -953,7 +969,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
    just laid out as a compact grid instead, so this whole section reads as
    one scannable "more ways to play" block rather than half the home
    screen's height. */
-.discover-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-sm); margin-bottom: var(--space-lg); }
+.discover-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--space-sm); margin-bottom: var(--space-lg); }
 .discover-grid .continue-card, .discover-grid .recommend-card { margin-bottom: 0; height: 100%; }
 
 /* generic panel */
@@ -1083,6 +1099,8 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .creator-queue-row { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
 .creator-limitations { margin: 6px 0 0; padding-left: 18px; color: var(--text-dim); font-size: 13px; line-height: 1.4; }
 .creator-preview-question { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
+/* UI/UX Upgrade Pass: example-prompt chips on the Creator home screen. */
+.creator-examples-label { font-size: 12.5px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px; }
 /* Coach Connections path HUD (UI polish pass) -- start/current/target made
    visually explicit instead of one plain sentence. */
 .sixdeg-path { display: flex; align-items: stretch; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -1121,12 +1139,20 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .panel > .recommend-card:last-child, .panel > .daily-complete-banner + .recommend-card { margin-top: var(--space-sm); margin-bottom: 0; }
 
 /* grid mode */
-.grid-table { display: grid; grid-template-columns: 110px repeat(3, 1fr); gap: 6px; margin: 12px 0; }
-.grid-cell { border-radius: var(--radius-sm); }
+/* UI/UX Upgrade Pass: minmax(0, 1fr) not plain 1fr -- a real 340px-width bug
+   found during mobile regression testing. CSS Grid tracks default to
+   min-width:auto, so a long, unbroken criteria label (varies with the
+   random row/column matchup -- e.g. a long school name) could force a
+   column wider than its fair share, pushing the whole table past the
+   viewport. minmax(0, 1fr) plus overflow-wrap below lets the track actually
+   shrink to the available space and wrap instead of overflowing. */
+.grid-table { display: grid; grid-template-columns: 110px repeat(3, minmax(0, 1fr)); gap: 6px; margin: 12px 0; }
+.grid-cell { border-radius: var(--radius-sm); min-width: 0; }
 .grid-corner { background: transparent; }
 .grid-header {
   background: var(--bg-elevated); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 4px;
   justify-content: center; text-align: center; font-weight: 700; font-size: 11.5px; padding: 8px 4px; line-height: 1.2;
+  min-width: 0; overflow-wrap: break-word; word-break: break-word;
 }
 .team-badge {
   width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -1247,7 +1273,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 
 /* blitz mode */
-.blitz-list-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.blitz-list-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
 .blitz-list-card {
   text-align: left; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
   border-radius: var(--radius-sm); padding: 14px; cursor: pointer;
@@ -1416,7 +1442,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .profile-headline { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; flex: 1; min-width: 140px; text-align: center; }
 .profile-headline-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .profile-headline-label { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
-.profile-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+.profile-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
 .profile-mode-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
 .profile-mode-title { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
 .profile-mode-stat { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); padding: 3px 0; }
@@ -1450,7 +1476,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 
 @media (max-width: 360px) {
-  .grid-table { grid-template-columns: 58px repeat(3, 1fr); gap: 4px; }
+  .grid-table { grid-template-columns: 58px repeat(3, minmax(0, 1fr)); gap: 4px; }
   .team-badge { width: 28px; height: 28px; font-size: 9px; }
   .btn-row { gap: 8px; }
   .btn-primary, .btn-secondary { padding: 11px 14px; font-size: 14px; }

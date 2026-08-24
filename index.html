@@ -274,16 +274,19 @@
        above since app.js blends all three into QUIZ at init. -->
   <script src="data/quiz-engine-game-result-production.js"></script>
   <script src="data/quiz-engine-cfb-game-result-production.js"></script>
-  <!-- Director v0.5 local-only prototype: Player From Clues. Reachable only via
-       the hidden #clues route behind ENABLE_PLAYER_FROM_CLUES_V01 in app.js — not
-       part of the production nav/home mode grid. See
-       PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md. -->
+  <!-- Player From Clues (NFL) -- Engine-generated/SQL-verified package. UI/UX
+       Upgrade Pass: now surfaced as a real home/nav mode (previously only the
+       hidden #clues route). See PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md. -->
   <script src="data/player-from-clues-v01.js"></script>
   <!-- Director v0.6 Gateway dev-loop only (Part O) -- inert (null) unless
        tools/gateway_dev_client.py has been run against a local Gateway AND
        ENABLE_PLAYER_FROM_CLUES_GATEWAY_DEV_V01 is turned on in app.js.
        Never the production data source. -->
   <script src="data/player-from-clues-gateway-dev.js"></script>
+  <!-- CFB Player From Clues -- UI/UX Upgrade Pass. A small hand-authored local
+       prototype pack (data/cfb-player-from-clues-v01.js's own header explains
+       why: no public CFB Gateway capability exists for this mechanic). -->
+  <script src="data/cfb-player-from-clues-v01.js"></script>
   <script src="data/cfb.js"></script>
   <script src="sound.js"></script>
   <!-- v1.4: small runtime config surface (Parts 12/29/30) -- must load

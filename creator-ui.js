@@ -223,6 +223,25 @@ function creatorQuestionAsPublicPayload(q) {
   };
 }
 
+// UI/UX Upgrade Pass: real examples of requests that map onto capabilities
+// already confirmed GENERATION_VERIFIED in production (not aspirational
+// copy) -- so clicking one and hitting Check Feasibility genuinely
+// demonstrates SUPPORTED / SUPPORTED_WITH_LIMITATIONS, not a dead end.
+var CREATOR_EXAMPLE_PROMPTS = [
+  'Guess the NFL team from its starting offense, by position.',
+  'Give me an NFL game and make me guess who led it in rushing yards.',
+  'Which team was ranked in the AP Top 25 this week?',
+  'Make me guess which NFL All-Pro attended this college.',
+  'Give me a real NFL Draft pick and make me guess the team.',
+];
+function creatorUseExample(text) {
+  var s = state.creator; if (!s) return;
+  s.requestText = text;
+  renderAll();
+  var el = document.getElementById('creator-request-input');
+  if (el) el.focus();
+}
+
 function creatorSupportBadgeHtml(status) {
   var cls = { SUPPORTED: 'good', SUPPORTED_WITH_LIMITATIONS: 'good', UNDERSTOOD_BUT_UNSUPPORTED: 'warn',
     MISSING_DATA: 'warn', UNSAFE: 'bad', UNKNOWN: 'warn' }[status] || 'warn';
@@ -305,8 +324,9 @@ function renderCreatorScreen() {
   }
 
   if (s.screen === CREATOR_SCREEN.CHECKING || s.screen === CREATOR_SCREEN.GENERATING) {
-    return '<div class="panel">' + creatorToolbarHtml(true) +
-      '<p class="mode-desc" aria-live="polite">' + (s.screen === CREATOR_SCREEN.CHECKING ? 'Checking feasibility…' : 'Generating and QA-checking real puzzles…') + '</p></div>';
+    return '<div class="panel loading-panel" aria-busy="true">' +
+      '<div class="loading-spinner"></div>' +
+      '<div class="loading-text" aria-live="polite">' + (s.screen === CREATOR_SCREEN.CHECKING ? 'Checking feasibility…' : 'Generating and QA-checking real puzzles…') + '</div></div>';
   }
 
   if (s.screen === CREATOR_SCREEN.RESULT || s.screen === CREATOR_SCREEN.PREVIEW) {
@@ -367,5 +387,9 @@ function renderCreatorScreen() {
     'only ever resolve to one of a fixed set of registered, pre-audited capabilities (Part C/L).</p>' +
     '<textarea id="creator-request-input" class="creator-textarea" rows="3" placeholder="e.g. Guess the NFL team from its starting offense, by position.">' + esc(s.requestText || '') + '</textarea>' +
     '<div class="btn-row"><button class="btn-primary" data-creator-check-feasibility>Check Feasibility</button></div>' +
+    '<div class="creator-examples-label">Try one of these:</div>' +
+    '<div class="chip-row">' + CREATOR_EXAMPLE_PROMPTS.map(function (ex) {
+      return '<button class="chip-toggle" data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>';
+    }).join('') + '</div>' +
     '</div>';
 }

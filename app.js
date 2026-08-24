@@ -6,13 +6,19 @@ var APP_VERSION = '3.2.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
-// Director v0.5 local-only prototype flag. true = the hidden #clues route
-// (see HIDDEN_ROUTES below) renders the real Player From Clues game; false
-// makes the route, the render branch, and the package-validation check all
-// simultaneously inert -- no file deletion needed to roll back. Never wired
-// into the nav bar / home mode grid / LEAGUE_MODES -- local/dev-only, per
-// PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md.
+// Director v0.5 local-only prototype flag. true = renders the real Player
+// From Clues game, both from the hidden #clues route (see HIDDEN_ROUTES
+// below, kept as a legacy deep link) and -- as of the UI/UX Upgrade Pass --
+// a real LEAGUE_MODES.nfl card, surfaced on the home screen and NFL grid
+// like any other mode. false makes the route, the card, the render branch,
+// and the package-validation check all simultaneously inert -- no file
+// deletion needed to roll back. See PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md.
 var ENABLE_PLAYER_FROM_CLUES_V01 = true;
+// UI/UX Upgrade Pass: same real kill-switch discipline for the new CFB
+// counterpart (data/cfb-player-from-clues-v01.js) -- false makes its
+// LEAGUE_MODES.cfb card, render branch, and package-validation check all
+// simultaneously inert.
+var ENABLE_CFB_PLAYER_FROM_CLUES_V01 = true;
 
 // Director v0.6 Gateway dev-loop flag. Default OFF -- this is NOT the
 // production path (see READS_ENGINE_GATEWAY_V01_REPORT.md, Part O). When
@@ -337,6 +343,7 @@ var state = {
   speed: null,
   silhouette: null,
   playerClues: null,
+  cfbPlayerClues: null,
   enginePilot: null,
   mechanicPilot: null,
   sixDegrees: null,
@@ -1025,6 +1032,7 @@ function resetModeState(mode) {
   else if (mode === 'higherLower') state.higherLower = null;
   else if (mode === 'silhouette') state.silhouette = null;
   else if (mode === 'playerClues') state.playerClues = null;
+  else if (mode === 'cfbPlayerClues') state.cfbPlayerClues = null;
   else if (mode === 'enginePilot') state.enginePilot = null;
   else if (mode === 'mechanicPilot') state.mechanicPilot = null;
   else if (mode === 'iq') state.iq = null;
@@ -1146,7 +1154,7 @@ function enterMode(mode) {
 // not part of either league's mode grid/dropdown) but still need a real
 // label wherever modeLabelFor() is read — Report modal context text, the
 // reports screen listing, etc.
-var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", playerClues: 'Player From Clues' };
+var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues' };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
@@ -1472,7 +1480,17 @@ var LEAGUE_MODES = {
     { id: 'iq', icon: 'brain', title: 'NFL IQ Test', desc: '25 questions, no feedback until the end. Get a Football IQ score and a category breakdown.', featured: true, difficulty: 'competitive' },
     { id: 'legends', icon: 'trophy', title: '17-0', desc: 'Draft a 7-player team from real players\' real seasons (1999-2025) and see if it grades out as a perfect season.', difficulty: 'competitive' },
     { id: 'higherLower', icon: 'arrowUp', title: 'Higher or Lower', desc: 'Two real players, one real stat — guess higher or lower than the last one. Keep going until you miss.', difficulty: 'casual' }
-  ].concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league !== 'cfb'; })),
+  ]
+    // UI/UX Upgrade Pass: Player From Clues, surfaced as a real mode card for
+    // the first time (previously only reachable via the hidden #clues route)
+    // -- still gated on its own real flag, same discipline as every
+    // ENGINE_DISCOVERY_ENTRIES entry below. featured:true because Section 1
+    // of this pass explicitly calls out "NFL Who Am I" as a first-class
+    // homepage priority.
+    .concat(ENABLE_PLAYER_FROM_CLUES_V01 ? [
+      { id: 'playerClues', icon: 'target', title: 'Player From Clues', desc: 'A ladder of real, verified clues about one NFL player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
+    ] : [])
+    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league !== 'cfb'; })),
   cfb: [
     { id: 'cfbQuiz', icon: 'graduationCap', title: 'College Football Quiz', desc: CFB.length + ' CFB questions across ' + cfbCategories().length + ' categories — Heisman, rivalries, coaches, bowls, and more.', featured: true, difficulty: 'casual' },
     { id: 'cfbGrid', icon: 'grid', title: 'CFB Immaculate Grid', desc: 'A freshly generated 3x3 grid of schools and All-America/Heisman criteria. Name a player who satisfies both the row and the column.', featured: true, difficulty: 'hardcore' },
@@ -1480,7 +1498,11 @@ var LEAGUE_MODES = {
     { id: 'cfbSpeed', icon: 'zap', title: 'CFB Speed Round', desc: 'Rapid-fire college football multiple choice against the clock. Build a streak for bonus points.', difficulty: 'competitive' },
     { id: 'cfbIq', icon: 'book', title: 'College Football IQ Test', desc: 'The IQ Test format, college edition. 25 questions, no feedback until the end.', featured: true, difficulty: 'competitive' },
     { id: 'cfbLegends', icon: 'trophy', title: 'CFB 12-0', desc: 'Draft an 8-player college roster (including a whole team DEFENSE) from real players\' and teams\' real seasons (1990-2025), then see how your 12-game regular season plays out — and where it lands you in the postseason.', difficulty: 'competitive' }
-  ].concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
+  ]
+    .concat(ENABLE_CFB_PLAYER_FROM_CLUES_V01 ? [
+      { id: 'cfbPlayerClues', icon: 'target', title: 'CFB Player From Clues', desc: 'A ladder of real clues about a Heisman-winning college football player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
+    ] : [])
+    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
 };
 var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
 
@@ -1873,9 +1895,21 @@ function modeCardHtml(m) {
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
     '</button>';
 }
+// UI/UX Upgrade Pass: featured modes (Quiz/Grid/IQ Test/Player From Clues --
+// real, already-curated via each entry's own `featured` flag, nothing new
+// invented here) now render in their own grid FIRST, ahead of the rest of
+// that league's modes -- real visual + positional hierarchy ("featured /
+// primary / secondary", per this pass's own explicit ask) instead of relying
+// on .mode-card.featured's bigger-card styling alone to carry it while the
+// cards themselves stayed interleaved in whatever order LEAGUE_MODES happened
+// to list them in.
 function modeSectionHtml(league) {
+  var all = LEAGUE_MODES[league];
+  var featured = all.filter(function (m) { return m.featured; });
+  var rest = all.filter(function (m) { return !m.featured; });
   return '<h2 class="mode-section-title mode-section-title-' + league + '">' + esc(LEAGUE_LABELS[league]) + '</h2>' +
-    '<div class="mode-grid mode-grid-' + league + '">' + LEAGUE_MODES[league].map(modeCardHtml).join('') + '</div>';
+    (featured.length ? '<div class="mode-grid mode-grid-' + league + ' mode-grid-featured">' + featured.map(modeCardHtml).join('') + '</div>' : '') +
+    (rest.length ? '<div class="mode-grid mode-grid-' + league + '">' + rest.map(modeCardHtml).join('') + '</div>' : '');
 }
 function continuePlayingCardHtml() {
   var last = lsGet('nflTriviaLastMode', null);
@@ -4482,13 +4516,173 @@ function renderPlayerCluesSummary() {
     '<div class="btn-row">' +
     '<button class="btn-primary" data-clues-start>Play Again</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div></div>';
+    '</div>' + recommendedModeHtml() + '</div>';
 }
 function renderPlayerCluesScreen() {
   if (!ENABLE_PLAYER_FROM_CLUES_V01) return renderHome();
   if (!state.playerClues) return renderPlayerCluesSetup();
   if (state.playerClues.screen === 'summary') return renderPlayerCluesSummary();
   return renderPlayerCluesRound();
+}
+
+/* ============================== CFB player from clues ==============================
+   UI/UX Upgrade Pass: CFB counterpart, same shape/logic as the NFL section
+   above, kept as its own parallel set of functions rather than a
+   parametrized shared one -- matches this file's own established
+   NFL/CFB-pair convention everywhere else (startGridRound/startCfbGridRound,
+   etc.), and keeps zero risk of a CFB-specific change ever regressing the
+   already-working NFL prototype. See data/cfb-player-from-clues-v01.js's own
+   header for why this pack is hand-authored rather than Engine-generated. */
+var CFB_PLAYER_CLUES_PACKAGE = null;
+var CFB_PLAYER_CLUES_VALIDATION_ERROR = null;
+function initCfbPlayerCluesPackage() {
+  var source = window.CFB_PLAYER_FROM_CLUES_V01;
+  var err = validatePlayerCluesPackage(source);
+  if (err) { CFB_PLAYER_CLUES_VALIDATION_ERROR = err; CFB_PLAYER_CLUES_PACKAGE = null; return; }
+  CFB_PLAYER_CLUES_PACKAGE = source;
+}
+function cfbPlayerCluesAnswerPool() {
+  if (!CFB_PLAYER_CLUES_PACKAGE) return [];
+  var seen = {}, out = [];
+  CFB_PLAYER_CLUES_PACKAGE.puzzles.forEach(function (p) {
+    if (!seen[p.answer.displayName]) { seen[p.answer.displayName] = true; out.push({ name: p.answer.displayName }); }
+  });
+  return out;
+}
+function loadCfbPlayerCluesItem() {
+  var s = state.cfbPlayerClues;
+  s.revealedCount = 1;
+  s.itemState = 'guessing';
+  s.input = '';
+  s.lastWrong = false;
+  s.startedAt = Date.now();
+}
+function startCfbPlayerCluesRound() {
+  if (!CFB_PLAYER_CLUES_PACKAGE) return;
+  state.cfbPlayerClues = { queue: CFB_PLAYER_CLUES_PACKAGE.puzzles.slice(), index: 0, correctCount: 0, results: [], screen: 'round' };
+  loadCfbPlayerCluesItem();
+  state.screen = 'cfbPlayerClues';
+  renderAll();
+}
+function revealCfbPlayerCluesClue() {
+  var s = state.cfbPlayerClues;
+  if (!s || s.itemState !== 'guessing') return;
+  var p = s.queue[s.index];
+  if (s.revealedCount < p.clues.length) s.revealedCount++;
+  renderAll();
+}
+function submitCfbPlayerCluesGuess() {
+  var s = state.cfbPlayerClues;
+  if (!s || s.itemState !== 'guessing') return;
+  var norm = normName(s.input);
+  if (!norm) return;
+  var p = s.queue[s.index];
+  var correct = normName(p.answer.displayName) === norm;
+  if (correct) {
+    s.results.push({ id: p.id, correct: true, cluesRevealed: s.revealedCount });
+    s.correctCount++;
+    s.lastWrong = false;
+    s.itemState = 'revealed';
+    playSound('correct');
+  } else {
+    s.lastWrong = true;
+    playSound('wrong');
+    if (s.revealedCount < p.clues.length) {
+      s.revealedCount++;
+    } else {
+      s.results.push({ id: p.id, correct: false, cluesRevealed: s.revealedCount });
+      s.itemState = 'revealed';
+    }
+  }
+  s.input = '';
+  renderAll();
+}
+function giveCfbPlayerCluesUp() {
+  var s = state.cfbPlayerClues;
+  if (!s || s.itemState !== 'guessing') return;
+  var p = s.queue[s.index];
+  s.results.push({ id: p.id, correct: false, cluesRevealed: s.revealedCount });
+  s.itemState = 'revealed';
+  renderAll();
+}
+function advanceCfbPlayerClues() {
+  var s = state.cfbPlayerClues;
+  if (typeof stopSfx === 'function') stopSfx();
+  if (s.index + 1 >= s.queue.length) { s.screen = 'summary'; renderAll(); return; }
+  s.index++;
+  loadCfbPlayerCluesItem();
+  renderAll();
+}
+function cfbPlayerCluesToolbarHtml() {
+  return '<div class="mode-toolbar">' +
+    '<button class="btn-tiny" data-mode-restart="cfbPlayerClues">' + icon('restart') + ' Restart</button>' +
+    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
+    '</div>';
+}
+function renderCfbPlayerCluesSetup() {
+  if (!CFB_PLAYER_CLUES_PACKAGE) {
+    return '<div class="panel"><h2 class="panel-title">CFB Player From Clues</h2>' +
+      '<p class="mode-desc">This local prototype package failed validation (' +
+      esc(CFB_PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
+      '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
+  }
+  return '<div class="panel">' +
+    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
+    '<p class="mode-desc">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
+    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (hand-picked Heisman winners). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<div class="btn-row"><button class="btn-primary" data-cfb-clues-start>Start</button></div>' +
+    '</div>';
+}
+function renderCfbPlayerCluesRound() {
+  var s = state.cfbPlayerClues, p = s.queue[s.index];
+  var html = '<div class="panel">' + cfbPlayerCluesToolbarHtml() +
+    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>';
+  if (s.itemState === 'revealed') {
+    var lastResult = s.results[s.results.length - 1];
+    html += '<div class="silhouette-reveal">' + esc(p.answer.displayName) + (lastResult && lastResult.correct ? ' — correct!' : ' — not quite') + '</div>' +
+      '<button class="btn-primary" data-cfb-clues-next>' + (s.index + 1 >= s.queue.length ? 'See Results' : 'Next Puzzle') + '</button>';
+  } else {
+    html += '<div class="silhouette-clues">' +
+      p.clues.slice(0, s.revealedCount).map(function (c) { return '<div class="silhouette-clue">' + esc(c.text) + '</div>'; }).join('') +
+      '</div>' +
+      (s.lastWrong ? '<div class="blitz-feedback wrong" aria-live="polite">Not quite' + (s.revealedCount < p.clues.length ? '— here’s another clue.' : '.') + '</div>' : '') +
+      '<div class="grid-answer-box">' +
+      '<div class="typeahead-wrap">' +
+      '<input id="cfb-clues-input" autocomplete="off" placeholder="Who is it?" value="' + esc(s.input) + '" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="cfb-clues-input-typeahead" />' +
+      '<div id="cfb-clues-input-typeahead" class="typeahead-list" role="listbox"></div>' +
+      '</div>' +
+      '<button class="btn-primary" data-cfb-clues-submit>Guess</button>' +
+      '</div>' +
+      '<div class="btn-row">' +
+      (s.revealedCount < p.clues.length ? '<button class="btn-secondary" data-cfb-clues-hint>Reveal Next Clue</button>' : '') +
+      '<button class="btn-secondary" data-cfb-clues-giveup>Give Up</button>' +
+      '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+function renderCfbPlayerCluesSummary() {
+  var s = state.cfbPlayerClues;
+  var correctCount = s.results.filter(function (r) { return r.correct; }).length;
+  var missed = s.results.filter(function (r) { return !r.correct; });
+  return '<div class="panel">' +
+    '<h2 class="panel-title">CFB Player From Clues — Complete</h2>' +
+    '<div class="summary-score">' + correctCount + ' / ' + s.queue.length + ' identified</div>' +
+    (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (r) {
+      var puzzle = CFB_PLAYER_CLUES_PACKAGE.puzzles.find(function (pp) { return pp.id === r.id; });
+      return esc(puzzle ? puzzle.answer.displayName : String(r.id));
+    }).join(', ') + '</div>' : '<div class="blitz-missed">Clean sweep — you identified every player!</div>') +
+    '<div class="summary-note">Local prototype — nothing here is saved to your profile or the leaderboard.</div>' +
+    '<div class="btn-row">' +
+    '<button class="btn-primary" data-cfb-clues-start>Play Again</button>' +
+    '<button class="btn-secondary" data-go="home">Home</button>' +
+    '</div>' + recommendedModeHtml() + '</div>';
+}
+function renderCfbPlayerCluesScreen() {
+  if (!ENABLE_CFB_PLAYER_FROM_CLUES_V01) return renderHome();
+  if (!state.cfbPlayerClues) return renderCfbPlayerCluesSetup();
+  if (state.cfbPlayerClues.screen === 'summary') return renderCfbPlayerCluesSummary();
+  return renderCfbPlayerCluesRound();
 }
 
 /* ============================== engine game shell ==============================
@@ -8608,6 +8802,7 @@ function renderAll() {
   else if (state.screen === 'h2hLive') html += renderH2HLiveScreen();
   else if (state.screen === 'study') html += renderStudyScreen();
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
+  else if (state.screen === 'cfbPlayerClues') html += renderCfbPlayerCluesScreen();
   else if (state.screen === 'enginePilot') html += renderEnginePilotScreen();
   else if (state.screen === 'mechanicPilot') html += renderMechanicPilotScreen();
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
@@ -8691,6 +8886,11 @@ var TYPEAHEAD_CONFIGS = {
     pool: function () { return playerCluesAnswerPool(); },
     exclude: function () { return []; },
     onPick: function (name) { state.playerClues.input = name; submitPlayerCluesGuess(); }
+  },
+  'cfb-clues-input': {
+    pool: function () { return cfbPlayerCluesAnswerPool(); },
+    exclude: function () { return []; },
+    onPick: function (name) { state.cfbPlayerClues.input = name; submitCfbPlayerCluesGuess(); }
   }
 };
 var typeaheadActiveIndex = -1;
@@ -8773,13 +8973,14 @@ document.addEventListener('click', function (e) {
     '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], [data-hl-category], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
+    '[data-cfb-clues-start], [data-cfb-clues-submit], [data-cfb-clues-hint], [data-cfb-clues-giveup], [data-cfb-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
     '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
     '[data-mechanic-hl-guess], [data-elim-guess], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
-    '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], ' +
+    '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -9005,6 +9206,11 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cluesHint !== undefined) { revealPlayerCluesClue(); return; }
   if (t.dataset.cluesGiveup !== undefined) { givePlayerCluesUp(); return; }
   if (t.dataset.cluesNext !== undefined) { advancePlayerClues(); return; }
+  if (t.dataset.cfbCluesStart !== undefined) { startCfbPlayerCluesRound(); return; }
+  if (t.dataset.cfbCluesSubmit !== undefined) { submitCfbPlayerCluesGuess(); return; }
+  if (t.dataset.cfbCluesHint !== undefined) { revealCfbPlayerCluesClue(); return; }
+  if (t.dataset.cfbCluesGiveup !== undefined) { giveCfbPlayerCluesUp(); return; }
+  if (t.dataset.cfbCluesNext !== undefined) { advanceCfbPlayerClues(); return; }
 
   if (t.dataset.pilotStart !== undefined) { startEnginePilotRound(); return; }
   if (t.dataset.pilotAnswer !== undefined) { pickEnginePilotAnswer(parseInt(t.dataset.pilotAnswer, 10)); return; }
@@ -9066,6 +9272,7 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
+  if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
   if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
@@ -9258,6 +9465,7 @@ function consumePendingLiveJoin() {
 }
 
 initPlayerCluesPackage();
+initCfbPlayerCluesPackage();
 var HIDDEN_ROUTES = { '#stats': 'stats', '#reports': 'reports', '#creator': 'creator' };
 if (ENABLE_PLAYER_FROM_CLUES_V01) HIDDEN_ROUTES['#clues'] = 'playerClues';
 if (ENABLE_ENGINE_DRAFT_PILOT_V01) HIDDEN_ROUTES['#draftpilot'] = 'enginePilot';
