@@ -7,11 +7,11 @@
   "game_instructions": "You'll see a sequence of verified clues about one NFL player, revealed one at a time and narrowing from broad to specific. Identify the player.",
   "generated_at": "2026-08-09T22:30:32.930547+00:00",
   "engine_version": {
-    "db_path": "/Users/micahnichols/Downloads/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite",
+    "db_path": "/Users/enterprise2/Desktop/2026 NFL Draft Guide/nfl-trivia/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite",
     "database_version": "4.0.0",
-    "draft_facts_row_count": 12253,
-    "canonical_players_row_count": 7277,
-    "canonical_roster_seasons_row_count": 28617,
+    "draft_facts_row_count": 12927,
+    "canonical_players_row_count": 17113,
+    "canonical_roster_seasons_row_count": 60246,
     "season_standings_row_count": 800,
     "attended_before_draft_row_count": 3751
   },
@@ -33,18 +33,24 @@
       "approved_for_import": true
     },
     "canonical_players": {
-      "source_id": "NFLVERSE_DATA",
-      "source_name": "nflverse-data",
+      "source_id": [
+        "NFLVERSE_DATA",
+        "NFLVERSE_ROSTERS"
+      ],
+      "source_name": [
+        "nflverse-data",
+        "nflverse-rosters"
+      ],
       "approved_for_import": true,
-      "canonical_players_rows_total": 7277,
-      "canonical_players_rows_verified": 7277
+      "canonical_players_rows_total": 17113,
+      "canonical_players_rows_verified": 17113
     },
     "canonical_roster_seasons": {
       "source_id": "NFLVERSE_DATA",
       "source_name": "nflverse-data",
       "approved_for_import": true,
-      "canonical_roster_seasons_rows_total": 26138,
-      "canonical_roster_seasons_rows_verified": 26138
+      "canonical_roster_seasons_rows_total": 36240,
+      "canonical_roster_seasons_rows_verified": 36240
     },
     "season_standings": {
       "source_id": "NFLVERSE_DATA",
@@ -88,67 +94,81 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:FryxDu20",
-        "display_name": "Dustin Fry"
+        "player_id": "PFR:BrowJa23",
+        "display_name": "Jason Brown"
       },
       "clues": [
         {
           "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
           "clue_type": "draft_round",
-          "value": 5,
-          "display_text": "This player was drafted in round 5.",
+          "value": 4,
+          "display_text": "This player was drafted in round 4.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 600
+          "candidates_before": 2136,
+          "candidates_after": 292
         },
         {
-          "clue_index": 1,
+          "clue_index": 2,
           "clue_type": "draft_year",
-          "value": 2007,
-          "display_text": "This player was drafted in 2007.",
+          "value": 2005,
+          "display_text": "This player was drafted in 2005.",
           "source": {
             "table": "draft_facts",
             "field": "draft_season",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 600,
-          "candidates_after": 34
+          "candidates_before": 292,
+          "candidates_after": 18
         },
         {
-          "clue_index": 2,
+          "clue_index": 3,
           "clue_type": "career_span",
           "value": [
-            2007,
-            2007
+            2005,
+            2011
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2007 to 2007.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2005 to 2011.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 34,
-          "candidates_after": 5
+          "candidates_before": 18,
+          "candidates_after": 3
         },
         {
-          "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 139,
-          "display_text": "This player was selected with the #139 overall pick.",
+          "clue_index": 4,
+          "clue_type": "college",
+          "value": "Air Force",
+          "display_text": "This player attended Air Force before entering the NFL draft.",
           "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
+            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
+            "field": "school_name",
+            "source_id": "READS_IDENTITY_BRIDGE",
+            "verification_status": "PRODUCTION_SAFE_DERIVED"
           },
-          "candidates_before": 5,
+          "candidates_before": 3,
           "candidates_after": 1
         }
       ],
@@ -160,238 +180,8 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:JameTo99",
-        "display_name": "Tory James"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "position",
-          "value": "DB",
-          "display_text": "This player's position at the time of the draft was DB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 666
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 2,
-          "display_text": "This player was drafted in round 2.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 666,
-          "candidates_after": 112
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2006
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2006.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 112,
-          "candidates_after": 10
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "drafting_franchise",
-          "value": "Denver Broncos",
-          "display_text": "This player was drafted by the Denver Broncos.",
-          "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 10,
-          "candidates_after": 2
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "draft_pick_overall",
-          "value": 44,
-          "display_text": "This player was selected with the #44 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620001,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:CampCa00",
-        "display_name": "Caleb Campbell"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "position",
-          "value": "DB",
-          "display_text": "This player's position at the time of the draft was DB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 666
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 7,
-          "display_text": "This player was drafted in round 7.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 666,
-          "candidates_after": 89
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "draft_year",
-          "value": 2008,
-          "display_text": "This player was drafted in 2008.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 89,
-          "candidates_after": 6
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "career_span",
-          "value": [
-            2010,
-            2010
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2010 to 2010.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 6,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620002,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:TaylHe21",
-        "display_name": "Herbert Taylor"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 6,
-          "display_text": "This player was drafted in round 6.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 591
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "position",
-          "value": "T",
-          "display_text": "This player's position at the time of the draft was T.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 591,
-          "candidates_after": 37
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "draft_year",
-          "value": 2007,
-          "display_text": "This player was drafted in 2007.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 37,
-          "candidates_after": 4
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "career_span",
-          "value": [
-            2007,
-            2012
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2007 to 2012.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620003,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:JohnBr00",
-        "display_name": "Brad Johnson"
+        "player_id": "PFR:JenkJo00",
+        "display_name": "John Jenkins"
       },
       "clues": [
         {
@@ -405,252 +195,22 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2008
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2008.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 119
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "position",
-          "value": "QB",
-          "display_text": "This player's position at the time of the draft was QB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 119,
-          "candidates_after": 5
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 227,
-          "display_text": "This player was selected with the #227 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 5,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620004,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:CarlCo20",
-        "display_name": "Cooper Carlisle"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
           "clue_type": "draft_round",
-          "value": 4,
-          "display_text": "This player was drafted in round 4.",
+          "value": 3,
+          "display_text": "This player was drafted in round 3.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 666
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "position",
-          "value": "G",
-          "display_text": "This player's position at the time of the draft was G.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 666,
-          "candidates_after": 39
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "drafting_franchise",
-          "value": "Denver Broncos",
-          "display_text": "This player was drafted by the Denver Broncos.",
-          "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 39,
-          "candidates_after": 3
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2012
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2012.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 3,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620005,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:ThomDo21",
-        "display_name": "Dontarrious Thomas"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 2,
-          "display_text": "This player was drafted in round 2.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 447
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 447,
-          "candidates_after": 61
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 48,
-          "display_text": "This player was selected with the #48 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 61,
-          "candidates_after": 4
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2008
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2008.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620006,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:CoheLa99",
-        "display_name": "Landon Cohen"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 7,
-          "display_text": "This player was drafted in round 7.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 308
+          "candidates_before": 2136,
+          "candidates_after": 334
         },
         {
           "clue_index": 2,
@@ -663,34 +223,536 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 308,
-          "candidates_after": 30
+          "candidates_before": 334,
+          "candidates_after": 27
         },
         {
           "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            2013,
+            2018
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2013 to 2018.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 27,
+          "candidates_after": 3
+        },
+        {
+          "clue_index": 4,
           "clue_type": "draft_pick_overall",
-          "value": 216,
-          "display_text": "This player was selected with the #216 overall pick.",
+          "value": 82,
+          "display_text": "This player was selected with the #82 overall pick.",
           "source": {
             "table": "draft_facts",
             "field": "draft_pick_overall",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
+          "candidates_before": 3,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620001,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:MannPa20",
+        "display_name": "Patrick Mannelly"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 6,
+          "display_text": "This player was drafted in round 6.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 193
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "T",
+          "display_text": "This player's position at the time of the draft was T.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 193,
+          "candidates_after": 12
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            1999,
+            2013
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 1999 to 2013.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 12,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620002,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:BrowJo02",
+        "display_name": "John Brown"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 3,
+          "display_text": "This player was drafted in round 3.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 334
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "WR",
+          "display_text": "This player's position at the time of the draft was WR.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 334,
+          "candidates_after": 43
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "drafting_franchise",
+          "value": "Arizona Cardinals",
+          "display_text": "This player was drafted by the Arizona Cardinals.",
+          "source": {
+            "table": "draft_facts+team_aliases",
+            "field": "draft_team (season-resolved)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 43,
+          "candidates_after": 3
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2014,
+            2018
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2014 to 2018.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 3,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620003,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:FreeDe00",
+        "display_name": "Devonta Freeman"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 4,
+          "display_text": "This player was drafted in round 4.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 292
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "RB",
+          "display_text": "This player's position at the time of the draft was RB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 292,
+          "candidates_after": 30
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            2014,
+            2018
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2014 to 2018.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
           "candidates_before": 30,
+          "candidates_after": 3
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "college",
+          "value": "Florida State",
+          "display_text": "This player attended Florida State before entering the NFL draft.",
+          "source": {
+            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
+            "field": "school_name",
+            "source_id": "READS_IDENTITY_BRIDGE",
+            "verification_status": "PRODUCTION_SAFE_DERIVED"
+          },
+          "candidates_before": 3,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620004,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:BernMa20",
+        "display_name": "Mackenzy Bernadeau"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 7,
+          "display_text": "This player was drafted in round 7.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 178
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "G",
+          "display_text": "This player's position at the time of the draft was G.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 178,
+          "candidates_after": 12
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "drafting_franchise",
+          "value": "Carolina Panthers",
+          "display_text": "This player was drafted by the Carolina Panthers.",
+          "source": {
+            "table": "draft_facts+team_aliases",
+            "field": "draft_team (season-resolved)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 12,
           "candidates_after": 2
         },
         {
           "clue_index": 4,
           "clue_type": "career_span",
           "value": [
-            2008,
-            2013
+            2009,
+            2015
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2008 to 2013.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2009 to 2015.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620005,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:LehaMi20",
+        "display_name": "Michael Lehan"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "position",
+          "value": "DB",
+          "display_text": "This player's position at the time of the draft was DB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 418
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_round",
+          "value": 5,
+          "display_text": "This player was drafted in round 5.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 418,
+          "candidates_after": 52
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_pick_overall",
+          "value": 152,
+          "display_text": "This player was selected with the #152 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 52,
+          "candidates_after": 3
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2003,
+            2008
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2003 to 2008.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 3,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620006,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:ZastDa20",
+        "display_name": "Dave Zastudil"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 4,
+          "display_text": "This player was drafted in round 4.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 292
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_year",
+          "value": 2002,
+          "display_text": "This player was drafted in 2002.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_season",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 292,
+          "candidates_after": 15
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            2002,
+            2014
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2002 to 2014.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 15,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "draft_pick_overall",
+          "value": 112,
+          "display_text": "This player was selected with the #112 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
@@ -706,8 +768,8 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:JohnCh26",
-        "display_name": "Chris Johnson"
+        "player_id": "PFR:CoopMa00",
+        "display_name": "Marcus Cooper"
       },
       "clues": [
         {
@@ -721,25 +783,11 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
-          "clue_type": "won_super_bowl",
-          "value": true,
-          "display_text": "This player was on the active roster of a team that won the Super Bowl at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result='WonSB' (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 492
-        },
-        {
-          "clue_index": 2,
           "clue_type": "position",
           "value": "DB",
           "display_text": "This player's position at the time of the draft was DB.",
@@ -749,38 +797,52 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 492,
-          "candidates_after": 88
+          "candidates_before": 2136,
+          "candidates_after": 418
         },
         {
-          "clue_index": 3,
-          "clue_type": "drafting_franchise",
-          "value": "Green Bay Packers",
-          "display_text": "This player was drafted by the Green Bay Packers.",
+          "clue_index": 2,
+          "clue_type": "draft_round",
+          "value": 7,
+          "display_text": "This player was drafted in round 7.",
           "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
+            "table": "draft_facts",
+            "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 88,
-          "candidates_after": 8
+          "candidates_before": 418,
+          "candidates_after": 27
         },
         {
-          "clue_index": 4,
+          "clue_index": 3,
           "clue_type": "career_span",
           "value": [
-            2007,
-            2012
+            2013,
+            2018
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2007 to 2012.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2013 to 2018.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 8,
+          "candidates_before": 27,
+          "candidates_after": 3
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "college",
+          "value": "Rutgers",
+          "display_text": "This player attended Rutgers before entering the NFL draft.",
+          "source": {
+            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
+            "field": "school_name",
+            "source_id": "READS_IDENTITY_BRIDGE",
+            "verification_status": "PRODUCTION_SAFE_DERIVED"
+          },
+          "candidates_before": 3,
           "candidates_after": 1
         }
       ],
@@ -792,8 +854,8 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:ShorBr20",
-        "display_name": "Brandon Short"
+        "player_id": "PFR:SidnDa20",
+        "display_name": "Dainon Sidney"
       },
       "clues": [
         {
@@ -807,8 +869,266 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "position",
+          "value": "DB",
+          "display_text": "This player's position at the time of the draft was DB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 418
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_round",
+          "value": 3,
+          "display_text": "This player was drafted in round 3.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 418,
+          "candidates_after": 59
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_pick_overall",
+          "value": 77,
+          "display_text": "This player was selected with the #77 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 59,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            1999,
+            2003
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 1999 to 2003.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620009,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:SimpJe00",
+        "display_name": "Jerome Simpson"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 2,
+          "display_text": "This player was drafted in round 2.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 405
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "WR",
+          "display_text": "This player's position at the time of the draft was WR.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 405,
+          "candidates_after": 50
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_year",
+          "value": 2008,
+          "display_text": "This player was drafted in 2008.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_season",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 50,
+          "candidates_after": 5
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2008,
+            2015
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2008 to 2015.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 5,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620010,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:DoucEa00",
+        "display_name": "Early Doucet"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 3,
+          "display_text": "This player was drafted in round 3.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 334
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "WR",
+          "display_text": "This player's position at the time of the draft was WR.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 334,
+          "candidates_after": 43
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_year",
+          "value": 2008,
+          "display_text": "This player was drafted in 2008.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_season",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 43,
+          "candidates_after": 5
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2008,
+            2012
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2008 to 2012.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 5,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620011,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:WashLe00",
+        "display_name": "Leon Washington"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
@@ -821,94 +1141,8 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 2851,
-          "candidates_after": 418
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 418,
-          "candidates_after": 61
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "drafting_franchise",
-          "value": "New York Giants",
-          "display_text": "This player was drafted by the New York Giants.",
-          "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 61,
-          "candidates_after": 5
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2006
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2006.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 5,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620009,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:HerrDa00",
-        "display_name": "Dan Herron"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 6,
-          "display_text": "This player was drafted in round 6.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 332
+          "candidates_before": 2136,
+          "candidates_after": 292
         },
         {
           "clue_index": 2,
@@ -921,206 +1155,34 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 332,
-          "candidates_after": 42
+          "candidates_before": 292,
+          "candidates_after": 30
         },
         {
           "clue_index": 3,
-          "clue_type": "draft_year",
-          "value": 2012,
-          "display_text": "This player was drafted in 2012.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 42,
-          "candidates_after": 3
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2012,
-            2015
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2012 to 2015.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 3,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620010,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:GainCh00",
-        "display_name": "Charles Gaines"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 6,
-          "display_text": "This player was drafted in round 6.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 591
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_year",
-          "value": 2015,
-          "display_text": "This player was drafted in 2015.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 591,
-          "candidates_after": 35
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "career_span",
-          "value": [
-            2015,
-            2015
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2015 to 2015.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 35,
-          "candidates_after": 11
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "position",
-          "value": "CB",
-          "display_text": "This player's position at the time of the draft was CB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 11,
-          "candidates_after": 2
-        },
-        {
-          "clue_index": 4,
           "clue_type": "college",
-          "value": "Louisville",
-          "display_text": "This player attended Louisville before entering the NFL draft.",
+          "value": "Florida State",
+          "display_text": "This player attended Florida State before entering the NFL draft.",
           "source": {
             "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
             "field": "school_name",
             "source_id": "READS_IDENTITY_BRIDGE",
             "verification_status": "PRODUCTION_SAFE_DERIVED"
           },
-          "candidates_before": 2,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620011,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:BailBo20",
-        "display_name": "Boss Bailey"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 2,
-          "display_text": "This player was drafted in round 2.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 657
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 657,
-          "candidates_after": 84
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "draft_year",
-          "value": 2003,
-          "display_text": "This player was drafted in 2003.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 84,
-          "candidates_after": 6
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2008
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2008.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 6,
+          "candidates_before": 30,
           "candidates_after": 2
         },
         {
           "clue_index": 4,
-          "clue_type": "draft_pick_overall",
-          "value": 34,
-          "display_text": "This player was selected with the #34 overall pick.",
+          "clue_type": "career_span",
+          "value": [
+            2006,
+            2014
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2014.",
           "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
@@ -1136,81 +1198,81 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:ApkeTr00",
-        "display_name": "Troy Apke"
+        "player_id": "PFR:PaceCa20",
+        "display_name": "Calvin Pace"
       },
       "clues": [
         {
           "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
           "clue_type": "draft_round",
-          "value": 4,
-          "display_text": "This player was drafted in round 4.",
+          "value": 1,
+          "display_text": "This player was drafted in round 1.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 666
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_year",
-          "value": 2018,
-          "display_text": "This player was drafted in 2018.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 666,
-          "candidates_after": 37
+          "candidates_before": 2136,
+          "candidates_after": 487
         },
         {
           "clue_index": 2,
-          "clue_type": "career_span",
-          "value": [
-            2018,
-            2018
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2018 to 2018.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 37,
-          "candidates_after": 33
-        },
-        {
-          "clue_index": 3,
           "clue_type": "position",
-          "value": "S",
-          "display_text": "This player's position at the time of the draft was S.",
+          "value": "DE",
+          "display_text": "This player's position at the time of the draft was DE.",
           "source": {
             "table": "draft_facts",
             "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 33,
-          "candidates_after": 4
+          "candidates_before": 487,
+          "candidates_after": 63
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_pick_overall",
+          "value": 18,
+          "display_text": "This player was selected with the #18 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 63,
+          "candidates_after": 5
         },
         {
           "clue_index": 4,
-          "clue_type": "college",
-          "value": "Penn State",
-          "display_text": "This player attended Penn State before entering the NFL draft.",
+          "clue_type": "career_span",
+          "value": [
+            2003,
+            2015
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2003 to 2015.",
           "source": {
-            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
-            "field": "school_name",
-            "source_id": "READS_IDENTITY_BRIDGE",
-            "verification_status": "PRODUCTION_SAFE_DERIVED"
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4,
+          "candidates_before": 5,
           "candidates_after": 1
         }
       ],
@@ -1222,80 +1284,8 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:HumpD.00",
-        "display_name": "D.J. Humphries"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 1,
-          "display_text": "This player was drafted in round 1.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 704
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "position",
-          "value": "T",
-          "display_text": "This player's position at the time of the draft was T.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 704,
-          "candidates_after": 83
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "career_span",
-          "value": [
-            2016,
-            2018
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2016 to 2018.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 83,
-          "candidates_after": 5
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 24,
-          "display_text": "This player was selected with the #24 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 5,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620014,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:WillDa99",
-        "display_name": "Dan Williams"
+        "player_id": "PFR:WileMa00",
+        "display_name": "Marcellus Wiley"
       },
       "clues": [
         {
@@ -1309,59 +1299,59 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
           "clue_type": "draft_round",
-          "value": 1,
-          "display_text": "This player was drafted in round 1.",
+          "value": 2,
+          "display_text": "This player was drafted in round 2.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 2851,
-          "candidates_after": 522
+          "candidates_before": 2136,
+          "candidates_after": 405
         },
         {
           "clue_index": 2,
           "clue_type": "position",
-          "value": "DT",
-          "display_text": "This player's position at the time of the draft was DT.",
+          "value": "DE",
+          "display_text": "This player's position at the time of the draft was DE.",
           "source": {
             "table": "draft_facts",
             "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 522,
-          "candidates_after": 43
+          "candidates_before": 405,
+          "candidates_after": 33
         },
         {
           "clue_index": 3,
-          "clue_type": "draft_year",
-          "value": 2010,
-          "display_text": "This player was drafted in 2010.",
+          "clue_type": "draft_pick_overall",
+          "value": 52,
+          "display_text": "This player was selected with the #52 overall pick.",
           "source": {
             "table": "draft_facts",
-            "field": "draft_season",
+            "field": "draft_pick_overall",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 43,
+          "candidates_before": 33,
           "candidates_after": 3
         },
         {
           "clue_index": 4,
           "clue_type": "career_span",
           "value": [
-            2010,
-            2016
+            1999,
+            2006
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2010 to 2016.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 1999 to 2006.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
@@ -1373,15 +1363,15 @@
         }
       ],
       "final_candidate_count": 1,
-      "puzzle_id": 620015,
+      "puzzle_id": 620014,
       "mechanic": "identify_player_from_clues",
       "qa_status": "PASSED"
     },
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:BrowAr00",
-        "display_name": "Arthur Brown"
+        "player_id": "PFR:TappDa20",
+        "display_name": "Darryl Tapp"
       },
       "clues": [
         {
@@ -1395,8 +1385,8 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
@@ -1409,131 +1399,45 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 2851,
-          "candidates_after": 447
+          "candidates_before": 2136,
+          "candidates_after": 405
         },
         {
           "clue_index": 2,
           "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
+          "value": "DE",
+          "display_text": "This player's position at the time of the draft was DE.",
           "source": {
             "table": "draft_facts",
             "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 447,
-          "candidates_after": 61
+          "candidates_before": 405,
+          "candidates_after": 33
         },
         {
           "clue_index": 3,
-          "clue_type": "draft_year",
-          "value": 2013,
-          "display_text": "This player was drafted in 2013.",
+          "clue_type": "team_history",
+          "value": "Tampa Bay Buccaneers",
+          "display_text": "At another point in his career, this player played for the Tampa Bay Buccaneers.",
           "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
+            "table": "canonical_roster_seasons+team_aliases",
+            "field": "team_code (season-resolved)",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 61,
-          "candidates_after": 6
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2013,
-            2016
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2013 to 2016.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 6,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620016,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:HawkJe00",
-        "display_name": "Jerald Hawkins"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 4,
-          "display_text": "This player was drafted in round 4.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 418
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "position",
-          "value": "T",
-          "display_text": "This player's position at the time of the draft was T.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 418,
-          "candidates_after": 28
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 123,
-          "display_text": "This player was selected with the #123 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 28,
+          "candidates_before": 33,
           "candidates_after": 2
         },
         {
           "clue_index": 4,
           "clue_type": "career_span",
           "value": [
-            2017,
+            2006,
             2017
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2017 to 2017.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2017.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
@@ -1545,6 +1449,178 @@
         }
       ],
       "final_candidate_count": 1,
+      "puzzle_id": 620015,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:SullJo24",
+        "display_name": "John Sullivan"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 6,
+          "display_text": "This player was drafted in round 6.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 193
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_year",
+          "value": 2008,
+          "display_text": "This player was drafted in 2008.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_season",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 193,
+          "candidates_after": 16
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            2008,
+            2018
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2008 to 2018.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 16,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "college",
+          "value": "New Mexico",
+          "display_text": "This player attended New Mexico before entering the NFL draft.",
+          "source": {
+            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
+            "field": "school_name",
+            "source_id": "READS_IDENTITY_BRIDGE",
+            "verification_status": "PRODUCTION_SAFE_DERIVED"
+          },
+          "candidates_before": 2,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620016,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:VilmJo99",
+        "display_name": "Jonathan Vilma"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 1,
+          "display_text": "This player was drafted in round 1.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 487
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "won_super_bowl",
+          "value": true,
+          "display_text": "This player was on the active roster of a team that won the Super Bowl at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result='WonSB' (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 487,
+          "candidates_after": 111
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "position",
+          "value": "LB",
+          "display_text": "This player's position at the time of the draft was LB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 111,
+          "candidates_after": 15
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2004,
+            2013
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2004 to 2013.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 15,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
       "puzzle_id": 620017,
       "mechanic": "identify_player_from_clues",
       "qa_status": "PASSED"
@@ -1552,77 +1628,77 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:TillTr20",
-        "display_name": "Travares Tillman"
+        "player_id": "PFR:ClarDe00",
+        "display_name": "Desmond Clark"
       },
       "clues": [
         {
           "clue_index": 0,
-          "clue_type": "position",
-          "value": "DB",
-          "display_text": "This player's position at the time of the draft was DB.",
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
           "source": {
-            "table": "draft_facts",
-            "field": "position",
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 666
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
           "clue_type": "draft_round",
-          "value": 2,
-          "display_text": "This player was drafted in round 2.",
+          "value": 6,
+          "display_text": "This player was drafted in round 6.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 666,
-          "candidates_after": 112
+          "candidates_before": 2136,
+          "candidates_after": 193
         },
         {
           "clue_index": 2,
-          "clue_type": "career_span",
-          "value": [
-            2006,
-            2007
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2007.",
+          "clue_type": "position",
+          "value": "TE",
+          "display_text": "This player's position at the time of the draft was TE.",
           "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
+            "table": "draft_facts",
+            "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 112,
-          "candidates_after": 7
+          "candidates_before": 193,
+          "candidates_after": 16
         },
         {
           "clue_index": 3,
-          "clue_type": "draft_year",
-          "value": 2000,
-          "display_text": "This player was drafted in 2000.",
+          "clue_type": "draft_pick_overall",
+          "value": 179,
+          "display_text": "This player was selected with the #179 overall pick.",
           "source": {
             "table": "draft_facts",
-            "field": "draft_season",
+            "field": "draft_pick_overall",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 7,
+          "candidates_before": 16,
           "candidates_after": 2
         },
         {
           "clue_index": 4,
-          "clue_type": "draft_pick_overall",
-          "value": 58,
-          "display_text": "This player was selected with the #58 overall pick.",
+          "clue_type": "career_span",
+          "value": [
+            1999,
+            2010
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 1999 to 2010.",
           "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
@@ -1638,8 +1714,8 @@
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:BrotKe00",
-        "display_name": "Kentrell Brothers"
+        "player_id": "PFR:CollTo00",
+        "display_name": "Todd Collins"
       },
       "clues": [
         {
@@ -1653,231 +1729,59 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
-          "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 372
-        },
-        {
-          "clue_index": 2,
           "clue_type": "draft_round",
-          "value": 5,
-          "display_text": "This player was drafted in round 5.",
+          "value": 2,
+          "display_text": "This player was drafted in round 2.",
           "source": {
             "table": "draft_facts",
             "field": "draft_round",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 372,
-          "candidates_after": 53
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "drafting_franchise",
-          "value": "Minnesota Vikings",
-          "display_text": "This player was drafted by the Minnesota Vikings.",
-          "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 53,
-          "candidates_after": 4
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2016,
-            2018
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2016 to 2018.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620019,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:VandLe00",
-        "display_name": "Leighton Vander Esch"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 1,
-          "display_text": "This player was drafted in round 1.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 522
+          "candidates_before": 2136,
+          "candidates_after": 405
         },
         {
           "clue_index": 2,
           "clue_type": "position",
-          "value": "LB",
-          "display_text": "This player's position at the time of the draft was LB.",
+          "value": "QB",
+          "display_text": "This player's position at the time of the draft was QB.",
           "source": {
             "table": "draft_facts",
             "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 522,
-          "candidates_after": 55
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "drafting_franchise",
-          "value": "Dallas Cowboys",
-          "display_text": "This player was drafted by the Dallas Cowboys.",
-          "source": {
-            "table": "draft_facts+team_aliases",
-            "field": "draft_team (season-resolved)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 55,
-          "candidates_after": 3
-        },
-        {
-          "clue_index": 4,
-          "clue_type": "career_span",
-          "value": [
-            2018,
-            2018
-          ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2018 to 2018.",
-          "source": {
-            "table": "canonical_roster_seasons",
-            "field": "MIN/MAX(season) WHERE games>0",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 3,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620020,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:WarfLa00",
-        "display_name": "Larry Warford"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "postseason_participation",
-          "value": true,
-          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
-          "source": {
-            "table": "canonical_roster_seasons+season_standings",
-            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 2851
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "draft_round",
-          "value": 3,
-          "display_text": "This player was drafted in round 3.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 2851,
-          "candidates_after": 450
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "position",
-          "value": "G",
-          "display_text": "This player's position at the time of the draft was G.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 450,
-          "candidates_after": 29
+          "candidates_before": 405,
+          "candidates_after": 18
         },
         {
           "clue_index": 3,
           "clue_type": "draft_year",
-          "value": 2013,
-          "display_text": "This player was drafted in 2013.",
+          "value": 1995,
+          "display_text": "This player was drafted in 1995.",
           "source": {
             "table": "draft_facts",
             "field": "draft_season",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 29,
+          "candidates_before": 18,
           "candidates_after": 2
         },
         {
           "clue_index": 4,
           "clue_type": "career_span",
           "value": [
-            2013,
-            2018
+            2001,
+            2010
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2013 to 2018.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2001 to 2010.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
@@ -1889,99 +1793,30 @@
         }
       ],
       "final_candidate_count": 1,
-      "puzzle_id": 620021,
+      "puzzle_id": 620019,
       "mechanic": "identify_player_from_clues",
       "qa_status": "PASSED"
     },
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:BryaAu00",
-        "display_name": "Austin Bryant"
+        "player_id": "PFR:SchwGe20",
+        "display_name": "Geoff Schwartz"
       },
       "clues": [
         {
           "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 4,
-          "display_text": "This player was drafted in round 4.",
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
           "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 666
-        },
-        {
-          "clue_index": 1,
-          "clue_type": "position",
-          "value": "DE",
-          "display_text": "This player's position at the time of the draft was DE.",
-          "source": {
-            "table": "draft_facts",
-            "field": "position",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 666,
-          "candidates_after": 57
-        },
-        {
-          "clue_index": 2,
-          "clue_type": "draft_year",
-          "value": 2019,
-          "display_text": "This player was drafted in 2019.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_season",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 57,
-          "candidates_after": 5
-        },
-        {
-          "clue_index": 3,
-          "clue_type": "college",
-          "value": "Clemson",
-          "display_text": "This player attended Clemson before entering the NFL draft.",
-          "source": {
-            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
-            "field": "school_name",
-            "source_id": "READS_IDENTITY_BRIDGE",
-            "verification_status": "PRODUCTION_SAFE_DERIVED"
-          },
-          "candidates_before": 5,
-          "candidates_after": 1
-        }
-      ],
-      "final_candidate_count": 1,
-      "puzzle_id": 620022,
-      "mechanic": "identify_player_from_clues",
-      "qa_status": "PASSED"
-    },
-    {
-      "answer": {
-        "answer_type": "player",
-        "player_id": "PFR:KropTr20",
-        "display_name": "Troy Kropog"
-      },
-      "clues": [
-        {
-          "clue_index": 0,
-          "clue_type": "draft_round",
-          "value": 4,
-          "display_text": "This player was drafted in round 4.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_round",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 4506,
-          "candidates_after": 666
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
@@ -1994,31 +1829,45 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 666,
-          "candidates_after": 43
+          "candidates_before": 2136,
+          "candidates_after": 183
         },
         {
           "clue_index": 2,
-          "clue_type": "draft_pick_overall",
-          "value": 135,
-          "display_text": "This player was selected with the #135 overall pick.",
+          "clue_type": "draft_year",
+          "value": 2008,
+          "display_text": "This player was drafted in 2008.",
           "source": {
             "table": "draft_facts",
-            "field": "draft_pick_overall",
+            "field": "draft_season",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 43,
-          "candidates_after": 2
+          "candidates_before": 183,
+          "candidates_after": 17
         },
         {
           "clue_index": 3,
+          "clue_type": "draft_round",
+          "value": 7,
+          "display_text": "This player was drafted in round 7.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 17,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
           "clue_type": "career_span",
           "value": [
             2009,
-            2012
+            2015
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2009 to 2012.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2009 to 2015.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
@@ -2030,15 +1879,87 @@
         }
       ],
       "final_candidate_count": 1,
-      "puzzle_id": 620023,
+      "puzzle_id": 620020,
       "mechanic": "identify_player_from_clues",
       "qa_status": "PASSED"
     },
     {
       "answer": {
         "answer_type": "player",
-        "player_id": "PFR:MoreVe00",
-        "display_name": "Vernand Morency"
+        "player_id": "PFR:SimmJa20",
+        "display_name": "Jason Simmons"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "position",
+          "value": "DB",
+          "display_text": "This player's position at the time of the draft was DB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 486
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "draft_round",
+          "value": 5,
+          "display_text": "This player was drafted in round 5.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 486,
+          "candidates_after": 58
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_pick_overall",
+          "value": 137,
+          "display_text": "This player was selected with the #137 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 58,
+          "candidates_after": 4
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "career_span",
+          "value": [
+            1999,
+            2007
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 1999 to 2007.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 4,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620021,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:DaviDe00",
+        "display_name": "Demario Davis"
       },
       "clues": [
         {
@@ -2052,8 +1973,8 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 4506,
-          "candidates_after": 2851
+          "candidates_before": 2489,
+          "candidates_after": 2136
         },
         {
           "clue_index": 1,
@@ -2066,52 +1987,224 @@
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 2851,
-          "candidates_after": 450
+          "candidates_before": 2136,
+          "candidates_after": 334
         },
         {
           "clue_index": 2,
           "clue_type": "position",
-          "value": "RB",
-          "display_text": "This player's position at the time of the draft was RB.",
+          "value": "LB",
+          "display_text": "This player's position at the time of the draft was LB.",
           "source": {
             "table": "draft_facts",
             "field": "position",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
-          "candidates_before": 450,
-          "candidates_after": 37
+          "candidates_before": 334,
+          "candidates_after": 46
         },
         {
           "clue_index": 3,
-          "clue_type": "draft_pick_overall",
-          "value": 73,
-          "display_text": "This player was selected with the #73 overall pick.",
-          "source": {
-            "table": "draft_facts",
-            "field": "draft_pick_overall",
-            "source_id": "NFLVERSE_DATA",
-            "verification_status": "SOURCE_BACKED"
-          },
-          "candidates_before": 37,
-          "candidates_after": 5
-        },
-        {
-          "clue_index": 4,
           "clue_type": "career_span",
           "value": [
-            2006,
-            2007
+            2012,
+            2018
           ],
-          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2006 to 2007.",
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2012 to 2018.",
           "source": {
             "table": "canonical_roster_seasons",
             "field": "MIN/MAX(season) WHERE games>0",
             "source_id": "NFLVERSE_DATA",
             "verification_status": "SOURCE_BACKED"
           },
+          "candidates_before": 46,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "college",
+          "value": "Arkansas State",
+          "display_text": "This player attended Arkansas State before entering the NFL draft.",
+          "source": {
+            "table": "relationships(ATTENDED_BEFORE_DRAFT)+schools",
+            "field": "school_name",
+            "source_id": "READS_IDENTITY_BRIDGE",
+            "verification_status": "PRODUCTION_SAFE_DERIVED"
+          },
+          "candidates_before": 2,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620022,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:HaggCl20",
+        "display_name": "Clark Haggans"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "postseason_participation",
+          "value": true,
+          "display_text": "This player was on an NFL team's active roster during a playoff run at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 2136
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "won_super_bowl",
+          "value": true,
+          "display_text": "This player was on the active roster of a team that won the Super Bowl at some point in his career.",
+          "source": {
+            "table": "canonical_roster_seasons+season_standings",
+            "field": "playoff_result='WonSB' (derived join on team_code+season, games>0)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2136,
+          "candidates_after": 473
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "position",
+          "value": "LB",
+          "display_text": "This player's position at the time of the draft was LB.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 473,
+          "candidates_after": 61
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "draft_round",
+          "value": 5,
+          "display_text": "This player was drafted in round 5.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 61,
+          "candidates_after": 6
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2001,
+            2012
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2001 to 2012.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 6,
+          "candidates_after": 1
+        }
+      ],
+      "final_candidate_count": 1,
+      "puzzle_id": 620023,
+      "mechanic": "identify_player_from_clues",
+      "qa_status": "PASSED"
+    },
+    {
+      "answer": {
+        "answer_type": "player",
+        "player_id": "PFR:QuicBr00",
+        "display_name": "Brian Quick"
+      },
+      "clues": [
+        {
+          "clue_index": 0,
+          "clue_type": "draft_round",
+          "value": 2,
+          "display_text": "This player was drafted in round 2.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_round",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2489,
+          "candidates_after": 477
+        },
+        {
+          "clue_index": 1,
+          "clue_type": "position",
+          "value": "WR",
+          "display_text": "This player's position at the time of the draft was WR.",
+          "source": {
+            "table": "draft_facts",
+            "field": "position",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 477,
+          "candidates_after": 59
+        },
+        {
+          "clue_index": 2,
+          "clue_type": "draft_pick_overall",
+          "value": 33,
+          "display_text": "This player was selected with the #33 overall pick.",
+          "source": {
+            "table": "draft_facts",
+            "field": "draft_pick_overall",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 59,
+          "candidates_after": 5
+        },
+        {
+          "clue_index": 3,
+          "clue_type": "drafting_franchise",
+          "value": "St Louis Rams",
+          "display_text": "This player was drafted by the St Louis Rams.",
+          "source": {
+            "table": "draft_facts+team_aliases",
+            "field": "draft_team (season-resolved)",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
           "candidates_before": 5,
+          "candidates_after": 2
+        },
+        {
+          "clue_index": 4,
+          "clue_type": "career_span",
+          "value": [
+            2012,
+            2018
+          ],
+          "display_text": "This player's NFL career (by recorded roster seasons) spanned 2012 to 2018.",
+          "source": {
+            "table": "canonical_roster_seasons",
+            "field": "MIN/MAX(season) WHERE games>0",
+            "source_id": "NFLVERSE_DATA",
+            "verification_status": "SOURCE_BACKED"
+          },
+          "candidates_before": 2,
           "candidates_after": 1
         }
       ],
@@ -2122,34 +2215,35 @@
     }
   ],
   "funnel": {
-    "universe_size": 4506,
-    "attempted": 4506,
+    "universe_size": 2489,
+    "attempted": 2489,
     "rejected_counts": {
-      "AMBIGUOUS_FINAL_SET_SIZE_2": 752,
-      "AMBIGUOUS_FINAL_SET_SIZE_3": 181,
-      "AMBIGUOUS_FINAL_SET_SIZE_7": 13,
-      "AMBIGUOUS_FINAL_SET_SIZE_4": 54,
-      "AMBIGUOUS_FINAL_SET_SIZE_5": 38,
-      "AMBIGUOUS_FINAL_SET_SIZE_6": 8,
-      "AMBIGUOUS_FINAL_SET_SIZE_8": 6
+      "AMBIGUOUS_FINAL_SET_SIZE_2": 480,
+      "AMBIGUOUS_FINAL_SET_SIZE_3": 100,
+      "AMBIGUOUS_FINAL_SET_SIZE_4": 28,
+      "AMBIGUOUS_FINAL_SET_SIZE_7": 3,
+      "AMBIGUOUS_FINAL_SET_SIZE_6": 3,
+      "AMBIGUOUS_FINAL_SET_SIZE_8": 6,
+      "AMBIGUOUS_FINAL_SET_SIZE_5": 7
     },
-    "accepted_total": 3454,
+    "accepted_total": 1862,
     "exported_count": 25,
     "target_count": 25,
     "shortfall_reason": null,
     "qa_failures_detail": [],
     "clue_type_distribution": {
-      "draft_round": 23,
-      "draft_year": 12,
-      "career_span": 24,
-      "draft_pick_overall": 11,
-      "position": 24,
-      "drafting_franchise": 6,
-      "postseason_participation": 13,
-      "won_super_bowl": 1,
-      "college": 3
+      "postseason_participation": 23,
+      "draft_round": 25,
+      "draft_year": 7,
+      "career_span": 25,
+      "college": 6,
+      "position": 22,
+      "draft_pick_overall": 9,
+      "drafting_franchise": 3,
+      "team_history": 1,
+      "won_super_bowl": 2
     },
-    "average_clue_count": 4.68
+    "average_clue_count": 4.92
   },
   "review_status": "UNREVIEWED",
   "_diagnostics": {

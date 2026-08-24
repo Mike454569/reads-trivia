@@ -45,18 +45,33 @@ window.READS_CONFIG = {
   // cfb_heisman_guess entry.
   enableEngineHeismanPilot: true,
 
-  // Public-readiness punch-list closure pass: 8 more real, tested modes
-  // wired into the frontend this pass -- all OFF until each is
-  // individually canary-verified against production the same way every
-  // pilot above was, matching this file's own established rollout
-  // discipline. Never flip one of these to true without that real
-  // verification having actually happened.
-  enableEngineLineupCollegePilot: false,
-  enableEngineNflGameResultPilot: false,
-  enableEngineCfbGameResultPilot: false,
-  enableEngineNflGameBoxscorePilot: false,
+  // Public-readiness punch-list closure pass: real, tested modes wired
+  // into the frontend -- each flag only flips to true after being
+  // individually canary-verified (real fetch + real answer validation)
+  // against this exact production Gateway, matching this file's own
+  // established rollout discipline.
+  // Creator stress test / discovery pass: lineupCollege/nflGameResult/
+  // cfbGameResult/nflGameBoxscore were real, server-certified, already-
+  // built modes that had sat OFF with zero frontend entry point since the
+  // punch-list pass -- canary-verified end-to-end against production this
+  // pass (real fetch + real answer validation for all four) and flipped
+  // on. The same real candidate-survey + canary-verification discipline
+  // was applied to the 4 brand-new public modes below before their flags
+  // went to true.
+  enableEngineLineupCollegePilot: true,
+  enableEngineNflGameResultPilot: true,
+  enableEngineCfbGameResultPilot: true,
+  enableEngineNflGameBoxscorePilot: true,
   enableEngineMatchingPilot: false,
   enableEngineSortingPilot: false,
   enableEngineHigherLowerPilot: false,
   enableEngineEliminationPilot: false,
+  // Creator stress test / discovery pass: the first 4 modes promoted
+  // straight from Creator-only to public certification -- real candidate
+  // surveys (gateway/services/public_game.py) + real canary verification
+  // against production (fetch + answer validation) before this flip.
+  enableEngineOffenseCollegePilot: true,
+  enableEngineSbChampionOffenseCollegePilot: true,
+  enableEngineCfbRankingPilot: true,
+  enableEngineCfbUpsetPilot: true,
 };
