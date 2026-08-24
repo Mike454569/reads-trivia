@@ -59,6 +59,17 @@ def safety_check(c) -> dict:
 def fetch_ordered_candidates(c, seed: str):
     global _pool_cache
     _pool_cache = None
+    # Real false-matchup bug found in production validation (the exact
+    # "Ole Miss/Georgia 2025" case): cfb_rankings genuinely has a SEPARATE
+    # real row for the same (school, season, week, poll) whenever a
+    # regular-season week number collides with a postseason week number
+    # (e.g. both tagged "week 1" -- a real, measured 1,299 (school,season,
+    # week,poll) groups affected table-wide; 100% of them, for the one
+    # real poll this adapter uses, are resolved by also matching
+    # season_type, confirmed by direct query). Without it, the LEFT JOIN
+    # fanned out into multiple candidate rows for ONE real game, each
+    # carrying a different (and contradictory) rank pair -- risking a
+    # generated question citing the wrong real rank for either team.
     rows = c.execute(
         """
         SELECT g.game_id, g.season, g.week,
@@ -67,9 +78,9 @@ def fetch_ordered_candidates(c, seed: str):
                g.source_id, g.verification_status
         FROM cfb_games_canonical g
         LEFT JOIN cfb_rankings rh ON rh.school_id=g.home_school_id AND rh.season=g.season
-                                  AND rh.week=g.week AND rh.poll=?
+                                  AND rh.week=g.week AND rh.poll=? AND rh.season_type=g.season_type
         LEFT JOIN cfb_rankings ra ON ra.school_id=g.away_school_id AND ra.season=g.season
-                                  AND ra.week=g.week AND ra.poll=?
+                                  AND ra.week=g.week AND ra.poll=? AND ra.season_type=g.season_type
         WHERE g.home_score IS NOT NULL AND g.away_score IS NOT NULL AND g.home_score != g.away_score
           AND (rh.rank IS NOT NULL OR ra.rank IS NOT NULL)
         ORDER BY g.game_id

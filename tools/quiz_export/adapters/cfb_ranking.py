@@ -45,15 +45,24 @@ MAX_FETCHED_CANDIDATES = 5000
 def safety_check(c) -> dict:
     return safety.check_verification_status_safety(
         c, "cfb_rankings", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
-        where_extra=f"poll = '{POLL}'",
+        where_extra=f"poll = '{POLL}' AND season_type = 'regular'",
     )
 
 
 def fetch_ordered_candidates(c, seed: str):
     _pool_cache.clear()
+    # Real bug found in production validation: cfb_rankings has real,
+    # separate postseason snapshot rows that reuse regular-season-style
+    # week numbers (e.g. a real "week 1" postseason row exists alongside
+    # the real regular-season week 1 row -- see cfb_upset_ranking.py's own
+    # module comment for the full audit). This capability's question text
+    # ("entering Week N of the season") only makes honest sense for a
+    # regular-season snapshot -- scoped to season_type='regular' so a
+    # postseason row can never surface under a misleading "entering Week
+    # N" framing.
     rows = c.execute(
         "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status "
-        "FROM cfb_rankings WHERE poll = ? AND rank BETWEEN 1 AND 25 ORDER BY season, week, rank",
+        "FROM cfb_rankings WHERE poll = ? AND season_type = 'regular' AND rank BETWEEN 1 AND 25 ORDER BY season, week, rank",
         (POLL,),
     ).fetchall()
     rng_order = engine.seeded(seed)
@@ -76,7 +85,7 @@ def evaluate(c, row, rng, guard):
     if cached_pool is None:
         pool_rows = c.execute(
             "SELECT DISTINCT school_name_raw FROM cfb_rankings "
-            "WHERE poll = ? AND season = ? AND week = ? AND rank BETWEEN 1 AND 25",
+            "WHERE poll = ? AND season_type = 'regular' AND season = ? AND week = ? AND rank BETWEEN 1 AND 25",
             (POLL, season, week),
         ).fetchall()
         cached_pool = [r["school_name_raw"] for r in pool_rows]

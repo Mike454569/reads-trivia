@@ -179,7 +179,20 @@ def build_universe(c):
             "school": primary_school,
             "position": latest_position,
             "career_span": (seasons[0], seasons[-1]) if seasons else None,
+            "n_real_seasons": len(set(seasons)),
         }
+
+    # Same real fix as player_from_clues.py's own build_universe() (found
+    # during production validation): a single real recorded season
+    # produces a degenerate "spanned 2019 to 2019" career_span clue, and
+    # correlates with genuinely obscure one-year-blip roster appearances
+    # (35% of this real universe -- 38,254 of 109,221 -- have exactly one
+    # real season). Scoped to 3+ real distinct seasons here rather than
+    # NFL's 5+ -- real college eligibility rarely exceeds 4-5 years, so a
+    # proportionally lower bar. 50,632 real candidates remain, far more
+    # than this capability's own max_question_count ever needs.
+    MIN_REAL_SEASONS = 3
+    facts = {pid: f for pid, f in facts.items() if f["n_real_seasons"] >= MIN_REAL_SEASONS}
 
     universe_ids = frozenset(facts.keys())
 

@@ -144,6 +144,7 @@ def build_universe(c):
 
     for pid, f in facts.items():
         seasons = sorted(roster_by_player.get(pid, []))
+        f["n_real_seasons"] = len(set(s[0] for s in seasons))
         if seasons:
             f["career_span"] = (seasons[0][0], seasons[-1][0])
             other_team_seasons = [s for s in seasons if s[1] != f["draft_team_code"]]
@@ -156,6 +157,28 @@ def build_universe(c):
         else:
             f["career_span"] = None
             f["team_history"] = None
+
+    # Real bug found in production validation: the universe was every
+    # drafted player ever (draft_facts, unfiltered) -- 49.4% of them
+    # (5,483 of 11,099) have ZERO real recorded roster seasons with
+    # games>0 (drafted but never actually played), and another 8.3%
+    # (925) have exactly one real season, producing a degenerate
+    # "spanned 2006 to 2006" career_span clue that reads like a bug even
+    # though it's technically accurate. Neither makes for a fair or
+    # recognizable "Who Am I" target. Scoped to real players with at
+    # least 5 distinct real recorded seasons (games>0) -- a genuine
+    # "stuck in the league" bar (the average NFL career is often cited
+    # around 3.3 years, so this is meaningfully above merely average),
+    # not just "played at all." 2,489 real candidates remain, still far
+    # more than this capability's own max_question_count (25) ever
+    # needs, using only data already computed here -- no new data, no
+    # fabricated "fame" score.
+    MIN_REAL_SEASONS = 5
+    excluded_ids = {pid for pid, f in facts.items() if f["n_real_seasons"] < MIN_REAL_SEASONS}
+    for pid in excluded_ids:
+        del facts[pid]
+    universe_ids = frozenset(facts.keys())
+    placeholders = ",".join("?" * len(universe_ids))
 
     standings = {
         (r["team_code"], r["season"]): r["playoff_result"]
