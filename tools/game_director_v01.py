@@ -243,7 +243,19 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
     # Engine tables directly. Delegating to the adapter uniformly is both
     # more correct (works for every adapter, not just Game-Factory-backed
     # ones) and more honest about where candidates actually come from.
-    raw_rows = adapter.fetch_ordered_candidates(c, seed)
+    # Real-scoping fix (Rivalry Data + Gold Standard Content Integration
+    # operation): `spec["filters"]` has existed structurally since v0.2's
+    # schema.py but was never actually threaded to an adapter until now --
+    # every adapter was always called the original 2-arg way. Only an
+    # adapter that explicitly opts in via `SUPPORTS_FILTERS = True` (e.g.
+    # cfb_rivalry_trivia.py, which needs "just this one rivalry pack"
+    # scoping for a request like "Make me an Iron Bowl trivia game") gets
+    # the 3rd argument; every other adapter's call is byte-identical to
+    # before this change.
+    if getattr(adapter, "SUPPORTS_FILTERS", False):
+        raw_rows = adapter.fetch_ordered_candidates(c, seed, spec.get("filters") or {})
+    else:
+        raw_rows = adapter.fetch_ordered_candidates(c, seed)
     considered = len(raw_rows)
 
     rejected_counts: Counter = Counter()
@@ -358,7 +370,16 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
         },
         "source_domains": [safety.get("domain_id")] if "domain_id" in safety else [safety.get("source_id")],
         "production_safety": safety,
-        "qa_status": "PASSED" if not contract_failures else "FAILED",
+        # Universal Data Reuse pass: real gap found -- this only ever checked
+        # contract_failures (per-question contract violations among whatever
+        # DID get generated), never whether any question was generated at
+        # all. If every real candidate got rejected (duplicate, missing
+        # field, insufficient distractor pool, an out-of-bounds count that
+        # rounds down to 0, etc.), contract_failures stays trivially empty
+        # (nothing to check) and this used to report PASSED with zero
+        # questions -- a package a caller could go on to treat as playable.
+        # An empty package is never a pass, regardless of why it's empty.
+        "qa_status": "PASSED" if (not contract_failures and questions) else "FAILED",
         "qa_checks_performed": qa_checks_performed if qa_checks_performed is not None else QA_CHECKS_PERFORMED,
         "difficulty_distribution": dict(by_difficulty),
         "question_count": len(questions),

@@ -80,9 +80,22 @@ def test_generate_20_real_puzzles_end_to_end_no_names_leaked():
     raw_by_season_team = {(s, t): lp for s, t, lp in raw_rows}
     c.close()
 
+    # Rivalry Data + Gold Standard Content Integration operation: this exact
+    # generic (no-year) phrasing now intentionally routes to the newer,
+    # richer NFL_OFFENSE_COLLEGE_CURATED capability instead (see
+    # test_rivalry_gold_standard_integration.py) -- this test's own real
+    # intent is end-to-end verification of THIS capability's specific
+    # bridge-sourced, season-diverse, skill-positions-only behavior, not of
+    # translator routing, so it now supplies the structured spec directly
+    # (still fully re-validated by validator.validate_translation() --
+    # see pipeline._synthetic_translation_result()'s own docstring) rather
+    # than depending on a natural-language phrase that no longer reaches it.
     pkg = pipeline.run(
-        "Guess the NFL team from the colleges its offensive players attended. Show position + college only. "
-        "Hide player names.",
+        spec={
+            "mechanic": "guess", "domain": "NFL_OFFENSE_LINEUP_COLLEGE",
+            "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+            "question_count": 20, "difficulty": "any", "filters": {}, "exclusions": [],
+        },
         provider="mock", seed="test-lineup-college-e2e", question_count_override=20,
     )
     assert pkg.get("package_id") is not None
@@ -135,13 +148,23 @@ def test_generate_20_real_puzzles_end_to_end_no_names_leaked():
 
 
 def test_creator_prompt_resolves_to_college_capability_not_names_based_fallback():
+    # Rivalry Data + Gold Standard Content Integration operation: this
+    # generic (no historical year named) phrasing now intentionally routes
+    # to the newer, richer NFL_OFFENSE_COLLEGE_CURATED capability (32
+    # current teams, all 11 positions including the offensive line) instead
+    # of the older, narrower bridge-sourced one -- this test's real intent
+    # (never silently fall back to the plain NAMES-based capability) still
+    # holds; see test_rivalry_gold_standard_integration.py::
+    # test_specific_historical_season_still_routes_to_bridge_based_capability
+    # for confirmation the older capability is still reachable when a
+    # specific historical year IS named.
     result = translator_mod.translate(
         "Make me a game where I guess a team from positions and colleges with names hidden.",
         provider="mock",
     )
     assert result["translation_status"] == "TRANSLATED"
-    assert result["spec"]["domain"] == "NFL_OFFENSE_LINEUP_COLLEGE"
-    assert result["spec"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
+    assert result["spec"]["domain"] == "NFL_OFFENSE_COLLEGE_CURATED"
+    assert result["spec"]["relationship_predicate"] == "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"
 
 
 def test_ordinary_college_phrased_request_still_uses_names_based_capability():

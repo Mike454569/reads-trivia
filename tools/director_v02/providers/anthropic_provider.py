@@ -142,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -288,6 +288,49 @@ Rivalry) and picks the rival school. CFB only. Covers 48 real, named rivalries. 
 recency/difficulty axis) -- if the request asks for "easy" or "hard", still set difficulty to \
 "any" and briefly note in translator_notes that this capability has no other difficulty levels; \
 do NOT reject the request over this.
+
+22. mechanic=guess, domain=NFL_OFFENSE_COLLEGE_CURATED, relationship_predicate=TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE
+    The player sees a real, current (2026) NFL team's projected starting offense shown by \
+position and COLLEGE only (names hidden) for all 11 offensive positions, including the full \
+offensive line individually (LT/LG/C/RG/RT) -- not just the 5 skill positions capability 8 \
+covers. Curated from the Reads Gold Standard workbook's own human-verified "projected 2026 \
+starters" sheet, 32 real teams, one board each.
+
+23. mechanic=guess, domain=NFL_SB_CHAMPION_OFFENSE_COLLEGE, relationship_predicate=TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE
+    The player sees a real Super Bowl champion's starting offense (same 11-position, \
+college-only, names-hidden shape as capability 22) and picks which team AND season it was -- \
+60 real champions, every Super Bowl ever played (1967-2026). This is the "Super Bowl winning \
+offense by colleges, guess the team and season" concept.
+
+24-31. Eight more Gold Standard-curated puzzle variants, ALL built on the same real 60-champion \
+SB_CHAMPION offense-by-college dataset as capability 23 (no new data, just different real \
+questions asked of it): \
+24 domain=CFB_FILL_THE_COLLEGES relationship_predicate=COLLEGE_OF_POSITION (one real position's \
+college is blanked out; guess which real college fills it); \
+25 domain=CFB_ODD_COLLEGE_OUT relationship_predicate=IMPOSTOR_COLLEGE (one shown college does \
+NOT really belong to that board; guess which); \
+26 domain=CFB_SPOT_THE_FAKE_LINEUP relationship_predicate=ALTERED_POSITION (exactly one \
+position's real college was swapped for a fake one; guess which position); \
+27 domain=CFB_WHO_CHANGED relationship_predicate=CHANGED_POSITION (comparing a real repeat-title \
+dynasty's two championship offenses; guess which position's college changed between them); \
+28 domain=CFB_THREE_CLUES_ONE_CHAMPION relationship_predicate=TEAM_SEASON_FROM_THREE_CLUES (given \
+3 of the 11 real position colleges as clues, guess the real champion team+season); \
+29 domain=CFB_POSITION_TRAP relationship_predicate=SWAPPED_POSITION_PAIR (two real positions' \
+colleges were swapped with each other; guess which two positions); \
+30 domain=CFB_DUPLICATE_COLLEGE_HUNT relationship_predicate=REPEATED_COLLEGE (this real board has \
+one college appearing at 2+ positions; guess which college repeats); \
+31 domain=CFB_ONE_SCHOOL_MISSING relationship_predicate=MISSING_COLLEGE (one position's college \
+is left blank entirely; guess the real college that belongs there). \
+Each is real, structurally distinct, and computed directly from the curated dataset -- never \
+invent a puzzle shape not in this list.
+
+32. mechanic=guess, domain=CFB_RIVALRY_TRIVIA, relationship_predicate=CORRECT_TRIVIA_ANSWER
+    A richer, separately curated CFB trivia bank -- 1,272 real pre-authored questions (412 \
+general CFB categories + 860 rivalry-specific, spanning 43 real named rivalry packs, 20 \
+questions each). DIFFERENT from and richer than capability 21 (CFB_RIVALRY/RIVAL_OF, a single \
+"who is this school's rival" fact) -- matches a request for rivalry TRIVIA/a rivalry GAME, or \
+one naming a specific real rivalry by nickname or by both schools (e.g. "Make me an Iron Bowl \
+trivia game"), not a bare "who is X's rival" fact-lookup phrasing.
 
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
 Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \

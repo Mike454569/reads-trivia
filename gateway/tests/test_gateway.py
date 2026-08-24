@@ -46,12 +46,32 @@ def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     # 13th-21st (box score sacks/turnovers/penalties, CFB championship, NFL/CFB
     # season stat leaders, NFL coaching, CFB transfer, CFB rivalry) -- this
     # baseline count/set is a real, deliberate change, not a regression.
+    # Rivalry Data + Gold Standard Content Integration operation added 11
+    # more, 22nd-32nd -- unlike every capability added between v1.8 and the
+    # Creator Capability Completion pass (deliberately left at HUMAN_APPROVED/
+    # GENERATION_VERIFIED, held back from public release pending closer human
+    # review), this operation walked all 11 new capabilities all the way to
+    # PUBLIC_ENABLED after a real, passing Tier-2 certification probe with
+    # zero leaks each -- CFB Rivalry Trivia, curated NFL offense-by-college
+    # (fixes the old sparse capability), Super Bowl champion offense by
+    # college, and 8 more Gold Standard "10. New Game Modes" P0 concepts.
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 21
+    assert len(caps) == 32
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
+        ("guess", "CFB_RIVALRY_TRIVIA", "CORRECT_TRIVIA_ANSWER"),
+        ("guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"),
+        ("guess", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE"),
+        ("guess", "CFB_ODD_COLLEGE_OUT", "IMPOSTOR_COLLEGE"),
+        ("guess", "CFB_FILL_THE_COLLEGES", "COLLEGE_OF_POSITION"),
+        ("guess", "CFB_SPOT_THE_FAKE_LINEUP", "ALTERED_POSITION"),
+        ("guess", "CFB_WHO_CHANGED", "CHANGED_POSITION"),
+        ("guess", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES"),
+        ("guess", "CFB_POSITION_TRAP", "SWAPPED_POSITION_PAIR"),
+        ("guess", "CFB_DUPLICATE_COLLEGE_HUNT", "REPEATED_COLLEGE"),
+        ("guess", "CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE"),
         ("guess", "NFL_DRAFT", "DRAFTED_BY"),
         ("guess", "NFL_CHAMPIONSHIP", "TEAM_POSTSEASON_RESULT"),
         ("identify_player_from_clues", "NFL_PLAYER_IDENTITY", "IDENTIFY_FROM_CLUES"),

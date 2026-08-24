@@ -49,7 +49,8 @@ def fetch_ordered_candidates(c, seed: str, *, role: str):
     return rows
 
 
-def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, entity_prefix: str):
+def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, entity_prefix: str,
+             direction: str = "COACH_TO_TEAM"):
     if row["source_id"] != REQUIRED_SOURCE_ID or row["verification_status"] != REQUIRED_VERIFICATION_STATUS:
         return "ROW_NOT_VERIFIED"
     if row["role"] != role:
@@ -57,29 +58,56 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
     if not row["coach_name_raw"] or not row["team_name_raw"] or not row["team_franchise_id"]:
         return "MISSING_FIELD"
 
-    correct_team = row["team_name_raw"]
-    pool_rows = c.execute(
-        "SELECT DISTINCT team_name_raw FROM nfl_coordinators WHERE role = ? AND team_name_raw != ?",
-        (role, correct_team),
-    ).fetchall()
-    pool = [r["team_name_raw"] for r in pool_rows]
-    if len(pool) < 3:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(pool, 3)
+    # Universal Data Reuse pass: a real, precisely-found direction bug --
+    # the ONLY variant that existed asked "which team did [coach] coordinate
+    # for", the reverse of what a request phrased as "give me a team and
+    # season, guess the coordinator" (team is the GIVEN fact, coordinator
+    # name is the answer) actually wants. Same real nfl_coordinators row,
+    # same real data either way -- just swapping which field is embedded in
+    # the question text vs which is the answer/options pool. Kept as one
+    # shared function (not a copy-pasted second evaluate()) since every
+    # other line -- safety, provenance, difficulty, audit fields -- is
+    # identical regardless of direction.
+    if direction == "TEAM_TO_COACH":
+        correct_answer = row["coach_name_raw"]
+        pool_rows = c.execute(
+            "SELECT DISTINCT coach_name_raw FROM nfl_coordinators WHERE role = ? AND coach_name_raw != ?",
+            (role, correct_answer),
+        ).fetchall()
+        pool = [r["coach_name_raw"] for r in pool_rows]
+        if len(pool) < 3:
+            return "INSUFFICIENT_DISTRACTOR_POOL"
+        distractor_names = rng.sample(pool, 3)
+        options = [correct_answer] + distractor_names
+        if len(set(options)) != 4:
+            return "DUPLICATE_OPTIONS"
+        question = f"Who was the real {SEASON} {row['team_name_raw']} {side_label.lower()} coordinator?"
+        entity_key = f"{entity_prefix}_rev:{row['coordinator_id']}"
+        notes = f"{correct_answer} was the {SEASON} {row['team_name_raw']} {side_label.lower()} coordinator."
+    else:
+        correct_answer = row["team_name_raw"]
+        pool_rows = c.execute(
+            "SELECT DISTINCT team_name_raw FROM nfl_coordinators WHERE role = ? AND team_name_raw != ?",
+            (role, correct_answer),
+        ).fetchall()
+        pool = [r["team_name_raw"] for r in pool_rows]
+        if len(pool) < 3:
+            return "INSUFFICIENT_DISTRACTOR_POOL"
+        distractor_names = rng.sample(pool, 3)
+        options = [correct_answer] + distractor_names
+        if len(set(options)) != 4:
+            return "DUPLICATE_OPTIONS"
+        question = f"Which real NFL team did {row['coach_name_raw']} serve as {side_label} coordinator for in the {SEASON} season?"
+        entity_key = f"{entity_prefix}:{row['coordinator_id']}"
+        notes = f"{row['coach_name_raw']} was the {SEASON} {correct_answer} {side_label.lower()} coordinator."
 
-    options = [correct_team] + distractor_names
-    if len(set(options)) != 4:
-        return "DUPLICATE_OPTIONS"
-
-    question = f"Which real NFL team did {row['coach_name_raw']} serve as {side_label} coordinator for in the {SEASON} season?"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"{entity_prefix}:{row['coordinator_id']}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_COORDINATOR"
 
-    shuffled_options, correct_index = serializer.finalize_options(rng, correct_team, distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_team:
+    shuffled_options, correct_index = serializer.finalize_options(rng, correct_answer, distractor_names)
+    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_answer:
         return "INVALID_CORRECT_INDEX"
 
     # A single real season has no real recency axis -- fixed Medium, same
@@ -89,15 +117,14 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
     band = "MEDIUM"
     diff_label = difficulty_mod.map_band(band)
 
-    notes = f"{row['coach_name_raw']} was the {SEASON} {correct_team} {side_label.lower()} coordinator."
-
     return {
         "category": category, "difficulty": diff_label, "question": question,
         "options": shuffled_options, "correctIndex": correct_index, "notes": notes,
         "_audit": {
             "season": row["season"], "coordinator_id": row["coordinator_id"], "role": role,
-            "team_franchise_id": row["team_franchise_id"], "correct_answer_text": correct_team,
+            "team_franchise_id": row["team_franchise_id"], "correct_answer_text": correct_answer,
             "difficulty_score": 0.5, "difficulty_band": band, "entity_key": entity_key,
+            "direction": direction,
             "verification_status": REQUIRED_VERIFICATION_STATUS, "source_id": REQUIRED_SOURCE_ID,
         },
     }
@@ -118,9 +145,11 @@ def extra_funnel_fields(accepted, exported) -> dict:
 
 def human_review_context(record: dict, *, table_name: str) -> list[str]:
     a = record["_audit"]
+    answer_label = "Coordinator" if a.get("direction") == "TEAM_TO_COACH" else "Team"
     return [
-        f"- **Coordinator:** `{a['coordinator_id']}`, {a['season']}, {a['role']}",
-        f"- **Team:** `{a['team_franchise_id']}` (\"{record['options'][record['correctIndex']]}\")",
+        f"- **Coordinator record:** `{a['coordinator_id']}`, {a['season']}, {a['role']}",
+        f"- **Team:** `{a['team_franchise_id']}`",
+        f"- **{answer_label} (the real answer):** \"{record['options'][record['correctIndex']]}\"",
         f"- **Underlying Engine source:** `{table_name}`, verification_status "
         f"`{a['verification_status']}`, source_id `{a['source_id']}`",
     ]

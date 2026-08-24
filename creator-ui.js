@@ -297,9 +297,14 @@ function renderCreatorScreen() {
         return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>';
       }).join('') + '</div>' +
       (s.queue.length ? s.queue.map(function (p) {
+        // Same real question_count/puzzle_count shape mismatch as the
+        // PREVIEW screen above -- a stored identify_player_from_clues
+        // package's real count lives in puzzle_count, not question_count.
+        var pCount = (p.question_count != null) ? p.question_count : (p.puzzle_count != null ? p.puzzle_count : 0);
+        var pLabel = (p.question_count == null && p.puzzle_count != null) ? 'puzzles' : 'questions';
         return '<div class="creator-queue-row">' +
           '<div><b>' + esc(p.game_title || p.package_id) + '</b> &middot; ' + esc(p.review_status) + ' &middot; QA ' + esc(p.qa_status) +
-          ' &middot; ' + (p.question_count || 0) + ' questions</div>' +
+          ' &middot; ' + pCount + ' ' + pLabel + '</div>' +
           '<div class="mode-desc">' + esc((p.requested_description || '').slice(0, 140)) + '</div>' +
           '<div class="btn-row">' +
           '<button class="btn-tiny" data-creator-review="APPROVED" data-creator-package-id="' + esc(p.package_id) + '">Approve</button>' +
@@ -349,9 +354,20 @@ function renderCreatorScreen() {
 
     if (s.screen === CREATOR_SCREEN.PREVIEW && s.generated) {
       var g = s.generated;
+      // Real bug found this pass: the 'guess' mechanic's result shape uses
+      // questions/question_count, but 'identify_player_from_clues' (NFL/CFB
+      // Who Am I) uses puzzles/puzzle_count instead -- this block only ever
+      // read the former, so a real, successfully-generated 5-puzzle Who Am I
+      // package always displayed as "0 questions" with an empty preview,
+      // even though gateway/services/creator.py had genuinely produced real
+      // content. Never guess which shape a mechanic uses -- read whichever
+      // of the two real fields the response actually populated.
+      var items = g.questions || g.puzzles || [];
+      var itemCount = (g.question_count != null) ? g.question_count : ((g.puzzle_count != null) ? g.puzzle_count : items.length);
+      var itemLabel = g.puzzles ? 'puzzles' : 'questions';
       html += '<div class="panel">' +
         '<h2 class="panel-title">Preview -- ' + esc(g.game_title || '') + '</h2>' +
-        '<p class="mode-desc">QA: ' + esc(g.qa_status) + ' &middot; ' + (g.question_count || 0) + ' questions &middot; review status: ' + esc(g.review_status) + '</p>';
+        '<p class="mode-desc">QA: ' + esc(g.qa_status) + ' &middot; ' + itemCount + ' ' + itemLabel + ' &middot; review status: ' + esc(g.review_status) + '</p>';
       if (g.package_id) {
         html += '<div class="btn-row">' +
           '<button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="' + esc(g.package_id) + '">Approve</button>' +
@@ -362,18 +378,35 @@ function renderCreatorScreen() {
           'separate, deliberate code change (gateway/config.py\'s PUBLIC_MODE_ALLOWLIST), never an automatic ' +
           'result of an admin approving one sample here.</p>';
       }
-      (g.questions || []).forEach(function (q, i) {
-        var payload = creatorQuestionAsPublicPayload(q);
-        html += '<div class="creator-preview-question">' +
-          '<div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
-          renderEnginePilotPromptHtml({ payload: payload }) +
-          '<div class="quiz-options">' + q.options.map(function (opt, oi) {
-            return '<div class="quiz-option' + (oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
-              String.fromCharCode(65 + oi) + '. ' + esc(opt) + '</div>';
-          }).join('') + '</div>' +
-          (q.notes ? '<div class="quiz-feedback">' + esc(q.notes) + '</div>' : '') +
-          '</div>';
-      });
+      if (g.puzzles) {
+        // identify_player_from_clues preview: no options/correctIndex exists
+        // for this mechanic (it's a progressive clue chain, not multiple
+        // choice) -- admin-only view, so showing the real answer alongside
+        // its real ordered clues (not hidden, unlike the player-facing
+        // renderer) is the honest, useful admin review surface.
+        g.puzzles.forEach(function (p, i) {
+          html += '<div class="creator-preview-question">' +
+            '<div class="quiz-progress">Puzzle ' + (i + 1) + ' of ' + g.puzzles.length + '</div>' +
+            '<div class="silhouette-clues">' + p.clues.map(function (c) {
+              return '<div class="silhouette-clue">' + esc(c.display_text) + '</div>';
+            }).join('') + '</div>' +
+            '<div class="quiz-feedback"><b>Answer:</b> ' + esc(p.answer.display_name) + '</div>' +
+            '</div>';
+        });
+      } else {
+        items.forEach(function (q, i) {
+          var payload = creatorQuestionAsPublicPayload(q);
+          html += '<div class="creator-preview-question">' +
+            '<div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
+            renderEnginePilotPromptHtml({ payload: payload }) +
+            '<div class="quiz-options">' + q.options.map(function (opt, oi) {
+              return '<div class="quiz-option' + (oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
+                String.fromCharCode(65 + oi) + '. ' + esc(opt) + '</div>';
+            }).join('') + '</div>' +
+            (q.notes ? '<div class="quiz-feedback">' + esc(q.notes) + '</div>' : '') +
+            '</div>';
+        });
+      }
       html += '</div>';
     }
     return html;

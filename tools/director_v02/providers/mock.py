@@ -97,6 +97,83 @@ _EASY_WORDS = {"easy", "simple", "beginner"}
 _MEDIUM_WORDS = {"medium", "moderate", "intermediate"}
 
 _COUNT_RE = re.compile(r"\b(\d{1,3})\b")
+_YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+
+# Rivalry Data + Gold Standard Content Integration operation: real, curated
+# rivalry-pack recognition for CFB_RIVALRY_TRIVIA (a DIFFERENT, richer
+# capability from CFB_RIVALRY/RIVAL_OF below -- see registry.py's own
+# comment on that capability triple for why). Nicknames distinctive enough
+# to match on their own (never a generic word like "game"/"bowl" alone);
+# "The Game" (#3) and "Battle for the Victory Bell" (shared by #22 and #27)
+# are deliberately excluded from nickname-only matching -- resolved via the
+# school-pair table below instead, never guessed.
+_RIVALRY_NICKNAME_TO_PACK = {
+    "iron bowl": 1, "red river rivalry": 2, "red river showdown": 2,
+    "egg bowl": 5, "lone star showdown": 6, "palmetto bowl": 7,
+    "third saturday in october": 8, "battle for the beer barrel": 9,
+    "border war": 11, "governor's cup": 12, "governors cup": 12,
+    "southwest classic": 13, "paul bunyan trophy": 14,
+    "paul bunyan's axe": 15, "paul bunyans axe": 15,
+    "old oaken bucket": 17, "cy-hawk trophy": 19, "cy hawk trophy": 19,
+    "civil war": 20, "apple cup": 23, "territorial cup": 24, "revivalry": 25,
+    "holy war": 26, "bayou bucket classic": 29, "sunflower showdown": 30,
+    "bedlam": 31, "war on i-4": 33, "war on i4": 33, "backyard brawl": 34,
+    "the big game": 35, "clean, old-fashioned hate": 37,
+    "clean old-fashioned hate": 37, "clean old fashioned hate": 37,
+    "commonwealth cup": 40,
+}
+# Real, hand-verified school-pair index -- direct mirror of the 43-pack
+# table used to import cfb_rivalry_pack_index (see the import script). A
+# None school means the source workbook itself left that side ambiguous
+# (pack #13, "Texas/Texas A&M") -- never guessed here either.
+_RIVALRY_PACK_SCHOOLS = {
+    1: ("alabama", "auburn"), 2: ("oklahoma", "texas"), 3: ("michigan", "ohio state"),
+    4: ("florida", "georgia"), 5: ("ole miss", "mississippi state"), 6: ("texas", "texas a&m"),
+    7: ("clemson", "south carolina"), 8: ("alabama", "tennessee"), 9: ("tennessee", "vanderbilt"),
+    10: ("lsu", "alabama"), 11: ("missouri", "kansas"), 12: ("kentucky", "louisville"),
+    13: ("arkansas", None), 14: ("michigan", "michigan state"), 15: ("minnesota", "wisconsin"),
+    16: ("nebraska", "oklahoma"), 17: ("indiana", "purdue"), 18: ("illinois", "northwestern"),
+    19: ("iowa", "iowa state"), 20: ("oregon", "oregon state"), 21: ("penn state", "pitt"),
+    22: ("ucla", "usc"), 23: ("washington", "washington state"), 24: ("arizona", "arizona state"),
+    25: ("baylor", "tcu"), 26: ("byu", "utah"), 27: ("cincinnati", "miami oh"),
+    28: ("colorado", "nebraska"), 29: ("houston", "rice"), 30: ("kansas", "kansas state"),
+    31: ("oklahoma", "oklahoma state"), 32: ("texas a&m", "texas tech"), 33: ("ucf", "usf"),
+    34: ("pitt", "west virginia"), 35: ("california", "stanford"), 36: ("florida state", "miami"),
+    37: ("georgia", "georgia tech"), 38: ("north carolina", "nc state"), 39: ("smu", "tcu"),
+    40: ("virginia", "virginia tech"), 41: ("boston college", "syracuse"), 42: ("maryland", "rutgers"),
+    43: ("duke", "wake forest"),
+}
+
+
+# Gold Standard "10. New Game Modes" concept-name recognition -- these are
+# the workbook's own named concepts, distinctive enough to match on the
+# phrase alone (mirroring "heisman"'s own unambiguous-alone precedent).
+_GOLD_STANDARD_CONCEPT_PATTERNS = [
+    (re.compile(r"college offense"), ("NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE")),
+    (re.compile(r"fill the colleges?"), ("CFB_FILL_THE_COLLEGES", "COLLEGE_OF_POSITION")),
+    (re.compile(r"odd college out"), ("CFB_ODD_COLLEGE_OUT", "IMPOSTOR_COLLEGE")),
+    (re.compile(r"spot the fake"), ("CFB_SPOT_THE_FAKE_LINEUP", "ALTERED_POSITION")),
+    (re.compile(r"who changed"), ("CFB_WHO_CHANGED", "CHANGED_POSITION")),
+    (re.compile(r"three clues,?\s*one champion"), ("CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES")),
+    (re.compile(r"position trap"), ("CFB_POSITION_TRAP", "SWAPPED_POSITION_PAIR")),
+    (re.compile(r"duplicate (college )?hunt"), ("CFB_DUPLICATE_COLLEGE_HUNT", "REPEATED_COLLEGE")),
+    (re.compile(r"one school missing"), ("CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE")),
+]
+
+
+def _match_rivalry_pack(text_lower: str) -> int | None:
+    """Returns a real rivalry_pack_number (1-43) if the request names a
+    specific rivalry (by nickname or by naming both schools), else None.
+    Never returns a fabricated/guessed pack -- a request naming only one
+    side of an ambiguous pack (e.g. just "Arkansas", pack #13's unresolved
+    second school) does not match here."""
+    for nickname, pack_num in _RIVALRY_NICKNAME_TO_PACK.items():
+        if nickname in text_lower:
+            return pack_num
+    for pack_num, (school_a, school_b) in _RIVALRY_PACK_SCHOOLS.items():
+        if school_a and school_b and school_a in text_lower and school_b in text_lower:
+            return pack_num
+    return None
 
 # Directional phrase matches (not just keyword presence) -- distinguishes
 # "guess the college of a player" (answer=college) from "guess the player
@@ -120,7 +197,7 @@ _NATIONAL_CHAMPIONSHIP_RE = re.compile(r"national championship|national champion
 _LEADER_WORDS = {"leader", "leaders", "led", "leading"}
 _COACH_WORDS = {"coach", "coached", "coaching"}
 _TRANSFER_WORDS = {"transfer", "transferred", "transfers"}
-_RIVALRY_WORDS = {"rival", "rivals", "rivalry"}
+_RIVALRY_WORDS = {"rival", "rivals", "rivalry", "rivalries"}
 
 # Reliability-design Phase 3: NFL Player + Season -> Team, the first
 # conservative-compiler vertical slice. "season" alone (with player + team,
@@ -181,7 +258,15 @@ _WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored|picked)\b")
 _DRIVE_WORDS = {"drive", "drives"}
 
 _TOP_PERFORMER_RE = re.compile(r"top (offensive )?performer|leading performer|best performer")
-_SAME_WEEK_RE = re.compile(r"same week|same game")
+# Universal Data Reuse pass: real bug found via the exact retest prompt
+# "two RBs from the same CFB week" -- the literal two-word "same week"/
+# "same game" phrase never matched when a league qualifier sat between
+# "same" and "week"/"game" ("same CFB week", "same NFL week"), a very
+# natural way to phrase this. Optional league-word group closes that gap
+# without loosening the match to false-positive on unrelated "same ... week"
+# phrasing (still requires "week"/"game" immediately after the optional
+# qualifier).
+_SAME_WEEK_RE = re.compile(r"same (?:cfb|nfl|college)?\s*week|same (?:cfb|nfl)?\s*game")
 _STAT_COMPARE_RE = re.compile(
     r"who (had|rushed|threw|gained) more|more \w+ yards\b|more yards|had more|threw more|"
     r"higher\b|lower\b|bigger game|who had the (bigger|better)"
@@ -203,9 +288,9 @@ _SACK_PHRASE_RE = re.compile(r"\bsack(ed|s)?\b")
 _INTERCEPTION_PHRASE_RE = re.compile(r"\binterception(s)?\b|\bintercepted\b|picked off")
 _FORCED_FUMBLE_PHRASE_RE = re.compile(r"forced (the |a )?fumble|force a fumble|who forced")
 _FUMBLE_RECOVERY_PHRASE_RE = re.compile(r"recovered (the |a )?fumble|fumble recovery|who recovered")
-_RUSHING_CATEGORY_WORDS = {"rushing", "rush", "rusher", "running", "rb"}
-_PASSING_CATEGORY_WORDS = {"passing", "passer", "quarterback", "qb", "threw", "throwing"}
-_RECEIVING_CATEGORY_WORDS = {"receiving", "reception", "receptions", "receiver", "wr", "caught", "catching"}
+_RUSHING_CATEGORY_WORDS = {"rushing", "rush", "rusher", "running", "rb", "rbs"}
+_PASSING_CATEGORY_WORDS = {"passing", "passer", "quarterback", "qb", "qbs", "threw", "throwing"}
+_RECEIVING_CATEGORY_WORDS = {"receiving", "reception", "receptions", "receiver", "wr", "wrs", "caught", "catching"}
 
 
 def _has_honor_level(text: str) -> str | None:
@@ -1038,6 +1123,85 @@ class MockDeterministicTranslator(Translator):
             return _result(request_text, "TRANSLATED", spec,
                             "Matched transfer/transferred keyword -> ATTENDED_COLLEGE (CFB_TRANSFER) guess capability.")
 
+        # Gold Standard "10. New Game Modes" named-concept recognition
+        # (Rivalry Data + Gold Standard Content Integration operation) --
+        # each phrase below is the workbook's own concept name, distinctive
+        # enough to match alone (same precedent as "heisman"). Era Gauntlet
+        # (#51) scopes the base College Offense capability to one board per
+        # real era via `filters: {"era_gauntlet": True}`; Franchise Marathon
+        # (#19) is real but NOT matched by name here -- extracting an
+        # arbitrary franchise name from free text safely is out of scope
+        # this pass, so it stays reachable only via a direct filters call
+        # (`franchise_name`), never guessed from text.
+        text_lower_gs = text.lower()
+        if "era gauntlet" in text_lower_gs:
+            spec = {
+                "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+                "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {"era_gauntlet": True}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'era gauntlet' -> TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess "
+                            "capability, scoped to one real champion per era.")
+        for pattern, (dom, pred) in _GOLD_STANDARD_CONCEPT_PATTERNS:
+            if pattern.search(text_lower_gs):
+                spec = {
+                    "mechanic": "guess", "domain": dom, "relationship_predicate": pred,
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                f"Matched Gold Standard concept name -> {pred} ({dom}) guess capability.")
+
+        # CFB Rivalry TRIVIA (CORRECT_TRIVIA_ANSWER), Rivalry Data + Gold
+        # Standard Content Integration operation -- checked BEFORE the older,
+        # narrower CFB_RIVALRY/RIVAL_OF pattern below (a single "who is X's
+        # rival" fact) because a request naming a SPECIFIC rivalry (by
+        # nickname or by naming both schools) or explicitly asking for
+        # rivalry TRIVIA wants the richer, curated 20-question-per-pack bank,
+        # not a single rival-lookup fact. A specific pack match routes with
+        # `filters: {"rivalry_pack_number": N}` (e.g. "Make me an Iron Bowl
+        # trivia game" -> just that pack's 20 questions); a generic rivalry-
+        # trivia request with no specific pack named routes with
+        # `filters: {"rivalry_only": True}` (the 860 rivalry rows across all
+        # 43 packs, not the 412 general-category rows). See
+        # tools/quiz_export/adapters/cfb_rivalry_trivia.py's own module
+        # docstring for the full data audit trail.
+        text_lower = text.lower()
+        has_trivia_word = "trivia" in text_lower
+        matched_pack = _match_rivalry_pack(text_lower)
+        if matched_pack is not None and (matched_pack in _RIVALRY_NICKNAME_TO_PACK.values() or has_rivalry_word or has_trivia_word or has_game_word):
+            spec = {
+                "mechanic": "guess", "domain": "CFB_RIVALRY_TRIVIA", "relationship_predicate": "CORRECT_TRIVIA_ANSWER",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {"rivalry_pack_number": matched_pack}, "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                f"Matched a specific named rivalry -> CFB_RIVALRY_TRIVIA guess capability, scoped to "
+                f"rivalry pack #{matched_pack}.",
+            )
+        # Narrower than the general "game about rivalries" case below on
+        # purpose -- a bare fact-lookup phrasing like "guess who this
+        # school's rival is" (no game/trivia signal) must still fall
+        # through to the older, single-fact CFB_RIVALRY/RIVAL_OF capability
+        # right below (see test_feasibility.py::test_supported_for_cfb_
+        # rivalry_request). `has_game_word`, not the broader `has_cfb_
+        # signal`, is what distinguishes "a GAME about rivalries" from
+        # "who is X's rival".
+        if has_rivalry_word and (has_trivia_word or has_game_word):
+            spec = {
+                "mechanic": "guess", "domain": "CFB_RIVALRY_TRIVIA", "relationship_predicate": "CORRECT_TRIVIA_ANSWER",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {"rivalry_only": True}, "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'rivalry'/'rivalries' + 'trivia'/'game' keywords (no specific pack named) -> "
+                "CFB_RIVALRY_TRIVIA guess capability, scoped to rivalry-only rows across all 43 packs.",
+            )
+
         # CFB Rivalries (RIVAL_OF), Creator-gap-audit operation. "rival(s)"/
         # "rivalry" alone is unambiguous in a football-trivia context.
         if has_rivalry_word:
@@ -1048,6 +1212,34 @@ class MockDeterministicTranslator(Translator):
             }
             return _result(request_text, "TRANSLATED", spec,
                             "Matched rival/rivalry keyword -> RIVAL_OF (CFB) guess capability.")
+
+        # Super Bowl Champion Offense by College (Rivalry Data + Gold
+        # Standard Content Integration operation) -- checked BEFORE the
+        # general "team + postseason -> TEAM_POSTSEASON_RESULT" pattern right
+        # below, narrowly (requires an explicit college/offense-or-lineup
+        # signal too), so a request that specifically asks to guess a Super
+        # Bowl champion's TEAM AND SEASON from its offense by COLLEGE routes
+        # to the richer, curated capability instead of the plain win/loss
+        # postseason-result one. Answers Gold Standard concept #1 ("College
+        # Offense") and this operation's own explicit "Give me a Super Bowl
+        # winning offense by colleges and make me guess the team and season"
+        # request. See tools/quiz_export/adapters/sb_champion_offense_college.py.
+        if has_postseason and has_college and (has_offense or has_lineup):
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+                "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched Super Bowl/postseason + college + offense/lineup keywords -> "
+                "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess capability (curated, all 60 real "
+                "Super Bowl champions 1967-2026, names hidden).",
+            )
 
         if has_team and has_postseason:
             spec = {
@@ -1084,11 +1276,40 @@ class MockDeterministicTranslator(Translator):
         # OL honestly excluded -- see tools/quiz_export/adapters/
         # lineup_college.py's own module docstring for the full audit
         # trail), so this now returns TRANSLATED, not NO_MATCH.
-        if has_team and has_college and has_hidden_names and (has_offense or has_lineup or has_position):
+        #
+        # Rivalry Data + Gold Standard Content Integration operation: a
+        # request that names NO specific historical season now routes to the
+        # NEWER, richer NFL_OFFENSE_COLLEGE_CURATED capability instead (32
+        # real CURRENT (2026) teams, all 11 positions including the full
+        # offensive line, curated-workbook-sourced -- see
+        # tools/quiz_export/adapters/nfl_offense_college_curated.py's own
+        # module docstring for why this doesn't just replace the historical
+        # capability outright). A request that DOES name a specific
+        # historical year (`_YEAR_RE`) still routes to the original
+        # bridge-sourced, season-scoped capability below -- unchanged
+        # behavior for that narrower, more specific phrasing.
+        if (has_team or has_nfl) and has_college and has_hidden_names and (has_offense or has_lineup or has_position):
+            if _YEAR_RE.search(text):
+                spec = {
+                    "mechanic": "guess",
+                    "domain": "NFL_OFFENSE_LINEUP_COLLEGE",
+                    "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+                    "question_count": _question_count_from_text(text),
+                    "difficulty": _difficulty_from_words(words),
+                    "filters": {},
+                    "exclusions": [],
+                }
+                return _result(
+                    request_text, "TRANSLATED", spec,
+                    "Matched team + position/offense/lineup + college + names-hidden keywords + an "
+                    "explicit historical year -> TEAM_OF_STARTING_LINEUP_BY_COLLEGE guess capability. "
+                    "Note: shows only the 5 skill positions (no offensive line) -- see the package's own "
+                    "notes/known_limitations for why.",
+                )
             spec = {
                 "mechanic": "guess",
-                "domain": "NFL_OFFENSE_LINEUP_COLLEGE",
-                "relationship_predicate": "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
+                "domain": "NFL_OFFENSE_COLLEGE_CURATED",
+                "relationship_predicate": "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
                 "question_count": _question_count_from_text(text),
                 "difficulty": _difficulty_from_words(words),
                 "filters": {},
@@ -1096,9 +1317,9 @@ class MockDeterministicTranslator(Translator):
             }
             return _result(
                 request_text, "TRANSLATED", spec,
-                "Matched team + position/offense/lineup + college + names-hidden keywords -> "
-                "TEAM_OF_STARTING_LINEUP_BY_COLLEGE guess capability. Note: shows only the 5 skill "
-                "positions (no offensive line) -- see the package's own notes/known_limitations for why.",
+                "Matched team + position/offense/lineup + college + names-hidden keywords, no specific "
+                "historical year named -> TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE guess capability (curated, "
+                "all 32 current NFL teams, all 11 positions including the offensive line, names hidden).",
             )
 
         # Starting Lineup, added v1.8, Part F. Requires "team" plus (offense OR

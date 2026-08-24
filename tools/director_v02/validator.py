@@ -159,6 +159,12 @@ def validate_translation(translation_result: dict) -> dict:
         )
     if difficulty not in capability["supported_difficulties"]:
         return _blocked("UNDERSTOOD_BUT_UNSUPPORTED", f"difficulty {difficulty!r} not supported by this capability")
+    if set(filters.keys()) - capability["supported_filter_keys"]:
+        return _blocked(
+            "BLOCKED_UNSUPPORTED_FILTER",
+            f"filters {filters!r} contains key(s) this specific capability does not support "
+            f"(supports: {sorted(capability['supported_filter_keys'])})",
+        )
 
     return {
         "gate_status": "READY",

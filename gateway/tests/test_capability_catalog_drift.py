@@ -123,9 +123,15 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     none of the 24 new capability_ids appear in missing_fields_by_capability)."""
     from tools.director_v02 import generate_schema_and_prompt as gen
 
+    # Rivalry Data + Gold Standard Content Integration operation:
+    # total_capabilities grew 53 -> 64 (11 real new capabilities), every one
+    # registered with real scoping fields populated from the start (same
+    # discipline as every prior operation's new capabilities), so
+    # capabilities_missing_scoping_fields is again unchanged at 21 (confirmed
+    # live: none of the 11 new capability_ids appear in missing_fields_by_capability).
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 53
+    assert result["total_capabilities"] == 64
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]

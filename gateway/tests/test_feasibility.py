@@ -39,24 +39,32 @@ def test_supported_with_limitations_for_college_phrased_lineup_request():
 # hardcoded string -- see feasibility.py's own module docstring).
 
 def test_names_hidden_college_lineup_is_supported_not_missing_data():
+    # Rivalry Data + Gold Standard Content Integration operation: this
+    # generic (no historical year named) phrasing now intentionally routes
+    # to the newer, richer NFL_OFFENSE_COLLEGE_CURATED capability (32
+    # current teams, all 11 positions including the offensive line, curated
+    # workbook-sourced) instead of the older, narrower bridge-sourced one --
+    # the real point of this test (never MISSING_DATA for this request) still
+    # holds, more strongly now (no more "offensive line not shown" caveat).
     r = feasibility.assess(
         "Guess the NFL team from the colleges of the players on its offense, by position, with names hidden."
     )
     assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     # Never silently resolves to the names-based capability.
-    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
-    assert r["capability"]["domain"] == "NFL_OFFENSE_LINEUP_COLLEGE"
-    assert any("offensive line is not shown" in lim.lower() for lim in r["known_limitations"])
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"
+    assert r["capability"]["domain"] == "NFL_OFFENSE_COLLEGE_CURATED"
 
 
 def test_names_hidden_college_lineup_composition_example_matches_mission_prompt():
-    # The mission's own verbatim composition example.
+    # The mission's own verbatim composition example. Rivalry Data + Gold
+    # Standard Content Integration operation: same intentional reroute as
+    # the sibling test above.
     r = feasibility.assess(
         "Guess the NFL team from the colleges its offensive players attended. Show position + college only. "
         "Hide player names."
     )
     assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
-    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"
 
 
 def test_plain_college_lineup_request_unaffected_by_hidden_names_check():
@@ -116,11 +124,13 @@ def test_guess_player_from_college_and_round_routes_to_player_from_clues():
 
 
 def test_college_lineup_hidden_names_request_still_uses_narrower_capability():
-    # The fourth acceptance prompt -- must still resolve to the narrower,
-    # season-lineup-specific capability, not the new general one.
+    # The fourth acceptance prompt. Rivalry Data + Gold Standard Content
+    # Integration operation: this generic (no historical year named)
+    # phrasing now intentionally routes to the newer NFL_OFFENSE_COLLEGE_
+    # CURATED capability -- same reroute as the sibling tests above.
     r = feasibility.assess("Guess the NFL team from skill-position colleges, hide names.")
     assert r["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
-    assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE"
+    assert r["capability"]["relationship_predicate"] == "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"
 
 
 def test_lineup_college_coverage_measures_live_against_real_bridge():
@@ -282,8 +292,11 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # test_creator.py's sibling assertion (6 new GENERATION_VERIFIED capabilities).
     # Creator Capability Completion pass: 29 -> 53, same real reason as
     # test_creator.py's sibling assertion (24 new GENERATION_VERIFIED capabilities).
+    # Rivalry Data + Gold Standard Content Integration operation: 53 -> 64,
+    # same real reason as test_creator.py's sibling assertion (11 new
+    # GENERATION_VERIFIED/PUBLIC_ENABLED capabilities).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 53
+    assert len(summary) == 64
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

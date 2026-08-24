@@ -355,7 +355,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # (WON_CHAMPIONSHIP/NFL_SUPER_BOWL, WON_AWARD/NFL_AWARDS), the
     # Creator-gap-audit operation nine more, 13th-21st -- see
     # test_gateway.py::test_capabilities_unauthenticated_and_exactly_twenty_one.
-    assert len(r.json()["capabilities"]) == 21
+    # Rivalry Data + Gold Standard Content Integration operation added 11
+    # more, 22nd-32nd, all walked to PUBLIC_ENABLED -- same real reason as
+    # that test's sibling assertion.
+    assert len(r.json()["capabilities"]) == 32
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------

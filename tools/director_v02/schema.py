@@ -37,18 +37,27 @@ ALLOWED_MECHANICS = frozenset({
 ALLOWED_DOMAINS = frozenset({
     # BEGIN GENERATED -- see tools/director_v02/generate_schema_and_prompt.py
     "CFB_CHAMPIONSHIP",
+    "CFB_DUPLICATE_COLLEGE_HUNT",
+    "CFB_FILL_THE_COLLEGES",
     "CFB_GAME_LEADER",
     "CFB_GAME_RESULT",
     "CFB_HEISMAN",
+    "CFB_ODD_COLLEGE_OUT",
+    "CFB_ONE_SCHOOL_MISSING",
     "CFB_PLAYER_IDENTITY",
     "CFB_PLAYER_SEASON",
+    "CFB_POSITION_TRAP",
     "CFB_RANKING",
     "CFB_RIVALRY",
+    "CFB_RIVALRY_TRIVIA",
     "CFB_SEASON_STATS",
+    "CFB_SPOT_THE_FAKE_LINEUP",
     "CFB_STAT_COMPARISON",
+    "CFB_THREE_CLUES_ONE_CHAMPION",
     "CFB_TRANSFER",
     "CFB_TRANSFER_PATH",
     "CFB_UPSET",
+    "CFB_WHO_CHANGED",
     "CROSS_LEAGUE_HONORS",
     "NFL_ALL_PRO",
     "NFL_ALL_PRO_COLLEGE",
@@ -64,6 +73,7 @@ ALLOWED_DOMAINS = frozenset({
     "NFL_GAME_RESULT",
     "NFL_HALL_OF_FAME",
     "NFL_HOF_COLLEGE",
+    "NFL_OFFENSE_COLLEGE_CURATED",
     "NFL_OFFENSE_LINEUP",
     "NFL_OFFENSE_LINEUP_COLLEGE",
     "NFL_OFFENSIVE_COORDINATOR",
@@ -71,6 +81,7 @@ ALLOWED_DOMAINS = frozenset({
     "NFL_PLAYER_SEASON",
     "NFL_PRO_BOWL",
     "NFL_PRO_BOWL_COLLEGE",
+    "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
     "NFL_SCORING_PLAY",
     "NFL_SEASON_STATS",
     "NFL_SUPER_BOWL",
@@ -81,14 +92,18 @@ ALLOWED_PREDICATES = frozenset({
     # BEGIN GENERATED -- see tools/director_v02/generate_schema_and_prompt.py
     "ALL_AMERICAN_TO_ALL_PRO",
     "ALL_AMERICAN_TO_PRO_BOWL",
+    "ALTERED_POSITION",
     "ATTENDED_COLLEGE",
     "ATTENDED_COLLEGE_ALL_PRO",
     "ATTENDED_COLLEGE_HOF",
     "ATTENDED_COLLEGE_PRO_BOWL",
     "BETTING_UPSET",
+    "CHANGED_POSITION",
     "COACHED_TEAM",
+    "COLLEGE_OF_POSITION",
     "COORDINATED_DEFENSE",
     "COORDINATED_OFFENSE",
+    "CORRECT_TRIVIA_ANSWER",
     "DRAFTED_BY",
     "DRIVE_RESULT",
     "FIRST_TOUCHDOWN_SCORER",
@@ -98,8 +113,10 @@ ALLOWED_PREDICATES = frozenset({
     "HAD_MORE_SACKS",
     "HAD_MORE_YARDS",
     "IDENTIFY_FROM_CLUES",
+    "IMPOSTOR_COLLEGE",
     "INDUCTED_HOF",
     "LED_LEAGUE_IN_STAT",
+    "MISSING_COLLEGE",
     "ORDERED_PATH_NFL_BRIDGED",
     "PASSING_COMPARISON",
     "PASSING_LEADER",
@@ -110,16 +127,21 @@ ALLOWED_PREDICATES = frozenset({
     "RECORDED_INTERCEPTION",
     "RECORDED_SACK",
     "RECOVERED_FUMBLE",
+    "REPEATED_COLLEGE",
     "RIVAL_OF",
     "RUSHING_COMPARISON",
     "RUSHING_LEADER",
     "SCHOOL_OF_SEASON",
     "SELECTED_ALL_PRO",
     "SELECTED_PRO_BOWL",
+    "SWAPPED_POSITION_PAIR",
+    "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
     "TEAM_OF_SEASON",
     "TEAM_OF_STARTING_LINEUP",
     "TEAM_OF_STARTING_LINEUP_BY_COLLEGE",
     "TEAM_POSTSEASON_RESULT",
+    "TEAM_SEASON_FROM_THREE_CLUES",
+    "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
     "WON_AWARD",
     "WON_CHAMPIONSHIP",
     "WON_GAME",
@@ -145,12 +167,25 @@ OPTIONAL_SPEC_KEYS = frozenset({
 })
 ALL_SPEC_KEYS = REQUIRED_SPEC_KEYS | OPTIONAL_SPEC_KEYS
 
-# Filters/exclusions extension points. Empty today -- no registered
-# capability supports any filter key or any exclusion. Kept as typed,
-# structural fields (not a free-form dict/string) so a future capability can
-# declare support for a specific, named, allowlisted key without ever
-# opening this up to arbitrary content.
-ALLOWED_FILTER_KEYS: frozenset[str] = frozenset()  # none supported yet
+# Filters/exclusions extension points. Kept as typed, structural fields (not
+# a free-form dict/string) so a capability can declare support for a
+# specific, named, allowlisted key without ever opening this up to
+# arbitrary content. `rivalry_pack_number`/`rivalry_only` are the first real
+# filter keys any capability supports (Rivalry Data + Gold Standard Content
+# Integration operation) -- CFB_RIVALRY_TRIVIA uses them to scope generation
+# to one specific rivalry pack (e.g. "Make me an Iron Bowl trivia game") or
+# to rivalry-only rows generally ("give me a game about college football
+# rivalries"). validator.py checks a spec's filter keys against BOTH this
+# global allowlist AND the matched capability's own `supported_filter_keys`
+# -- a key here but not on the capability is still rejected.
+ALLOWED_FILTER_KEYS: frozenset[str] = frozenset({
+    "rivalry_pack_number", "rivalry_only",
+    # Franchise Marathon / Era Gauntlet (Gold Standard concepts #19/#51) --
+    # both filters on NFL_SB_CHAMPION_OFFENSE_COLLEGE, see that capability's
+    # own adapter (sb_champion_offense_college.py) for the real selection
+    # logic each triggers.
+    "franchise_name", "era_gauntlet",
+})
 EXCLUSIONS_SUPPORTED = False  # no adapter supports exclusion lists yet
 
 

@@ -195,10 +195,15 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # single-game performers, ordered transfer paths, honor+college
     # compositions, cross-league honors), each individually verified
     # end-to-end via a real, passing 100-round Tier-2 certification probe.
+    # Rivalry Data + Gold Standard Content Integration operation: 53 -> 64 --
+    # 11 real new GENERATION_VERIFIED/PUBLIC_ENABLED capabilities (CFB Rivalry
+    # Trivia, curated NFL offense-by-college, Super Bowl champion offense by
+    # college, and 8 more Gold Standard "10. New Game Modes" concepts built
+    # on the same curated data), each individually Tier-2 certified.
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 53
+    assert len(caps) == 64
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

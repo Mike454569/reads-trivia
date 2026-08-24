@@ -1,6 +1,7 @@
-"""NFL Defensive Coordinator -- "which team did this coach coordinate the
-defense for". See _coordinator_common.py for the real, shared logic this
-file just parameterizes with role='DEFENSIVE_COORDINATOR'.
+"""NFL Defensive Coordinator -- "given a real team and season, guess who
+coordinated the defense". See nfl_offensive_coordinator.py's own module
+docstring for the real direction-bug fix this mirrors (same shared
+_coordinator_common.py, role='DEFENSIVE_COORDINATOR').
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ def fetch_ordered_candidates(c, seed: str):
 def evaluate(c, row, rng, guard):
     result = common.evaluate(
         c, row, rng, guard, role=ROLE, side_label=SIDE_LABEL, category=CATEGORY,
-        entity_prefix="nfl_dc",
+        entity_prefix="nfl_dc", direction="TEAM_TO_COACH",
     )
     return result
 

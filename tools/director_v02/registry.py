@@ -73,6 +73,17 @@ from tools.quiz_export.adapters import nfl_pro_bowl_college as nfl_pro_bowl_coll
 from tools.quiz_export.adapters import nfl_hof_college as nfl_hof_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_all_american_to_all_pro as cfb_all_american_to_all_pro_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_american_to_pro_bowl_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_rivalry_trivia as cfb_rivalry_trivia_adapter  # noqa: E402
+from tools.quiz_export.adapters import nfl_offense_college_curated as nfl_offense_college_curated_adapter  # noqa: E402
+from tools.quiz_export.adapters import sb_champion_offense_college as sb_champion_offense_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_odd_college_out as cfb_odd_college_out_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_fill_the_colleges as cfb_fill_the_colleges_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_spot_the_fake_lineup as cfb_spot_the_fake_lineup_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_who_changed as cfb_who_changed_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_three_clues_one_champion as cfb_three_clues_one_champion_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_position_trap as cfb_position_trap_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_duplicate_college_hunt as cfb_duplicate_college_hunt_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_one_school_missing as cfb_one_school_missing_adapter  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "0.2"
 
@@ -82,7 +93,8 @@ QA_CHECKS_PERFORMED_V02 = [
     "validator.validate_translation() -- exact key-set check (rejects any extra/injected field)",
     "validator: mechanic/domain/relationship_predicate/difficulty checked against a hardcoded allowlist",
     "validator: question_count bounds check (schema-level and capability-specific)",
-    "validator: filters/exclusions must be empty (no registered capability supports either yet)",
+    "validator: filters must be empty, or restricted to keys the matched capability's own "
+    "supported_filter_keys declares (exclusions must still be empty -- no adapter supports them yet)",
     "registry.lookup() -- (mechanic, domain, predicate) must be a previously-proven, registered capability",
     *v01.QA_CHECKS_PERFORMED,
 ]
@@ -1428,6 +1440,205 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 923000,
+    },
+    # Rivalry Data + Gold Standard Content Integration operation. A curated,
+    # fully pre-authored 1,272-question CFB trivia bank (412 general + 860
+    # rivalry, 43 real named rivalry packs) -- see
+    # tools/quiz_export/adapters/cfb_rivalry_trivia.py's own module docstring
+    # for the full import audit trail. `rivalry_pack_number`/`rivalry_only`
+    # are this project's first real, wired filter keys -- lets a specific
+    # rivalry request ("Make me an Iron Bowl trivia game") scope generation
+    # to just that pack's 20 questions instead of the whole bank.
+    ("guess", "CFB_RIVALRY_TRIVIA", "CORRECT_TRIVIA_ANSWER"): {
+        "adapter": cfb_rivalry_trivia_adapter, "category": cfb_rivalry_trivia_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "A curated, fully pre-authored trivia bank (not derived from a relational fact table) -- "
+            "questions/options/answers come directly from the imported workbook, never sampled or "
+            "generated. 1,272 total real questions: 412 general CFB categories + 860 rivalry-specific "
+            "(43 packs x 20 questions).",
+            "One rivalry pack (#13, Southwest Classic) has a genuinely ambiguous second school in the "
+            "source workbook itself ('Texas/Texas A&M') -- left with school_b_id unresolved rather than "
+            "guessed; the pack's 20 questions still import and generate normally.",
+            "Difficulty bands only distinguish medium (workbook 'Medium') from hard (workbook 'Hard'/'Very "
+            "Hard') -- no 'easy' rows exist in the source workbook.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_trivia_question", "object_type": "trivia_answer",
+        "answer_type": "text", "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset({"rivalry_pack_number", "rivalry_only"}), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 930000,
+    },
+    # Fixes the "offense by college" capability using the Gold Standard
+    # workbook's own curated 2026 team data -- see
+    # tools/quiz_export/adapters/nfl_offense_college_curated.py's own module
+    # docstring for why this is a distinct, non-duplicating capability from
+    # NFL_OFFENSE_LINEUP_COLLEGE (that one: 68 real historical team-seasons,
+    # 5 skill positions, identity-bridge-sourced; this one: 32 real current
+    # (2026) teams, all 11 positions including the full offensive line,
+    # curated-workbook-sourced).
+    ("guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"): {
+        "adapter": nfl_offense_college_curated_adapter, "category": nfl_offense_college_curated_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package, "visual_template": "POSITION_LINEUP_COLLEGE",
+        "known_limitations": [
+            "A curated, human-verified snapshot ('projected 2026 starters as of early Aug 2026'), not a "
+            "live roster feed -- every generated question's own notes disclose this and recommend "
+            "re-verifying the offensive line before live play (camp battles move).",
+            "Real, fixed domain size: exactly 32 boards (one per current NFL team, season 2026 only).",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_current_team_offense_board_college", "object_type": "team",
+        "answer_type": "team", "group_size": 4, "min_question_count": 1, "max_question_count": 32,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 931000,
+    },
+    # Gold Standard concept #1 ("College Offense") from the workbook's own
+    # "10. New Game Modes" backlog -- guess the Super Bowl champion TEAM and
+    # SEASON from its starting offense shown by position + college only. See
+    # tools/quiz_export/adapters/sb_champion_offense_college.py's own module
+    # docstring for why the answer is a combined "year team" string rather
+    # than a franchise_id (this database's franchise-identity tables only
+    # cover 2002-2026; 34 of these 60 real champion seasons predate that).
+    ("guess", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE"): {
+        "adapter": sb_champion_offense_college_adapter, "category": sb_champion_offense_college_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package, "visual_template": "POSITION_LINEUP_COLLEGE",
+        "known_limitations": [
+            "Real, fixed domain size: exactly 60 boards, one per real Super Bowl champion season, "
+            "1967-2026 (every Super Bowl ever played, I through the real 2026 championship) -- curated "
+            "from the Gold Standard workbook's 'SB Modern'/'SB Historic' sheets, not derived from this "
+            "Engine's own play-by-play/box-score tables.",
+            "Team identity is stored as curated display text (e.g. '1999 Denver Broncos'), not a "
+            "franchise_id -- this database's franchise-identity tables (team_aliases/team_seasons/"
+            "franchises) only cover seasons 2002-2026, so a pre-2002 franchise_id link would have to be "
+            "fabricated; this project does not do that.",
+            "Real, measured ceiling of 52 (not 60) exportable in a single request: 5 real dynasties "
+            "(Patriots 2015/2017, Dolphins 1973/1974, Steelers 1970s x4, 49ers 1989/1990, Cowboys 1990s "
+            "x3) repeat a near-identical starting-offense college pipeline across consecutive titles, "
+            "which collides on question TEXT (not on the real, distinct team+season answer) when both "
+            "seasons are drawn into the same export set -- never fabricated to avoid this, the smaller "
+            "one is simply dropped from that batch by the standard duplicate-question guard.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
+        "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 52,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset({"franchise_name", "era_gauntlet"}), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 932000,
+    },
+    # Remaining Gold Standard "10. New Game Modes" P0 concepts explicitly
+    # requested this operation -- all built on the SAME curated SB_CHAMPION
+    # data as NFL_SB_CHAMPION_OFFENSE_COLLEGE (60 real champions, 1967-2026,
+    # no player names), reusing the same "guess" mechanic throughout (never
+    # a new mechanic). See each adapter's own module docstring for the real,
+    # measured feasibility audit behind it (e.g. Duplicate College Hunt: 27
+    # of 60 real boards have a genuine repeated college; Who Changed?: 5
+    # real dynasty pairs computed directly from the data).
+    ("guess", "CFB_ODD_COLLEGE_OUT", "IMPOSTOR_COLLEGE"): {
+        "adapter": cfb_odd_college_out_adapter, "category": cfb_odd_college_out_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #9. Built on the 60-board curated SB_CHAMPION dataset -- see "
+            "sb_champion_offense_college.py's own module docstring for the source audit trail.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 933000,
+    },
+    ("guess", "CFB_FILL_THE_COLLEGES", "COLLEGE_OF_POSITION"): {
+        "adapter": cfb_fill_the_colleges_adapter, "category": cfb_fill_the_colleges_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #6 (reverse direction of College Offense). Candidate pool is "
+            "(champion, position) pairs -- 60 champions x 11 positions = 660 real candidates.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 934000,
+    },
+    ("guess", "CFB_SPOT_THE_FAKE_LINEUP", "ALTERED_POSITION"): {
+        "adapter": cfb_spot_the_fake_lineup_adapter, "category": cfb_spot_the_fake_lineup_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #10. One position's real college is swapped for a different, real "
+            "college in the SHOWN board only -- the underlying record always reflects the true lineup.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
+        "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 935000,
+    },
+    ("guess", "CFB_WHO_CHANGED", "CHANGED_POSITION"): {
+        "adapter": cfb_who_changed_adapter, "category": cfb_who_changed_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #27. Real, measured domain: 18 of 36 real same-franchise adjacent "
+            "championship pairs qualify (1+ real changed position AND 3+ unchanged decoy positions); "
+            "pairs with zero real change (identical lineup two title runs running, e.g. Dolphins "
+            "1973/1974) or too little overlap are honestly excluded, never padded.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
+        "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 18,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 936000,
+    },
+    ("guess", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES"): {
+        "adapter": cfb_three_clues_one_champion_adapter, "category": cfb_three_clues_one_champion_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #28. A distinct, harder sibling of NFL_SB_CHAMPION_OFFENSE_COLLEGE -- "
+            "reveals only 3 of the 11 real position/college pairs per candidate, never the full board.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
+        "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 937000,
+    },
+    ("guess", "CFB_POSITION_TRAP", "SWAPPED_POSITION_PAIR"): {
+        "adapter": cfb_position_trap_adapter, "category": cfb_position_trap_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #29. Two real positions' colleges are swapped WITH EACH OTHER in the "
+            "SHOWN board only (never a fabricated college) -- the answer is a position PAIR, expressed as "
+            "one of 4 MCQ option strings (e.g. 'LT & QB'), not a 2-part answer.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position_pair",
+        "answer_type": "position_pair", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 938000,
+    },
+    ("guess", "CFB_DUPLICATE_COLLEGE_HUNT", "REPEATED_COLLEGE"): {
+        "adapter": cfb_duplicate_college_hunt_adapter, "category": cfb_duplicate_college_hunt_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #30. Real, measured domain: only 27 of 60 curated champion boards have "
+            "a genuine college repeated across 2+ positions -- the other 33 are honestly excluded, never "
+            "padded with a fabricated duplicate.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 27,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 939000,
+    },
+    ("guess", "CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE"): {
+        "adapter": cfb_one_school_missing_adapter, "category": cfb_one_school_missing_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Gold Standard concept #32. The 3 wrong options are real colleges that were NOT part of the "
+            "shown champion's lineup at all -- never a college already visibly shown.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 940000,
     },
 }
 

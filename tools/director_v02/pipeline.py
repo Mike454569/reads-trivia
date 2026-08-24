@@ -107,7 +107,7 @@ def run(request_text: str | None = None, *, spec: dict | None = None, provider: 
         capability = gate["capability"]
         validated_spec = dict(gate["validated_spec"])
         if question_count_override is not None:
-            if not (capability["min_question_count"] <= question_count_override <= capability["max_question_count"]):
+            if question_count_override < capability["min_question_count"]:
                 gate = {
                     "gate_status": "BLOCKED_OUT_OF_BOUNDS",
                     "gate_reason": f"question_count override {question_count_override} outside this capability's "
@@ -116,6 +116,21 @@ def run(request_text: str | None = None, *, spec: dict | None = None, provider: 
                     "closest_supported_capability": None, "understood": None, "missing_fields": None,
                     "clarifying_question": None,
                 }
+            elif question_count_override > capability["max_question_count"]:
+                # Universal Data Reuse pass: a caller-supplied override (e.g.
+                # Creator's fixed puzzle_count=5) exceeding a small-real-pool
+                # capability's own max used to hard-reject the WHOLE request
+                # -- a real, reachable "0 questions" failure for every
+                # capability with fewer than 5 real eligible candidates
+                # (CROSS_LEAGUE_HONORS's real pool is 4, for example). Never
+                # fabricates a candidate to reach the requested count --
+                # clamps down to the capability's own real, already-audited
+                # max instead, so the caller gets every real question that
+                # exists rather than none. Asking for FEWER than the real
+                # minimum (above) is a different, genuine caller error and
+                # still rejected -- only "asked for more than is real" is
+                # safe to silently satisfy with fewer real items.
+                validated_spec["question_count"] = capability["max_question_count"]
             else:
                 validated_spec["question_count"] = question_count_override
         if gate["gate_status"] == "READY" and difficulty_override is not None:
