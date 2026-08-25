@@ -4,7 +4,7 @@ belong to that champion. 10 true lineup schools + 1 plausible false school;
 tap impostor." Built on the same curated `curated_nfl_offense_college_board`
 SB_CHAMPION data as sb_champion_offense_college.py -- see that adapter's
 own module docstring for the full source audit trail (60 real champions,
-1967-2026, no player names).
+1966-2025, no player names).
 
 Shown 4 options: 3 real colleges that WERE part of the champion's starting
 offense + 1 plausible college that was NOT -- drawn from `all_colleges()`

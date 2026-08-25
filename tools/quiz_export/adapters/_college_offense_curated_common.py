@@ -3,7 +3,7 @@
 Content Integration operation) -- the normalized import of the Gold
 Standard Game Mode Blueprint workbook's "3. Pre-Made Puzzles" (32 real 2026
 projected NFL team offenses) and "7/8. SB Modern/Historic" (60 real Super
-Bowl champion offenses, 1967-2026) sheets. Both sheets share the exact same
+Bowl champion offenses, 1966-2025) sheets. Both sheets share the exact same
 11-position shape (LT, LG, C, RG, RT, WR1, QB, WR2, WR3, RB, TE), all real
 colleges, zero player names by construction (player names live only in the
 separate, deliberately-unimported "4. Answer Key" sheet -- see the import

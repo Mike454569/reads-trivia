@@ -1,7 +1,7 @@
 """One School Missing -- Gold Standard concept #32: "Show the set of unique
 colleges on a champion with one omitted; infer the missing school." Same
 curated SB_CHAMPION source as sb_champion_offense_college.py (60 real
-champions, 1967-2026) -- the shown set is the champion's real DISTINCT
+champions, 1966-2025) -- the shown set is the champion's real DISTINCT
 colleges minus one; the 3 wrong options are real colleges from
 `all_colleges()` that were NOT part of this lineup at all (never a college
 already visibly shown, which would make the puzzle ill-posed).

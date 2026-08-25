@@ -287,12 +287,28 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
     exported = accepted_for_export[:target_count]
     shortfall_reason = None
     if len(exported) < target_count:
-        filter_clause = f" matching difficulty '{difficulty_filter}'" if difficulty_filter and difficulty_filter != "any" else ""
-        shortfall_reason = (
-            f"Only {len(accepted_for_export)} candidates{filter_clause} passed every validation rule within a "
-            f"{draft_adapter.CANDIDATE_LIMIT}-candidate deterministic sample; exported the "
-            f"maximum available ({len(accepted_for_export)}) rather than loosen any rule to reach {target_count}."
-        )
+        # P1 Release Readiness pass: a generic, reusable hook -- ANY adapter
+        # whose safety_check() reports a roster_freshness status of STALE
+        # (currently just nfl_offense_college_curated.py, but not special-
+        # cased to it by name) gets a real, specific reason here instead of
+        # the generic "0 candidates passed validation" message, which reads
+        # like a data-quality bug rather than the deliberate, disclosed
+        # "this snapshot is too old to keep serving unqualified" quarantine
+        # it actually is.
+        roster_freshness = (safety or {}).get("roster_freshness") or {}
+        if roster_freshness.get("status") == "STALE":
+            shortfall_reason = (
+                f"Quarantined: {roster_freshness.get('message', 'current-roster snapshot is stale')} "
+                f"This capability will not generate from a stale current-roster snapshot -- "
+                f"refresh the source data to resume."
+            )
+        else:
+            filter_clause = f" matching difficulty '{difficulty_filter}'" if difficulty_filter and difficulty_filter != "any" else ""
+            shortfall_reason = (
+                f"Only {len(accepted_for_export)} candidates{filter_clause} passed every validation rule within a "
+                f"{draft_adapter.CANDIDATE_LIMIT}-candidate deterministic sample; exported the "
+                f"maximum available ({len(accepted_for_export)}) rather than loosen any rule to reach {target_count}."
+            )
 
     contract_failures = contract.validate_all(exported, adapter.CATEGORY)
     dup_questions = duplicates.find_duplicates(exported, lambda q: q["question"])

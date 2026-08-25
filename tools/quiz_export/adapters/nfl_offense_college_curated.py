@@ -52,6 +52,36 @@ TRACK_ENTITY = True
 BOARD_TYPE = "CURRENT_TEAM_2026"
 _DIFF_MAP = {"EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"}
 
+# P1 Release Readiness pass: real, source-checked resolution of the 3
+# offensive-line cells the P0 pass flagged as unverifiable in-repo. Live
+# web sources (team depth-chart releases + player bios) were checked for
+# each -- 2 confirmed correct, 1 still genuinely unresolved (conflicting
+# real sources, not a data error assumed from silence):
+#   - PIT LG "South Dakota State" -- CONFIRMED. Steelers.com's own released
+#     2026 depth chart names Mason McCormick (South Dakota State) as the
+#     starting LG; matches Wikipedia. No action needed.
+#   - CLE RT "Alabama State" -- CONFIRMED. Multiple 2026 depth-chart
+#     sources name Tytus Howard (Alabama State) as the starting RT;
+#     matches Wikipedia. No action needed.
+#   - ARI RT "Elon" -- STILL UNRESOLVED. A real Elon alum (Oli Udoh) is on
+#     the Cardinals' roster at offensive tackle, but is not clearly
+#     confirmed as the RT starter specifically -- a dedicated "first depth
+#     chart of 2026" source instead names Elijah Wilkinson (UMass) as the
+#     RT starter, and a separate roster-projection article names Isaiah
+#     Adams (Illinois, primarily a guard) at RT. Three real sources, three
+#     different colleges, for the same slot -- exactly the kind of
+#     genuine current-roster churn roster_freshness.py exists to describe,
+#     concentrated on one team early. Per "do not guess": neither kept as
+#     silently trusted nor overwritten with a guessed correction -- the
+#     whole board is quarantined below instead (this capability shows all
+#     11 positions as one board; there is no way to omit a single cell
+#     without breaking the "11 positions, zero blanks" shape every other
+#     board keeps, so quarantining the one affected board -- not all 32 --
+#     is what "do not invalidate unrelated boards unless necessary" means
+#     here). Re-verify and remove from this set once a single, consistent
+#     source confirms the real 2026 ARI starting RT.
+UNRESOLVED_CURRENT_TEAM_BOARD_IDS = frozenset({"GOLD_CUR_ARI_2026"})
+
 
 def safety_check(c) -> dict:
     from .. import safety
@@ -59,14 +89,16 @@ def safety_check(c) -> dict:
         c, "curated_nfl_offense_college_board", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
         where_extra=f"board_type = '{BOARD_TYPE}'",
     )
-    # P0 Accuracy + Reliability Hardening pass (Section 5): unlike every
-    # other verification_status check above (which only ever asks "was
-    # this row imported correctly"), current-team roster data also needs a
-    # FRESHNESS answer -- "is this snapshot still likely true". Additive:
-    # never changes whether generation proceeds today (this is a real,
-    # visible signal for an operator/audit script to act on, not yet wired
-    # to block generation -- see roster_freshness.py's own module
-    # docstring for why a hard auto-quarantine wasn't built this pass).
+    # P0/P1 Accuracy + Reliability Hardening passes: unlike every other
+    # verification_status check above (which only ever asks "was this row
+    # imported correctly"), current-team roster data also needs a
+    # FRESHNESS answer -- "is this snapshot still likely true". Surfaced
+    # here (production_safety.roster_freshness, visible to any admin/
+    # Creator caller) AND actually enforced below in
+    # fetch_ordered_candidates() -- P1 wires STALE to real quarantine
+    # (0 candidates, never a silently-served stale current roster); WARN
+    # stays non-blocking by design (a soft signal worth a human re-check,
+    # not yet certain enough to take real content down).
     from tools.director_v02 import roster_freshness
     result["roster_freshness"] = roster_freshness.freshness_report()
     return result
@@ -74,7 +106,28 @@ def safety_check(c) -> dict:
 
 def fetch_ordered_candidates(c, seed: str):
     from .. import engine
+    from tools.director_v02 import roster_freshness
+    # P1 Release Readiness pass: STALE means "do not keep serving this
+    # current-team snapshot as if it were still true" -- returning zero
+    # candidates here (rather than the real 32 boards) routes through the
+    # exact same, already-proven "0 candidates -> qa_status FAILED ->
+    # package_contract rejects -> NO_ELIGIBLE_GAME" pipeline the P0 pass
+    # built for every other empty-pool case, so this capability degrades
+    # exactly like any other temporarily-unavailable one -- never a crash,
+    # never a silently-wrong answer. Historical capabilities (lineup.py,
+    # sb_champion_offense_college.py, and everything else built on
+    # curated_nfl_offense_college_board's OTHER board_type, SB_CHAMPION)
+    # are untouched -- this check is scoped to CURRENT_TEAM_2026 data only,
+    # the only board_type roster_freshness.py's snapshot date describes.
+    if roster_freshness.freshness_report()["status"] == "STALE":
+        return []
     boards = common.fetch_boards(c, BOARD_TYPE)
+    # P1 Release Readiness pass: quarantine any board with a real,
+    # unresolved fact -- see UNRESOLVED_CURRENT_TEAM_BOARD_IDS's own
+    # comment above for exactly which board(s), why, and what was checked.
+    # Scoped to just the affected board(s) -- the other 31 real,
+    # independently-verified boards stay playable.
+    boards = [b for b in boards if b["board_id"] not in UNRESOLVED_CURRENT_TEAM_BOARD_IDS]
     rng_order = engine.seeded(seed)
     rng_order.shuffle(boards)
     return boards

@@ -13,12 +13,26 @@ nothing in this codebase measured that staleness before this pass -- a
 capability could keep confidently serving a increasingly-wrong current
 roster indefinitely.
 
-This module does NOT add a new data source, table, or capability (P0
+This module does NOT add a new data source, table, or capability (P0/P1
 scope: no new engine, no new data) -- it's a small, honest freshness
 calculation over the ALREADY-DISCLOSED snapshot date already embedded in
 every CURRENT_TEAM_2026 board's own `notes` text, exposed as a real,
 checkable signal any caller (an operator audit script, a future admin
 dashboard, or a safety_check()) can act on.
+
+P1 Release Readiness pass: STALE is now actually enforced, not just
+reported. tools/quiz_export/adapters/nfl_offense_college_curated.py's
+`fetch_ordered_candidates()` returns zero candidates when STALE -- the
+capability quarantines itself through the exact same "0 candidates ->
+qa_status FAILED -> package_contract rejects -> NO_ELIGIBLE_GAME" pipeline
+the P0 pass already built for every other empty-pool case, with a specific
+(not generic) shortfall_reason explaining why (see game_director_v01.py's
+shortfall_reason computation). WARN deliberately stays non-blocking: it is
+a softer, "worth a human re-check" signal, not yet a "stop serving this"
+verdict -- only historical SB_CHAMPION board data (which never goes stale)
+and the 8 sibling capabilities built on it are guaranteed unaffected, since
+none of them read CURRENT_TEAM_2026 boards at all (verified directly: every
+one of their fetch_boards() calls is hardcoded to board_type='SB_CHAMPION').
 """
 from __future__ import annotations
 

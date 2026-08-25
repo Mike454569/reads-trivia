@@ -6,7 +6,7 @@ champion team + season." Also directly answers this operation's own
 explicit request: "Give me a Super Bowl winning offense by colleges and
 make me guess the team and season."
 
---- REAL COVERAGE: 60 OF 60 SUPER BOWLS, 1967-2026 ---
+--- REAL COVERAGE: 60 OF 60 SUPER BOWLS, 1966-2025 ---
 Source: `curated_nfl_offense_college_board`/`curated_nfl_offense_college_position`
 (board_type='SB_CHAMPION'), imported from the Gold Standard workbook's
 "7. SB Modern (1999-2026)" (28 rows) + "8. SB Historic (I-XXXII)" (32 rows)

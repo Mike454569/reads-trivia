@@ -1,6 +1,6 @@
 """Duplicate College Hunt -- Gold Standard concept #30: "Given a champion,
 find every school represented more than once." Same curated SB_CHAMPION
-source as sb_champion_offense_college.py (60 real champions, 1967-2026) --
+source as sb_champion_offense_college.py (60 real champions, 1966-2025) --
 only the 27 of 60 real boards that genuinely have a college repeated across
 2+ positions are eligible (measured directly, never padded); the other 33
 correctly produce zero candidates for this specific capability rather than

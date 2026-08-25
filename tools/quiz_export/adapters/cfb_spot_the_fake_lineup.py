@@ -1,7 +1,7 @@
 """Spot the Fake Lineup -- Gold Standard concept #10: "Show an 11-slot
 lineup of colleges with one altered cell; find the wrong position." Same
 curated SB_CHAMPION source as sb_champion_offense_college.py (60 real
-champions, 1967-2026) -- one position's real college is swapped for a
+champions, 1966-2025) -- one position's real college is swapped for a
 different, real-but-wrong college (drawn from `all_colleges()`, never
 fabricated) in the SHOWN board only; the player must spot which position
 doesn't match the real record.

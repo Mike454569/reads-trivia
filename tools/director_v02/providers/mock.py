@@ -1331,7 +1331,7 @@ class MockDeterministicTranslator(Translator):
                 request_text, "TRANSLATED", spec,
                 "Matched Super Bowl/postseason + college + offense/lineup keywords -> "
                 "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess capability (curated, all 60 real "
-                "Super Bowl champions 1967-2026, names hidden).",
+                "Super Bowl champions 1966-2025, names hidden).",
             )
 
         if has_team and has_postseason:

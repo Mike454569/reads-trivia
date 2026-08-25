@@ -3,7 +3,7 @@ season; type the colleges for the lineup." (reverse direction of College
 Offense / NFL_SB_CHAMPION_OFFENSE_COLLEGE). Adapted to this pipeline's
 4-option MCQ contract as: name the team+season AND one specific position,
 ask which college that position's starter attended -- same curated
-SB_CHAMPION source (60 real champions, 1967-2026), see
+SB_CHAMPION source (60 real champions, 1966-2025), see
 sb_champion_offense_college.py's own module docstring for the full audit
 trail.
 """

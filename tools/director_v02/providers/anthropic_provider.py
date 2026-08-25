@@ -299,7 +299,7 @@ starters" sheet, 32 real teams, one board each.
 23. mechanic=guess, domain=NFL_SB_CHAMPION_OFFENSE_COLLEGE, relationship_predicate=TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE
     The player sees a real Super Bowl champion's starting offense (same 11-position, \
 college-only, names-hidden shape as capability 22) and picks which team AND season it was -- \
-60 real champions, every Super Bowl ever played (1967-2026). This is the "Super Bowl winning \
+60 real champions, every Super Bowl ever played (1966-2025). This is the "Super Bowl winning \
 offense by colleges, guess the team and season" concept.
 
 24-31. Eight more Gold Standard-curated puzzle variants, ALL built on the same real 60-champion \

@@ -5,7 +5,7 @@ capability reveals only 3 of the 11 real position/college pairs, randomly
 chosen per candidate, both in the question text and in `visual_payload`
 (never the full board). Same curated SB_CHAMPION source, see
 sb_champion_offense_college.py's own module docstring for the full audit
-trail (60 real champions, 1967-2026, no player names).
+trail (60 real champions, 1966-2025, no player names).
 """
 from __future__ import annotations
 

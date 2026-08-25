@@ -1526,7 +1526,7 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "generate_fn": _generate_guess_package, "visual_template": "POSITION_LINEUP_COLLEGE",
         "known_limitations": [
             "Real, fixed domain size: exactly 60 boards, one per real Super Bowl champion season, "
-            "1967-2026 (every Super Bowl ever played, I through the real 2026 championship) -- curated "
+            "1966-2025 (every Super Bowl ever played, SB I through SB LX) -- curated "
             "from the Gold Standard workbook's 'SB Modern'/'SB Historic' sheets, not derived from this "
             "Engine's own play-by-play/box-score tables.",
             "Team identity is stored as curated display text (e.g. '1999 Denver Broncos'), not a "
@@ -1554,7 +1554,7 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     },
     # Remaining Gold Standard "10. New Game Modes" P0 concepts explicitly
     # requested this operation -- all built on the SAME curated SB_CHAMPION
-    # data as NFL_SB_CHAMPION_OFFENSE_COLLEGE (60 real champions, 1967-2026,
+    # data as NFL_SB_CHAMPION_OFFENSE_COLLEGE (60 real champions, 1966-2025,
     # no player names), reusing the same "guess" mechanic throughout (never
     # a new mechanic). See each adapter's own module docstring for the real,
     # measured feasibility audit behind it (e.g. Duplicate College Hunt: 27

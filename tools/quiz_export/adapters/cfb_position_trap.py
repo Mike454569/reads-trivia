@@ -1,6 +1,6 @@
 """Position Trap -- Gold Standard concept #29: "Show 11 correct colleges but
 swap two positions; identify the swapped pair." Same curated SB_CHAMPION
-source as sb_champion_offense_college.py (60 real champions, 1967-2026,
+source as sb_champion_offense_college.py (60 real champions, 1966-2025,
 no player names) -- two real positions' colleges are swapped WITH EACH
 OTHER in the shown board (never a fabricated college), and the player must
 identify which two positions were swapped.
