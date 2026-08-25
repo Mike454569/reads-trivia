@@ -106,7 +106,7 @@ def evaluate(c, board, rng, guard):
         "season": board["season"],
     }
     notes = (
-        f"The {board['team_display_name']}'s projected 2026 starting offense, shown by position and real "
+        f"The {common.possessive(board['team_display_name'])} projected 2026 starting offense, shown by position and real "
         f"college for all 11 positions (player names hidden). Source: curated Reads Football Gold Standard "
         f"workbook, \"projected 2026 starters as of early Aug 2026\" -- always re-verify the offensive line "
         f"before live play, camp battles move."

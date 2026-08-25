@@ -2,10 +2,11 @@
 // Produced by tools/export_player_from_clues_frontend.py from
 // generated_games/director-v04-player-from-clues.json (package_id GGP4:75ebdd6f8a051f225906790d).
 // Pure reshaping of the already-QA'd Engine package -- no facts added, removed, or
-// reordered (decade/difficultyBand are the one addition: both derived directly from
-// fields the source package already contains, per this script's own _decade_for_puzzle()/
-// _difficulty_band_for_puzzle()). Re-run the script after regenerating the source package
-// to refresh this file.
+// reordered (decade/difficultyBand are the one addition: decade from the source package's own
+// career_span clue, difficultyBand from real Engine fame data -- Pro Bowl/All-Pro/HOF/first-round
+// draft status -- looked up per answer player, per this script's own _decade_for_puzzle()/
+// _difficulty_band_for_fame()). Re-run the script after regenerating the source package to
+// refresh this file.
 window.PLAYER_FROM_CLUES_V01 = {
   "packageId": "GGP4:75ebdd6f8a051f225906790d",
   "packageVersion": "0.4",
@@ -170,7 +171,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620002,
@@ -248,7 +249,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620003,
@@ -326,7 +327,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620004,
@@ -404,7 +405,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620005,
@@ -638,7 +639,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620008,
@@ -716,7 +717,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620009,
@@ -794,7 +795,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620010,
@@ -1080,7 +1081,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620014,
@@ -1314,7 +1315,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620017,
@@ -1392,7 +1393,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620018,
@@ -1548,7 +1549,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620020,
@@ -1626,7 +1627,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620021,
@@ -1704,7 +1705,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620022,
@@ -1834,7 +1835,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620024,
@@ -1912,7 +1913,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620025,
@@ -1990,7 +1991,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620026,
@@ -2068,7 +2069,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620027,
@@ -2146,7 +2147,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620028,
@@ -2211,7 +2212,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620029,
@@ -2276,7 +2277,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620030,
@@ -2575,7 +2576,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620034,
@@ -2705,7 +2706,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620036,
@@ -2783,7 +2784,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620037,
@@ -2913,7 +2914,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620039,
@@ -2991,7 +2992,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620040,
@@ -3147,7 +3148,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620042,
@@ -3225,7 +3226,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620043,
@@ -3303,7 +3304,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620044,
@@ -3368,7 +3369,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620045,
@@ -3446,7 +3447,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620046,
@@ -3524,7 +3525,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620047,
@@ -3602,7 +3603,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620048,
@@ -3680,7 +3681,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620049,
@@ -3823,7 +3824,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620051,
@@ -3966,7 +3967,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620053,
@@ -4044,7 +4045,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620054,
@@ -4200,7 +4201,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620056,
@@ -4343,7 +4344,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620058,
@@ -4421,7 +4422,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620059,
@@ -4499,7 +4500,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620060,
@@ -4564,7 +4565,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620061,
@@ -4629,7 +4630,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620062,
@@ -4707,7 +4708,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620063,
@@ -4785,7 +4786,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620064,
@@ -5006,7 +5007,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620067,
@@ -5084,7 +5085,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620068,
@@ -5162,7 +5163,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620069,
@@ -5240,7 +5241,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620070,
@@ -5318,7 +5319,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620071,
@@ -5396,7 +5397,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620072,
@@ -5474,7 +5475,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620073,
@@ -5669,7 +5670,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620076,
@@ -5903,7 +5904,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620079,
@@ -6124,7 +6125,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620082,
@@ -6189,7 +6190,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620083,
@@ -6345,7 +6346,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620085,
@@ -6423,7 +6424,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620086,
@@ -6488,7 +6489,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620087,
@@ -6553,7 +6554,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620088,
@@ -6631,7 +6632,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620089,
@@ -6709,7 +6710,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620090,
@@ -6865,7 +6866,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620092,
@@ -6995,7 +6996,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620094,
@@ -7060,7 +7061,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620095,
@@ -7216,7 +7217,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620097,
@@ -7294,7 +7295,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620098,
@@ -7372,7 +7373,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620099,
@@ -7450,7 +7451,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620100,
@@ -7515,7 +7516,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620101,
@@ -7593,7 +7594,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620102,
@@ -7671,7 +7672,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620103,
@@ -7749,7 +7750,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620104,
@@ -7827,7 +7828,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620105,
@@ -8139,7 +8140,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620109,
@@ -8217,7 +8218,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620110,
@@ -8295,7 +8296,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620111,
@@ -8451,7 +8452,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620113,
@@ -8529,7 +8530,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620114,
@@ -8607,7 +8608,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620115,
@@ -8685,7 +8686,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620116,
@@ -8763,7 +8764,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620117,
@@ -8841,7 +8842,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620118,
@@ -8919,7 +8920,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620119,
@@ -8997,7 +8998,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620120,
@@ -9075,7 +9076,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620121,
@@ -9283,7 +9284,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620124,
@@ -9361,7 +9362,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620125,
@@ -9439,7 +9440,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620126,
@@ -9517,7 +9518,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620127,
@@ -9595,7 +9596,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620128,
@@ -9673,7 +9674,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620129,
@@ -9829,7 +9830,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620131,
@@ -9907,7 +9908,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620132,
@@ -10063,7 +10064,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620134,
@@ -10128,7 +10129,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620135,
@@ -10206,7 +10207,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620136,
@@ -10414,7 +10415,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620139,
@@ -10492,7 +10493,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620140,
@@ -10570,7 +10571,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620141,
@@ -10648,7 +10649,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620142,
@@ -10726,7 +10727,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620143,
@@ -10804,7 +10805,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620144,
@@ -10882,7 +10883,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620145,
@@ -10960,7 +10961,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620146,
@@ -11116,7 +11117,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620148,
@@ -11181,7 +11182,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620149,
@@ -11337,7 +11338,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620151,
@@ -11415,7 +11416,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620152,
@@ -11493,7 +11494,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620153,
@@ -11571,7 +11572,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620154,
@@ -11649,7 +11650,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620155,
@@ -11805,7 +11806,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620157,
@@ -11948,7 +11949,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620159,
@@ -12026,7 +12027,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620160,
@@ -12104,7 +12105,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620161,
@@ -12182,7 +12183,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620162,
@@ -12247,7 +12248,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620163,
@@ -12390,7 +12391,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620165,
@@ -12468,7 +12469,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620166,
@@ -12546,7 +12547,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620167,
@@ -12702,7 +12703,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620169,
@@ -12923,7 +12924,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620172,
@@ -12988,7 +12989,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620173,
@@ -13066,7 +13067,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620174,
@@ -13144,7 +13145,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620175,
@@ -13222,7 +13223,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620176,
@@ -13300,7 +13301,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620177,
@@ -13378,7 +13379,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620178,
@@ -13456,7 +13457,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620179,
@@ -13534,7 +13535,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620180,
@@ -13612,7 +13613,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620181,
@@ -13755,7 +13756,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620183,
@@ -13833,7 +13834,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620184,
@@ -13898,7 +13899,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620185,
@@ -14210,7 +14211,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620189,
@@ -14288,7 +14289,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620190,
@@ -14431,7 +14432,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620192,
@@ -14587,7 +14588,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620194,
@@ -14743,7 +14744,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620196,
@@ -14899,7 +14900,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620198,
@@ -14977,7 +14978,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620199,
@@ -15055,7 +15056,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620200,
@@ -15211,7 +15212,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620202,
@@ -15289,7 +15290,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620203,
@@ -15445,7 +15446,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620205,
@@ -15523,7 +15524,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620206,
@@ -15601,7 +15602,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620207,
@@ -15744,7 +15745,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620209,
@@ -15822,7 +15823,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620210,
@@ -15978,7 +15979,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620212,
@@ -16056,7 +16057,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620213,
@@ -16134,7 +16135,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620214,
@@ -16212,7 +16213,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620215,
@@ -16277,7 +16278,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620216,
@@ -16355,7 +16356,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620217,
@@ -16420,7 +16421,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620218,
@@ -16485,7 +16486,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620219,
@@ -16693,7 +16694,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620222,
@@ -16771,7 +16772,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620223,
@@ -16849,7 +16850,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620224,
@@ -16927,7 +16928,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620225,
@@ -17083,7 +17084,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620227,
@@ -17148,7 +17149,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620228,
@@ -17226,7 +17227,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620229,
@@ -17304,7 +17305,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620230,
@@ -17369,7 +17370,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620231,
@@ -17447,7 +17448,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620232,
@@ -17577,7 +17578,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620234,
@@ -17720,7 +17721,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620236,
@@ -17798,7 +17799,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620237,
@@ -17876,7 +17877,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620238,
@@ -17954,7 +17955,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620239,
@@ -18032,7 +18033,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620240,
@@ -18110,7 +18111,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620241,
@@ -18331,7 +18332,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620244,
@@ -18474,7 +18475,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620246,
@@ -18552,7 +18553,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620247,
@@ -18617,7 +18618,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620248,
@@ -18695,7 +18696,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620249,
@@ -18851,7 +18852,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620251,
@@ -18929,7 +18930,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620252,
@@ -19007,7 +19008,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620253,
@@ -19137,7 +19138,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620255,
@@ -19202,7 +19203,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620256,
@@ -19267,7 +19268,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620257,
@@ -19423,7 +19424,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620259,
@@ -19501,7 +19502,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620260,
@@ -19579,7 +19580,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620261,
@@ -19657,7 +19658,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620262,
@@ -19722,7 +19723,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620263,
@@ -19800,7 +19801,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620264,
@@ -19943,7 +19944,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620266,
@@ -20021,7 +20022,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620267,
@@ -20099,7 +20100,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620268,
@@ -20177,7 +20178,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620269,
@@ -20333,7 +20334,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620271,
@@ -20411,7 +20412,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620272,
@@ -20528,7 +20529,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620274,
@@ -20606,7 +20607,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620275,
@@ -20762,7 +20763,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620277,
@@ -20840,7 +20841,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620278,
@@ -20918,7 +20919,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620279,
@@ -20983,7 +20984,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620280,
@@ -21061,7 +21062,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620281,
@@ -21139,7 +21140,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620282,
@@ -21217,7 +21218,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620283,
@@ -21373,7 +21374,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620285,
@@ -21451,7 +21452,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620286,
@@ -21529,7 +21530,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620287,
@@ -21607,7 +21608,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620288,
@@ -21685,7 +21686,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620289,
@@ -21763,7 +21764,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620290,
@@ -21919,7 +21920,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620292,
@@ -22153,7 +22154,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620295,
@@ -22296,7 +22297,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620297,
@@ -22361,7 +22362,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620298,
@@ -22439,7 +22440,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620299,
@@ -22517,7 +22518,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620300,
@@ -22595,7 +22596,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620301,
@@ -22673,7 +22674,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620302,
@@ -22751,7 +22752,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620303,
@@ -22829,7 +22830,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620304,
@@ -22907,7 +22908,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620305,
@@ -22985,7 +22986,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620306,
@@ -23128,7 +23129,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620308,
@@ -23427,7 +23428,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620312,
@@ -23570,7 +23571,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620314,
@@ -23635,7 +23636,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620315,
@@ -23713,7 +23714,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620316,
@@ -23791,7 +23792,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620317,
@@ -23869,7 +23870,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620318,
@@ -24012,7 +24013,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620320,
@@ -24155,7 +24156,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620322,
@@ -24233,7 +24234,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620323,
@@ -24311,7 +24312,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620324,
@@ -24467,7 +24468,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620326,
@@ -24623,7 +24624,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620328,
@@ -24766,7 +24767,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620330,
@@ -24844,7 +24845,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620331,
@@ -24922,7 +24923,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620332,
@@ -25000,7 +25001,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620333,
@@ -25143,7 +25144,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620335,
@@ -25221,7 +25222,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620336,
@@ -25286,7 +25287,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620337,
@@ -25364,7 +25365,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620338,
@@ -25442,7 +25443,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620339,
@@ -25494,7 +25495,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620340,
@@ -25572,7 +25573,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620341,
@@ -25650,7 +25651,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620342,
@@ -25728,7 +25729,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620343,
@@ -25806,7 +25807,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620344,
@@ -25884,7 +25885,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620345,
@@ -25962,7 +25963,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620346,
@@ -26170,7 +26171,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620349,
@@ -26326,7 +26327,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620351,
@@ -26404,7 +26405,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620352,
@@ -26482,7 +26483,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620353,
@@ -26560,7 +26561,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620354,
@@ -26716,7 +26717,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620356,
@@ -26794,7 +26795,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620357,
@@ -26950,7 +26951,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620359,
@@ -27106,7 +27107,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620361,
@@ -27184,7 +27185,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620362,
@@ -27340,7 +27341,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620364,
@@ -27418,7 +27419,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620365,
@@ -27496,7 +27497,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620366,
@@ -27795,7 +27796,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620370,
@@ -27873,7 +27874,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620371,
@@ -28094,7 +28095,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620374,
@@ -28172,7 +28173,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620375,
@@ -28250,7 +28251,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620376,
@@ -28328,7 +28329,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620377,
@@ -28406,7 +28407,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620378,
@@ -28484,7 +28485,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620379,
@@ -28562,7 +28563,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620380,
@@ -28640,7 +28641,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620381,
@@ -28783,7 +28784,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620383,
@@ -28861,7 +28862,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620384,
@@ -28939,7 +28940,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620385,
@@ -29017,7 +29018,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620386,
@@ -29082,7 +29083,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620387,
@@ -29160,7 +29161,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620388,
@@ -29238,7 +29239,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620389,
@@ -29316,7 +29317,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620390,
@@ -29394,7 +29395,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620391,
@@ -29602,7 +29603,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620394,
@@ -29680,7 +29681,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620395,
@@ -29836,7 +29837,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620397,
@@ -29914,7 +29915,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620398,
@@ -29979,7 +29980,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620399,
@@ -30135,7 +30136,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620401,
@@ -30213,7 +30214,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620402,
@@ -30278,7 +30279,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620403,
@@ -30512,7 +30513,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620406,
@@ -30655,7 +30656,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620408,
@@ -30733,7 +30734,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620409,
@@ -30798,7 +30799,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620410,
@@ -30928,7 +30929,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620412,
@@ -31006,7 +31007,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620413,
@@ -31084,7 +31085,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620414,
@@ -31162,7 +31163,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620415,
@@ -31240,7 +31241,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620416,
@@ -31383,7 +31384,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620418,
@@ -31448,7 +31449,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620419,
@@ -31526,7 +31527,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620420,
@@ -31682,7 +31683,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620422,
@@ -31760,7 +31761,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620423,
@@ -31838,7 +31839,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620424,
@@ -31916,7 +31917,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620425,
@@ -31994,7 +31995,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620426,
@@ -32072,7 +32073,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620427,
@@ -32137,7 +32138,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620428,
@@ -32215,7 +32216,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620429,
@@ -32293,7 +32294,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620430,
@@ -32371,7 +32372,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620431,
@@ -32449,7 +32450,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620432,
@@ -32527,7 +32528,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620433,
@@ -32683,7 +32684,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620435,
@@ -32761,7 +32762,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620436,
@@ -32839,7 +32840,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620437,
@@ -32917,7 +32918,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620438,
@@ -32995,7 +32996,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620439,
@@ -33073,7 +33074,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620440,
@@ -33151,7 +33152,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620441,
@@ -33229,7 +33230,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620442,
@@ -33307,7 +33308,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620443,
@@ -33385,7 +33386,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620444,
@@ -33463,7 +33464,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620445,
@@ -33541,7 +33542,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620446,
@@ -33697,7 +33698,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620448,
@@ -33762,7 +33763,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620449,
@@ -33840,7 +33841,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620450,
@@ -33970,7 +33971,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620452,
@@ -34048,7 +34049,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620453,
@@ -34204,7 +34205,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620455,
@@ -34282,7 +34283,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620456,
@@ -34425,7 +34426,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620458,
@@ -34503,7 +34504,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620459,
@@ -34568,7 +34569,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620460,
@@ -34828,7 +34829,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620464,
@@ -34906,7 +34907,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620465,
@@ -35062,7 +35063,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620467,
@@ -35127,7 +35128,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620468,
@@ -35335,7 +35336,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620471,
@@ -35491,7 +35492,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620473,
@@ -35569,7 +35570,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620474,
@@ -35647,7 +35648,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620475,
@@ -35712,7 +35713,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620476,
@@ -35790,7 +35791,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620477,
@@ -35868,7 +35869,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620478,
@@ -35946,7 +35947,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620479,
@@ -36024,7 +36025,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620480,
@@ -36102,7 +36103,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620481,
@@ -36167,7 +36168,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620482,
@@ -36245,7 +36246,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620483,
@@ -36323,7 +36324,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620484,
@@ -36401,7 +36402,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620485,
@@ -36479,7 +36480,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620486,
@@ -36622,7 +36623,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620488,
@@ -36700,7 +36701,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620489,
@@ -36856,7 +36857,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620491,
@@ -36934,7 +36935,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620492,
@@ -37012,7 +37013,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620493,
@@ -37090,7 +37091,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620494,
@@ -37155,7 +37156,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620495,
@@ -37220,7 +37221,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620496,
@@ -37298,7 +37299,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620497,
@@ -37376,7 +37377,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620498,
@@ -37454,7 +37455,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620499,
@@ -37532,7 +37533,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620500,
@@ -37597,7 +37598,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620501,
@@ -37753,7 +37754,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620503,
@@ -37818,7 +37819,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620504,
@@ -37948,7 +37949,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620506,
@@ -38091,7 +38092,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620508,
@@ -38169,7 +38170,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620509,
@@ -38234,7 +38235,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620510,
@@ -38312,7 +38313,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620511,
@@ -38377,7 +38378,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620512,
@@ -38455,7 +38456,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620513,
@@ -38520,7 +38521,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620514,
@@ -38585,7 +38586,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620515,
@@ -38663,7 +38664,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620516,
@@ -38741,7 +38742,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620517,
@@ -38897,7 +38898,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620519,
@@ -38975,7 +38976,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620520,
@@ -39053,7 +39054,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620521,
@@ -39131,7 +39132,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620522,
@@ -39508,7 +39509,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620527,
@@ -39651,7 +39652,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620529,
@@ -39729,7 +39730,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620530,
@@ -39794,7 +39795,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620531,
@@ -39872,7 +39873,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620532,
@@ -40015,7 +40016,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620534,
@@ -40093,7 +40094,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620535,
@@ -40158,7 +40159,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620536,
@@ -40236,7 +40237,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620537,
@@ -40301,7 +40302,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620538,
@@ -40444,7 +40445,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620540,
@@ -40522,7 +40523,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620541,
@@ -40665,7 +40666,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620543,
@@ -40743,7 +40744,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620544,
@@ -40821,7 +40822,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620545,
@@ -40899,7 +40900,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620546,
@@ -40964,7 +40965,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620547,
@@ -41042,7 +41043,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620548,
@@ -41120,7 +41121,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620549,
@@ -41198,7 +41199,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620550,
@@ -41276,7 +41277,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620551,
@@ -41354,7 +41355,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620552,
@@ -41432,7 +41433,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620553,
@@ -41575,7 +41576,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620555,
@@ -41731,7 +41732,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620557,
@@ -41809,7 +41810,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620558,
@@ -41887,7 +41888,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620559,
@@ -41965,7 +41966,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620560,
@@ -42121,7 +42122,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620562,
@@ -42186,7 +42187,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620563,
@@ -42264,7 +42265,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620564,
@@ -42329,7 +42330,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620565,
@@ -42641,7 +42642,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620569,
@@ -42719,7 +42720,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620570,
@@ -42875,7 +42876,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620572,
@@ -43109,7 +43110,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620575,
@@ -43187,7 +43188,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620576,
@@ -43265,7 +43266,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620577,
@@ -43343,7 +43344,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620578,
@@ -43499,7 +43500,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620580,
@@ -43577,7 +43578,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620581,
@@ -43655,7 +43656,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620582,
@@ -43811,7 +43812,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620584,
@@ -43889,7 +43890,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620585,
@@ -43967,7 +43968,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620586,
@@ -44045,7 +44046,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620587,
@@ -44123,7 +44124,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620588,
@@ -44201,7 +44202,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620589,
@@ -44266,7 +44267,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Medium"
     },
     {
       "id": 620590,
@@ -44331,7 +44332,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620591,
@@ -44409,7 +44410,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620592,
@@ -44487,7 +44488,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Hard"
+      "difficultyBand": "Easy"
     },
     {
       "id": 620593,
@@ -44565,7 +44566,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620594,
@@ -44643,7 +44644,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2000,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620595,
@@ -44721,7 +44722,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620596,
@@ -44799,7 +44800,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 1990,
-      "difficultyBand": "Medium"
+      "difficultyBand": "Hard"
     },
     {
       "id": 620597,
@@ -45033,7 +45034,7 @@ window.PLAYER_FROM_CLUES_V01 = {
       "finalCandidateCount": 1,
       "qaStatus": "PASSED",
       "decade": 2010,
-      "difficultyBand": "Easy"
+      "difficultyBand": "Hard"
     }
   ]
 };

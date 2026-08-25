@@ -75,9 +75,10 @@ def evaluate(c, raw, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     team = b1["team_display_name"]
+    team_poss = common.possessive(team)
     season1, season2 = b1["season"], b2["season"]
     question = (
-        f"Between the {team}'s {season1} and {season2} Super Bowl-winning starting offenses, one "
+        f"Between the {team_poss} {season1} and {season2} Super Bowl-winning starting offenses, one "
         f"position's starting college changed. Which position?"
     )
     if guard.question_seen(question):
@@ -91,7 +92,7 @@ def evaluate(c, raw, rng, guard):
         return "INVALID_CORRECT_INDEX"
 
     notes = (
-        f"The {team}'s {correct_position} went from {b1['positions'][correct_position]} in {season1} to "
+        f"The {team_poss} {correct_position} went from {b1['positions'][correct_position]} in {season1} to "
         f"{b2['positions'][correct_position]} in {season2}; the other 3 options' colleges stayed the same "
         f"across both championships."
     )

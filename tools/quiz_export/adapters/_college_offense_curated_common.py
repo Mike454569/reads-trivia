@@ -22,6 +22,17 @@ from __future__ import annotations
 POSITIONS = ("LT", "LG", "C", "RG", "RT", "WR1", "QB", "WR2", "WR3", "RB", "TE")
 
 
+def possessive(name: str) -> str:
+    """Grammatically correct possessive for a team display name -- real
+    polish fix: every one of these curated adapters previously wrote
+    f"{team}'s", which reads as "49ers's"/"Steelers's" for the (very
+    common, real NFL franchise names) that already end in 's'. Standard
+    English style adds only an apostrophe for a plural noun already ending
+    in 's' ("49ers'", "Steelers'"), and "'s" otherwise ("Colts's" would be
+    wrong too -- "Colts'" for the same reason)."""
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
 def all_colleges(c) -> list[str]:
     """Every distinct real college appearing anywhere in the curated
     dataset (both board types combined) -- the plausible-distractor pool for

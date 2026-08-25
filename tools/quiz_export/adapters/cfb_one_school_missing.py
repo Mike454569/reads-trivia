@@ -58,8 +58,9 @@ def evaluate(c, board, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     team, season = board["team_display_name"], board["season"]
+    team_poss = common.possessive(team)
     question = (
-        f"Here are {len(shown_colleges)} of the colleges from the {season} {team}'s Super Bowl-winning "
+        f"Here are {len(shown_colleges)} of the colleges from the {season} {team_poss} Super Bowl-winning "
         f"starting offense: {', '.join(shown_colleges)}. Which real college from that offense is missing?"
     )
     if guard.question_seen(question):
@@ -72,7 +73,7 @@ def evaluate(c, board, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_college:
         return "INVALID_CORRECT_INDEX"
 
-    notes = f"{correct_college} was the missing college from the {season} {team}'s starting offense."
+    notes = f"{correct_college} was the missing college from the {season} {team_poss} starting offense."
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,

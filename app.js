@@ -1076,7 +1076,15 @@ var MODE_DATA_FILES = {
   silhouette: ['data/silhouette.js'],
   cfbSpeed: ['data/cfb-speed.js'],
   legends: ['data/legends.js', 'data/legends-meta.js'],
-  cfbLegends: ['data/cfb-legends.js', 'data/cfb-legends-meta.js']
+  cfbLegends: ['data/cfb-legends.js', 'data/cfb-legends-meta.js'],
+  // Real page-weight fix: player-from-clues-v01.js grew from ~60KB (25
+  // puzzles) to ~1.4MB (600 puzzles, real decade/difficulty data) this
+  // pass -- it and its CFB counterpart were being loaded eagerly via a
+  // plain <script> tag on EVERY page visit (see index.html), even for
+  // users who never open either mode. Moved to the same on-demand lazy-load
+  // path every other mode's data file already uses.
+  playerClues: ['data/player-from-clues-v01.js'],
+  cfbPlayerClues: ['data/cfb-player-from-clues-v01.js']
 };
 var loadedScripts = {};
 var loadingScripts = {};
@@ -1133,6 +1141,12 @@ function refreshDataAliases() {
   HL_RETURNS = window.HL_RETURNS || HL_RETURNS;
   HL_CONTRACTS = window.HL_CONTRACTS || HL_CONTRACTS;
   HL_STADIUMS = window.HL_STADIUMS || HL_STADIUMS;
+  // Unlike the simple window.X || X aliases above, these two run real
+  // validation (validatePlayerCluesPackage) -- re-run on every call (cheap,
+  // idempotent) so a lazy-loaded player-from-clues file is actually picked
+  // up the first time this mode is entered, not just at initial page load.
+  if (typeof initPlayerCluesPackage === 'function') initPlayerCluesPackage();
+  if (typeof initCfbPlayerCluesPackage === 'function') initCfbPlayerCluesPackage();
 }
 function enterMode(mode) {
   // Leaving an in-progress head-to-head match for anywhere else — stop its
@@ -8956,6 +8970,8 @@ function renderAll() {
   if (silhouetteInput) { silhouetteInput.focus(); silhouetteInput.setSelectionRange(silhouetteInput.value.length, silhouetteInput.value.length); specificFocusHandled = true; }
   var cluesInput = document.getElementById('clues-input');
   if (cluesInput) { cluesInput.focus(); cluesInput.setSelectionRange(cluesInput.value.length, cluesInput.value.length); specificFocusHandled = true; }
+  var cfbCluesInput = document.getElementById('cfb-clues-input');
+  if (cfbCluesInput) { cfbCluesInput.focus(); cfbCluesInput.setSelectionRange(cfbCluesInput.value.length, cfbCluesInput.value.length); specificFocusHandled = true; }
   // The Learn filter box re-renders the whole table on every keystroke
   // (see the 'input' listener above) — without this, the innerHTML replace
   // would steal focus after the very first character typed.
@@ -9459,7 +9475,7 @@ document.addEventListener('click', function (e) {
 // (which shrinks the layout viewport instead of letting the keyboard just
 // overlay it) rather than replacing it — belt and suspenders, since browser
 // support for that meta value still varies.
-var MOBILE_KEYBOARD_INPUT_IDS = ['grid-input', 'cfb-grid-input', 'blitz-input', 'cfb-blitz-input', 'silhouette-input', 'clues-input', 'sixdegrees-search-input'];
+var MOBILE_KEYBOARD_INPUT_IDS = ['grid-input', 'cfb-grid-input', 'blitz-input', 'cfb-blitz-input', 'silhouette-input', 'clues-input', 'cfb-clues-input', 'sixdegrees-search-input'];
 document.addEventListener('focus', function (e) {
   if (MOBILE_KEYBOARD_INPUT_IDS.indexOf(e.target.id) === -1) return;
   if (!window.matchMedia || !window.matchMedia('(pointer: coarse)').matches) return;
@@ -9488,6 +9504,12 @@ document.addEventListener('input', function (e) {
   if (e.target.id === 'cfb-blitz-input') { state.cfbBlitz.input = e.target.value; return; }
   if (e.target.id === 'silhouette-input') { state.silhouette.input = e.target.value; renderTypeahead('silhouette-input'); return; }
   if (e.target.id === 'clues-input') { state.playerClues.input = e.target.value; renderTypeahead('clues-input'); return; }
+  // Real bug found: this CFB counterpart was missing entirely -- typing in
+  // the CFB Player From Clues box never updated state.cfbPlayerClues.input
+  // (stuck at '' forever) and never rendered the typeahead dropdown, so a
+  // player could type a name but Guess always submitted an empty string and
+  // no suggestion list ever appeared to pick from.
+  if (e.target.id === 'cfb-clues-input') { state.cfbPlayerClues.input = e.target.value; renderTypeahead('cfb-clues-input'); return; }
   if (e.target.id === 'sixdegrees-search-input') { sixDegreesOnSearchInput(e.target.value); return; }
   // Unlike the inputs above (which only read their value on submit, no
   // re-render per keystroke), the Learn filter box needs to narrow the
@@ -9565,6 +9587,7 @@ document.addEventListener('keydown', function (e) {
   else if (e.target.id === 'cfb-blitz-input') { submitCfbBlitzGuess(); }
   else if (e.target.id === 'silhouette-input') { if (!typeaheadPickActive('silhouette-input')) submitSilhouetteGuess(); }
   else if (e.target.id === 'clues-input') { if (!typeaheadPickActive('clues-input')) submitPlayerCluesGuess(); }
+  else if (e.target.id === 'cfb-clues-input') { if (!typeaheadPickActive('cfb-clues-input')) submitCfbPlayerCluesGuess(); }
   else if (e.target.id === 'sixdegrees-search-input') { sixDegreesPickTopResult(); }
   else if (e.target.id === 'auth-username-input' || e.target.id === 'auth-password-input') { authModalSubmit(); }
   else if (e.target.id === 'friend-name-input') { addFriend(e.target.value); }

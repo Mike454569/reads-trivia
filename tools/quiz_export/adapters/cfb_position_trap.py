@@ -76,8 +76,9 @@ def evaluate(c, board, rng, guard):
     altered = [{"position": p, "college": swapped_positions[p]} for p in common.POSITIONS]
 
     team, season = board["team_display_name"], board["season"]
+    team_poss = common.possessive(team)
     question = (
-        f"Below is the {season} {team}'s real Super Bowl-winning starting offense by position and "
+        f"Below is the {season} {team_poss} real Super Bowl-winning starting offense by position and "
         f"college -- except two positions' colleges have been swapped with each other. Which two positions?"
     )
     if guard.question_seen(question):

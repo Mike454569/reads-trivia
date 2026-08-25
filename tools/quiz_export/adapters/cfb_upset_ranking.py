@@ -141,11 +141,16 @@ def evaluate(c, row, rng, guard):
     if len(set(options)) != 4:
         return "DUPLICATE_OPTIONS"
 
-    rank_phrase = f"the AP No. {loser_rank}" if loser_rank else "a ranked"
+    rank_phrase = f"AP No. {loser_rank}" if loser_rank else "ranked"
     season, week = row["season"], row["week"]
+    # Real content bug found by actually playing this mode: the question
+    # used to cite the loser's rank NUMBER ("the AP No. 5 team") without
+    # ever naming which real team that was -- a player had no way to
+    # identify the actual ranked team being asked about. Now names it
+    # directly.
     question = (
-        f"In a real college football game in Week {week} of the {season} season, an unranked or "
-        f"lower-ranked team beat {rank_phrase} team. Which team pulled the upset?"
+        f"In Week {week} of the {season} college football season, {rank_phrase} {loser_name} lost to an "
+        f"unranked or lower-ranked team. Which team pulled the upset?"
     )
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"

@@ -58,8 +58,9 @@ def evaluate(c, board, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     team, season = board["team_display_name"], board["season"]
+    team_poss = common.possessive(team)
     question = (
-        f"In the {season} {team}'s Super Bowl-winning starting offense, one college is repeated across "
+        f"In the {season} {team_poss} Super Bowl-winning starting offense, one college is repeated across "
         f"multiple positions. Which one?"
     )
     if guard.question_seen(question):
@@ -72,7 +73,7 @@ def evaluate(c, board, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_college:
         return "INVALID_CORRECT_INDEX"
 
-    notes = f"{correct_college} appears {counts[correct_college]} times in the {season} {team}'s starting offense."
+    notes = f"{correct_college} appears {counts[correct_college]} times in the {season} {team_poss} starting offense."
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,

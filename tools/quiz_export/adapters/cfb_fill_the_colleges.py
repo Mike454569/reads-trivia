@@ -56,7 +56,8 @@ def evaluate(c, raw, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     team, season = board["team_display_name"], board["season"]
-    question = f"In the {season} {team}'s Super Bowl-winning starting offense, which college did the {position} attend?"
+    team_poss = common.possessive(team)
+    question = f"In the {season} {team_poss} Super Bowl-winning starting offense, which college did the {position} attend?"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
     entity_key = f"cfb_fill_the_colleges:{board['board_id']}:{position}"
@@ -67,7 +68,7 @@ def evaluate(c, raw, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_college:
         return "INVALID_CORRECT_INDEX"
 
-    notes = f"The {team}'s {season} starting {position} attended {correct_college}."
+    notes = f"The {team_poss} {season} starting {position} attended {correct_college}."
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,

@@ -62,8 +62,9 @@ def evaluate(c, board, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     team, season = board["team_display_name"], board["season"]
+    team_poss = common.possessive(team)
     question = (
-        f"Three of these four colleges were part of the {season} {team}'s Super Bowl-winning starting "
+        f"Three of these four colleges were part of the {season} {team_poss} Super Bowl-winning starting "
         f"offense. Which one was NOT?"
     )
     if guard.question_seen(question):
@@ -77,7 +78,7 @@ def evaluate(c, board, rng, guard):
         return "INVALID_CORRECT_INDEX"
 
     notes = (
-        f"{fake_college} was NOT part of the {season} {team}'s Super Bowl-winning starting offense; the "
+        f"{fake_college} was NOT part of the {season} {team_poss} Super Bowl-winning starting offense; the "
         f"other three colleges shown were real, curated colleges from that lineup."
     )
 

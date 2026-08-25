@@ -1520,7 +1520,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
         "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 52,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Real, measured: the curated SB_CHAMPION dataset's own Diff column
+        # (the workbook author's real per-team difficulty labels) has zero
+        # real "HARD" boards (39 Easy / 21 Medium of 60) -- "hard" removed
+        # rather than declared and silently returning 0 results, same
+        # discipline public_game.py's own draft_guess/championship_guess
+        # already follow for their own real-zero bands.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset({"franchise_name", "era_gauntlet"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 932000,
     },
@@ -1541,7 +1547,9 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE --
+        # this shares the exact same underlying board-level Diff column.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 933000,
     },
@@ -1554,7 +1562,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 100,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 934000,
     },
@@ -1567,7 +1576,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
         "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 935000,
     },
@@ -1582,7 +1592,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
         "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 18,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 936000,
     },
@@ -1595,7 +1606,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
         "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 937000,
     },
@@ -1609,7 +1621,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position_pair",
         "answer_type": "position_pair", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 938000,
     },
@@ -1623,7 +1636,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 27,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 939000,
     },
@@ -1636,7 +1650,8 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 940000,
     },
