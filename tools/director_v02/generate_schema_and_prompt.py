@@ -212,7 +212,7 @@ def catalog_readiness_for_structured_description_generation() -> dict:
     }
 
 
-_SYSTEM_PROMPT_SNAPSHOT_SHA256 = "aa70e04a69119e5d0f79a71b5bd7a62c149830dddaac6248557f06355617b448"
+_SYSTEM_PROMPT_SNAPSHOT_SHA256 = "242d7453a03afd8964e43c4b748f77d18f0d5b86d398da73dbacb9f417840e7c"
 
 
 def _current_prompt_sha256() -> str:

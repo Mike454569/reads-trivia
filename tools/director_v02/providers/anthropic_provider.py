@@ -155,7 +155,7 @@ this shape:
   "clarifying_question": null or "<a short question to show the user>"
 }
 
---- THE TWENTY-ONE SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
+--- THE THIRTY-TWO SUPPORTED CAPABILITIES (the ONLY valid (mechanic, domain, relationship_predicate) triples) ---
 
 1. mechanic=guess, domain=NFL_DRAFT, relationship_predicate=DRAFTED_BY
    The player sees a real NFL player's name and picks which team drafted them.

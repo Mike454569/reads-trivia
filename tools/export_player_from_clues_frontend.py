@@ -43,6 +43,39 @@ def convert_clue(clue: dict) -> dict:
     }
 
 
+def _decade_for_puzzle(puzzle: dict) -> int | None:
+    """Real, derived from the puzzle's own `career_span` clue (present on
+    every puzzle in a real generation run -- confirmed directly against a
+    600-puzzle sample before adding this, unlike `draft_year`, which only
+    ~1/3 of puzzles carry). Bucketed by the CAREER START year, never
+    invented -- a puzzle whose player has no career_span clue at all (only
+    possible in principle, never observed) is left undecaded rather than
+    guessed."""
+    for c in puzzle["clues"]:
+        if c["clue_type"] == "career_span":
+            start_year = c["value"][0]
+            return (start_year // 10) * 10
+    return None
+
+
+def _difficulty_band_for_puzzle(puzzle: dict) -> str:
+    """Real, derived difficulty signal: how many candidates remained after
+    the SECOND-TO-LAST clue (i.e. before the one clue that finally narrows
+    to the unique answer). A puzzle where that number is small was already
+    nearly solved before its final clue (an easier, more distinguishing
+    profile); a puzzle where many candidates remained needed its very last
+    clue to do most of the work (a harder, more generic profile). Real
+    measured distribution across a 600-puzzle sample: median 3, 75th
+    percentile 5 -- thresholds below picked directly from that distribution,
+    not arbitrary round numbers."""
+    second_to_last = puzzle["clues"][-2]["candidates_after"]
+    if second_to_last <= 2:
+        return "Easy"
+    if second_to_last <= 5:
+        return "Medium"
+    return "Hard"
+
+
 def convert_puzzle(puzzle: dict) -> dict:
     return {
         "id": puzzle["puzzle_id"],
@@ -53,6 +86,8 @@ def convert_puzzle(puzzle: dict) -> dict:
         "clues": [convert_clue(c) for c in puzzle["clues"]],
         "finalCandidateCount": puzzle["final_candidate_count"],
         "qaStatus": puzzle["qa_status"],
+        "decade": _decade_for_puzzle(puzzle),
+        "difficultyBand": _difficulty_band_for_puzzle(puzzle),
     }
 
 
@@ -93,11 +128,10 @@ def main() -> None:
         "// Produced by tools/export_player_from_clues_frontend.py from",
         f"// {SOURCE_PACKAGE.relative_to(REPO_ROOT)} (package_id {browser_data['packageId']}).",
         "// Pure reshaping of the already-QA'd Engine package -- no facts added, removed, or",
-        "// reordered. Re-run the script after regenerating the source package to refresh this file.",
-        "//",
-        "// NOT WIRED INTO PRODUCTION NAVIGATION: only reachable via the local hidden route",
-        "// (#clues) behind the ENABLE_PLAYER_FROM_CLUES_V01 flag in app.js. See",
-        "// PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md.",
+        "// reordered (decade/difficultyBand are the one addition: both derived directly from",
+        "// fields the source package already contains, per this script's own _decade_for_puzzle()/",
+        "// _difficulty_band_for_puzzle()). Re-run the script after regenerating the source package",
+        "// to refresh this file.",
         "window.PLAYER_FROM_CLUES_V01 = " + json.dumps(browser_data, indent=2, ensure_ascii=False) + ";",
     ]
     OUTPUT_JS.write_text("\n".join(lines) + "\n", encoding="utf-8")

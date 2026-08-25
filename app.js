@@ -352,6 +352,7 @@ var state = {
   speed: null,
   silhouette: null,
   playerClues: null,
+  playerCluesFilter: { decade: 'any', difficulty: 'any' },
   cfbPlayerClues: null,
   enginePilot: null,
   mechanicPilot: null,
@@ -4452,6 +4453,31 @@ function playerCluesAnswerPool() {
   });
   return out;
 }
+function playerCluesAvailableDecades() {
+  // Real, derived from whatever decades this exact package actually
+  // contains -- never a hardcoded list that could silently drift out of
+  // sync with the data (see tools/export_player_from_clues_frontend.py's
+  // _decade_for_puzzle()).
+  if (!PLAYER_CLUES_PACKAGE) return [];
+  var seen = {}, out = [];
+  PLAYER_CLUES_PACKAGE.puzzles.forEach(function (p) {
+    if (p.decade != null && !seen[p.decade]) { seen[p.decade] = true; out.push(p.decade); }
+  });
+  return out.sort(function (a, b) { return a - b; });
+}
+function playerCluesFilteredPuzzles() {
+  if (!PLAYER_CLUES_PACKAGE) return [];
+  var f = state.playerCluesFilter;
+  return PLAYER_CLUES_PACKAGE.puzzles.filter(function (p) {
+    if (f.decade !== 'any' && p.decade !== f.decade) return false;
+    if (f.difficulty !== 'any' && p.difficultyBand !== f.difficulty) return false;
+    return true;
+  });
+}
+function setPlayerCluesFilter(key, value) {
+  state.playerCluesFilter[key] = value;
+  renderAll();
+}
 function loadPlayerCluesItem() {
   var s = state.playerClues;
   s.revealedCount = 1; // clue #1 visible immediately, per Step 4
@@ -4462,7 +4488,9 @@ function loadPlayerCluesItem() {
 }
 function startPlayerCluesRound() {
   if (!PLAYER_CLUES_PACKAGE) return;
-  state.playerClues = { queue: PLAYER_CLUES_PACKAGE.puzzles.slice(), index: 0, correctCount: 0, results: [], screen: 'round' };
+  var pool = playerCluesFilteredPuzzles();
+  if (!pool.length) return; // Start button is disabled in this state, but never proceed on 0 matches
+  state.playerClues = { queue: pool.slice(), index: 0, correctCount: 0, results: [], screen: 'round' };
   loadPlayerCluesItem();
   state.screen = 'playerClues';
   renderAll();
@@ -4535,11 +4563,29 @@ function renderPlayerCluesSetup() {
       esc(PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
       '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
+  var f = state.playerCluesFilter;
+  var decades = playerCluesAvailableDecades();
+  var difficulties = ['Easy', 'Medium', 'Hard'];
+  var matchCount = playerCluesFilteredPuzzles().length;
   return '<div class="panel">' +
     '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
     '<p class="mode-desc">' + esc(PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
     '<p class="mode-desc">' + PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack. Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
-    '<div class="btn-row"><button class="btn-primary" data-clues-start>Start</button></div>' +
+    '<div class="chip-row" role="group" aria-label="Filter by decade">' +
+    '<button class="chip-toggle' + (f.decade === 'any' ? ' active' : '') + '" data-clues-filter-decade="any">Any Decade</button>' +
+    decades.map(function (d) {
+      return '<button class="chip-toggle' + (f.decade === d ? ' active' : '') + '" data-clues-filter-decade="' + d + '">' + d + 's</button>';
+    }).join('') +
+    '</div>' +
+    '<div class="chip-row" role="group" aria-label="Filter by difficulty">' +
+    '<button class="chip-toggle' + (f.difficulty === 'any' ? ' active' : '') + '" data-clues-filter-difficulty="any">Any Difficulty</button>' +
+    difficulties.map(function (d) {
+      return '<button class="chip-toggle' + (f.difficulty === d ? ' active' : '') + '" data-clues-filter-difficulty="' + d + '">' + d + '</button>';
+    }).join('') +
+    '</div>' +
+    (matchCount ? '<p class="mode-desc">' + matchCount + ' puzzle' + (matchCount === 1 ? '' : 's') + ' match this filter.</p>'
+      : '<p class="mode-desc blitz-feedback wrong">No puzzles match this combination — try a different decade or difficulty.</p>') +
+    '<div class="btn-row"><button class="btn-primary" data-clues-start' + (matchCount ? '' : ' disabled') + '>Start</button></div>' +
     '</div>';
 }
 function renderPlayerCluesRound() {
@@ -5063,9 +5109,25 @@ function legendsPerfectScore() {
   var byPos = { QB: [], RB: [], WR: [], TE: [] };
   LEGENDS_TEAMS.forEach(function (t) { t.players.forEach(function (p) { if (byPos[p.position]) byPos[p.position].push(p.fppg); }); });
   Object.keys(byPos).forEach(function (k) { byPos[k].sort(function (a, b) { return b - a; }); });
-  var maxQB = byPos.QB[0] || 25, maxRB = byPos.RB[0] || 22, maxWR = byPos.WR[0] || 22, maxTE = byPos.TE[0] || 18;
-  var maxFlex = Math.max(byPos.RB[1] || maxRB, byPos.WR[1] || maxWR, maxTE);
-  LEGENDS_PERFECT_SCORE = maxQB + maxRB * 2 + maxWR * 2 + maxTE + maxFlex + 14;
+  // Real fix: the old formula summed the single #1 all-time FPPG at every
+  // slot (QB/RB/RB/WR/WR/TE/FLEX, with FLEX pulling yet another #1-or-#2)
+  // plus a flat +14 chemistry bonus assumed for free. Every one of those
+  // values can come from a different, unconnected real team-season, and the
+  // draft is 7 rounds of a single random roll each (only 1 team re-roll + 1
+  // year re-roll total) -- landing on the literal all-time #1 at every slot
+  // in one session is astronomically improbable, making 17-0 effectively
+  // unreachable (reported directly by the project owner after playing).
+  // Using the 3rd-best (not #1) at each slot as the "elite tier" reference
+  // -- there are 3 real chances to roll into that tier across the pool
+  // instead of exactly 1 -- and a smaller, real +6 chemistry estimate
+  // (2-3 genuine bonus pairs, not an assumed maximum) brings the ceiling
+  // down to something a skilled, lucky run can actually clear.
+  var maxQB = byPos.QB[2] || byPos.QB[0] || 25;
+  var maxRB = byPos.RB[2] || byPos.RB[0] || 22;
+  var maxWR = byPos.WR[2] || byPos.WR[0] || 22;
+  var maxTE = byPos.TE[2] || byPos.TE[0] || 18;
+  var maxFlex = Math.max(byPos.RB[3] || maxRB, byPos.WR[3] || maxWR, maxTE);
+  LEGENDS_PERFECT_SCORE = maxQB + maxRB * 2 + maxWR * 2 + maxTE + maxFlex + 6;
   return LEGENDS_PERFECT_SCORE;
 }
 function legendsRollEntry() { return LEGENDS_TEAMS[Math.floor(Math.random() * LEGENDS_TEAMS.length)]; }
@@ -9042,6 +9104,7 @@ document.addEventListener('click', function (e) {
     '[data-hl-start], [data-hl-guess], [data-hl-continue], [data-hl-stat], [data-hl-category], ' +
     '[data-silhouette-start], [data-silhouette-submit], [data-silhouette-hint], [data-silhouette-giveup], [data-silhouette-next], ' +
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
+    '[data-clues-filter-decade], [data-clues-filter-difficulty], ' +
     '[data-cfb-clues-start], [data-cfb-clues-submit], [data-cfb-clues-hint], [data-cfb-clues-giveup], [data-cfb-clues-next], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
@@ -9270,6 +9333,11 @@ document.addEventListener('click', function (e) {
   if (t.dataset.silhouetteHint !== undefined) { revealSilhouetteClue(); return; }
   if (t.dataset.silhouetteGiveup !== undefined) { giveUpSilhouette(); return; }
   if (t.dataset.silhouetteNext !== undefined) { advanceSilhouette(); return; }
+  if (t.dataset.cluesFilterDecade !== undefined) {
+    var decadeVal = t.dataset.cluesFilterDecade === 'any' ? 'any' : parseInt(t.dataset.cluesFilterDecade, 10);
+    setPlayerCluesFilter('decade', decadeVal); return;
+  }
+  if (t.dataset.cluesFilterDifficulty !== undefined) { setPlayerCluesFilter('difficulty', t.dataset.cluesFilterDifficulty); return; }
   if (t.dataset.cluesStart !== undefined) { startPlayerCluesRound(); return; }
   if (t.dataset.cluesSubmit !== undefined) { submitPlayerCluesGuess(); return; }
   if (t.dataset.cluesHint !== undefined) { revealPlayerCluesClue(); return; }

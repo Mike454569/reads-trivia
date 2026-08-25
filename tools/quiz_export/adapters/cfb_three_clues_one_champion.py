@@ -73,9 +73,11 @@ def evaluate(c, board, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_text:
         return "INVALID_CORRECT_INDEX"
 
+    # Never include the real season in visual_payload -- see
+    # sb_champion_offense_college.py's own comment for the real gameplay
+    # bug this avoids (season is half the answer here).
     visual_payload = {
         "positions": [{"position": p, "college": positions[p]} for p in clue_positions],
-        "season": board["season"],
     }
     notes = f"The {correct_text} won the Super Bowl -- these 3 clues are real colleges from its starting offense."
 

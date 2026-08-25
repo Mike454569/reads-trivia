@@ -142,9 +142,16 @@ def evaluate(c, board, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_text:
         return "INVALID_CORRECT_INDEX"
 
+    # Never include the real season in visual_payload -- season IS half of
+    # the answer here (a real gameplay bug caught by the project owner
+    # actually playing this mode: showing the year lets a player look up
+    # "who won the Super Bowl that year" instead of reading the colleges,
+    # defeating the whole puzzle). The `_audit` block below still records it
+    # for QA/telemetry -- that stays server-side, never serialized into the
+    # player-facing payload (see gateway/services/public_game.py, which
+    # passes `visual_payload` straight through to /v1/public/game).
     visual_payload = {
         "positions": [{"position": p, "college": positions[p]} for p in common.POSITIONS],
-        "season": board["season"],
     }
     notes = (
         f"The {correct_text} won the Super Bowl with this starting offense, shown by position and real "
