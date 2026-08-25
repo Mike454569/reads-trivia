@@ -28,11 +28,16 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import config
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+from tools.director_v02.package_contract import validate_package_contract  # noqa: E402
 
 PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|10)?:[0-9a-f]{24}$")
 
@@ -101,6 +106,22 @@ def save_package(package: dict, *, review_status: str = "GENERATED") -> dict:
     # silently inherits the older per-package convention.
     record["review_status"] = review_status
     record["gateway_stored_at"] = datetime.now(timezone.utc).isoformat()
+
+    # P0 Accuracy + Reliability Hardening pass: a SECOND, independent check
+    # that doesn't trust the qa_status field checked above. qa_status is
+    # whatever the generator itself computed -- correct for every generator
+    # audited this pass, but a future/buggy generator setting qa_status=
+    # "PASSED" unconditionally would sail through the check above with an
+    # empty or malformed package. validate_package_contract() inspects the
+    # actual package content (real non-empty question/puzzle list, no
+    # duplicate-answer accidents, answer matches the marked-correct option,
+    # review_status/qa_status genuinely populated) and refuses to persist
+    # anything it flags, regardless of what qa_status claims.
+    contract_violations = validate_package_contract(record)
+    if contract_violations:
+        raise ValueError(
+            f"package failed the global supported-game contract, refusing to persist: {contract_violations}"
+        )
 
     with _write_lock:
         if path.exists():

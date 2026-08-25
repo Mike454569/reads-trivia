@@ -1,7 +1,7 @@
 """Tests for the Rivalry Data + Gold Standard Content Integration operation:
 - CFB Rivalry Trivia (curated 1,272-question bank, 43 real rivalry packs)
 - NFL Offense by College, curated (32 current teams, all 11 positions)
-- Super Bowl Champion Offense by College (60 real champions, 1967-2026)
+- Super Bowl Champion Offense by College (60 real champions, 1966-2025 seasons)
 - 8 additional Gold Standard "10. New Game Modes" P0 concepts built on the
   same curated Super Bowl champion data (Odd College Out, Fill the Colleges,
   Spot the Fake Lineup, Who Changed?, Three Clues One Champion, Position
@@ -96,7 +96,16 @@ def test_curated_offense_board_counts():
     assert positions == (32 + 60) * 11
 
 
-def test_sb_champion_seasons_span_1967_to_2026_with_no_gaps():
+def test_sb_champion_seasons_span_1966_to_2025_with_no_gaps():
+    # P0 Accuracy + Reliability Hardening pass: this range (and the test's
+    # own former name) reflected a real, confirmed off-by-one-year bug in
+    # the curated workbook's season labeling -- SB I capped the 1966
+    # season (played Jan 1967), not "1967". Cross-verified against
+    # nfl_championship_events (an independently Wikipedia-sourced table):
+    # paired positionally in chronological order, all 60 rows now match
+    # exactly (season AND winner name), 0 mismatches. See the fix in
+    # curated_nfl_offense_college_board (season = season - 1 for every
+    # SB_CHAMPION row).
     c = engine.connect()
     seasons = sorted(
         r["season"] for r in c.execute(
@@ -104,7 +113,7 @@ def test_sb_champion_seasons_span_1967_to_2026_with_no_gaps():
         ).fetchall()
     )
     c.close()
-    assert seasons == list(range(1967, 2027))
+    assert seasons == list(range(1966, 2026))
 
 
 # --- No player names on any offense-by-college board ------------------------

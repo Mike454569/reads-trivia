@@ -55,10 +55,21 @@ _DIFF_MAP = {"EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"}
 
 def safety_check(c) -> dict:
     from .. import safety
-    return safety.check_verification_status_safety(
+    result = safety.check_verification_status_safety(
         c, "curated_nfl_offense_college_board", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
         where_extra=f"board_type = '{BOARD_TYPE}'",
     )
+    # P0 Accuracy + Reliability Hardening pass (Section 5): unlike every
+    # other verification_status check above (which only ever asks "was
+    # this row imported correctly"), current-team roster data also needs a
+    # FRESHNESS answer -- "is this snapshot still likely true". Additive:
+    # never changes whether generation proceeds today (this is a real,
+    # visible signal for an operator/audit script to act on, not yet wired
+    # to block generation -- see roster_freshness.py's own module
+    # docstring for why a hard auto-quarantine wasn't built this pass).
+    from tools.director_v02 import roster_freshness
+    result["roster_freshness"] = roster_freshness.freshness_report()
+    return result
 
 
 def fetch_ordered_candidates(c, seed: str):

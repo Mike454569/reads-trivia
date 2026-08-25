@@ -177,7 +177,15 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         # Bounds/support this specific capability actually implements.
         "min_question_count": 1,
         "max_question_count": 100,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        # P0 Accuracy + Reliability Hardening pass: real-generation audit
+        # (target_count=5000 per band) found 0 real "easy" candidates for
+        # this capability -- the same real 0/232 gap public_game.py's own
+        # draft_guess entry already discloses ("0 'Easy' candidates ...
+        # deliberately absent from both, not an oversight"), just not yet
+        # reflected here in the internal registry a Creator admin request
+        # actually reads. Removed rather than left to silently return an
+        # empty package.
+        "supported_difficulties": frozenset({"any", "medium", "hard"}),
         "supports_difficulty_filter": True,  # Engine-side post-filter on the adapter's own
                                               # already-computed difficulty_band; never invented.
         "supported_filter_keys": frozenset(),  # none yet
@@ -248,7 +256,11 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "group_size": 4,
         "min_question_count": 1,
         "max_question_count": 100,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        # P0 Accuracy + Reliability Hardening pass: real-generation audit
+        # found 0 real "easy" candidates -- the same real 0/296 gap
+        # public_game.py's own championship_guess entry already discloses,
+        # not yet reflected in this internal registry entry. Removed.
+        "supported_difficulties": frozenset({"any", "medium", "hard"}),
         "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(),
         "supports_exclusions": False,
@@ -756,7 +768,12 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "group_size": 4,
         "min_question_count": 1,
         "max_question_count": 100,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
+        # P0 Accuracy + Reliability Hardening pass: real-generation audit
+        # (full, unfiltered "any" universe measured directly: 50 total real
+        # candidates, Easy 28 / Medium 22 / Hard 0) found zero real Hard-
+        # banded candidates for this capability -- a "hard" request silently
+        # returned 0 questions. Removed rather than left to silently fail.
+        "supported_difficulties": frozenset({"any", "easy", "medium"}),
         "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(),
         "supports_exclusions": False,
@@ -1367,7 +1384,12 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "CFB", "entity_type": "cfb_transfer_player", "object_type": "ordered_path", "answer_type": "ordered_path",
         "group_size": 4, "min_question_count": 1, "max_question_count": 12,
-        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        # P0 Accuracy + Reliability Hardening pass: real-generation audit
+        # (full, unfiltered "any" universe: 11 total real candidates, all
+        # 11 Easy, 0 Medium, 0 Hard -- consistent with the 12-real-player
+        # pool already disclosed above) found "medium"/"hard" both silently
+        # returned 0 questions. Removed both.
+        "supported_difficulties": frozenset({"any", "easy"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-transfer-path"], "pipeline_id_start": 918000,
     },

@@ -264,8 +264,11 @@ _UPSET_PHRASE_RE = re.compile(
     r"ranked.{0,20}(lost|fell to)|lost.{0,25}(who beat|guess who beat)"
 )
 
-_TOUCHDOWN_WORDS = {"touchdown", "touchdowns"}
-_SCORED_FIRST_RE = re.compile(r"scored the first|first (touchdown|score)|touchdown scorer|who scored")
+_TOUCHDOWN_WORDS = {"touchdown", "touchdowns", "tuddy", "tuddies", "td"}
+# P0 Accuracy + Reliability Hardening pass: "tuddy" is real, common NFL fan
+# slang for "touchdown" ("who got the first tuddy") -- previously
+# unrecognized, silently fell through to NO_MATCH.
+_SCORED_FIRST_RE = re.compile(r"scored the first|first (touchdown|score|td|tuddy)|touchdown scorer|who scored")
 _DEFENSIVE_EVENT_WORDS = {"sack", "sacks", "interception", "interceptions", "fumble", "fumbles"}
 _WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored|picked)\b")
 _DRIVE_WORDS = {"drive", "drives"}
@@ -1418,6 +1421,35 @@ class MockDeterministicTranslator(Translator):
                 "Matched team + position/offense/lineup + college + names-hidden keywords, no specific "
                 "historical year named -> TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE guess capability (curated, "
                 "all 32 current NFL teams, all 11 positions including the offensive line, names hidden).",
+            )
+
+        # P0 Accuracy + Reliability Hardening pass: a bare "offense by
+        # college" (no "team"/"nfl"/hidden-names word at all) used to fall
+        # all the way through to NO_MATCH -> a false MISSING_DATA report,
+        # even though NFL_OFFENSE_COLLEGE_CURATED already directly answers
+        # exactly this concept. There's no other sensible reading of
+        # "offense by college" alone -- "college" isn't naming which player
+        # attended it (that's ATTENDED_COLLEGE's own phrasing, checked
+        # elsewhere), it's the ONLY given fact, which only makes sense as
+        # this capability's own "guess the team from its offense, shown by
+        # college" framing. Deliberately narrow: requires has_offense (not
+        # just has_college_or_school alone, which would over-match unrelated
+        # "guess the college" requests already handled above).
+        if has_offense and has_college_or_school and not (has_team or has_nfl or has_hidden_names):
+            spec = {
+                "mechanic": "guess",
+                "domain": "NFL_OFFENSE_COLLEGE_CURATED",
+                "relationship_predicate": "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
+                "question_count": _question_count_from_text(text),
+                "difficulty": _difficulty_from_words(words),
+                "filters": {},
+                "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched a bare 'offense by college' phrase (no team/league/hidden-names word) -- the only "
+                "sensible reading is TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE guess capability, never a false "
+                "MISSING_DATA report for a concept that's already fully supported.",
             )
 
         # Starting Lineup, added v1.8, Part F. Requires "team" plus (offense OR
