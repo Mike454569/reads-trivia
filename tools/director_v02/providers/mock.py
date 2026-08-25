@@ -281,7 +281,17 @@ _TOP_PERFORMER_RE = re.compile(
     # same single-game-leader concept, just named by category instead of
     # the generic word.
     r"top (rusher|passer|receiver|quarterback)|leading (rusher|passer|receiver|quarterback)|"
-    r"threw for more"
+    r"threw for more|"
+    # Universal Data Reuse pass: "who led the game in rushing yards"/"who
+    # had more rushing yards" is the same real single-game-leader concept
+    # as "top rusher" -- without this, the generic "yards" word alone let
+    # these fall through to NFL_GAME_BOXSCORE/HAD_MORE_YARDS (team TOTAL
+    # yards, not the specific rushing/passing/receiving category the
+    # request actually named) -- a real, honest-but-wrong-question
+    # misroute, not a false fact (the generated question correctly says
+    # "total yards", it just isn't the stat category the player asked
+    # about).
+    r"led (the game )?in (rushing|passing|receiving)|more (rushing|passing|receiving) yards"
 )
 # Universal Data Reuse pass: real bug found via the exact retest prompt
 # "two RBs from the same CFB week" -- the literal two-word "same week"/
