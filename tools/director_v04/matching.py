@@ -196,7 +196,9 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5, pair_count: i
 
 def build_package(seed: str, variant: str, round_count: int = 5, pair_count: int = 4) -> dict:
     result = generate_rounds(seed, variant, round_count=round_count, pair_count=pair_count)
-    package_id = "GGP5:" + hashlib.sha256(f"MATCHING|{variant}|{seed}|{round_count}|{pair_count}".encode()).hexdigest()[:24]
+    package_id = "GGP5:" + hashlib.sha256(
+        f"MATCHING|{variant}|{seed}|{round_count}|{pair_count}|{PACKAGE_SCHEMA_VERSION}".encode()
+    ).hexdigest()[:24]
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant,

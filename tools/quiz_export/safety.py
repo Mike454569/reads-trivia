@@ -154,3 +154,36 @@ def check_source_id_only_safety(c, table: str, source_id: str, where_extra: str 
         "source_id": source_id, "source_name": src["source_name"], "approved_for_import": True,
         f"{table}_rows_total": total, f"{table}_rows_verified": clean,
     }
+
+
+def check_season_coverage_safety(c, table: str, season_col: str, expected_min_season: int,
+                                  where_extra: str | None = None) -> dict:
+    """Final Technical Risk Cleanup pass: a fifth, distinct pattern -- none
+    of the four checks above catch DEPTH drift (a table that's internally
+    consistent and fully SOURCE_BACKED, but has silently lost most of its
+    real historical row range). The real incident this guards: production's
+    `cfb_standings` held only the current season's 138 rows (a real,
+    correctly-provenanced, but drastically incomplete slice) after only the
+    routine "current season only" scheduled refresh had ever run there --
+    every other safety check in this module would have reported that slice
+    as perfectly clean, since every row in it genuinely was SOURCE_BACKED.
+
+    Read-only reporting, deliberately -- unlike the ABORT-on-violation
+    checks above (each gates an active refresh run before it writes), this
+    is meant to be called from a diagnostic/regression context (a pytest
+    assertion, or an admin diagnostics route) that wants to OBSERVE
+    coverage, not block a write in progress. Returns `min_season`/
+    `max_season`/`distinct_seasons`/`row_count`, plus `coverage_ok` (True
+    only if real rows exist at or before `expected_min_season`) for the
+    caller to assert on."""
+    where = f"WHERE {where_extra}" if where_extra else ""
+    row = c.execute(
+        f"SELECT MIN({season_col}), MAX({season_col}), COUNT(DISTINCT {season_col}), COUNT(*) FROM {table} {where}"
+    ).fetchone()
+    min_season, max_season, distinct_seasons, row_count = row[0], row[1], row[2], row[3]
+    return {
+        "table": table, "min_season": min_season, "max_season": max_season,
+        "distinct_seasons": distinct_seasons, "row_count": row_count,
+        "expected_min_season": expected_min_season,
+        "coverage_ok": min_season is not None and min_season <= expected_min_season,
+    }

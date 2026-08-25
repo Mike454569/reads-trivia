@@ -267,7 +267,9 @@ def generate_pool(seed: str, variant: str, season: int, week) -> dict:
 
 def build_package(seed: str, variant: str, season: int, week) -> dict:
     result = generate_pool(seed, variant, season, week)
-    package_id = "GGP10:" + hashlib.sha256(f"FANTASYDRAFT|{variant}|{season}|{week}|{seed}".encode()).hexdigest()[:24]
+    package_id = "GGP10:" + hashlib.sha256(
+        f"FANTASYDRAFT|{variant}|{season}|{week}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
+    ).hexdigest()[:24]
     valid = bool(result["players"]) and not result["shortfall_reason"]
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,

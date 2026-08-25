@@ -364,7 +364,7 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
 
     by_difficulty = Counter(q["difficulty"] for q in questions)
     package_id = "GGP:" + hashlib.sha256(
-        f"{request_text}|{seed}|{spec.get('relationship_predicate')}".encode()
+        f"{request_text}|{seed}|{spec.get('relationship_predicate')}|{package_version}".encode()
     ).hexdigest()[:24]
 
     package = {

@@ -38,7 +38,13 @@ sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+# Bumped 1.0 -> 1.1 in the Final Technical Risk Cleanup pass: the Final
+# Player-Facing Stress Test pass changed _nfl_super_bowl_items()'s real
+# candidate-selection logic (excluding unresolved-season rows) without
+# bumping this constant, which is what let a stale pre-fix package_id
+# collide with newly-fixed content under the same seed -- see
+# package_id's own comment below for the general fix.
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "ELIMINATION_SURVIVAL"
 MIN_SEQUENCE_LENGTH = 8
 
@@ -168,7 +174,9 @@ def generate_sequence(seed: str, variant: str, sequence_length: int = 12) -> dic
 
 def build_package(seed: str, variant: str, sequence_length: int = 12) -> dict:
     result = generate_sequence(seed, variant, sequence_length=sequence_length)
-    package_id = "GGP7:" + hashlib.sha256(f"ELIMINATION|{variant}|{seed}|{sequence_length}".encode()).hexdigest()[:24]
+    package_id = "GGP7:" + hashlib.sha256(
+        f"ELIMINATION|{variant}|{seed}|{sequence_length}|{PACKAGE_SCHEMA_VERSION}".encode()
+    ).hexdigest()[:24]
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant,

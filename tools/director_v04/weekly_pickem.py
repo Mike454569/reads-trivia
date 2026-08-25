@@ -240,7 +240,9 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
 
 def build_package(seed: str, variant: str, season: int, week) -> dict:
     result = generate_slate(seed, variant, season, week)
-    package_id = "GGP9:" + hashlib.sha256(f"WEEKLYPICKEM|{variant}|{season}|{week}|{seed}".encode()).hexdigest()[:24]
+    package_id = "GGP9:" + hashlib.sha256(
+        f"WEEKLYPICKEM|{variant}|{season}|{week}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
+    ).hexdigest()[:24]
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "season": season, "week": week,

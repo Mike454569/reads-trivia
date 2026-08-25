@@ -472,7 +472,9 @@ def build_package(seed: str, target_count: int = 25, id_start: int = ID_START,
     description = requested_description or (
         "Identify the college football player from a progressive sequence of source-backed clues."
     )
-    package_id = "GGP4:" + hashlib.sha256(f"{description}|{seed}|{MECHANIC}|CFB".encode()).hexdigest()[:24]
+    package_id = "GGP4:" + hashlib.sha256(
+        f"{description}|{seed}|{MECHANIC}|CFB|{PACKAGE_SCHEMA_VERSION}".encode()
+    ).hexdigest()[:24]
 
     return {
         "package_id": package_id,

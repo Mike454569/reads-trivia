@@ -397,6 +397,32 @@ def admin_db_integrity(request: Request, _admin=Depends(require_admin)):
     return safe
 
 
+@app.get("/v1/admin/diagnostics/data-coverage")
+def admin_data_coverage(request: Request, _admin=Depends(require_admin)):
+    """Final Technical Risk Cleanup pass: a DIFFERENT, distinct diagnostic
+    from db-integrity above -- that route certifies STRUCTURE (the file
+    opens, the schema is intact); this one certifies real historical DEPTH
+    on the multi-season tables ELIMINATION_SURVIVAL and other capabilities
+    depend on. The real incident this exists to make visible without an
+    SSH session next time: production's `cfb_standings` silently held only
+    the current season (138 rows) after only the routine "current season
+    only" scheduled refresh had ever run there -- every row present was
+    genuinely SOURCE_BACKED, so no existing integrity/safety check caught
+    it. See tools/quiz_export/safety.py's check_season_coverage_safety()."""
+    from tools.quiz_export import safety as quiz_safety
+    c = engine_bootstrap.connect()
+    try:
+        checks = {
+            "season_standings": quiz_safety.check_season_coverage_safety(
+                c, "season_standings", "season", 2002),
+            "cfb_standings": quiz_safety.check_season_coverage_safety(
+                c, "cfb_standings", "season", 2002, where_extra="classification='fbs'"),
+        }
+    finally:
+        c.close()
+    return {"coverage_ok": all(v["coverage_ok"] for v in checks.values()), "checks": checks}
+
+
 # --- NFL/CFB production data refresh (admin-triggered, background) --------
 # See gateway/services/admin_refresh.py's module docstring for why this
 # runs as a BackgroundTask rather than synchronously: a real refresh
