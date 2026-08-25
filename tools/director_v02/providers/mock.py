@@ -291,7 +291,7 @@ _TOP_PERFORMER_RE = re.compile(
     # misroute, not a false fact (the generated question correctly says
     # "total yards", it just isn't the stat category the player asked
     # about).
-    r"led (the game )?in (rushing|passing|receiving)|more (rushing|passing|receiving) yards"
+    r"led (this |the )?(game )?in (rushing|passing|receiving)|more (rushing|passing|receiving) yards"
 )
 # Universal Data Reuse pass: real bug found via the exact retest prompt
 # "two RBs from the same CFB week" -- the literal two-word "same week"/
@@ -309,15 +309,28 @@ _STAT_COMPARE_RE = re.compile(
     # better"/"whos better" are the same real comparison intent as the
     # phrasings above -- only reached when has_same_week_phrase is already
     # true, so this stays narrow in practice despite "better" being generic.
-    r"compare|comparison|who'?s better|balled out harder"
+    r"compare|comparison|who'?s better|balled out harder|"
+    # Final Player-Facing Stress Test pass: "went off more"/"went off
+    # harder" is the same real "who performed better" comparison intent --
+    # one of this task's own exact given prompts ("...tell me who went off
+    # more") was falling all the way through to NO_MATCH without it.
+    r"went off"
 )
 
 _ORDERED_PATH_RE = re.compile(r"college path|ordered path|order (his|their|the) schools?|path to the nfl")
 _LATER_NFL_RE = re.compile(r"later (made|became|went to|reached) the nfl|later made the nfl")
 
 _ALL_AMERICAN_RE = re.compile(r"all[\s-]?american")
-_GREAT_IN_COLLEGE_RE = re.compile(r"great in college|college star")
-_NFL_STAR_RE = re.compile(r"nfl star|star(red)? in the nfl|became (a )?star")
+# Final Player-Facing Stress Test pass: "stud" and "balled" are real,
+# common casual synonyms for "star"/"played great" a real fan would type
+# ("college stud who became an nfl star", "balled in college then balled
+# in the league") -- previously only the literal word "star"/"great"
+# matched, silently missing this whole real phrasing family down to a
+# generic MISSING_DATA fallback.
+_GREAT_IN_COLLEGE_RE = re.compile(r"great in college|college star|college stud|balled in college")
+_NFL_STAR_RE = re.compile(
+    r"nfl star|star(red)? in the nfl|became (a )?star|balled in (the nfl|the league)"
+)
 
 # ============================== Creator Capability Completion pass ==============================
 # Finer-grained sub-category signals for the concepts that graduated from
@@ -328,8 +341,10 @@ _SACK_PHRASE_RE = re.compile(r"\bsack(ed|s)?\b")
 _INTERCEPTION_PHRASE_RE = re.compile(
     # Creator stress-test pass: "picked it off" (pronoun between "picked"
     # and "off") is more common real phrasing than the bare "picked off"
-    # this pattern originally required.
-    r"\binterception(s)?\b|\bintercepted\b|picked (it |him |them )?off"
+    # this pattern originally required. Final Player-Facing Stress Test
+    # pass: "picked the QB off" (a short noun phrase, not just a pronoun,
+    # between "picked" and "off") is equally common real phrasing.
+    r"\binterception(s)?\b|\bintercepted\b|picked (it |him |them |the \w+ )?off"
 )
 _FORCED_FUMBLE_PHRASE_RE = re.compile(r"forced (the |a )?fumble|force a fumble|who forced")
 _FUMBLE_RECOVERY_PHRASE_RE = re.compile(r"recovered (the |a )?fumble|fumble recovery|who recovered")
@@ -377,7 +392,13 @@ def _has_oline_phrase(text: str) -> bool:
 
 
 def _has_who_am_i_phrase(text: str) -> bool:
-    return "who am i" in text.lower()
+    # Final Player-Facing Stress Test pass: "whoami" (no spaces, real
+    # internet/tech shorthand a casual user might type) and "who-am-i"
+    # (hyphenated) are the same real request as "who am i" -- the plain
+    # word tokenizer never catches these since there's no non-alpha
+    # character to split "whoami" into separate tokens at all.
+    lowered = text.lower()
+    return "who am i" in lowered or "whoami" in lowered or "who-am-i" in lowered
 
 
 def _difficulty_from_words(words: set[str]) -> str:

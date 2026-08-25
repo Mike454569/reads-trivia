@@ -58,6 +58,23 @@ def _nfl_super_bowl_items(c, seed: str, sequence_length: int) -> list[dict]:
         "SELECT season, team_code, playoff_result FROM season_standings "
         "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' ORDER BY season DESC"
     ).fetchall()
+    # Final Player-Facing Stress Test pass: a real, found bug -- NULL
+    # playoff_result is NOT the same fact for every season. For a real,
+    # COMPLETED season it correctly means "missed the playoffs" (a real,
+    # verified false-membership example -- most of a season's 32 real rows
+    # are legitimately NULL this way, e.g. 2020's real playoff-missers).
+    # But season_standings also carries 32 real placeholder rows for the
+    # CURRENT, not-yet-played season (every playoff_result NULL because no
+    # games have happened yet, not because those teams "missed the
+    # playoffs") -- treating those as real false examples asked a player
+    # "did the {2026 team} win the Super Bowl" as if that were an already-
+    # resolved historical fact. Detected generically (never a hardcoded
+    # year that would go stale every season): a season only counts as
+    # resolved if at least one real row for it has a non-NULL
+    # playoff_result at all -- a season with zero non-NULL rows has
+    # genuinely not been played out yet.
+    resolved_seasons = {r["season"] for r in rows if r["playoff_result"] is not None}
+    rows = [r for r in rows if r["season"] in resolved_seasons]
     true_rows = [r for r in rows if r["playoff_result"] == "WonSB"]
     false_rows = [r for r in rows if r["playoff_result"] != "WonSB"]
     if len(true_rows) < sequence_length // 4 or len(false_rows) < sequence_length // 2:
