@@ -1492,22 +1492,27 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
       desc: ENGINE_PILOT_MODES.lineupCollege.desc, engineMode: 'lineupCollege', league: 'nfl', difficulty: 'hardcore',
     });
   }
+  // Product Growth + Real User Testing pass: these three are each built
+  // from one real, specific NFL/CFB game (a real matchup + its real
+  // result/box score) -- exactly the "featured NFL games"/"featured CFB
+  // games" discovery priority this pass calls for. Real content that
+  // already existed; just wasn't marked featured yet.
   if (ENGINE_PILOT_MODES.nflGameResult.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'nfl_game_result_guess', icon: 'football', title: ENGINE_PILOT_MODES.nflGameResult.title,
-      desc: ENGINE_PILOT_MODES.nflGameResult.desc, engineMode: 'nflGameResult', league: 'nfl', difficulty: 'casual',
+      desc: ENGINE_PILOT_MODES.nflGameResult.desc, engineMode: 'nflGameResult', league: 'nfl', difficulty: 'casual', featured: true,
     });
   }
   if (ENGINE_PILOT_MODES.nflGameBoxscore.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'nfl_game_boxscore_guess', icon: 'sync', title: ENGINE_PILOT_MODES.nflGameBoxscore.title,
-      desc: ENGINE_PILOT_MODES.nflGameBoxscore.desc, engineMode: 'nflGameBoxscore', league: 'nfl', difficulty: 'competitive',
+      desc: ENGINE_PILOT_MODES.nflGameBoxscore.desc, engineMode: 'nflGameBoxscore', league: 'nfl', difficulty: 'competitive', featured: true,
     });
   }
   if (ENGINE_PILOT_MODES.cfbGameResult.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'cfb_game_result_guess', icon: 'football', title: ENGINE_PILOT_MODES.cfbGameResult.title,
-      desc: ENGINE_PILOT_MODES.cfbGameResult.desc, engineMode: 'cfbGameResult', league: 'cfb', difficulty: 'casual',
+      desc: ENGINE_PILOT_MODES.cfbGameResult.desc, engineMode: 'cfbGameResult', league: 'cfb', difficulty: 'casual', featured: true,
     });
   }
   // Creator stress test / discovery pass: the first 4 modes promoted

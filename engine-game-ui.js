@@ -488,10 +488,20 @@ function renderEnginePilotScreen() {
       '</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
+    // Product Growth + Real User Testing pass: this shell is the shared
+    // completion screen for ~10 real modes (Offense by College, SB
+    // Champion Offense by College, CFB Rankings, CFB Upsets, NFL/CFB Game
+    // Result, NFL Box Scores, ...) -- it used to offer only "Play Again",
+    // with Home reachable solely via the small toolbar link above. Every
+    // other mode's completion screen already pairs Play Again with a real
+    // Home button and the same recommended-next-mode nudge; this brings
+    // the shared engine-pilot shell in line with that, in one place.
     return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
       '<h2 class="panel-title">Round Complete</h2>' +
       '<p class="mode-desc">' + s.correctCount + ' / ' + s.roundSize + ' correct.</p>' +
-      '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button></div></div>';
+      '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button>' +
+      '<button class="btn-secondary" data-go="home">Home</button></div>' +
+      postGameNextStepsHtml(null) + '</div>';
   }
   // QUESTION_READY and SUBMITTING share this render path (same markup,
   // options just go disabled + a "Checking..." line appears while
@@ -794,7 +804,9 @@ function renderMechanicPilotScreen() {
   if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
     return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + '<h2 class="panel-title">Round Complete</h2>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
-      '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button></div></div>';
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button>' +
+      '<button class="btn-secondary" data-go="home">Home</button></div>' +
+      postGameNextStepsHtml(null) + '</div>';
   }
   var answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
