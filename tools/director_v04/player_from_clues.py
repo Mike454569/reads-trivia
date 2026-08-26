@@ -238,6 +238,21 @@ def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
     return out
 
 
+# Product Growth + Real User Testing pass: a real, measured repetition
+# defect -- postseason_participation is close enough to a 50/50 split
+# across the whole real player universe that it was the single BROADEST
+# (least selective) available clue for the vast majority of real players,
+# so "broadest still-narrowing clue first" picked it as the OPENING clue
+# 476 of 600 times (79%) in the real, live NFL export -- nearly every
+# puzzle opened with the exact same sentence. The underlying fairness
+# principle (broadest-first, never open with something too identifying)
+# is sound and left untouched for every other clue slot; this only keeps
+# this one specific type out of the OPENING slot, with a safe fallback to
+# still allow it there if it's genuinely the only real clue this player
+# has (never fail a puzzle over a variety preference).
+OPENING_CLUE_VARIETY_EXCLUDE = frozenset({"postseason_participation"})
+
+
 def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
     """Returns (puzzle_dict, None) or (None, rejection_reason_str). Never
     raises for an ordinary player who simply doesn't have enough safe,
@@ -258,6 +273,10 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
                 step_options.append((ct, v, cset, new_set))
         if not step_options:
             break
+        if len(selected) == 0:
+            varied = [o for o in step_options if o[0] not in OPENING_CLUE_VARIETY_EXCLUDE]
+            if varied:
+                step_options = varied
         # Broadest still-narrowing clue first; deterministic alphabetical tie-break, no RNG.
         step_options.sort(key=lambda x: (-len(x[3]), x[0]))
         ct, v, _cset, new_set = step_options[0]

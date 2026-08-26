@@ -37,6 +37,12 @@ CASES = [
     # same real single-game rushing-leader concept as "led the game in
     # rushing yards".
     ("who led this game in rushing", "NFL_GAME_LEADER", "RUSHING_LEADER"),
+    # Product Growth + Real User Testing pass: "upsetty" (a real casual
+    # adjective built from "upset") wasn't in the exact-word upset-signal
+    # set, so a request combining a rankings word with it fell through to
+    # the plain rankings capability instead of the upset one the "but make
+    # it upsetty" qualifier clearly asked for.
+    ("cfb rankings but make it upsetty", "CFB_UPSET", "RANKING_UPSET"),
 ]
 
 

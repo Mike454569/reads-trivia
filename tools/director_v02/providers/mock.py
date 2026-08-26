@@ -254,7 +254,7 @@ _DEFENSE_SIDE_WORDS = {"defense", "defensive", "dc"}
 
 _RANKING_WORDS = {"ranking", "rankings", "ranked", "poll", "polls", "unranked"}
 _RANKING_PHRASE_RE = re.compile(r"top\s?25|ap poll|cfp ranking|coaches poll|moved up|dropped in the rankings")
-_UPSET_WORDS = {"upset", "upsets", "shocked", "underdog", "underdogs"}
+_UPSET_WORDS = {"upset", "upsets", "upsetty", "shocked", "underdog", "underdogs"}
 _UPSET_PHRASE_RE = re.compile(
     r"knocked off|unranked beat|beat.{0,20}ranked|"
     # Creator stress-test pass: "ranked team lost, guess who beat them" is

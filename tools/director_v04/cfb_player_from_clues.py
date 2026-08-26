@@ -249,6 +249,17 @@ def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
     return out
 
 
+# Product Growth + Real User Testing pass: same real repetition defect
+# found in player_from_clues.py's own build_puzzle() (see that module's
+# OPENING_CLUE_VARIETY_EXCLUDE docstring) -- transfer_school_count is a
+# near-binary (1 vs 2 real schools) split across most of the real player
+# universe, so it dominated as the OPENING clue for the large majority of
+# a real local sample. Same fix: excluded from the opening slot only,
+# with a safe fallback to allow it there if it's genuinely the only real
+# clue this player has.
+OPENING_CLUE_VARIETY_EXCLUDE = frozenset({"transfer_school_count"})
+
+
 def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
     """Same real narrowing algorithm as player_from_clues.py's own
     build_puzzle() -- see that module's docstring for the rationale
@@ -270,6 +281,10 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
                 step_options.append((ct, v, cset, new_set))
         if not step_options:
             break
+        if len(selected) == 0:
+            varied = [o for o in step_options if o[0] not in OPENING_CLUE_VARIETY_EXCLUDE]
+            if varied:
+                step_options = varied
         step_options.sort(key=lambda x: (-len(x[3]), x[0]))
         ct, v, _cset, new_set = step_options[0]
         display_text = CLUE_TEMPLATES[ct](v)
