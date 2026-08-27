@@ -148,10 +148,39 @@ var ICON_PATHS = {
   lombardiTrophy: '<ellipse cx="12" cy="6" rx="4" ry="2.6" transform="rotate(-25 12 6)"/><path d="M12 8.5v2.5"/><path d="M9 11h6l3 10H6Z"/>',
   arrowUp: '<path d="M12 20V4"/><path d="M5 11l7-7 7 7"/>',
   arrowDown: '<path d="M12 4v16"/><path d="M5 13l7 7 7-7"/>',
+  arrowRight: '<path d="M4 12h16"/><path d="M13 5l7 7-7 7"/>',
+  barChart: '<path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/>',
+  shield: '<path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6Z"/>',
+  star: '<path d="M12 2.5 15 9l7 .8-5.2 4.8 1.4 6.9L12 18l-6.2 3.5 1.4-6.9L2 9.8 9 9Z"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
   return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+}
+// Full Visual + Interactive Redesign pass: a shared segmented round-progress
+// bar (matching the redesigned game-screen mockup) -- `current` is the
+// real 0-based index already tracked by every caller (t.index/s.roundIndex),
+// `total` the real round/queue length. Purely decorative (aria-hidden) --
+// the caller's own "Question X of Y" text stays the accessible label.
+// Capped at 12 visible segments (a 25-question IQ Test round would
+// otherwise render 25 slivers too thin to read as distinct segments) --
+// beyond that the text label alone carries the progress info.
+function progressDotsHtml(current, total) {
+  if (!total || total < 2 || total > 12) return '';
+  var segs = '';
+  for (var i = 0; i < total; i++) {
+    var cls = i < current ? 'done' : (i === current ? 'current' : '');
+    segs += '<span class="' + cls + '"></span>';
+  }
+  return '<div class="progress-dots" aria-hidden="true">' + segs + '</div>';
+}
+// Pairs a caller's own real "Question X of Y..." text label with the
+// segmented dots above in one consistent row -- text stays first/primary
+// (what a screen reader announces), dots are a purely visual add-on.
+function quizProgressRowHtml(labelHtml, current, total) {
+  var dots = progressDotsHtml(current, total);
+  if (!dots) return '<div class="quiz-progress">' + labelHtml + '</div>';
+  return '<div class="quiz-progress-row"><div class="quiz-progress">' + labelHtml + '</div>' + dots + '</div>';
 }
 function slugify(s) { return (String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 'player'; }
 function shuffle(arr) {
@@ -956,17 +985,20 @@ function dailyChallengeCardHtml() {
       '<button class="btn-secondary" data-go="daily">View Today’s Result</button>' +
       '</div>';
   }
-  return '<div class="panel daily-card">' + eyebrow +
+  return '<div class="panel daily-card">' +
+    '<div class="daily-card-deco" aria-hidden="true">' + icon('football') + '</div>' +
+    eyebrow +
     '<div class="daily-card-title">' + badge + ' Daily Challenge &middot; ' + esc(today.label) + '</div>' +
-    '<p class="mode-desc">' + esc(today.desc) + streakBit + '</p>' +
-    '<button class="btn-primary" data-daily-start>Play Today’s Challenge</button>' +
+    '<p class="mode-desc">' + esc(today.desc) + '</p>' +
+    (streakBit ? '<p class="daily-card-streak">' + streakBit.replace(/^\s*&middot;\s*/, '') + '</p>' : '') +
+    '<button class="btn-primary" data-daily-start>Play Today’s Challenge' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
     '</div>';
 }
 function renderDailyQuestion() {
   var t = state.daily, q = currentDailyQuestion();
   var answered = t.answeredIndex !== null;
   return '<div class="panel">' + modeToolbarHtml('daily') +
-    '<div class="quiz-progress">Daily Challenge &middot; Question ' + (t.index + 1) + ' of ' + t.queue.length + '</div>' +
+    quizProgressRowHtml('Daily Challenge &middot; Question ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
@@ -1405,12 +1437,30 @@ function authModalSubmit() {
   }).then(function () { if (submitBtn) submitBtn.disabled = false; });
 }
 
+// Full Visual + Interactive Redesign pass: a premium avatar-initial +
+// identity treatment (matching the redesigned homepage mockup's profile
+// strip), universal across every screen this already rendered on before
+// (never home-only — see this function's original callsite in
+// renderAll()). No new data: the initial is just state.name's own first
+// character, uppercased -- never a fabricated photo/avatar-picker system.
+// Favorite-team color rings the avatar when set (via the existing
+// --home-accent/has-fav-team cascade already driving the header bar),
+// so the identity strip carries the same real personalization signal
+// everywhere it appears, not just on Home.
 function nameBarHtml() {
+  if (!state.name) {
+    return '<div class="name-bar">' +
+      '<button class="btn-primary" data-auth-open="login">Log In</button><button class="btn-secondary" data-auth-open="signup">Sign Up</button>' +
+      '</div>';
+  }
+  var initial = state.name.trim().charAt(0).toUpperCase() || '?';
   return '<div class="name-bar">' +
-    (state.name
-      ? '<span>Playing as <b>' + esc(state.name) + '</b></span><button class="btn-secondary" data-go="profile">Stats</button><button class="btn-secondary" data-log-out>Log Out</button>'
-      : '<button class="btn-primary" data-auth-open="login">Log In</button><button class="btn-secondary" data-auth-open="signup">Sign Up</button>') +
-    '</div>';
+    '<span class="name-bar-avatar" aria-hidden="true">' + esc(initial) + '</span>' +
+    '<span class="name-bar-text"><span class="name-bar-eyebrow">Playing as</span><b>' + esc(state.name) + '</b></span>' +
+    '<span class="name-bar-actions">' +
+    '<button class="btn-secondary" data-go="profile">' + icon('barChart') + ' Stats</button>' +
+    '<button class="btn-secondary" data-log-out>Log Out</button>' +
+    '</span></div>';
 }
 
 /* ============================== home ============================== */
@@ -1977,11 +2027,20 @@ function dismissTeamPrompt() { lsSet(TEAM_PROMPT_DISMISS_KEY, true); renderAll()
 
 var MODE_DIFFICULTY_LABEL = { casual: 'Casual', competitive: 'Competitive', hardcore: 'Hardcore' };
 function modeCardHtml(m) {
+  // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
+  // played by this player, per the same modeTimesPlayed() signal
+  // recommendedModeHtml()'s own "New to you" copy already uses) and a
+  // "Play Now" chevron affordance on featured cards, matching the
+  // redesigned homepage mockup -- no fabricated freshness flag, no new
+  // per-mode metadata.
+  var isNew = state.name && modeTimesPlayed(m.id) === 0;
   return '<button class="mode-card' + (m.featured ? ' featured' : '') + '" data-go="' + m.id + '">' +
     (m.difficulty ? '<span class="mode-difficulty mode-difficulty-' + m.difficulty + '">' + MODE_DIFFICULTY_LABEL[m.difficulty] + '</span>' : '') +
+    (isNew ? '<span class="mode-new-badge">New</span>' : '') +
     '<div class="mode-icon">' + icon(m.icon) + '</div>' +
     '<div class="mode-title">' + esc(m.title) + '</div>' +
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
+    (m.featured ? '<span class="mode-card-play">Play Now' + icon('arrowRight') + '</span>' : '') +
     '</button>';
 }
 // UI/UX Upgrade Pass: featured modes (Quiz/Grid/IQ Test/Player From Clues --
@@ -2003,9 +2062,16 @@ function modeSectionHtml(league) {
 function continuePlayingCardHtml() {
   var last = lsGet('nflTriviaLastMode', null);
   if (!last || !LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).some(function (m) { return m.id === last; })) return '';
+  // Full Visual + Interactive Redesign pass: icon-circle + "Resume" chevron
+  // treatment matching the redesigned homepage's row style -- deliberately
+  // NOT a progress bar/percentage (the mockup shows one, but this app
+  // doesn't persist an in-round resume point once a mode is left, so a
+  // literal progress fraction here would be fabricated; real data only).
   return '<button class="continue-card" data-go="' + esc(last) + '">' +
-    '<span class="continue-card-label">Continue where you left off</span>' +
-    '<span class="continue-card-mode">' + icon('play') + ' ' + esc(modeLabelFor(last)) + '</span>' +
+    '<span class="continue-card-icon">' + icon('play') + '</span>' +
+    '<span class="continue-card-text"><span class="continue-card-label">Continue Playing</span>' +
+    '<span class="continue-card-mode">' + esc(modeLabelFor(last)) + '</span></span>' +
+    '<span class="continue-card-resume">Resume' + icon('arrowRight') + '</span>' +
     '</button>';
 }
 // A mode's "times played" lives under a different key per mode (roundsPlayed,
@@ -2023,27 +2089,31 @@ function modeTimesPlayed(id) {
 // reads as a considered daily pick. Prioritizes modes never played at all
 // (exploration); once everything's been tried at least once, falls back to
 // whichever mode has been played the least (keeps rotation fresh).
+// Full Visual + Interactive Redesign pass: shared icon-circle + text +
+// chevron row builder for "More Ways to Play" -- same real per-card data
+// each of these already computed (h2h record, friend count, review-pool
+// size), just one consistent premium row shape instead of every card
+// hand-assembling its own continue-card markup.
+function discoverRowHtml(mode, iconName, title, sublabel, extraClass) {
+  return '<button class="continue-card discover-row' + (extraClass ? ' ' + extraClass : '') + '" data-go="' + esc(mode) + '">' +
+    '<span class="continue-card-icon">' + icon(iconName) + '</span>' +
+    '<span class="continue-card-text"><span class="continue-card-mode">' + esc(title) + '</span>' +
+    '<span class="continue-card-label">' + esc(sublabel) + '</span></span>' +
+    icon('arrowRight', 'continue-card-chevron') +
+    '</button>';
+}
 function h2hCardHtml() {
   var st = state.stats.h2h || {};
   var recordBit = st.matchesPlayed ? (st.wins + '-' + st.losses + (st.ties ? '-' + st.ties : '')) : 'New';
-  return '<button class="continue-card h2h-card" data-go="h2h">' +
-    '<span class="continue-card-label">Challenge a friend &middot; ' + esc(recordBit) + '</span>' +
-    '<span class="continue-card-mode">' + icon('versus') + ' Head-to-Head</span>' +
-    '</button>';
+  return discoverRowHtml('h2h', 'versus', 'Head-to-Head', 'Challenge a friend · ' + recordBit, 'h2h-card');
 }
 function learnCardHtml() {
-  return '<button class="continue-card learn-card" data-go="learn">' +
-    '<span class="continue-card-label">Facts, history, HOF &amp; scheme concepts</span>' +
-    '<span class="continue-card-mode">' + icon('book') + ' The Film Room</span>' +
-    '</button>';
+  return discoverRowHtml('learn', 'book', 'The Film Room', "Facts, history, HOF & scheme concepts", 'learn-card');
 }
 function friendsCardHtml() {
   var count = getFriends().length;
   var label = count ? (count + ' friend' + (count === 1 ? '' : 's') + ' added') : 'See how they stack up';
-  return '<button class="continue-card friends-card" data-go="friends">' +
-    '<span class="continue-card-label">' + esc(label) + '</span>' +
-    '<span class="continue-card-mode">' + icon('users') + ' Friends</span>' +
-    '</button>';
+  return discoverRowHtml('friends', 'users', 'Friends', label, 'friends-card');
 }
 function recommendedModeHtml() {
   if (!state.name) return '';
@@ -2487,7 +2557,7 @@ function renderQuizQuestion() {
   if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-quiz-setup>Change Filters</button></div>';
   var answered = t.answeredIndex !== null;
   return '<div class="panel">' + modeToolbarHtml('quiz', t.ranked) +
-    '<div class="quiz-progress">Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty) + '</div>' +
+    quizProgressRowHtml('Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty), t.index, t.queue.length) +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
@@ -2761,7 +2831,7 @@ function renderCfbQuestion() {
   if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-cfb-setup>Change Filters</button></div>';
   var answered = t.answeredIndex !== null;
   return '<div class="panel">' + modeToolbarHtml('cfbQuiz', t.ranked) +
-    '<div class="quiz-progress">Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty) + '</div>' +
+    quizProgressRowHtml('Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty), t.index, t.queue.length) +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
@@ -2928,19 +2998,13 @@ function renderStudyScreen() {
 // review) since this is a real standalone mode from the first visit on,
 // not a follow-up nudge.
 function xsoCardHtml() {
-  return '<button class="continue-card xso-card" data-go="xso">' +
-    '<span class="continue-card-label">Formations, coverages &amp; blocking schemes</span>' +
-    '<span class="continue-card-mode">' + icon('target') + ' X\'s &amp; O\'s</span>' +
-    '</button>';
+  return discoverRowHtml('xso', 'target', "X's & O's", 'Formations, coverages & blocking schemes', 'xso-card');
 }
 function studyCardHtml() {
   if (!state.name) return '';
   var total = getMissedPool('nfl').length + getMissedPool('cfb').length;
   if (!total) return '';
-  return '<button class="continue-card" data-go="study">' +
-    '<span class="continue-card-label">' + total + ' question' + (total === 1 ? '' : 's') + ' to review</span>' +
-    '<span class="continue-card-mode">' + icon('brain') + ' Study</span>' +
-    '</button>';
+  return discoverRowHtml('study', 'brain', 'Study', total + ' question' + (total === 1 ? '' : 's') + ' to review');
 }
 
 /* ============================== immaculate grid ============================== */
@@ -3409,7 +3473,14 @@ function blitzTick() {
   // DOM rebuild 4x/sec was intermittently eating clicks/keystrokes on the
   // input and Add button.
   var timerEl = document.getElementById('blitz-timer-display');
-  if (timerEl) timerEl.textContent = fmtTime(remain);
+  if (timerEl) {
+    timerEl.textContent = fmtTime(remain);
+    // Full Visual + Interactive Redesign pass: real urgency in the final
+    // 10 real seconds -- toggled here (not left to a CSS-only always-on
+    // animation) since it's driven by the actual remaining time, not a
+    // guess.
+    timerEl.classList.toggle('blitz-timer-urgent', remain <= 10);
+  }
 }
 function submitBlitzGuess() {
   var b = state.blitz;
@@ -3534,7 +3605,10 @@ function cfbBlitzTick() {
   if (remain <= 0) { state.cfbBlitz.timeLeft = 0; endCfbBlitz(); return; }
   state.cfbBlitz.timeLeft = remain;
   var timerEl = document.getElementById('cfb-blitz-timer-display');
-  if (timerEl) timerEl.textContent = fmtTime(remain);
+  if (timerEl) {
+    timerEl.textContent = fmtTime(remain);
+    timerEl.classList.toggle('blitz-timer-urgent', remain <= 10);
+  }
 }
 function submitCfbBlitzGuess() {
   var b = state.cfbBlitz;
@@ -3674,9 +3748,16 @@ function speedTick() {
   // Patch the timer/bar directly instead of a full renderAll() — a full DOM
   // rebuild 5x/sec was intermittently eating clicks on the answer buttons.
   var sessEl = document.getElementById('speed-session-timer');
-  if (sessEl) sessEl.textContent = fmtTime(s.sessionTimeLeft);
+  if (sessEl) {
+    sessEl.textContent = fmtTime(s.sessionTimeLeft);
+    sessEl.classList.toggle('blitz-timer-urgent', s.sessionTimeLeft <= 10);
+  }
   var barEl = document.getElementById('speed-qbar-fill');
-  if (barEl) barEl.style.width = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen)) + '%';
+  if (barEl) {
+    var qPct = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen));
+    barEl.style.width = qPct + '%';
+    barEl.classList.toggle('speed-qbar-fill-urgent', qPct <= 25);
+  }
 }
 function registerSpeedAnswer(optionIndex) {
   var s = state.speed;
@@ -4042,7 +4123,8 @@ function renderHigherLowerPlaying() {
   var cat = hlCategoryConfig(s.category);
   var statLabel = hlStatConfig(s.category, s.stat).label;
   return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
-    '<h2 class="panel-title">Higher or Lower &middot; Streak: ' + s.streak + '</h2>' +
+    '<div class="hl-header"><h2 class="panel-title">Higher or Lower</h2>' +
+    '<span class="hl-streak-badge">' + icon('flame') + ' ' + s.streak + '</span></div>' +
     '<div class="hl-card hl-card-current">' +
     '<div class="hl-name">' + esc(s.current.name) + '</div>' +
     '<div class="hl-line">' + cat.lineFn(s.current) + '</div>' +
@@ -4119,9 +4201,16 @@ function cfbSpeedTick() {
   s.qTimeLeft = Math.max(0, (s.qEndsAt - now) / 1000);
   if (s.answeredIndex === null && s.qTimeLeft <= 0) { registerCfbSpeedAnswer(-1); return; }
   var sessEl = document.getElementById('cfb-speed-session-timer');
-  if (sessEl) sessEl.textContent = fmtTime(s.sessionTimeLeft);
+  if (sessEl) {
+    sessEl.textContent = fmtTime(s.sessionTimeLeft);
+    sessEl.classList.toggle('blitz-timer-urgent', s.sessionTimeLeft <= 10);
+  }
   var barEl = document.getElementById('cfb-speed-qbar-fill');
-  if (barEl) barEl.style.width = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen)) + '%';
+  if (barEl) {
+    var qPct = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen));
+    barEl.style.width = qPct + '%';
+    barEl.classList.toggle('speed-qbar-fill-urgent', qPct <= 25);
+  }
 }
 function registerCfbSpeedAnswer(optionIndex) {
   var s = state.cfbSpeed;
@@ -4627,7 +4716,8 @@ function renderPlayerCluesSetup() {
 function renderPlayerCluesRound() {
   var s = state.playerClues, p = s.queue[s.index];
   var html = '<div class="panel">' + playerCluesToolbarHtml() +
-    '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>';
+    '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>' +
+    progressDotsHtml(s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
     html += '<div class="silhouette-reveal">' + esc(p.answer.displayName) + (lastResult && lastResult.correct ? ' — correct!' : ' — not quite') + '</div>' +
@@ -4798,7 +4888,8 @@ function renderCfbPlayerCluesSetup() {
 function renderCfbPlayerCluesRound() {
   var s = state.cfbPlayerClues, p = s.queue[s.index];
   var html = '<div class="panel">' + cfbPlayerCluesToolbarHtml() +
-    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>';
+    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>' +
+    progressDotsHtml(s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
     html += '<div class="silhouette-reveal">' + esc(p.answer.displayName) + (lastResult && lastResult.correct ? ' — correct!' : ' — not quite') + '</div>' +
@@ -6598,10 +6689,7 @@ function h2hLiveShareLink(link, btn) {
   copyTextToClipboard(link, btn);
 }
 function h2hLiveCardHtml() {
-  return '<button class="continue-card h2h-live-card" data-go="h2hLive">' +
-    '<span class="continue-card-label">Both online now &middot; real-time</span>' +
-    '<span class="continue-card-mode">' + icon('versus') + ' Live Match</span>' +
-    '</button>';
+  return discoverRowHtml('h2hLive', 'versus', 'Live Match', 'Both online now · real-time', 'h2h-live-card');
 }
 function renderH2HLiveMenu() {
   if (!state.name) {
@@ -7056,32 +7144,74 @@ function drawShareCard(ctx, cfg, format) {
   // below), then truncates with an ellipsis as a last resort, so a
   // pathologically long real username can never run off the card or
   // collide with the swatch dot.
+  // Full Visual + Interactive Redesign pass: the identity line now draws as
+  // a real pill badge (rounded-rect background + border), matching the
+  // redesigned share-card mockup's "★ TEAM NAME FAN" treatment, instead of
+  // bare text floating on the dark background. Still leads with the real
+  // two-tone team-color swatch dot when a favorite team is set (a more
+  // precise, real personalization signal than a flat star glyph alone
+  // would be -- Auburn's navy+orange, e.g., isn't just "one team color"),
+  // with the same star glyph the mockup uses added alongside it, not
+  // instead of it.
   var identityParts = [];
   if (state.name) identityParts.push(state.name);
   if (fav) identityParts.push(fav.name + ' fan');
   if (identityParts.length) {
-    var dotR = 12, dotCX = 60 + dotR, dotCY = 192 + 42;
-    var identityX = fav ? dotCX + dotR + 18 : 60;
+    var pillY = 192 + 24, pillH = 44, pillPadX = 18;
+    var dotR = 10;
+    ctx.font = '700 27px ' + FONT;
+    var identityFit0 = fitShareText(ctx, identityParts.join('  ·  '), FONT, W - 120 - (fav ? 40 : 24), 27, 18, '700');
+    var textW = ctx.measureText(identityFit0.text).width;
+    var iconW = fav ? (dotR * 2 + 10) : (22 + 8);
+    var pillW = pillPadX * 2 + iconW + textW;
+    var pillX = 60;
+    // accent (readableOnDark), not rawAccent -- a dark true team color
+    // (Cowboys navy, Ravens purple) at even 0.55 alpha was nearly
+    // invisible as a pill outline against this card's own dark
+    // background; the swatch dot below is where staying faithful to the
+    // team's literal dark color matters, this pill boundary needs to
+    // actually read as a pill first.
+    roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.fillStyle = hexToRgbaString(accent, 0.14);
+    ctx.fill();
+    ctx.strokeStyle = hexToRgbaString(accent, 0.6);
+    ctx.lineWidth = 1.5;
+    roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+    ctx.stroke();
+    var iconCX = pillX + pillPadX + (fav ? dotR : 11), iconCY = pillY + pillH / 2;
     if (fav) {
       ctx.save();
-      ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.clip();
-      ctx.fillStyle = rawAccent; ctx.fillRect(dotCX - dotR, dotCY - dotR, dotR, dotR * 2);
-      ctx.fillStyle = rawAccent2; ctx.fillRect(dotCX, dotCY - dotR, dotR, dotR * 2);
+      ctx.beginPath(); ctx.arc(iconCX, iconCY, dotR, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = rawAccent; ctx.fillRect(iconCX - dotR, iconCY - dotR, dotR, dotR * 2);
+      ctx.fillStyle = rawAccent2; ctx.fillRect(iconCX, iconCY - dotR, dotR, dotR * 2);
       ctx.restore();
       ctx.strokeStyle = 'rgba(238,242,248,0.35)';
       ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(iconCX, iconCY, dotR, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      drawIconPath(ctx, 'star', iconCX - 11, iconCY - 11, 22, accent);
     }
-    var identityFit = fitShareText(ctx, identityParts.join('  ·  '), FONT, W - 60 - identityX, 30, 20, '700');
-    ctx.fillStyle = '#eef2f8';
     ctx.textAlign = 'left';
-    ctx.fillText(identityFit.text, identityX, dotCY + 10);
+    ctx.font = '700 ' + identityFit0.px + 'px ' + FONT;
+    ctx.fillStyle = '#eef2f8';
+    ctx.fillText(identityFit0.text, pillX + pillPadX + iconW, pillY + pillH / 2 + 9);
   }
 
+  // Decorative flanking dashes around the mode title -- matches the
+  // mockup's "— CFB 12-0 —" treatment, purely ornamental (drawn AFTER
+  // measuring the real title text so the dashes always sit just outside
+  // it regardless of length).
   ctx.textAlign = 'center';
-  var titleFit = fitShareText(ctx, cfg.title, FONT, W - 120, 42, 26, '700');
+  var titleFit = fitShareText(ctx, cfg.title, FONT, W - 200, 42, 26, '700');
+  var titleY = midY - 220, titleWidth = ctx.measureText(titleFit.text).width;
   ctx.fillStyle = '#eef2f8';
-  ctx.fillText(titleFit.text, W / 2, midY - 220);
+  ctx.fillText(titleFit.text, W / 2, titleY);
+  ctx.strokeStyle = hexToRgbaString(rawAccent, 0.5);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - titleWidth / 2 - 46, titleY - 8); ctx.lineTo(W / 2 - titleWidth / 2 - 18, titleY - 8);
+  ctx.moveTo(W / 2 + titleWidth / 2 + 18, titleY - 8); ctx.lineTo(W / 2 + titleWidth / 2 + 46, titleY - 8);
+  ctx.stroke();
 
   // Headline number auto-shrinks if a longer value (e.g. a big Speed-round
   // point total) would otherwise run past the card's edges — short values
@@ -7094,15 +7224,49 @@ function drawShareCard(ctx, cfg, format) {
   var subFit = fitShareText(ctx, cfg.sub, FONT, W - 120, 46, 28, '600');
   ctx.fillStyle = '#eef2f8';
   ctx.fillText(subFit.text, W / 2, midY + 90);
+  // Full Visual + Interactive Redesign pass: a real 3-box stat row (Football
+  // Rating / Tier / Streak) replacing the old single-line detail text --
+  // matches the redesigned share-card mockup's stat strip. Pulls the same
+  // real getRating()/ratingTierFor()/getStreak() data shareStatusLine()
+  // already uses for the plain-text share message (that string is
+  // untouched, still used for the native-share/copy/X text) -- this is
+  // purely how the CANVAS card presents the identical real numbers.
+  // Streak box only appears when the real streak is > 0 (never a fake
+  // "0-day streak" box). cfg.detail (any mode-specific extra bit folded
+  // into it, e.g. this round's rating delta) still renders as its own
+  // smaller line above the boxes when present, so nothing already shown
+  // is silently dropped.
+  var statR = getRating();
   if (cfg.detail) {
-    // Share Your Result pass: this line now regularly carries
-    // shareStatusLine()'s combined "Football Rating N · Tier · N-day
-    // streak" text (longer, on average, than the old delta-only line it
-    // replaced) -- same auto-shrink-then-ellipsis safety net, so a long
-    // tier name plus a real streak count can never run off the card.
-    var detailFit = fitShareText(ctx, cfg.detail, FONT, W - 120, 34, 22, '500');
+    var detailFit = fitShareText(ctx, cfg.detail, FONT, W - 120, 32, 20, '500');
     ctx.fillStyle = '#9aa8c2';
-    ctx.fillText(detailFit.text, W / 2, midY + 152);
+    ctx.fillText(detailFit.text, W / 2, midY + 140);
+  }
+  if (statR) {
+    var statTier = ratingTierFor(statR.score);
+    var statStreak = getStreak();
+    var boxes = [{ icn: 'trophy', val: String(statR.score), lbl: 'Football Rating' }, { icn: 'shield', val: statTier.name, lbl: 'Tier' }];
+    if (statStreak.count > 0) boxes.push({ icn: 'flame', val: statStreak.count + '-Day', lbl: 'Streak' });
+    var boxY = midY + (cfg.detail ? 168 : 150), boxH = 96, boxGap = 16, boxAreaW = W - 120;
+    var boxW = (boxAreaW - boxGap * (boxes.length - 1)) / boxes.length;
+    boxes.forEach(function (b, i) {
+      var bx = 60 + i * (boxW + boxGap);
+      roundRectPath(ctx, bx, boxY, boxW, boxH, 16);
+      ctx.fillStyle = 'rgba(238,242,248,0.05)';
+      ctx.fill();
+      ctx.strokeStyle = hexToRgbaString(rawAccent, 0.3);
+      ctx.lineWidth = 1.5;
+      roundRectPath(ctx, bx, boxY, boxW, boxH, 16);
+      ctx.stroke();
+      drawIconPath(ctx, b.icn, bx + boxW / 2 - 12, boxY + 14, 24, accent);
+      ctx.textAlign = 'center';
+      var valFit = fitShareText(ctx, b.val, FONT, boxW - 18, 26, 15, '800');
+      ctx.fillStyle = '#eef2f8';
+      ctx.fillText(valFit.text, bx + boxW / 2, boxY + 68);
+      ctx.font = '600 15px ' + FONT;
+      ctx.fillStyle = '#9aa8c2';
+      ctx.fillText(b.lbl, bx + boxW / 2, boxY + 87);
+    });
   }
 
   // Footer name/date as a soft pill chip rather than bare text floating at
@@ -7541,6 +7705,58 @@ function recentActivityHtml() {
     }).join('') +
     '</div>';
 }
+// Full Visual + Interactive Redesign pass: a premium personal-stats hero
+// (matching the redesigned leaderboard mockup's rating shield + trend +
+// stat strip) at the top of the Leaderboard screen -- real data only,
+// same discipline the task explicitly called for. Every field here is
+// something this app already computes/stores somewhere (getRating(),
+// ratingTierFor(), getRatingHistory(), getStreak(), state.stats, the
+// same modeTimesPlayed()/LEADERBOARD_MODES the Home screen's "Recommended"
+// and Profile page already use) -- nothing new is invented, and there is
+// deliberately NO worldwide percentile, no fake player count, and no
+// fabricated "vs last 7 days" framing (getRatingHistory() stores the last
+// RATING_HISTORY_MAX rounds, not one point per calendar day, so this is
+// honestly labeled "recent trend" against however many real rounds are
+// actually in that window instead of a specific day count that isn't
+// really being measured). Returns '' before a player has a rating at all
+// (Practice-only / never named) -- nothing to show yet, not a fabricated
+// zero-state.
+function leaderboardHeroHtml() {
+  var r = getRating();
+  if (!r) return '';
+  var tier = ratingTierFor(r.score);
+  var history = getRatingHistory();
+  var trendDelta = history.length >= 2 ? (r.score - history[0]) : null;
+  var sparkline = ratingSparklineSvg(history);
+  var streak = getStreak();
+  var dailyStats = state.stats.daily || {};
+  var favEntry = LEADERBOARD_MODES.filter(function (m) { return m.id !== 'rating'; })
+    .map(function (m) { return { label: m.label, n: modeTimesPlayed(m.id) }; })
+    .reduce(function (best, cur) { return (!best || cur.n > best.n) ? cur : best; }, null);
+  var statStrip = [
+    { icon: 'flame', value: streak.count, label: 'Day' + (streak.count === 1 ? '' : 's') + ' Streak' },
+    { icon: 'barChart', value: r.games || 0, label: 'Total Games' }
+  ];
+  if (dailyStats.completions > 0) statStrip.push({ icon: 'target', value: (dailyStats.bestPct || 0) + '%', label: 'Best Daily' });
+  if (favEntry && favEntry.n > 0) statStrip.push({ icon: 'star', value: favEntry.label, label: 'Favorite Mode', isText: true });
+  return '<div class="rating-hero">' +
+    '<div class="rating-hero-badge">' +
+    '<div class="rating-hero-shield">' + icon('shield') + '<div class="rating-hero-shield-text"><span class="rating-hero-tier">' + esc(tier.name) + '</span><span class="rating-hero-score">' + r.score + '</span></div></div>' +
+    '</div>' +
+    '<div class="rating-hero-main">' +
+    '<div class="rating-hero-headrow"><span class="rating-hero-label">Football Rating</span>' +
+    (trendDelta != null ? '<span class="rating-hero-trend ' + (trendDelta >= 0 ? 'up' : 'down') + '">' + icon(trendDelta >= 0 ? 'arrowUp' : 'arrowDown') + ' ' + Math.abs(trendDelta) + '</span>' : '') +
+    '</div>' +
+    '<div class="rating-hero-score-row"><span class="rating-hero-score-big">' + r.score + '</span>' + sparkline + '</div>' +
+    '<span class="rating-xp-track rating-xp-track-lg"><span class="rating-xp-fill" style="width:' + Math.round(tier.pct * 100) + '%"></span></span>' +
+    '<div class="rating-hero-tier-row"><span>' + r.score + '</span><span>' + (tier.next ? tier.ptsToNext + ' pts to ' + esc(tier.next) : 'Peak tier') + '</span></div>' +
+    '</div></div>' +
+    '<div class="rating-hero-stats">' +
+    statStrip.map(function (s) {
+      return '<div class="rating-hero-stat"><div class="rating-hero-stat-top">' + icon(s.icon) + '<b' + (s.isText ? ' class="rating-hero-stat-text"' : '') + '>' + esc(String(s.value)) + '</b></div><span>' + esc(s.label) + '</span></div>';
+    }).join('') +
+    '</div>';
+}
 function renderLeaderboard() {
   var mode = LEADERBOARD_MODES.find(function (m) { return m.id === state.leaderboardMode; });
   var mySlug = state.name ? slugify(state.name) : null;
@@ -7550,6 +7766,7 @@ function renderLeaderboard() {
   var myFullRank = mySlug ? allRanked.findIndex(function (r) { return slugify(r.name) === mySlug; }) : -1;
   var html = '<div class="panel">' +
     '<h2 class="panel-title">' + icon('trophy') + ' Leaderboard</h2>' +
+    leaderboardHeroHtml() +
     '<div class="chip-row">' +
     LEADERBOARD_MODES.map(function (m) { return '<button class="chip-toggle' + (state.leaderboardMode === m.id ? ' active' : '') + '" data-leaderboard-mode="' + m.id + '">' + esc(m.label) + '</button>'; }).join('') +
     '</div>' +
@@ -7563,7 +7780,14 @@ function renderLeaderboard() {
     html += '<div class="table-scroll"><table class="leaderboard-table"><thead><tr><th>#</th><th>Name</th>' + mode.cols.map(function (c) { return '<th>' + esc(c[1]) + '</th>'; }).join('') + '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
       var isMe = mySlug && slugify(r.name) === mySlug;
-      html += '<tr class="' + (isMe ? 'leaderboard-row-me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(r.name) + (isMe ? ' <span class="leaderboard-you-tag">You</span>' : '') + '</td>' + mode.cols.map(function (c) { return '<td>' + esc(r[c[0]] != null ? r[c[0]] : 0) + '</td>'; }).join('') + '</tr>';
+      // Full Visual + Interactive Redesign pass: a real tier chip next to
+      // each name on the Football Rating leaderboard specifically (the
+      // only leaderboard mode whose score maps to a real RATING_TIERS
+      // tier) -- computed from that row's own real score, never a
+      // separate/fabricated field.
+      var tierChip = mode.id === 'rating' && r.score != null
+        ? ' <span class="leaderboard-tier-chip">' + esc(ratingTierFor(r.score).name) + '</span>' : '';
+      html += '<tr class="' + (isMe ? 'leaderboard-row-me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(r.name) + tierChip + (isMe ? ' <span class="leaderboard-you-tag">You</span>' : '') + '</td>' + mode.cols.map(function (c) { return '<td>' + esc(r[c[0]] != null ? r[c[0]] : 0) + '</td>'; }).join('') + '</tr>';
     });
     html += '</tbody></table></div>';
     if (myFullRank >= 25) {

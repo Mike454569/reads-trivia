@@ -430,16 +430,30 @@ function renderPositionLineupCollegeBoard(payload) {
     '<div class="lineup-row">' + positions.map(cell).join('') + '</div>' +
     '</div>';
 }
+// Full Visual + Interactive Redesign pass: "make ranking numbers visually
+// important" -- a pure text-presentation pass over the real prompt string
+// already returned by the Engine (CFB Rankings/Upsets prompts always say
+// "No. N" for a real AP Top 25 rank -- confirmed against real live
+// prompts this same session, e.g. "ranked No. 8 in the AP Top 25...").
+// Wraps that exact real substring in a styled span -- never invents,
+// reorders, or otherwise touches the real fact string itself, and is a
+// no-op (falls through to esc(prompt) unchanged) for every prompt that
+// doesn't contain that pattern.
+function highlightRankNumbers(promptText) {
+  var escaped = esc(promptText);
+  return escaped.replace(/No\.\s?\d+/g, function (m) { return '<span class="rank-number-highlight">' + m + '</span>'; });
+}
 function renderEnginePilotPromptHtml(game) {
+  var promptHtml = highlightRankNumbers(game.payload.prompt);
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
-    return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+    return '<div class="quiz-question">' + promptHtml + '</div>' +
       renderPositionLineupBoard(game.payload.visual_payload);
   }
   if (game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload) {
-    return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>' +
+    return '<div class="quiz-question">' + promptHtml + '</div>' +
       renderPositionLineupCollegeBoard(game.payload.visual_payload);
   }
-  return '<div class="quiz-question">' + esc(game.payload.prompt) + '</div>';
+  return '<div class="quiz-question">' + promptHtml + '</div>';
 }
 /* Section 6/7/21 fix: cfg.title used to appear only on the pre-start IDLE
    screen and vanish for the rest of the round -- once play started, the
@@ -512,7 +526,7 @@ function renderEnginePilotScreen() {
   var game = s.current, answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
   return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
-    '<div class="quiz-progress">Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || '') + '</div>' +
+    quizProgressRowHtml('Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || ''), s.roundIndex, s.roundSize) +
     renderEnginePilotPromptHtml(game) +
     '<div class="quiz-options">' +
     game.payload.options.map(function (opt, i) {
