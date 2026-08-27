@@ -238,7 +238,6 @@ body.home-fav-theme {
 html, body { margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
@@ -247,44 +246,11 @@ body {
   flex-direction: column;
   overflow-x: hidden;
   position: relative;
-  /* "Field/grass texture and light grain": alternating diagonal light/dark
-     bands (mowed-turf stripes) plus a fractal-noise grain (inline SVG
-     feTurbulence, no image request), baked directly into body's own
-     background rather than a separate ::before/::after layer — an earlier
-     pass used a fixed pseudo-element with mix-blend-mode: overlay, which
-     mathematically crushes to near-invisible on a background this dark
-     (overlay behaves like multiply for base colors below ~50% lightness),
-     so it silently did nothing. Plain alpha-composited color, no blend
-     mode, is what actually shows up on a near-black background. */
-  background:
-    repeating-linear-gradient(115deg, rgba(255,255,255,0.032) 0, rgba(255,255,255,0.032) 46px, rgba(0,0,0,0.05) 46px, rgba(0,0,0,0.05) 92px),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/></svg>"),
-    var(--bg);
-  background-size: auto, 140px 140px, auto;
-}
-@media (prefers-color-scheme: light) {
-  body {
-    background:
-      repeating-linear-gradient(115deg, rgba(0,0,0,0.02) 0, rgba(0,0,0,0.02) 46px, rgba(255,255,255,0.03) 46px, rgba(255,255,255,0.03) 92px),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.25'/></svg>"),
-      var(--bg);
-    background-size: auto, 140px 140px, auto;
-  }
-}
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url('assets/brand/reads-logo.jpg');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: min(60vw, 440px);
-  opacity: 0.09;
-  pointer-events: none;
-  z-index: -1;
-}
-@media (prefers-color-scheme: light) {
-  body::before { opacity: 0.06; }
+  /* Visual fidelity pass: the approved mockups use a clean, flat near-black
+     background with no visible texture at all -- the previous mowed-turf
+     diagonal stripes + fractal-noise grain read as a washed-out gray-green
+     wash against those mockups instead of the intended premium black. */
+  background: var(--bg);
 }
 /* Inline SVG icon set (see ICON_PATHS/icon() in app.js) — sized in em so it
    tracks the font-size of whatever button/label it's dropped into, matching
@@ -835,7 +801,17 @@ footer p { margin: 6px 0 0; }
 
 /* home — see --space-* tokens above for the rhythm this all shares */
 .hero { text-align: center; margin: var(--space-sm) 0 var(--space-lg); }
-.hero-logo { height: 150px; width: auto; max-width: 90vw; object-fit: contain; margin: 0 auto var(--space-sm); display: block; }
+/* Visual fidelity pass: reads-logo.jpg is a JPEG (no alpha channel), so its
+   own dark textured background always renders as a visible rectangle
+   against the page -- the mockups show the wordmark blending straight into
+   the page with no card edge. A radial alpha mask fades the image's own
+   edges to transparent so the page's own (now-matching) near-black
+   background shows through at the border instead of a hard seam. */
+.hero-logo {
+  height: 150px; width: auto; max-width: 90vw; object-fit: contain; margin: 0 auto var(--space-sm); display: block;
+  -webkit-mask-image: radial-gradient(ellipse 62% 62% at center, #000 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 62% at center, #000 60%, transparent 100%);
+}
 .hero-tagline { font-size: 19px; font-weight: 800; color: var(--text); margin: 0 0 var(--space-xs); }
 .fav-team-greeting { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--fav-team-color-readable, var(--accent)); margin: 0 0 var(--space-xs); }
 .fav-team-badge {

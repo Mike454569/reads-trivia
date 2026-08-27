@@ -183,6 +183,29 @@ function quizProgressRowHtml(labelHtml, current, total) {
   return '<div class="quiz-progress-row"><div class="quiz-progress">' + labelHtml + '</div>' + dots + '</div>';
 }
 function slugify(s) { return (String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 'player'; }
+// Screen-by-Screen Polish pass: a real, reproducible bug found live on
+// mobile -- every modal in this app (onboarding, share, rating, report,
+// team picker, auth, mode sheet) follows the same accessible-dialog
+// pattern of restoring focus to whatever triggered it on close. For a
+// modal that opens automatically (onboarding's own first-load auto-open,
+// with no real user click that triggered it), the "trigger element"
+// captured is just whatever document.activeElement happened to be at
+// that moment -- which turns out to be <main id="app"> itself (it carries
+// tabindex="-1" for a real, separate reason: so screen readers can be
+// sent there deliberately elsewhere). Focusing that page-spanning element
+// makes the browser scroll it into view, which reads as a jarring ~60px
+// jump on mobile the instant a player taps "Skip". Restoring focus to
+// #app (or document.body, the only other value document.activeElement
+// ever meaningfully defaults to with nothing focused) is never a real,
+// intentional focus target for any of these modals, so this shared
+// helper simply skips the restore in that case -- every other real
+// trigger element (an actual button the player clicked) still gets focus
+// back exactly as before.
+function restoreFocus(el) {
+  if (!el || !document.contains(el)) return;
+  if (el.id === 'app' || el === document.body) return;
+  el.focus();
+}
 function shuffle(arr) {
   var a = arr.slice();
   for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
@@ -1392,7 +1415,7 @@ function closeAuthModal() {
   var backdrop = document.getElementById('auth-backdrop');
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
-  if (authTriggerEl && document.contains(authTriggerEl)) authTriggerEl.focus();
+  restoreFocus(authTriggerEl);
   authTriggerEl = null;
 }
 function authModalSwitch() {
@@ -1829,7 +1852,7 @@ function closeTeamPicker() {
   var backdrop = document.getElementById('team-picker-backdrop');
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
-  if (teamPickerTriggerEl && document.contains(teamPickerTriggerEl)) teamPickerTriggerEl.focus();
+  restoreFocus(teamPickerTriggerEl);
   teamPickerTriggerEl = null;
   state.teamPicker = null;
   renderAll(); // picking a team can change the header accent/home greeting
@@ -2249,7 +2272,7 @@ function closeModeSheet() {
     btn.classList.remove('sheet-open');
     btn.setAttribute('aria-expanded', 'false');
   });
-  if (modeSheetTriggerEl && document.contains(modeSheetTriggerEl)) modeSheetTriggerEl.focus();
+  restoreFocus(modeSheetTriggerEl);
   modeSheetTriggerEl = null;
 }
 function toggleModeSheet(league) {
@@ -2405,7 +2428,7 @@ function closeOnboarding() {
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
   lsSet(ONBOARD_KEY, true);
-  if (onboardingTriggerEl && document.contains(onboardingTriggerEl)) onboardingTriggerEl.focus();
+  restoreFocus(onboardingTriggerEl);
   onboardingTriggerEl = null;
 }
 // The CTA itself: for a returning visitor who already has a rating, jump
@@ -7361,7 +7384,7 @@ function closeShareModal() {
   var backdrop = document.getElementById('share-backdrop');
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
-  if (shareTriggerEl && document.contains(shareTriggerEl)) shareTriggerEl.focus();
+  restoreFocus(shareTriggerEl);
   shareTriggerEl = null;
   shareCurrentCfg = null;
   shareCurrentFormat = 'square';
@@ -7421,7 +7444,7 @@ function closeReportModal() {
   var backdrop = document.getElementById('report-backdrop');
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
-  if (reportTriggerEl && document.contains(reportTriggerEl)) reportTriggerEl.focus();
+  restoreFocus(reportTriggerEl);
   reportTriggerEl = null;
   reportCurrentMode = null;
 }
@@ -9245,7 +9268,7 @@ function closeRatingModal() {
   var backdrop = document.getElementById('rating-backdrop');
   if (modal) modal.classList.remove('open');
   if (backdrop) backdrop.classList.remove('open');
-  if (ratingModalTriggerEl && document.contains(ratingModalTriggerEl)) ratingModalTriggerEl.focus();
+  restoreFocus(ratingModalTriggerEl);
   ratingModalTriggerEl = null;
 }
 
