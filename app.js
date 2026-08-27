@@ -4505,11 +4505,28 @@ function loadPlayerCluesItem() {
   s.lastWrong = false;
   s.startedAt = Date.now();
 }
+// Share Your Result pass: a real, blocking defect found while testing the
+// new Share button on this mode's summary screen -- with the default
+// "Any Decade / Any Difficulty" filter (what a first-time player sees),
+// the queue was the ENTIRE filtered pool (up to all 600 real puzzles),
+// and advancePlayerClues() only ever sets screen='summary' after the
+// LAST item in the queue -- so the summary screen (where Share, and the
+// only "you're done" moment at all, lives) was practically unreachable in
+// a normal session; a player would have to answer or give up on all 600
+// in one sitting. Capped to the same real drawNoRepeat() sampling every
+// other round-based mode (Quiz, etc.) already uses -- a real, bounded
+// round each time, with no immediate repeats across sessions until the
+// whole filtered pool has cycled through.
+var PLAYER_CLUES_ROUND_SIZE = 5;
 function startPlayerCluesRound() {
   if (!PLAYER_CLUES_PACKAGE) return;
   var pool = playerCluesFilteredPuzzles();
   if (!pool.length) return; // Start button is disabled in this state, but never proceed on 0 matches
-  state.playerClues = { queue: pool.slice(), index: 0, correctCount: 0, results: [], screen: 'round' };
+  var f = state.playerCluesFilter;
+  var ids = drawNoRepeat('playerClues_' + f.decade + '_' + f.difficulty, pool.map(function (p) { return p.id; }), Math.min(PLAYER_CLUES_ROUND_SIZE, pool.length));
+  var byId = {};
+  pool.forEach(function (p) { byId[p.id] = p; });
+  state.playerClues = { queue: ids.map(function (id) { return byId[id]; }), index: 0, correctCount: 0, results: [], screen: 'round' };
   loadPlayerCluesItem();
   state.screen = 'playerClues';
   renderAll();
@@ -4589,7 +4606,7 @@ function renderPlayerCluesSetup() {
   return '<div class="panel">' +
     '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
     '<p class="mode-desc">' + esc(PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
-    '<p class="mode-desc">' + PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack. Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<p class="mode-desc">' + PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (' + PLAYER_CLUES_ROUND_SIZE + ' per round). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
     '<div class="chip-row" role="group" aria-label="Filter by decade">' +
     '<button class="chip-toggle' + (f.decade === 'any' ? ' active' : '') + '" data-clues-filter-decade="any">Any Decade</button>' +
     decades.map(function (d) {
@@ -4649,6 +4666,7 @@ function renderPlayerCluesSummary() {
     '<div class="summary-note">Local prototype — nothing here is saved to your profile or the leaderboard.</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-clues-start>Play Again</button>' +
+    '<button class="btn-secondary" data-share="playerClues">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
     '</div>' + recommendedModeHtml() + '</div>';
 }
@@ -4691,9 +4709,19 @@ function loadCfbPlayerCluesItem() {
   s.lastWrong = false;
   s.startedAt = Date.now();
 }
+// Share Your Result pass: same real drawNoRepeat()-sampled round-size cap
+// as the NFL version above, for consistency -- this pool is small enough
+// (12 puzzles) that grinding through all of it in one sitting was at
+// least reachable (unlike NFL's 600), but every session played the exact
+// same 12 puzzles in the exact same fixed order (.slice() never
+// shuffles), which is its own real repetition problem on replay.
 function startCfbPlayerCluesRound() {
   if (!CFB_PLAYER_CLUES_PACKAGE) return;
-  state.cfbPlayerClues = { queue: CFB_PLAYER_CLUES_PACKAGE.puzzles.slice(), index: 0, correctCount: 0, results: [], screen: 'round' };
+  var pool = CFB_PLAYER_CLUES_PACKAGE.puzzles;
+  var ids = drawNoRepeat('cfbPlayerClues', pool.map(function (p) { return p.id; }), Math.min(PLAYER_CLUES_ROUND_SIZE, pool.length));
+  var byId = {};
+  pool.forEach(function (p) { byId[p.id] = p; });
+  state.cfbPlayerClues = { queue: ids.map(function (id) { return byId[id]; }), index: 0, correctCount: 0, results: [], screen: 'round' };
   loadCfbPlayerCluesItem();
   state.screen = 'cfbPlayerClues';
   renderAll();
@@ -4763,7 +4791,7 @@ function renderCfbPlayerCluesSetup() {
   return '<div class="panel">' +
     '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
     '<p class="mode-desc">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
-    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (hand-picked Heisman winners). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (hand-picked Heisman winners, ' + PLAYER_CLUES_ROUND_SIZE + ' per round). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
     '<div class="btn-row"><button class="btn-primary" data-cfb-clues-start>Start</button></div>' +
     '</div>';
 }
@@ -4809,6 +4837,7 @@ function renderCfbPlayerCluesSummary() {
     '<div class="summary-note">Local prototype — nothing here is saved to your profile or the leaderboard.</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-clues-start>Play Again</button>' +
+    '<button class="btn-secondary" data-share="cfbPlayerClues">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
     '</div>' + recommendedModeHtml() + '</div>';
 }
@@ -6715,39 +6744,55 @@ function renderH2HLiveScreen() {
    real, working target — Instagram has no web share-intent of its own).
    Falls back to a small modal (download / share-to-X / share-app-to-
    Facebook) on desktop/unsupported browsers. */
-// Formats how much this round moved the Football Rating, for both the
-// canvas card and the share text — '' (omitted entirely) for Practice
-// rounds or anyone without a rating yet, since ratingDelta is only ever set
-// by updateRatingDrift() actually running (see the finish* functions).
-function shareRatingLine(delta) {
-  if (delta == null) return '';
+// Share Your Result pass: a player's Reads IDENTITY line -- Football
+// Rating, tier (Rookie..MVP), and current daily-play streak -- shown on
+// every share card/text regardless of whether THIS round happened to move
+// the rating (shareRatingLine above only ever fired on a delta, so modes
+// that don't touch the rating at all -- Who Am I, the engine-pilot guess
+// modes -- never showed anything). Absolute, not a notification: matches
+// "their Reads status" as its own persistent line, same real
+// getRating()/ratingTierFor()/getStreak() data the Home screen's own
+// rating badge and streak flame already use -- nothing new computed, and
+// '' (omitted) for a Practice round or anyone without a rating yet, same
+// as before. Still folds in this round's delta, in parens, when one
+// exists -- real, useful context, not lost, just no longer the only thing
+// shown.
+function shareStatusLine(delta) {
   var r = getRating();
   if (!r) return '';
-  return '🏈 Rating ' + (delta > 0 ? '+' : '') + delta + ' (now ' + r.score + ')';
+  var tier = ratingTierFor(r.score);
+  var ratingBit = 'Football Rating ' + r.score + (delta != null && delta !== 0 ? ' (' + (delta > 0 ? '+' : '') + delta + ')' : '');
+  var parts = [ratingBit, tier.name];
+  var streak = getStreak();
+  if (streak.count > 0) parts.push(streak.count + '-day streak');
+  return parts.join(' · ');
 }
 function shareConfigFor(mode) {
   if (mode === 'quiz' || mode === 'cfbQuiz' || mode === 'xso') {
     var t = state[mode];
     var pct = Math.round(100 * t.correctCount / t.queue.length);
     var label = mode === 'quiz' ? 'NFL Quiz' : mode === 'cfbQuiz' ? 'CFB Quiz' : "X's & O's";
-    var rl = shareRatingLine(t.ratingDelta);
+    var rl = shareStatusLine(t.ratingDelta);
     return { title: label, headline: pct + '%', sub: t.correctCount + ' / ' + t.queue.length + ' correct', detail: rl,
       shareText: 'I scored ' + pct + '% on ' + label + ' in Reads! 🏈' + (rl ? ' ' + rl : '') };
   }
   if (mode === 'daily') {
     var d = state.daily;
     var pct2 = Math.round(100 * d.correctCount / d.queue.length);
-    var streakN = getStreak().count;
-    var streakBit = streakN ? ('🔥 ' + streakN + '-day streak') : '';
-    var rlD = shareRatingLine(d.ratingDelta);
-    return { title: 'Daily Challenge', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct', detail: [streakBit, rlD].filter(Boolean).join(' · '),
-      shareText: 'I scored ' + pct2 + '% on today’s Daily Challenge in Reads!' + (streakBit ? ' ' + streakBit : '') + (rlD ? ' ' + rlD : '') };
+    // Share Your Result pass: streakN/streakBit used to be daily's own
+    // one-off way of showing the streak since shareRatingLine (the old,
+    // delta-only helper) never included it -- shareStatusLine now folds
+    // the real streak into every mode's line universally, so keeping this
+    // as a second, separate streak mention would just duplicate it.
+    var rlD = shareStatusLine(d.ratingDelta);
+    return { title: 'Daily Challenge', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct', detail: rlD,
+      shareText: 'I scored ' + pct2 + '% on today’s Daily Challenge in Reads!' + (rlD ? ' ' + rlD : '') };
   }
   if (mode === 'grid' || mode === 'cfbGrid') {
     var g = state[mode];
     var correctCells = g.cells.filter(function (c) { return c.correct; }).length;
     var label2 = mode === 'grid' ? 'NFL Grid' : 'CFB Grid';
-    var rlG = shareRatingLine(g.ratingDelta);
+    var rlG = shareStatusLine(g.ratingDelta);
     var sweepBit = correctCells === 9 ? 'Clean sweep!' : '';
     return { title: label2, headline: correctCells + '/9', sub: g.totalScore + ' points', detail: [sweepBit, rlG].filter(Boolean).join(' · '),
       shareText: 'I got ' + correctCells + '/9 on the ' + label2 + ' in Reads (' + g.totalScore + ' pts)!' + (rlG ? ' ' + rlG : '') };
@@ -6755,7 +6800,7 @@ function shareConfigFor(mode) {
   if (mode === 'blitz' || mode === 'cfbBlitz') {
     var b = state[mode], total = b.list.answers.length;
     var label3 = mode === 'blitz' ? 'NFL Blitz' : 'CFB Blitz';
-    var rlB = shareRatingLine(b.ratingDelta);
+    var rlB = shareStatusLine(b.ratingDelta);
     var bSweepBit = b.matched.length === total ? 'Clean sweep!' : '';
     return { title: label3, headline: b.matched.length + '/' + total, sub: b.list.title, detail: [bSweepBit, rlB].filter(Boolean).join(' · '),
       shareText: 'I found ' + b.matched.length + '/' + total + ' on "' + b.list.title + '" in Reads ' + label3 + '!' + (rlB ? ' ' + rlB : '') };
@@ -6763,14 +6808,14 @@ function shareConfigFor(mode) {
   if (mode === 'speed' || mode === 'cfbSpeed') {
     var s = state[mode];
     var label4 = mode === 'speed' ? 'NFL Speed' : 'CFB Speed';
-    var rlS = shareRatingLine(s.ratingDelta);
+    var rlS = shareStatusLine(s.ratingDelta);
     return { title: label4, headline: s.score + ' pts', sub: s.correctCount + ' / ' + s.totalCount + ' correct', detail: ['Best streak: ' + s.bestStreak, rlS].filter(Boolean).join(' · '),
       shareText: 'I scored ' + s.score + ' points on ' + label4 + ' in Reads! Best streak: ' + s.bestStreak + (rlS ? ' ' + rlS : '') };
   }
   if (mode === 'silhouette') {
     var sil = state.silhouette;
     var silCorrectCount = sil.results.filter(function (r) { return r.correct; }).length;
-    var rlSil = shareRatingLine(sil.ratingDelta);
+    var rlSil = shareStatusLine(sil.ratingDelta);
     return { title: 'NFL Silhouette', headline: sil.score + ' pts', sub: silCorrectCount + ' / ' + sil.queue.length + ' guessed', detail: rlSil,
       shareText: 'I scored ' + sil.score + ' points on NFL Silhouette in Reads!' + (rlSil ? ' ' + rlSil : '') };
   }
@@ -6778,7 +6823,7 @@ function shareConfigFor(mode) {
     var hl = state.higherLower;
     var hlCat = hlCategoryConfig(hl.category);
     var hlNoun = hlCat.entityLabel === 'stadium' ? 'stadium' : 'player';
-    var rlHl = shareRatingLine(hl.ratingDelta);
+    var rlHl = shareStatusLine(hl.ratingDelta);
     return { title: 'Higher or Lower — ' + hlCat.label, headline: String(hl.streak), sub: hl.streak === 1 ? hlNoun : hlNoun + 's', detail: rlHl,
       shareText: 'I built a ' + hl.streak + '-' + hlNoun + ' streak on Higher or Lower (' + hlCat.label + ') in Reads! Can you beat it?' + (rlHl ? ' ' + rlHl : '') };
   }
@@ -6786,14 +6831,14 @@ function shareConfigFor(mode) {
     var iq = state[mode];
     var label5 = mode === 'iq' ? 'Football IQ Test' : 'College Football IQ Test';
     var titleFn = mode === 'iq' ? iqTitle : cfbIqTitle;
-    var rlIq = shareRatingLine(iq.ratingDelta);
+    var rlIq = shareStatusLine(iq.ratingDelta);
     return { title: label5, headline: String(iq.iqScore), sub: titleFn(iq.iqScore), detail: [iq.correct + ' / ' + iq.total + ' correct', rlIq].filter(Boolean).join(' · '),
       shareText: 'My ' + label5 + ' score in Reads: ' + iq.iqScore + ' (' + titleFn(iq.iqScore) + ')' + (rlIq ? ' ' + rlIq : '') };
   }
   if (mode === 'legends' || mode === 'cfbLegends') {
     var l = state[mode];
     var label6 = mode === 'legends' ? '17-0' : 'CFB 12-0';
-    var rlL = shareRatingLine(l.ratingDelta);
+    var rlL = shareStatusLine(l.ratingDelta);
     var recordLabel6 = mode === 'cfbLegends' ? 'Regular season' : 'Projected record';
     var postseasonBit6 = mode === 'cfbLegends' ? l.postseasonLabel : '';
     return { title: label6, headline: l.grade, sub: l.gradeLabel, detail: [recordLabel6 + ': ' + l.wins + '-' + l.losses, postseasonBit6, rlL].filter(Boolean).join(' · '),
@@ -6806,10 +6851,35 @@ function shareConfigFor(mode) {
     var hOppSlug = hSlugs.filter(function (sl) { return sl !== h.mySlug; })[0];
     var hOpp = hOppSlug ? hMatch.players[hOppSlug] : null;
     var hOppDone = !!(hOpp && hOpp.finishedAt);
-    var hRl = shareRatingLine(h.ratingDelta);
+    var hRl = shareStatusLine(h.ratingDelta);
     var hResult = !hOppDone ? '' : (hMe.correctCount > hOpp.correctCount ? 'Won' : hMe.correctCount < hOpp.correctCount ? 'Lost' : 'Tied') + ' vs ' + hOpp.name;
     return { title: 'Head-to-Head', headline: hMe.correctCount + '/' + hMe.total, sub: hResult || 'Waiting on opponent', detail: hRl,
       shareText: 'Head-to-Head in Reads: ' + hMe.correctCount + '/' + hMe.total + (hResult ? ' — ' + hResult : '') + '!' + (hRl ? ' ' + hRl : '') };
+  }
+  // Share Your Result pass: Player From Clues (NFL/CFB Who Am I) had no
+  // share hook at all -- real result data (results[].correct) already
+  // existed, just never read by this function.
+  if (mode === 'playerClues' || mode === 'cfbPlayerClues') {
+    var pc = state[mode];
+    var pcCorrect = pc.results.filter(function (r) { return r.correct; }).length;
+    var pcLabel = mode === 'playerClues' ? 'NFL Player From Clues' : 'CFB Player From Clues';
+    var pcRl = shareStatusLine();
+    return { title: pcLabel, headline: pcCorrect + '/' + pc.queue.length, sub: 'players solved', detail: pcRl,
+      shareText: 'I solved ' + pcCorrect + '/' + pc.queue.length + ' ' + pcLabel + ' on Reads Football.' + (pcRl ? ' ' + pcRl : '') };
+  }
+  // Share Your Result pass: every real "guess" capability served through
+  // the shared engine-pilot shell (Offense by College, SB Champion Offense
+  // by College, CFB Rankings, CFB Upsets, NFL/CFB Game Result, NFL Box
+  // Scores, plus Draft/Championship/Lineup/Heisman) gets a real share card
+  // from this one branch -- keyed by ENGINE_PILOT_MODES (the same registry
+  // renderEnginePilotScreen() itself reads) rather than one hardcoded
+  // branch per mode, so a future capability added to that shared shell
+  // gets sharing for free instead of silently missing it again.
+  if (ENGINE_PILOT_MODES[mode] && state.enginePilot && state.enginePilot.modeKey === mode) {
+    var epCfg = ENGINE_PILOT_MODES[mode], ep = state.enginePilot;
+    var epRl = shareStatusLine();
+    return { title: epCfg.title, headline: ep.correctCount + '/' + ep.roundSize, sub: 'correct', detail: epRl,
+      shareText: 'I got ' + ep.correctCount + '/' + ep.roundSize + ' on ' + epCfg.title + ' in Reads Football.' + (epRl ? ' ' + epRl : '') };
   }
   return null;
 }
@@ -6886,6 +6956,27 @@ function hexToRgbaString(hex, alpha) {
 // big headline number, sub/detail lines sit) moves to the middle of
 // whatever's left between them, so a story card doesn't just look like a
 // square card with a huge empty gap stretched into the bottom.
+// Share Your Result pass: every piece of real, variable-length text on the
+// card (title, headline, sub, status line, identity line, footer) now
+// routes through this one shrink-then-ellipsis routine instead of each
+// having its own copy-pasted loop -- a long real username, mode title, or
+// tier/streak combo shrinks first (down to minPx), then truncates with an
+// ellipsis as a last resort, so nothing can ever run past the card's own
+// edges or collide with a neighboring element. Returns the actual px size
+// used, since the identity-line swatch dot needs to know it to vertically
+// balance against the (possibly shrunk) text.
+function fitShareText(ctx, text, font, maxWidth, startPx, minPx, weight) {
+  var px = startPx;
+  ctx.font = weight + ' ' + px + 'px ' + font;
+  while (ctx.measureText(text).width > maxWidth && px > minPx) {
+    px -= 2;
+    ctx.font = weight + ' ' + px + 'px ' + font;
+  }
+  while (ctx.measureText(text).width > maxWidth && text.length > 4) {
+    text = text.slice(0, -2) + '…';
+  }
+  return { text: text, px: px };
+}
 function drawShareCard(ctx, cfg, format) {
   var W = 1080, H = format === 'story' ? 1920 : 1080, FONT = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
   var midY = format === 'story' ? 1000 : 500;
@@ -6952,62 +7043,80 @@ function drawShareCard(ctx, cfg, format) {
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, 192); ctx.lineTo(W - 60, 192); ctx.stroke();
 
-  // Favorite-team identity line — a two-tone swatch dot (same visual idea as
-  // the team picker's diagonal-split swatch) plus the team's real name and,
-  // if it has one, its chant. This is the part that actually says "this is
-  // MY team's card" instead of leaving color as the only, easy-to-miss tell.
-  if (fav) {
+  // Share Your Result pass: player identity line -- username (if set) and
+  // favorite team (if set), combined into the SAME single row the
+  // favorite-team swatch already occupied rather than adding a new row,
+  // so this stays a pure content change with zero layout-cascade risk
+  // (title/headline/sub/detail below are all positioned off midY, which
+  // this row's height was never part of). "Team Name fan" matches this
+  // pass's own example copy exactly; chant is dropped from this line
+  // specifically to leave room for the username without three-stacking
+  // text on one row -- the swatch dot alone already carries the team's
+  // color identity. Auto-shrinks (same technique as the headline number
+  // below), then truncates with an ellipsis as a last resort, so a
+  // pathologically long real username can never run off the card or
+  // collide with the swatch dot.
+  var identityParts = [];
+  if (state.name) identityParts.push(state.name);
+  if (fav) identityParts.push(fav.name + ' fan');
+  if (identityParts.length) {
     var dotR = 12, dotCX = 60 + dotR, dotCY = 192 + 42;
-    ctx.save();
-    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = rawAccent; ctx.fillRect(dotCX - dotR, dotCY - dotR, dotR, dotR * 2);
-    ctx.fillStyle = rawAccent2; ctx.fillRect(dotCX, dotCY - dotR, dotR, dotR * 2);
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(238,242,248,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.stroke();
+    var identityX = fav ? dotCX + dotR + 18 : 60;
+    if (fav) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = rawAccent; ctx.fillRect(dotCX - dotR, dotCY - dotR, dotR, dotR * 2);
+      ctx.fillStyle = rawAccent2; ctx.fillRect(dotCX, dotCY - dotR, dotR, dotR * 2);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(238,242,248,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(dotCX, dotCY, dotR, 0, Math.PI * 2); ctx.stroke();
+    }
+    var identityFit = fitShareText(ctx, identityParts.join('  ·  '), FONT, W - 60 - identityX, 30, 20, '700');
     ctx.fillStyle = '#eef2f8';
-    ctx.font = '700 30px ' + FONT;
     ctx.textAlign = 'left';
-    ctx.fillText(fav.name + (fav.chant ? '  ·  ' + fav.chant : ''), dotCX + dotR + 18, dotCY + 10);
+    ctx.fillText(identityFit.text, identityX, dotCY + 10);
   }
 
   ctx.textAlign = 'center';
+  var titleFit = fitShareText(ctx, cfg.title, FONT, W - 120, 42, 26, '700');
   ctx.fillStyle = '#eef2f8';
-  ctx.font = '700 42px ' + FONT;
-  ctx.fillText(cfg.title, W / 2, midY - 220);
+  ctx.fillText(titleFit.text, W / 2, midY - 220);
 
   // Headline number auto-shrinks if a longer value (e.g. a big Speed-round
   // point total) would otherwise run past the card's edges — short values
   // (percentages, grades, streak counts) still get the full, bold size this
   // card is built around.
-  var headlineFont = 160;
-  ctx.font = '800 ' + headlineFont + 'px ' + FONT;
-  var maxHeadlineWidth = W - 160;
-  while (ctx.measureText(cfg.headline).width > maxHeadlineWidth && headlineFont > 70) {
-    headlineFont -= 8;
-    ctx.font = '800 ' + headlineFont + 'px ' + FONT;
-  }
+  var headlineFit = fitShareText(ctx, cfg.headline, FONT, W - 160, 160, 70, '800');
   ctx.fillStyle = accent;
-  ctx.fillText(cfg.headline, W / 2, midY);
+  ctx.fillText(headlineFit.text, W / 2, midY);
 
+  var subFit = fitShareText(ctx, cfg.sub, FONT, W - 120, 46, 28, '600');
   ctx.fillStyle = '#eef2f8';
-  ctx.font = '600 46px ' + FONT;
-  ctx.fillText(cfg.sub, W / 2, midY + 90);
+  ctx.fillText(subFit.text, W / 2, midY + 90);
   if (cfg.detail) {
+    // Share Your Result pass: this line now regularly carries
+    // shareStatusLine()'s combined "Football Rating N · Tier · N-day
+    // streak" text (longer, on average, than the old delta-only line it
+    // replaced) -- same auto-shrink-then-ellipsis safety net, so a long
+    // tier name plus a real streak count can never run off the card.
+    var detailFit = fitShareText(ctx, cfg.detail, FONT, W - 120, 34, 22, '500');
     ctx.fillStyle = '#9aa8c2';
-    ctx.font = '500 34px ' + FONT;
-    ctx.fillText(cfg.detail, W / 2, midY + 152);
+    ctx.fillText(detailFit.text, W / 2, midY + 152);
   }
 
   // Footer name/date as a soft pill chip rather than bare text floating at
   // the bottom — a small thing that makes the whole card feel considered
   // rather than assembled from four independent fillText calls. Border picks
   // up the team's raw color at low opacity so the theming carries all the
-  // way to the bottom of the card, not just the middle.
-  var footerText = (state.name ? state.name + ' — ' : '') + todayStr();
-  ctx.font = '600 30px ' + FONT;
-  var footerWidth = ctx.measureText(footerText).width;
+  // way to the bottom of the card, not just the middle. Capped to a fixed
+  // max width (rather than only shrinking once too wide, like every other
+  // line above) since the pill's own background rectangle is sized off the
+  // text width -- a very long real username still needs a hard ceiling so
+  // the pill itself can never run past the card's left/right edges.
+  var footerFit = fitShareText(ctx, (state.name ? state.name + ' — ' : '') + todayStr(), FONT, W - 160, 30, 20, '600');
+  ctx.font = '600 ' + footerFit.px + 'px ' + FONT;
+  var footerWidth = ctx.measureText(footerFit.text).width;
   var footerX = W / 2 - footerWidth / 2 - 28, footerY = H - 98, footerW = footerWidth + 56, footerH = 54;
   ctx.fillStyle = 'rgba(238,242,248,0.06)';
   roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
@@ -7017,7 +7126,7 @@ function drawShareCard(ctx, cfg, format) {
   roundRectPath(ctx, footerX, footerY, footerW, footerH, 27);
   ctx.stroke();
   ctx.fillStyle = '#c3cbdc';
-  ctx.fillText(footerText, W / 2, H - 63);
+  ctx.fillText(footerFit.text, W / 2, H - 63);
 }
 function shareResultCard(mode) {
   var cfg = shareConfigFor(mode);

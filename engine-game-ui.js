@@ -500,6 +500,7 @@ function renderEnginePilotScreen() {
       '<h2 class="panel-title">Round Complete</h2>' +
       '<p class="mode-desc">' + s.correctCount + ' / ' + s.roundSize + ' correct.</p>' +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button>' +
+      '<button class="btn-secondary" data-share="' + esc(s.modeKey) + '">' + icon('share') + ' Share</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +
       postGameNextStepsHtml(null) + '</div>';
   }
