@@ -1,0 +1,43 @@
+name: Gateway tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gateway/**"
+      - "tools/**"
+      - ".github/workflows/gateway-tests.yml"
+  pull_request:
+    paths:
+      - "gateway/**"
+      - "tools/**"
+      - ".github/workflows/gateway-tests.yml"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+
+      # KNOWN GAP (see PRODUCTION_STATUS.md, Remaining Risks): this suite needs
+      # READS_ENGINE_DIR to point at a real Football Warehouse database
+      # (reads_football_v4.0.sqlite, ~4GB). That file is correctly gitignored
+      # (too large for git) and does not exist on a fresh checkout, so this
+      # step will fail here until a DB fixture strategy exists (e.g. restore
+      # from a Fly volume snapshot, or a small purpose-built test-fixture DB).
+      # Verified locally against the real local DB before this workflow was
+      # added: 1093 passed, 1 skipped, 0 failed. Not yet verified green on an
+      # actual GitHub Actions runner.
+      - name: Run gateway test suite
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+        run: python -m pytest gateway/tests -q

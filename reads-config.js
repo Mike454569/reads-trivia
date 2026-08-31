@@ -33,6 +33,17 @@ window.READS_CONFIG = {
   // READS_PUBLIC_SIX_DEGREES_ENABLED) remain available in gateway/fly.toml
   // as an independent rollback layer if any of these need to come back
   // down without a frontend redeploy.
+  //
+  // Production Integrity Fix Pass (2026-08-31): this file's flags were
+  // correct -- the Gateway really had been deployed and canary-verified
+  // as claimed above -- but nothing was monitoring it, and the volume
+  // silently filled to 100% at some point after that, taking every one of
+  // these public modes down with a generic error for real visitors with
+  // no alert firing. Fixed and independently re-verified externally this
+  // pass (see PRODUCTION_STATUS.md at the repo root); flags below left
+  // unchanged since the underlying capability is real. The concrete
+  // lesson: "canary-verified once" is not the same as "monitored" -- see
+  // PRODUCTION_STATUS.md's Remaining Risks for the CI/alerting gap.
   engineGatewayBaseUrl: 'https://reads-football-gateway.fly.dev',
   enableEngineDraftPilot: true,
   enableEngineChampionshipPilot: true,

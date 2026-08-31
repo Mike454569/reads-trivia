@@ -1,12 +1,15 @@
-# Reads Engine Gateway -- Fly.io production configuration (v0.7 staging
-# draft, re-audited and updated for v1.4 production deployment + controlled
-# rollout).
+# Reads Engine Gateway -- Fly.io production configuration.
 #
-# CONFIGURATION ONLY -- still not deployed as of v1.4. No `fly launch`/
-# `fly deploy` was run; no Fly.io account or app was created (confirmed:
-# this Claude Code environment has no Fly authentication -- see the v1.4
-# report's Deployment section for the exact blocker). This file is what an
-# actual `fly launch` + `fly deploy` would use as a starting point.
+# DEPLOYED AND LIVE as of the Production Integrity Fix Pass (2026-08-31).
+# The comment block that used to sit here claimed this was still
+# undeployed configuration-only ("no Fly.io account or app was created") --
+# that was false at the time this pass found it: the real app
+# (reads-football-gateway, region iad) and its 10GB volume
+# (reads_engine_data) had existed for weeks. See PRODUCTION_STATUS.md at
+# the repo root for the current, independently-verified state and how to
+# re-verify it yourself -- treat any other file's "deployed"/"live"/
+# "canary verified" claim as unconfirmed until you've checked it there or
+# re-run the verification steps in that doc.
 #
 # v1.4 update: the v0.7-era framing below ("do not expose the Gateway to
 # normal Reads users") is now STALE -- v1.2 explicitly authorized and built
@@ -197,26 +200,19 @@ primary_region = "iad"
   cpu_kind = "shared"
   cpus = 1
 
-# --- what still needs to happen before a real `fly deploy` ---------------
-# 1. `fly apps create <a real app name>` -- app name above is still a
-#    placeholder.
-# 2. `fly volumes create reads_engine_data --size 5` (5GB: 1.65GB database +
-#    headroom for a second snapshot during import/rotation + package/log
-#    storage -- generous relative to the ~172KB observed for 3 real
-#    packages this milestone, so package storage will not meaningfully
-#    contribute to volume sizing for a long time).
-# 3. Populate /data/engine on that volume with the Engine's .py modules and
-#    reads_football_v4.0.sqlite (see READS_ENGINE_BACKUP_AND_RESTORE.md's
-#    restore procedure -- this IS that procedure, aimed at a fresh volume
-#    instead of a local disposable directory).
-# 4. `fly secrets set READS_ENGINE_ADMIN_TOKEN=<real generated token>`
-#    (never in this file, never in [env] above).
-# 5. Set READS_ENGINE_ALLOWED_ORIGINS via `fly secrets set` or `[env]` if the
-#    real production origin set ever needs to differ from
-#    gateway/config.py's own DEFAULT_CORS_ORIGINS (https://reads.football +
-#    local dev origins, already the default as of v1.2 -- see that file).
-# 6. Follow READS_ENGINE_V14_IMPLEMENTATION_REPORT.md's canary rollout plan
-#    for READS_PUBLIC_GAME_ENABLED / READS_PUBLIC_MODES -- do not flip
-#    straight to fully enabled.
-# None of this has been executed as of v1.4 -- see that report's Deployment
-# section for the exact reason (no Fly authentication in this environment).
+# --- deployment history (superseding the stale "still needs to happen"
+# list that used to be here) ------------------------------------------
+# All of steps 1-6 below WERE executed, weeks before this pass found the
+# stale note claiming otherwise: app created, 10GB volume created and
+# mounted, /data/engine populated (and, by the time of this pass, badly
+# bloated with an in-volume DB backup + stale import CSVs + a broken
+# .restoring.tmp file -- cleaned up during the Production Integrity Fix
+# Pass, see PRODUCTION_STATUS.md), READS_ENGINE_ADMIN_TOKEN and
+# CFBD_API_KEY both set as real Fly secrets, and READS_PUBLIC_GAME_ENABLED
+# / READS_PUBLIC_MODES both populated above (not left at a placeholder).
+#
+# What actually caused the outage this pass found and fixed was NOT a
+# missing deployment -- it was the volume filling to 100%, which made
+# every request 500 (a logging middleware failing to open its log file).
+# See PRODUCTION_STATUS.md for the full incident writeup, current disk
+# headroom, and how to independently re-verify the Gateway is healthy.

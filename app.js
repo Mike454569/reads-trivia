@@ -8045,7 +8045,7 @@ function renderPrivacy() {
     '<p class="mode-desc">Last updated ' + CONTENT_UPDATED + '. Reads is a small, free trivia app built for a group of friends — this policy describes exactly what it collects and why, not generic legal boilerplate.</p>' +
     '<div class="about-section">' +
     '<h3 class="about-heading">What Reads collects</h3>' +
-    '<p class="mode-desc">There are no accounts, passwords, or email addresses required to play. The only thing you provide is a display name. Once you\'ve entered one, playing a round can send the following to a shared Firebase/Firestore database (a Google Cloud product):</p>' +
+    '<p class="mode-desc">Reads has real accounts: you pick a username and password. No real email address is ever required — behind the scenes, Firebase Authentication (a Google Cloud product) is given a synthetic address built from your username, purely so its login system has something in that field. Your password is handled and stored by Firebase Authentication, not by Reads itself. Once you\'re signed in, playing a round can send the following to a shared Firebase/Firestore database:</p>' +
     '<ul class="privacy-list">' +
     '<li>Your name, exactly as you typed it.</li>' +
     '<li>Your scores and stats per game mode (best %, rounds played, etc.), used to build the leaderboard.</li>' +
@@ -8064,7 +8064,7 @@ function renderPrivacy() {
     '</div>' +
     '<div class="about-section">' +
     '<h3 class="about-heading">How you connect</h3>' +
-    '<p class="mode-desc">The app signs your browser in to Firebase anonymously (a random device-level ID with no personal info attached) so it\'s allowed to read and write the shared data above. That anonymous ID, not your name, is what Firebase/Google sees at the infrastructure level.</p>' +
+    '<p class="mode-desc">Your username and password sign your browser in to Firebase Authentication using its email/password login method, via that synthetic per-username address described above — so it\'s allowed to read and write the shared data above under your account. Before this account system existed, the app used an anonymous per-device Firebase ID with no personal info attached; some older client behavior described elsewhere in this app may still reference that, but real sign-in is how it works today.</p>' +
     '</div>' +
     '<div class="about-section">' +
     '<h3 class="about-heading">Deleting your data</h3>' +
