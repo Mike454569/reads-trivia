@@ -103,3 +103,41 @@ def client():
 @pytest.fixture()
 def auth_headers():
     return {"Authorization": f"Bearer {TEST_ADMIN_TOKEN}"}
+
+
+# Production Integrity Fix Pass (2026-08-31), CI hardening: this suite has no
+# fixture/mock Football Warehouse -- most tests open the real, multi-GB
+# reads_football_v4.0.sqlite via READS_ENGINE_DIR, which is correctly
+# gitignored and does not exist on a fresh checkout (a real CI runner has
+# none of this project's actual data, on purpose). Without this hook, every
+# one of those tests FAILS on a fresh checkout/CI runner rather than being
+# recognized as "needs data this environment doesn't have" -- indistinguishable
+# from a real regression in CI output.
+#
+# .ci_needs_real_db.txt is an EMPIRICALLY generated list (not hand-curated):
+# the exact 667 node IDs that failed when this suite was run against a
+# checkout with no database present at all. When CI_SKIP_DB_TESTS=1 is set
+# (see .github/workflows/gateway-tests.yml), those specific tests are marked
+# skipped, with a clear reason, instead of counting as failures -- so a fresh
+# GitHub Actions run gets a real, meaningful PASS/FAIL signal on the ~426
+# tests that never needed a database in the first place, and a new bug in
+# ANY of those (or in a test not on this list) still shows up as a genuine
+# failure. This is not a substitute for real DB-backed integration coverage
+# -- see PRODUCTION_STATUS.md for the actual gap and how to close it (e.g.
+# restoring a real database from Fly's own volume snapshots in CI).
+def pytest_collection_modifyitems(config, items):
+    import os as _os
+
+    if _os.environ.get("CI_SKIP_DB_TESTS") != "1":
+        return
+    list_path = Path(__file__).with_name(".ci_needs_real_db.txt")
+    if not list_path.exists():
+        return
+    needs_db = {line.strip() for line in list_path.read_text().splitlines() if line.strip()}
+    skip_marker = pytest.mark.skip(
+        reason="needs the real Football Warehouse DB, not available in this CI job "
+               "(see PRODUCTION_STATUS.md, CI section)"
+    )
+    for item in items:
+        if item.nodeid in needs_db:
+            item.add_marker(skip_marker)

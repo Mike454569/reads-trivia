@@ -6,15 +6,22 @@ historical narrative from the session that wrote it — treat it as unconfirmed 
 re-checked it against reality the way this doc does below. Do not add another one of those
 reports; update this file instead.
 
-Last independently verified: **2026-08-31**, during the Production Integrity Fix Pass.
+Last independently verified: **2026-08-31**, during the Production Integrity Fix Pass and the
+following Final Production Hardening Pass (same day).
 
 ## TL;DR
 
 The Gateway backend is real, deployed, and was found broken (disk full → every request 500ing)
-during this pass. Root cause fixed, externally re-verified as healthy, and a real game +
+during the first pass. Root cause fixed, externally re-verified as healthy, and a real game +
 a real Creator-generated package were both produced end-to-end against production. The
-frontend's public-mode flags were correct to be on and were left on. See **Remaining Risks**
-at the bottom — the outage was silent for an unknown period because nothing was monitoring it.
+frontend's public-mode flags were correct to be on and were left on.
+
+The follow-up hardening pass individually round-tripped **all 13** enabled public modes (not a
+spot check), found and fixed a second real bug (`NFL_AWARDS` 500 — a missing production data
+table, backfilled for real), added a scheduled uptime monitor, added a disk-headroom check to
+`/v1/ready` (written, tested, committed, **not yet deployed** — see Remaining Risks), and hit a
+second on-volume-backup near-miss caused by the very backfill script used to fix the first bug
+(caught and fixed before it became an outage). See **Remaining Risks** at the bottom.
 
 ## How to re-verify this yourself, right now
 
@@ -70,27 +77,71 @@ reads-football-gateway -C "df -h /data"` first.
 The task assumption going in was "some public engine modes are pointed at a dead backend,
 disable them." That wasn't true by the time this pass checked: once the disk-full issue was
 fixed, `/v1/public/modes` reported all 13 modes `reads-config.js` currently enables as
-`available: true`, and this pass verified real end-to-end traffic:
+`available: true`.
 
-- **draft_guess** (a public mode): fetched a real question ("Which NFL team drafted Raonall
-  Smith?"), submitted a real answer, got a real validated result
-  (`canonical_answer: "Minnesota Vikings"`).
-- **six_degrees_guess**: fetched a real live puzzle (Green Bay Packers → Dallas Cowboys, par 2).
-- **Creator generation** (admin-only, `/v1/games/generate`, prompt `"NFL teams, guess which
-  team drafted this player"`, `provider: "mock"`): produced a real 25-question package,
-  `qa_status: "PASSED"`, real provenance/QA metadata, `package_id: GGP:7e850e609c88f6c3d1670589`.
+**All 13 were individually round-tripped in the hardening pass** (fetch/generate a real game +
+submit a real answer/move, not just trusting `available: true`):
 
-No flags were changed. This was a spot check across a representative few of the 13 modes, not
-an exhaustive per-mode test — see Remaining Risks.
+| Mode | Result |
+|---|---|
+| draft_guess | PASS — real question, real answer validated (`canonical_answer: "New York Giants"`) |
+| championship_guess | PASS |
+| lineup_guess | PASS |
+| cfb_heisman_guess | PASS |
+| nfl_game_result_guess | PASS |
+| cfb_game_result_guess | PASS |
+| lineup_college_guess | PASS (one transient 20s timeout on first attempt, reproduced instantly on retry — see below) |
+| nfl_game_boxscore_guess | PASS |
+| offense_college_guess | PASS |
+| sb_champion_offense_college_guess | PASS |
+| cfb_ranking_guess | PASS |
+| cfb_upset_guess | PASS |
+| coach_connections (the real API behind `enableEngineSixDegrees` — see note below) | PASS — real puzzle, real move submitted (`Rob Gronkowski → New England Patriots`, `DRAFTED_BY`), `last_move.accepted: true` |
 
-## Known real bug found this pass (not fixed)
+**Naming note**: `reads-config.js`'s `enableEngineSixDegrees` flag does not gate
+`/v1/public/six_degrees/*` (a separate, apparently frontend-unused API surface also tested
+healthy) — it gates the frontend's "Coach Connections" screen, which calls
+`/v1/public/coach_connections/*`. The 13 flags map 1:1 to the 13 entries in
+`/v1/public/modes`.
 
-`/v1/games/generate` with `request_text: "NFL quarterbacks who won Super Bowl MVP, guess the
-team they played for"` returns a genuine `500 INTERNAL_ERROR`, while the identical request
-succeeds fine through `/v1/games/preview` (translation-only, no candidate generation). The
-`NFL_AWARDS` / `WON_AWARD` capability's candidate-generation path has a real bug — this is not
-a stale-doc issue, it reproduced live. Root cause not diagnosed this pass (needs Fly log
-access, which was unavailable — see Remaining Risks).
+Two transient 20-25s timeouts (`lineup_college_guess`, `coach_connections`) occurred during the
+round-trip pass while the `NFL_AWARDS` backfill's `create_verified_backup()` step was running
+concurrently on the same shared-cpu-1x machine — both requests succeeded immediately on retry
+once the backfill's I/O-heavy step passed, and `/v1/health` stayed fast and green the whole
+time. Read as resource contention, not a bug in either mode.
+
+No flags were changed — all 13 were already correctly on.
+
+## NFL_AWARDS 500 — root cause found and fixed
+
+`/v1/games/generate` with `request_text: "NFL quarterbacks who won Super Bowl MVP..."` returned
+`500 INTERNAL_ERROR`. Real Fly logs (`flyctl logs`) pinned the exact line:
+`sqlite3.OperationalError: no such table: nfl_season_awards`, raised from
+`tools/quiz_export/adapters/nfl_season_awards.py`'s `safety_check()`.
+
+Root cause: `nfl_season_awards` existed in the local dev database (used for local test runs)
+but had **never been created in the real production database** — the one-time backfill script
+that builds it, `tools/data_refresh/nfl_wikipedia_history_import.py`, had only ever been run
+locally. Same "claimed done locally, never actually shipped" pattern as the disk-full outage.
+
+Fix (user-confirmed before running, since it writes to production): ran that script for real
+against production via `flyctl ssh console`. It has its own built-in safety design (verified
+backup before writing, automatic restore-from-backup on any failure) and completed with
+`"status": "SUCCESS"` — 60 championship records and 6 real award types imported (369 total
+award rows, 238 resolved to a real player). Retested immediately: `/v1/games/generate` with the
+same exact Super Bowl MVP prompt now returns `200`, `qa_status: "PASSED"`, 10 real questions
+(sample: "Which player won the AP NFL Defensive Rookie of the Year Award for the 1994 NFL
+season?" → "Tim Bowens", a real, correct fact).
+
+**A second near-miss found in the process**: the backfill's own `create_verified_backup()`
+(`tools/data_refresh/safety.py`) prunes old on-volume backups *before* writing but never prunes
+the backup it just took *after* a successful run — it relies on the *next* run to clean up
+after it. Since this is a one-time script (not part of the daily scheduled refresh cycle that
+would otherwise do that pruning within ~24 hours), its leftover 4.08GB backup sat on the volume
+indefinitely, pushing usage to **89%** (from the healthy 45% after the first pass's fix) until
+this pass caught it and deleted it (user-confirmed) — back down to 45%/5.2GB free. This is a
+real, latent bug in the backup/pruning design, not a one-off mistake, and is very likely
+related to how the original disk-full outage happened in the first place. See Remaining Risks.
 
 ## Cleanup done this pass
 
@@ -106,16 +157,57 @@ access, which was unavailable — see Remaining Risks).
   accounts (synthetic `slug@reads.local` addresses, no real email needed) since before this
   pass. Copy now describes the real mechanism.
 - Added `.github/workflows/gateway-tests.yml` — runs `pytest gateway/tests` on every push/PR
-  touching `gateway/` or `tools/`. There was no CI at all before this. **Important caveat**:
-  the suite needs `READS_ENGINE_DIR` pointed at a real ~4GB `reads_football_v4.0.sqlite` (no
-  in-repo test fixture DB exists), and that file is correctly gitignored / not present on a
-  fresh checkout — so this workflow has NOT yet been verified green on an actual GitHub Actions
-  run, only locally (1093 passed, 1 skipped, 0 failed, ~23 min, against the real local DB).
-  Making it actually pass in CI needs a DB-fixture strategy (e.g. restore from the Fly volume's
-  daily snapshot, or a small purpose-built subset DB) — that's real follow-up work, not done
-  this pass.
+  touching `gateway/` or `tools/`. There was no CI at all before this.
 - Corrected `gateway/fly.toml`'s stale "still not deployed, no Fly authentication" header and
   its stale "what still needs to happen" punch-list (all of which had, in fact, happened).
+- **Hardening pass: made the CI workflow actually structurally runnable without a 4GB DB.**
+  This suite has no fixture/mock database — nearly every test opens the real
+  `reads_football_v4.0.sqlite` (correctly gitignored, absent on any fresh checkout). Measured
+  this precisely rather than guessing: ran the full suite against a simulated fresh checkout
+  (git-tracked `Reads_Football_Data_Engine_v4.0/*.py` present, no `.sqlite` file) — **426 tests
+  pass with zero database**, spread across 52 of 62 test files (only 10 files are 100%
+  DB-independent, so a simple per-file `--ignore` split would have thrown away most of that
+  426). Generated an exact, empirical list of the other 667 node IDs (via JUnit XML, not
+  string-scraping — pytest's own truncated console summary lines turned out to be unreliable
+  for tests with natural-language parametrize values containing spaces) into
+  `gateway/tests/.ci_needs_real_db.txt`, and added a `pytest_collection_modifyitems` hook in
+  `conftest.py` that skips exactly those node IDs (clear reason shown) when
+  `CI_SKIP_DB_TESTS=1` — never touching how the suite behaves in a normal local run. Verified
+  clean: **426 passed, 668 skipped, 0 failed** in ~4 seconds against the simulated fresh
+  checkout. A genuinely new failure in a previously-passing test, or in any test not on that
+  list, still shows up as a real failure — this is a real gate, not a rubber stamp.
+- Added a second job, `integration-tests-with-real-db`, structurally scaffolded to restore the
+  real database from Fly's own automated daily volume snapshot and run the full suite against
+  it — this is the "close the gap for real" path, using genuine production-shaped data rather
+  than a fabricated mock. **Not implemented or run**: it needs a `FLY_API_TOKEN` GitHub Actions
+  secret, and this environment has no `gh` CLI and no GitHub API write access to add one. The
+  job checks for the secret and reports itself skipped (not failing) until it exists — see
+  Remaining Risks for the exact next step.
+- Verified locally (real local DB, full suite, post-hardening-pass changes): **1093 passed, 1
+  skipped, 0 failed** — identical to the pre-pass baseline, confirming none of this pass's
+  edits introduced a regression.
+
+## Monitoring (new, hardening pass)
+
+Added `.github/workflows/gateway-monitor.yml` — a scheduled GitHub Actions job (every 15
+minutes, plus manual `workflow_dispatch`) hitting `/v1/health` and `/v1/ready`. A failure shows
+red in the Actions tab and triggers GitHub's default workflow-failure notification. No new
+service, no new account — the simplest reliable option that reuses infrastructure already being
+added this pass for CI.
+
+Also added a `disk` field to `/v1/ready` (`gateway/app.py`, `config.DISK_FREE_PERCENT_MIN`,
+default 10%): readiness now fails *before* the volume actually fills, not just after, by
+reporting free-space percentage and returning `503` below the threshold. This reuses Fly's own
+already-polling health check (every 30s, `fly.toml`) instead of standing up separate disk
+monitoring. **Written, tested locally (`test_staging_hardening.py`'s 7 readiness tests pass, no
+regression; full local suite re-verified clean at 1093/1094), and committed — but NOT yet
+running in production.** Deploying it (`flyctl deploy --config gateway/fly.toml`) failed twice
+this pass with a `401 Unauthorized` from Fly's remote build service, and — both times —
+subsequently broke this session's flyctl API access the same way the earlier secrets-rotation
+deploy did (identity check keeps working, every actual query fails with "Not authorized").
+Read/SSH-only flyctl operations were unaffected throughout; only build/deploy-class operations
+hit this. The live Gateway itself was never affected by either failed deploy attempt. See
+Remaining Risks.
 
 ## Explicitly NOT done this pass, and why
 
@@ -171,12 +263,36 @@ access, which was unavailable — see Remaining Risks).
   wasn't blocking production; flagged here as a concrete, real risk worth a deliberate decision
   (move the working DB outside the iCloud-synced folder, and/or prune the 85+ backups) rather
   than continuing to accumulate.
-- **No alerting/monitoring exists anywhere in this stack.** The core reason a 100%-full disk sat
-  broken in production long enough to matter is that nothing paged anyone. Fly's own health
-  checks were failing the entire time and nothing consumed that signal.
-- **The `NFL_AWARDS`/`WON_AWARD` generation bug** documented above is unresolved — needs Fly
-  log access to actually diagnose (the CLI access issue above blocked this).
-- **This pass's verification of the 13 enabled public modes was a spot check** (2 of 13 public
-  modes + 1 Creator domain actually round-tripped), not exhaustive. The other 10 report
-  `available: true` from `/v1/public/modes` but weren't individually played through end-to-end
-  this pass.
+- **~~No alerting/monitoring exists anywhere in this stack~~ — partially fixed.** A scheduled
+  GitHub Actions monitor now polls `/v1/health`/`/v1/ready` every 15 minutes. Still missing: the
+  new disk-percentage check in `/v1/ready` is written and committed but not deployed (see
+  above) — until it ships, disk headroom is only visible by manually SSHing in and running
+  `df -h /data`, same as before this pass.
+- **The `create_verified_backup()` post-success pruning gap is real and unresolved.** It prunes
+  old backups before writing, never after a successful run. A one-time script (like the awards
+  backfill) can leave a ~4GB orphaned backup for up to ~24 hours until the next scheduled
+  refresh happens to prune it — this pass's own backfill run demonstrated this exact failure
+  mode, pushing the volume to 89% before being caught and manually cleaned up. This is very
+  plausibly how the original disk-full outage accumulated. Real fix: make
+  `create_verified_backup()` (or its caller) prune its own backup immediately after a
+  successful run, not just before the next one.
+- **Deploying the `/v1/ready` disk-check code is blocked in this environment**, not diagnosed
+  further this pass. `flyctl deploy` failed twice with a `401` from Fly's remote builder, and
+  both times left this session's flyctl API access broken afterward (read/SSH operations kept
+  working; the same recovery path from the first pass — checking the Fly dashboard directly, or
+  a fresh `fly auth login` — likely applies again). The code is committed and ready; someone
+  with working deploy access just needs to run
+  `flyctl deploy --config gateway/fly.toml -a reads-football-gateway`.
+- **CI's DB-heavy integration job (`integration-tests-with-real-db`) needs a `FLY_API_TOKEN`
+  GitHub Actions secret this environment could not add** (no `gh` CLI, no GitHub API write
+  access here). Concretely: generate one with `flyctl tokens create deploy -a
+  reads-football-gateway`, then add it at the repo's Settings → Secrets and variables → Actions
+  as `FLY_API_TOKEN`. The job's DB-restore step is scaffolded but intentionally left as a `TODO`
+  echo, not implemented — restoring a real ~4GB snapshot on every CI run also has real cost/time
+  implications worth a deliberate decision, not a default-on assumption.
+- **All 13 public modes were individually round-tripped this pass** (fetch + real answer/move
+  for every one), closing the "spot check only" gap from the first pass. Not re-verified: modes
+  behave correctly under concurrent/production load (only tested one request at a time), and
+  the two transient timeouts during this pass (resource contention with the concurrent backfill
+  run) suggest this single shared-cpu-1x/1GB machine may not have much headroom under real
+  simultaneous traffic plus a background job — worth watching, not yet a confirmed problem.

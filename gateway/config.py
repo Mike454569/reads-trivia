@@ -37,6 +37,16 @@ GATEWAY_AUDIT_LOG_DIR = Path(os.environ.get("READS_ENGINE_LOG_DIR", str(REPO_ROO
 GATEWAY_AUDIT_LOG_PATH = GATEWAY_AUDIT_LOG_DIR / "gateway_audit_log.jsonl"
 OPERATIONAL_LOG_PATH = GATEWAY_AUDIT_LOG_DIR / "gateway_operational_log.jsonl"  # Part M -- per-request log line
 
+# Production Integrity Fix Pass (2026-08-31): the real outage this pass found
+# and fixed was the /data volume filling to 100%, which broke every request
+# (oplog.record() couldn't open its log file) with no alert firing until a
+# human happened to check. /v1/ready now fails below this threshold so Fly's
+# own already-polling health check (fly.toml, every 30s) catches a nearly-full
+# volume BEFORE it breaks anything, instead of only after. 10% chosen to match
+# this volume's real headroom needs (a single DB backup+restore cycle briefly
+# needs close to one full DB's worth of extra space).
+DISK_FREE_PERCENT_MIN = float(os.environ.get("READS_ENGINE_DISK_FREE_PERCENT_MIN", "10"))
+
 # --- Auth (Part F) -----------------------------------------------------
 ADMIN_TOKEN_ENV_VAR = "READS_ENGINE_ADMIN_TOKEN"
 MIN_ADMIN_TOKEN_LENGTH = 32  # ~192 bits if generated with a decent random source (e.g. `openssl rand -hex 32` -> 64 hex chars)

@@ -1,0 +1,47 @@
+name: Gateway uptime monitor
+
+# Production Integrity Fix Pass (2026-08-31): the real outage this pass found
+# (the Gateway's volume filling to 100%, breaking every request) sat
+# undetected because nothing was watching it -- Fly's own health checks were
+# failing the whole time and nothing consumed that signal. This is the
+# simplest reliable fix: GitHub Actions (already in this repo for CI) on a
+# schedule, hitting the same two endpoints Fly's own health checks use.
+# A failed run shows red in the Actions tab and triggers GitHub's default
+# workflow-failure notification -- no new service, no new account, no
+# observability stack.
+#
+# /v1/ready's response now includes a `disk` field (gateway/app.py) reporting
+# free space percent on the production volume and failing readiness below
+# READS_ENGINE_DISK_FREE_PERCENT_MIN (10% by default) -- this workflow
+# doesn't need its own separate disk check because a nearly-full volume
+# already surfaces as a 503 from /v1/ready, which this workflow already
+# treats as a failure.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check /v1/health (liveness)
+        run: |
+          code=$(curl -sS -o /tmp/health.json -w "%{http_code}" --max-time 15 https://reads-football-gateway.fly.dev/v1/health || echo "000")
+          echo "HTTP $code"
+          cat /tmp/health.json || true
+          if [ "$code" != "200" ]; then
+            echo "::error::Gateway /v1/health did not return 200 (got $code)"
+            exit 1
+          fi
+
+      - name: Check /v1/ready (DB + package storage + disk headroom)
+        run: |
+          code=$(curl -sS -o /tmp/ready.json -w "%{http_code}" --max-time 15 https://reads-football-gateway.fly.dev/v1/ready || echo "000")
+          echo "HTTP $code"
+          cat /tmp/ready.json || true
+          if [ "$code" != "200" ]; then
+            echo "::error::Gateway /v1/ready did not return 200 (got $code) -- see body above for which check failed (engine_database / package_storage / disk)"
+            exit 1
+          fi

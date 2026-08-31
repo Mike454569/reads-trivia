@@ -18,6 +18,7 @@ process. See READS_ENGINE_STAGING_V01_REPORT.md, Part I.
 """
 from __future__ import annotations
 
+import shutil
 import sys
 import time
 import uuid
@@ -366,11 +367,34 @@ def ready():
     except Exception:
         registry_ok = False
 
+    # Production Integrity Fix Pass: the real 2026-08-31 outage was a 100%-full
+    # volume, invisible to every check above -- packages_dir_ok/registry_ok
+    # only fail once the disk is ALREADY full enough to break a write, and
+    # engine_database.ready only checks the DB opens, not free space. Fly
+    # already polls this endpoint every 30s (fly.toml) as its readiness
+    # check, so surfacing disk headroom here -- and failing readiness before
+    # a full disk actually breaks anything -- reuses that existing polling
+    # loop instead of standing up new infrastructure. Only reports a
+    # percentage (never a path), same "no filesystem detail to an anonymous
+    # caller" rule as the rest of this route.
+    disk_ok = True
+    disk_status: dict = {}
+    try:
+        usage = shutil.disk_usage(config.PACKAGES_DIR)
+        free_pct = round(100 * usage.free / usage.total, 1) if usage.total else 0.0
+        disk_status = {"free_percent": free_pct}
+        if free_pct < config.DISK_FREE_PERCENT_MIN:
+            disk_ok = False
+    except OSError:
+        disk_ok = False
+        disk_status = {"free_percent": None}
+
     body = {
-        "status": "ready" if (readiness["ready"] and packages_dir_ok and registry_ok) else "not_ready",
+        "status": "ready" if (readiness["ready"] and packages_dir_ok and registry_ok and disk_ok) else "not_ready",
         "engine_database": safe_engine_status,
         "package_storage": {"writable": packages_dir_ok},
         "mode_registry": {"loaded": registry_ok},
+        "disk": disk_status,
     }
     if body["status"] != "ready":
         return JSONResponse(status_code=503, content=body)

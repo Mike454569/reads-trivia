@@ -28,16 +28,70 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r gateway/requirements-dev.txt
 
-      # KNOWN GAP (see PRODUCTION_STATUS.md, Remaining Risks): this suite needs
-      # READS_ENGINE_DIR to point at a real Football Warehouse database
-      # (reads_football_v4.0.sqlite, ~4GB). That file is correctly gitignored
-      # (too large for git) and does not exist on a fresh checkout, so this
-      # step will fail here until a DB fixture strategy exists (e.g. restore
-      # from a Fly volume snapshot, or a small purpose-built test-fixture DB).
-      # Verified locally against the real local DB before this workflow was
-      # added: 1093 passed, 1 skipped, 0 failed. Not yet verified green on an
-      # actual GitHub Actions runner.
-      - name: Run gateway test suite
+      # This suite has no fixture/mock database -- most tests open the real,
+      # multi-GB reads_football_v4.0.sqlite, correctly gitignored and absent
+      # on a fresh checkout. CI_SKIP_DB_TESTS=1 (see conftest.py's
+      # pytest_collection_modifyitems) marks the 667 node IDs empirically
+      # known to need that database as SKIPPED rather than FAILED, so this
+      # job gives a real, meaningful signal on the ~426 tests that never
+      # needed a database -- not full coverage, but a genuine gate rather
+      # than a permanently-red or rubber-stamped one. Verified locally
+      # against a simulated fresh checkout (no DB present): 426 passed, 668
+      # skipped, 0 failed.
+      - name: Run gateway test suite (DB-independent subset)
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+          CI_SKIP_DB_TESTS: "1"
+        run: python -m pytest gateway/tests -q
+
+  # Full-coverage job: same suite, but against the REAL database, restored
+  # from Fly's own automated daily volume snapshot (a real, reproducible
+  # fixture -- not a fabricated mock that could drift from the real schema).
+  # Needs a FLY_API_TOKEN repo secret this pass could not create (no `gh`
+  # CLI / GitHub API write access in this environment) -- see
+  # PRODUCTION_STATUS.md's CI section for the exact remaining step. Until
+  # that secret exists, this job is skipped (not failing) rather than red.
+  integration-tests-with-real-db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check FLY_API_TOKEN is configured
+        id: check_token
+        run: echo "has_token=${{ secrets.FLY_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        if: steps.check_token.outputs.has_token == 'true'
+        with:
+          python-version: "3.11"
+
+      - name: Install flyctl
+        if: steps.check_token.outputs.has_token == 'true'
+        run: curl -L https://fly.io/install.sh | sh
+
+      - name: Restore real DB from latest Fly volume snapshot
+        if: steps.check_token.outputs.has_token == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          echo "TODO: restore reads_football_v4.0.sqlite from the reads_engine_data"
+          echo "volume's latest snapshot into Reads_Football_Data_Engine_v4.0/ here."
+          echo "Structurally scaffolded this pass; not implemented or run -- see"
+          echo "PRODUCTION_STATUS.md for why (no FLY_API_TOKEN secret could be set"
+          echo "from this environment, so there was nothing to test this step against)."
+
+      - name: Install dependencies
+        if: steps.check_token.outputs.has_token == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+
+      - name: Run full gateway test suite
+        if: steps.check_token.outputs.has_token == 'true'
         env:
           READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
         run: python -m pytest gateway/tests -q
+
+      - name: Report skipped (no token)
+        if: steps.check_token.outputs.has_token != 'true'
+        run: echo "Skipped -- FLY_API_TOKEN secret not set. See PRODUCTION_STATUS.md."
