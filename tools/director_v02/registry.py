@@ -1511,7 +1511,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "competition_id": "NFL", "entity_type": "nfl_current_team_offense_board_college", "object_type": "team",
         "answer_type": "team", "group_size": 4, "min_question_count": 1, "max_question_count": 32,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        # Rivalry Pack + Gold Standard Game Ideas Integration: "Theme Nights"
+        # (conference/division, real data from this Engine's own
+        # season_standings, season 2025) and "O-Line Only" (hardcore mode --
+        # only the 5 real O-Line positions shown) from the workbook's own
+        # "6. More Puzzle Ideas" sheet -- both real filters over this exact
+        # same 32-board dataset, no new adapter.
+        "supported_filter_keys": frozenset({"conference", "division", "oline_only"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 931000,
     },
     # Gold Standard concept #1 ("College Offense") from the workbook's own
@@ -1549,7 +1555,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         # discipline public_game.py's own draft_guess/championship_guess
         # already follow for their own real-zero bands.
         "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset({"franchise_name", "era_gauntlet"}), "supports_exclusions": False,
+        # "oline_only": same hardcore-mode filter as NFL_OFFENSE_COLLEGE_CURATED,
+        # composable with franchise_name/era_gauntlet -- see the adapter's own
+        # fetch_ordered_candidates() comment.
+        "supported_filter_keys": frozenset({"franchise_name", "era_gauntlet", "oline_only"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 932000,
     },
     # Remaining Gold Standard "10. New Game Modes" P0 concepts explicitly

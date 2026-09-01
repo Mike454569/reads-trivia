@@ -82,6 +82,40 @@ _DIFF_MAP = {"EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"}
 #     source confirms the real 2026 ARI starting RT.
 UNRESOLVED_CURRENT_TEAM_BOARD_IDS = frozenset({"GOLD_CUR_ARI_2026"})
 
+# Rivalry Pack + Gold Standard Game Ideas Integration: two real filters from
+# the workbook's own "6. More Puzzle Ideas" sheet, both genuinely buildable
+# right now on existing data with no new adapter and no pipeline-wide
+# signature change -- reusing the same "filters select/reshape the same 32
+# real boards" discipline sb_champion_offense_college.py's franchise_marathon/
+# era_gauntlet filters already established.
+#
+# "Theme Nights" ("do an entire night of only AFC West teams"): real,
+# source-backed conference/division per team already exists in this
+# database's own season_standings table -- joined here by team_code against
+# the most recent complete season (2025; 2026 is the in-progress season this
+# capability's own boards are drawn from, so division alignment is read from
+# the last season with a final standings row, never fabricated). Scoped to
+# ONLY this current-team capability, deliberately not offered on the Super
+# Bowl champion board: division/conference realignment over 60 years (teams
+# have moved conferences, expansion happened) would make "AFC West" for a
+# 1970s champion historically misleading against TODAY's alignment.
+#
+# "O-Line Only" ("Hardcore version: only show the five O-Line colleges"):
+# scoped to the RETURNED BOARD DICT (`_oline_only` key), not threaded through
+# a new evaluate()-level filters parameter -- evaluate() already receives
+# whatever fetch_ordered_candidates() returns per item, so this needs no
+# change to the adapter/pipeline calling convention at all.
+SUPPORTS_FILTERS = True
+_OLINE_POSITIONS = ("LT", "LG", "C", "RG", "RT")
+_STANDINGS_SEASON = 2025  # most recent season with a final, real standings row
+
+
+def _division_lookup(c) -> dict:
+    rows = c.execute(
+        "SELECT team_code, conference, division FROM season_standings WHERE season = ?", (_STANDINGS_SEASON,)
+    ).fetchall()
+    return {r["team_code"]: {"conference": r["conference"], "division": r["division"]} for r in rows}
+
 
 def safety_check(c) -> dict:
     from .. import safety
@@ -104,9 +138,10 @@ def safety_check(c) -> dict:
     return result
 
 
-def fetch_ordered_candidates(c, seed: str):
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     from .. import engine
     from tools.director_v02 import roster_freshness
+    filters = filters or {}
     # P1 Release Readiness pass: STALE means "do not keep serving this
     # current-team snapshot as if it were still true" -- returning zero
     # candidates here (rather than the real 32 boards) routes through the
@@ -128,6 +163,31 @@ def fetch_ordered_candidates(c, seed: str):
     # Scoped to just the affected board(s) -- the other 31 real,
     # independently-verified boards stay playable.
     boards = [b for b in boards if b["board_id"] not in UNRESOLVED_CURRENT_TEAM_BOARD_IDS]
+
+    # Theme Nights: real conference/division per team_code, joined from this
+    # database's own season_standings (verified above: all 32 current-team
+    # codes resolve, season 2025 -- the most recent season with a final row).
+    conference = filters.get("conference")
+    division = filters.get("division")
+    if conference or division:
+        lookup = _division_lookup(c)
+        def _matches(b):
+            info = lookup.get(b["team_code"])
+            if info is None:
+                return False
+            if conference and info["conference"] != conference:
+                return False
+            if division and info["division"] != division:
+                return False
+            return True
+        boards = [b for b in boards if _matches(b)]
+
+    # O-Line Only: marks each selected board so evaluate() below renders only
+    # the 5 O-Line positions -- see this module's own comment above for why
+    # this is carried on the board dict rather than a new evaluate() param.
+    if filters.get("oline_only"):
+        boards = [dict(b, _oline_only=True) for b in boards]
+
     rng_order = engine.seeded(seed)
     rng_order.shuffle(boards)
     return boards
@@ -150,14 +210,28 @@ def evaluate(c, board, rng, guard):
         return "DUPLICATE_OPTIONS"
 
     positions = board["positions"]
-    question = (
-        f"Guess the NFL team from its 2026 projected starting offense "
-        f"(QB from {positions['QB']}, LT from {positions['LT']}), shown by position and college only -- "
-        f"player names hidden."
-    )
+    oline_only = bool(board.get("_oline_only"))
+    # O-Line Only ("More Puzzle Ideas" sheet): LT+RT alone is already a
+    # unique hint pair across all 32 real current-team boards (checked
+    # directly, zero collisions) -- no need for a 3rd/4th position the way
+    # sb_champion_offense_college.py's own hint needed to resolve real
+    # collisions in its larger, older 60-board pool.
+    shown_positions = _OLINE_POSITIONS if oline_only else common.POSITIONS
+    if oline_only:
+        question = (
+            f"Hardcore mode: guess the NFL team from its 2026 projected starting offensive line ONLY "
+            f"(LT from {positions['LT']}, RT from {positions['RT']}), shown by position and college -- "
+            f"player names hidden."
+        )
+    else:
+        question = (
+            f"Guess the NFL team from its 2026 projected starting offense "
+            f"(QB from {positions['QB']}, LT from {positions['LT']}), shown by position and college only -- "
+            f"player names hidden."
+        )
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"nfl_offense_college_curated:{board['board_id']}"
+    entity_key = f"nfl_offense_college_curated:{board['board_id']}:{'oline' if oline_only else 'full'}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_BOARD"
 
@@ -166,15 +240,23 @@ def evaluate(c, board, rng, guard):
         return "INVALID_CORRECT_INDEX"
 
     visual_payload = {
-        "positions": [{"position": p, "college": positions[p]} for p in common.POSITIONS],
+        "positions": [{"position": p, "college": positions[p]} for p in shown_positions],
         "season": board["season"],
     }
-    notes = (
-        f"The {common.possessive(board['team_display_name'])} projected 2026 starting offense, shown by position and real "
-        f"college for all 11 positions (player names hidden). Source: curated Reads Football Gold Standard "
-        f"workbook, \"projected 2026 starters as of early Aug 2026\" -- always re-verify the offensive line "
-        f"before live play, camp battles move."
-    )
+    if oline_only:
+        notes = (
+            f"The {common.possessive(board['team_display_name'])} projected 2026 starting offensive line "
+            f"(hardcore mode -- only the 5 O-Line positions shown, player names hidden). Source: curated "
+            f"Reads Football Gold Standard workbook, \"projected 2026 starters as of early Aug 2026\" -- "
+            f"always re-verify the offensive line before live play, camp battles move."
+        )
+    else:
+        notes = (
+            f"The {common.possessive(board['team_display_name'])} projected 2026 starting offense, shown by position and real "
+            f"college for all 11 positions (player names hidden). Source: curated Reads Football Gold Standard "
+            f"workbook, \"projected 2026 starters as of early Aug 2026\" -- always re-verify the offensive line "
+            f"before live play, camp battles move."
+        )
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,
@@ -185,7 +267,7 @@ def evaluate(c, board, rng, guard):
             "board_id": board["board_id"], "team_code": board["team_code"],
             "franchise_id": board["franchise_id"], "correct_answer_text": board["team_display_name"],
             "season": board["season"], "difficulty_band": diff_label,
-            "lineup_colleges": [positions[p] for p in common.POSITIONS],
+            "lineup_colleges": [positions[p] for p in shown_positions], "oline_only": oline_only,
             "entity_key": entity_key,
             "verification_status": REQUIRED_VERIFICATION_STATUS, "source_id": REQUIRED_SOURCE_ID,
         },

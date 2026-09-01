@@ -194,6 +194,32 @@ def test_era_gauntlet_filter_returns_one_board_per_era():
     assert len(pkg["questions"]) == 7
 
 
+# --- Theme Nights / O-Line Only ("6. More Puzzle Ideas") --------------------
+
+def test_theme_nights_division_filter_returns_only_that_division():
+    pkg = _generate(
+        "guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
+        seed="qa-theme-1", target_count=10, filters={"division": "AFC West"},
+    )
+    assert len(pkg["questions"]) == 4  # real, fixed: exactly 4 teams per division
+    assert set(q["answer"] for q in pkg["questions"]) == {
+        "Denver Broncos", "Kansas City Chiefs", "Las Vegas Raiders", "Los Angeles Chargers",
+    }
+
+
+def test_oline_only_shows_exactly_the_five_oline_positions_and_no_others():
+    for mech, dom, pred in [
+        ("guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"),
+        ("guess", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE"),
+    ]:
+        pkg = _generate(mech, dom, pred, seed=f"qa-oline-{dom}", target_count=5, filters={"oline_only": True})
+        assert len(pkg["questions"]) > 0, f"{dom} produced a zero-question package with oline_only"
+        for q in pkg["questions"]:
+            shown = {p["position"] for p in q["visual_payload"]["positions"]}
+            assert shown == {"LT", "LG", "C", "RG", "RT"}, f"{dom} oline_only leaked non-OL positions: {shown}"
+            assert not _NAME_LEAK_PATTERN.search(q["question"])
+
+
 # --- Creator natural-language routing ---------------------------------------
 
 _RETEST_PROMPTS = [
@@ -215,6 +241,9 @@ _RETEST_PROMPTS = [
     "Make me a Duplicate Hunt game",
     "Give me One School Missing",
     "Give me an Era Gauntlet game",
+    "Give me an AFC West offense game",
+    "Make me an offensive line only game",
+    "Give me a hardcore Super Bowl offensive line game",
 ]
 
 

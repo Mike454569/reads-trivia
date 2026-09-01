@@ -185,6 +185,14 @@ ALLOWED_FILTER_KEYS: frozenset[str] = frozenset({
     # own adapter (sb_champion_offense_college.py) for the real selection
     # logic each triggers.
     "franchise_name", "era_gauntlet",
+    # "Theme Nights" / "O-Line Only" (Rivalry Pack + Gold Standard Game Ideas
+    # Integration, workbook's own "6. More Puzzle Ideas" sheet) --
+    # conference/division on NFL_OFFENSE_COLLEGE_CURATED only (real,
+    # source-backed via season_standings; deliberately not offered on the
+    # Super Bowl champion board -- see that adapter's own comment on why
+    # today's division alignment would mislead for a pre-2002 champion).
+    # oline_only is shared by both offense-by-college capabilities.
+    "conference", "division", "oline_only",
 })
 EXCLUSIONS_SUPPORTED = False  # no adapter supports exclusion lists yet
 

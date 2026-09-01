@@ -7,8 +7,77 @@ re-checked it against reality the way this doc does below. Do not add another on
 reports; update this file instead.
 
 Last independently verified: **2026-08-31 / 2026-09-01**, across the Production Integrity Fix
-Pass, the Final Production Hardening Pass, the Reliability Cleanup pass, and the Lineup
-Concurrency pass (all same session).
+Pass, the Final Production Hardening Pass, the Reliability Cleanup pass, the Lineup Concurrency
+pass, and the Rivalry Pack + Gold Standard Game Ideas Integration pass (all same session).
+
+## Rivalry Pack + Gold Standard Game Ideas — audited, extended (2026-09-01)
+
+This pass was different in kind from the ones above: a content/feature audit, not a reliability
+fix. Unlike earlier findings in this doc, the starting state here was genuinely good news —
+worth stating plainly rather than assuming another "claimed done, not actually done" gap the way
+NFL_AWARDS was.
+
+**What was already real, verified independently (not just trusted from code comments) before
+touching anything**: a prior "rivalry-gold-standard-integration" operation had already imported
+the full 1,272-question CFB rivalry trivia bank (43 real packs) and the Gold Standard workbook's
+curated offense-by-college data (32 current teams + 60 real Super Bowl champions, 1966-2025,
+all 11 positions, zero player names), and built 11 real Creator capabilities on top of it
+(CFB_RIVALRY_TRIVIA, NFL_OFFENSE_COLLEGE_CURATED, NFL_SB_CHAMPION_OFFENSE_COLLEGE, and 8 more
+named Gold Standard "10. New Game Modes" concepts — Odd College Out, Fill the Colleges, Spot
+the Fake Lineup, Who Changed?, Three Clues One Champion, Position Trap, Duplicate College Hunt,
+One School Missing — plus Franchise Marathon / Era Gauntlet as filters). Confirmed for real,
+not assumed:
+- The existing test suite (`test_rivalry_gold_standard_integration.py`, 16 tests) passed clean
+  locally.
+- **The underlying tables exist in the real production database with exactly matching row
+  counts** (`cfb_trivia_bank`: 1272, `cfb_rivalry_pack_index`: 43, `curated_nfl_offense_college_board`:
+  92, `curated_nfl_offense_college_position`: 1012) — checked directly via SSH, not trusted from
+  a docstring. Unlike the NFL_AWARDS incident earlier in this session, this data really had
+  shipped to production.
+- All 10 of the named Gold Standard concepts generated real, non-empty, QA-passed packages
+  against the live production Gateway (not just locally) when tested directly via
+  `/v1/games/generate` with real prompts ("Make me an Iron Bowl trivia game", "Make me play Odd
+  College Out", etc.).
+- The offense-by-college output was inspected directly: shows POSITION + COLLEGE for all 11
+  positions, zero player names anywhere in the question text, options, or visual payload, sourced
+  from `READS_GOLD_STANDARD_BLUEPRINT_V1` (the curated workbook), not the NFL↔CFB identity
+  bridge — matching the exact requirement this pass was asked to re-check.
+
+**Workbook audit (all 18 sheets)**: "3. Pre-Made Puzzles" is confirmed to be the literal source
+data already imported as `curated_nfl_offense_college_board`/`_position` — fully covered, no new
+work. "9. Site Mode Audit" is a "don't duplicate these existing site modes" list — respected,
+nothing here duplicates a listed mode. "18. Data QA Standard"'s checklist (identity/college/
+position verification, source provenance, answer uniqueness, generator smoke tests) is already
+substantially satisfied by the existing adapters' `verification_status`/`source_id`/duplicate-
+guard design. "6. More Puzzle Ideas" (8 items) had not been triaged by name before — see below.
+
+**New this pass, built on the same existing data (no new adapter, no new engine)**: two real
+filters from "6. More Puzzle Ideas" that were genuinely buildable now —
+- **Theme Nights** (`division`/`conference` filters on `NFL_OFFENSE_COLLEGE_CURATED` only):
+  joined from this database's own real `season_standings` table (season 2025, all 32 current
+  team codes confirmed to resolve). Deliberately NOT offered on the Super Bowl champion board —
+  60 years of conference realignment would make "AFC West" for a 1970s champion historically
+  misleading against today's alignment.
+- **O-Line Only** (`oline_only` filter, both offense-by-college capabilities): shows only the 5
+  real O-Line positions; the question-hint text and duplicate-collision math were re-derived
+  specifically for this mode (checked directly: LT+RT alone is a unique hint across all 32
+  current-team boards; the SB champion pool's larger 60-board history has 5 genuine real
+  collisions even using all 5 OL colleges as the hint, which correctly fall through to the
+  existing DUPLICATE_QUESTION guard exactly like this codebase's other disclosed collision cases
+  — not a bug, the same precedent already established for the non-OL question text).
+- Both filters added to Creator natural-language routing too: "Give me an AFC West offense
+  game", "Make me an offensive line only game", "Give me a hardcore Super Bowl offensive line
+  game" all route and generate real packages.
+
+**Other "More Puzzle Ideas" items, triaged honestly, not built**: Historical Mode is already
+covered by the separate, pre-existing `NFL_OFFENSE_LINEUP_COLLEGE` capability (68 real historical
+team-seasons via the certified identity bridge) — a different real domain, not a gap. Rookie
+Spotlight would need a rookie/experience flag the curated data doesn't carry per position — a
+genuine data gap, not built. Reverse Mode (list colleges given the team) doesn't fit the
+"guess" mechanic's answer-contract shape at all — would need a genuinely different mechanic,
+out of "smallest correct point" scope this pass. Chemistry Bonus, Logo Version, and Tournament
+Bracket are scoring/presentation/session-structure features, not engine content capabilities —
+correctly out of scope for the Director/Creator pipeline this pass touches.
 
 ## TL;DR
 

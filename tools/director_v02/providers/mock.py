@@ -1268,6 +1268,48 @@ class MockDeterministicTranslator(Translator):
             return _result(request_text, "TRANSLATED", spec,
                             "Matched 'era gauntlet' -> TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess "
                             "capability, scoped to one real champion per era.")
+
+        # "O-Line Only" (Rivalry Pack + Gold Standard Game Ideas Integration,
+        # workbook's own "6. More Puzzle Ideas" sheet: "Hardcore version:
+        # only show the five O-Line colleges"). Checked for BOTH
+        # offense-by-college domains -- "Super Bowl"/"champion" wording picks
+        # the historical one, otherwise the current-team one, matching how
+        # the rest of this translator already distinguishes them below.
+        if re.search(r"o.?line only|offensive line only|hardcore.*(o.?line|offensive line)", text_lower_gs):
+            is_sb = bool(re.search(r"super bowl|champion", text_lower_gs))
+            dom, pred = (
+                ("NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE") if is_sb
+                else ("NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE")
+            )
+            spec = {
+                "mechanic": "guess", "domain": dom, "relationship_predicate": pred,
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {"oline_only": True}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched 'O-Line only'/hardcore wording -> {pred} ({dom}) guess capability, "
+                            f"scoped to the 5 real offensive-line positions only.")
+
+        # "Theme Nights" (same sheet: "do an entire night of only AFC West
+        # teams"). Real, bounded extraction -- exactly 8 real NFL divisions,
+        # never a fabricated/guessed one -- unlike Franchise Marathon's
+        # arbitrary-team-name case above, this is safe to match from free
+        # text. Conference-only ("AFC teams", "NFC night") also real and
+        # matched. Current-team capability only -- see that capability's own
+        # registry/adapter comments for why this is never offered on the
+        # Super Bowl champion board.
+        _division_match = re.search(r"\b(afc|nfc)\s*(east|west|north|south)\b", text_lower_gs)
+        if _division_match:
+            conf, div = _division_match.group(1).upper(), _division_match.group(2).title()
+            spec = {
+                "mechanic": "guess", "domain": "NFL_OFFENSE_COLLEGE_CURATED",
+                "relationship_predicate": "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {"division": f"{conf} {div}"}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            f"Matched a real NFL division name -> TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE guess "
+                            f"capability, scoped to {conf} {div} only (Theme Nights).")
         for pattern, (dom, pred) in _GOLD_STANDARD_CONCEPT_PATTERNS:
             if pattern.search(text_lower_gs):
                 spec = {
