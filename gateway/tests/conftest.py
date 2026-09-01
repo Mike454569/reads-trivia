@@ -126,6 +126,22 @@ def auth_headers():
 # failure. This is not a substitute for real DB-backed integration coverage
 # -- see PRODUCTION_STATUS.md for the actual gap and how to close it (e.g.
 # restoring a real database from Fly's own volume snapshots in CI).
+#
+# Lineup Concurrency pass: this file MUST be regenerated whenever a new test
+# is added anywhere under gateway/tests/ -- forgetting once already broke a
+# real GitHub Actions run (a new DB-dependent test ran for real against an
+# empty auto-created sqlite file instead of being skipped). To regenerate:
+#   1. Build a fresh-checkout simulation: copy only the git-tracked files of
+#      Reads_Football_Data_Engine_v4.0/ (via `git ls-files`) into a scratch
+#      directory with no .sqlite present.
+#   2. READS_ENGINE_DIR=<that scratch dir> pytest gateway/tests -q --tb=no
+#      --junitxml=/tmp/results.xml (no CI_SKIP_DB_TESTS set, so nothing is
+#      pre-skipped and every real failure shows up).
+#   3. Parse /tmp/results.xml's <failure>/<error> testcases (classname + name
+#      -> "gateway/tests/<module>.py::<name>") and write one per line to
+#      .ci_needs_real_db.txt, replacing it entirely.
+#   4. Re-run with CI_SKIP_DB_TESTS=1 against that same scratch dir and
+#      confirm 0 failed before committing.
 def pytest_collection_modifyitems(config, items):
     import os as _os
 
