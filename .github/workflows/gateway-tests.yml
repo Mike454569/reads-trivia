@@ -31,12 +31,12 @@ jobs:
       # This suite has no fixture/mock database -- most tests open the real,
       # multi-GB reads_football_v4.0.sqlite, correctly gitignored and absent
       # on a fresh checkout. CI_SKIP_DB_TESTS=1 (see conftest.py's
-      # pytest_collection_modifyitems) marks the 667 node IDs empirically
+      # pytest_collection_modifyitems) marks the 668 node IDs empirically
       # known to need that database as SKIPPED rather than FAILED, so this
-      # job gives a real, meaningful signal on the ~426 tests that never
+      # job gives a real, meaningful signal on the ~435 tests that never
       # needed a database -- not full coverage, but a genuine gate rather
       # than a permanently-red or rubber-stamped one. Verified locally
-      # against a simulated fresh checkout (no DB present): 426 passed, 668
+      # against a simulated fresh checkout (no DB present): 435 passed, 669
       # skipped, 0 failed.
       - name: Run gateway test suite (DB-independent subset)
         env:

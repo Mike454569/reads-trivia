@@ -31,6 +31,65 @@ def test_ready_reports_real_engine_status(client):
     assert body["engine_database"]["ready"] is True
     assert body["engine_database"]["database_version"] == "4.0.0"
     assert body["package_storage"]["writable"] is True
+    assert "disk" in body
+    assert isinstance(body["disk"]["free_percent"], (int, float))
+
+
+# --- disk headroom (Reliability Cleanup pass) --------------------------------
+# Regression coverage for the real, twice-confirmed production incident: the
+# Fly volume filling to 100% broke every request (oplog couldn't open its log
+# file) with no warning, because nothing checked disk headroom before it was
+# already too late. /v1/ready now fails BELOW config.DISK_FREE_PERCENT_MIN so
+# Fly's own already-polling health check (every 30s) catches this before a
+# full disk actually breaks anything.
+
+import shutil as _shutil_module
+from collections import namedtuple
+
+_DiskUsage = namedtuple("_DiskUsage", ["total", "used", "free"])
+
+
+def _fake_disk_usage(free_percent):
+    total = 1000
+    free = int(total * free_percent / 100)
+    return _DiskUsage(total=total, used=total - free, free=free)
+
+
+def test_ready_fails_below_the_disk_free_percent_threshold(client, monkeypatch):
+    monkeypatch.setattr(config, "DISK_FREE_PERCENT_MIN", 10.0)
+    monkeypatch.setattr(_shutil_module, "disk_usage", lambda path: _fake_disk_usage(5.0))
+
+    r = client.get("/v1/ready")
+
+    assert r.status_code == 503
+    body = r.json()
+    assert body["status"] == "not_ready"
+    assert body["disk"]["free_percent"] == 5.0
+
+
+def test_ready_passes_right_at_and_above_the_disk_free_percent_threshold(client, monkeypatch):
+    monkeypatch.setattr(config, "DISK_FREE_PERCENT_MIN", 10.0)
+    monkeypatch.setattr(_shutil_module, "disk_usage", lambda path: _fake_disk_usage(10.0))
+
+    r = client.get("/v1/ready")
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "ready"
+    assert r.json()["disk"]["free_percent"] == 10.0
+
+
+def test_ready_reports_disk_ok_false_but_does_not_crash_on_a_disk_usage_error(client, monkeypatch):
+    monkeypatch.setattr(config, "DISK_FREE_PERCENT_MIN", 10.0)
+
+    def _raise(path):
+        raise OSError("simulated disk_usage failure")
+
+    monkeypatch.setattr(_shutil_module, "disk_usage", _raise)
+
+    r = client.get("/v1/ready")
+
+    assert r.status_code == 503
+    assert r.json()["disk"]["free_percent"] is None
 
 
 # --- rate limiting (Part G) --------------------------------------------------

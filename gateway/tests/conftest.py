@@ -114,13 +114,14 @@ def auth_headers():
 # recognized as "needs data this environment doesn't have" -- indistinguishable
 # from a real regression in CI output.
 #
-# .ci_needs_real_db.txt is an EMPIRICALLY generated list (not hand-curated):
-# the exact 667 node IDs that failed when this suite was run against a
+# .ci_needs_real_db.txt is an EMPIRICALLY generated list (not hand-curated,
+# regenerated whenever the suite gains new tests -- see Reliability Cleanup
+# pass): the exact node IDs that failed when this suite was run against a
 # checkout with no database present at all. When CI_SKIP_DB_TESTS=1 is set
 # (see .github/workflows/gateway-tests.yml), those specific tests are marked
 # skipped, with a clear reason, instead of counting as failures -- so a fresh
-# GitHub Actions run gets a real, meaningful PASS/FAIL signal on the ~426
-# tests that never needed a database in the first place, and a new bug in
+# GitHub Actions run gets a real, meaningful PASS/FAIL signal on the tests
+# that never needed a database in the first place, and a new bug in
 # ANY of those (or in a test not on this list) still shows up as a genuine
 # failure. This is not a substitute for real DB-backed integration coverage
 # -- see PRODUCTION_STATUS.md for the actual gap and how to close it (e.g.

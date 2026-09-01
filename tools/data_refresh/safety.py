@@ -105,6 +105,15 @@ def finish_run(c: sqlite3.Connection, run_id: str, *, status: str, backup_id: st
     log = dict(detail or {})
     if failure_reason:
         log["failure_reason"] = failure_reason
+    # Reliability Cleanup pass: EVERY one of the 34 real refresh/import
+    # scripts that call create_verified_backup() already calls this exact
+    # function with backup_id=<that backup's id> on its success path (see
+    # module docstring's real-incident history) -- so this single choke
+    # point is where the backup's post-success cleanup belongs, rather than
+    # editing 34 call sites individually. See _cleanup_backup_after_success's
+    # own docstring for why only SUCCESS prunes, never a failure status.
+    if status == "SUCCESS" and backup_id:
+        log["backup_cleanup"] = _cleanup_backup_after_success(c, backup_id)
     c.execute(
         """UPDATE refresh_runs SET finished_at=?, status=?, backup_id=?, rows_downloaded=?, rows_imported=?,
            rows_rejected=?, no_op=?, log_json=? WHERE run_id=?""",
@@ -112,6 +121,52 @@ def finish_run(c: sqlite3.Connection, run_id: str, *, status: str, backup_id: st
          rows_rejected, 1 if no_op else 0, json.dumps(log, default=str), run_id),
     )
     c.commit()
+
+
+def _cleanup_backup_after_success(c: sqlite3.Connection, backup_id: str) -> dict:
+    """Reliability Cleanup pass: the real, confirmed-twice root cause of this
+    project's Fly volume filling up. create_verified_backup() already prunes
+    OLD backups before taking a new one, but nothing ever pruned the backup
+    a run just took after that run actually succeeded -- it relied on some
+    FUTURE run's own prune-before-create step to eventually clean up, which
+    is fine for the daily scheduled refreshes but leaves a one-time script's
+    backup (e.g. the NFL awards/championships Wikipedia backfill) sitting on
+    the volume indefinitely. A backup is a transient safety net for the
+    duration of ONE refresh call, not a permanent archive -- disaster
+    recovery is Fly's own automated daily volume snapshots, a real,
+    independent mechanism (see PRODUCTION_STATUS.md) -- so once a run
+    reports SUCCESS, the backup it took has already served its only purpose
+    and should not wait for anything else to remove it.
+
+    Deliberately called ONLY for status == "SUCCESS" (see finish_run above),
+    never for a failure: a failed run's backup is kept on purpose, even
+    after restore_from_backup() has already used it to restore the live DB,
+    so a human can still re-verify or manually re-restore from the exact
+    file without falling back to Fly's slower snapshot-restore path.
+
+    Defense in depth against the one mistake that would actually matter: this
+    resolves the path from backup_registry (never trusts a caller-supplied
+    path) and refuses to touch anything outside the backups/ directory this
+    module manages, or the live DB path itself, no matter what the registry
+    says.
+    """
+    row = c.execute("SELECT path FROM backup_registry WHERE backup_id=?", (backup_id,)).fetchone()
+    if row is None:
+        return {"pruned": False, "reason": "backup_id not found in backup_registry"}
+
+    backup_path = Path(row[0]).resolve()
+    live_db = _db_path().resolve()
+    backups_dir = _backups_dir().resolve()
+    if backup_path == live_db or backup_path.parent != backups_dir:
+        # Never reached in real operation (backup_manager.create() always
+        # writes into backups_dir) -- a hard refusal, not an assumption.
+        return {"pruned": False, "reason": f"refused: path is not inside backups/: {backup_path}"}
+
+    existed = backup_path.exists()
+    backup_path.unlink(missing_ok=True)
+    backup_path.with_name(backup_path.name + "-journal").unlink(missing_ok=True)
+    c.execute("UPDATE backup_registry SET status='PRUNED_AFTER_SUCCESS' WHERE backup_id=?", (backup_id,))
+    return {"pruned": True, "path": str(backup_path), "file_existed_before_prune": existed}
 
 
 def _backups_dir() -> Path:
@@ -160,7 +215,17 @@ def create_verified_backup() -> dict:
     window with two ~1.6GB backups plus the live DB on disk at once
     (concretely: exactly the shape of the real incident this function was
     added to fix) -- keep=0 means the disk only ever holds the live DB
-    plus AT MOST one backup, from the run currently in flight."""
+    plus AT MOST one backup, from the run currently in flight.
+
+    Reliability Cleanup pass: this was only half the fix. Pruning "before
+    create" still left THIS run's own backup on disk indefinitely once the
+    run succeeded, waiting for some future run to prune it before ITS own
+    backup -- fine for the daily scheduled datasets, a real, confirmed
+    outage risk for a one-time script with no scheduled "next run" (see
+    finish_run's own docstring and PRODUCTION_STATUS.md for exactly this
+    happening). finish_run() now prunes a run's backup immediately upon
+    SUCCESS, so this function's "AT MOST one backup" guarantee holds
+    continuously, not just until the next run happens to start."""
     _prune_old_backups(keep=0)
     return backup_manager.create()
 

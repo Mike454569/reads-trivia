@@ -6,8 +6,8 @@ historical narrative from the session that wrote it — treat it as unconfirmed 
 re-checked it against reality the way this doc does below. Do not add another one of those
 reports; update this file instead.
 
-Last independently verified: **2026-08-31**, during the Production Integrity Fix Pass and the
-following Final Production Hardening Pass (same day).
+Last independently verified: **2026-08-31 / 2026-09-01**, across the Production Integrity Fix
+Pass, the Final Production Hardening Pass, and the Reliability Cleanup pass (all same session).
 
 ## TL;DR
 
@@ -143,6 +143,31 @@ this pass caught it and deleted it (user-confirmed) — back down to 45%/5.2GB f
 real, latent bug in the backup/pruning design, not a one-off mistake, and is very likely
 related to how the original disk-full outage happened in the first place. See Remaining Risks.
 
+## Backup cleanup — fixed permanently (Reliability Cleanup pass)
+
+The near-miss above is now fixed at the code level, not just cleaned up by hand a second time.
+`tools/data_refresh/safety.py`'s `finish_run()` — the single function all 34 real refresh/import
+scripts already call on both their success and failure paths — now prunes a run's own backup
+immediately when `status == "SUCCESS"`, via a new `_cleanup_backup_after_success()`:
+
+- Looks the backup's real path up from `backup_registry` (never trusts a caller-supplied path).
+- Refuses to delete anything outside the `backups/` directory this module manages, or the live
+  database path itself, no matter what the registry says — a hard, enforced check, not an
+  assumption.
+- Only ever runs for `status == "SUCCESS"`. A failed run's backup is deliberately kept (even
+  after `restore_from_backup()` has already used it) so a human can still re-verify or manually
+  re-restore from the exact file.
+- Updates `backup_registry.status` to `PRUNED_AFTER_SUCCESS` and logs the outcome into the same
+  run's `log_json` (`refresh_runs.log_json` now contains a `backup_cleanup` key) — a clear,
+  queryable audit trail, not a silent deletion.
+
+7 new regression tests in `gateway/tests/test_data_refresh_backup_cleanup.py` (all passing,
+against an isolated temp database + temp backups directory — never the real local or production
+DB): a success prunes the file and marks the registry; `finish_run(status="SUCCESS", ...)`
+triggers it automatically end-to-end; a failed run keeps its backup; cleanup refuses a path
+outside `backups/`; cleanup refuses to delete the live DB even if the registry is fed that exact
+path; an unknown `backup_id` is handled gracefully; running cleanup twice is safe (idempotent).
+
 ## Cleanup done this pass
 
 - Removed 5 orphaned static export files (`data/quiz-engine-{pilot,pilot-v2,qb-pilot,
@@ -276,23 +301,57 @@ Remaining Risks.
   plausibly how the original disk-full outage accumulated. Real fix: make
   `create_verified_backup()` (or its caller) prune its own backup immediately after a
   successful run, not just before the next one.
-- **Deploying the `/v1/ready` disk-check code is blocked in this environment**, not diagnosed
-  further this pass. `flyctl deploy` failed twice with a `401` from Fly's remote builder, and
-  both times left this session's flyctl API access broken afterward (read/SSH operations kept
-  working; the same recovery path from the first pass — checking the Fly dashboard directly, or
-  a fresh `fly auth login` — likely applies again). The code is committed and ready; someone
-  with working deploy access just needs to run
-  `flyctl deploy --config gateway/fly.toml -a reads-football-gateway`.
+- ~~Deploying the `/v1/ready` disk-check code is blocked~~ **Fixed in the Reliability Cleanup
+  pass**: `flyctl deploy --recreate-builder` (a real flag for exactly this stale-remote-builder
+  symptom) got past the `401`. The rollout itself briefly looked broken too (`flyctl` reported
+  "not listening on the expected address" and gave up with "timeout reached waiting for health
+  checks") — this was `flyctl`'s own client-side wait timing out before the Gateway's
+  documented ~166s full-database startup check (`gateway/app.py`'s lifespan handler,
+  `check_engine_readiness_deep()`) finished; the machine itself was never actually broken.
+  Confirmed externally once settled: `/v1/health` 200, `/v1/ready` 200 with a real
+  `"disk":{"free_percent":53.0}` field, both Fly health checks passing
+  (`servicecheck-00`/`servicecheck-01`). Added 3 regression tests
+  (`gateway/tests/test_staging_hardening.py`) for the actual threshold behavior (fails below
+  `DISK_FREE_PERCENT_MIN`, passes at/above it, degrades gracefully on a `disk_usage()` error) —
+  none existed before.
 - **CI's DB-heavy integration job (`integration-tests-with-real-db`) needs a `FLY_API_TOKEN`
   GitHub Actions secret this environment could not add** (no `gh` CLI, no GitHub API write
-  access here). Concretely: generate one with `flyctl tokens create deploy -a
-  reads-football-gateway`, then add it at the repo's Settings → Secrets and variables → Actions
-  as `FLY_API_TOKEN`. The job's DB-restore step is scaffolded but intentionally left as a `TODO`
-  echo, not implemented — restoring a real ~4GB snapshot on every CI run also has real cost/time
-  implications worth a deliberate decision, not a default-on assumption.
-- **All 13 public modes were individually round-tripped this pass** (fetch + real answer/move
-  for every one), closing the "spot check only" gap from the first pass. Not re-verified: modes
-  behave correctly under concurrent/production load (only tested one request at a time), and
-  the two transient timeouts during this pass (resource contention with the concurrent backfill
-  run) suggest this single shared-cpu-1x/1GB machine may not have much headroom under real
-  simultaneous traffic plus a background job — worth watching, not yet a confirmed problem.
+  access here — confirmed still true in the Reliability Cleanup pass, this repo's public API
+  gave real, useful read access without a token, e.g. confirming the CI run below, but adding a
+  secret is a write operation the public API can't do unauthenticated). Concretely: generate one
+  with `flyctl tokens create deploy -a reads-football-gateway`, then add it at the repo's
+  Settings → Secrets and variables → Actions as `FLY_API_TOKEN`. The job's DB-restore step is
+  scaffolded but intentionally left as a `TODO` echo, not implemented — restoring a real ~4GB
+  snapshot on every CI run also has real cost/time implications worth a deliberate decision, not
+  a default-on assumption. **Confirmed real and passing on actual GitHub Actions** (not just
+  simulated locally) — run `33444205797`, triggered automatically by the hardening pass's push:
+  the `pytest` job (DB-independent subset) shows `conclusion: success`, and
+  `integration-tests-with-real-db` correctly detected the missing secret and reported itself
+  skipped rather than faking a pass (verified via the public `api.github.com` REST API, which
+  needs no token for a public repo's run/job status, just not for raw log downloads or secrets).
+- **The scheduled monitor workflow (`gateway-monitor.yml`, every 15 min) has not fired yet as of
+  this pass** — confirmed via the same public Actions API (still only 1 total run, the CI one).
+  GitHub can take up to roughly an hour to activate a newly-added `schedule:` trigger; nothing
+  points to it being broken, but it has not been observed actually running. Its YAML was
+  validated (parses correctly, correct `cron`/`workflow_dispatch` triggers, correct job
+  structure) but `workflow_dispatch` could not be triggered manually to force an immediate,
+  observed run — that requires an authenticated write call this environment doesn't have.
+- **All 13 public modes were individually round-tripped in the hardening pass** (fetch + real
+  answer/move for every one), closing the "spot check only" gap from the first pass. Not
+  re-verified under concurrent/production load (only tested one request at a time).
+- **The full local test suite is not consistently clean on this machine, independent of any
+  change in this session.** A full run this pass reported 8 failed / 1095 passed / 1 skipped
+  (51 minutes — roughly double the ~24 minutes every prior full run in this session took,
+  itself a sign of unusual load). Investigated all 8 rather than waving them off: 7 (six in
+  `test_creator_capability_completion_pass.py`, one in `test_phase6_mechanics.py`) passed
+  cleanly when re-run in isolation — full-suite-only flakiness, most plausibly machine load from
+  a very long session (many back-to-back full-DB runs, deploys, SSH sessions). The 8th,
+  `test_lineup_starvation_fix.py::test_stuck_lineup_generation_does_not_starve_other_mechanics`,
+  reproduced consistently even in isolation on a quiet machine (an "unrelated" generation call
+  must finish in <2.5s against a 3.0s isolated-executor timeout, and doesn't) — **but this is
+  confirmed pre-existing, not a regression from any of this session's changes**: checked out
+  `gateway/services/generation.py` and `gateway/config.py` at `1fbb676` (the commit before any
+  pass in this session touched anything) and the identical test fails the identical way there
+  too ("unrelated generation call took 2.83s"). This machine appears to be timing-marginal for
+  that specific test's assumptions; it was not investigated further as out of scope for this
+  pass's stated goals.
