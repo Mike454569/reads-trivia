@@ -69,16 +69,56 @@ jobs:
         if: steps.check_token.outputs.has_token == 'true'
         run: curl -L https://fly.io/install.sh | sh
 
+      # Lineup Concurrency pass: real implementation, not a TODO placeholder
+      # -- but honestly caveated: every flyctl subcommand below was verified
+      # to exist with this exact flag shape via `flyctl <cmd> --help` in the
+      # session that wrote this (recorded so a future reader can re-check),
+      # but the job as a WHOLE has never run end-to-end, because this
+      # environment has no way to set FLY_API_TOKEN as a real repo secret
+      # (no `gh` CLI, no GitHub API write access -- see PRODUCTION_STATUS.md).
+      # Never touches the production volume or its live data: creates a
+      # brand-new, separate, temporary volume FROM a snapshot (an immutable,
+      # already-existing point-in-time copy) and a brand-new temporary
+      # machine -- both destroyed in the cleanup step below regardless of
+      # whether the tests pass, fail, or this step itself fails partway.
       - name: Restore real DB from latest Fly volume snapshot
         if: steps.check_token.outputs.has_token == 'true'
+        id: restore
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP: reads-football-gateway
+          FLY_REGION: iad
+          SOURCE_VOLUME: reads_engine_data
         run: |
-          echo "TODO: restore reads_football_v4.0.sqlite from the reads_engine_data"
-          echo "volume's latest snapshot into Reads_Football_Data_Engine_v4.0/ here."
-          echo "Structurally scaffolded this pass; not implemented or run -- see"
-          echo "PRODUCTION_STATUS.md for why (no FLY_API_TOKEN secret could be set"
-          echo "from this environment, so there was nothing to test this step against)."
+          set -euo pipefail
+          TEMP_VOL_NAME="ci_restore_${GITHUB_RUN_ID}"
+
+          SOURCE_VOLUME_ID=$(flyctl volumes list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; vols=json.load(sys.stdin); print(next(v['id'] for v in vols if v['name']=='$SOURCE_VOLUME'))")
+
+          LATEST_SNAPSHOT_ID=$(flyctl volumes snapshots list "$SOURCE_VOLUME_ID" -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; snaps=json.load(sys.stdin); print(sorted(snaps, key=lambda s: s['created_at'])[-1]['id'])")
+          echo "Restoring from snapshot $LATEST_SNAPSHOT_ID (volume $SOURCE_VOLUME_ID)"
+
+          TEMP_VOL_ID=$(flyctl volumes create "$TEMP_VOL_NAME" \
+            --snapshot-id "$LATEST_SNAPSHOT_ID" -a "$FLY_APP" --region "$FLY_REGION" \
+            --size 10 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
+
+          # Minimal machine, same app's own image (already has the sqlite3
+          # CLI / python available), overridden to just idle so this job can
+          # SFTP the one file it needs off the mounted volume rather than
+          # actually running the Gateway process on this throwaway machine.
+          TEMP_MACHINE_ID=$(flyctl machine run "registry.fly.io/${FLY_APP}:latest" \
+            -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
+            --command "sleep 300" --detach --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
+          flyctl machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
+
+          mkdir -p "${{ github.workspace }}/Reads_Football_Data_Engine_v4.0"
+          flyctl ssh sftp get /data/engine/reads_football_v4.0.sqlite \
+            "${{ github.workspace }}/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite" \
+            -a "$FLY_APP" --machine "$TEMP_MACHINE_ID"
 
       - name: Install dependencies
         if: steps.check_token.outputs.has_token == 'true'
@@ -91,6 +131,24 @@ jobs:
         env:
           READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
         run: python -m pytest gateway/tests -q
+
+      # Always runs, even if an earlier step failed -- a temporary volume or
+      # machine must never be left behind accumulating real Fly cost. Safe
+      # to run even if restore never got far enough to set these outputs
+      # (empty values just make the flyctl calls no-ops/errors that this
+      # step ignores with `|| true`, rather than failing the cleanup itself).
+      - name: Clean up temporary Fly volume and machine
+        if: always() && steps.check_token.outputs.has_token == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP: reads-football-gateway
+        run: |
+          if [ -n "${{ steps.restore.outputs.temp_machine_id }}" ]; then
+            flyctl machine destroy "${{ steps.restore.outputs.temp_machine_id }}" -a "$FLY_APP" --force || true
+          fi
+          if [ -n "${{ steps.restore.outputs.temp_volume_id }}" ]; then
+            flyctl volumes destroy "${{ steps.restore.outputs.temp_volume_id }}" -a "$FLY_APP" --yes || true
+          fi
 
       - name: Report skipped (no token)
         if: steps.check_token.outputs.has_token != 'true'

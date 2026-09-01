@@ -64,8 +64,32 @@ def safety_check(c) -> dict:
     return safety.check_domain_coverage_safety(c, REQUIRED_DOMAIN)
 
 
+# Lineup Concurrency pass: real root cause of the reproduced NFL_DRAFT-call
+# slowness, found via cProfile (same technique lineup.py's own fix docstring
+# describes), not assumed -- `_SPEC` here is a fixed module-level constant,
+# never varying call to call, yet `engine.gf.feasibility(_SPEC)` (a real,
+# ~1200-execute()-call, multi-second-on-a-cold-cache read against
+# `game_factory_legacy.py`'s vendored feasibility()) was being recomputed
+# from scratch on EVERY single fetch_ordered_candidates() call purely to
+# gate a SystemExit sanity check whose answer cannot change within one
+# process's lifetime (it depends only on the Engine DB's schema/table
+# presence, never on `seed` or any other per-call input). Identical bug
+# shape to the one already fixed in lineup.py's certified_college_lookup()
+# -- cached here the same way, in project code, never touching the vendored
+# Engine's own feasibility()/generate_candidates() functions. This was
+# never a concurrency/isolation bug -- draft.py's own admin/shared executor
+# was always correctly isolated from the lineup-isolated one -- it was
+# every NFL_DRAFT generation call independently paying real, avoidable
+# per-call DB cost that a fixed, unbounded GENERATION_TIMEOUT-sensitive
+# caller (like a starvation test, or a real user's first request) could hit.
+_FEASIBILITY_CACHE: dict = {}
+
+
 def fetch_ordered_candidates(c, seed: str):
-    feas = engine.gf.feasibility(_SPEC)
+    feas = _FEASIBILITY_CACHE.get("result")
+    if feas is None:
+        feas = engine.gf.feasibility(_SPEC)
+        _FEASIBILITY_CACHE["result"] = feas
     if feas["status"] != "SUPPORTED":
         raise SystemExit(f"ABORT: Engine feasibility() returned {feas['status']}, not SUPPORTED.")
     rows, _feas2 = engine.gf.generate_candidates(_SPEC, limit=CANDIDATE_LIMIT, seed=seed)

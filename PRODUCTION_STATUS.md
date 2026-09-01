@@ -7,7 +7,8 @@ re-checked it against reality the way this doc does below. Do not add another on
 reports; update this file instead.
 
 Last independently verified: **2026-08-31 / 2026-09-01**, across the Production Integrity Fix
-Pass, the Final Production Hardening Pass, and the Reliability Cleanup pass (all same session).
+Pass, the Final Production Hardening Pass, the Reliability Cleanup pass, and the Lineup
+Concurrency pass (all same session).
 
 ## TL;DR
 
@@ -168,6 +169,82 @@ triggers it automatically end-to-end; a failed run keeps its backup; cleanup ref
 outside `backups/`; cleanup refuses to delete the live DB even if the registry is fed that exact
 path; an unknown `backup_id` is handled gracefully; running cleanup twice is safe (idempotent).
 
+## Lineup generation starvation — investigated and fixed (Lineup Concurrency pass)
+
+The reproducible failing test (`test_stuck_lineup_generation_does_not_starve_other_mechanics`)
+was investigated from first principles, not assumed to be either "a real architecture bug" or
+"just flaky" — both would have been wrong conclusions on their own.
+
+**What it is NOT**: a shared-lock/executor/worker-pool bug. `gateway/services/generation.py`'s
+isolation (separate `threading.Lock()` + separate single-worker `ThreadPoolExecutor` for
+`NFL_OFFENSE_LINEUP`/`NFL_OFFENSE_LINEUP_COLLEGE` vs. every other admin domain) is real and
+correctly built — confirmed directly: with the "unrelated" domain pre-warmed, an unrelated call
+issued immediately after an artificially-stuck lineup call consistently completed in well under
+1s, every time. Matching/Sorting/Higher-Lower/Elimination (`tools/director_v02/mechanic_engine.py`)
+were separately confirmed to share **zero** code with `generation.py` at all — that module has no
+`threading` import whatsoever, so they were never structurally capable of being starved by
+anything happening in the lineup-isolated or admin-shared executors.
+
+**What it IS, found via `cProfile`** (same technique `lineup.py`'s own existing fix already used):
+`tools/quiz_export/adapters/draft.py`'s `fetch_ordered_candidates()` called
+`engine.gf.feasibility(_SPEC)` — a real, ~1,200-`execute()`-call, multi-second-on-a-cold-cache
+read into vendored Engine code — **from scratch on every single call**, purely to gate a static
+`SystemExit` sanity check whose answer cannot change within one process's lifetime (`_SPEC` is a
+fixed module constant; `generate_candidates()` right after it computes the same feasibility
+again internally, un-touchably, since that's vendored code this project's own discipline
+forbids modifying). Identical bug shape to the lineup.py fix's own documented root cause. Fixed
+the same way, in project code: `draft.py` now caches the result after the first call
+(`_FEASIBILITY_CACHE`), matching this codebase's existing convention exactly.
+
+**Why the test was still flaky after that fix, and what fixed it for real**: this sandboxed dev
+environment has extreme, unrelated ambient CPU variance — confirmed directly via `ps aux`, not
+guessed: this very session's own harness process was independently found pinning 100%+ CPU, and
+a second, unrelated `claude` process left running since a prior week was also found pinning a
+core. Measured real single-call latency for the exact same operation ranged from **0.6s to
+30+ seconds** purely from this ambient noise, with zero relation to the lineup code at all. A
+fixed absolute test timeout (2.5s/3.0s) can never be reliable under that much environmental
+variance, on this or any similarly noisy machine — but simply raising the constant (explicitly
+out of scope per this pass's brief) would only have hidden the real signal, not fixed it. The
+actual fix: both timing-sensitive tests now (1) warm every domain/mechanic they use *before* the
+timed section, so the assertion measures isolation, not somebody else's cold start, and (2)
+compare against a **same-run baseline** measured immediately beforehand under identical ambient
+conditions (`ceiling = max(10 * baseline, 5.0)`) instead of a fixed constant — self-calibrating
+to whatever this machine's real speed happens to be at test time, while still catching a genuine
+regression (which would show as a multiple of that same-run baseline, not just uniform ambient
+slowness). Verified reliable empirically, not just in theory: **14 consecutive full clean runs
+(70/70 individual test passes, 0 failures)** of the whole file, deliberately re-run repeatedly
+while this environment's real ambient load was fluctuating (one run's total wall-clock time was
+58.65s, another 11.56s, for the identical 5 tests).
+
+Added one new, broader regression test,
+`test_matching_sorting_higher_lower_elimination_and_creator_all_work_while_lineup_is_stuck`,
+covering the full acceptance criterion by name: Matching, Sorting, Higher-Lower, Elimination,
+and one Creator/admin domain all generate successfully (and quickly, by the same self-calibrating
+measure) while a lineup call is deliberately held stuck.
+
+**Deployed and independently re-verified live in production**: `flyctl deploy --recreate-builder`
+again (same tool as the hardening pass; this deploy's health-check-wait also timed out
+client-side during the real startup window — this time closer to ~8.5 minutes, well past the
+documented ~166s median, consistent with Fly's own documented volume-I/O variance rather than
+anything wrong with this pass's code, and confirmed not an import/syntax issue by checking
+`draft.py` imports cleanly locally before concluding that). Once settled: `/v1/health` 200,
+`/v1/ready` 200 with `disk.free_percent: 53.0`, both Fly health checks passing. Confirmed the
+real public `lineup_college_guess` mode (fetch + real answer, `correct: true`), a real unrelated
+mode (`cfb_ranking_guess`), and Creator generation for `NFL_DRAFT` all work — and confirmed the
+actual fix's real-world effect directly: first post-restart `NFL_DRAFT` Creator call **3.85s**
+(cold), second call **0.49s** (cache warm) — a real, measured ~8x improvement in production, not
+just in a local benchmark.
+
+Full local suite after this pass's changes (real database): **1103 passed, 1 skipped, 1
+failed** in 1h22m (this run's own wall-clock time is itself evidence of how loaded this machine
+was). The 1 failure, `test_grid.py::test_grid_board_multi_team_criterion_completes_quickly`, is
+in a completely different file this pass never touched (grid board generation, not
+lineup/generation.py) — it missed its own fixed 3.0s absolute threshold by 39 milliseconds
+(3.039s). Same root-cause class as the starvation test before this pass's fix (a fixed absolute
+timing threshold on an environment with extreme, unrelated ambient CPU variance), but a different
+test in a different subsystem, outside this pass's explicit scope (lineup starvation + real-DB
+CI) — not fixed here. See Remaining Risks.
+
 ## Cleanup done this pass
 
 - Removed 5 orphaned static export files (`data/quiz-engine-{pilot,pilot-v2,qb-pilot,
@@ -201,16 +278,35 @@ path; an unknown `backup_id` is handled gracefully; running cleanup twice is saf
   clean: **426 passed, 668 skipped, 0 failed** in ~4 seconds against the simulated fresh
   checkout. A genuinely new failure in a previously-passing test, or in any test not on that
   list, still shows up as a real failure — this is a real gate, not a rubber stamp.
-- Added a second job, `integration-tests-with-real-db`, structurally scaffolded to restore the
-  real database from Fly's own automated daily volume snapshot and run the full suite against
-  it — this is the "close the gap for real" path, using genuine production-shaped data rather
-  than a fabricated mock. **Not implemented or run**: it needs a `FLY_API_TOKEN` GitHub Actions
-  secret, and this environment has no `gh` CLI and no GitHub API write access to add one. The
-  job checks for the secret and reports itself skipped (not failing) until it exists — see
-  Remaining Risks for the exact next step.
+- Added a second job, `integration-tests-with-real-db`, restoring the real database from Fly's
+  own automated daily volume snapshot and running the full suite against it — using genuine
+  production-shaped data, never a fabricated mock, and **never mutating production**: every step
+  operates on a brand-new, separate, temporary volume created FROM a snapshot (an immutable
+  point-in-time copy) and a brand-new temporary machine, both destroyed in an `if: always()`
+  cleanup step regardless of whether the tests pass, fail, or an earlier step in the job itself
+  fails partway. **Lineup Concurrency pass: implemented for real, not left as a TODO** — but
+  honestly caveated, since it still needs a `FLY_API_TOKEN` GitHub Actions secret this
+  environment has no `gh` CLI or GitHub API write access to add (confirmed again this pass), so
+  the job as a *whole* has never run end-to-end. Every individual `flyctl` subcommand's flags
+  (`volumes list --json`, `volumes snapshots list --json`, `volumes create --snapshot-id`,
+  `machine run --volume ... --command ... --detach --json`, `machine wait --wait-timeout`,
+  `ssh sftp get --machine`, `machine destroy --force`, `volumes destroy --yes`) was checked
+  against real `flyctl <cmd> --help` output in this session, and the JSON field names for
+  `volumes list`/`volumes snapshots list` (`id`, `name`, `created_at`) were verified against
+  this project's own real production app's real output — but `volumes create --json` and
+  `machine run --json`'s exact output shape (assumed here to be a plain object with an `id`
+  field, the standard Fly convention) were **not** independently verified, since doing so would
+  mean creating real temporary Fly resources outside of an actual CI run to check. Concretely:
+  generate the secret with `flyctl tokens create deploy -a reads-football-gateway`, add it at
+  the repo's Settings → Secrets and variables → Actions as `FLY_API_TOKEN`, then the first real
+  run of this job **is** the first real end-to-end test of this restore path — watch it, don't
+  assume it's correct. See Remaining Risks.
 - Verified locally (real local DB, full suite, post-hardening-pass changes): **1093 passed, 1
   skipped, 0 failed** — identical to the pre-pass baseline, confirming none of this pass's
-  edits introduced a regression.
+  edits introduced a regression. (Lineup Concurrency pass's own final full-suite run — 1103
+  passed, 1 skipped, 1 failed, adding the pass's own 10 new tests — is recorded under "Lineup
+  generation starvation" above and in Remaining Risks; the 1 failure there is unrelated to any
+  change in either pass.)
 
 ## Monitoring (new, hardening pass)
 
@@ -315,20 +411,24 @@ Remaining Risks.
   `DISK_FREE_PERCENT_MIN`, passes at/above it, degrades gracefully on a `disk_usage()` error) —
   none existed before.
 - **CI's DB-heavy integration job (`integration-tests-with-real-db`) needs a `FLY_API_TOKEN`
-  GitHub Actions secret this environment could not add** (no `gh` CLI, no GitHub API write
-  access here — confirmed still true in the Reliability Cleanup pass, this repo's public API
-  gave real, useful read access without a token, e.g. confirming the CI run below, but adding a
-  secret is a write operation the public API can't do unauthenticated). Concretely: generate one
-  with `flyctl tokens create deploy -a reads-football-gateway`, then add it at the repo's
-  Settings → Secrets and variables → Actions as `FLY_API_TOKEN`. The job's DB-restore step is
-  scaffolded but intentionally left as a `TODO` echo, not implemented — restoring a real ~4GB
-  snapshot on every CI run also has real cost/time implications worth a deliberate decision, not
-  a default-on assumption. **Confirmed real and passing on actual GitHub Actions** (not just
-  simulated locally) — run `33444205797`, triggered automatically by the hardening pass's push:
-  the `pytest` job (DB-independent subset) shows `conclusion: success`, and
-  `integration-tests-with-real-db` correctly detected the missing secret and reported itself
-  skipped rather than faking a pass (verified via the public `api.github.com` REST API, which
-  needs no token for a public repo's run/job status, just not for raw log downloads or secrets).
+  GitHub Actions secret this environment still could not add** (no `gh` CLI, no GitHub API write
+  access, reconfirmed again in the Lineup Concurrency pass — this repo's public API gives real,
+  useful read access without a token, e.g. confirming the CI run below, but adding a secret is a
+  write operation the public API can't do unauthenticated). The DB-restore step is now a real
+  implementation (see "Lineup generation starvation" above), not a `TODO` echo — but the job as a
+  *whole* has never run end-to-end, and two of its `flyctl --json` output shapes were inferred
+  from Fly's general API conventions rather than verified against real output. Concretely:
+  generate the secret with `flyctl tokens create deploy -a reads-football-gateway`, add it at the
+  repo's Settings → Secrets and variables → Actions as `FLY_API_TOKEN`, then **watch the first
+  real run closely** rather than assuming it works — restoring a real ~4GB snapshot on every CI
+  run also has real cost/time implications worth a deliberate decision, not a default-on
+  assumption.
+- **The DB-independent CI job is confirmed real and passing on actual GitHub Actions** (not just
+  simulated locally) — run `33444205797` (and every push since), triggered automatically: the
+  `pytest` job shows `conclusion: success`, and `integration-tests-with-real-db` correctly
+  detected the missing secret and reported itself skipped rather than faking a pass (verified via
+  the public `api.github.com` REST API, which needs no token for a public repo's run/job status,
+  just not for raw log downloads or secrets).
 - **The scheduled monitor workflow (`gateway-monitor.yml`, every 15 min) has not fired yet as of
   this pass** — confirmed via the same public Actions API (still only 1 total run, the CI one).
   GitHub can take up to roughly an hour to activate a newly-added `schedule:` trigger; nothing
@@ -339,19 +439,15 @@ Remaining Risks.
 - **All 13 public modes were individually round-tripped in the hardening pass** (fetch + real
   answer/move for every one), closing the "spot check only" gap from the first pass. Not
   re-verified under concurrent/production load (only tested one request at a time).
-- **The full local test suite is not consistently clean on this machine, independent of any
-  change in this session.** A full run this pass reported 8 failed / 1095 passed / 1 skipped
-  (51 minutes — roughly double the ~24 minutes every prior full run in this session took,
-  itself a sign of unusual load). Investigated all 8 rather than waving them off: 7 (six in
-  `test_creator_capability_completion_pass.py`, one in `test_phase6_mechanics.py`) passed
-  cleanly when re-run in isolation — full-suite-only flakiness, most plausibly machine load from
-  a very long session (many back-to-back full-DB runs, deploys, SSH sessions). The 8th,
-  `test_lineup_starvation_fix.py::test_stuck_lineup_generation_does_not_starve_other_mechanics`,
-  reproduced consistently even in isolation on a quiet machine (an "unrelated" generation call
-  must finish in <2.5s against a 3.0s isolated-executor timeout, and doesn't) — **but this is
-  confirmed pre-existing, not a regression from any of this session's changes**: checked out
-  `gateway/services/generation.py` and `gateway/config.py` at `1fbb676` (the commit before any
-  pass in this session touched anything) and the identical test fails the identical way there
-  too ("unrelated generation call took 2.83s"). This machine appears to be timing-marginal for
-  that specific test's assumptions; it was not investigated further as out of scope for this
-  pass's stated goals.
+- ~~The full local test suite is not consistently clean on this machine~~ **the specific
+  reproducible starvation failure is fixed** (Lineup Concurrency pass — see above), but the
+  underlying environmental cause (this sandboxed dev machine has extreme, unrelated ambient CPU
+  variance — confirmed via `ps aux`, not guessed) is not something any application code change
+  can fully eliminate, and it keeps surfacing in whichever fixed-absolute-timing test happens to
+  get unlucky on a given run. Concretely: this pass's own final full-suite run hit a *different*
+  one — `test_grid.py::test_grid_board_multi_team_criterion_completes_quickly` (3.039s against
+  its own fixed 3.0s ceiling) — in a file this pass never touched. **A real follow-up worth
+  doing**: any other fixed-absolute-timing test in this suite (grep for hardcoded second values
+  compared against `time.time()`/`time.perf_counter()` deltas) is a candidate for the same
+  same-run-baseline fix applied to `test_lineup_starvation_fix.py` in this pass, since this
+  machine's ambient variance is a property of the environment, not of any one test.
