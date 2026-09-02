@@ -14,11 +14,12 @@ building: 1,874 real betting-upset games out of 8,177 candidates with a
 real consensus spread.
 
 "Guess the underdog that won outright" -- entity is one real betting-upset
-game, answer is the real winning (underdog) team's name, drawn from
-`schools`, distractors scoped to real schools that have appeared in a
-real CFBD betting line at all (same real, plausible tier as the correct
-answer -- see cfb_upset_ranking.py's own distractor-quality fix for the
-same real problem with an unscoped `schools` pool).
+game. True 2-option head-to-head (Creator/Game Quality Correction pass):
+the only two options are the two real teams that played, and the real
+spread is now stated IN the question text itself (e.g. "entered as a
+17.5-point underdog"), never only revealed after the fact in `notes` --
+matching this pass's own explicit requirement to show/use the actual line,
+not just call something a betting upset without it.
 """
 from __future__ import annotations
 
@@ -36,13 +37,11 @@ TRACK_ENTITY = True
 MIN_SEASON = 2013
 MAX_SEASON = 2025
 
-# Real N+1-avoidance fix, same class of defect measured and fixed in
-# cfb_ranking.py this same pass: the "other real betting-upset winners"
-# distractor pool is a real, candidate-independent triple-JOIN (aside from
-# excluding the current game's 2 school_ids) -- computed once and cached
-# for the duration of one generation call, those 2 exclusions applied in
-# Python per candidate instead of re-running the full join every time.
-_pool_cache: list[tuple] | None = None
+# Creator/Game Quality Correction pass: biggest_only scopes to a "major
+# betting underdog" (the spec's own phrase) -- a real, objective, disclosed
+# threshold on the real recorded spread magnitude, not a subjective label.
+SUPPORTS_FILTERS = True
+BIGGEST_SPREAD_THRESHOLD = 10.0
 MAX_FETCHED_CANDIDATES = 5000
 
 
@@ -58,11 +57,15 @@ def safety_check(c) -> dict:
     }
 
 
-def fetch_ordered_candidates(c, seed: str):
-    global _pool_cache
-    _pool_cache = None
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
+    filters = filters or {}
+    min_spread_clause = ""
+    params: tuple = (PROVIDER,)
+    if filters.get("biggest_only"):
+        min_spread_clause = "AND ABS(b.spread) >= ?"
+        params = (PROVIDER, BIGGEST_SPREAD_THRESHOLD)
     rows = c.execute(
-        """
+        f"""
         SELECT g.game_id, g.season, g.week, g.home_school_id, g.away_school_id,
                g.home_score, g.away_score, b.spread,
                g.source_id AS games_source_id, g.verification_status AS games_verification_status,
@@ -70,10 +73,10 @@ def fetch_ordered_candidates(c, seed: str):
         FROM cfb_games_canonical g
         JOIN cfb_betting_lines b ON b.game_id = g.game_id AND b.provider = ?
         WHERE g.home_score IS NOT NULL AND g.away_score IS NOT NULL AND g.home_score != g.away_score
-          AND b.spread IS NOT NULL AND b.spread != 0
+          AND b.spread IS NOT NULL AND b.spread != 0 {min_spread_clause}
         ORDER BY g.game_id
         """,
-        (PROVIDER,),
+        params,
     ).fetchall()
     rng_order = engine.seeded(seed)
     rows = list(rows)
@@ -99,52 +102,23 @@ def evaluate(c, row, rng, guard):
 
     winner_id = row["home_school_id"] if home_won else row["away_school_id"]
     loser_id = row["away_school_id"] if home_won else row["home_school_id"]
-    winner_name = _school_name(c, winner_id)
-    loser_name = _school_name(c, loser_id)
+    winner_name = _school_name(c, winner_id)  # the underdog -- won outright
+    loser_name = _school_name(c, loser_id)  # the favorite -- lost
     if not winner_name or not loser_name:
         return "UNRESOLVED_SCHOOL_NAME"
-
-    # Section 19 distractor-quality fix (same real problem
-    # cfb_upset_ranking.py's own fix addresses): scoping to "any school
-    # that ever appears in a betting line" let real FCS buy-game opponents
-    # (Arkansas-Pine Bluff, Lehigh, ...) show up as options next to a real
-    # major-conference upset winner -- implausible by comparison. Scoped
-    # instead to schools that have themselves won at least one other real
-    # betting upset by this exact same definition -- the same real,
-    # comparable competitive tier as the correct answer.
-    global _pool_cache
-    if _pool_cache is None:
-        other_upset_winner_rows = c.execute(
-            """
-            SELECT DISTINCT s.school_name,
-                   CASE WHEN g2.home_score > g2.away_score THEN g2.home_school_id ELSE g2.away_school_id END AS wid
-            FROM cfb_games_canonical g2
-            JOIN cfb_betting_lines b2 ON b2.game_id = g2.game_id AND b2.provider = ?
-            JOIN schools s ON s.school_id = (
-                CASE WHEN g2.home_score > g2.away_score THEN g2.home_school_id ELSE g2.away_school_id END
-            )
-            WHERE g2.home_score IS NOT NULL AND g2.away_score IS NOT NULL AND g2.home_score != g2.away_score
-              AND b2.spread IS NOT NULL AND b2.spread != 0
-              AND ((b2.spread < 0) != (g2.home_score > g2.away_score))
-            """,
-            (PROVIDER,),
-        ).fetchall()
-        _pool_cache = [(r["wid"], r["school_name"]) for r in other_upset_winner_rows if r["school_name"]]
-    pool = [name for wid, name in _pool_cache if wid not in (winner_id, loser_id)]
-    pool = list(dict.fromkeys(pool))  # de-dup while preserving order, no set() nondeterminism before rng.sample
-    if len(pool) < 3:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(pool, 3)
-
-    options = [winner_name] + distractor_names
-    if len(set(options)) != 4:
-        return "DUPLICATE_OPTIONS"
+    if winner_name == loser_name:
+        return "SAME_DISPLAY_NAME_AMBIGUOUS"
 
     spread_magnitude = abs(row["spread"])
     season, week = row["season"], row["week"]
+    # Creator/Game Quality Correction pass: the real spread is now stated
+    # IN the question (never only in `notes` after the fact) -- this is a
+    # real fact about the underdog, not the outcome, so stating it doesn't
+    # leak the answer. True 2-option: both real teams that played are the
+    # only two options.
     question = (
-        f"In a real college football game in Week {week} of the {season} season, the real pregame "
-        f"betting underdog won outright. Which team was the underdog that won?"
+        f"In Week {week} of the {season} college football season, {winner_name} entered as a "
+        f"{spread_magnitude}-point underdog against {loser_name}. Which team won?"
     )
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
@@ -152,8 +126,8 @@ def evaluate(c, row, rng, guard):
     if guard.entity_seen(entity_key):
         return "DUPLICATE_GAME"
 
-    shuffled_options, correct_index = serializer.finalize_options(rng, winner_name, distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner_name:
+    shuffled_options, correct_index = serializer.finalize_binary_options(rng, winner_name, loser_name, winner_name)
+    if not (0 <= correct_index <= 1) or shuffled_options[correct_index] != winner_name:
         return "INVALID_CORRECT_INDEX"
 
     # A bigger spread the underdog overcame is a more famous/memorable

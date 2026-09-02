@@ -14,6 +14,13 @@ SPORTSDATAVERSE_CFB, 2014-2025) -- the raw value being compared is NEVER
 shown in the question text before answering (see each adapter's own
 _question()), only in `notes` after the fact, matching Section 20's
 answer-leakage requirement.
+
+Creator/Game Quality Correction pass: this is a true 2-option comparison,
+not 4-way multiple choice -- the only two options are the two real named
+players in the question ("RB A" / "RB B" in spec terms), via
+serializer.finalize_binary_options(). There is no distractor pool: with
+only two real entities in play, padding to 4 with unrelated names would
+just be noise, not a real distractor.
 """
 from __future__ import annotations
 
@@ -23,16 +30,6 @@ REQUIRED_SOURCE_ID = "SPORTSDATAVERSE_CFB"
 REQUIRED_VERIFICATION_STATUS = "SOURCE_BACKED_DERIVED"
 MIN_SEASON = 2014
 MAX_SEASON = 2025
-
-# Real, measured N+1 fix (Creator Capability Completion pass): evaluate()'s
-# distractor pool query scans the full season's worth of
-# cfb_player_game_stats_real (322,137 rows total across 2014-2025) --
-# cheap once, expensive re-run per candidate (same class of defect found
-# and fixed in _defensive_event_common.py and nfl_first_touchdown.py this
-# same pass). Cached per (stat_column, season) for the duration of one
-# generation call only -- reset at the top of fetch_ordered_candidates()
-# (called exactly once per real request), never persisted across requests.
-_pool_cache: dict[tuple, list[str]] = {}
 
 # Same real, already-established safeguard compiler.py's own
 # RelationshipSpec.max_fetched_candidates uses (see that module's docstring:
@@ -53,7 +50,6 @@ def safety_check(c, *, stat_column: str, attempt_column: str) -> dict:
 
 
 def fetch_ordered_candidates(c, seed: str, *, stat_column: str, attempt_column: str):
-    _pool_cache.clear()
     rows = c.execute(
         f"SELECT game_id, season, week, cfb_player_id, player_name, {stat_column} AS stat_value, "
         f"source_id, verification_status "
@@ -92,25 +88,6 @@ def evaluate(c, row, rng, guard, *, stat_column: str, attempt_column: str, stat_
 
     winner_name = player_a_name if player_a_value > player_b_value else player_b_name
 
-    cache_key = (stat_column, season)
-    cached_pool = _pool_cache.get(cache_key)
-    if cached_pool is None:
-        pool_rows = c.execute(
-            f"SELECT DISTINCT player_name FROM cfb_player_game_stats_real "
-            f"WHERE season=? AND {attempt_column} > 0 AND {stat_column} IS NOT NULL",
-            (season,),
-        ).fetchall()
-        cached_pool = [r["player_name"] for r in pool_rows]
-        _pool_cache[cache_key] = cached_pool
-    pool = [n for n in cached_pool if n not in (player_a_name, player_b_name)]
-    if len(pool) < 3:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(pool, 3)
-
-    options = [winner_name] + distractor_names
-    if len(set(options)) != 4:
-        return "DUPLICATE_OPTIONS"
-
     question = (
         f"In Week {week} of the {season} college football season, {player_a_name} and {player_b_name} "
         f"both had real {stat_label}. Who had more?"
@@ -121,8 +98,8 @@ def evaluate(c, row, rng, guard, *, stat_column: str, attempt_column: str, stat_
     if guard.entity_seen(entity_key):
         return "DUPLICATE_PAIR"
 
-    shuffled_options, correct_index = serializer.finalize_options(rng, winner_name, distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner_name:
+    shuffled_options, correct_index = serializer.finalize_binary_options(rng, player_a_name, player_b_name, winner_name)
+    if not (0 <= correct_index <= 1) or shuffled_options[correct_index] != winner_name:
         return "INVALID_CORRECT_INDEX"
 
     diff_score = (MAX_SEASON - season) / max(MAX_SEASON - MIN_SEASON, 1)

@@ -75,7 +75,18 @@ def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
         # Franchise Marathon: every real title for one franchise, in real
         # chronological order (not shuffled) -- the whole point of a
         # "marathon" is playing a dynasty's real history in sequence.
-        matched = [b for b in boards if b["team_display_name"] == franchise_name]
+        #
+        # Creator/Game Quality Correction pass: case-insensitive SUBSTRING
+        # match, not exact equality -- a relocated real franchise (Baltimore
+        # Colts/Indianapolis Colts, Oakland Raiders/Los Angeles Raiders/
+        # "Oakland/LA Raiders", St. Louis Rams/Los Angeles Rams) has multiple
+        # real, DIFFERENT team_display_name strings across its own real
+        # championship history; exact equality on one of them would silently
+        # drop the franchise's own other real titles from its "marathon".
+        # "raiders" is a real substring of all three real Raiders display
+        # names above, so a single nickname reunites the full dynasty.
+        needle = franchise_name.strip().lower()
+        matched = [b for b in boards if needle in b["team_display_name"].lower()]
         matched.sort(key=lambda b: b["season"])
         result = matched
     elif filters.get("era_gauntlet"):

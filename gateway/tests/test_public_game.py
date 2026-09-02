@@ -894,7 +894,10 @@ def test_nfl_game_result_payload_never_contains_answer(client):
     assert body["competition"] == "NFL"
     assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
     assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
-    assert len(body["payload"]["options"]) == 4
+    # Creator/Game Quality Correction pass: "who won this game" is a true
+    # 2-option head-to-head -- the two real teams that played, never padded
+    # with unrelated distractors.
+    assert len(body["payload"]["options"]) == 2
 
 
 def test_cfb_game_result_payload_never_contains_answer(client):
@@ -905,7 +908,7 @@ def test_cfb_game_result_payload_never_contains_answer(client):
     body = r.json()
     assert body["mode"] == "cfb_game_result_guess"
     assert body["competition"] == "CFB"
-    assert len(body["payload"]["options"]) == 4
+    assert len(body["payload"]["options"]) == 2
 
 
 def test_nfl_game_result_correct_answer_accepted(client):

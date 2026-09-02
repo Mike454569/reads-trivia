@@ -79,7 +79,7 @@ QA_CHECKS_PERFORMED = [
     "distractor construction restricted to real, season-matched Engine data (never arbitrary names)",
     "duplicate-entity guard (no player repeated within one package)",
     "duplicate-question guard",
-    "contract validation: exactly 4 unique options",
+    "contract validation: exactly 2 (true head-to-head) or 4 unique options",
     "contract validation: correctIndex points at the verified correct answer",
     "contract validation: category is an existing Reads Quiz category",
     "contract validation: difficulty in {Easy, Medium, Hard}",

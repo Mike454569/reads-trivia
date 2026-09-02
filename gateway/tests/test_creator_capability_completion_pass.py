@@ -214,10 +214,16 @@ def test_new_capabilities_generate_real_playable_questions(request_text, expecte
     assert result.get("qa_status") == "PASSED", result
     questions = result.get("questions", [])
     assert len(questions) >= 1
+    # Creator/Game Quality Correction pass: a true 2-option head-to-head
+    # capability (e.g. CFB_STAT_COMPARISON, CFB_UPSET/BETTING_UPSET) is a
+    # real, valid shape now, not just the standard 4-way -- see
+    # tools/quiz_export/contract.py's VALID_OPTION_COUNTS.
+    from tools.quiz_export.contract import VALID_OPTION_COUNTS
     for q in questions:
-        assert len(q["options"]) == 4
-        assert len(set(q["options"])) == 4
-        assert 0 <= q["correctIndex"] <= 3
+        n = len(q["options"])
+        assert n in VALID_OPTION_COUNTS, f"{n} options is not a valid option count for {request_text!r}: {q}"
+        assert len(set(q["options"])) == n
+        assert 0 <= q["correctIndex"] < n
 
 
 # ============================== answer leakage / multiple valid answer QA ==============================

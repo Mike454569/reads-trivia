@@ -13,12 +13,23 @@ that a candidate MAY carry alongside the required CONTRACT_KEYS. Additive
 only: any candidate that never sets them (every Draft/Championship candidate
 today) has a key-set identical to before, so this changes nothing about
 existing behavior. See tools/director_v02/visual_templates.py.
+
+Creator/Game Quality Correction pass: VALID_OPTION_COUNTS widens the
+options-count check from a hardcoded 4 to {2, 4} -- true head-to-head
+comparisons (nfl_game_result.py/cfb_game_result.py's "who won", the CFB
+stat-comparison adapters' "who had more") are genuine 2-option questions,
+not 4-way multiple choice padded with unrelated distractors. Deliberately
+NOT opened to arbitrary N: every adapter in this codebase emits either the
+standard 4-way guess or a true binary comparison via
+serializer.finalize_binary_options() -- nothing else -- so this stays a
+real, closed check, not a loosened one.
 """
 from __future__ import annotations
 
 CONTRACT_KEYS = {"id", "category", "difficulty", "question", "options", "correctIndex", "notes"}
 OPTIONAL_KEYS = {"visual_template", "visual_payload"}
 VALID_DIFFICULTIES = ("Easy", "Medium", "Hard")
+VALID_OPTION_COUNTS = (2, 4)
 
 
 def validate_contract(record: dict, allowed_category: str) -> list[tuple]:
@@ -39,9 +50,10 @@ def validate_contract(record: dict, allowed_category: str) -> list[tuple]:
         failures.append((record["id"], "difficulty not in Easy/Medium/Hard"))
     if not isinstance(record["question"], str) or not record["question"].strip():
         failures.append((record["id"], "empty question"))
-    if not isinstance(record["options"], list) or len(record["options"]) != 4 or len(set(record["options"])) != 4:
-        failures.append((record["id"], "options not exactly 4 unique strings"))
-    if not (isinstance(record["correctIndex"], int) and 0 <= record["correctIndex"] <= 3):
+    n = len(record["options"]) if isinstance(record["options"], list) else -1
+    if n not in VALID_OPTION_COUNTS or len(set(record["options"])) != n:
+        failures.append((record["id"], f"options not exactly {VALID_OPTION_COUNTS} unique strings"))
+    if not (isinstance(record["correctIndex"], int) and 0 <= record["correctIndex"] < max(n, 0)):
         failures.append((record["id"], "correctIndex out of range"))
     else:
         expected = record.get("_audit", {}).get("correct_answer_text")

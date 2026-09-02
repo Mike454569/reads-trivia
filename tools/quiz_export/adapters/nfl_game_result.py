@@ -26,7 +26,7 @@ ever worth the complexity.
 from __future__ import annotations
 
 from .. import engine, safety, difficulty as difficulty_mod, serializer
-from .draft import resolve_franchise, teams_active_in_season
+from .draft import resolve_franchise
 
 OUT_PATH = None  # this domain is served live via the Gateway AND exportable via
                  # tools/generate_quiz_engine_game_result_production.py, which passes its
@@ -114,24 +114,21 @@ def evaluate(c, row, rng, guard):
     winner = home_franchise if winner_is_home else away_franchise
     loser = away_franchise if winner_is_home else home_franchise
 
-    # Real, confirmed-live leakage bug fixed here: the distractor pool used
-    # to explicitly EXCLUDE the loser as well as the winner, so the four
-    # options were "the winner + 3 teams that had nothing to do with this
-    # game at all" -- the loser (the other real team actually named in the
-    # question) could never appear, making the correct answer identifiable
-    # from option membership alone, no football knowledge required (verified
-    # live: 120/120 generated questions leaked before this fix). Both real
-    # matchup teams now always appear among the options; only the remaining
-    # 2 slots are filled from teams that did NOT play in this game.
-    active = teams_active_in_season(c, season)
-    pool = {fid: name for fid, name in active.items()
-            if fid not in (winner["franchise_id"], loser["franchise_id"])}
-    if len(pool) < 2:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(list(pool.values()), 2)
-
-    options = [winner["full_name"], loser["full_name"]] + distractor_names
-    if len(set(options)) != 4:
+    # Real, confirmed-live leakage bug fixed here (earlier pass): the
+    # distractor pool used to explicitly EXCLUDE the loser as well as the
+    # winner, so the four options were "the winner + 3 teams that had
+    # nothing to do with this game at all" -- the loser (the other real team
+    # actually named in the question) could never appear, making the correct
+    # answer identifiable from option membership alone, no football
+    # knowledge required (verified live: 120/120 generated questions leaked
+    # before this fix).
+    #
+    # Creator/Game Quality Correction pass: "who won this game" is a true
+    # head-to-head, 2-option question -- the two teams that actually played
+    # are the only two options. Unrelated distractor teams were removed
+    # entirely (they never belonged in a "who won" question in the first
+    # place, and finding a real distractor pool is no longer needed).
+    if winner["franchise_id"] == loser["franchise_id"]:
         return "DUPLICATE_OPTIONS"
 
     week_label = _week_label(row["game_type"], row["week"])
@@ -145,9 +142,9 @@ def evaluate(c, row, rng, guard):
     if guard.entity_seen(entity_key):
         return "DUPLICATE_GAME"
 
-    shuffled_options, correct_index = serializer.finalize_options(
-        rng, winner["full_name"], [loser["full_name"]] + distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner["full_name"]:
+    shuffled_options, correct_index = serializer.finalize_binary_options(
+        rng, winner["full_name"], loser["full_name"], winner["full_name"])
+    if not (0 <= correct_index <= 1) or shuffled_options[correct_index] != winner["full_name"]:
         return "INVALID_CORRECT_INDEX"
 
     # No puzzle_catalog row exists for this domain (same real, disclosed gap

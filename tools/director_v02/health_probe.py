@@ -82,7 +82,7 @@ def _check_answer_evaluation(rounds: list, mechanic: str) -> dict:
     return {"checked": True, "rounds_verified": checked}
 
 
-def _check_leakage(rounds: list, mechanic: str) -> dict:
+def _check_leakage(rounds: list, mechanic: str, *, expected_option_count: int = 4) -> dict:
     from tools.director_v02.round_serialization import clue_text_leaks_answer
 
     if mechanic == "identify_player_from_clues":
@@ -96,8 +96,8 @@ def _check_leakage(rounds: list, mechanic: str) -> dict:
 
     leaks = []
     for q in rounds:
-        if len(set(q["options"])) != 4:
-            leaks.append({"question": q["question"], "reason": "options not 4 unique"})
+        if len(set(q["options"])) != expected_option_count:
+            leaks.append({"question": q["question"], "reason": f"options not {expected_option_count} unique"})
     return {"leaks_found": len(leaks), "examples": leaks[:3]}
 
 
@@ -234,8 +234,14 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
         checks["considered"] = eligible_pool_size
         checks["exported_count"] = unique_available
 
+        # Creator/Game Quality Correction pass: a true 2-option comparison
+        # capability (group_size: 2, e.g. NFL/CFB_GAME_RESULT,
+        # CFB_STAT_COMPARISON) is not a "distractor pool" shortfall -- it's
+        # by design. Falls back to 4 for every capability that predates
+        # group_size (registry.py's own convention).
+        expected_option_count = cap.get("group_size") or 4
         if mechanic != "identify_player_from_clues":
-            checks["min_distractor_pool_met"] = all(len(q["options"]) == 4 for q in exercised_rounds)
+            checks["min_distractor_pool_met"] = all(len(q["options"]) == expected_option_count for q in exercised_rounds)
         else:
             checks["min_distractor_pool_met"] = True  # not applicable to this mechanic
 
@@ -243,7 +249,7 @@ def run_probe(capability_id: str, mechanic: str, domain: str, predicate: str, ca
         # never the cycled-with-repeats list -- checking the same real
         # candidate twice adds cost with no new signal.
         distinct_for_checks = rounds[:unique_questions_exercised] if unique_available else []
-        leak_result = _check_leakage(distinct_for_checks, mechanic)
+        leak_result = _check_leakage(distinct_for_checks, mechanic, expected_option_count=expected_option_count)
         checks["leakage"] = leak_result
         if leak_result["leaks_found"] > 0:
             passed = False

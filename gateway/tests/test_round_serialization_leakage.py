@@ -117,13 +117,18 @@ def test_real_generation_across_all_21_capabilities_produces_no_leakage_rejectio
         seed=f"phase2-leak-{domain}-{predicate}", target_count=10, id_start=1, freeze_timestamp=None,
     )
     # Real, generic invariant regardless of domain: every exported question
-    # must have exactly 4 unique options and a correctIndex pointing at a
-    # real one of them (contract.py's own rule, re-verified independently
-    # here rather than trusting it was applied).
+    # must have a valid, fully-unique option count and a correctIndex
+    # pointing at a real one of them (contract.py's own rule, re-verified
+    # independently here rather than trusting it was applied). Creator/Game
+    # Quality Correction pass: a true 2-option head-to-head capability
+    # (group_size: 2) is a real, valid shape now, not just the standard
+    # 4-way -- see tools/quiz_export/contract.py's VALID_OPTION_COUNTS.
+    from tools.quiz_export.contract import VALID_OPTION_COUNTS
     for q in pkg.get("questions", []):
-        assert len(q["options"]) == 4
-        assert len(set(q["options"])) == 4
-        assert 0 <= q["correctIndex"] <= 3
+        n = len(q["options"])
+        assert n in VALID_OPTION_COUNTS
+        assert len(set(q["options"])) == n
+        assert 0 <= q["correctIndex"] < n
 
 
 # --- 3. identify_player_from_clues -- clue-text-spoils-its-own-answer check -

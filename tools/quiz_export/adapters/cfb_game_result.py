@@ -73,40 +73,6 @@ def _all_real_schools(c) -> dict:
     return schools
 
 
-# Real UI QA finding: the `schools` table (805 rows) is every school ever
-# known to the Engine, including tiny Division II/III programs (e.g.
-# Worcester Polytechnic Institute) that a marquee FBS matchup would never
-# plausibly be confused with -- distractors sampled from that whole table
-# came back trivially, obviously wrong (a real player-visible quality bug,
-# caught by actually playing the mode, not just checking it "loads"). The
-# NFL sibling adapter already avoids this exact problem via
-# teams_active_in_season() -- this is the same fix: restrict distractors to
-# schools that really played a tracked, verified game THAT season, so a
-# wrong option is at least a real, contemporaneous FBS-caliber opponent.
-_SEASON_SCHOOLS_CACHE: dict = {"by_season": None, "fetched_at": 0.0}
-
-
-def _schools_by_season(c) -> dict:
-    import time
-    cached = _SEASON_SCHOOLS_CACHE["by_season"]
-    if cached is not None and time.monotonic() - _SEASON_SCHOOLS_CACHE["fetched_at"] < _CANDIDATE_CACHE_TTL_SECONDS:
-        return cached
-    schools = _all_real_schools(c)
-    rows = c.execute(
-        "SELECT DISTINCT season, home_school_id AS sid FROM cfb_games_canonical "
-        "WHERE home_score IS NOT NULL AND away_score IS NOT NULL "
-        "UNION "
-        "SELECT DISTINCT season, away_school_id AS sid FROM cfb_games_canonical "
-        "WHERE home_score IS NOT NULL AND away_score IS NOT NULL"
-    ).fetchall()
-    by_season: dict = {}
-    for r in rows:
-        by_season.setdefault(r["season"], set()).add(r["sid"])
-    result = {season: {sid: schools[sid] for sid in sids if sid in schools} for season, sids in by_season.items()}
-    _SEASON_SCHOOLS_CACHE["by_season"] = result
-    _SEASON_SCHOOLS_CACHE["fetched_at"] = time.monotonic()
-    return result
-
 
 # Real production performance finding (App-Wide Engine Migration operation):
 # every adapter in this codebase re-fetches its FULL candidate table on every
@@ -171,28 +137,20 @@ def evaluate(c, row, rng, guard):
     winner_name = schools[winner_id]
     loser_name = schools[loser_id]
 
-    # Real, confirmed-live leakage bug fixed here: the distractor pool used
-    # to explicitly EXCLUDE the loser as well as the winner, so the four
-    # options were "the winner + 3 schools that had nothing to do with this
-    # game at all" -- the loser (the other real school actually named in the
-    # question) could never appear, making the correct answer identifiable
-    # from option membership alone, no football knowledge required (verified
-    # live: 120/120 generated questions leaked before this fix). Both real
-    # matchup schools now always appear among the options; only the
-    # remaining 2 slots are filled from schools that did NOT play in this game.
-    season_schools = _schools_by_season(c).get(row["season"], {})
-    pool = {sid: name for sid, name in season_schools.items() if sid not in (winner_id, loser_id)}
-    if len(pool) < 2:
-        # Real fallback, never a fabrication -- just widens to every real
-        # school rather than only that season's real participants, for the
-        # rare season with too few tracked games to fill 2 distractors.
-        pool = {sid: name for sid, name in schools.items() if sid not in (winner_id, loser_id)}
-    if len(pool) < 2:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(list(pool.values()), 2)
-
-    options = [winner_name, loser_name] + distractor_names
-    if len(set(options)) != 4:
+    # Real, confirmed-live leakage bug fixed here (earlier pass): the
+    # distractor pool used to explicitly EXCLUDE the loser as well as the
+    # winner, so the four options were "the winner + 3 schools that had
+    # nothing to do with this game at all" -- the loser (the other real
+    # school actually named in the question) could never appear, making the
+    # correct answer identifiable from option membership alone, no football
+    # knowledge required (verified live: 120/120 generated questions leaked
+    # before this fix).
+    #
+    # Creator/Game Quality Correction pass: "who won this game" is a true
+    # head-to-head, 2-option question -- the two schools that actually
+    # played are the only two options. Unrelated distractor schools were
+    # removed entirely.
+    if winner_id == loser_id:
         return "DUPLICATE_OPTIONS"
 
     season = row["season"]
@@ -203,9 +161,9 @@ def evaluate(c, row, rng, guard):
     if guard.entity_seen(entity_key):
         return "DUPLICATE_GAME"
 
-    shuffled_options, correct_index = serializer.finalize_options(
-        rng, winner_name, [loser_name] + distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner_name:
+    shuffled_options, correct_index = serializer.finalize_binary_options(
+        rng, winner_name, loser_name, winner_name)
+    if not (0 <= correct_index <= 1) or shuffled_options[correct_index] != winner_name:
         return "INVALID_CORRECT_INDEX"
 
     # Same disclosed recency heuristic as nfl_game_result.py -- no

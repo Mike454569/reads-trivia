@@ -50,6 +50,8 @@ from tools.quiz_export.adapters import nfl_hof as nfl_hof_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_offensive_coordinator as nfl_offensive_coordinator_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_defensive_coordinator as nfl_defensive_coordinator_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_ranking as cfb_ranking_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_ranking_comparison as cfb_ranking_comparison_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_offense_lineup as cfb_offense_lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_upset_ranking as cfb_upset_ranking_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_upset_betting as cfb_upset_betting_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_first_touchdown as nfl_first_touchdown_adapter  # noqa: E402
@@ -404,12 +406,14 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "games (1999-2025) pass every check -- 777 rejected as TEAM_UNRESOLVED (a historical team "
             "code/season combination team_aliases doesn't resolve, e.g. incomplete alias coverage for "
             "a relocated/renamed franchise in that exact year), never silently guessed at.",
+            "True 2-option head-to-head (Creator/Game Quality Correction pass): options are always "
+            "exactly the two real teams that played, never padded with unrelated distractor teams.",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_game",
         "object_type": "team",
         "answer_type": "team",
-        "group_size": 4,
+        "group_size": 2,
         "min_question_count": 1,
         "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
@@ -480,12 +484,14 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "real, disclosed data gap as the NFL version: no per-game player statistics exist in "
             "this database.",
             "Games that ended in a tie are excluded.",
+            "True 2-option head-to-head (Creator/Game Quality Correction pass): options are always "
+            "exactly the two real schools that played, never padded with unrelated distractor schools.",
         ],
         "competition_id": "CFB",
         "entity_type": "cfb_game",
         "object_type": "school",
         "answer_type": "school",
-        "group_size": 4,
+        "group_size": 2,
         "min_question_count": 1,
         "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
@@ -1189,12 +1195,52 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "Scoped to poll='AP Top 25' only -- cfb_rankings also carries Coaches/CFP/FCS/D2/D3/BCS polls, "
             "never silently combined into one implied ranking.",
             "Distractors are drawn from the same real (season, week) ranking snapshot, not season-wide.",
+            "rank_min/rank_max (Creator/Game Quality Correction pass) scope candidates to an exact "
+            "requested rank or range (e.g. 'No. 5' -> 5-5, 'Top Five' -> 1-5); default is the full "
+            "real Top 25 when neither is given.",
         ],
         "competition_id": "CFB", "entity_type": "cfb_ranking", "object_type": "school", "answer_type": "school",
         "group_size": 4, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"rank_min", "rank_max"}), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-rankings"], "pipeline_id_start": 900000,
+    },
+    ("guess", "CFB_RANKING", "RANKED_HIGHER"): {
+        "adapter": cfb_ranking_comparison_adapter, "category": cfb_ranking_comparison_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "True 2-option head-to-head (Creator/Game Quality Correction pass): both real teams from the "
+            "same real (season, week) AP Top 25 snapshot are the only two options -- never 'which team "
+            "was ranked No. X' (that's RANKED_IN_POLL, a different, single-entity question).",
+            "Scoped to poll='AP Top 25' only, same as RANKED_IN_POLL.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_ranking_pair", "object_type": "school", "answer_type": "school",
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-game-quality-correction-ranking-comparison"], "pipeline_id_start": 941000,
+    },
+    ("guess", "CFB_OFFENSE_LINEUP", "TEAM_SEASON_OF_STARTING_OFFENSE"): {
+        "adapter": cfb_offense_lineup_adapter, "category": cfb_offense_lineup_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Creator/Game Quality Correction pass: the first and only capability built on real CFB "
+            "team-season rosters (cfb_roster_seasons_real + cfb_player_season_stats_real), not NFL "
+            "players' colleges -- fixes 'College Offense' silently only ever producing NFL content.",
+            "No offensive line shown: this database has no O-line usage statistic (no snap counts, no "
+            "games-started column) for real college football rosters -- a real, disclosed data gap, "
+            "never fabricated.",
+            "'Starter' = real season-long stat-usage leader per position (passing/rushing/receiving "
+            "yardage), not a per-game start count -- this database has no starts column for CFB the way "
+            "lineup.py's NFL data does.",
+            "2,120 real (season, school) groups have a complete 5-slot skill-position lineup on file "
+            "(2014-2025), measured directly, not estimated.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_team_season_offense", "object_type": "school", "answer_type": "school",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["creator-game-quality-correction-college-offense"], "pipeline_id_start": 942000,
     },
     ("guess", "CFB_UPSET", "RANKING_UPSET"): {
         "adapter": cfb_upset_ranking_adapter, "category": cfb_upset_ranking_adapter.CATEGORY, "generate_fn": _generate_guess_package,
@@ -1203,11 +1249,16 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "unranked or ranked worse -- kept structurally distinct from CFB_UPSET/BETTING_UPSET.",
             "Distractors are scoped to the 112 real schools that have ever appeared in the AP Top 25, not "
             "the full 805-school universe (real, measured distractor-plausibility fix).",
+            "biggest_only (Creator/Game Quality Correction pass) scopes to a real, objective upset-"
+            "magnitude score (see cfb_upset_ranking.py's own _upset_magnitude()) -- 'CFB Biggest/Craziest "
+            "Upset', kept distinct from routine 'CFB Ranking Upset' (every ranked-team loss). No FCS/FBS "
+            "classification exists in this database, so that criterion from the spec's example list is a "
+            "real, disclosed gap, never faked.",
         ],
         "competition_id": "CFB", "entity_type": "cfb_game", "object_type": "school", "answer_type": "school",
         "group_size": 4, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"biggest_only"}), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-upsets"], "pipeline_id_start": 901000,
     },
     ("guess", "CFB_UPSET", "BETTING_UPSET"): {
@@ -1217,12 +1268,16 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "-- kept structurally distinct from CFB_UPSET/RANKING_UPSET.",
             "'Spread' is the source's own recorded value, never labeled 'closing line' (the source does "
             "not itself distinguish closing vs. opening beyond spread/spread_open column names).",
-            "Distractors are scoped to other real recorded betting-upset winners by this same definition.",
+            "True 2-option head-to-head (Creator/Game Quality Correction pass): the real spread is now "
+            "stated in the question text itself (e.g. 'entered as a 17.5-point underdog'), and options "
+            "are always exactly the two real teams that played, never unrelated distractors.",
+            "biggest_only scopes to a real 'major betting underdog' -- ABS(spread) >= 10 points, a real, "
+            "disclosed threshold, not a subjective label.",
         ],
         "competition_id": "CFB", "entity_type": "cfb_game", "object_type": "school", "answer_type": "school",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"biggest_only"}), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-upsets"], "pipeline_id_start": 902000,
     },
     ("guess", "NFL_SCORING_PLAY", "FIRST_TOUCHDOWN_SCORER"): {
@@ -1292,27 +1347,27 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     },
     ("guess", "CFB_STAT_COMPARISON", "RUSHING_COMPARISON"): {
         "adapter": cfb_rushing_compare_adapter, "category": cfb_rushing_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
-        "known_limitations": ["Both players are always from the same real (season, week) -- the word 'week' alone never routes here from a Weekly Pick'em request; this is a stat comparison, not a matchup pick.", "Ties are excluded, never resolved either way."],
+        "known_limitations": ["Both players are always from the same real (season, week) -- the word 'week' alone never routes here from a Weekly Pick'em request; this is a stat comparison, not a matchup pick.", "Ties are excluded, never resolved either way.", "True 2-option comparison (Creator/Game Quality Correction pass): options are always exactly the two real named players, no distractor pool."],
         "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 909000,
     },
     ("guess", "CFB_STAT_COMPARISON", "PASSING_COMPARISON"): {
         "adapter": cfb_passing_compare_adapter, "category": cfb_passing_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
-        "known_limitations": ["Same real same-week pairing and tie-exclusion discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
+        "known_limitations": ["Same real same-week pairing, tie-exclusion, and true 2-option discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
         "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 910000,
     },
     ("guess", "CFB_STAT_COMPARISON", "RECEIVING_COMPARISON"): {
         "adapter": cfb_receiving_compare_adapter, "category": cfb_receiving_compare_adapter.CATEGORY, "generate_fn": _generate_guess_package,
-        "known_limitations": ["Same real same-week pairing and tie-exclusion discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
+        "known_limitations": ["Same real same-week pairing, tie-exclusion, and true 2-option discipline as CFB_STAT_COMPARISON/RUSHING_COMPARISON."],
         "competition_id": "CFB", "entity_type": "cfb_player_game_pair", "object_type": "player", "answer_type": "player",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-stat-comparison"], "pipeline_id_start": 911000,

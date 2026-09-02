@@ -43,6 +43,7 @@ ALLOWED_DOMAINS = frozenset({
     "CFB_GAME_RESULT",
     "CFB_HEISMAN",
     "CFB_ODD_COLLEGE_OUT",
+    "CFB_OFFENSE_LINEUP",
     "CFB_ONE_SCHOOL_MISSING",
     "CFB_PLAYER_IDENTITY",
     "CFB_PLAYER_SEASON",
@@ -120,6 +121,7 @@ ALLOWED_PREDICATES = frozenset({
     "ORDERED_PATH_NFL_BRIDGED",
     "PASSING_COMPARISON",
     "PASSING_LEADER",
+    "RANKED_HIGHER",
     "RANKED_IN_POLL",
     "RANKING_UPSET",
     "RECEIVING_COMPARISON",
@@ -142,6 +144,7 @@ ALLOWED_PREDICATES = frozenset({
     "TEAM_POSTSEASON_RESULT",
     "TEAM_SEASON_FROM_THREE_CLUES",
     "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+    "TEAM_SEASON_OF_STARTING_OFFENSE",
     "WON_AWARD",
     "WON_CHAMPIONSHIP",
     "WON_GAME",
@@ -193,6 +196,15 @@ ALLOWED_FILTER_KEYS: frozenset[str] = frozenset({
     # today's division alignment would mislead for a pre-2002 champion).
     # oline_only is shared by both offense-by-college capabilities.
     "conference", "division", "oline_only",
+    # Creator/Game Quality Correction pass: rank_min/rank_max scope
+    # CFB_RANKING/RANKED_IN_POLL to an exact requested rank or rank range
+    # (e.g. "which team was ranked No. 5" -> rank_min=5, rank_max=5; "a
+    # Top-5 team" -> rank_min=1, rank_max=5) instead of pulling from the
+    # full real Top 25 regardless of what was asked. biggest_only scopes
+    # CFB_UPSET/RANKING_UPSET and BETTING_UPSET to the real upset-magnitude
+    # threshold (see cfb_upset_ranking.py/cfb_upset_betting.py) instead of
+    # every technically-qualifying upset.
+    "rank_min", "rank_max", "biggest_only",
 })
 EXCLUSIONS_SUPPORTED = False  # no adapter supports exclusion lists yet
 

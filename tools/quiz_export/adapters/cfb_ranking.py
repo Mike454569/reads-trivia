@@ -29,6 +29,13 @@ POLL = "AP Top 25"
 MIN_SEASON = 2002
 MAX_SEASON = 2026
 
+# Creator/Game Quality Correction pass: rank_min/rank_max let a caller
+# request an exact rank or rank range (e.g. "No. 5" -> 5-5, "Top Five" ->
+# 1-5) instead of always drawing from the full real Top 25 regardless of
+# what was asked. SUPPORTS_FILTERS opts into the 3rd fetch_ordered_candidates
+# argument -- same convention as sb_champion_offense_college.py.
+SUPPORTS_FILTERS = True
+
 # Real, measured N+1 fix (Creator Capability Completion pass): evaluate()'s
 # distractor pool query re-scanned cfb_rankings (31,801 rows, no index on
 # poll/season/week at all -- confirmed via EXPLAIN QUERY PLAN) once per
@@ -49,8 +56,18 @@ def safety_check(c) -> dict:
     )
 
 
-def fetch_ordered_candidates(c, seed: str):
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     _pool_cache.clear()
+    filters = filters or {}
+    # rank_min/rank_max default to the full real Top 25 -- unchanged
+    # behavior when neither filter is supplied. Clamped to [1, 25], the
+    # real range this poll ever assigns, and swapped if given backwards
+    # rather than silently returning zero real candidates.
+    rank_min = max(1, min(int(filters.get("rank_min") or 1), 25))
+    rank_max = max(1, min(int(filters.get("rank_max") or 25), 25))
+    if rank_min > rank_max:
+        rank_min, rank_max = rank_max, rank_min
+
     # Real bug found in production validation: cfb_rankings has real,
     # separate postseason snapshot rows that reuse regular-season-style
     # week numbers (e.g. a real "week 1" postseason row exists alongside
@@ -62,8 +79,9 @@ def fetch_ordered_candidates(c, seed: str):
     # N" framing.
     rows = c.execute(
         "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status "
-        "FROM cfb_rankings WHERE poll = ? AND season_type = 'regular' AND rank BETWEEN 1 AND 25 ORDER BY season, week, rank",
-        (POLL,),
+        "FROM cfb_rankings WHERE poll = ? AND season_type = 'regular' AND rank BETWEEN ? AND ? "
+        "ORDER BY season, week, rank",
+        (POLL, rank_min, rank_max),
     ).fetchall()
     rng_order = engine.seeded(seed)
     rows = list(rows)

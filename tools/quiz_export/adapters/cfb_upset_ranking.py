@@ -35,6 +35,20 @@ POLL = "AP Top 25"
 MIN_SEASON = 2002
 MAX_SEASON = 2026
 
+# Creator/Game Quality Correction pass: biggest_only separates "CFB Biggest/
+# Craziest Upset" from routine "CFB Ranking Upset" -- every upset that
+# reaches this adapter at all is already structurally real (loser ranked,
+# winner unranked-or-worse), but a #25 team losing to an unranked team is
+# not "how the hell did that happen" the way a #2 team losing outright is.
+# UPSET_MAGNITUDE_THRESHOLD gates on a real, objective, disclosed score
+# (see _upset_magnitude() below) computed only from real fields already on
+# this row -- never a subjective label. No FCS/FBS classification exists
+# anywhere in this database (schools has no division column, confirmed
+# directly) -- "FCS over FBS" from the spec's example list is honestly NOT
+# buildable here, and is never faked via a name heuristic.
+SUPPORTS_FILTERS = True
+UPSET_MAGNITUDE_THRESHOLD = 0.65
+
 # Real N+1-avoidance fix, same class of defect measured and fixed in
 # cfb_ranking.py this same pass: the distractor pool (schools that have
 # ever appeared in a real AP Top 25 snapshot) does not depend on the
@@ -56,9 +70,34 @@ def safety_check(c) -> dict:
     }
 
 
-def fetch_ordered_candidates(c, seed: str):
+def _upset_magnitude(loser_rank: int, winner_rank: int | None, *, is_playoff: bool, bowl_name: str | None) -> float:
+    """A real, objective, disclosed score in [0, 1] -- never a subjective
+    label. Weighted 60/40 toward the RANKED VICTIM's own prestige over the
+    raw rank gap, deliberately: the spec's own examples ("No. 23 Coastal
+    Carolina loses to James Madison" should NOT count as a biggest/crazy
+    upset even though it's a real, structural upset) are exactly the case
+    where the loser's rank is low (weak signal) even if the winner was
+    fully unranked (max gap signal) -- weighting the loser's prestige
+    higher is what keeps those out of the "biggest" bucket while still
+    admitting a Top-5/Top-10 victim losing outright, per the spec's own
+    explicit priority list. A real playoff/bowl stakes bonus (capped) is
+    added on top since "major championship/playoff stakes" is real,
+    available data (cfb_games_canonical.is_playoff/bowl_name), not
+    fabricated.
+    """
+    loser_component = (26 - loser_rank) / 25  # rank 1 -> 1.0, rank 25 -> 0.04
+    gap = loser_rank - (winner_rank or 26)  # unranked winner treated as "worse than #25"
+    gap_component = min(abs(gap), 25) / 25
+    magnitude = 0.6 * loser_component + 0.4 * gap_component
+    if is_playoff or bowl_name:
+        magnitude = min(1.0, magnitude + 0.1)
+    return magnitude
+
+
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     global _pool_cache
     _pool_cache = None
+    filters = filters or {}
     # Real false-matchup bug found in production validation (the exact
     # "Ole Miss/Georgia 2025" case): cfb_rankings genuinely has a SEPARATE
     # real row for the same (school, season, week, poll) whenever a
@@ -75,6 +114,7 @@ def fetch_ordered_candidates(c, seed: str):
         SELECT g.game_id, g.season, g.week,
                g.home_school_id, g.away_school_id, g.home_score, g.away_score,
                rh.rank AS home_rank, ra.rank AS away_rank,
+               g.is_playoff, g.bowl_name,
                g.source_id, g.verification_status
         FROM cfb_games_canonical g
         LEFT JOIN cfb_rankings rh ON rh.school_id=g.home_school_id AND rh.season=g.season
@@ -87,8 +127,22 @@ def fetch_ordered_candidates(c, seed: str):
         """,
         (POLL, POLL),
     ).fetchall()
-    rng_order = engine.seeded(seed)
     rows = list(rows)
+
+    if filters.get("biggest_only"):
+        kept = []
+        for r in rows:
+            home_won = r["home_score"] > r["away_score"]
+            winner_rank = r["home_rank"] if home_won else r["away_rank"]
+            loser_rank = r["away_rank"] if home_won else r["home_rank"]
+            if loser_rank is None or (winner_rank is not None and winner_rank <= loser_rank):
+                continue  # not a real upset at all -- evaluate() rejects these too, no need to keep here
+            magnitude = _upset_magnitude(loser_rank, winner_rank, is_playoff=bool(r["is_playoff"]), bowl_name=r["bowl_name"])
+            if magnitude >= UPSET_MAGNITUDE_THRESHOLD:
+                kept.append(r)
+        rows = kept
+
+    rng_order = engine.seeded(seed)
     rng_order.shuffle(rows)
     return rows[:MAX_FETCHED_CANDIDATES]
 

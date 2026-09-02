@@ -132,18 +132,40 @@ def _current_season() -> int:
 def resolve_current_week(c, league: str, season: int) -> str | None:
     """Real current/next week for (league, season), derived from the live
     schedule tables -- never fabricated. Returns None only when this
-    (league, season) has no real schedule rows at all."""
+    (league, season) has no real schedule rows at all.
+
+    Creator/Game Quality Correction pass, real bug fix: the NFL branch used
+    to scope its own query to game_type='REG' only. Once every real REG
+    week's date was in the past, it fell through to "the last REG week"
+    (e.g. "18") FOREVER -- including during a real, live postseason
+    (Wild Card/Divisional/Conference/Super Bowl), silently generating a
+    pick'em for an already-finished regular-season week instead of the
+    live postseason slate. `games.week` is a real, globally sequential
+    integer across REG and postseason rows (confirmed directly: REG runs
+    1-18, then WC=19/DIV=20/CON=21/SB=22, never reused) -- now includes
+    every game_type, and returns the real game_type CODE (not the numeric
+    week) for a postseason week, matching what weekly_pickem.py's own
+    _nfl_slate_rows() / _NFL_POSTSEASON_WEEK_CODES already expect."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if league == "NFL":
         rows = c.execute(
-            "SELECT week, MIN(game_date) AS first_date FROM games "
-            "WHERE season=? AND game_type='REG' GROUP BY week", (season,),
+            "SELECT week, game_type, MIN(game_date) AS first_date FROM games "
+            "WHERE season=? GROUP BY week, game_type", (season,),
         ).fetchall()
-    else:
-        rows = c.execute(
-            "SELECT week, MIN(game_date) AS first_date FROM cfb_games_canonical "
-            "WHERE season=? GROUP BY week", (season,),
-        ).fetchall()
+        weeks = [(r["week"], r["game_type"], r["first_date"]) for r in rows if r["first_date"]]
+        if not weeks:
+            return None
+        weeks.sort(key=lambda w: w[2])
+        for week, game_type, first_date in weeks:
+            if first_date[:10] >= today:
+                return game_type if game_type != "REG" else str(week)
+        last_week, last_game_type, _ = weeks[-1]  # every real game already final -- most recent past week
+        return last_game_type if last_game_type != "REG" else str(last_week)
+
+    rows = c.execute(
+        "SELECT week, MIN(game_date) AS first_date FROM cfb_games_canonical "
+        "WHERE season=? GROUP BY week", (season,),
+    ).fetchall()
     weeks = [(r["week"], r["first_date"]) for r in rows if r["first_date"]]
     if not weeks:
         return None

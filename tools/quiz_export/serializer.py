@@ -27,6 +27,20 @@ def finalize_options(rng, correct_text: str, distractor_texts: list[str]):
     return shuffled_options, correct_index
 
 
+def finalize_binary_options(rng, option_a: str, option_b: str, correct_text: str):
+    """Same contract as finalize_options() but for a true 2-option (head-to-
+    head comparison) package -- no distractor pool at all, both options are
+    real named entities. package_contract.py's _validate_guess_question()
+    only ever requires len(options) >= 2, so this is a fully valid "guess"
+    package, not a different mechanic."""
+    options = [option_a, option_b]
+    order = list(range(2))
+    rng.shuffle(order)
+    shuffled_options = [options[i] for i in order]
+    correct_index = shuffled_options.index(correct_text)
+    return shuffled_options, correct_index
+
+
 def write_quiz_js(path: Path, global_name: str, header_lines: list[str], records: list[dict]) -> None:
     clean = [{k: r[k] for k in CONTRACT_KEY_ORDER} for r in records]
     header = "\n".join(header_lines) + "\n" + f"window.{global_name} = "

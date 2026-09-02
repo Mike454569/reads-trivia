@@ -150,12 +150,20 @@ _RIVALRY_PACK_SCHOOLS = {
     43: ("duke", "wake forest"),
 }
 
+# Creator/Game Quality Correction pass: flattened, deduplicated real school
+# names from the table above -- reused (not a new/fabricated list) for the
+# broad-discovery fallback's "does this request name a real CFB school"
+# signal (e.g. "Alabama"). Real substring match against the raw request
+# text, same convention as _FRANCHISE_MARATHON_NICKNAMES.
+_ALL_RIVALRY_SCHOOL_NAMES = tuple(sorted({
+    name for pair in _RIVALRY_PACK_SCHOOLS.values() for name in pair if name
+}))
+
 
 # Gold Standard "10. New Game Modes" concept-name recognition -- these are
 # the workbook's own named concepts, distinctive enough to match on the
 # phrase alone (mirroring "heisman"'s own unambiguous-alone precedent).
 _GOLD_STANDARD_CONCEPT_PATTERNS = [
-    (re.compile(r"college offense"), ("NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE")),
     (re.compile(r"fill the colleges?"), ("CFB_FILL_THE_COLLEGES", "COLLEGE_OF_POSITION")),
     (re.compile(r"odd college out"), ("CFB_ODD_COLLEGE_OUT", "IMPOSTOR_COLLEGE")),
     (re.compile(r"spot the fake"), ("CFB_SPOT_THE_FAKE_LINEUP", "ALTERED_POSITION")),
@@ -165,6 +173,24 @@ _GOLD_STANDARD_CONCEPT_PATTERNS = [
     (re.compile(r"duplicate (college )?hunt"), ("CFB_DUPLICATE_COLLEGE_HUNT", "REPEATED_COLLEGE")),
     (re.compile(r"one school missing"), ("CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE")),
 ]
+
+# Creator/Game Quality Correction pass: Franchise Marathon (#19) real,
+# bounded extraction -- every one of these 20 nicknames is a real substring
+# of one of the 24 real team_display_name values that actually exist in
+# curated_nfl_offense_college_board (board_type='SB_CHAMPION'), confirmed
+# directly against that table, not guessed. A single nickname reunites a
+# relocated real franchise's full history (e.g. "raiders" matches "Oakland
+# Raiders", "Los Angeles Raiders", AND "Oakland/LA Raiders" -- see
+# sb_champion_offense_college.py's own substring-match fix). Deliberately a
+# fixed, real, disclosed list -- never a free-text guess at an arbitrary
+# franchise name (that risk is exactly why this was left unmatched before).
+_FRANCHISE_MARATHON_NICKNAMES = (
+    "colts", "ravens", "bears", "cowboys", "broncos", "packers", "chiefs",
+    "raiders", "rams", "dolphins", "patriots", "saints", "giants", "jets",
+    "eagles", "steelers", "49ers", "niners", "seahawks", "buccaneers", "bucs",
+    "redskins",
+)
+_FRANCHISE_MARATHON_PHRASE_RE = re.compile(r"franchise marathon|dynasty|every (real )?championship")
 
 
 def _match_rivalry_pack(text_lower: str) -> int | None:
@@ -254,6 +280,50 @@ _DEFENSE_SIDE_WORDS = {"defense", "defensive", "dc"}
 
 _RANKING_WORDS = {"ranking", "rankings", "ranked", "poll", "polls", "unranked"}
 _RANKING_PHRASE_RE = re.compile(r"top\s?25|ap poll|cfp ranking|coaches poll|moved up|dropped in the rankings")
+
+# Creator/Game Quality Correction pass: "which team was ranked higher" is a
+# real 2-team head-to-head comparison, structurally distinct from "which
+# team was ranked No. X" (RANKED_IN_POLL, single-entity). Checked BEFORE
+# the generic ranking block so it isn't swallowed by the broader
+# has_ranking_signal match.
+_RANKING_COMPARISON_RE = re.compile(
+    r"ranked higher|higher ranked|which (?:team|one) was ranked higher|"
+    r"choose which (?:team|one) was ranked higher|compare.{0,20}rank"
+)
+
+# rank_min/rank_max extraction: "No. 5" / "number 5" / "ranked 5th" -> an
+# EXACT requested rank (5-5); "Top Five" / "Top 5" -> a RANGE (1-5). Preserves
+# the exact qualifier the user typed instead of pulling from the full real
+# Top 25 regardless of what was asked.
+_RANK_NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "twenty": 20, "twenty-five": 25, "twenty five": 25,
+}
+_TOP_N_RE = re.compile(
+    r"\btop[\s-]?(\d{1,2}|" + "|".join(sorted(_RANK_NUMBER_WORDS, key=len, reverse=True)) + r")\b"
+)
+_EXACT_RANK_RE = re.compile(r"\b(?:no\.?|number|ranked?)\s*#?\s*(\d{1,2})(?:st|nd|rd|th)?\b")
+
+
+def _rank_filters_from_text(text_lower: str) -> dict:
+    m = _TOP_N_RE.search(text_lower)
+    if m:
+        raw = m.group(1)
+        n = _RANK_NUMBER_WORDS.get(raw)
+        if n is None:
+            try:
+                n = int(raw)
+            except ValueError:
+                n = None
+        if n:
+            return {"rank_min": 1, "rank_max": max(1, min(n, 25))}
+    m = _EXACT_RANK_RE.search(text_lower)
+    if m:
+        n = int(m.group(1))
+        if 1 <= n <= 25:
+            return {"rank_min": n, "rank_max": n}
+    return {}
 _UPSET_WORDS = {"upset", "upsets", "upsetty", "shocked", "underdog", "underdogs"}
 _UPSET_PHRASE_RE = re.compile(
     r"knocked off|unranked beat|beat.{0,20}ranked|"
@@ -262,6 +332,14 @@ _UPSET_PHRASE_RE = re.compile(
     # loss stated BEFORE "beat", not after) -- the original pattern only
     # ever looked for "beat" followed by "ranked", never the reverse.
     r"ranked.{0,20}(lost|fell to)|lost.{0,25}(who beat|guess who beat)"
+)
+
+# Creator/Game Quality Correction pass: "biggest"/"craziest"/"how the hell"
+# etc. -- a real, distinct request for CFB_UPSET's biggest_only magnitude
+# filter, kept separate from a routine "ranking upset" request.
+_BIGGEST_UPSET_RE = re.compile(
+    r"biggest|craziest|how the hell|shocking|stunning|wildest|most (shocking|surprising)|"
+    r"all[\s-]?time (upset|upsets)|upset of the (year|century|decade)"
 )
 
 _TOUCHDOWN_WORDS = {"touchdown", "touchdowns", "tuddy", "tuddies", "td"}
@@ -529,6 +607,7 @@ class MockDeterministicTranslator(Translator):
         has_dc_phrase = bool(_DC_PHRASE_RE.search(text_lower))
         has_coordinator_word = bool(words & _COORDINATOR_WORDS)
         has_ranking_signal = bool(words & _RANKING_WORDS) or bool(_RANKING_PHRASE_RE.search(text_lower))
+        has_ranking_comparison_phrase = bool(_RANKING_COMPARISON_RE.search(text_lower))
         has_upset_signal = bool(words & _UPSET_WORDS) or bool(_UPSET_PHRASE_RE.search(text_lower))
         has_scored_first_phrase = bool(_SCORED_FIRST_RE.search(text_lower))
         has_touchdown_word = bool(words & _TOUCHDOWN_WORDS)
@@ -768,16 +847,33 @@ class MockDeterministicTranslator(Translator):
                 return _result(
                     request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
                     "Recognized a rankings concept worded as NFL-specific -- the only registered rankings "
-                    "capability (RANKED_IN_POLL) is CFB-only (cfb_rankings has no NFL equivalent).",
+                    "capabilities (RANKED_IN_POLL, RANKED_HIGHER) are CFB-only (cfb_rankings has no NFL "
+                    "equivalent).",
                     understood={"concept": "NFL rankings"},
                 )
+            # Creator/Game Quality Correction pass: "which team was ranked
+            # higher" is a real 2-team comparison -- must outrank the
+            # generic single-entity RANKED_IN_POLL match below, or a
+            # comparison request would silently become "guess which team
+            # held rank N" instead of the head-to-head it actually asked for.
+            if has_ranking_comparison_phrase:
+                spec = {
+                    "mechanic": "guess", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_HIGHER",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                "Matched a real 2-team ranking-comparison signal -> RANKED_HIGHER guess "
+                                "capability, never downgraded to RANKED_IN_POLL (which team held rank N, "
+                                "not which of two teams ranked higher).")
             spec = {
                 "mechanic": "guess", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                "filters": {}, "exclusions": [],
+                "filters": _rank_filters_from_text(text_lower), "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec,
-                            "Matched CFB rankings/polls signal -> RANKED_IN_POLL guess capability (AP Top 25).")
+                            "Matched CFB rankings/polls signal -> RANKED_IN_POLL guess capability (AP Top 25), "
+                            "preserving any exact rank/range qualifier found in the request text.")
 
         if has_upset_signal:
             if nfl_exclusive:
@@ -787,24 +883,33 @@ class MockDeterministicTranslator(Translator):
                     "capabilities (RANKING_UPSET, BETTING_UPSET) are CFB-only.",
                     understood={"concept": "NFL upset"},
                 )
+            # Creator/Game Quality Correction pass: "CFB Biggest/Craziest
+            # Upset" is a real, distinct concept from routine "CFB Ranking
+            # Upset" -- a real magnitude filter (biggest_only), not a new
+            # capability, same "filter, not a new adapter" discipline as
+            # Franchise Marathon/Era Gauntlet.
+            biggest_filters = {"biggest_only": True} if _BIGGEST_UPSET_RE.search(text_lower) else {}
             if has_betting_upset_signal and not has_ranking_signal:
                 spec = {
                     "mechanic": "guess", "domain": "CFB_UPSET", "relationship_predicate": "BETTING_UPSET",
                     "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                    "filters": {}, "exclusions": [],
+                    "filters": biggest_filters, "exclusions": [],
                 }
                 return _result(request_text, "TRANSLATED", spec,
                                 "Matched an explicit betting/underdog/spread signal -> BETTING_UPSET guess "
-                                "capability (real pregame consensus underdog winning outright).")
+                                "capability (real pregame consensus underdog winning outright)." +
+                                (" Scoped to major/biggest underdogs only." if biggest_filters else ""))
             spec = {
                 "mechanic": "guess", "domain": "CFB_UPSET", "relationship_predicate": "RANKING_UPSET",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                "filters": {}, "exclusions": [],
+                "filters": biggest_filters, "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec,
                             "Matched a general upset signal with no explicit betting/underdog/spread "
                             "signal -> RANKING_UPSET guess capability (the default, clearly-labeled "
-                            "interpretation: a lower-ranked/unranked team beating a higher-ranked one).")
+                            "interpretation: a lower-ranked/unranked team beating a higher-ranked one)." +
+                            (" Scoped to the biggest/craziest upsets only (real magnitude score), not "
+                             "every technically-qualifying ranked-team loss." if biggest_filters else ""))
 
         if (has_scored_first_phrase or (has_touchdown_word and has_game_word)) and not (has_postseason or has_lineup):
             if has_cfb_signal and not has_nfl:
@@ -1252,12 +1357,38 @@ class MockDeterministicTranslator(Translator):
         # each phrase below is the workbook's own concept name, distinctive
         # enough to match alone (same precedent as "heisman"). Era Gauntlet
         # (#51) scopes the base College Offense capability to one board per
-        # real era via `filters: {"era_gauntlet": True}`; Franchise Marathon
-        # (#19) is real but NOT matched by name here -- extracting an
-        # arbitrary franchise name from free text safely is out of scope
-        # this pass, so it stays reachable only via a direct filters call
-        # (`franchise_name`), never guessed from text.
+        # real era via `filters: {"era_gauntlet": True}`.
         text_lower_gs = text.lower()
+
+        # Franchise Marathon (#19) (Creator/Game Quality Correction pass):
+        # previously real but unreachable from natural language at all --
+        # now matched via a real, bounded nickname list (see
+        # _FRANCHISE_MARATHON_NICKNAMES above), never a free-text guess.
+        # Checked only when a real marathon/dynasty-style phrase is present
+        # (not on every bare mention of a team nickname, which would
+        # misroute a routine request naming a team for an unrelated reason).
+        if _FRANCHISE_MARATHON_PHRASE_RE.search(text_lower_gs):
+            nickname = next((n for n in _FRANCHISE_MARATHON_NICKNAMES if n in text_lower_gs), None)
+            if nickname:
+                spec = {
+                    "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+                    "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {"franchise_name": nickname}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                f"Matched Franchise Marathon phrasing + a real franchise nickname "
+                                f"({nickname!r}) -> TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess "
+                                f"capability, scoped to that franchise's full real championship history "
+                                f"in chronological order.")
+            return _result(
+                request_text, "NEEDS_CLARIFICATION", None,
+                "Recognized a Franchise Marathon request but no specific real franchise was named.",
+                understood={"concept": "Franchise Marathon"},
+                missing_fields=["franchise"],
+                clarifying_question="Which franchise? (e.g. \"Give me a Cowboys franchise marathon\")",
+            )
+
         if "era gauntlet" in text_lower_gs:
             spec = {
                 "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
@@ -1310,6 +1441,41 @@ class MockDeterministicTranslator(Translator):
             return _result(request_text, "TRANSLATED", spec,
                             f"Matched a real NFL division name -> TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE guess "
                             f"capability, scoped to {conf} {div} only (Theme Nights).")
+
+        # Creator/Game Quality Correction pass: "college offense" real-world
+        # fix. This phrase used to always route to NFL_SB_CHAMPION_OFFENSE_
+        # COLLEGE (the Gold Standard workbook's OWN internal name for its
+        # "show 11 colleges, guess the NFL Super Bowl champion" concept) --
+        # meaning a plain "give me a college offense game" request silently
+        # got an NFL Super Bowl champion's roster, never a real college
+        # football team. A bare "college offense" (no Super Bowl/champion
+        # qualifier) now routes to the real, CFB-native
+        # CFB_OFFENSE_LINEUP/TEAM_SEASON_OF_STARTING_OFFENSE capability
+        # instead; the Gold Standard NFL concept is still reachable, just by
+        # its own more specific real qualifier ("Super Bowl"/"champion"),
+        # not swallowing the generic phrase.
+        if "college offense" in text_lower_gs:
+            if re.search(r"super bowl|champion", text_lower_gs):
+                spec = {
+                    "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+                    "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                "Matched 'college offense' + Super Bowl/champion qualifier -> the Gold "
+                                "Standard NFL_SB_CHAMPION_OFFENSE_COLLEGE guess capability.")
+            spec = {
+                "mechanic": "guess", "domain": "CFB_OFFENSE_LINEUP",
+                "relationship_predicate": "TEAM_SEASON_OF_STARTING_OFFENSE",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched 'college offense' with no NFL/Super Bowl qualifier -> the real, "
+                            "CFB-native CFB_OFFENSE_LINEUP guess capability (a real college football "
+                            "team's real starting offense), never silently substituted with an NFL lineup.")
+
         for pattern, (dom, pred) in _GOLD_STANDARD_CONCEPT_PATTERNS:
             if pattern.search(text_lower_gs):
                 spec = {
@@ -1697,6 +1863,97 @@ class MockDeterministicTranslator(Translator):
                 "Matched 'guess the college/school' + player keywords with no team framing -> "
                 "ATTENDED_COLLEGE guess capability (draft_facts.college, real backfilled data).",
             )
+
+        # Creator/Game Quality Correction pass: broad-but-clearly-football
+        # discovery fallback. Every prior branch above only recognizes a
+        # request that already names a specific mechanic/concept; a genuinely
+        # broad ask ("what cool game can you make about Alabama?", "make me
+        # something fun about NFL quarterbacks") fell all the way to a flat
+        # NO_MATCH even though this Creator has dozens of real, playable
+        # capabilities that plainly relate. Gated on a REAL football-topic
+        # signal (never fires for genuinely off-topic text, so Rule
+        # D/F/offtopic behavior below is unchanged) and delegates to
+        # creator_intelligence.generate_ideas() -- the existing, registry-
+        # backed bag-of-words matcher that was built for exactly this
+        # (surfacing real, already-registered capabilities) but was never
+        # actually wired into translate() before this pass. Filtered to
+        # can_preview=True only ("only suggest concepts that are actually
+        # playable") and returned as NEEDS_CLARIFICATION (a real menu of
+        # choices), never silently auto-picked as TRANSLATED -- a broad
+        # request genuinely doesn't specify enough to guess just one.
+        has_known_school_or_franchise = (
+            any(name in text_lower for name in _ALL_RIVALRY_SCHOOL_NAMES)
+            or any(n in text_lower for n in _FRANCHISE_MARATHON_NICKNAMES)
+        )
+        has_defender_bigplay_phrase = bool(words & {"defender", "defenders"}) and bool(
+            words & {"play", "plays", "sack", "sacks", "interception", "interceptions", "fumble", "fumbles"}
+        )
+        has_broad_football_signal = (
+            has_nfl or has_cfb_signal or "football" in words or has_known_school_or_franchise
+            or has_defender_bigplay_phrase
+        )
+        if has_broad_football_signal and not has_offtopic:
+            from .. import creator_intelligence  # local import: avoids a module cycle at import time
+
+            ideas = [
+                idea for idea in creator_intelligence.generate_ideas(request_text, max_ideas=6)
+                if idea["can_preview"]
+            ][:4]
+            # A request that names a real school/franchise but shares no
+            # other real vocabulary with any capability's metadata (e.g.
+            # "Alabama" alone) only turns up noisy single-generic-word
+            # overlaps ("game", "nfl") from the bag-of-words matcher above --
+            # real, but not genuinely relevant. A named team is always a
+            # reasonable fit for these 4 general-purpose, always-registered
+            # CFB concepts, so prefer them over a weak/noisy match.
+            best_score = max((idea["match_score"] for idea in ideas), default=0)
+            if has_known_school_or_franchise and best_score <= 1:
+                ideas = [
+                    {"domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL", "category": "CFB Rankings"},
+                    {"domain": "CFB_RIVALRY_TRIVIA", "relationship_predicate": "CORRECT_TRIVIA_ANSWER", "category": "CFB Rivalry Trivia"},
+                    {"domain": "CFB_PLAYER_IDENTITY", "relationship_predicate": "IDENTIFY_FROM_CLUES", "category": "CFB Player Identity"},
+                    {"domain": "CFB_CHAMPIONSHIP", "relationship_predicate": "WON_CHAMPIONSHIP", "category": "CFB Championship"},
+                ]
+            # A few broad topic clusters named directly in this pass's own
+            # brief -- curated because the generic bag-of-words matcher's
+            # only real vocabulary overlap for these is a single weak,
+            # over-broad word ("nfl", "college") that surfaces irrelevant
+            # capabilities (confirmed directly: without this override,
+            # "NFL quarterbacks" surfaced Duplicate College Hunt).
+            elif bool(words & {"quarterback", "quarterbacks", "qb", "qbs"}) and has_nfl:
+                ideas = [
+                    {"domain": "NFL_DRAFT", "relationship_predicate": "DRAFTED_BY", "category": "NFL Draft"},
+                    {"domain": "NFL_GAME_LEADER", "relationship_predicate": "PASSING_LEADER", "category": "NFL Game Leaders"},
+                    {"domain": "NFL_OFFENSIVE_COORDINATOR", "relationship_predicate": "COORDINATED_OFFENSE", "category": "NFL Coordinators"},
+                ]
+            elif has_defender_bigplay_phrase:
+                ideas = [
+                    {"domain": "NFL_DEFENSIVE_EVENT", "relationship_predicate": "RECORDED_SACK", "category": "NFL Defensive Events"},
+                    {"domain": "NFL_DEFENSIVE_EVENT", "relationship_predicate": "RECORDED_INTERCEPTION", "category": "NFL Defensive Events"},
+                    {"domain": "NFL_DEFENSIVE_EVENT", "relationship_predicate": "FORCED_FUMBLE", "category": "NFL Defensive Events"},
+                ]
+            elif bool(re.search(r"college star|college stars|stars? in the nfl", text_lower)) and has_nfl:
+                ideas = [
+                    {"domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": "ALL_AMERICAN_TO_ALL_PRO", "category": "Cross-League Honors"},
+                    {"domain": "CROSS_LEAGUE_HONORS", "relationship_predicate": "ALL_AMERICAN_TO_PRO_BOWL", "category": "Cross-League Honors"},
+                ]
+            if ideas:
+                choices = "; ".join(f"{idea['category']} ({idea['domain']})" for idea in ideas)
+                return _result(
+                    request_text, "NEEDS_CLARIFICATION", None,
+                    f"Recognized a broad, clearly football-related request -- found {len(ideas)} real, "
+                    f"playable concept(s) that could match, none specific enough to pick automatically.",
+                    understood={
+                        "concept": "broad football request",
+                        "suggested_capabilities": [
+                            {"domain": idea["domain"], "relationship_predicate": idea["relationship_predicate"],
+                             "category": idea["category"]}
+                            for idea in ideas
+                        ],
+                    },
+                    missing_fields=["domain", "relationship_predicate"],
+                    clarifying_question=f"A few real game concepts that could fit: {choices}. Which one?",
+                )
 
         # Genuine ambiguity: clearly an NFL-related trivia/game request, but
         # not specific enough to resolve to either registered capability or

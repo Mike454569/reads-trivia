@@ -129,9 +129,32 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     # discipline as every prior operation's new capabilities), so
     # capabilities_missing_scoping_fields is again unchanged at 21 (confirmed
     # live: none of the 11 new capability_ids appear in missing_fields_by_capability).
+    #
+    # Creator/Game Quality Correction pass: total_capabilities grew 64 -> 65
+    # (1 real new capability: CFB_RANKING__RANKED_HIGHER, a true 2-team
+    # ranking comparison -- "which team was ranked higher", distinct from
+    # RANKED_IN_POLL's single-entity "which team held rank N"). Registered
+    # via register_new_capability() with real scoping fields populated from
+    # the start (tie_rule/ambiguity_rule/eligible_answer_rule/
+    # distractor_scoping_rule all real, non-null) and promoted to
+    # GENERATION_VERIFIED via a real, passing Tier-2 probe (100/100
+    # generations, zero leakage) -- so capabilities_missing_scoping_fields
+    # is again unchanged at 21 (confirmed live: CFB_RANKING__RANKED_HIGHER
+    # does not appear in missing_fields_by_capability).
+    #
+    # Same pass, total_capabilities grew 65 -> 66 (1 more real new
+    # capability: CFB_OFFENSE_LINEUP__TEAM_SEASON_OF_STARTING_OFFENSE -- the
+    # first capability built on real CFB team-season rosters
+    # (cfb_roster_seasons_real + cfb_player_season_stats_real) instead of
+    # NFL players' colleges, fixing "College Offense" silently only ever
+    # producing NFL content). Also registered via register_new_capability()
+    # with real scoping fields and promoted to GENERATION_VERIFIED via a
+    # real, passing Tier-2 probe (100/100 generations, zero leakage, 2,120
+    # real eligible candidates) -- capabilities_missing_scoping_fields stays
+    # at 21.
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 64
+    assert result["total_capabilities"] == 66
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]
