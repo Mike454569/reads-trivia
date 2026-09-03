@@ -75,6 +75,147 @@ def test_cfb_past_week_slate_generates_real_games():
         assert g["home_team"] != g["away_team"]
 
 
+# --- Dynamic Weekly Pick'em pass: real CFB season_type collision fix ------
+# Real, confirmed-live bug: cfb_games_canonical.week is NOT globally unique
+# across season_type the way games.week already is for NFL -- season=2025,
+# week=1 held 200 real regular-season games PLUS 43 real non-playoff bowls
+# PLUS 11 real CFP games, all mislabeled week=1, before this pass's
+# season_type='regular' fix in _cfb_slate_rows()/resolve_current_week().
+
+def test_cfb_regular_week_slate_excludes_postseason_games_mislabeled_same_week():
+    from tools.director_v04 import weekly_pickem
+    pkg = weekly_pickem.build_package("t-cfb-collision", "CFB_WEEKLY_PICKEM", CFB_PAST_SEASON, CFB_PAST_WEEK)
+    # Real, confirmed-live count for season=2025,week=1 REGULAR games only
+    # (200) -- would be 254 without the season_type='regular' fix.
+    assert pkg["game_count"] == 200, pkg["game_count"]
+
+
+def test_cfb_postseason_tokens_resolve_real_cfp_and_bowl_slates():
+    from tools.director_v04 import weekly_pickem
+    from tools.quiz_export import engine as engine_bootstrap
+
+    cfp_pkg = weekly_pickem.build_package("t-cfb-cfp", "CFB_WEEKLY_PICKEM", CFB_PAST_SEASON, "CFP_FIRST_ROUND")
+    assert cfp_pkg["qa_status"] == "PASSED"
+    assert cfp_pkg["game_count"] >= 1
+    bowls_pkg = weekly_pickem.build_package("t-cfb-bowls", "CFB_WEEKLY_PICKEM", CFB_PAST_SEASON, "BOWLS")
+    assert bowls_pkg["qa_status"] == "PASSED"
+
+    # Self-consistency against a live query, not a hardcoded count -- real
+    # postseason data legitimately grows as cfb_games_postseason_refresh.py
+    # keeps enriching is_playoff/playoff_round over time, so a fixed magic
+    # number would go stale; what must hold is that the slate matches
+    # exactly the real, current DB state, never more/fewer/different games.
+    c = engine_bootstrap.connect()
+    try:
+        real_bowl_ids = {r["game_id"] for r in c.execute(
+            "SELECT game_id FROM cfb_games_canonical WHERE season=? AND season_type='postseason' AND is_playoff=0",
+            (CFB_PAST_SEASON,),
+        )}
+    finally:
+        c.close()
+    assert {g["game_id"] for g in bowls_pkg["games"]} == real_bowl_ids
+    assert len(real_bowl_ids) >= 1  # sanity: the live fixture season genuinely has real bowl data
+
+
+def test_nl_schedule_bridge_resolves_real_cfb_postseason_after_regular_season_ends():
+    from tools.director_v04 import nl_schedule_bridge
+    from tools.quiz_export import engine as engine_bootstrap
+    c = engine_bootstrap.connect()
+    try:
+        week = nl_schedule_bridge.resolve_current_week(c, "CFB", CFB_PAST_SEASON)
+    finally:
+        c.close()
+    # 2025's real regular season is long over relative to "today" in any
+    # real run of this suite -- must resolve to a real postseason token,
+    # never a numeric regular-season week (the exact bug this pass fixes).
+    assert week in ("CFP_FIRST_ROUND", "CFP_QUARTERFINAL", "CFP_SEMIFINAL", "CFP_CHAMPIONSHIP", "BOWLS"), week
+
+
+def test_resolve_current_week_never_skips_a_slate_whose_last_game_hasnt_happened_yet():
+    """Real regression guard for a real off-by-one bug found live while
+    sanity-checking this pass: this data source (cfbfastR) has no distinct
+    "Week 0" label at all -- it folds the informal season-opening slate
+    into week=1 itself, giving week=1 an unusually wide real date range
+    (the real 2026 season: week=1 runs 2026-08-29 to 2026-09-07, a full
+    10 real calendar days). The original resolver tested only a
+    candidate's EARLIEST game date against "today" -- so the moment ANY
+    week-1 game had been played (8 of the real 99 games, as of 2026-09-03),
+    it treated the WHOLE week as over and jumped straight to week 2, even
+    though 91 of week 1's real games were still ahead. The permanent,
+    correct invariant (never a hardcoded week number, which would go
+    stale/wrong the moment the real season moves past this exact window):
+    whatever resolve_current_week() returns right now must be a real slate
+    whose own LAST real game has not already happened."""
+    from datetime import datetime, timezone
+    from tools.director_v04 import nl_schedule_bridge
+    from tools.quiz_export import engine as engine_bootstrap
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    c = engine_bootstrap.connect()
+    try:
+        week = nl_schedule_bridge.resolve_current_week(c, "CFB", 2026)
+        assert week is not None
+        if week.isdigit():
+            row = c.execute(
+                "SELECT MAX(game_date) AS last_date FROM cfb_games_canonical "
+                "WHERE season=2026 AND season_type='regular' AND week=?", (int(week),),
+            ).fetchone()
+        elif week == "BOWLS":
+            row = c.execute(
+                "SELECT MAX(game_date) AS last_date FROM cfb_games_canonical "
+                "WHERE season=2026 AND season_type='postseason' AND is_playoff=0",
+            ).fetchone()
+        else:
+            round_name = {"CFP_FIRST_ROUND": "first_round", "CFP_QUARTERFINAL": "quarterfinal",
+                          "CFP_SEMIFINAL": "semifinal", "CFP_CHAMPIONSHIP": "championship"}[week]
+            row = c.execute(
+                "SELECT MAX(game_date) AS last_date FROM cfb_games_canonical "
+                "WHERE season=2026 AND is_playoff=1 AND playoff_round=?", (round_name,),
+            ).fetchone()
+    finally:
+        c.close()
+    assert row["last_date"] is not None
+    assert row["last_date"][:10] >= today, (
+        f"resolve_current_week returned {week!r} (2026), but its own last real game "
+        f"({row['last_date']}) is already in the past relative to today ({today}) -- "
+        f"it skipped a slate that hadn't finished yet"
+    )
+
+
+def test_cfb_2026_week_one_folds_the_informal_week_zero_slate_in_with_no_distinct_label():
+    """Pins the real, static fact about the actual 2026 schedule that
+    causes the off-by-one class above: this source has no week=0 at all
+    (confirmed directly) -- the season-opening games just widen week=1's
+    own real date range instead. If this data source's convention ever
+    changes (e.g. a future season genuinely gets its own week=0 rows),
+    this test will fail loudly rather than let the assumption rot
+    silently."""
+    from datetime import datetime
+    from tools.quiz_export import engine as engine_bootstrap
+
+    c = engine_bootstrap.connect()
+    try:
+        zero_count = c.execute(
+            "SELECT COUNT(*) AS n FROM cfb_games_canonical WHERE season=2026 AND week=0"
+        ).fetchone()["n"]
+        week_one = c.execute(
+            "SELECT MIN(game_date) AS first_date, MAX(game_date) AS last_date, COUNT(*) AS n "
+            "FROM cfb_games_canonical WHERE season=2026 AND season_type='regular' AND week=1"
+        ).fetchone()
+    finally:
+        c.close()
+    assert zero_count == 0
+    assert week_one["n"] >= 1
+    # Real, confirmed-live fact: week=1's own date range spans more than a
+    # single real week (the tell-tale sign the informal "Week 0" games are
+    # folded in here, not given their own label).
+    span_days = (
+        datetime.fromisoformat(week_one["last_date"][:10])
+        - datetime.fromisoformat(week_one["first_date"][:10])
+    ).days
+    assert span_days > 7, f"expected week=1 to span more than 7 real days (Week 0 folded in), got {span_days}"
+
+
 def test_repeat_generation_is_deterministic():
     from tools.director_v04 import weekly_pickem
     p1 = weekly_pickem.build_package("same-seed", "NFL_WEEKLY_PICKEM", NFL_PAST_SEASON, NFL_PAST_WEEK)

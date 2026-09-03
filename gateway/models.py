@@ -260,6 +260,41 @@ class PublicMechanicSubmitRequest(BaseModel):
     submission: Dict[str, Any] = Field(default_factory=dict)
 
 
+class PublicPickemSubmitRequest(BaseModel):
+    """POST /v1/public/pickem/{league}/{season}/{week}/pick (Dynamic Weekly
+    Pick'em pass). `client_id` is the lightweight, unauthenticated
+    identifier this project already uses on the frontend for its Firestore
+    leaderboard (app.js's getClientId()) -- trusted by possession, same
+    trust model this Gateway already uses for round_ids/public game_ids
+    elsewhere, never real verified auth. `game_id`/`predicted_winner` are
+    validated against the real live slate and the real two valid sides by
+    gateway/services/public_pickem.py before anything is stored -- never
+    trusted as correct by this model."""
+    model_config = ConfigDict(extra="forbid")
+
+    client_id: str = Field(min_length=6, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    game_id: str = Field(min_length=1, max_length=64)
+    predicted_winner: str = Field(min_length=1, max_length=16)
+
+
+class AdminPickemGameStatusRequest(BaseModel):
+    """POST /v1/admin/pickem/game-status (Dynamic Weekly Pick'em pass). The
+    ONLY way a game is ever marked POSTPONED/CANCELED -- confirmed directly
+    that neither real upstream schedule source (nflverse's games.csv,
+    cfbfastR's schedules CSV) ever asserts either value itself, so this is
+    a real, disclosed manual override, not automated detection. `reason` is
+    required and audit-logged (oplog.record_event) so every override is
+    traceable to a real human decision, never a silent mutation. `SCHEDULED`
+    is accepted too, as the real "undo a manual postponement/cancellation"
+    path -- e.g. correcting an admin mistake."""
+    model_config = ConfigDict(extra="forbid")
+
+    league: Literal["NFL", "CFB"]
+    game_id: str = Field(min_length=1, max_length=64)
+    status: Literal["POSTPONED", "CANCELED", "SCHEDULED"]
+    reason: str = Field(min_length=1, max_length=500)
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

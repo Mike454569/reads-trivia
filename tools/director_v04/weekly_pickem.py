@@ -26,12 +26,21 @@ has to remember to run.
 
 Completion signal is IDENTICAL to the convention nfl_game_result.py /
 cfb_game_result.py already established: both `home_score`/`away_score`
-non-null. Neither `games` nor `cfb_games_canonical` has a dedicated
-game-status column distinct from score presence (confirmed directly against
-the live schema before writing this) -- a game whose real date has passed
-with still no score is reported UNKNOWN, never guessed as postponed/
-cancelled/in-progress; this project never fabricates a status the source
-data doesn't actually assert.
+non-null means FINAL, always derived live from the row's own current
+score columns, never cached. Dynamic Weekly Pick'em pass: `games`/
+`cfb_games_canonical` now also carry a real, persisted `status` column
+(tools/data_refresh/pickem_schema_migration.py) -- but it exists ONLY to
+carry the one real signal live derivation can never produce on its own:
+POSTPONED/CANCELED, set exclusively by the admin override
+(gateway/services/admin_pickem.py), since neither real upstream source
+(nflverse's games.csv, cfbfastR's schedules CSV) ever asserts either value
+itself (confirmed directly). Everything else (SCHEDULED/IN_PROGRESS/
+UNKNOWN/FINAL) is still computed live from the row's own real score/
+kickoff values on every call, in `_status_for()` below -- this project
+still never fabricates a status the source data doesn't actually assert;
+IN_PROGRESS specifically is a disclosed heuristic (elapsed real kickoff
+time), never a true live-feed signal (see tools/data_refresh/
+_pickem_status.py's own docstring).
 
 Team/school identity: picks and slate entries are keyed on the SAME raw
 codes already stored on the game row (`games.home_team`/`away_team` team
@@ -55,6 +64,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
+from tools.data_refresh import _pickem_status  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "WEEKLY_PICKEM"
@@ -66,6 +76,20 @@ MIN_GAMES_FOR_SLATE = 1
 
 VARIANTS = frozenset({"NFL_WEEKLY_PICKEM", "CFB_WEEKLY_PICKEM"})
 _NFL_POSTSEASON_WEEK_CODES = frozenset({"WC", "DIV", "CON", "SB"})
+# Dynamic Weekly Pick'em pass: cfb_games_canonical.week is NOT globally
+# unique across season_type the way games.week already is for NFL --
+# confirmed live: season=2025,week=1 holds 200 real regular-season games
+# PLUS 43 real non-playoff bowls PLUS 11 real CFP games, all mislabeled
+# week=1. These tokens are the CFB equivalent of _NFL_POSTSEASON_WEEK_CODES
+# above -- a real, distinct slate selector, never a numeric week value.
+_CFB_POSTSEASON_WEEK_TOKENS = frozenset(
+    {"CFP_FIRST_ROUND", "CFP_QUARTERFINAL", "CFP_SEMIFINAL", "CFP_CHAMPIONSHIP", "BOWLS"}
+)
+_CFP_ROUND_TO_TOKEN = {
+    "first_round": "CFP_FIRST_ROUND", "quarterfinal": "CFP_QUARTERFINAL",
+    "semifinal": "CFP_SEMIFINAL", "championship": "CFP_CHAMPIONSHIP",
+}
+_TOKEN_TO_CFP_ROUND = {v: k for k, v in _CFP_ROUND_TO_TOKEN.items()}
 
 
 def safety_check(c) -> dict:
@@ -76,54 +100,73 @@ def safety_check(c) -> dict:
     }
 
 
-def _parse_game_date(raw: str | None) -> datetime | None:
-    if not raw:
-        return None
-    text = raw.replace("Z", "+00:00")
-    for candidate in (text, text[:10]):
-        try:
-            dt = datetime.fromisoformat(candidate)
-            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-        except ValueError:
-            continue
-    return None
+def _cfb_kickoff(raw: str | None) -> datetime | None:
+    return _pickem_status.parse_iso(raw)
 
 
-def _status_for(home_score, away_score, game_date_raw: str | None) -> tuple[str, str | None]:
+def _status_for(persisted_status: str | None, home_score, away_score, kickoff_dt) -> tuple[str, str | None]:
     """Returns (status, winner_side) where winner_side is 'home'/'away'/'TIE'
-    only when status=='FINAL', else None. Never leaked/guessed otherwise."""
+    only when status=='FINAL', else None. Never leaked/guessed otherwise.
+
+    Dynamic Weekly Pick'em pass: POSTPONED/CANCELED can ONLY ever come from
+    the row's own persisted `status` column (set exclusively by the admin
+    override, gateway/services/admin_pickem.py -- neither real upstream
+    source ever asserts either value, confirmed directly) -- checked first,
+    before any score/date derivation, since no other signal can ever
+    produce these two. Everything else is still derived LIVE from the row's
+    own real score/kickoff values every call, never trusted from a
+    possibly-stale persisted value -- see module docstring."""
+    if persisted_status in ("POSTPONED", "CANCELED"):
+        return persisted_status, None
     if home_score is not None and away_score is not None:
         if home_score == away_score:
             return "FINAL", "TIE"
         return "FINAL", ("home" if home_score > away_score else "away")
-    game_date = _parse_game_date(game_date_raw)
-    if game_date is None:
-        return "UNKNOWN", None
-    if game_date > datetime.now(timezone.utc):
-        return "SCHEDULED", None
-    # Real date has passed but no score exists yet -- honestly unknown
-    # (could be an in-progress game, a real data-ingestion lag, or a
-    # genuinely postponed/canceled game neither table has a column for).
-    return "UNKNOWN", None
+    return _pickem_status.derive_pending_status(kickoff_dt), None
 
 
 def _nfl_slate_rows(c, season: int, week: str) -> list:
     if week in _NFL_POSTSEASON_WEEK_CODES:
         return c.execute(
-            "SELECT game_id, home_team, away_team, home_score, away_score, game_date FROM games "
-            "WHERE season=? AND game_type=? ORDER BY game_id", (season, week),
+            "SELECT game_id, home_team, away_team, home_score, away_score, game_date, game_time, status "
+            "FROM games WHERE season=? AND game_type=? ORDER BY game_id", (season, week),
         ).fetchall()
     return c.execute(
-        "SELECT game_id, home_team, away_team, home_score, away_score, game_date FROM games "
-        "WHERE season=? AND week=? AND game_type='REG' ORDER BY game_id", (season, str(week)),
+        "SELECT game_id, home_team, away_team, home_score, away_score, game_date, game_time, status "
+        "FROM games WHERE season=? AND week=? AND game_type='REG' ORDER BY game_id", (season, str(week)),
     ).fetchall()
 
 
-def _cfb_slate_rows(c, season: int, week: int) -> list:
+def _cfb_postseason_slate_rows(c, season: int, token: str) -> list:
+    if token == "BOWLS":
+        # Real, honest limitation, disclosed not hidden: cfbfastR's source
+        # data has no per-bowl-week partition -- every non-playoff bowl
+        # carries the same degenerate week=1 label regardless of real
+        # calendar date (confirmed directly: 43 real bowl games spanning
+        # Nov-Jan, all under week=1). Bucketing them into one real "Bowl
+        # Season" slate, ordered by real game_date, is the most honest
+        # representation available -- never invented into fake sub-weeks.
+        return c.execute(
+            "SELECT game_id, home_school_id AS home_team, away_school_id AS away_team, "
+            "home_score, away_score, game_date, status FROM cfb_games_canonical "
+            "WHERE season=? AND season_type='postseason' AND is_playoff=0 "
+            "ORDER BY game_date, game_id", (season,),
+        ).fetchall()
+    round_name = _TOKEN_TO_CFP_ROUND[token]
     return c.execute(
         "SELECT game_id, home_school_id AS home_team, away_school_id AS away_team, "
-        "home_score, away_score, game_date FROM cfb_games_canonical "
-        "WHERE season=? AND week=? ORDER BY game_id", (season, week),
+        "home_score, away_score, game_date, status FROM cfb_games_canonical "
+        "WHERE season=? AND is_playoff=1 AND playoff_round=? ORDER BY game_id", (season, round_name),
+    ).fetchall()
+
+
+def _cfb_slate_rows(c, season: int, week) -> list:
+    if week in _CFB_POSTSEASON_WEEK_TOKENS:
+        return _cfb_postseason_slate_rows(c, season, week)
+    return c.execute(
+        "SELECT game_id, home_school_id AS home_team, away_school_id AS away_team, "
+        "home_score, away_score, game_date, status FROM cfb_games_canonical "
+        "WHERE season=? AND week=? AND season_type='regular' ORDER BY game_id", (season, int(week)),
     ).fetchall()
 
 
@@ -167,26 +210,29 @@ def live_game_statuses(variant: str, game_ids: list[str]) -> dict[str, dict]:
         placeholders = ",".join("?" for _ in game_ids)
         if variant == "NFL_WEEKLY_PICKEM":
             rows = c.execute(
-                f"SELECT game_id, home_team, away_team, home_score, away_score, game_date FROM games "
-                f"WHERE game_id IN ({placeholders})", game_ids,
+                f"SELECT game_id, home_team, away_team, home_score, away_score, game_date, game_time, status "
+                f"FROM games WHERE game_id IN ({placeholders})", game_ids,
             ).fetchall()
         else:
             rows = c.execute(
                 f"SELECT game_id, home_school_id AS home_team, away_school_id AS away_team, "
-                f"home_score, away_score, game_date FROM cfb_games_canonical WHERE game_id IN ({placeholders})",
+                f"home_score, away_score, game_date, status FROM cfb_games_canonical WHERE game_id IN ({placeholders})",
                 game_ids,
             ).fetchall()
     finally:
         c.close()
     out = {}
     for r in rows:
-        status, winner_side = _status_for(r["home_score"], r["away_score"], r["game_date"])
+        kickoff_dt = (_pickem_status.nfl_kickoff_utc(r["game_date"], r["game_time"])
+                      if variant == "NFL_WEEKLY_PICKEM" else _cfb_kickoff(r["game_date"]))
+        status, winner_side = _status_for(r["status"], r["home_score"], r["away_score"], kickoff_dt)
         winner_code = None
         if status == "FINAL":
             winner_code = "TIE" if winner_side == "TIE" else (r["home_team"] if winner_side == "home" else r["away_team"])
         out[r["game_id"]] = {
             "status": status, "winner_code": winner_code,
             "home_score": r["home_score"], "away_score": r["away_score"],
+            "kickoff_utc": kickoff_dt.isoformat() if kickoff_dt else None,
         }
     return out
 

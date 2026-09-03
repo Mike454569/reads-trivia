@@ -53,6 +53,37 @@
 [functions."trigger-refresh-cfb-games"]
   schedule = "40 10 * * *"
 
+# Dynamic Weekly Pick'em pass: real, disclosed limitation -- neither
+# nflverse's games.csv nor cfbfastR's schedules CSV is a live in-play feed
+# (confirmed directly), so "faster status/score updates during game
+# windows" can only ever mean "run this SAME batch refresh more often,"
+# never true live scoring. Deliberately modest, not hourly: each refresh's
+# own backup step copies the FULL production DB (multiple GB) before
+# writing anything (tools/data_refresh/safety.py's create_verified_backup),
+# and the Gateway runs on a single shared-CPU, 1GB-memory box
+# (gateway/fly.toml) with a global one-refresh-at-a-time concurrency guard
+# -- an aggressive cadence here risks near-continuous heavy I/O on that
+# same small box, not just fresher data. These three extra Sunday triggers
+# (afternoon/evening/late ET windows, accounting for most real NFL kickoff
+# clusters) are a deliberately conservative starting point, not a claim
+# that this makes Pick'em "live" -- re-tune only after confirming real
+# backup-step duration in production, not just this repo's own local dev
+# timing.
+[functions."trigger-refresh-nfl-games-gameday-1"]
+  schedule = "0 18 * * 0"
+
+[functions."trigger-refresh-nfl-games-gameday-2"]
+  schedule = "0 22 * * 0"
+
+[functions."trigger-refresh-nfl-games-gameday-3"]
+  schedule = "0 2 * * 1"
+
+[functions."trigger-refresh-cfb-games-gameday-1"]
+  schedule = "30 21 * * 6"
+
+[functions."trigger-refresh-cfb-games-gameday-2"]
+  schedule = "30 1 * * 0"
+
 # Historical Engine Enrichment operation: draft_facts had no automatic
 # refresh anywhere in this repo (confirmed by grep) and was capped at 2024.
 # Fifth dataset, same 30-minutes-apart stagger as the four above, same

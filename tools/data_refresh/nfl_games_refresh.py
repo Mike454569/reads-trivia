@@ -36,6 +36,7 @@ import sys
 from pathlib import Path
 
 from . import safety
+from . import _pickem_status
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -68,6 +69,13 @@ _COLUMN_MAP = {
     "away_qb_name": "away_qb_name", "home_qb_name": "home_qb_name",
     "away_coach": "away_coach_name", "home_coach": "home_coach_name",
     "referee": "referee", "stadium_id": "stadium_id", "stadium": "stadium_name",
+    # Dynamic Weekly Pick'em pass: real field already in the source, just
+    # never captured before -- "location" is Home/Neutral (confirmed
+    # directly against the live games.csv header/rows, e.g. every real
+    # Super Bowl row). Staged under a raw name (never a real `games`
+    # column) since it needs a value transform, not a straight rename --
+    # see _publish()'s neutral_site derivation below.
+    "location": "location_raw",
 }
 _INT_COLS = {"season", "away_score", "home_score", "result_margin", "total_points", "overtime",
              "away_rest", "home_rest", "division_game"}
@@ -75,7 +83,8 @@ _FLOAT_COLS = {"away_moneyline", "home_moneyline", "spread_line", "total_line", 
 
 
 def _ensure_staging_table(c) -> None:
-    cols_sql = ",\n            ".join(f"{dest} TEXT" for dest in dict.fromkeys(_COLUMN_MAP.values()))
+    dest_cols = list(dict.fromkeys(_COLUMN_MAP.values()))
+    cols_sql = ",\n            ".join(f"{dest} TEXT" for dest in dest_cols)
     c.execute(f"""
         CREATE TABLE IF NOT EXISTS staging_nfl_games (
             batch_id TEXT NOT NULL REFERENCES import_batches(batch_id),
@@ -84,6 +93,18 @@ def _ensure_staging_table(c) -> None:
             PRIMARY KEY (batch_id, source_row)
         )
     """)
+    # Real, confirmed-live bug found this pass: CREATE TABLE IF NOT EXISTS
+    # is a no-op once this table already exists from an earlier run (it
+    # did, before this pass added "location" to _COLUMN_MAP) -- a new
+    # _COLUMN_MAP entry silently never got a real staging column, and
+    # _stage()'s INSERT crashed the whole refresh (safely caught and
+    # restored by safety.py's own FAILED_RESTORED path, but never should
+    # have happened). Additive ALTER TABLE for anything genuinely missing,
+    # same discipline safety.ensure_refresh_tables() already established.
+    existing_cols = {row[1] for row in c.execute("PRAGMA table_info(staging_nfl_games)")}
+    for dest in dest_cols:
+        if dest not in existing_cols:
+            c.execute(f"ALTER TABLE staging_nfl_games ADD COLUMN {dest} TEXT")
     c.commit()
 
 
@@ -112,6 +133,7 @@ def _stage(c, bid: str, path: Path) -> tuple[int, int, int]:
 def _publish(c, bid: str) -> int:
     dest_cols = list(dict.fromkeys(_COLUMN_MAP.values()))
     published = 0
+    now_iso = _dt.datetime.now(_dt.timezone.utc).isoformat()
     for row in c.execute(f"SELECT {','.join(dest_cols)} FROM staging_nfl_games WHERE batch_id=?", (bid,)):
         rec = dict(zip(dest_cols, row))
         for k in _INT_COLS:
@@ -122,6 +144,23 @@ def _publish(c, bid: str) -> int:
                 rec[k] = float(v) if v not in (None, "") else None
             except (TypeError, ValueError):
                 rec[k] = None
+
+        location_raw = rec.pop("location_raw", None)
+        rec["neutral_site"] = 1 if location_raw == "Neutral" else (0 if location_raw == "Home" else None)
+
+        existing = c.execute(
+            "SELECT status, game_date, game_time FROM games WHERE game_id=?", (rec["game_id"],)
+        ).fetchone()
+        existing_kickoff = _pickem_status.nfl_kickoff_utc(existing["game_date"], existing["game_time"]) if existing else None
+        new_kickoff = _pickem_status.nfl_kickoff_utc(rec.get("game_date"), rec.get("game_time"))
+        rec["status"], rec["winner"] = _pickem_status.compute_status_and_winner(
+            existing_status=existing["status"] if existing else None,
+            existing_kickoff=existing_kickoff, new_kickoff=new_kickoff,
+            home_score=rec.get("home_score"), away_score=rec.get("away_score"),
+            home_code=rec.get("home_team"), away_code=rec.get("away_team"),
+        )
+        rec["updated_at"] = now_iso
+
         rec["source_id"] = SOURCE_ID
         cols = list(rec.keys())
         c.execute(

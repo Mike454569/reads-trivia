@@ -35,10 +35,12 @@ from __future__ import annotations
 
 import csv
 import datetime as _dt
+import json
 import sys
 from pathlib import Path
 
 from . import safety
+from . import _pickem_status
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -78,13 +80,37 @@ def _remap_csv(src_path: Path, dst_path: Path) -> None:
 def _publish(c, bid: str) -> int:
     """Mirrors import_data.publish_cfb_games()'s real INSERT/UPDATE shape
     exactly, with the one deliberate change of a correct source_id (see
-    module docstring)."""
+    module docstring). Dynamic Weekly Pick'em pass: also captures
+    neutral_site/home_division/away_division/season_type -- real fields
+    already present in the live source CSV (confirmed directly) and
+    already passed through into stage_cfb_games()'s own raw_json column
+    unchanged (none of these are in _HEADER_REMAP, so raw_json's key names
+    for them are stable regardless of which historical process staged a
+    given row) -- and derives status/winner the same way
+    nfl_games_refresh.py now does, via the shared _pickem_status helper.
+
+    season_type is the critical fix here, a real, previously-hidden defect
+    found while verifying this pass's own CFB week/season_type collision
+    fix (tools/director_v04/weekly_pickem.py's _cfb_slate_rows()): this
+    module's own _publish() NEVER captured season_type before this pass --
+    confirmed directly, every row this script has ever written had it
+    NULL, only ever populated for OLDER rows by whatever bulk process
+    loaded this table before this script existed. Left uncaught, EVERY
+    future season (starting with the real 2026 season this pass exists to
+    add) would silently return zero games from the new
+    `season_type='regular'` filter -- breaking the exact season Pick'em
+    most needs. bowl_name is only ever set from the source's own real
+    `notes` field for a real postseason row -- a regular-season row's
+    `notes` can legitimately describe a real neutral-site event name (e.g.
+    "Aer Lingus College Football Classic"), which is NOT a bowl name and
+    must never be mislabeled as one."""
     published = 0
+    now_iso = _dt.datetime.now(_dt.timezone.utc).isoformat()
     for r in c.execute(
         """SELECT game_id,season,week,game_date,home_school,away_school,home_score,away_score,
-           stadium_name,conference_game FROM staging_cfb_games WHERE batch_id=?""", (bid,)
+           stadium_name,conference_game,raw_json FROM staging_cfb_games WHERE batch_id=?""", (bid,)
     ):
-        gid, season, week, date, home, away, hs, away_score, stadium, conf = r
+        gid, season, week, date, home, away, hs, away_score, stadium, conf, raw_json = r
         hid = import_data.resolve_school(c, home)
         aid = import_data.resolve_school(c, away)
         if not hid or not aid:
@@ -94,16 +120,57 @@ def _publish(c, bid: str) -> int:
                 (gid, f"home={home} mapped={hid}; away={away} mapped={aid}"),
             )
             continue
+
+        extra = json.loads(raw_json) if raw_json else {}
+
+        def _bool_col(v):
+            s = str(v).strip().lower()
+            return 1 if s == "true" else (0 if s == "false" else None)
+
+        neutral_site = _bool_col(extra.get("neutral_site"))
+        home_division = extra.get("home_division") or None
+        away_division = extra.get("away_division") or None
+        if home_division in ("NA", "na"):
+            home_division = None
+        if away_division in ("NA", "na"):
+            away_division = None
+
+        season_type = extra.get("season_type") or None
+        if season_type in ("NA", "na"):
+            season_type = None
+        bowl_name = None
+        if season_type == "postseason":
+            notes = extra.get("notes")
+            bowl_name = notes if notes and notes not in ("NA", "na") else None
+
+        existing = c.execute(
+            "SELECT status, game_date FROM cfb_games_canonical WHERE game_id=?", (gid,)
+        ).fetchone()
+        existing_kickoff = _pickem_status.parse_iso(existing["game_date"]) if existing else None
+        new_kickoff = _pickem_status.parse_iso(date)
+        status, winner = _pickem_status.compute_status_and_winner(
+            existing_status=existing["status"] if existing else None,
+            existing_kickoff=existing_kickoff, new_kickoff=new_kickoff,
+            home_score=hs, away_score=away_score, home_code=hid, away_code=aid,
+        )
+
         c.execute(
             """INSERT INTO cfb_games_canonical(
                game_id,season,week,game_date,home_school_id,away_school_id,
-               home_score,away_score,stadium_name,conference_game,verification_status,source_id)
-               VALUES (?,?,?,?,?,?,?,?,?,?,'SOURCE_BACKED',?)
+               home_score,away_score,stadium_name,conference_game,verification_status,source_id,
+               neutral_site,home_division,away_division,status,winner,updated_at,season_type,bowl_name)
+               VALUES (?,?,?,?,?,?,?,?,?,?,'SOURCE_BACKED',?,?,?,?,?,?,?,?,?)
                ON CONFLICT(game_id) DO UPDATE SET season=excluded.season,week=excluded.week,game_date=excluded.game_date,
                home_school_id=excluded.home_school_id,away_school_id=excluded.away_school_id,
                home_score=excluded.home_score,away_score=excluded.away_score,stadium_name=excluded.stadium_name,
-               conference_game=excluded.conference_game,verification_status='SOURCE_BACKED',source_id=?""",
-            (gid, season, week, date, hid, aid, hs, away_score, stadium, conf, SOURCE_ID, SOURCE_ID),
+               conference_game=excluded.conference_game,verification_status='SOURCE_BACKED',source_id=?,
+               neutral_site=excluded.neutral_site,home_division=excluded.home_division,
+               away_division=excluded.away_division,status=excluded.status,winner=excluded.winner,
+               updated_at=excluded.updated_at,
+               season_type=COALESCE(excluded.season_type, cfb_games_canonical.season_type),
+               bowl_name=COALESCE(excluded.bowl_name, cfb_games_canonical.bowl_name)""",
+            (gid, season, week, date, hid, aid, hs, away_score, stadium, conf, SOURCE_ID,
+             neutral_site, home_division, away_division, status, winner, now_iso, season_type, bowl_name, SOURCE_ID),
         )
         published += 1
     return published

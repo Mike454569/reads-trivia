@@ -162,18 +162,74 @@ def resolve_current_week(c, league: str, season: int) -> str | None:
         last_week, last_game_type, _ = weeks[-1]  # every real game already final -- most recent past week
         return last_game_type if last_game_type != "REG" else str(last_week)
 
+    # Dynamic Weekly Pick'em pass, real bug fix: cfb_games_canonical.week is
+    # NOT globally unique across season_type the way games.week already is
+    # for NFL (confirmed live: season=2025,week=1 holds 200 real regular-
+    # season games PLUS 43 real bowls PLUS 11 real CFP games, all
+    # mislabeled week=1). Scoping to season_type='regular' here fixes the
+    # same real bug class the NFL branch above was already fixed for --
+    # without it, a live CFB postseason would silently resolve back to a
+    # bowl/CFP game mislabeled as an early regular-season week instead.
     rows = c.execute(
-        "SELECT week, MIN(game_date) AS first_date FROM cfb_games_canonical "
-        "WHERE season=? GROUP BY week", (season,),
+        "SELECT week, MIN(game_date) AS first_date, MAX(game_date) AS last_date FROM cfb_games_canonical "
+        "WHERE season=? AND season_type='regular' GROUP BY week", (season,),
     ).fetchall()
-    weeks = [(r["week"], r["first_date"]) for r in rows if r["first_date"]]
-    if not weeks:
-        return None
-    weeks.sort(key=lambda w: w[1])
-    for week, first_date in weeks:
-        if first_date[:10] >= today:
-            return str(week)
-    return str(weeks[-1][0])  # every real game already final -- most recent past week
+    weeks = [(r["week"], r["first_date"], r["last_date"]) for r in rows if r["first_date"]]
+
+    # Dynamic Weekly Pick'em pass, second real bug fix found while verifying
+    # the first one: gather EVERY real candidate slate (regular weeks, each
+    # CFP round, bowls) as (identifier, first_date, last_date) and rank them
+    # UNIFORMLY by real date, rather than checking regular season first and
+    # only falling back to postseason as an afterthought -- the earlier
+    # version's final fallback (`weeks[-1]`) could return a real, but
+    # already-superseded, LAST REGULAR week even once the real postseason
+    # (which runs weeks after the regular season ends) had also already
+    # finished, since it never compared against real postseason dates at
+    # all. Tokens match weekly_pickem.py's own
+    # _CFB_POSTSEASON_WEEK_TOKENS/_CFP_ROUND_TO_TOKEN exactly.
+    candidates = [(str(week), first_date, last_date) for week, first_date, last_date in weeks]
+    cfp_round_to_token = {
+        "first_round": "CFP_FIRST_ROUND", "quarterfinal": "CFP_QUARTERFINAL",
+        "semifinal": "CFP_SEMIFINAL", "championship": "CFP_CHAMPIONSHIP",
+    }
+    for round_name, token in cfp_round_to_token.items():
+        row = c.execute(
+            "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
+            "WHERE season=? AND is_playoff=1 AND playoff_round=?", (season, round_name),
+        ).fetchone()
+        if row["d"]:
+            candidates.append((token, row["d"], row["d2"]))
+    bowl_row = c.execute(
+        "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
+        "WHERE season=? AND season_type='postseason' AND is_playoff=0", (season,),
+    ).fetchone()
+    if bowl_row["d"]:
+        candidates.append(("BOWLS", bowl_row["d"], bowl_row["d2"]))
+
+    if not candidates:
+        return None  # genuinely no real schedule rows for this (league, season) at all
+
+    # Real bug fix found verifying this live against the actual 2026 season:
+    # a candidate's own real date RANGE can be wide enough (CFB week=1 alone
+    # -- this source folds the informal "Week 0" season-openers into week=1
+    # rather than giving them a distinct label -- spans a real 10 calendar
+    # days, Aug 29-Sep 7 for 2026) that some of its games are already
+    # final while most are still upcoming. Testing only first_date (as the
+    # original version did) treated ANY already-played game within a week
+    # as proof the WHOLE week was over, incorrectly jumping straight to
+    # week 2 while 91 of week 1's 99 real games were still ahead. The real,
+    # correct test is whether the slate's LAST real game has passed yet --
+    # not its first.
+    not_yet_concluded = [cand for cand in candidates if cand[2][:10] >= today]
+    if not_yet_concluded:
+        not_yet_concluded.sort(key=lambda cand: cand[1])
+        return not_yet_concluded[0][0]  # the real slate with the earliest start that isn't fully over yet
+    # Every real slate (regular AND postseason) is already in the past --
+    # the one whose own real games ran LATEST is the most recently
+    # concluded real story, never just "the last regular week" regardless
+    # of whether a real postseason ran even later.
+    candidates.sort(key=lambda cand: cand[2])
+    return candidates[-1][0]
 
 
 def detect(request_text: str | None) -> dict | None:

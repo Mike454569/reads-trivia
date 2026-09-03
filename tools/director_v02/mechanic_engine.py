@@ -343,20 +343,38 @@ def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
         pick = picks.get(g["game_id"])
         if pick:
             entry["your_pick"] = pick["predicted_winner"]
-            if live_g["status"] == "FINAL":
+            if live_g["status"] == "CANCELED":
+                # Dynamic Weekly Pick'em pass: a canceled game never counts
+                # against a player -- VOID is deliberately excluded from
+                # both graded_count/correct_count below and from the
+                # "every game must be picked" completion requirement.
+                entry["outcome"] = "VOID"
+            elif live_g["status"] == "FINAL":
                 entry["outcome"] = ("TIE" if live_g["winner_code"] == "TIE"
                                      else ("CORRECT" if pick["predicted_winner"] == live_g["winner_code"] else "INCORRECT"))
             else:
-                entry["outcome"] = "PENDING"
+                entry["outcome"] = "PENDING"  # includes POSTPONED -- the pick is preserved, not voided, until a real outcome exists
         out_games.append(entry)
 
-    graded = [e for e in out_games if e.get("outcome") in ("CORRECT", "INCORRECT", "TIE")]
+    # Dynamic Weekly Pick'em pass: a canceled game is excluded from grading
+    # AND from the "every game must be picked" completion requirement --
+    # never counted against a player, regardless of whether they'd already
+    # picked it before it was marked canceled.
+    decidable_games = [e for e in out_games if e["status"] != "CANCELED"]
+    graded = [e for e in decidable_games if e.get("outcome") in ("CORRECT", "INCORRECT", "TIE")]
     correct_count = sum(1 for e in graded if e["outcome"] == "CORRECT")
+    voided_count = sum(1 for e in out_games if e["status"] == "CANCELED")
+    # A stray pick made on a game BEFORE it was later marked canceled must
+    # never block completion -- checking "every decidable game has a pick"
+    # (not a strict count match against len(picks)) tolerates that leftover
+    # pick instead of demanding it disappear.
+    decidable_ids = {e["game_id"] for e in decidable_games}
     return {
         "season": package["season"], "week": package["week"], "variant": variant,
         "games": out_games, "game_count": len(out_games),
         "picks_made": len(picks), "graded_count": len(graded), "correct_count": correct_count,
-        "completed": len(graded) == len(out_games) and len(picks) == len(out_games),
+        "voided_count": voided_count,
+        "completed": len(graded) == len(decidable_games) and decidable_ids.issubset(picks.keys()),
     }
 
 
@@ -376,9 +394,28 @@ def _weekly_pickem_evaluate(package: dict, progress: dict, submission: dict) -> 
         raise MechanicError(f"predicted_winner must be one of {sorted(valid_sides)} for game {game_id!r}")
 
     live = weekly_pickem.live_game_statuses(variant, [game_id]).get(
-        game_id, {"status": "UNKNOWN", "winner_code": None})
-    if live["status"] == "FINAL":
-        raise MechanicError(f"game {game_id!r} is already final -- picks are closed")
+        game_id, {"status": "UNKNOWN", "winner_code": None, "kickoff_utc": None})
+
+    # Dynamic Weekly Pick'em pass: a canceled game never accepts a pick --
+    # it will never be played, regardless of what its (now-meaningless)
+    # kickoff time says.
+    if live["status"] == "CANCELED":
+        raise MechanicError(f"game {game_id!r} is canceled -- picks are closed")
+
+    # Real, per-game kickoff lock -- replaces the old FINAL-only check
+    # (mechanics-round Phase 7A original), which left a real, live loophole:
+    # a pick was still accepted for a game that had already kicked off but
+    # had no final score yet (in progress, or a real data-ingestion lag).
+    # Comparing against the game's own real, current kickoff (which already
+    # reflects any real reschedule -- see _pickem_status.py's never-clobber
+    # rule) closes that loophole and satisfies "lock at kickoff, not at
+    # final" for every status, including a rescheduled POSTPONED game
+    # (its pick stays open until whatever its CURRENT real kickoff is).
+    kickoff_raw = live.get("kickoff_utc")
+    if kickoff_raw is not None:
+        kickoff_dt = datetime.fromisoformat(kickoff_raw)
+        if datetime.now(timezone.utc) >= kickoff_dt:
+            raise MechanicError(f"game {game_id!r} has already kicked off -- picks are closed")
 
     return {"game_id": game_id, "predicted_winner": predicted_winner, "status": "PENDING",
             "message": "Pick recorded -- will grade automatically once this game is final."}

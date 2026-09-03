@@ -52,6 +52,7 @@ from gateway.app import (  # noqa: E402
     generate_limiter, graph_limiter, graph_path_limiter,
     grid_board_limiter, grid_lookup_limiter, preview_limiter,
     public_answer_limiter, public_game_limiter,
+    public_pickem_submit_limiter, public_pickem_view_limiter,
     public_six_degrees_answer_limiter, public_six_degrees_game_limiter,
 )
 
@@ -92,6 +93,8 @@ def _reset_rate_limiters():
     coach_connections_search_limiter.reset()
     creator_job_create_limiter.reset()
     creator_job_status_limiter.reset()
+    public_pickem_view_limiter.reset()
+    public_pickem_submit_limiter.reset()
     yield
 
 

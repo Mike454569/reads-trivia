@@ -236,6 +236,17 @@ PUBLIC_MECHANIC_SUBMIT_RATE_LIMIT_WINDOW_SECONDS = 60.0
 # protection against an unbounded burst, not a redesign of anything.
 PUBLIC_MECHANIC_MAX_CONCURRENCY = int(os.environ.get("READS_ENGINE_PUBLIC_MECHANIC_MAX_CONCURRENCY", "4"))
 
+# --- Public Weekly Pick'em (Dynamic Weekly Pick'em pass) --------------------
+# Same shape/reasoning as PUBLIC_MECHANIC_ROUND/SUBMIT above: viewing a
+# slate re-derives it fresh every call (real, fast, read-only schedule
+# queries -- see weekly_pickem.py), submitting a pick is a single-row
+# UPSERT. Gated by the same PUBLIC_GAME_ENABLED master switch, not a new
+# operator toggle.
+PUBLIC_PICKEM_VIEW_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_PICKEM_VIEW_RATE_LIMIT", "30"))
+PUBLIC_PICKEM_VIEW_RATE_LIMIT_WINDOW_SECONDS = 60.0
+PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_PICKEM_SUBMIT_RATE_LIMIT", "60"))
+PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
 # Reliability-design Phase 2: async Creator jobs -- admin-only routes
 # (already gated by require_admin), so this rate limit exists to protect
 # against a runaway script or a fat-fingered loop, not public abuse.

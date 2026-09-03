@@ -38,13 +38,14 @@ sys.path.insert(0, str(REPO_ROOT))
 from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
-from .models import (CreatorConceptsRequest, CreatorFeasibilityRequest, CreatorGenerateRequest,  # noqa: E402
+from .models import (AdminPickemGameStatusRequest, CreatorConceptsRequest, CreatorFeasibilityRequest,  # noqa: E402
+                      CreatorGenerateRequest,
                       CreatorIdeasRequest, CreatorJobTier2CertificationRequest,
                       CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest,
                       MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
-                      PublicMechanicSubmitRequest,
+                      PublicMechanicSubmitRequest, PublicPickemSubmitRequest,
                       PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import creator as creator_service  # noqa: E402
@@ -52,9 +53,11 @@ from .services import generation, packages, game_state  # noqa: E402
 from .services import graph as graph_service  # noqa: E402
 from .services import grid as grid_service  # noqa: E402
 from .services import admin_refresh  # noqa: E402
+from .services import admin_pickem  # noqa: E402
 from .services import public_coach_connections  # noqa: E402
 from .services import public_game  # noqa: E402
 from .services import public_mechanics  # noqa: E402
+from .services import public_pickem  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
 from .services import audit as gateway_audit  # noqa: E402
 from .services import oplog  # noqa: E402
@@ -97,6 +100,12 @@ creator_job_create_limiter = SlidingWindowRateLimiter(
 creator_job_status_limiter = SlidingWindowRateLimiter(
     max_requests=config.CREATOR_JOB_STATUS_RATE_LIMIT_MAX,
     window_seconds=config.CREATOR_JOB_STATUS_RATE_LIMIT_WINDOW_SECONDS)
+public_pickem_view_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_PICKEM_VIEW_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_PICKEM_VIEW_RATE_LIMIT_WINDOW_SECONDS)
+public_pickem_submit_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS)
 public_mechanic_round_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_MAX,
     window_seconds=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_WINDOW_SECONDS)
@@ -1105,3 +1114,42 @@ def public_mechanics_get_round(round_id: str, request: Request):
 def public_mechanics_submit_round(round_id: str, body: PublicMechanicSubmitRequest, request: Request,
                                    _rl=Depends(rate_limit_public_mechanic_submit)):
     return public_mechanics.submit_public_round(round_id=round_id, submission=body.submission)
+
+
+# --- Public Weekly Pick'em (Dynamic Weekly Pick'em pass) --------------------
+# NO require_admin on any route here -- see gateway/services/public_pickem.py's
+# own module docstring for why this is the real per-user session/room
+# infrastructure the punch-list pass above deliberately deferred.
+
+def rate_limit_public_pickem_view(request: Request) -> None:
+    _rate_limit(public_pickem_view_limiter, request)
+
+
+def rate_limit_public_pickem_submit(request: Request) -> None:
+    _rate_limit(public_pickem_submit_limiter, request)
+
+
+@app.get("/v1/public/pickem/{league}")
+def public_pickem_current(league: str, request: Request,
+                           client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
+                           _rl=Depends(rate_limit_public_pickem_view)):
+    return public_pickem.get_pickem_view(league=league, season=None, week=None, client_id=client_id)
+
+
+@app.get("/v1/public/pickem/{league}/{season}/{week}")
+def public_pickem_specific(league: str, season: int, week: str, request: Request,
+                            client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
+                            _rl=Depends(rate_limit_public_pickem_view)):
+    return public_pickem.get_pickem_view(league=league, season=season, week=week, client_id=client_id)
+
+
+@app.post("/v1/public/pickem/{league}/{season}/{week}/pick")
+def public_pickem_pick(league: str, season: int, week: str, body: PublicPickemSubmitRequest, request: Request,
+                        _rl=Depends(rate_limit_public_pickem_submit)):
+    return public_pickem.submit_pick(league=league, season=season, week=week, client_id=body.client_id,
+                                      game_id=body.game_id, predicted_winner=body.predicted_winner)
+
+
+@app.post("/v1/admin/pickem/game-status")
+def admin_pickem_game_status(body: AdminPickemGameStatusRequest, request: Request, _admin=Depends(require_admin)):
+    return admin_pickem.set_game_status(league=body.league, game_id=body.game_id, status=body.status, reason=body.reason)

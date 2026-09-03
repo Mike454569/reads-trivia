@@ -18,3 +18,11 @@ httpx==0.28.1
 # cfb_all_america -- confirmed live via a real 503 SERVICE_UNAVAILABLE
 # ("No module named 'bs4'") triggering an unrelated dataset (cfb_betting_lines).
 beautifulsoup4==4.15.0
+# tzdata: Dynamic Weekly Pick'em pass -- tools/data_refresh/_pickem_status.py
+# and tools/director_v04/weekly_pickem.py use zoneinfo.ZoneInfo("America/
+# New_York") to combine NFL's separate game_date/game_time columns into a
+# real UTC kickoff. python:3.11-slim-bookworm (gateway/Dockerfile) is not
+# guaranteed to ship IANA tzdata -- this pure-Python fallback package makes
+# zoneinfo work regardless of the base image's OS tzdata, the standard-
+# recommended way to make it deployment-independent.
+tzdata==2025.2
