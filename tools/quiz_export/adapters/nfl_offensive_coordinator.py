@@ -22,14 +22,15 @@ REQUIRED_SOURCE_ID = common.REQUIRED_SOURCE_ID
 TRACK_ENTITY = True
 ROLE = "OFFENSIVE_COORDINATOR"
 SIDE_LABEL = "Offensive"
+SUPPORTS_FILTERS = True
 
 
 def safety_check(c) -> dict:
     return common.safety_check(c, role=ROLE)
 
 
-def fetch_ordered_candidates(c, seed: str):
-    return common.fetch_ordered_candidates(c, seed, role=ROLE)
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
+    return common.fetch_ordered_candidates(c, seed, filters, role=ROLE)
 
 
 def evaluate(c, row, rng, guard):

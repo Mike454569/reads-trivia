@@ -5,19 +5,24 @@ adapters (offense/defense) differing only in which `role` value they
 filter to and how the question is worded, not two genuinely different real
 logics.
 
-Built on `nfl_coordinators` (64 rows total, WIKIPEDIA_STRUCTURED_SECONDARY,
-ALL season=2026, team_franchise_id resolved for every row -- confirmed by
-direct query). "Which team did [coach] coordinate the offense/defense for
-in the 2026 NFL season" -- entity is one real (team, season, role)
-coordinator row, answer is the real team name.
+Built on `nfl_coordinators` -- 2026-only (WIKIPEDIA_STRUCTURED_SECONDARY,
+current-season snapshot) UNTIL the Gold Standard Modes + Creator Quality
+follow-up pass's `nfl_coordinators_historical_import.py` backfill, which
+extends the SAME table/UNIQUE(season,team_code,role) constraint with real
+2000-2025 rows (source_id still 'WIKIPEDIA_STRUCTURED', a real per-team-
+season Wikipedia page scrape -- see that module's own docstring for exact
+real coverage/gaps). "Which team did [coach] coordinate the offense/
+defense for in a real NFL season" -- entity is one real (team, season,
+role) coordinator row, answer is the real team name (or coach name,
+TEAM_TO_COACH direction) -- season now read from the row itself, never a
+hardcoded constant, so this genuinely answers whatever real season the row
+is for, never silently substituting 2026 data for a different-season ask.
 
-Genuinely, disclosedly 2026-only: this table has no historical seasons on
-file yet. Each real capability adapter (nfl_offensive_coordinator.py,
-nfl_defensive_coordinator.py) states this in its own registry known_
-limitations rather than implying broader coverage -- never silently
-answered from 2026 data for a different-season request (the translator/
-validator layer keeps a season request out of this capability's bounds
-entirely; see mock.py's own coordinator routing).
+season_min/season_max filters (Gold Standard Modes + Creator Quality
+follow-up pass) let a caller scope to an exact requested season (e.g. "the
+2014 offensive coordinator" -> season_min=season_max=2014) or a real range
+("coordinators from the 2000s" -> 2000-2009); default is every real season
+on file.
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ from .. import engine, difficulty as difficulty_mod, serializer
 
 REQUIRED_SOURCE_ID = "WIKIPEDIA_STRUCTURED"
 REQUIRED_VERIFICATION_STATUS = "WIKIPEDIA_STRUCTURED_SECONDARY"
-SEASON = 2026  # the one real season this table covers -- see module docstring
+SUPPORTS_FILTERS = True
 
 
 def safety_check(c, *, role: str) -> dict:
@@ -36,13 +41,23 @@ def safety_check(c, *, role: str) -> dict:
     )
 
 
-def fetch_ordered_candidates(c, seed: str, *, role: str):
-    rows = c.execute(
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None, *, role: str):
+    filters = filters or {}
+    season_min = filters.get("season_min")
+    season_max = filters.get("season_max")
+    query = (
         "SELECT coordinator_id, season, team_name_raw, team_franchise_id, coach_name_raw, "
-        "role, source_id, verification_status FROM nfl_coordinators WHERE role = ? "
-        "ORDER BY coordinator_id",
-        (role,),
-    ).fetchall()
+        "role, source_id, verification_status FROM nfl_coordinators WHERE role = ?"
+    )
+    params: list = [role]
+    if season_min is not None:
+        query += " AND season >= ?"
+        params.append(int(season_min))
+    if season_max is not None:
+        query += " AND season <= ?"
+        params.append(int(season_max))
+    query += " ORDER BY coordinator_id"
+    rows = c.execute(query, params).fetchall()
     rng_order = engine.seeded(seed)
     rows = list(rows)
     rng_order.shuffle(rows)
@@ -68,11 +83,17 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
     # shared function (not a copy-pasted second evaluate()) since every
     # other line -- safety, provenance, difficulty, audit fields -- is
     # identical regardless of direction.
+    season = row["season"]
+    # Distractors scoped to the SAME real season -- a more thematically
+    # coherent, comparable-era pool than any season on file (real, low-risk
+    # improvement made alongside the multi-season expansion below: with
+    # only 2026 on file there was only ever one season to draw from
+    # anyway, so this changes nothing about existing behavior).
     if direction == "TEAM_TO_COACH":
         correct_answer = row["coach_name_raw"]
         pool_rows = c.execute(
-            "SELECT DISTINCT coach_name_raw FROM nfl_coordinators WHERE role = ? AND coach_name_raw != ?",
-            (role, correct_answer),
+            "SELECT DISTINCT coach_name_raw FROM nfl_coordinators WHERE role = ? AND season = ? AND coach_name_raw != ?",
+            (role, season, correct_answer),
         ).fetchall()
         pool = [r["coach_name_raw"] for r in pool_rows]
         if len(pool) < 3:
@@ -81,14 +102,14 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
         options = [correct_answer] + distractor_names
         if len(set(options)) != 4:
             return "DUPLICATE_OPTIONS"
-        question = f"Who was the real {SEASON} {row['team_name_raw']} {side_label.lower()} coordinator?"
+        question = f"Who was the real {season} {row['team_name_raw']} {side_label.lower()} coordinator?"
         entity_key = f"{entity_prefix}_rev:{row['coordinator_id']}"
-        notes = f"{correct_answer} was the {SEASON} {row['team_name_raw']} {side_label.lower()} coordinator."
+        notes = f"{correct_answer} was the {season} {row['team_name_raw']} {side_label.lower()} coordinator."
     else:
         correct_answer = row["team_name_raw"]
         pool_rows = c.execute(
-            "SELECT DISTINCT team_name_raw FROM nfl_coordinators WHERE role = ? AND team_name_raw != ?",
-            (role, correct_answer),
+            "SELECT DISTINCT team_name_raw FROM nfl_coordinators WHERE role = ? AND season = ? AND team_name_raw != ?",
+            (role, season, correct_answer),
         ).fetchall()
         pool = [r["team_name_raw"] for r in pool_rows]
         if len(pool) < 3:
@@ -97,9 +118,9 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
         options = [correct_answer] + distractor_names
         if len(set(options)) != 4:
             return "DUPLICATE_OPTIONS"
-        question = f"Which real NFL team did {row['coach_name_raw']} serve as {side_label} coordinator for in the {SEASON} season?"
+        question = f"Which real NFL team did {row['coach_name_raw']} serve as {side_label} coordinator for in the {season} season?"
         entity_key = f"{entity_prefix}:{row['coordinator_id']}"
-        notes = f"{row['coach_name_raw']} was the {SEASON} {correct_answer} {side_label.lower()} coordinator."
+        notes = f"{row['coach_name_raw']} was the {season} {correct_answer} {side_label.lower()} coordinator."
 
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
@@ -133,14 +154,19 @@ def evaluate(c, row, rng, guard, *, role: str, side_label: str, category: str, e
 def shortfall_reason(accepted_count, considered_count, target_count, *, side_label: str) -> str:
     return (
         f"Only {accepted_count} candidates passed every validation rule across the full "
-        f"{considered_count} real {SEASON} {side_label.lower()} coordinator records on file "
-        f"(this table has no historical seasons yet); exported the maximum available "
-        f"({accepted_count}) rather than loosen any rule to reach {target_count}."
+        f"{considered_count} real {side_label.lower()} coordinator records on file (real per-season "
+        f"scrape coverage varies -- some seasons/teams have no resolvable real Wikipedia coordinator "
+        f"data, never fabricated); exported the maximum available ({accepted_count}) rather than loosen "
+        f"any rule to reach {target_count}."
     )
 
 
 def extra_funnel_fields(accepted, exported) -> dict:
-    return {"season": SEASON, "unique_teams": len(set(q["_audit"]["team_franchise_id"] for q in exported))}
+    seasons = sorted({q["_audit"]["season"] for q in exported})
+    return {
+        "seasons_covered": seasons,
+        "unique_teams": len(set(q["_audit"]["team_franchise_id"] for q in exported)),
+    }
 
 
 def human_review_context(record: dict, *, table_name: str) -> list[str]:

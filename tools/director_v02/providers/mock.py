@@ -104,6 +104,26 @@ _MEDIUM_WORDS = {"medium", "moderate", "intermediate"}
 
 _COUNT_RE = re.compile(r"\b(\d{1,3})\b")
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+_DECADE_RE = re.compile(r"\b((?:19|20)\d0)s\b")
+
+
+def _season_filters_from_text(text_lower: str) -> dict:
+    """Gold Standard Modes + Creator Quality follow-up pass: an exact real
+    year ("the 2014 offensive coordinator") -> season_min=season_max=2014;
+    a real decade phrase ("coordinators from the 2000s") -> the real
+    2000-2009 range. Checked in that order since a decade phrase like
+    "2000s" also matches _YEAR_RE's bare 4-digit pattern (as "2000") --
+    the decade reading is more specific and intended whenever the literal
+    trailing "s" is present."""
+    m = _DECADE_RE.search(text_lower)
+    if m:
+        start = int(m.group(1))
+        return {"season_min": start, "season_max": start + 9}
+    m = _YEAR_RE.search(text_lower)
+    if m:
+        year = int(m.group(0))
+        return {"season_min": year, "season_max": year}
+    return {}
 
 # Rivalry Data + Gold Standard Content Integration operation: real, curated
 # rivalry-pack recognition for CFB_RIVALRY_TRIVIA (a DIFFERENT, richer
@@ -809,16 +829,22 @@ class MockDeterministicTranslator(Translator):
                     understood={"concept": "NFL coordinator"}, missing_fields=["relationship_predicate"],
                     clarifying_question="Do you want the offensive coordinator or the defensive coordinator?",
                 )
+            season_filters = _season_filters_from_text(text_lower)
             spec = {
                 "mechanic": "guess", "domain": domain, "relationship_predicate": predicate,
                 "question_count": _question_count_from_text(text), "difficulty": "any",
-                "filters": {}, "exclusions": [],
+                "filters": season_filters, "exclusions": [],
             }
+            season_note = (
+                f" scoped to {season_filters['season_min']}-{season_filters['season_max']}"
+                if season_filters else ""
+            )
             return _result(
                 request_text, "TRANSLATED", spec,
-                f"Matched {side} coordinator signal -> {predicate} guess capability (real 2026-season "
-                f"coordinator data only -- see the capability's own known_limitations), outranking the "
-                f"generic team+offense/lineup pattern and the plain head-coach pattern.",
+                f"Matched {side} coordinator signal -> {predicate} guess capability{season_note} (real "
+                f"2000-2025 + 2026 coordinator data -- see the capability's own known_limitations for "
+                f"exact real coverage), outranking the generic team+offense/lineup pattern and the plain "
+                f"head-coach pattern.",
             )
 
         # --- Creator Capability Completion pass: real, registered routing --
@@ -1390,15 +1416,21 @@ class MockDeterministicTranslator(Translator):
             )
 
         if "era gauntlet" in text_lower_gs:
+            # Gold Standard Modes + Creator Quality follow-up pass: redesigned
+            # to route to the real, non-roster-majority Three Clues capability
+            # instead of the roster-by-college board -- see that capability's
+            # own known_limitations/module docstring for why this is the real
+            # redesign target ("stop defaulting to roster/college lists").
             spec = {
-                "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
-                "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                "mechanic": "guess", "domain": "CFB_THREE_CLUES_ONE_CHAMPION",
+                "relationship_predicate": "TEAM_SEASON_FROM_THREE_CLUES",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
                 "filters": {"era_gauntlet": True}, "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec,
-                            "Matched 'era gauntlet' -> TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess "
-                            "capability, scoped to one real champion per era.")
+                            "Matched 'era gauntlet' -> TEAM_SEASON_FROM_THREE_CLUES guess capability, "
+                            "scoped to one real champion per era with a real non-roster-majority clue set "
+                            "(not a roster/college-list filter).")
 
         # "O-Line Only" (Rivalry Pack + Gold Standard Game Ideas Integration,
         # workbook's own "6. More Puzzle Ideas" sheet: "Hardcore version:

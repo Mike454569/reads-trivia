@@ -205,11 +205,19 @@ def test_missing_package_returns_structured_404(client, auth_headers):
 # --- clarification / unsupported (Parts M, N) -------------------------------
 
 def test_ambiguous_request_returns_clarification(client, auth_headers):
+    # Creator/Game Quality Correction pass: this broad-but-clearly-football
+    # request is now caught by the Creator Discovery fallback (providers/
+    # mock.py, wired to creator_intelligence.generate_ideas()) BEFORE the
+    # old generic "which kind of NFL game?" clarification -- a genuine
+    # improvement (real, specific, already-playable suggestions instead of
+    # a bare acknowledgment). Still NEEDS_CLARIFICATION either way; the
+    # `understood` shape is the new, richer one, not the old fixed dict.
     r = client.post("/v1/games/preview", json={"request_text": AMBIGUOUS_REQUEST}, headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert body["gate_status"] == "NEEDS_CLARIFICATION"
-    assert body["understood"] == {"competition": "NFL"}
+    assert body["understood"]["concept"] == "broad football request"
+    assert body["understood"]["suggested_capabilities"]
     assert "domain" in body["missing_fields"]
     assert body["question"]
 

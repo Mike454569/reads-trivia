@@ -1100,11 +1100,18 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "category": nfl_offensive_coordinator_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Covers the 2026 season ONLY -- nfl_coordinators has no historical seasons on file yet "
-            "(32 real offensive-coordinator rows total, one per NFL team). Requesting any other season "
-            "is out of bounds for this capability, not silently answered from 2026 data.",
-            "Does not require coach_id identity resolution beyond the team_franchise_id already "
-            "resolved for all 64 real rows -- the answer is the real, source-verified coach_name_raw.",
+            "Gold Standard Modes + Creator Quality follow-up pass: extended beyond the 2026-only "
+            "snapshot -- nfl_coordinators_historical_import.py backfills real 2000-2025 rows onto the "
+            "SAME table via a real per-team-season Wikipedia page scrape. Real coverage varies by "
+            "season/team (a page 404, or a real page with no parseable coordinator field, is recorded "
+            "as unresolved, never fabricated) -- see that module's own run report for exact counts.",
+            "season_min/season_max filters scope to an exact requested season (e.g. 'the 2014 offensive "
+            "coordinator') or a real range ('coordinators from the 2000s'); default is every real "
+            "season on file.",
+            "Does not require coach_id identity resolution beyond the team_franchise_id/team_code "
+            "already resolved for every real row -- the answer is the real, source-verified "
+            "coach_name_raw (co-coordinator arrangements preserved as 'Name A / Name B', never "
+            "collapsed to one name).",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_coordinator_season",
@@ -1112,10 +1119,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "answer_type": "coach",
         "group_size": 4,
         "min_question_count": 1,
-        "max_question_count": 32,
+        "max_question_count": 900,
         "supported_difficulties": frozenset({"any", "medium"}),  # a single real season has no real recency axis
         "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(),
+        "supported_filter_keys": frozenset({"season_min", "season_max"}),
         "supports_exclusions": False,
         "proven_in": ["creator-semantic-routing-coordinators"],
         "pipeline_id_start": 860000,
@@ -1125,11 +1132,17 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "category": nfl_defensive_coordinator_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Covers the 2026 season ONLY -- nfl_coordinators has no historical seasons on file yet "
-            "(32 real defensive-coordinator rows total, one per NFL team). Requesting any other season "
-            "is out of bounds for this capability, not silently answered from 2026 data.",
-            "Does not require coach_id identity resolution beyond the team_franchise_id already "
-            "resolved for all 64 real rows -- the answer is the real, source-verified coach_name_raw.",
+            "Gold Standard Modes + Creator Quality follow-up pass: extended beyond the 2026-only "
+            "snapshot -- nfl_coordinators_historical_import.py backfills real 2000-2025 rows onto the "
+            "SAME table via a real per-team-season Wikipedia page scrape. Real coverage varies by "
+            "season/team (a page 404, or a real page with no parseable coordinator field, is recorded "
+            "as unresolved, never fabricated) -- see that module's own run report for exact counts.",
+            "season_min/season_max filters scope to an exact requested season or a real range; default "
+            "is every real season on file.",
+            "Does not require coach_id identity resolution beyond the team_franchise_id/team_code "
+            "already resolved for every real row -- the answer is the real, source-verified "
+            "coach_name_raw (co-coordinator arrangements preserved as 'Name A / Name B', never "
+            "collapsed to one name).",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_coordinator_season",
@@ -1137,10 +1150,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "answer_type": "coach",
         "group_size": 4,
         "min_question_count": 1,
-        "max_question_count": 32,
+        "max_question_count": 900,
         "supported_difficulties": frozenset({"any", "medium"}),
         "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(),
+        "supported_filter_keys": frozenset({"season_min", "season_max"}),
         "supports_exclusions": False,
         "proven_in": ["creator-semantic-routing-coordinators"],
         "pipeline_id_start": 870000,
@@ -1628,11 +1641,15 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "adapter": cfb_odd_college_out_adapter, "category": cfb_odd_college_out_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Gold Standard concept #9. Built on the 60-board curated SB_CHAMPION dataset -- see "
-            "sb_champion_offense_college.py's own module docstring for the source audit trail.",
+            "Gold Standard concept #9. Gold Standard Modes + Creator Quality follow-up pass: no longer "
+            "the 60-board curated SB_CHAMPION dataset alone -- now draws from 5 real sources via "
+            "_group_board_common.py (SB_CHAMPION, CURRENT_TEAM_2026, real NFL team-season rosters, real "
+            "Round-1 draft classes, real First-Team All-Pro classes; 595 real candidates measured "
+            "directly). Each source's own real college universe scopes its own impostor draws, never "
+            "mixed across sources.",
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
-        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
         # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE --
         # this shares the exact same underlying board-level Diff column.
         "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
@@ -1657,11 +1674,14 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "adapter": cfb_spot_the_fake_lineup_adapter, "category": cfb_spot_the_fake_lineup_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Gold Standard concept #10. One position's real college is swapped for a different, real "
-            "college in the SHOWN board only -- the underlying record always reflects the true lineup.",
+            "Gold Standard concept #10. Gold Standard Modes + Creator Quality follow-up pass: draws from "
+            "5 real sources via _group_board_common.py (real team-season rosters/draft classes/All-Pro "
+            "classes added alongside the original SB_CHAMPION/CURRENT_TEAM_2026 boards). One real slot's "
+            "real college is swapped for a different, real college FROM THAT SAME SOURCE in the SHOWN "
+            "board only -- the underlying record always reflects the true group.",
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
-        "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
         # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
         "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
@@ -1687,14 +1707,23 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "adapter": cfb_three_clues_one_champion_adapter, "category": cfb_three_clues_one_champion_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Gold Standard concept #28. A distinct, harder sibling of NFL_SB_CHAMPION_OFFENSE_COLLEGE -- "
-            "reveals only 3 of the 11 real position/college pairs per candidate, never the full board.",
+            "Gold Standard concept #28. Gold Standard Modes + Creator Quality follow-up pass: no longer "
+            "mainly roster/college clues -- real clue candidates come from _champion_clue_common.py's 5 "
+            "families (real Super Bowl opponent, real final score, real head coach [1999+ only, a real "
+            "disclosed coverage floor], real Super Bowl MVP, and college as one family among five). At "
+            "least 2 of the 3 revealed clues must be non-roster; a champion without enough real "
+            "non-roster data (measured: 59 of 60) is excluded outright, never padded with an all-roster "
+            "puzzle.",
+            "era_gauntlet (Gold Standard concept #51, redesigned this pass): one real champion per real "
+            "represented decade, chosen only from champions with a real non-roster-majority clue set, "
+            "returned oldest-era-first -- a real football-history progression, not a roster/college-list "
+            "filter (the prior version filtered the 11-position roster board itself).",
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
         "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
         # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
         "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"era_gauntlet"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 937000,
     },
     ("guess", "CFB_POSITION_TRAP", "SWAPPED_POSITION_PAIR"): {
@@ -1731,11 +1760,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "adapter": cfb_one_school_missing_adapter, "category": cfb_one_school_missing_adapter.CATEGORY,
         "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Gold Standard concept #32. The 3 wrong options are real colleges that were NOT part of the "
-            "shown champion's lineup at all -- never a college already visibly shown.",
+            "Gold Standard concept #32. Gold Standard Modes + Creator Quality follow-up pass: draws from "
+            "5 real sources via _group_board_common.py, not the 60-board SB_CHAMPION dataset alone. The "
+            "3 wrong options are real colleges from that SAME source that were NOT part of the shown "
+            "group at all -- never a college already visibly shown, never mixed across sources.",
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
-        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
+        "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
         # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
         "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,

@@ -77,21 +77,22 @@ def test_plain_college_lineup_request_unaffected_by_hidden_names_check():
     assert r["capability"]["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP"
 
 
-def test_bare_college_request_gets_updated_honest_reason_not_stale_claim():
-    # No "guess the college"/"guess the player" directional phrase, no
-    # lineup/position/nfl/team framing -- falls all the way through to
-    # NO_MATCH and then the generic college fallback (a phrase with
-    # "nfl"/"team" would instead hit the NEEDS_CLARIFICATION -> UNKNOWN path
-    # before ever reaching it). Stale-college-feasibility fix: this reason
-    # is now LIVE-measured against draft_facts every call, never a hardcoded
-    # sentence, and must no longer cite the OLD, unrelated
-    # cfb_nfl_identity_bridge_certified 2,542-row figure this bug used to.
+def test_bare_college_request_gets_real_playable_suggestions_not_a_dead_end():
+    # Creator/Game Quality Correction pass: this bare, broad request used to
+    # fall all the way through to NO_MATCH and then a generic "college data
+    # not reliably present" MISSING_DATA fallback. The new Creator Discovery
+    # fallback (providers/mock.py, wired to creator_intelligence.
+    # generate_ideas()) now intercepts broad-but-clearly-football requests
+    # BEFORE that fallback is ever reached, and surfaces real, already-
+    # playable capabilities instead -- a genuine improvement (this exact
+    # request's own real answer, NFL_DRAFT's ATTENDED_COLLEGE capability, is
+    # one of the suggestions) over telling the user the concept isn't
+    # supported at all. UNKNOWN + NEEDS_CLARIFICATION is feasibility.py's
+    # own real mapping for this translation_status -- not a new status.
     r = feasibility.assess("Make me a game about which college each player attended.")
-    assert r["support_status"] == "MISSING_DATA"
-    assert "draft_facts" in r["reason"]
-    assert "12914" in r["reason"]  # live count, not the old stale 2,542 citation
-    assert "2,542" not in r["reason"]
-    assert "not reliably present" not in r["reason"]  # the old, now-false claim
+    assert r["support_status"] == "UNKNOWN"
+    assert r["translation_status"] == "NEEDS_CLARIFICATION"
+    assert "NFL_DRAFT" in r["clarifying_question"]  # the real capability this request actually wants
 
 
 def test_guess_college_of_player_is_supported_not_missing_data():
@@ -295,8 +296,14 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # Rivalry Data + Gold Standard Content Integration operation: 53 -> 64,
     # same real reason as test_creator.py's sibling assertion (11 new
     # GENERATION_VERIFIED/PUBLIC_ENABLED capabilities).
+    # Creator/Game Quality Correction pass: 64 -> 66 (2 new capabilities:
+    # CFB_RANKING__RANKED_HIGHER, a true 2-team ranking comparison; and
+    # CFB_OFFENSE_LINEUP__TEAM_SEASON_OF_STARTING_OFFENSE, the first real
+    # CFB-team-roster-based capability -- both registered via
+    # register_new_capability() and promoted to GENERATION_VERIFIED via a
+    # real, passing Tier-2 probe, same discipline as every capability above).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 64
+    assert len(summary) == 66
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

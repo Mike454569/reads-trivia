@@ -205,6 +205,13 @@ ALLOWED_FILTER_KEYS: frozenset[str] = frozenset({
     # threshold (see cfb_upset_ranking.py/cfb_upset_betting.py) instead of
     # every technically-qualifying upset.
     "rank_min", "rank_max", "biggest_only",
+    # Gold Standard Modes + Creator Quality follow-up pass: season_min/
+    # season_max scope NFL_OFFENSIVE_COORDINATOR/NFL_DEFENSIVE_COORDINATOR
+    # (and any future season-range-shaped capability) to an exact requested
+    # season ("the 2014 offensive coordinator" -> 2014-2014) or a real
+    # range ("coordinators from the 2000s" -> 2000-2009), same generic
+    # min/max convention as rank_min/rank_max above.
+    "season_min", "season_max",
 })
 EXCLUSIONS_SUPPORTED = False  # no adapter supports exclusion lists yet
 
