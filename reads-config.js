@@ -86,12 +86,13 @@ window.READS_CONFIG = {
   enableEngineCfbRankingPilot: true,
   enableEngineCfbUpsetPilot: true,
 
-  // Weekly Pick'em Player Experience pass: the new public Pick'em screen
-  // (pickem-ui.js) and its backend (real slate filtering, conference
-  // capture) are being deployed this pass. Left OFF here on first deploy,
-  // matching this file's own established discipline (see
-  // enableEngineMatchingPilot etc. above): flip to true only after a real
-  // deploy + individual canary verification against production, never
-  // before.
-  enablePickem: false,
+  // Weekly Pick'em Player Experience pass: deployed and canary-verified
+  // against this exact production Gateway (all CFB slate variants +
+  // conference filters return correct, deduplicated counts; NFL slate
+  // correct; no score/winner leakage before FINAL, correctly shown after;
+  // pick submission persists across slate-view switches for the same
+  // client_id+game_id; locked/kicked-off games correctly reject new picks
+  // with 400 INVALID_REQUEST) before this flip -- matching this file's own
+  // established rollout discipline.
+  enablePickem: true,
 };
