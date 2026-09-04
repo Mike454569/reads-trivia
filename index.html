@@ -303,6 +303,12 @@
        its own top level when routing to #creator). Contains no admin
        token, no capability list of its own -- see its own module docstring. -->
   <script src="creator-ui.js"></script>
+  <!-- Weekly Pick'em Player Experience pass: own file (whole-week slate
+       shape, not a fit for engine-game-ui.js's one-question-at-a-time
+       shell) -- loaded before app.js for the same reason as every other
+       shell file above: app.js's ENGINE_DISCOVERY_ENTRIES registration
+       for pickem_nfl/pickem_cfb happens at its own top level. -->
+  <script src="pickem-ui.js"></script>
   <script src="app.js"></script>
   <script type="module" src="firebase-sync.js"></script>
 </body>

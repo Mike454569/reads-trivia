@@ -274,7 +274,16 @@ class PublicPickemSubmitRequest(BaseModel):
 
     client_id: str = Field(min_length=6, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     game_id: str = Field(min_length=1, max_length=64)
-    predicted_winner: str = Field(min_length=1, max_length=16)
+    # Player Experience pass, real pre-existing bug found while testing a
+    # real CFB pick end-to-end for the first time through this actual HTTP
+    # model (earlier CFB coverage only ever exercised
+    # mechanic_engine.evaluate_submission() directly, bypassing this
+    # field): NFL team codes are short (<=4 chars), but CFB's real
+    # identity is a full school_id string (confirmed live, up to 43 chars,
+    # e.g. "CFB_SCHOOL_VIRGINIA_UNIVERSITY_OF_LYNCHBURG") -- max_length=16
+    # silently rejected every real CFB pick ever submitted through this
+    # route. Matches game_id's own max_length=64 above.
+    predicted_winner: str = Field(min_length=1, max_length=64)
 
 
 class AdminPickemGameStatusRequest(BaseModel):

@@ -1132,15 +1132,21 @@ def rate_limit_public_pickem_submit(request: Request) -> None:
 @app.get("/v1/public/pickem/{league}")
 def public_pickem_current(league: str, request: Request,
                            client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
+                           slate: Optional[str] = Query(default=None, min_length=1, max_length=24),
+                           conference: Optional[str] = Query(default=None, min_length=1, max_length=40),
                            _rl=Depends(rate_limit_public_pickem_view)):
-    return public_pickem.get_pickem_view(league=league, season=None, week=None, client_id=client_id)
+    return public_pickem.get_pickem_view(league=league, season=None, week=None, client_id=client_id,
+                                          slate=slate, conference=conference)
 
 
 @app.get("/v1/public/pickem/{league}/{season}/{week}")
 def public_pickem_specific(league: str, season: int, week: str, request: Request,
                             client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
+                            slate: Optional[str] = Query(default=None, min_length=1, max_length=24),
+                            conference: Optional[str] = Query(default=None, min_length=1, max_length=40),
                             _rl=Depends(rate_limit_public_pickem_view)):
-    return public_pickem.get_pickem_view(league=league, season=season, week=week, client_id=client_id)
+    return public_pickem.get_pickem_view(league=league, season=season, week=week, client_id=client_id,
+                                          slate=slate, conference=conference)
 
 
 @app.post("/v1/public/pickem/{league}/{season}/{week}/pick")

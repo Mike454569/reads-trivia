@@ -73,14 +73,26 @@ def _resolve(league: str, season, week):
     return variant, league_upper, resolved_season, resolved_week
 
 
-def _build_package(variant: str, season: int, week: str) -> dict:
+def _build_package(variant: str, season: int, week: str, *, slate: str | None = None,
+                    conference: str | None = None) -> dict:
     from tools.director_v04 import weekly_pickem
 
     # Deterministic, shared seed -- the slate itself isn't secret or
     # per-caller (every real player sees the exact same real games for a
-    # given week); only which GAMES appear is real, never who's asking.
+    # given week/slate); only which GAMES appear is real, never who's
+    # asking. slate/conference are folded in by build_cfb_slate_package
+    # itself (see that function's own docstring for why).
     seed = f"public-pickem|{variant}|{season}|{week}"
-    package = weekly_pickem.build_package(seed, variant, season, week)
+    if variant == "CFB_WEEKLY_PICKEM":
+        try:
+            package = weekly_pickem.build_cfb_slate_package(
+                seed, variant, season, week, slate=slate, conference=conference)
+        except ValueError as e:
+            raise GatewayError("INVALID_REQUEST", str(e))
+    else:
+        if slate and slate.upper() != "FULL":
+            raise GatewayError("INVALID_REQUEST", "slate variants are only supported for CFB.")
+        package = weekly_pickem.build_package(seed, variant, season, week)
     if package.get("qa_status") != "PASSED":
         raise GatewayError(
             "NO_ELIGIBLE_GAME",
@@ -89,7 +101,8 @@ def _build_package(variant: str, season: int, week: str) -> dict:
     return package
 
 
-def get_pickem_view(*, league: str, season, week, client_id: str | None) -> dict:
+def get_pickem_view(*, league: str, season, week, client_id: str | None,
+                     slate: str | None = None, conference: str | None = None) -> dict:
     if not config.PUBLIC_GAME_ENABLED:
         oplog.record_event("public_pickem_disabled", mode="pickem", reason="master_switch_off")
         raise GatewayError("SERVICE_UNAVAILABLE", "Public gameplay is temporarily disabled.")
@@ -98,7 +111,7 @@ def get_pickem_view(*, league: str, season, week, client_id: str | None) -> dict
     from tools.director_v04 import pickem_store
 
     variant, league_upper, resolved_season, resolved_week = _resolve(league, season, week)
-    package = _build_package(variant, resolved_season, resolved_week)
+    package = _build_package(variant, resolved_season, resolved_week, slate=slate, conference=conference)
 
     picks = {}
     if client_id:
@@ -109,8 +122,10 @@ def get_pickem_view(*, league: str, season, week, client_id: str | None) -> dict
 
     view = mechanic_engine.client_safe_view("WEEKLY_PICKEM", package, {"picks": picks})
     oplog.record_event("public_pickem_served", mode="pickem", league=league_upper,
-                        season=resolved_season, week=resolved_week, game_count=view["game_count"])
-    return {"league": league_upper, "season": resolved_season, "week": resolved_week, "view": view}
+                        season=resolved_season, week=resolved_week, game_count=view["game_count"],
+                        slate=package.get("slate"))
+    return {"league": league_upper, "season": resolved_season, "week": resolved_week,
+            "slate": package.get("slate", "FULL"), "view": view}
 
 
 def submit_pick(*, league: str, season, week, client_id: str, game_id: str, predicted_winner: str) -> dict:
@@ -122,7 +137,15 @@ def submit_pick(*, league: str, season, week, client_id: str, game_id: str, pred
     from tools.director_v04 import pickem_store
 
     variant, league_upper, resolved_season, resolved_week = _resolve(league, season, week)
-    package = _build_package(variant, resolved_season, resolved_week)
+    # ALWAYS the full real slate here, regardless of which slate the player
+    # was looking at (Featured/Top25/.../Full) -- FULL is a strict
+    # superset of every filtered slate, so a pick made while viewing a
+    # 20-game Featured slate still validates correctly against the real
+    # game the player actually clicked. This is the concrete mechanism
+    # that keeps pick identity (client_id+league+season+week+game_id)
+    # working identically across every slate variant -- never a
+    # slate-scoped validation path.
+    package = _build_package(variant, resolved_season, resolved_week, slate="FULL")
 
     try:
         picks = pickem_store.picks_for(client_id=client_id, league=league_upper, season=resolved_season, week=resolved_week)

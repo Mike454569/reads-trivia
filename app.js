@@ -64,6 +64,10 @@ var ENABLE_ENGINE_LINEUP_PILOT_V01 = READS_CONFIG.enableEngineLineupPilot === tr
 // CFB data enrichment operation: same fail-closed pattern -- the first CFB
 // engine mode, default OFF.
 var ENABLE_ENGINE_HEISMAN_PILOT_V01 = READS_CONFIG.enableEngineHeismanPilot === true;
+// Weekly Pick'em Player Experience pass: same fail-closed pattern -- OFF
+// until a real deploy + canary verification against production (see
+// reads-config.js's own comment on this flag).
+var ENABLE_PICKEM_V01 = READS_CONFIG.enablePickem === true;
 // Public-readiness punch-list: same fail-closed pattern for every mode
 // this pass either newly certified public (lineupCollege, after its
 // starvation fix) or found already-public-but-frontend-invisible
@@ -1114,6 +1118,7 @@ function resetModeState(mode) {
   else if (mode === 'study') state.study = null;
   else if (mode === 'learn') state.learn = null;
   else if (mode === 'settings') state.settingsConfirmClear = false;
+  else if (mode === 'pickem_nfl' || mode === 'pickem_cfb') state.pickem = null;
 }
 /* ============================== lazy data loading ==============================
    Only data/quiz.js (QUIZ) and data/cfb.js (CFB) load eagerly — they're needed
@@ -1283,6 +1288,18 @@ function goToMode(mode) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
     startSixDegreesRound();
+    return;
+  }
+  // Weekly Pick'em Player Experience pass: same unified-discovery routing
+  // pattern as Six Degrees just above -- Pick'em's real shape (a whole
+  // week's slate of games, each independently locked/graded) doesn't fit
+  // engine-game-ui.js's one-question-at-a-time shell, so it gets its own
+  // dedicated branch and start function (startPickemRound(league)) instead
+  // of an ENGINE_DISCOVERY_ENTRIES `engineMode` key.
+  if ((mode === 'pickem_nfl' || mode === 'pickem_cfb') && ENABLE_PICKEM_V01) {
+    lsSet('nflTriviaLastMode', mode);
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    startPickemRound(mode === 'pickem_nfl' ? 'NFL' : 'CFB');
     return;
   }
   var files = MODE_DATA_FILES[mode];
@@ -1630,6 +1647,23 @@ if (ENABLE_ENGINE_SIX_DEGREES_V01) {
     id: 'coach_connections', icon: 'versus', title: 'Coach Connections',
     desc: 'Connect two NFL people through real career history — coaches, players, and teams.',
     league: 'nfl', difficulty: 'hardcore',
+  });
+}
+// Weekly Pick'em Player Experience pass: same no-engineMode discovery
+// pattern as Coach Connections/Six Degrees just above -- routed by its own
+// dedicated goToMode() branch (startPickemRound), not the shared
+// engineMode dispatch, since a whole week's slate doesn't fit that
+// one-question-at-a-time shell.
+if (ENABLE_PICKEM_V01) {
+  ENGINE_DISCOVERY_ENTRIES.push({
+    id: 'pickem_nfl', icon: 'flag', title: "NFL Pick'em",
+    desc: "Pick the winner of every real game on this week's NFL slate.",
+    league: 'nfl', difficulty: 'casual',
+  });
+  ENGINE_DISCOVERY_ENTRIES.push({
+    id: 'pickem_cfb', icon: 'flag', title: "CFB Pick'em",
+    desc: "Pick winners for a Featured, Top 25, Power Four, Conference, or Full college slate.",
+    league: 'cfb', difficulty: 'casual',
   });
 }
 var LEAGUE_MODES = {
@@ -9313,6 +9347,7 @@ function renderAll() {
   else if (state.screen === 'mechanicPilot') html += renderMechanicPilotScreen();
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
   else if (state.screen === 'creator') html += renderCreatorScreen();
+  else if (state.screen === 'pickem') html += renderPickemScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
@@ -9518,7 +9553,8 @@ document.addEventListener('click', function (e) {
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
-    '[data-mode-restart], [data-mode-exit]');
+    '[data-mode-restart], [data-mode-exit], ' +
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry]');
   if (!t) return;
 
   if (t.id === 'help-toggle') {
@@ -9770,6 +9806,10 @@ document.addEventListener('click', function (e) {
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
   if (t.dataset.sixdegreesGiveup !== undefined) { giveUpSixDegrees(); return; }
+  if (t.dataset.pickemSlate !== undefined) { changePickemSlate(t.dataset.pickemSlate, null); return; }
+  if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
+  if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }
+  if (t.dataset.pickemRetry !== undefined) { loadPickemView(); return; }
   if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
     var tokenInput = document.getElementById('creator-token-input');
     creatorSubmitToken(tokenInput ? tokenInput.value : '');

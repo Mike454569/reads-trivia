@@ -72,11 +72,22 @@ _SCHEDULE_COLUMNS = [
     ("updated_at", "TEXT"),
 ]
 
+# Player Experience pass: real conference names (e.g. "SEC", "Big Ten"),
+# confirmed live in the source CFB schedule CSV (never touched by
+# cfb_games_refresh.py's _HEADER_REMAP) but never captured before this
+# pass -- only a same-conference BOOLEAN (`conference_game`) existed.
+# Needed for the new POWER4/CONFERENCE Pick'em slates. CFB-only: no NFL
+# slate concept exists, so these would sit permanently NULL on `games`.
+_CFB_CONFERENCE_COLUMNS = [
+    ("home_conference", "TEXT"),
+    ("away_conference", "TEXT"),
+]
 
-def _add_missing_columns(c, table: str) -> list[str]:
+
+def _add_missing_columns(c, table: str, columns=_SCHEDULE_COLUMNS) -> list[str]:
     cols = {row[1] for row in c.execute(f"PRAGMA table_info({table})")}
     added = []
-    for name, decl in _SCHEDULE_COLUMNS:
+    for name, decl in columns:
         if name not in cols:
             c.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
             added.append(f"{table}.{name}")
@@ -91,6 +102,7 @@ def ensure_pickem_schema(c) -> list[str]:
     added = []
     added += _add_missing_columns(c, "games")
     added += _add_missing_columns(c, "cfb_games_canonical")
+    added += _add_missing_columns(c, "cfb_games_canonical", _CFB_CONFERENCE_COLUMNS)
 
     existed = c.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='pickem_picks'"
@@ -118,13 +130,30 @@ def ensure_pickem_schema(c) -> list[str]:
 
 
 def run_migration() -> dict:
+    """Real bug found and fixed after this pass's own production deploy:
+    the original version called safety.create_verified_backup() directly
+    without ever calling safety.start_run()/finish_run() -- since
+    _cleanup_backup_after_success() (safety.py) only ever prunes a backup
+    from finish_run(status='SUCCESS', backup_id=...), that backup was
+    PERMANENTLY orphaned on disk, never cleaned up by anything. Confirmed
+    live: this silently consumed 4.4GB (the entire production DB's size)
+    on the production Fly volume's 10GB total after the very first real
+    run, dropping free disk from 53% to 11% -- a real, disclosed incident,
+    manually cleaned up once, now fixed at the source so it can't repeat
+    on the next call (local or production)."""
+    c = engine_bootstrap.connect()
+    run_id = safety.start_run(c, league="ALL", dataset="pickem_schema_migration", source_id=None)
+    c.close()
     backup = safety.create_verified_backup()
     c = engine_bootstrap.connect()
     try:
         added = ensure_pickem_schema(c)
     finally:
         c.close()
-    return {"status": "SUCCESS", "backup_id": backup["backup_id"], "columns_added": added}
+    c = engine_bootstrap.connect()
+    safety.finish_run(c, run_id, status="SUCCESS", backup_id=backup["backup_id"], detail={"columns_added": added})
+    c.close()
+    return {"status": "SUCCESS", "run_id": run_id, "backup_id": backup["backup_id"], "columns_added": added}
 
 
 if __name__ == "__main__":

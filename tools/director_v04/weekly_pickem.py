@@ -301,3 +301,232 @@ def build_package(seed: str, variant: str, season: int, week) -> dict:
         "production_safety": result["safety"], "shortfall_reason": result["shortfall_reason"],
         "review_status": "UNREVIEWED", "_diagnostics": {"seed": seed},
     }
+
+
+# --- CFB slate variants (Player Experience pass) ----------------------------
+#
+# A real, previously-shipped gap: a bare CFB Pick'em request returned the
+# ENTIRE real week's slate (up to 99 games for a real Week 1) -- unplayable.
+# Everything below is a pure READ-TIME FILTER/SCORE over the exact same
+# real full slate generate_slate()/build_package() already produce -- never
+# a second candidate-pool query, never a parallel engine. mechanic_engine.py
+# needs zero changes: it only ever reads package["games"], never how those
+# games were selected, so grading/locking/VOID handling are provably
+# unaffected by anything in this section.
+
+CFB_SLATES = frozenset({"FULL", "FEATURED", "TOP25", "POWER4", "CONFERENCE"})
+DEFAULT_CFB_SLATE = "FEATURED"
+# Real, stable, publicly-known grouping -- not fabricated. Confirmed these
+# are the exact literal conference-name strings the live 2026 source data
+# itself uses (cfbfastR's schedule CSV), captured via cfb_games_refresh.py.
+POWER_FOUR_CONFERENCES = frozenset({"SEC", "Big Ten", "Big 12", "ACC"})
+REAL_CFB_CONFERENCES = frozenset({
+    "ACC", "American Athletic", "Big 12", "Big Sky", "Big Ten", "Coastal Athletic",
+    "Conference USA", "FBS Independents", "FCS Independents", "MEAC", "MVFC",
+    "Mid-American", "Mountain West", "NEC", "OVC", "Pac-12", "Patriot", "SEC",
+    "SWAC", "Southern", "Southland", "Sun Belt", "UAC",
+})
+# Fixed top-N, not a score threshold -- keeps the real weekly slate size
+# predictable (a marquee week can't blow past it, a quiet week just returns
+# fewer real games) rather than swinging wildly with how many games happen
+# to clear an arbitrary point cutoff that week.
+FEATURED_TARGET_COUNT = 20
+
+
+def normalize_slate(slate: str | None) -> str:
+    if slate is None:
+        return DEFAULT_CFB_SLATE
+    upper = slate.strip().upper()
+    if upper not in CFB_SLATES:
+        raise ValueError(f"slate must be one of {sorted(CFB_SLATES)}, got {slate!r}")
+    return upper
+
+
+def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
+    """school_id -> real AP Top 25 rank for this real (season, week).
+    Postseason rankings are stored at the same degenerate week=1 every
+    postseason row uses (confirmed live -- the same real "everything
+    mislabeled" pattern already disclosed for cfb_games_canonical's own
+    bowls/CFP rows) -- queried by season_type, never by the postseason
+    token string itself."""
+    rank_week = 1 if season_type == "postseason" else int(week)
+    rows = c.execute(
+        "SELECT school_id, rank FROM cfb_rankings WHERE season=? AND week=? AND season_type=? AND poll='AP Top 25'",
+        (season, rank_week, season_type),
+    ).fetchall()
+    return {r["school_id"]: r["rank"] for r in rows}
+
+
+def _rivalry_pairs(c) -> set:
+    rows = c.execute("SELECT school_a_id, school_b_id FROM cfb_rivalries").fetchall()
+    return {frozenset((r["school_a_id"], r["school_b_id"])) for r in rows}
+
+
+def _game_conference_meta(c, game_ids: list[str]) -> dict:
+    if not game_ids:
+        return {}
+    placeholders = ",".join("?" for _ in game_ids)
+    rows = c.execute(
+        f"SELECT game_id, home_conference, away_conference, conference_game FROM cfb_games_canonical "
+        f"WHERE game_id IN ({placeholders})", game_ids,
+    ).fetchall()
+    return {r["game_id"]: (r["home_conference"], r["away_conference"], r["conference_game"]) for r in rows}
+
+
+def _betting_spreads(c, game_ids: list[str]) -> dict[str, float]:
+    """Only real rows that actually exist -- confirmed live that
+    cfb_betting_lines has ZERO rows for the current 2026 season. A
+    game_id absent here contributes nothing to scoring below, never a
+    fabricated/assumed spread."""
+    if not game_ids:
+        return {}
+    placeholders = ",".join("?" for _ in game_ids)
+    rows = c.execute(
+        f"SELECT game_id, MIN(ABS(spread)) AS abs_spread FROM cfb_betting_lines "
+        f"WHERE game_id IN ({placeholders}) AND spread IS NOT NULL GROUP BY game_id", game_ids,
+    ).fetchall()
+    return {r["game_id"]: r["abs_spread"] for r in rows}
+
+
+def score_featured(game: dict, ranks: dict, rivalry_pairs: set, home_conf, away_conf,
+                    conference_game, spread) -> int:
+    """Real-data-only game-interest score. Every point comes from a real,
+    confirmed-live signal -- missing data (no ranking, no rivalry, no real
+    conference, no betting line) always contributes 0, never guessed at."""
+    home_rank = ranks.get(game["home_team"])
+    away_rank = ranks.get(game["away_team"])
+    score = 0
+    if home_rank or away_rank:
+        score += 30
+    if home_rank and away_rank:
+        score += 40
+    if (home_rank and home_rank <= 10) or (away_rank and away_rank <= 10):
+        score += 20
+    if (home_rank and home_rank <= 5) or (away_rank and away_rank <= 5):
+        score += 15
+    if frozenset((game["home_team"], game["away_team"])) in rivalry_pairs:
+        score += 25
+    # Power Four = at least one side in a real P4 conference (P4-vs-anyone)
+    # -- a real judgment call, documented here rather than left implicit.
+    home_p4 = home_conf in POWER_FOUR_CONFERENCES
+    away_p4 = away_conf in POWER_FOUR_CONFERENCES
+    if home_p4 or away_p4:
+        score += 10
+    if home_p4 and away_p4:
+        score += 10
+    if conference_game:
+        score += 8
+    if spread is not None:
+        if spread <= 3:
+            score += 15
+        elif spread <= 7:
+            score += 8
+        elif spread <= 13:
+            score += 3
+    return score
+
+
+def filter_games_for_slate(games: list[dict], *, slate: str | None, conference: str | None,
+                            season: int, week) -> tuple[list[dict], dict]:
+    """Pure filter/score over an already-generated FULL real slate --
+    de-dup by game_id is structural (this only ever subsets one list,
+    never unions multiple category queries with potential overlap).
+
+    Stability note: the only inputs here that could churn intra-day are
+    the ones deliberately excluded -- status/score are NOT scoring
+    inputs at all. Rankings/betting-lines refresh weekly (Sundays only,
+    per netlify.toml); cfb_rivalries has no refresh job at all (static
+    curated data); conference names are structural facts that don't
+    change once a matchup is scheduled. A deterministic recompute on
+    every request is therefore already stable within a single real day --
+    no new caching/pinning layer is needed, and building one would
+    contradict this module's own "never a frozen fact" discipline."""
+    slate_norm = normalize_slate(slate)
+    meta = {"slate": slate_norm, "conference": None}
+    if slate_norm == "FULL" or not games:
+        return games, meta
+
+    if slate_norm == "CONFERENCE":
+        if not conference or conference not in REAL_CFB_CONFERENCES:
+            raise ValueError(
+                f"slate=CONFERENCE requires a real conference name from {sorted(REAL_CFB_CONFERENCES)}, got {conference!r}"
+            )
+        meta["conference"] = conference
+
+    game_ids = [g["game_id"] for g in games]
+    season_type = "postseason" if week in _CFB_POSTSEASON_WEEK_TOKENS else "regular"
+
+    c = engine_bootstrap.connect()
+    try:
+        if slate_norm == "TOP25":
+            ranks = _ap_top25(c, season, week, season_type)
+            return [g for g in games if ranks.get(g["home_team"]) or ranks.get(g["away_team"])], meta
+
+        conf_meta = _game_conference_meta(c, game_ids)
+
+        if slate_norm == "POWER4":
+            filtered = []
+            for g in games:
+                home_conf, away_conf, _ = conf_meta.get(g["game_id"], (None, None, None))
+                if home_conf in POWER_FOUR_CONFERENCES or away_conf in POWER_FOUR_CONFERENCES:
+                    filtered.append(g)
+            return filtered, meta
+
+        if slate_norm == "CONFERENCE":
+            filtered = []
+            for g in games:
+                home_conf, away_conf, _ = conf_meta.get(g["game_id"], (None, None, None))
+                if home_conf == conference or away_conf == conference:
+                    filtered.append(g)
+            return filtered, meta
+
+        # FEATURED
+        ranks = _ap_top25(c, season, week, season_type)
+        rivalry_pairs = _rivalry_pairs(c)
+        spreads = _betting_spreads(c, game_ids)
+    finally:
+        c.close()
+
+    scored = []
+    for g in games:
+        home_conf, away_conf, conference_game = conf_meta.get(g["game_id"], (None, None, None))
+        s = score_featured(g, ranks, rivalry_pairs, home_conf, away_conf, conference_game,
+                            spreads.get(g["game_id"]))
+        scored.append((s, g))
+    # Tiebreak: score desc, then earliest kickoff, then game_id -- fully
+    # deterministic, never random.
+    scored.sort(key=lambda pair: (-pair[0], pair[1].get("kickoff") or "", pair[1]["game_id"]))
+    return [g for _, g in scored[:FEATURED_TARGET_COUNT]], meta
+
+
+def build_cfb_slate_package(seed: str, variant: str, season: int, week, *,
+                             slate: str | None, conference: str | None) -> dict:
+    """CFB-only entrypoint reused identically by the public Gateway route
+    and the Creator NL-bridge path. The one place slate/conference gets
+    folded into the seed -- package_id is a content hash of
+    variant|season|week|seed only (see build_package above), so two
+    different real slates for the same (season, week) must get different
+    seeds or they'd collide under packages.py's content-addressed
+    storage."""
+    if variant != "CFB_WEEKLY_PICKEM":
+        raise ValueError("build_cfb_slate_package is CFB-only -- NFL has no slate concept")
+    slate_norm = normalize_slate(slate)
+    seed_with_slate = f"{seed}|slate={slate_norm}" + (f"|conf={conference}" if conference else "")
+    package = dict(build_package(seed_with_slate, variant, season, week))
+    games, slate_meta = filter_games_for_slate(
+        package["games"], slate=slate_norm, conference=conference, season=season, week=week)
+    package["games"] = games
+    package["game_count"] = len(games)
+    package["slate"] = slate_meta["slate"]
+    package["conference"] = slate_meta["conference"]
+    if len(games) < MIN_GAMES_FOR_SLATE:
+        package["qa_status"] = "FAILED"
+        package["shortfall_reason"] = (
+            f"No real games match slate={slate_norm!r}"
+            + (f", conference={conference!r}" if conference else "")
+            + f" for {variant}, season={season}, week={week!r} -- refusing to fabricate a slate."
+        )
+    else:
+        package["qa_status"] = "PASSED"
+        package["shortfall_reason"] = None
+    return package

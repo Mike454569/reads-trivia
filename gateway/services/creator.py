@@ -218,7 +218,23 @@ def _generate_schedule_driven(bridged: dict, *, seed: str | None) -> dict:
         )
 
     real_seed = seed or "creator-nl-bridge"
-    if taxonomy_id == "WEEKLY_PICKEM":
+    if taxonomy_id == "WEEKLY_PICKEM" and bridged["league"] == "CFB":
+        # Player Experience pass: CFB Pick'em is slate-filtered (Featured/
+        # Top25/Power4/Conference/Full -- bridged["slate"]/["conference"],
+        # set by nl_schedule_bridge.detect()). build_cfb_slate_package()
+        # folds slate/conference into its OWN internal seed before ever
+        # calling build_package() -- required because packages.py's
+        # storage is content-addressed by package_id, a hash of
+        # variant|season|week|seed only; two different real slates for the
+        # same (season, week) must never collide under the SAME real_seed.
+        from tools.director_v04 import weekly_pickem
+        try:
+            package = weekly_pickem.build_cfb_slate_package(
+                real_seed, variant, season, week,
+                slate=bridged.get("slate"), conference=bridged.get("conference"))
+        except ValueError as e:
+            raise GatewayError("INVALID_REQUEST", str(e))
+    elif taxonomy_id == "WEEKLY_PICKEM":
         package = mechanic_engine.generate_weekly_pickem_round(variant=variant, season=season, week=week, seed=real_seed)
     else:
         package = mechanic_engine.generate_fantasy_draft_round(variant=variant, season=season, week=week, seed=real_seed)

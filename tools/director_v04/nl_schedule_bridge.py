@@ -104,6 +104,16 @@ def _detect_pickem(text: str) -> bool:
             return True
         if _PICKEM_SLATE_SIGNAL.search(text) and re.search(r"\bpredictions?\b", text, re.IGNORECASE):
             return True
+        # Player Experience pass: "give me the full college football slate"/
+        # "give me all NFL games this week" -- a real, distinct intent this
+        # app has no OTHER capability to serve (nothing else lists an
+        # entire real week's real games), recognized even with neither
+        # "pick(s)" nor "prediction(s)" present, as long as a real
+        # league/slate/week signal co-occurs. _SLATE_FULL_RE is defined
+        # below in this same module (module-level names resolve at call
+        # time, not definition order, so this forward reference is safe).
+        if has_slate_or_league and _SLATE_FULL_RE.search(text):
+            return True
     return False
 
 
@@ -111,8 +121,24 @@ def _detect_fantasy_draft(text: str) -> bool:
     return bool(_FANTASY_ANCHOR.search(text) and _FANTASY_BUILD_WORD.search(text))
 
 
+# Player Experience pass: real, CFB-only concepts (no NFL equivalent in
+# this app -- the NFL has no AP-style Top 25 human poll, no "Power Four"
+# grouping, no conference identity exposed anywhere in this app's NFL
+# data) that a real request can use WITHOUT ever saying "college"/"cfb"
+# explicitly (e.g. "Give me Top 25 Pick'em", "Give me an SEC Pick'em").
+# _CONFERENCE_ALIASES is defined below in this same module -- reused here,
+# never duplicated, so a real conference name only has to be listed once.
+_CFB_ONLY_CONCEPT_RE = re.compile(r"\btop[\s-]?25\b|\bpower\s*(four|4)\b", re.IGNORECASE)
+
+
 def _league_for(text: str) -> str:
-    return "CFB" if _CFB_RE.search(text) else "NFL"
+    if _CFB_RE.search(text) or _CFB_ONLY_CONCEPT_RE.search(text):
+        return "CFB"
+    lowered = text.lower()
+    for alias in _CONFERENCE_ALIASES:
+        if re.search(r"\b" + re.escape(alias) + r"\b", lowered):
+            return "CFB"
+    return "NFL"
 
 
 def _explicit_week(text: str) -> str | None:
@@ -232,14 +258,75 @@ def resolve_current_week(c, league: str, season: int) -> str | None:
     return candidates[-1][0]
 
 
+# --- CFB Pick'em slate recognition (Player Experience pass) ----------------
+# Real behavioral fix: a bare CFB Pick'em request used to return the ENTIRE
+# real week's slate (up to 99 games for a real Week 1) -- unplayable.
+# Default (no slate keyword matched) is now FEATURED, never FULL. NFL
+# requests never populate slate/conference at all (NFL has no slate
+# concept -- weekly_pickem.py's own CFB_SLATES/build_cfb_slate_package are
+# CFB-only by design).
+# Player Experience pass, real bug fix found while testing this against
+# the user's own real phrase list: the original tight `\s+` between
+# full/all/every and slate/games/schedule never matched a real phrase with
+# a league name in between ("full COLLEGE FOOTBALL slate", "all NFL
+# games") -- allows up to 3 intervening words (a real league/context
+# phrase, never an unbounded/greedy gap that could span an unrelated
+# clause).
+_SLATE_FULL_RE = re.compile(
+    r"\b(full|all|every)\b(?:\s+\w+){0,3}?\s+(slate|games?|schedule)\b|\bevery\s+game\b", re.IGNORECASE
+)
+_SLATE_FEATURED_RE = re.compile(r"\bfeatured\b|\bbest\s+games?\b", re.IGNORECASE)
+_SLATE_TOP25_RE = re.compile(r"\btop[\s-]?25\b|\branked\b", re.IGNORECASE)
+_SLATE_POWER4_RE = re.compile(r"\bpower\s*(four|4)\b", re.IGNORECASE)
+
+# lowercase alias -> the exact real conference-name string
+# tools.director_v04.weekly_pickem.REAL_CFB_CONFERENCES also uses (every
+# value below is a real member of that set, confirmed live against the
+# 2026 source data -- weekly_pickem.filter_games_for_slate() re-validates
+# against that same set at slate-build time, so a typo here would surface
+# as a real INVALID_REQUEST, never a silently-empty slate).
+_CONFERENCE_ALIASES = {
+    "sec": "SEC", "big ten": "Big Ten", "b1g": "Big Ten", "big 12": "Big 12", "big twelve": "Big 12",
+    "acc": "ACC", "pac-12": "Pac-12", "pac 12": "Pac-12",
+    "american athletic": "American Athletic", "aac": "American Athletic",
+    "mountain west": "Mountain West", "conference usa": "Conference USA", "c-usa": "Conference USA",
+    "mid-american": "Mid-American", "mac": "Mid-American", "sun belt": "Sun Belt", "swac": "SWAC",
+}
+
+
+def _detect_cfb_slate(text: str) -> tuple[str | None, str | None]:
+    """Returns (slate, conference) -- both None if no slate keyword or real
+    conference name is present in the text (the caller defaults to
+    FEATURED in that case). Conference aliases are checked first and
+    longest-alias-first, so e.g. "big ten" is never partially matched by a
+    looser future alias fragment."""
+    lowered = text.lower()
+    for alias, real_name in sorted(_CONFERENCE_ALIASES.items(), key=lambda kv: -len(kv[0])):
+        if re.search(r"\b" + re.escape(alias) + r"\b", lowered):
+            return "CONFERENCE", real_name
+    if _SLATE_FULL_RE.search(text):
+        return "FULL", None
+    if _SLATE_FEATURED_RE.search(text):
+        return "FEATURED", None
+    if _SLATE_POWER4_RE.search(text):
+        return "POWER4", None
+    if _SLATE_TOP25_RE.search(text):
+        return "TOP25", None
+    return None, None
+
+
 def detect(request_text: str | None) -> dict | None:
-    """Returns {"taxonomy_id", "variant", "league", "season", "week"} for a
-    recognized WEEKLY_PICKEM / LIVE_WEEKLY_FANTASY_DRAFT request (season/week
-    always real -- explicit from the text, or resolved from the live
-    schedule; week is None only when genuinely no real schedule exists yet
-    for that (league, season)) -- or None if this text isn't one of these
-    two intents, so the caller keeps using the existing translator/registry
-    pipeline unchanged."""
+    """Returns {"taxonomy_id", "variant", "league", "season", "week",
+    "slate", "conference"} for a recognized WEEKLY_PICKEM /
+    LIVE_WEEKLY_FANTASY_DRAFT request (season/week always real -- explicit
+    from the text, or resolved from the live schedule; week is None only
+    when genuinely no real schedule exists yet for that (league, season)).
+    slate/conference are populated only for a CFB Pick'em request (None for
+    NFL and for LIVE_WEEKLY_FANTASY_DRAFT, which have no slate concept) --
+    slate defaults to "FEATURED" when no slate keyword/conference name is
+    present in the text, never "FULL". Returns None if this text isn't one
+    of these two intents, so the caller keeps using the existing
+    translator/registry pipeline unchanged."""
     text = request_text or ""
     is_fantasy = _detect_fantasy_draft(text)
     is_pickem = False if is_fantasy else _detect_pickem(text)
@@ -259,4 +346,11 @@ def detect(request_text: str | None) -> dict | None:
         finally:
             c.close()
 
-    return {"taxonomy_id": taxonomy_id, "variant": variant, "league": league, "season": season, "week": week}
+    slate = conference = None
+    if is_pickem and league == "CFB":
+        slate, conference = _detect_cfb_slate(text)
+        if slate is None:
+            slate = "FEATURED"
+
+    return {"taxonomy_id": taxonomy_id, "variant": variant, "league": league, "season": season, "week": week,
+            "slate": slate, "conference": conference}

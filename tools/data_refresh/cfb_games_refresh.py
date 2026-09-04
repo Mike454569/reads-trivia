@@ -143,6 +143,19 @@ def _publish(c, bid: str) -> int:
             notes = extra.get("notes")
             bowl_name = notes if notes and notes not in ("NA", "na") else None
 
+        # Player Experience pass: real conference names (e.g. "SEC", "Big
+        # Ten"), confirmed live in this same raw_json blob (never touched
+        # by _HEADER_REMAP) -- needed for the new POWER4/CONFERENCE Pick'em
+        # slates. Plain overwrite (not COALESCE, unlike season_type/
+        # bowl_name above): conference is always present in the live
+        # source for a real, resolved school, never genuinely absent.
+        home_conference = extra.get("home_conference") or None
+        away_conference = extra.get("away_conference") or None
+        if home_conference in ("NA", "na"):
+            home_conference = None
+        if away_conference in ("NA", "na"):
+            away_conference = None
+
         existing = c.execute(
             "SELECT status, game_date FROM cfb_games_canonical WHERE game_id=?", (gid,)
         ).fetchone()
@@ -158,8 +171,9 @@ def _publish(c, bid: str) -> int:
             """INSERT INTO cfb_games_canonical(
                game_id,season,week,game_date,home_school_id,away_school_id,
                home_score,away_score,stadium_name,conference_game,verification_status,source_id,
-               neutral_site,home_division,away_division,status,winner,updated_at,season_type,bowl_name)
-               VALUES (?,?,?,?,?,?,?,?,?,?,'SOURCE_BACKED',?,?,?,?,?,?,?,?,?)
+               neutral_site,home_division,away_division,status,winner,updated_at,season_type,bowl_name,
+               home_conference,away_conference)
+               VALUES (?,?,?,?,?,?,?,?,?,?,'SOURCE_BACKED',?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(game_id) DO UPDATE SET season=excluded.season,week=excluded.week,game_date=excluded.game_date,
                home_school_id=excluded.home_school_id,away_school_id=excluded.away_school_id,
                home_score=excluded.home_score,away_score=excluded.away_score,stadium_name=excluded.stadium_name,
@@ -168,9 +182,11 @@ def _publish(c, bid: str) -> int:
                away_division=excluded.away_division,status=excluded.status,winner=excluded.winner,
                updated_at=excluded.updated_at,
                season_type=COALESCE(excluded.season_type, cfb_games_canonical.season_type),
-               bowl_name=COALESCE(excluded.bowl_name, cfb_games_canonical.bowl_name)""",
+               bowl_name=COALESCE(excluded.bowl_name, cfb_games_canonical.bowl_name),
+               home_conference=excluded.home_conference,away_conference=excluded.away_conference""",
             (gid, season, week, date, hid, aid, hs, away_score, stadium, conf, SOURCE_ID,
-             neutral_site, home_division, away_division, status, winner, now_iso, season_type, bowl_name, SOURCE_ID),
+             neutral_site, home_division, away_division, status, winner, now_iso, season_type, bowl_name,
+             home_conference, away_conference, SOURCE_ID),
         )
         published += 1
     return published

@@ -85,4 +85,13 @@ window.READS_CONFIG = {
   enableEngineSbChampionOffenseCollegePilot: true,
   enableEngineCfbRankingPilot: true,
   enableEngineCfbUpsetPilot: true,
+
+  // Weekly Pick'em Player Experience pass: the new public Pick'em screen
+  // (pickem-ui.js) and its backend (real slate filtering, conference
+  // capture) are being deployed this pass. Left OFF here on first deploy,
+  // matching this file's own established discipline (see
+  // enableEngineMatchingPilot etc. above): flip to true only after a real
+  // deploy + individual canary verification against production, never
+  // before.
+  enablePickem: false,
 };
