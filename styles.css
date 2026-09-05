@@ -1832,15 +1832,15 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .f101-hash { stroke: rgba(244,247,241,0.18); stroke-width: 0.4; }
 .f101-los { stroke: var(--accent); stroke-width: 0.6; stroke-dasharray: 1.4 1; }
 .f101-player-dot { fill: var(--bg-card); stroke: var(--accent-2); stroke-width: 0.5; }
-.f101-player-label { font-size: 2.6px; font-weight: 700; fill: var(--text); pointer-events: none; }
-.f101-player-tag { font-size: 1.9px; fill: var(--text-dim); pointer-events: none; }
+.f101-player-label { font-size: 1.7px; font-weight: 700; fill: var(--text); pointer-events: none; }
+.f101-player-tag { font-size: 1.25px; fill: var(--text-dim); pointer-events: none; }
 .f101-player { cursor: pointer; }
 .f101-player:focus-visible .f101-player-dot,
 .f101-player:hover .f101-player-dot { stroke: var(--accent); stroke-width: 0.9; }
 .f101-player-active .f101-player-dot { fill: var(--accent); stroke: var(--accent); }
 .f101-player-active .f101-player-label { fill: var(--accent-text); }
 .f101-player-ghost .f101-player-dot { fill: transparent; stroke: rgba(162,177,159,0.45); stroke-dasharray: 0.6 0.6; }
-.f101-player-ghost .f101-player-label { fill: rgba(162,177,159,0.6); font-size: 2.2px; }
+.f101-player-ghost .f101-player-label { fill: rgba(162,177,159,0.6); font-size: 1.5px; }
 .f101-route-path { fill: none; stroke: var(--good); stroke-width: 0.6; }
 .f101-route-label { font-size: 2px; fill: var(--good); }
 .f101-block-path { fill: none; stroke: var(--accent-2); stroke-width: 0.7; stroke-dasharray: 1.6 0.8; }
@@ -1874,13 +1874,13 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .f101-cat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 390px) {
-  .f101-player-label { font-size: 3.1px; }
-  .f101-player-tag { font-size: 2.3px; }
+  .f101-player-label { font-size: 2.0px; }
+  .f101-player-tag { font-size: 1.5px; }
 }
 @media (max-width: 340px) {
   .f101-cat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .f101-cat-card { padding: 10px 9px; }
-  .f101-player-label { font-size: 3.4px; }
+  .f101-player-label { font-size: 2.2px; }
 }
 @media (min-width: 1280px) {
   .f101-cat-grid { grid-template-columns: repeat(4, 1fr); }

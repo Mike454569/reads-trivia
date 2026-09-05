@@ -60,7 +60,12 @@
     var isGhost = !!p.ghost;
     var isActive = opts.activePlayerId === p.id;
     var cls = 'f101-player' + (isGhost ? ' f101-player-ghost' : '') + (isActive ? ' f101-player-active' : '');
-    var r = isGhost ? 2.6 : 3.4;
+    // Real-browser QA pass: 3.4/2.6 visually overlapped for any two players
+    // less than ~7 units apart (common for stacked backfield personnel like
+    // I-Formation's QB/FB/RB) -- shrunk so markers stay legible without
+    // touching down to the closest real spacing used anywhere in the data
+    // (RUN_TRAP's puller start is ~4.5 units from the guard it pulls from).
+    var r = isGhost ? 1.8 : 2.2;
     var interactive = !isGhost;
     var attrs = 'class="' + cls + '" transform="translate(' + p.x + ',' + p.y + ')"' +
       (interactive ? ' tabindex="0" role="button" data-f101-player="' + esc(p.id) + '" aria-label="' +

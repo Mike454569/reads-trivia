@@ -9096,6 +9096,23 @@ function renderEncyclopediaDomainDetail() {
             '<span class="encyc-row-label">' + esc(c.label) + '</span></button>';
         }).join('') + '</div>';
     }).join('');
+    // Real bug found in visual QA: diagram-only formations (currently just
+    // Wing-T) had a real diagram and a real detail-page fallback (see
+    // renderEncyclopediaConceptDetail()) but were never listed ANYWHERE,
+    // making them unreachable through normal navigation. Listed here,
+    // clearly separated, never mixed into the source-verified rows above.
+    if (FOOTBALL_DIAGRAMS && FOOTBALL_DIAGRAMS.formations && domainId === 'FORMATIONS') {
+      var diagramOnly = Object.keys(FOOTBALL_DIAGRAMS.formations)
+        .map(function (k) { return FOOTBALL_DIAGRAMS.formations[k]; })
+        .filter(function (d) { return d.verified === false; });
+      if (diagramOnly.length) {
+        body += '<div class="encyc-subcategory-label">Diagram References</div>' +
+          '<div class="encyc-row-list">' + diagramOnly.map(function (d) {
+            return '<button class="encyc-row" data-encyc-open="concept:' + esc(d.id) + '">' +
+              '<span class="encyc-row-label">' + esc(d.display_name) + '</span></button>';
+          }).join('') + '</div>';
+      }
+    }
   }
   return '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-encyc-domains>' + icon('close') + ' All Domains</button></div>' +
@@ -9221,7 +9238,20 @@ function renderEncyclopediaConceptDetail() {
     sourceRows = node.source_rows;
   } else {
     node = encyclopediaConceptByCanonicalId(id);
-    if (!node) return renderEncyclopediaDomains();
+    if (!node) {
+      // Real bug found in visual QA: a diagram-only entry (currently just
+      // Wing-T -- FOOTBALL_DIAGRAMS.*[id].verified === false) has no
+      // backing LEARN_ENCYCLOPEDIA node, so this page had nowhere to go
+      // but bounce back to the domain list -- making the diagram
+      // unreachable through any real navigation path. Synthesize a
+      // minimal node from the diagram itself rather than inventing
+      // encyclopedia-shaped content; renderF101DiagramBlock's own
+      // verified:false caution still renders below, so this never claims
+      // source-verified status it doesn't have.
+      var diagOnly = f101DiagramFor(id);
+      if (!diagOnly) return renderEncyclopediaDomains();
+      node = { label: diagOnly.diagram.display_name, fields: {}, verification_status: 'DIAGRAM_ONLY' };
+    }
     title = node.label;
     // UI/UX pass: this used to fall back to the raw backend
     // verification_status enum (e.g. "SOURCE_BACKED_DERIVED",
@@ -9229,8 +9259,13 @@ function renderEncyclopediaConceptDetail() {
     // "SOURCE_BACKED" -- real technical leakage a player would see as a
     // badge on the page. Every real tier still gets honest, player-facing
     // copy; nothing backend-shaped is ever shown verbatim.
-    badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : 'Documented';
-    badgeClass = 'encyc-badge-verified';
+    if (node.verification_status === 'DIAGRAM_ONLY') {
+      badgeText = 'Diagram reference -- not a source-verified encyclopedia entry';
+      badgeClass = 'encyc-badge-caution';
+    } else {
+      badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : 'Documented';
+      badgeClass = 'encyc-badge-verified';
+    }
     fields = node.fields || {};
     sourceRows = node.source_rows;
   }

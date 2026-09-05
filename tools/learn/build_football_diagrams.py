@@ -605,10 +605,10 @@ PASS_CONCEPTS = {
         "display_name": "Mesh", "read": "High-low/rub read underneath",
         "players": ol() + [qb("shotgun"), rb("RB", 40, LOS + 12),
                             wr("WR1", 6), wr("WR2", 94, role="Z Receiver", ref="POSITION_Z_RECEIVER"),
-                            slot("SL1", 30, y=LOS), slot("SL2", 70, y=LOS)],
+                            slot("SL1", 20), slot("SL2", 80)],
         "routes": [
-            {"player": "SL1", "points": route_path((30, LOS), (68, LOS + 6), (78, LOS + 6)), "label": "Shallow cross"},
-            {"player": "SL2", "points": route_path((70, LOS), (32, LOS + 8), (22, LOS + 8)), "label": "Shallow cross (under)"},
+            {"player": "SL1", "points": route_path((20, LOS), (68, LOS + 6), (78, LOS + 6)), "label": "Shallow cross"},
+            {"player": "SL2", "points": route_path((80, LOS), (32, LOS + 8), (22, LOS + 8)), "label": "Shallow cross (under)"},
             {"player": "WR1", "points": route_path((6, LOS), (6, LOS - 24)), "label": "Go / clear-out"},
             {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 24)), "label": "Go / clear-out"},
             {"player": "RB", "points": route_path((40, LOS + 12), (40, LOS + 4))},

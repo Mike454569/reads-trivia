@@ -4123,8 +4123,8 @@ window.FOOTBALL_DIAGRAMS = {
     {
      "id": "SL1",
      "label": "SL",
-     "x": 30,
-     "y": 50,
+     "x": 20,
+     "y": 48,
      "role": "Slot / F Receiver",
      "position_ref": "POSITION_SLOT_F_RECEIVER",
      "assignment": "Works the middle of the field; frequent option/RPO read."
@@ -4132,8 +4132,8 @@ window.FOOTBALL_DIAGRAMS = {
     {
      "id": "SL2",
      "label": "SL",
-     "x": 70,
-     "y": 50,
+     "x": 80,
+     "y": 48,
      "role": "Slot / F Receiver",
      "position_ref": "POSITION_SLOT_F_RECEIVER",
      "assignment": "Works the middle of the field; frequent option/RPO read."
@@ -4144,7 +4144,7 @@ window.FOOTBALL_DIAGRAMS = {
      "player": "SL1",
      "points": [
       {
-       "x": 30,
+       "x": 20,
        "y": 50
       },
       {
@@ -4162,7 +4162,7 @@ window.FOOTBALL_DIAGRAMS = {
      "player": "SL2",
      "points": [
       {
-       "x": 70,
+       "x": 80,
        "y": 50
       },
       {
