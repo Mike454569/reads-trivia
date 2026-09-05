@@ -105,6 +105,7 @@ var ENGINE_PILOT_ROUNDSIZE = 10;
 var ENGINE_PILOT_MODES = {
   draft: {
     apiMode: 'draft_guess',
+    icon: 'flag',
     hash: '#draftpilot',
     flagOn: function () { return ENABLE_ENGINE_DRAFT_PILOT_V01; },
     // Matches the Gateway's own public-facing title (gateway/services/
@@ -124,6 +125,7 @@ var ENGINE_PILOT_MODES = {
   },
   championship: {
     apiMode: 'championship_guess',
+    icon: 'lombardiTrophy',
     hash: '#championshippilot',
     flagOn: function () { return ENABLE_ENGINE_CHAMPIONSHIP_PILOT_V01; },
     title: 'NFL Playoffs: Guess the Result',
@@ -142,6 +144,7 @@ var ENGINE_PILOT_MODES = {
   // v1.8, Part F/O -- the milestone's primary acceptance-test capability.
   lineup: {
     apiMode: 'lineup_guess',
+    icon: 'grid',
     hash: '#lineuppilot',
     flagOn: function () { return ENABLE_ENGINE_LINEUP_PILOT_V01; },
     title: 'NFL Starting Lineups: Guess the Team',
@@ -159,6 +162,7 @@ var ENGINE_PILOT_MODES = {
   // competition, not just new NFL predicates.
   heisman: {
     apiMode: 'cfb_heisman_guess',
+    icon: 'trophy',
     hash: '#heismanpilot',
     flagOn: function () { return ENABLE_ENGINE_HEISMAN_PILOT_V01; },
     title: 'CFB Heisman Winners: Guess the School',
@@ -178,6 +182,7 @@ var ENGINE_PILOT_MODES = {
   // for this domain was fixed and regression-tested this pass.
   lineupCollege: {
     apiMode: 'lineup_college_guess',
+    icon: 'grid',
     hash: '#lineupcollegepilot',
     flagOn: function () { return ENABLE_ENGINE_LINEUP_COLLEGE_PILOT_V01; },
     title: 'NFL Starting Lineups: Guess the Team (By College)',
@@ -192,6 +197,7 @@ var ENGINE_PILOT_MODES = {
   // ENGINE_PILOT_MODES. Same shared shell, zero new render/state code.
   nflGameResult: {
     apiMode: 'nfl_game_result_guess',
+    icon: 'versus',
     hash: '#nflgameresultpilot',
     flagOn: function () { return ENABLE_ENGINE_NFL_GAME_RESULT_PILOT_V01; },
     title: 'NFL Game Results: Guess the Winner',
@@ -201,6 +207,7 @@ var ENGINE_PILOT_MODES = {
   },
   cfbGameResult: {
     apiMode: 'cfb_game_result_guess',
+    icon: 'versus',
     hash: '#cfbgameresultpilot',
     flagOn: function () { return ENABLE_ENGINE_CFB_GAME_RESULT_PILOT_V01; },
     title: 'CFB Game Results: Guess the Winner',
@@ -210,6 +217,7 @@ var ENGINE_PILOT_MODES = {
   },
   nflGameBoxscore: {
     apiMode: 'nfl_game_boxscore_guess',
+    icon: 'barChart',
     hash: '#nflgameboxscorepilot',
     flagOn: function () { return ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01; },
     title: 'NFL Box Scores: Guess Who Gained More Yards',
@@ -223,6 +231,7 @@ var ENGINE_PILOT_MODES = {
   // gateway/services/public_game.py's own PUBLIC_MODES entries.
   offenseCollege: {
     apiMode: 'offense_college_guess',
+    icon: 'grid',
     hash: '#offensecollegepilot',
     flagOn: function () { return ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01; },
     title: 'NFL Offense by College: Guess the Team',
@@ -232,6 +241,7 @@ var ENGINE_PILOT_MODES = {
   },
   sbChampionOffenseCollege: {
     apiMode: 'sb_champion_offense_college_guess',
+    icon: 'lombardiTrophy',
     hash: '#sbchampionoffensecollegepilot',
     flagOn: function () { return ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01; },
     title: 'Super Bowl Champions: Guess the Team by College',
@@ -241,6 +251,7 @@ var ENGINE_PILOT_MODES = {
   },
   cfbRanking: {
     apiMode: 'cfb_ranking_guess',
+    icon: 'target',
     hash: '#cfbrankingpilot',
     flagOn: function () { return ENABLE_ENGINE_CFB_RANKING_PILOT_V01; },
     title: 'CFB Rankings: Guess the Team',
@@ -250,6 +261,7 @@ var ENGINE_PILOT_MODES = {
   },
   cfbUpset: {
     apiMode: 'cfb_upset_guess',
+    icon: 'zap',
     hash: '#cfbupsetpilot',
     flagOn: function () { return ENABLE_ENGINE_CFB_UPSET_PILOT_V01; },
     title: 'CFB Upsets: Guess the Winner',
@@ -463,11 +475,11 @@ function renderEnginePilotPromptHtml(game) {
    discipline as the rest of this file -- no parallel visual language),
    never invents new copy: cfg.title is the same real, human-readable
    string already shown on the Start screen. */
-function enginePilotToolbarHtml(cfg) {
-  return (cfg ? '<div class="quiz-progress">' + esc(cfg.title) + '</div>' : '') +
-    '<div class="mode-toolbar">' +
-    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
-    '</div>';
+function enginePilotToolbarHtml(cfg, extraOpts) {
+  if (!cfg) return '<div class="mode-toolbar"><button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button></div>';
+  var opts = { icon: cfg.icon, title: cfg.title };
+  if (extraOpts) { for (var k in extraOpts) opts[k] = extraOpts[k]; }
+  return renderReadsShellHeader(opts);
 }
 function renderEnginePilotScreen() {
   var s = state.enginePilot;
@@ -525,22 +537,56 @@ function renderEnginePilotScreen() {
   // Quiz's own renderQuizQuestion() already does it.
   var game = s.current, answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
-  return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
-    quizProgressRowHtml('Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize + ' &middot; ' + esc(game.difficulty || ''), s.roundIndex, s.roundSize) +
-    renderEnginePilotPromptHtml(game) +
-    '<div class="quiz-options">' +
-    game.payload.options.map(function (opt, i) {
-      var cls = 'quiz-option';
+  var options = game.payload.options;
+  // Real backend pass (Creator/Game Quality Correction, Sept 2026) already
+  // emits true 2-option packages for game-winner/stat-comparison
+  // capabilities (see serializer.finalize_binary_options()) -- whichever
+  // Engine Pilot mode's current question happens to carry exactly 2
+  // options renders through the shared binary-choice component instead of
+  // a vertical 4-option list, with zero backend/state change: same
+  // s.pickedOption, same data-pilot-answer index, same pickEnginePilotAnswer().
+  var isBinary = options.length === 2;
+  var optionsHtml;
+  if (isBinary) {
+    var sideFor = function (i) {
+      var st = 'default';
       if (answered) {
-        if (opt === s.answerResult.canonical_answer) cls += ' correct';
-        else if (i === s.pickedOption) cls += ' wrong';
-      } else if (submitting && i === s.pickedOption) {
-        cls += ' selected';
+        if (options[i] === s.answerResult.canonical_answer) st = 'correct';
+        else if (i === s.pickedOption) st = 'wrong';
+      } else if ((submitting || answered) && i === s.pickedOption) {
+        st = 'selected';
       }
-      return '<button class="' + cls + '" ' + (s.screen === ENGINE_GAME_SCREEN.QUESTION_READY ? 'data-pilot-answer="' + i + '"' : 'disabled') + '>' +
-        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
-    }).join('') +
-    '</div>' +
+      return { code: String(i), label: options[i], state: st };
+    };
+    optionsHtml = renderBinaryChoiceHtml(sideFor(0), sideFor(1), {
+      dataAttr: 'data-pilot-answer',
+      disabled: s.screen !== ENGINE_GAME_SCREEN.QUESTION_READY,
+    });
+  } else {
+    optionsHtml = '<div class="quiz-options">' +
+      options.map(function (opt, i) {
+        var cls = 'quiz-option';
+        if (answered) {
+          if (opt === s.answerResult.canonical_answer) cls += ' correct';
+          else if (i === s.pickedOption) cls += ' wrong';
+        } else if (submitting && i === s.pickedOption) {
+          cls += ' selected';
+        }
+        return '<button class="' + cls + '" ' + (s.screen === ENGINE_GAME_SCREEN.QUESTION_READY ? 'data-pilot-answer="' + i + '"' : 'disabled') + '>' +
+          String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+      }).join('') +
+      '</div>';
+  }
+  // Upset-specific visual accent (Section: CFB Biggest Upsets) -- a real,
+  // restrained frame (not a fake "SHOCKING" badge, no fabricated betting-
+  // line/underdog data the actual response doesn't carry) applied only to
+  // this one mode via its modeKey, since the shared shell below is
+  // otherwise identical across all ~12 Engine Pilot modes.
+  var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '');
+  return '<div class="' + panelCls + '">' + enginePilotToolbarHtml(cfg, { score: s.correctCount + ' correct', difficulty: game.difficulty }) +
+    quizProgressRowHtml('Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize, s.roundIndex, s.roundSize) +
+    renderEnginePilotPromptHtml(game) +
+    optionsHtml +
     // Part 9: real, visible feedback that a submission is in flight (not
     // just silently-disabled buttons) -- aria-live so it's announced.
     (submitting ? '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div>' : '') +

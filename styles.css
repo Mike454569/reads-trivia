@@ -1092,7 +1092,14 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .progress-dots span.done { background: var(--home-accent, var(--accent)); }
 .progress-dots span.current { background: var(--home-accent, var(--accent)); opacity: 0.55; }
 .quiz-question { font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.35; }
-.rank-number-highlight { color: var(--home-accent, var(--accent)); font-weight: 900; }
+/* CFB Rankings visual polish: the real rank number ("No. 8") already
+   highlighted in the prompt text now reads as a poll-badge, not just
+   colored text -- no fabricated data added (still the same substring
+   match on the same real prompt), just a stronger visual treatment. */
+.rank-number-highlight {
+  display: inline-flex; align-items: center; color: var(--accent-text); font-weight: 900;
+  background: var(--home-accent, var(--accent)); border-radius: 999px; padding: 1px 9px; margin: 0 1px;
+}
 .quiz-options { display: grid; gap: 10px; margin-bottom: 6px; }
 .quiz-option {
   position: relative;
@@ -1260,14 +1267,14 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .grid-hint { color: var(--text-dim); font-size: 11px; }
 .grid-answer { font-weight: 700; font-size: 12px; }
 .grid-points { font-size: 11px; color: var(--text-dim); }
-.grid-answer-box { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.grid-answer-box, .whoami-answer-box { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 /* The input used to be a direct flex child of .grid-answer-box; it's now
    wrapped in .typeahead-wrap (position: relative, so the dropdown below can
    anchor to just the input, not the whole button row) — flex: 1/min-width
    move to the wrapper so the layout is unchanged, the input itself just
    fills its wrapper. */
 .typeahead-wrap { position: relative; flex: 1; min-width: 160px; }
-.grid-answer-box input {
+.grid-answer-box input, .whoami-answer-box input {
   width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 12px 10px; color: var(--text); font-size: 16px;
 }
@@ -1885,4 +1892,157 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media (min-width: 1280px) {
   .f101-cat-grid { grid-template-columns: repeat(4, 1fr); }
   .f101-field-wrap { max-width: 640px; margin-left: auto; margin-right: auto; }
+}
+
+/* ============================== Reads Game Screen Visual Identity =======
+   One shared header strip (renderReadsShellHeader()) reused across every
+   mechanic -- Engine Pilot's 12 modes, Weekly Pick'em, Who Am I -- plus one
+   shared binary-choice component (renderBinaryChoiceHtml()) for every
+   genuinely 2-option mechanic. Reuses existing tokens only -- no new
+   color palette, matches --home-accent the same way the rest of the app
+   already does for per-league/per-team accenting. */
+.reads-shell-header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.reads-shell-id { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.reads-shell-icon { color: var(--home-accent, var(--accent)); flex-shrink: 0; display: flex; }
+.reads-shell-icon .icon { width: 18px; height: 18px; }
+.reads-shell-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reads-shell-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.reads-shell-chip {
+  font-size: 11px; font-weight: 700; color: var(--text-dim); background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.reads-shell-chip-streak { color: var(--accent); border-color: var(--accent); }
+.reads-shell-chip-streak .icon { width: 12px; height: 12px; }
+.reads-shell-chip-accent { color: var(--accent-text); background: var(--home-accent, var(--accent)); border-color: var(--home-accent, var(--accent)); }
+.reads-shell-exit { flex-shrink: 0; }
+
+.binary-choice-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 8px; margin: 14px 0; }
+.binary-choice-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 18px 10px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elevated); color: var(--text); text-align: center; cursor: pointer; font: inherit;
+  transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+}
+.binary-choice-card:not(:disabled):hover { border-color: var(--home-accent, var(--accent)); }
+.binary-choice-card:not(:disabled):active { transform: scale(0.98); }
+.binary-choice-card:disabled { cursor: default; }
+.binary-choice-card.selected { border-color: var(--accent); background: rgba(217,166,60,.12); }
+.binary-choice-card.correct { border-color: var(--good); background: rgba(34,197,94,.14); animation: pop-feedback-strong 0.4s ease; }
+.binary-choice-card.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); opacity: .85; animation: shake-feedback-strong 0.45s ease; }
+.binary-choice-label { font-weight: 800; font-size: 15px; line-height: 1.25; word-break: break-word; }
+.binary-choice-sublabel { font-size: 11.5px; color: var(--text-dim); }
+.binary-choice-meta { font-size: 11px; color: var(--text-dim); }
+.binary-choice-reveal { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.binary-choice-vs { display: flex; align-items: center; justify-content: center; color: var(--text-dim); flex-shrink: 0; }
+.binary-choice-vs .icon { width: 20px; height: 20px; }
+
+@media (max-width: 390px) {
+  .reads-shell-title { font-size: 13px; }
+  .binary-choice-card { padding: 14px 6px; }
+  .binary-choice-label { font-size: 13.5px; }
+}
+@media (max-width: 340px) {
+  .reads-shell-chips { order: 3; flex-basis: 100%; }
+  .binary-choice-row { gap: 6px; }
+  .binary-choice-card { padding: 12px 4px; }
+  .binary-choice-label { font-size: 12.5px; }
+  .binary-choice-vs .icon { width: 16px; height: 16px; }
+}
+@media (min-width: 1280px) {
+  .binary-choice-row { max-width: 640px; margin-left: auto; margin-right: auto; }
+}
+
+/* Weekly Pick'em real matchup presentation. */
+.pickem-game-card { padding: 14px; }
+.pickem-game-status-row { display: flex; justify-content: center; margin-bottom: 4px; }
+.pickem-status-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
+  color: var(--text-dim); background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px;
+}
+.pickem-status-chip .icon { width: 12px; height: 12px; }
+.pickem-status-chip-locked, .pickem-status-locked { color: var(--text-dim); }
+.pickem-status-final { color: var(--good); border-color: var(--good); }
+.pickem-complete {
+  margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+}
+.pickem-complete-title { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.pickem-complete-title .icon { width: 15px; height: 15px; color: var(--good); }
+.pickem-complete-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.pickem-complete-stat {
+  font-size: 11.5px; font-weight: 700; color: var(--text-dim); background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px;
+}
+.pickem-complete-good { color: var(--good); border-color: var(--good); }
+.pickem-complete-bad { color: var(--bad); border-color: var(--bad); }
+@media (max-width: 390px) {
+  .pickem-game-card { padding: 10px; }
+}
+
+/* Who Am I: real mystery-identity presentation -- own classes, no longer
+   borrowed from Silhouette/Blitz/Grid. */
+.whoami-clue-count {
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 10px;
+}
+.whoami-clue-count .icon { width: 14px; height: 14px; }
+.whoami-clues { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.whoami-clue {
+  display: flex; align-items: flex-start; gap: 10px; padding: 14px 14px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 15px; line-height: 1.45;
+}
+.whoami-clue-latest { border-color: var(--home-accent, var(--accent)); box-shadow: 0 0 0 1px var(--home-accent, var(--accent)) inset; }
+.whoami-clue-num {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-elevated);
+  color: var(--text-dim); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+.whoami-clue-latest .whoami-clue-num { background: var(--home-accent, var(--accent)); color: var(--accent-text); }
+.whoami-clue-text { flex: 1; }
+.whoami-wrong-line { display: flex; align-items: center; gap: 6px; color: var(--bad); font-size: 13px; font-weight: 600; margin: 8px 0; }
+.whoami-wrong-line .icon { width: 14px; height: 14px; }
+.whoami-reveal {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  padding: 26px 16px; margin: 10px 0 16px; border-radius: var(--radius-lg); border: 1px solid var(--border);
+  animation: pop-feedback-strong 0.4s ease;
+}
+.whoami-reveal-correct { background: rgba(34,197,94,.10); border-color: var(--good); }
+.whoami-reveal-wrong { background: rgba(239,68,68,.10); border-color: var(--bad); }
+.whoami-reveal-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+.whoami-reveal-icon .icon { width: 20px; height: 20px; }
+.whoami-reveal-correct .whoami-reveal-icon { background: var(--good); color: #06240f; }
+.whoami-reveal-wrong .whoami-reveal-icon { background: var(--bad); color: #2a0505; }
+.whoami-reveal-name { font-size: 24px; font-weight: 900; }
+.whoami-reveal-line { font-size: 13px; color: var(--text-dim); }
+.whoami-summary-stats { margin: 6px 0 12px; }
+@media (max-width: 390px) {
+  .whoami-clue { font-size: 14px; padding: 12px; }
+  .whoami-reveal-name { font-size: 20px; }
+}
+
+/* CFB Biggest Upsets: a real, restrained "this one's dramatic" frame --
+   an accent-red top border and the mode's own zap icon in the shell, not
+   a fabricated "SHOCKING" label or invented stats. */
+.upset-panel { border-top: 3px solid var(--accent-red); }
+.upset-panel .reads-shell-icon { color: var(--accent-red); }
+
+/* Higher or Lower: real, disclosed mobile gap closed -- the 52px score
+   number and two-column guess row had zero small-screen rules before
+   this pass (confirmed: this bespoke UI is otherwise already good and
+   deliberately untouched everywhere else). */
+@media (max-width: 390px) {
+  .hl-card { padding: var(--space-md) var(--space-sm); }
+  .hl-name { font-size: 16px; }
+  .hl-score { font-size: 38px; }
+  .hl-guess-btn { padding: 12px; font-size: 14px; min-height: 48px; }
+}
+@media (max-width: 340px) {
+  .hl-score { font-size: 32px; }
+  .hl-guess-row { gap: 8px; }
+  .hl-guess-btn { padding: 10px 6px; font-size: 13px; }
 }

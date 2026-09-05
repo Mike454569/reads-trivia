@@ -111,28 +111,69 @@ function submitPickemPick(gameId, teamCode) {
   });
 }
 
+// Section 8 (Pick'em completion): a real per-outcome breakdown computed
+// from the actual per-game `outcome` field already in the view -- never a
+// second server call, never fabricated. Used both for the completion
+// banner/screen and (games.length && graded_count===0-safe) nowhere else.
+function pickemOutcomeCounts(games) {
+  var counts = { CORRECT: 0, INCORRECT: 0, TIE: 0, VOID: 0, PENDING: 0, unpicked: 0 };
+  games.forEach(function (g) {
+    if (!g.your_pick) { counts.unpicked++; return; }
+    if (g.outcome && counts.hasOwnProperty(g.outcome)) counts[g.outcome]++;
+  });
+  return counts;
+}
+
 function renderPickemScreen() {
   var s = state.pickem;
   if (!s) return '';
+  var leagueTitle = s.league === 'NFL' ? "NFL Pick'em" : "CFB Pick'em";
   if (s.screen === 'LOADING') {
-    return '<div class="panel loading-panel" aria-busy="true"><div class="status-line">Loading this week\'s slate…</div></div>';
+    return '<div class="panel loading-panel" aria-busy="true">' +
+      renderReadsShellHeader({ icon: 'versus', title: leagueTitle }) +
+      '<div class="status-line">Loading this week\'s slate…</div></div>';
   }
   if (s.screen === 'ERROR') {
-    return '<div class="panel"><div class="quiz-feedback">' + esc(s.error.text) + '</div>' +
+    return '<div class="panel">' + renderReadsShellHeader({ icon: 'versus', title: leagueTitle }) +
+      '<div class="quiz-feedback">' + esc(s.error.text) + '</div>' +
       '<div class="btn-row"><button class="btn-primary" data-pickem-retry>Try Again</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
   var v = s.view;
-  var header = '<div class="panel">' +
-    '<div class="panel-title">' + (s.league === 'NFL' ? 'NFL' : 'College Football') + " Pick'em — " +
-    esc(String(v.season)) + ', Week ' + esc(String(v.week)) + '</div>' +
-    '<div class="status-line">' + v.picks_made + '/' + v.game_count + ' picks made · ' +
-    v.correct_count + '/' + v.graded_count + ' correct</div>' +
+  var allGraded = v.game_count > 0 && v.graded_count === v.game_count;
+  var headerOpts = {
+    icon: 'versus',
+    title: leagueTitle + ' · ' + esc(String(v.season)) + ', Week ' + esc(String(v.week)),
+    score: v.picks_made + '/' + v.game_count + ' picked',
+  };
+  if (v.graded_count > 0) headerOpts.badge = v.correct_count + '/' + v.graded_count + ' correct';
+  if (s.league === 'CFB') headerOpts.difficulty = PICKEM_SLATE_LABELS[s.slate];
+  var header = '<div class="panel">' + renderReadsShellHeader(headerOpts) +
     (s.league === 'CFB' ? renderPickemSlateChips(s) : '') +
     (s.lastPickError ? '<div class="quiz-feedback">' + esc(s.lastPickError) + '</div>' : '') +
+    (allGraded ? renderPickemCompletionSummary(v) : '') +
     '</div>';
   var cards = v.games.map(function (g) { return pickemGameCardHtml(g, s); }).join('');
   return header + cards + '<div class="btn-row"><button class="btn-secondary" data-go="home">Exit to Home</button></div>';
+}
+
+// Section 8: shown once every game on the current slate view has a real
+// final grade (VOID counts as graded -- mechanic_engine.py already treats
+// it as terminal). This is per-SLATE-VIEW, not per-week -- switching to a
+// narrower/wider slate recomputes it from that view's own games, which is
+// the same "always derived from the current real view, never cached"
+// discipline weekly_pickem.py itself already follows.
+function renderPickemCompletionSummary(v) {
+  var counts = pickemOutcomeCounts(v.games);
+  return '<div class="pickem-complete">' +
+    '<div class="pickem-complete-title">' + icon('check') + ' Slate graded</div>' +
+    '<div class="pickem-complete-stats">' +
+    '<span class="pickem-complete-stat pickem-complete-good">' + counts.CORRECT + ' correct</span>' +
+    '<span class="pickem-complete-stat pickem-complete-bad">' + counts.INCORRECT + ' incorrect</span>' +
+    (counts.TIE ? '<span class="pickem-complete-stat">' + counts.TIE + ' tie</span>' : '') +
+    (counts.VOID ? '<span class="pickem-complete-stat">' + counts.VOID + ' void</span>' : '') +
+    (counts.unpicked ? '<span class="pickem-complete-stat">' + counts.unpicked + ' not picked</span>' : '') +
+    '</div></div>';
 }
 
 function renderPickemSlateChips(s) {
@@ -150,28 +191,47 @@ function renderPickemSlateChips(s) {
   return '<div class="chip-row">' + chips + '</div>' + confPicker;
 }
 
+// Section: Weekly Pick'em real matchup presentation. Reuses the shared
+// binary-choice component (app.js) instead of a bespoke Pick'em-only
+// component -- a Pick'em pick IS a two-sided selection, the same shape
+// nflGameResult/cfbGameResult already use, just persisted server-side
+// instead of graded inline. data-pickem-game/data-pickem-team stay as the
+// two data attributes the existing click handler already reads -- this is
+// a presentation change only, zero click-wiring/state-shape change.
 function pickemGameCardHtml(g, s) {
   var isFinal = g.status === 'FINAL';
   var isLocked = isFinal || ['IN_PROGRESS', 'POSTPONED', 'CANCELED'].indexOf(g.status) >= 0;
   var disabled = isLocked || s.pendingPickGameId === g.game_id;
 
-  function opt(code, label) {
-    var cls = ['quiz-option'];
-    if (g.your_pick === code) cls.push('selected');
-    if (isFinal && g.winner === code) cls.push('correct');
-    if (isFinal && g.your_pick === code && g.winner !== code) cls.push('wrong');
-    var score = isFinal ? ' (' + (code === g.home_team_code ? g.home_score : g.away_score) + ')' : '';
-    return '<button class="' + cls.join(' ') + '"' + (disabled ? ' disabled' : '') +
-      ' data-pickem-game="' + esc(g.game_id) + '" data-pickem-team="' + esc(code) + '">' + esc(label) + score + '</button>';
+  function side(code, label, isHome) {
+    var st = 'default';
+    if (g.your_pick === code) st = isFinal ? (g.winner === code ? 'correct' : 'wrong') : 'selected';
+    else if (isFinal && g.winner === code) st = 'correct';
+    return {
+      code: code, label: label,
+      sublabel: isHome ? 'Home' : 'Away',
+      reveal: isFinal ? String(isHome ? g.home_score : g.away_score) : null,
+      state: st,
+    };
   }
+
+  var kickoffText = g.kickoff ? new Date(g.kickoff).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  var statusChip = isFinal
+    ? '<span class="pickem-status-chip pickem-status-final">' + icon('check') + ' FINAL</span>'
+    : isLocked
+      ? '<span class="pickem-status-chip pickem-status-locked">' + icon('lock') + ' Locked</span>'
+      : '<span class="pickem-status-chip">' + icon('timer') + ' ' + esc(kickoffText) + '</span>';
 
   var outcomeText = g.your_pick && g.outcome ? PICKEM_OUTCOME_COPY[g.outcome] : null;
   var outcome = outcomeText ? '<div class="quiz-feedback">' + esc(outcomeText) + '</div>' : '';
-  var kickoffText = g.kickoff ? new Date(g.kickoff).toLocaleString() : '';
 
-  return '<div class="panel">' +
-    '<div class="status-line">' + esc(kickoffText) + ' · ' + esc(g.status) + '</div>' +
-    '<div class="quiz-options">' + opt(g.away_team_code, g.away_team) + opt(g.home_team_code, g.home_team) + '</div>' +
+  return '<div class="panel pickem-game-card">' +
+    '<div class="pickem-game-status-row">' + statusChip + '</div>' +
+    renderBinaryChoiceHtml(
+      side(g.away_team_code, g.away_team, false),
+      side(g.home_team_code, g.home_team, true),
+      { dataAttr: 'data-pickem-team', disabled: disabled, extraAttrs: 'data-pickem-game="' + esc(g.game_id) + '"' }
+    ) +
     outcome +
     '</div>';
 }

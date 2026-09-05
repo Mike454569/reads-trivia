@@ -156,6 +156,11 @@ var ICON_PATHS = {
   barChart: '<path d="M4 20V10"/><path d="M12 20V4"/><path d="M20 20v-7"/>',
   shield: '<path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6Z"/>',
   star: '<path d="M12 2.5 15 9l7 .8-5.2 4.8 1.4 6.9L12 18l-6.2 3.5 1.4-6.9L2 9.8 9 9Z"/>',
+  // Reads Game Screens Visual Identity pass: two small additions, not a
+  // library -- a person silhouette with a question mark (Who Am I) and a
+  // plain padlock (Pick'em's locked/kicked-off game state).
+  mystery: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/><path d="M9.8 15.2a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.8.6-.8 1.2"/><path d="M11.5 20.4h.01"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
@@ -186,6 +191,74 @@ function quizProgressRowHtml(labelHtml, current, total) {
   if (!dots) return '<div class="quiz-progress">' + labelHtml + '</div>';
   return '<div class="quiz-progress-row"><div class="quiz-progress">' + labelHtml + '</div>' + dots + '</div>';
 }
+// ============================== Reads Game Screen Visual Identity ==========
+// One shared, compact header strip reused across every mechanic (Engine
+// Pilot's ~12 modes, Weekly Pick'em, Who Am I) so every game screen carries
+// the same subtle Reads branding -- icon + mode title, plus whichever of
+// score/streak/difficulty actually apply to that mechanic -- without
+// becoming a "giant branded poster." The question/content region below
+// this is untouched; this only replaces each mode's own ad hoc title bar.
+// Deliberately does NOT replace quizProgressRowHtml()/progressDotsHtml()
+// (used by many other modes this pass doesn't touch) -- callers render
+// this header, then their own progress row, exactly as before.
+function renderReadsShellHeader(opts) {
+  opts = opts || {};
+  var chips = '';
+  if (opts.score != null) chips += '<span class="reads-shell-chip">' + esc(String(opts.score)) + '</span>';
+  if (opts.streak != null) chips += '<span class="reads-shell-chip reads-shell-chip-streak">' + icon('flame') + ' ' + esc(String(opts.streak)) + '</span>';
+  if (opts.difficulty) chips += '<span class="reads-shell-chip">' + esc(opts.difficulty) + '</span>';
+  if (opts.badge) chips += '<span class="reads-shell-chip reads-shell-chip-accent">' + esc(opts.badge) + '</span>';
+  return '<div class="reads-shell-header">' +
+    '<div class="reads-shell-id">' +
+    (opts.icon ? '<span class="reads-shell-icon">' + icon(opts.icon) + '</span>' : '') +
+    '<span class="reads-shell-title">' + esc(opts.title || '') + '</span>' +
+    '</div>' +
+    (chips ? '<div class="reads-shell-chips">' + chips + '</div>' : '') +
+    (opts.restartAttr ? '<button class="btn-tiny reads-shell-exit" ' + opts.restartAttr + ' aria-label="Restart">' + icon('restart') + '</button>' : '') +
+    (opts.hideExit ? '' : '<button class="btn-tiny reads-shell-exit" data-mode-exit>' + icon('close') + ' Exit</button>') +
+    '</div>';
+}
+
+// Shared two-sided selection component (Section 4 of the visual-identity
+// pass): every genuinely binary mechanic -- NFL/CFB game-winner guesses,
+// Weekly Pick'em matchups, CFB stat comparisons -- renders through this one
+// function instead of five independent hand-built binary UIs. Deliberately
+// does NOT touch Higher/Lower's own existing `.hl-card`/`.hl-guess-row`
+// component (already bespoke and working -- see its own render code) but
+// shares its visual language (large equally-weighted side-by-side cards,
+// a center VS divider) so the two read as siblings, not two unrelated
+// designs.
+//
+// sideA/sideB: { code, label, sublabel, meta, state: 'default'|'selected'|
+//   'correct'|'wrong'|'locked', reveal (optional extra line shown once
+//   answered/locked, e.g. a final score or a real stat value) }
+// opts: { dataAttr: the data-* attribute name each side's button carries
+//   with that side's `code` as its value (caller wires the click handler),
+//   disabled: true once locked/answered, centerLabel: defaults to 'VS' }
+function renderBinaryChoiceHtml(sideA, sideB, opts) {
+  opts = opts || {};
+  var dataAttr = opts.dataAttr || 'data-binary-choice';
+  function side(s) {
+    var cls = 'binary-choice-card';
+    if (s.state === 'selected') cls += ' selected';
+    if (s.state === 'correct') cls += ' correct';
+    if (s.state === 'wrong') cls += ' wrong';
+    var disabledAttr = opts.disabled ? ' disabled' : '';
+    var extraAttrs = opts.extraAttrs ? ' ' + opts.extraAttrs : '';
+    return '<button class="' + cls + '"' + disabledAttr + extraAttrs + ' ' + dataAttr + '="' + esc(s.code) + '">' +
+      '<span class="binary-choice-label">' + esc(s.label) + '</span>' +
+      (s.sublabel ? '<span class="binary-choice-sublabel">' + esc(s.sublabel) + '</span>' : '') +
+      (s.meta ? '<span class="binary-choice-meta">' + esc(s.meta) + '</span>' : '') +
+      (s.reveal ? '<span class="binary-choice-reveal">' + esc(s.reveal) + '</span>' : '') +
+      '</button>';
+  }
+  return '<div class="binary-choice-row">' +
+    side(sideA) +
+    '<div class="binary-choice-vs">' + icon('versus') + '</div>' +
+    side(sideB) +
+    '</div>';
+}
+
 function slugify(s) { return (String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || 'player'; }
 // Screen-by-Screen Polish pass: a real, reproducible bug found live on
 // mobile -- every modal in this app (onboarding, share, rating, report,
@@ -4741,11 +4814,12 @@ function advancePlayerClues() {
   loadPlayerCluesItem();
   renderAll();
 }
-function playerCluesToolbarHtml() {
-  return '<div class="mode-toolbar">' +
-    '<button class="btn-tiny" data-mode-restart="playerClues">' + icon('restart') + ' Restart</button>' +
-    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
-    '</div>';
+function playerCluesToolbarHtml(s) {
+  return renderReadsShellHeader({
+    icon: 'mystery', title: 'Who Am I',
+    score: s ? s.correctCount + ' correct' : null,
+    restartAttr: 'data-mode-restart="playerClues"',
+  });
 }
 function renderPlayerCluesSetup() {
   if (!PLAYER_CLUES_PACKAGE) {
@@ -4779,21 +4853,37 @@ function renderPlayerCluesSetup() {
     '<div class="btn-row"><button class="btn-primary" data-clues-start' + (matchCount ? '' : ' disabled') + '>Start</button></div>' +
     '</div>';
 }
+// Section: Who Am I -- a real mystery-identity presentation. Same
+// typeahead + progressive-reveal interaction as before (zero logic
+// change: still s.revealedCount/s.itemState/s.input), but its own real
+// classes (.whoami-*) instead of borrowing Silhouette's/Blitz's/Grid's --
+// a player should feel like they're uncovering an identity, not playing a
+// worse version of a different mode.
 function renderPlayerCluesRound() {
   var s = state.playerClues, p = s.queue[s.index];
-  var html = '<div class="panel">' + playerCluesToolbarHtml() +
-    '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>' +
-    progressDotsHtml(s.index, s.queue.length);
+  var totalClues = p.clues.length;
+  var html = '<div class="panel whoami-panel">' + playerCluesToolbarHtml(s) +
+    quizProgressRowHtml('Puzzle ' + (s.index + 1) + ' of ' + s.queue.length, s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
-    html += '<div class="silhouette-reveal">' + esc(p.answer.displayName) + (lastResult && lastResult.correct ? ' — correct!' : ' — not quite') + '</div>' +
-      '<button class="btn-primary" data-clues-next>' + (s.index + 1 >= s.queue.length ? 'See Results' : 'Next Puzzle') + '</button>';
-  } else {
-    html += '<div class="silhouette-clues">' +
-      p.clues.slice(0, s.revealedCount).map(function (c) { return '<div class="silhouette-clue">' + esc(c.text) + '</div>'; }).join('') +
+    var isCorrect = lastResult && lastResult.correct;
+    html += '<div class="whoami-reveal ' + (isCorrect ? 'whoami-reveal-correct' : 'whoami-reveal-wrong') + '">' +
+      '<div class="whoami-reveal-icon">' + icon(isCorrect ? 'check' : 'xMark') + '</div>' +
+      '<div class="whoami-reveal-name">' + esc(p.answer.displayName) + '</div>' +
+      '<div class="whoami-reveal-line">' + (isCorrect ? 'Identified in ' + lastResult.cluesRevealed + ' clue' + (lastResult.cluesRevealed === 1 ? '' : 's') : 'Not quite') + '</div>' +
       '</div>' +
-      (s.lastWrong ? '<div class="blitz-feedback wrong" aria-live="polite">Not quite' + (s.revealedCount < p.clues.length ? '— here’s another clue.' : '.') + '</div>' : '') +
-      '<div class="grid-answer-box">' +
+      '<button class="btn-primary" data-clues-next>' + (s.index + 1 >= s.queue.length ? 'See Results' : 'Next Mystery Player') + '</button>';
+  } else {
+    html += '<div class="whoami-clue-count">' + icon('mystery') + ' Clue ' + s.revealedCount + ' of ' + totalClues + '</div>' +
+      '<div class="whoami-clues">' +
+      p.clues.slice(0, s.revealedCount).map(function (c, i) {
+        return '<div class="whoami-clue' + (i === s.revealedCount - 1 ? ' whoami-clue-latest' : '') + '">' +
+          '<span class="whoami-clue-num">' + (i + 1) + '</span>' +
+          '<span class="whoami-clue-text">' + esc(c.text) + '</span></div>';
+      }).join('') +
+      '</div>' +
+      (s.lastWrong ? '<div class="whoami-wrong-line" aria-live="polite">' + icon('xMark') + ' Not quite' + (s.revealedCount < totalClues ? ' — here’s another clue.' : '.') + '</div>' : '') +
+      '<div class="whoami-answer-box">' +
       '<div class="typeahead-wrap">' +
       '<input id="clues-input" autocomplete="off" placeholder="Who is it?" value="' + esc(s.input) + '" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="clues-input-typeahead" />' +
       '<div id="clues-input-typeahead" class="typeahead-list" role="listbox"></div>' +
@@ -4801,7 +4891,7 @@ function renderPlayerCluesRound() {
       '<button class="btn-primary" data-clues-submit>Guess</button>' +
       '</div>' +
       '<div class="btn-row">' +
-      (s.revealedCount < p.clues.length ? '<button class="btn-secondary" data-clues-hint>Reveal Next Clue</button>' : '') +
+      (s.revealedCount < totalClues ? '<button class="btn-secondary" data-clues-hint>' + icon('search') + ' Reveal Next Clue</button>' : '') +
       '<button class="btn-secondary" data-clues-giveup>Give Up</button>' +
       '</div>';
   }
@@ -4812,9 +4902,13 @@ function renderPlayerCluesSummary() {
   var s = state.playerClues;
   var correctCount = s.results.filter(function (r) { return r.correct; }).length;
   var missed = s.results.filter(function (r) { return !r.correct; });
+  var avgClues = s.results.length ? (s.results.reduce(function (sum, r) { return sum + r.cluesRevealed; }, 0) / s.results.length) : 0;
   return '<div class="panel">' +
-    '<h2 class="panel-title">Player From Clues — Complete</h2>' +
+    renderReadsShellHeader({ icon: 'mystery', title: 'Who Am I — Complete', hideExit: true }) +
     '<div class="summary-score">' + correctCount + ' / ' + s.queue.length + ' identified</div>' +
+    '<div class="whoami-summary-stats">' +
+    '<span class="reads-shell-chip">Avg. ' + avgClues.toFixed(1) + ' clues used</span>' +
+    '</div>' +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (r) {
       var puzzle = PLAYER_CLUES_PACKAGE.puzzles.find(function (pp) { return pp.id === r.id; });
       return esc(puzzle ? puzzle.answer.displayName : String(r.id));
@@ -4931,11 +5025,12 @@ function advanceCfbPlayerClues() {
   loadCfbPlayerCluesItem();
   renderAll();
 }
-function cfbPlayerCluesToolbarHtml() {
-  return '<div class="mode-toolbar">' +
-    '<button class="btn-tiny" data-mode-restart="cfbPlayerClues">' + icon('restart') + ' Restart</button>' +
-    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
-    '</div>';
+function cfbPlayerCluesToolbarHtml(s) {
+  return renderReadsShellHeader({
+    icon: 'mystery', title: 'Who Am I (CFB)',
+    score: s ? s.correctCount + ' correct' : null,
+    restartAttr: 'data-mode-restart="cfbPlayerClues"',
+  });
 }
 function renderCfbPlayerCluesSetup() {
   if (!CFB_PLAYER_CLUES_PACKAGE) {
@@ -4953,19 +5048,29 @@ function renderCfbPlayerCluesSetup() {
 }
 function renderCfbPlayerCluesRound() {
   var s = state.cfbPlayerClues, p = s.queue[s.index];
-  var html = '<div class="panel">' + cfbPlayerCluesToolbarHtml() +
-    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + ' &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.correctCount + ' correct</h2>' +
-    progressDotsHtml(s.index, s.queue.length);
+  var totalClues = p.clues.length;
+  var html = '<div class="panel whoami-panel">' + cfbPlayerCluesToolbarHtml(s) +
+    quizProgressRowHtml('Puzzle ' + (s.index + 1) + ' of ' + s.queue.length, s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
-    html += '<div class="silhouette-reveal">' + esc(p.answer.displayName) + (lastResult && lastResult.correct ? ' — correct!' : ' — not quite') + '</div>' +
-      '<button class="btn-primary" data-cfb-clues-next>' + (s.index + 1 >= s.queue.length ? 'See Results' : 'Next Puzzle') + '</button>';
-  } else {
-    html += '<div class="silhouette-clues">' +
-      p.clues.slice(0, s.revealedCount).map(function (c) { return '<div class="silhouette-clue">' + esc(c.text) + '</div>'; }).join('') +
+    var isCorrect = lastResult && lastResult.correct;
+    html += '<div class="whoami-reveal ' + (isCorrect ? 'whoami-reveal-correct' : 'whoami-reveal-wrong') + '">' +
+      '<div class="whoami-reveal-icon">' + icon(isCorrect ? 'check' : 'xMark') + '</div>' +
+      '<div class="whoami-reveal-name">' + esc(p.answer.displayName) + '</div>' +
+      '<div class="whoami-reveal-line">' + (isCorrect ? 'Identified in ' + lastResult.cluesRevealed + ' clue' + (lastResult.cluesRevealed === 1 ? '' : 's') : 'Not quite') + '</div>' +
       '</div>' +
-      (s.lastWrong ? '<div class="blitz-feedback wrong" aria-live="polite">Not quite' + (s.revealedCount < p.clues.length ? '— here’s another clue.' : '.') + '</div>' : '') +
-      '<div class="grid-answer-box">' +
+      '<button class="btn-primary" data-cfb-clues-next>' + (s.index + 1 >= s.queue.length ? 'See Results' : 'Next Mystery Player') + '</button>';
+  } else {
+    html += '<div class="whoami-clue-count">' + icon('mystery') + ' Clue ' + s.revealedCount + ' of ' + totalClues + '</div>' +
+      '<div class="whoami-clues">' +
+      p.clues.slice(0, s.revealedCount).map(function (c, i) {
+        return '<div class="whoami-clue' + (i === s.revealedCount - 1 ? ' whoami-clue-latest' : '') + '">' +
+          '<span class="whoami-clue-num">' + (i + 1) + '</span>' +
+          '<span class="whoami-clue-text">' + esc(c.text) + '</span></div>';
+      }).join('') +
+      '</div>' +
+      (s.lastWrong ? '<div class="whoami-wrong-line" aria-live="polite">' + icon('xMark') + ' Not quite' + (s.revealedCount < totalClues ? ' — here’s another clue.' : '.') + '</div>' : '') +
+      '<div class="whoami-answer-box">' +
       '<div class="typeahead-wrap">' +
       '<input id="cfb-clues-input" autocomplete="off" placeholder="Who is it?" value="' + esc(s.input) + '" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="cfb-clues-input-typeahead" />' +
       '<div id="cfb-clues-input-typeahead" class="typeahead-list" role="listbox"></div>' +
@@ -4973,7 +5078,7 @@ function renderCfbPlayerCluesRound() {
       '<button class="btn-primary" data-cfb-clues-submit>Guess</button>' +
       '</div>' +
       '<div class="btn-row">' +
-      (s.revealedCount < p.clues.length ? '<button class="btn-secondary" data-cfb-clues-hint>Reveal Next Clue</button>' : '') +
+      (s.revealedCount < totalClues ? '<button class="btn-secondary" data-cfb-clues-hint>' + icon('search') + ' Reveal Next Clue</button>' : '') +
       '<button class="btn-secondary" data-cfb-clues-giveup>Give Up</button>' +
       '</div>';
   }
@@ -4984,9 +5089,11 @@ function renderCfbPlayerCluesSummary() {
   var s = state.cfbPlayerClues;
   var correctCount = s.results.filter(function (r) { return r.correct; }).length;
   var missed = s.results.filter(function (r) { return !r.correct; });
+  var avgClues = s.results.length ? (s.results.reduce(function (sum, r) { return sum + r.cluesRevealed; }, 0) / s.results.length) : 0;
   return '<div class="panel">' +
-    '<h2 class="panel-title">CFB Player From Clues — Complete</h2>' +
+    renderReadsShellHeader({ icon: 'mystery', title: 'Who Am I (CFB) — Complete', hideExit: true }) +
     '<div class="summary-score">' + correctCount + ' / ' + s.queue.length + ' identified</div>' +
+    '<div class="whoami-summary-stats"><span class="reads-shell-chip">Avg. ' + avgClues.toFixed(1) + ' clues used</span></div>' +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (r) {
       var puzzle = CFB_PLAYER_CLUES_PACKAGE.puzzles.find(function (pp) { return pp.id === r.id; });
       return esc(puzzle ? puzzle.answer.displayName : String(r.id));
