@@ -298,3 +298,40 @@ def test_postponed_game_preserves_pick_and_stays_open_until_its_current_kickoff(
     _, progress2 = mechanic_engine.evaluate_submission(
         "WEEKLY_PICKEM", pkg, progress, {"game_id": game_id, "predicted_winner": "AWY"})
     assert progress2["picks"][game_id]["predicted_winner"] == "AWY"
+
+
+# --- Pick'em Automation pass: /v1/admin/pickem/health -----------------------
+
+def test_pickem_health_requires_admin(client):
+    r = client.get("/v1/admin/pickem/health")
+    assert r.status_code == 401
+
+
+def test_pickem_health_reports_both_leagues(client, auth_headers):
+    r = client.get("/v1/admin/pickem/health", headers=auth_headers)
+    assert r.status_code == 200
+    body = r.json()
+    for league_key, league_code in (("nfl", "NFL"), ("cfb", "CFB")):
+        entry = body[league_key]
+        assert entry["league"] == league_code
+        assert isinstance(entry["season"], int)
+        # A real schedule exists for both leagues in this real DB -- a real
+        # current week and real game counts should resolve, not None.
+        assert entry["current_week"] is not None
+        assert entry["upcoming_count"] is not None
+        assert entry["final_count"] is not None
+        assert entry["upcoming_count"] + entry["final_count"] + entry["voided_count"] == entry["total_games_this_week"]
+        assert "last_status" in entry["refresh"]
+
+
+def test_pickem_health_function_direct():
+    """Same real function the route above wraps, called directly -- both
+    leagues resolve real counts that add up to the real total slate size."""
+    from gateway.services import admin_pickem
+    result = admin_pickem.pickem_health()
+    assert set(result.keys()) == {"nfl", "cfb"}
+    for league_entry in result.values():
+        if league_entry["current_week"] is None:
+            continue
+        total = league_entry["upcoming_count"] + league_entry["final_count"] + league_entry["voided_count"]
+        assert total == league_entry["total_games_this_week"]

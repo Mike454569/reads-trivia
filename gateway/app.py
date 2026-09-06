@@ -1285,3 +1285,14 @@ def public_pickem_pick(league: str, season: int, week: str, body: PublicPickemSu
 @app.post("/v1/admin/pickem/game-status")
 def admin_pickem_game_status(body: AdminPickemGameStatusRequest, request: Request, _admin=Depends(require_admin)):
     return admin_pickem.set_game_status(league=body.league, game_id=body.game_id, status=body.status, reason=body.reason)
+
+
+@app.get("/v1/admin/pickem/health")
+def admin_pickem_health(request: Request, _admin=Depends(require_admin)):
+    """Pick'em Automation pass: real, combined freshness/current-week/
+    upcoming-final-count view for both leagues -- see
+    admin_pickem.pickem_health()'s own docstring for what this reads and
+    why it didn't exist before (an operator previously had to
+    cross-reference /v1/admin/refresh/status and a live game fetch by
+    hand)."""
+    return admin_pickem.pickem_health()
