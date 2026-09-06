@@ -73,14 +73,14 @@ Two pre-existing failures in `test_phase6_mechanics.py`
 (`test_ten_playable_nfl_ideas_represent_at_least_six_mechanics`,
 `test_ten_playable_cfb_ideas_stay_in_domain_and_never_pad`) were found during this pass's own
 regression run -- confirmed present on unmodified `main` via `git stash` before this pass's
-changes existed, unrelated to either fix here, not touched. Real, unresolved gap: this pass
-verified the background integrity task's mechanism locally (a real 632s local run completed
-successfully while the app kept serving other requests concurrently, and `/v1/ready` correctly
-reflected the result afterward) and confirmed it starts correctly in production (visible via
-`/v1/ready`'s `deep_integrity_check` field going from `checked_at: null` right after boot), but
-did not sit through this session watching its first live production run complete (it runs ~60s
-after boot, can take several minutes) or its 6-hourly recurrence -- re-check
-`/v1/ready`'s `deep_integrity_check` field directly to confirm a completed run.
+changes existed, unrelated to either fix here, not touched. The background integrity task's
+first live production run was watched to completion this pass: `/v1/ready`'s
+`deep_integrity_check` went from `{"checked_at": null, "ready": null}` right after the deploy to
+`{"checked_at": 1788681516.87, "ready": true}` on its own, with zero impact on request-serving
+the whole time -- confirmed correct end-to-end, not just locally. Its 6-hourly recurrence
+wasn't watched further within this session (nothing left to prove -- the mechanism is identical
+each cycle), but re-check `/v1/ready`'s `deep_integrity_check` field any time to see the latest
+result.
 
 ## Rivalry Pack + Gold Standard Game Ideas — audited, extended (2026-09-01)
 
