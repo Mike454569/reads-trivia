@@ -143,10 +143,35 @@ def test_admin_deep_diagnostic_requires_admin(client):
     assert r.status_code == 401
 
 
-def test_admin_deep_diagnostic_runs_full_check(client, auth_headers):
+def test_admin_deep_diagnostic_default_returns_cached_result_without_running_a_check(client, auth_headers):
+    """Reliability pass (Pass 2.6): this route's DEFAULT (no `force`)
+    response is now a passive read of the background task's cached
+    _deep_integrity_status -- TestClient(app) never triggers the lifespan
+    background task (no `with` context manager here), so this is exactly
+    the real "fresh boot, background check hasn't run yet" state: an
+    honest `ready: None`/`checked_at: None`, not a fabricated pass. See
+    test_admin_deep_diagnostic_force_runs_full_check for the still-real
+    live-check path."""
     r = client.get("/v1/admin/diagnostics/db-integrity", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
+    assert body["forced"] is False
+    assert body["ready"] is None
+    assert body["checked_at"] is None
+
+
+def test_admin_deep_diagnostic_force_runs_full_check(client, auth_headers):
+    r = client.get("/v1/admin/diagnostics/db-integrity", params={"force": "true"}, headers=auth_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["forced"] is True
     assert body["ready"] is True
-    assert body["deep_integrity_checked"] is True
     assert "database_version" in body
+
+    # The forced live check also updates the shared cache the default
+    # (non-forced) path reads -- a subsequent unforced call now sees it.
+    r2 = client.get("/v1/admin/diagnostics/db-integrity", headers=auth_headers)
+    body2 = r2.json()
+    assert body2["forced"] is False
+    assert body2["ready"] is True
+    assert body2["checked_at"] == body["checked_at"]

@@ -18,6 +18,7 @@ process. See READS_ENGINE_STAGING_V01_REPORT.md, Part I.
 """
 from __future__ import annotations
 
+import asyncio
 import shutil
 import sys
 import time
@@ -128,6 +129,66 @@ def _validate_origins_or_die() -> list[str]:
 
 ALLOWED_ORIGINS = _validate_origins_or_die()
 
+# Reliability pass (Pass 2.6): the deep-integrity background task's last
+# result, read by /v1/ready (passively -- never triggers a check itself)
+# and by /v1/admin/diagnostics/db-integrity's default (non-forced) response.
+# `checked_at`/`ready` start None -- "not yet run" is a normal, honest
+# transient state right after boot (the initial delay below), NOT a
+# failure; only a completed check that came back ready=False is treated as
+# a real problem anywhere this is read.
+_deep_integrity_status: dict = {"checked_at": None, "ready": None, "reason_code": None}
+
+
+async def _run_periodic_deep_integrity_check() -> None:
+    """Runs the full PRAGMA quick_check (tools/quiz_export/engine.py's
+    check_engine_readiness_deep()) in a background thread, off the request-
+    serving critical path entirely -- this is the real fix for the 6-8
+    minute deploy outage this pass found: that same call used to run
+    SYNCHRONOUSLY inside lifespan()'s startup phase, before FastAPI would
+    serve a single request (including Fly's own health checks), so its full
+    real duration (measured ~166s against the production volume, longer
+    under this box's own documented ambient CPU/IO variance) was a real,
+    total outage window on every deploy.
+
+    Moving it here does not weaken integrity verification -- the exact same
+    deep check still runs, on the exact same real database, just
+    asynchronously: once ~DEEP_INTEGRITY_CHECK_INITIAL_DELAY_SECONDS after
+    boot (so it never competes with a cold-cache first wave of real
+    traffic), then every ~DEEP_INTEGRITY_CHECK_INTERVAL_SECONDS for the
+    life of the process. A failure updates `_deep_integrity_status` (read by
+    /v1/ready, which will then correctly report itself unready -- Part 9's
+    "do not invent a fake green readiness state while the DB is unusable")
+    and logs a CRITICAL line to stderr, which `fly logs` captures and the
+    existing gateway-monitor.yml GitHub Actions job (already polling
+    /v1/ready every 15 minutes) surfaces as a real, visible red failure --
+    no new external service or secret needed.
+
+    Single-machine topology note: if this app ever runs as more than one
+    Fly machine, each machine would run its own independent copy of this
+    loop (harmless -- read-only against a shared-nothing-per-connection
+    SQLite file, same concurrent-reader-safe pattern gateway/services/
+    generation.py's own docstring already establishes -- just redundant
+    work, never a correctness risk)."""
+    await asyncio.sleep(config.DEEP_INTEGRITY_CHECK_INITIAL_DELAY_SECONDS)
+    loop = asyncio.get_running_loop()
+    while True:
+        t0 = time.perf_counter()
+        try:
+            result = await loop.run_in_executor(None, engine_bootstrap.check_engine_readiness_deep)
+        except Exception as e:  # never let a background task crash the process
+            result = {"ready": False, "reason_code": "DEEP_CHECK_EXCEPTION", "reason": f"{type(e).__name__}: {e}"}
+        elapsed = round(time.perf_counter() - t0, 1)
+        _deep_integrity_status["checked_at"] = time.time()
+        _deep_integrity_status["ready"] = result["ready"]
+        _deep_integrity_status["reason_code"] = result.get("reason_code") if not result["ready"] else None
+        if result["ready"]:
+            print(f"[gateway] background deep integrity check OK ({elapsed}s, "
+                  f"database_version={result.get('database_version')})", file=sys.stderr)
+        else:
+            print(f"[gateway] CRITICAL: background deep integrity check FAILED ({elapsed}s): "
+                  f"{result.get('reason')}", file=sys.stderr)
+        await asyncio.sleep(config.DEEP_INTEGRITY_CHECK_INTERVAL_SECONDS)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -136,29 +197,35 @@ async def lifespan(app: FastAPI):
     if weak_reason:
         print(f"[gateway] WARNING: {config.ADMIN_TOKEN_ENV_VAR} looks weak ({weak_reason}). "
               f"Not fatal, but should be regenerated before real staging use.", file=sys.stderr)
-    # Readiness-latency fix: startup is the one place a real, full
-    # PRAGMA quick_check (up to ~166s against the production Fly volume,
-    # measured directly) is genuinely acceptable -- once per process boot,
-    # never on the polled /v1/ready hot path. See
-    # tools/quiz_export/engine.py's check_engine_readiness_deep() docstring
-    # for the full incident this split fixes.
-    readiness = engine_bootstrap.check_engine_readiness_deep()
+    # Reliability pass (Pass 2.6): startup now runs only the FAST readiness
+    # check (file exists/opens, one indexed COUNT, schema-marker present --
+    # the same check /v1/ready already uses), not the full PRAGMA
+    # quick_check -- see _run_periodic_deep_integrity_check()'s own
+    # docstring for the real 6-8 minute outage this fixes, confirmed
+    # directly against a real Fly deploy (release v65 stuck at "Waiting for
+    # application startup" for that long) before this fix. The deep check
+    # still runs, just as a background task started below, off this
+    # critical path.
+    readiness = engine_bootstrap.check_engine_readiness()
     if readiness["ready"]:
-        print(f"[gateway] startup OK -- Engine DB ready (database_version={readiness.get('database_version')}, "
-              f"draft_facts_row_count={readiness.get('draft_facts_row_count')})", file=sys.stderr)
+        print(f"[gateway] startup OK (fast check) -- Engine DB ready "
+              f"(database_version={readiness.get('database_version')})", file=sys.stderr)
     else:
         print(f"[gateway] WARNING: Engine DB not ready at startup: {readiness['reason']}. "
               f"Service will report itself unready via /v1/ready until this is fixed.", file=sys.stderr)
     print(f"[gateway] CORS allowed origins: {ALLOWED_ORIGINS}", file=sys.stderr)
+    deep_check_task = asyncio.create_task(_run_periodic_deep_integrity_check())
     yield
     # --- shutdown (Part K) ---
-    # No explicit action needed beyond this log line: package writes are
-    # already atomic (temp file + os.replace in gateway/services/packages.py),
-    # so a request cut off mid-generation during shutdown never leaves a
-    # corrupt/partial package visible under its real name -- worst case is
-    # an abandoned .tmp file, not a broken one. uvicorn's own default
-    # SIGTERM handling (stop accepting new connections, let in-flight
-    # requests finish) is sufficient; no custom signal handler was needed.
+    deep_check_task.cancel()
+    # No other explicit action needed beyond this log line: package writes
+    # are already atomic (temp file + os.replace in
+    # gateway/services/packages.py), so a request cut off mid-generation
+    # during shutdown never leaves a corrupt/partial package visible under
+    # its real name -- worst case is an abandoned .tmp file, not a broken
+    # one. uvicorn's own default SIGTERM handling (stop accepting new
+    # connections, let in-flight requests finish) is sufficient; no custom
+    # signal handler was needed.
     print("[gateway] shutdown -- no in-progress generation state to flush (atomic writes only).", file=sys.stderr)
 
 
@@ -398,12 +465,36 @@ def ready():
         disk_ok = False
         disk_status = {"free_percent": None}
 
+    # Reliability pass (Pass 2.6): a PASSIVE read of the background deep-
+    # integrity task's last cached result -- never runs a check itself, so
+    # this stays exactly as fast as every other check above (Part 11: "do
+    # not block startup/readiness for minutes"). `ready is None` means the
+    # background task hasn't completed its first run yet (a normal,
+    # honest transient state during the first
+    # DEEP_INTEGRITY_CHECK_INITIAL_DELAY_SECONDS after boot -- NOT treated
+    # as a failure here); only a completed check that came back
+    # ready=False fails readiness, matching Part 9's "do not invent a fake
+    # green readiness state while the DB is unusable" -- a real structural
+    # corruption caught by the periodic deep scan correctly makes this
+    # instance report itself unready, which the existing gateway-monitor.yml
+    # GitHub Actions job (already polling this route every 15 minutes)
+    # surfaces as a real, visible failure.
+    deep_integrity_ready = _deep_integrity_status["ready"]
+    deep_integrity_status: dict = {
+        "checked_at": _deep_integrity_status["checked_at"],
+        "ready": deep_integrity_ready,
+    }
+    if deep_integrity_ready is False:
+        deep_integrity_status["reason_code"] = _deep_integrity_status.get("reason_code", "UNKNOWN")
+
     body = {
-        "status": "ready" if (readiness["ready"] and packages_dir_ok and registry_ok and disk_ok) else "not_ready",
+        "status": "ready" if (readiness["ready"] and packages_dir_ok and registry_ok and disk_ok
+                               and deep_integrity_ready is not False) else "not_ready",
         "engine_database": safe_engine_status,
         "package_storage": {"writable": packages_dir_ok},
         "mode_registry": {"loaded": registry_ok},
         "disk": disk_status,
+        "deep_integrity_check": deep_integrity_status,
     }
     if body["status"] != "ready":
         return JSONResponse(status_code=503, content=body)
@@ -411,23 +502,47 @@ def ready():
 
 
 @app.get("/v1/admin/diagnostics/db-integrity")
-def admin_db_integrity(request: Request, _admin=Depends(require_admin)):
-    """Readiness-latency fix: the full PRAGMA quick_check this route used to
-    run on every /v1/ready poll now lives ONLY here (admin-gated, on-demand)
-    and at process startup (gateway/app.py's lifespan handler) -- never on
-    the polled hot path. A real, deliberately slow (can take minutes against
-    the production volume, same as it always could) structural integrity
-    certification for manual/maintenance use, not a frequently-called
-    endpoint. See tools/quiz_export/engine.py's check_engine_readiness_deep()
-    docstring for the incident this split fixes."""
-    result = engine_bootstrap.check_engine_readiness_deep()
-    safe: dict = {"ready": result["ready"], "deep_integrity_checked": result.get("deep_integrity_checked", True)}
-    if result["ready"]:
-        safe["database_version"] = result.get("database_version")
-        safe["draft_facts_row_count"] = result.get("draft_facts_row_count")
-    else:
-        safe["reason_code"] = result.get("reason_code", "UNKNOWN")
-    return safe
+def admin_db_integrity(request: Request, force: bool = Query(default=False),
+                        _admin=Depends(require_admin)):
+    """Readiness-latency fix (original) + Reliability pass (Pass 2.6): the
+    full PRAGMA quick_check this route used to run on every /v1/ready poll,
+    then (after the original fix) only here and once at process startup,
+    now runs ONLY as the background task started in gateway/app.py's
+    lifespan handler (see _run_periodic_deep_integrity_check()'s own
+    docstring for why even the once-at-startup version was still a real
+    6-8 minute outage on every deploy) -- never synchronously on any
+    request path by default.
+
+    Default (no `force`): returns instantly, reporting the background
+    task's last cached result (`_deep_integrity_status`) -- may be
+    `checked_at: null` briefly after a fresh boot, before the task's first
+    run completes.
+
+    `force=true`: still runs one full, real, synchronous deep check on
+    demand (deliberately slow -- can take minutes against the production
+    volume, same as it always could) for manual/maintenance use, and
+    updates the shared cached status other callers (this route, /v1/ready)
+    see afterward too."""
+    if force:
+        result = engine_bootstrap.check_engine_readiness_deep()
+        _deep_integrity_status["checked_at"] = time.time()
+        _deep_integrity_status["ready"] = result["ready"]
+        _deep_integrity_status["reason_code"] = result.get("reason_code") if not result["ready"] else None
+        safe: dict = {"ready": result["ready"], "checked_at": _deep_integrity_status["checked_at"], "forced": True}
+        if result["ready"]:
+            safe["database_version"] = result.get("database_version")
+            safe["draft_facts_row_count"] = result.get("draft_facts_row_count")
+        else:
+            safe["reason_code"] = result.get("reason_code", "UNKNOWN")
+        return safe
+
+    return {
+        "checked_at": _deep_integrity_status["checked_at"],
+        "ready": _deep_integrity_status["ready"],
+        "reason_code": _deep_integrity_status["reason_code"],
+        "forced": False,
+        "note": "cached result from the background periodic check; pass ?force=true for a live, synchronous check",
+    }
 
 
 @app.get("/v1/admin/diagnostics/data-coverage")

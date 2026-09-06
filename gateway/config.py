@@ -47,6 +47,27 @@ OPERATIONAL_LOG_PATH = GATEWAY_AUDIT_LOG_DIR / "gateway_operational_log.jsonl"  
 # needs close to one full DB's worth of extra space).
 DISK_FREE_PERCENT_MIN = float(os.environ.get("READS_ENGINE_DISK_FREE_PERCENT_MIN", "10"))
 
+# Reliability pass (Pass 2.6): the full PRAGMA quick_check (measured ~166s
+# against the production volume, longer under this box's own documented
+# ambient CPU/IO variance) used to run synchronously in gateway/app.py's
+# lifespan startup handler, before the app could serve ANY request --
+# including Fly's own health checks -- causing a real 6-8 minute outage on
+# every deploy (confirmed directly: Fly release v65 stuck at "Waiting for
+# application startup" for exactly that long). Startup now runs only the
+# fast check (engine_bootstrap.check_engine_readiness(), same one /v1/ready
+# already used) and the full deep check moves to a background task that
+# runs once shortly after boot and then on a fixed interval for the life of
+# the process -- real integrity verification still happens, just off the
+# request-serving critical path. See gateway/app.py's lifespan()/
+# _run_periodic_deep_integrity_check() and the admin
+# /v1/admin/diagnostics/db-integrity route (which now reports this
+# background task's cached result instantly, with a `force=true` query
+# param to still run one live, synchronously, on demand).
+DEEP_INTEGRITY_CHECK_INITIAL_DELAY_SECONDS = float(
+    os.environ.get("READS_ENGINE_DEEP_INTEGRITY_INITIAL_DELAY_SECONDS", "60"))
+DEEP_INTEGRITY_CHECK_INTERVAL_SECONDS = float(
+    os.environ.get("READS_ENGINE_DEEP_INTEGRITY_INTERVAL_SECONDS", str(6 * 60 * 60)))  # every 6 hours
+
 # --- Auth (Part F) -----------------------------------------------------
 ADMIN_TOKEN_ENV_VAR = "READS_ENGINE_ADMIN_TOKEN"
 MIN_ADMIN_TOKEN_LENGTH = 32  # ~192 bits if generated with a decent random source (e.g. `openssl rand -hex 32` -> 64 hex chars)

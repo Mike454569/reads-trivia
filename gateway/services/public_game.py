@@ -430,23 +430,28 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
         "instructions": "You'll be shown a real starting lineup by position and college -- except one "
                         "slot's college has been swapped for a different, wrong school. Find the fake.",
         "kind": "multiple_choice",
-        # Real survey: 12/12 eligible at easy and medium. Hard excluded --
-        # corrected during this pass's own browser QA, which caught an
-        # earlier version of this comment claiming "the shared curated
-        # board pool has zero real HARD boards." That was false: a direct
-        # count against _group_board_common.fetch_all_boards() found 196
-        # real Hard-labeled boards (of 595 total, across CURRENT_TEAM_2026/
-        # DRAFT_CLASS/HONOR_GROUP/NFL_TEAM_SEASON_ROSTER). The real reason
-        # hard stays uncertified: an explicit difficulty="hard" request to
-        # generation.generate_public() for this mode was directly tested
-        # (3 real attempts, 3 different seeds) and failed every time with
-        # "No QA-passed question could be generated" -- the shared Director
-        # pipeline's difficulty-targeted search doesn't reliably surface a
-        # real Hard board for this domain within its bounded retry budget,
-        # even though Hard content exists and does surface under "any" (no
-        # filter). Fixing that search is a shared-pipeline change, out of
-        # this pass's scope (wiring, not rebuilding, existing capability).
-        "certified_difficulties": frozenset({"easy", "medium"}),
+        # Real survey: 203/196/196 real, distinct, QA-passed candidates at
+        # easy/medium/hard respectively (target_count=5000 direct survey
+        # against generate_package_from_spec(), Reliability pass/Pass 2.6).
+        # Hard was wrongly excluded in Pass 2.5 -- that pass's own comment
+        # here diagnosed it as "the shared Director pipeline's difficulty-
+        # targeted search doesn't reliably surface a real Hard board...
+        # within its bounded retry budget." That diagnosis was wrong: there
+        # is no bounded-search issue in generate_package_from_spec() at all
+        # (it evaluates every real candidate, then filters by difficulty --
+        # confirmed by reading it). The actual cause was one level up:
+        # tools/director_v02/registry.py's CFB_SPOT_THE_FAKE_LINEUP entry
+        # hardcoded supported_difficulties={"any","easy","medium"} (a stale
+        # value copy-pasted from before this domain's board pool was
+        # expanded from a 60-board SB_CHAMPION-only source with genuinely
+        # zero real Hard boards to today's 595-board 5-source pool). That
+        # registry-level gate rejected difficulty="hard" as
+        # UNDERSTOOD_BUT_UNSUPPORTED before generation ever ran -- which
+        # looks identical to a generation failure from the caller's side
+        # (both surface as "no eligible question"), but is a completely
+        # different bug with a completely different fix. Corrected in
+        # registry.py this pass; certified here to match.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "CFB_SPOT_THE_FAKE_LINEUP",
@@ -512,18 +517,19 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
         "instructions": "You'll be shown four real colleges. Three were part of the same real group "
                         "(a championship roster, a draft class, an All-Pro class). Find the one that wasn't.",
         "kind": "multiple_choice",
-        # Real survey: 12/12 eligible at easy and medium. Hard excluded for
-        # the same verified reason as cfb_spot_the_fake_guess above (see
-        # its comment): real Hard boards exist in this same shared
-        # _group_board_common pool (196/595), but an explicit
-        # difficulty="hard" request reliably fails to generate through the
-        # shared Director pipeline -- confirmed by direct testing, not
-        # assumed from a stale board-count claim. Draws from all 5 real
-        # _group_board_common.py sources (SB_CHAMPION, CURRENT_TEAM_2026,
-        # real team-season rosters, real Round-1 draft classes, real
-        # First-Team All-Pro classes) -- that real variety is preserved,
-        # not narrowed back to SB_CHAMPION-only.
-        "certified_difficulties": frozenset({"easy", "medium"}),
+        # Real survey: 203/196/196 real, distinct, QA-passed candidates at
+        # easy/medium/hard (target_count=5000 direct survey, Pass 2.6). Hard
+        # was wrongly excluded in Pass 2.5, whose comment here blamed "the
+        # shared Director pipeline's difficulty-targeted search" -- the real
+        # cause (see cfb_spot_the_fake_guess's comment for the full
+        # diagnosis) was a stale registry.py supported_difficulties
+        # allowlist rejecting hard before generation ever ran. Corrected in
+        # registry.py this pass. Draws from all 5 real _group_board_common.py
+        # sources (SB_CHAMPION, CURRENT_TEAM_2026, real team-season rosters,
+        # real Round-1 draft classes, real First-Team All-Pro classes) --
+        # that real variety is preserved, not narrowed back to
+        # SB_CHAMPION-only.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "CFB_ODD_COLLEGE_OUT",
@@ -538,19 +544,20 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
         "title": "One School Missing",
         "instructions": "You'll be shown most of a real group's colleges. Pick the real one that's missing.",
         "kind": "multiple_choice",
-        # Real survey: 12/12 eligible at any/easy/medium with ZERO
-        # duplicate questions across all three bands (the cleanest survey
-        # result of all 7 new modes). Hard excluded for the same verified
-        # reason as cfb_spot_the_fake_guess/cfb_odd_college_out_guess above
-        # (real Hard boards exist in the shared pool; the explicit-filter
-        # generation path just doesn't reliably surface one -- confirmed by
-        # direct testing). Same 5 real sources as cfb_odd_college_out_guess.
-        # Confirmed (correcting an earlier assumption in this project's own
-        # history): this is a
-        # real GROUP-MEMBERSHIP question ("which college was NOT part of
-        # this group"), not an ordered transfer-path/sequence -- the UI
-        # uses a grouped-card display, not a sequence/path visual.
-        "certified_difficulties": frozenset({"easy", "medium"}),
+        # Real survey: 203/196/196 real, distinct, QA-passed candidates at
+        # easy/medium/hard (target_count=5000 direct survey, Pass 2.6), with
+        # ZERO duplicate questions across all three bands (the cleanest
+        # survey result of all 8 new modes). Hard was wrongly excluded in
+        # Pass 2.5 -- see cfb_spot_the_fake_guess's comment for the full
+        # diagnosis (a stale registry.py supported_difficulties allowlist,
+        # not a real data or search-reliability problem; corrected in
+        # registry.py this pass). Same 5 real sources as
+        # cfb_odd_college_out_guess. Confirmed (correcting an earlier
+        # assumption in this project's own history): this is a real
+        # GROUP-MEMBERSHIP question ("which college was NOT part of this
+        # group"), not an ordered transfer-path/sequence -- the UI uses a
+        # grouped-card display, not a sequence/path visual.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "CFB_ONE_SCHOOL_MISSING",

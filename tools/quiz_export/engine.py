@@ -126,10 +126,17 @@ def check_engine_readiness() -> dict:
     (confirmed fast even against the same slow Fly volume, since none of
     them walk the whole file the way quick_check does). Full structural
     integrity verification still exists -- see `check_engine_readiness_deep()`
-    below -- just no longer on the polled hot path. See gateway/app.py's
-    lifespan handler (startup-only, real cost acceptable once per boot) and
-    its admin-gated deep-diagnostic route for where the deep check now
-    actually runs.
+    below -- just no longer on the polled hot path.
+
+    Reliability pass (Pass 2.6): this function is also what gateway/app.py's
+    lifespan handler now calls at startup (it used to call the DEEP check
+    there instead -- a real, measured 6-8 minute outage on every deploy,
+    since nothing could be served while that ran). The deep check still
+    runs, just as a background task (gateway/app.py's
+    _run_periodic_deep_integrity_check()) started right after this fast
+    check passes, off the request-serving critical path -- see that
+    function's docstring, and the admin-gated deep-diagnostic route, for
+    where it actually runs now.
 
     The cache/lock machinery below is kept (harmless, still avoids redundant
     concurrent work for the now-fast check, and needed no behavior change to
@@ -157,12 +164,23 @@ def check_engine_readiness_deep() -> dict:
     """The full structural integrity certification (`PRAGMA quick_check`
     included) -- deliberately NEVER cached, NEVER on the polled `/v1/ready`
     hot path, and never invoked automatically per-request. Real, current
-    uses only: gateway/app.py's lifespan startup handler (once per process
-    boot -- a real ~166s cost against the production volume is acceptable
-    exactly once at startup, not on every health poll) and an admin-gated
-    manual diagnostic route for on-demand deep verification. See
-    check_engine_readiness()'s own docstring for the incident this split
-    fixes."""
+    uses only: gateway/app.py's `_run_periodic_deep_integrity_check()`
+    background task (started once per process boot, after a short initial
+    delay, then on a fixed interval for the life of the process -- see that
+    function's own docstring) and the admin-gated
+    `/v1/admin/diagnostics/db-integrity?force=true` route for on-demand
+    deep verification.
+
+    Reliability pass (Pass 2.6): this used to also run synchronously,
+    once, inside gateway/app.py's lifespan startup handler -- "a real
+    ~166s cost against the production volume is acceptable exactly once at
+    startup" turned out to be wrong in practice: nothing could be served
+    (including Fly's own health checks) while that ran, so it was a real,
+    measured 6-8 minute total outage on every single deploy, not a one-time
+    cost paid quietly in the background. See check_engine_readiness()'s own
+    docstring for the incident this split originally fixed, and
+    gateway/app.py's _run_periodic_deep_integrity_check() for the incident
+    THIS pass fixed."""
     return _check_engine_readiness_uncached(deep=True)
 
 

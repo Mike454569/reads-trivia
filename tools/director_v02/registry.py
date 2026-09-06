@@ -1650,9 +1650,19 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
-        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE --
-        # this shares the exact same underlying board-level Diff column.
-        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
+        # Reliability pass (Pass 2.6): the "same real-zero-HARD-band fix as
+        # NFL_SB_CHAMPION_OFFENSE_COLLEGE" comment this entry carried was
+        # stale -- it predates the "now draws from 5 real sources... 595
+        # real candidates" expansion two lines above, and was never updated
+        # afterward. NFL_SB_CHAMPION_OFFENSE_COLLEGE's own pool (60-board
+        # SB_CHAMPION-only) genuinely has zero real Hard boards, but THIS
+        # domain draws from the wider 5-source _group_board_common pool,
+        # which does not share that ceiling: a direct target_count=5000
+        # survey against generate_package_from_spec() (this pass) found 196
+        # real, distinct, QA-passed Hard questions -- essentially the same
+        # as Medium (196) and Easy (203). "hard" was blocked here purely by
+        # this stale allowlist, not by any real data shortage.
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 933000,
     },
@@ -1682,8 +1692,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "position",
         "answer_type": "position", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
-        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
-        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
+        # Reliability pass (Pass 2.6): same stale-allowlist correction as
+        # CFB_ODD_COLLEGE_OUT above -- this domain also draws from the
+        # wider 5-source _group_board_common pool, not the 60-board
+        # SB_CHAMPION-only one. Direct target_count=5000 survey found 196
+        # real, distinct, QA-passed Hard questions. See CFB_ODD_COLLEGE_OUT's
+        # comment for the full reasoning.
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 935000,
     },
@@ -1767,8 +1782,11 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "college",
         "answer_type": "college", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
-        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
-        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
+        # Reliability pass (Pass 2.6): same stale-allowlist correction as
+        # CFB_ODD_COLLEGE_OUT above -- this domain also draws from the
+        # wider 5-source _group_board_common pool. Direct target_count=5000
+        # survey found 196 real, distinct, QA-passed Hard questions.
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 940000,
     },
