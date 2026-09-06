@@ -527,6 +527,7 @@ var state = {
   playerClues: null,
   playerCluesFilter: { decade: 'any', difficulty: 'any' },
   cfbPlayerClues: null,
+  cfbPlayerCluesFilter: { decade: 'any', difficulty: 'any' },
   enginePilot: null,
   mechanicPilot: null,
   sixDegrees: null,
@@ -1879,7 +1880,7 @@ var LEAGUE_MODES = {
     { id: 'cfbLegends', icon: 'trophy', title: 'CFB 12-0', desc: 'Draft an 8-player college roster (including a whole team DEFENSE) from real players\' and teams\' real seasons (1990-2025), then see how your 12-game regular season plays out — and where it lands you in the postseason.', difficulty: 'competitive' }
   ]
     .concat(ENABLE_CFB_PLAYER_FROM_CLUES_V01 ? [
-      { id: 'cfbPlayerClues', icon: 'target', title: 'CFB Player From Clues', desc: 'A ladder of real clues about a Heisman-winning college football player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
+      { id: 'cfbPlayerClues', icon: 'target', title: 'CFB Player From Clues', desc: 'A ladder of real clues about a college football player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
     ] : [])
     .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
 };
@@ -5034,8 +5035,13 @@ function renderPlayerCluesScreen() {
    parametrized shared one -- matches this file's own established
    NFL/CFB-pair convention everywhere else (startGridRound/startCfbGridRound,
    etc.), and keeps zero risk of a CFB-specific change ever regressing the
-   already-working NFL prototype. See data/cfb-player-from-clues-v01.js's own
-   header for why this pack is hand-authored rather than Engine-generated. */
+   already-working NFL mode.
+   Reliability pass (Pass 2.7): data/cfb-player-from-clues-v01.js is now
+   real Engine output (3,300 puzzles, tools/export_cfb_player_from_clues_frontend.py),
+   replacing a 12-puzzle hand-authored Heisman-only prototype that was
+   never swapped for the real, already-working identify_player_from_clues/
+   CFB_PLAYER_IDENTITY capability -- see that script's own module docstring
+   for the full root-cause history. */
 var CFB_PLAYER_CLUES_PACKAGE = null;
 var CFB_PLAYER_CLUES_VALIDATION_ERROR = null;
 function initCfbPlayerCluesPackage() {
@@ -5051,6 +5057,33 @@ function cfbPlayerCluesAnswerPool() {
     if (!seen[p.answer.displayName]) { seen[p.answer.displayName] = true; out.push({ name: p.answer.displayName }); }
   });
   return out;
+}
+// Reliability pass (Pass 2.7): real decade/difficulty filtering, matching
+// the NFL section's own playerCluesAvailableDecades()/
+// playerCluesFilteredPuzzles()/setPlayerCluesFilter() exactly -- this pool
+// now carries the same real decade/difficultyBand metadata (see
+// tools/export_cfb_player_from_clues_frontend.py) that the NFL pack always
+// has, so there's no longer a reason for the CFB screen to skip this step.
+function cfbPlayerCluesAvailableDecades() {
+  if (!CFB_PLAYER_CLUES_PACKAGE) return [];
+  var seen = {}, out = [];
+  CFB_PLAYER_CLUES_PACKAGE.puzzles.forEach(function (p) {
+    if (p.decade != null && !seen[p.decade]) { seen[p.decade] = true; out.push(p.decade); }
+  });
+  return out.sort(function (a, b) { return a - b; });
+}
+function cfbPlayerCluesFilteredPuzzles() {
+  if (!CFB_PLAYER_CLUES_PACKAGE) return [];
+  var f = state.cfbPlayerCluesFilter;
+  return CFB_PLAYER_CLUES_PACKAGE.puzzles.filter(function (p) {
+    if (f.decade !== 'any' && p.decade !== f.decade) return false;
+    if (f.difficulty !== 'any' && p.difficultyBand !== f.difficulty) return false;
+    return true;
+  });
+}
+function setCfbPlayerCluesFilter(key, value) {
+  state.cfbPlayerCluesFilter[key] = value;
+  renderAll();
 }
 function loadCfbPlayerCluesItem() {
   var s = state.cfbPlayerClues;
@@ -5068,8 +5101,10 @@ function loadCfbPlayerCluesItem() {
 // shuffles), which is its own real repetition problem on replay.
 function startCfbPlayerCluesRound() {
   if (!CFB_PLAYER_CLUES_PACKAGE) return;
-  var pool = CFB_PLAYER_CLUES_PACKAGE.puzzles;
-  var ids = drawNoRepeat('cfbPlayerClues', pool.map(function (p) { return p.id; }), Math.min(PLAYER_CLUES_ROUND_SIZE, pool.length));
+  var pool = cfbPlayerCluesFilteredPuzzles();
+  if (!pool.length) return; // Start button is disabled in this state, but never proceed on 0 matches
+  var f = state.cfbPlayerCluesFilter;
+  var ids = drawNoRepeat('cfbPlayerClues_' + f.decade + '_' + f.difficulty, pool.map(function (p) { return p.id; }), Math.min(PLAYER_CLUES_ROUND_SIZE, pool.length));
   var byId = {};
   pool.forEach(function (p) { byId[p.id] = p; });
   state.cfbPlayerClues = { queue: ids.map(function (id) { return byId[id]; }), index: 0, correctCount: 0, results: [], screen: 'round' };
@@ -5136,15 +5171,38 @@ function cfbPlayerCluesToolbarHtml(s) {
 function renderCfbPlayerCluesSetup() {
   if (!CFB_PLAYER_CLUES_PACKAGE) {
     return '<div class="panel"><h2 class="panel-title">CFB Player From Clues</h2>' +
-      '<p class="mode-desc">This local prototype package failed validation (' +
+      '<p class="mode-desc">This package failed validation (' +
       esc(CFB_PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
       '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
+  // Reliability pass (Pass 2.7): real Engine-generated pool (3,300 puzzles
+  // across 267 real schools, replacing the old 12-puzzle hand-authored
+  // Heisman-only prototype -- see tools/export_cfb_player_from_clues_frontend.py) --
+  // same decade/difficulty filter UI the NFL screen already has, since this
+  // pool now carries the same real metadata.
+  var f = state.cfbPlayerCluesFilter;
+  var decades = cfbPlayerCluesAvailableDecades();
+  var difficulties = ['Easy', 'Medium', 'Hard'];
+  var matchCount = cfbPlayerCluesFilteredPuzzles().length;
   return '<div class="panel">' +
     '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
     '<p class="mode-desc">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
-    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (hand-picked Heisman winners, ' + PLAYER_CLUES_ROUND_SIZE + ' per round). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
-    '<div class="btn-row"><button class="btn-primary" data-cfb-clues-start>Start</button></div>' +
+    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' real college football players across ' + PLAYER_CLUES_ROUND_SIZE + ' per round. Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<div class="chip-row" role="group" aria-label="Filter by decade">' +
+    '<button class="chip-toggle' + (f.decade === 'any' ? ' active' : '') + '" data-cfb-clues-filter-decade="any">Any Decade</button>' +
+    decades.map(function (d) {
+      return '<button class="chip-toggle' + (f.decade === d ? ' active' : '') + '" data-cfb-clues-filter-decade="' + d + '">' + d + 's</button>';
+    }).join('') +
+    '</div>' +
+    '<div class="chip-row" role="group" aria-label="Filter by difficulty">' +
+    '<button class="chip-toggle' + (f.difficulty === 'any' ? ' active' : '') + '" data-cfb-clues-filter-difficulty="any">Any Difficulty</button>' +
+    difficulties.map(function (d) {
+      return '<button class="chip-toggle' + (f.difficulty === d ? ' active' : '') + '" data-cfb-clues-filter-difficulty="' + d + '">' + d + '</button>';
+    }).join('') +
+    '</div>' +
+    (matchCount ? '<p class="mode-desc">' + matchCount + ' puzzle' + (matchCount === 1 ? '' : 's') + ' match this filter.</p>'
+      : '<p class="mode-desc blitz-feedback wrong">No puzzles match this combination — try a different decade or difficulty.</p>') +
+    '<div class="btn-row"><button class="btn-primary" data-cfb-clues-start' + (matchCount ? '' : ' disabled') + '>Start</button></div>' +
     '</div>';
 }
 function renderCfbPlayerCluesRound() {
@@ -9953,6 +10011,7 @@ document.addEventListener('click', function (e) {
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-clues-filter-decade], [data-clues-filter-difficulty], ' +
     '[data-cfb-clues-start], [data-cfb-clues-submit], [data-cfb-clues-hint], [data-cfb-clues-giveup], [data-cfb-clues-next], ' +
+    '[data-cfb-clues-filter-decade], [data-cfb-clues-filter-difficulty], ' +
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], [data-pilot-franchise-pick], [data-pilot-reveal-clue], ' +
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
     '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
@@ -10236,6 +10295,11 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cluesHint !== undefined) { revealPlayerCluesClue(); return; }
   if (t.dataset.cluesGiveup !== undefined) { givePlayerCluesUp(); return; }
   if (t.dataset.cluesNext !== undefined) { advancePlayerClues(); return; }
+  if (t.dataset.cfbCluesFilterDecade !== undefined) {
+    var cfbDecadeVal = t.dataset.cfbCluesFilterDecade === 'any' ? 'any' : parseInt(t.dataset.cfbCluesFilterDecade, 10);
+    setCfbPlayerCluesFilter('decade', cfbDecadeVal); return;
+  }
+  if (t.dataset.cfbCluesFilterDifficulty !== undefined) { setCfbPlayerCluesFilter('difficulty', t.dataset.cfbCluesFilterDifficulty); return; }
   if (t.dataset.cfbCluesStart !== undefined) { startCfbPlayerCluesRound(); return; }
   if (t.dataset.cfbCluesSubmit !== undefined) { submitCfbPlayerCluesGuess(); return; }
   if (t.dataset.cfbCluesHint !== undefined) { revealCfbPlayerCluesClue(); return; }
