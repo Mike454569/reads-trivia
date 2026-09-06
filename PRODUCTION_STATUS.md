@@ -6,9 +6,81 @@ historical narrative from the session that wrote it — treat it as unconfirmed 
 re-checked it against reality the way this doc does below. Do not add another one of those
 reports; update this file instead.
 
-Last independently verified: **2026-08-31 / 2026-09-01**, across the Production Integrity Fix
-Pass, the Final Production Hardening Pass, the Reliability Cleanup pass, the Lineup Concurrency
-pass, and the Rivalry Pack + Gold Standard Game Ideas Integration pass (all same session).
+Last independently verified: **2026-09-06**, the Reliability pass (Pass 2.6) below. Prior
+verification: **2026-08-31 / 2026-09-01**, across the Production Integrity Fix Pass, the Final
+Production Hardening Pass, the Reliability Cleanup pass, the Lineup Concurrency pass, and the
+Rivalry Pack + Gold Standard Game Ideas Integration pass (all same session).
+
+## Reliability pass (Pass 2.6) — hard-difficulty fix + deploy outage fixed (2026-09-06)
+
+Two unrelated reliability bugs, fixed and independently re-verified live in production.
+
+**Hard difficulty (Spot the Fake / Odd College Out / One School Missing) was silently
+unreachable.** Root cause was NOT a search/retry-reliability problem in
+`generate_package_from_spec()` (it evaluates every real candidate, then filters by difficulty --
+confirmed by reading it and by direct testing). The real blocker was one level up:
+`tools/director_v02/registry.py`'s entries for these 3 domains hardcoded
+`supported_difficulties={"any","easy","medium"}` -- a stale value copy-pasted from before their
+board pool was expanded from a 60-board SB_CHAMPION-only source (genuinely zero real Hard
+boards) to today's 595-board 5-source `_group_board_common` pool. A direct `target_count=5000`
+survey found 196 real, distinct, QA-passed Hard candidates per domain -- essentially the same
+volume as Medium (196) and Easy (203). That stale registry gate rejected `difficulty="hard"` as
+`UNDERSTOOD_BUT_UNSUPPORTED` in both the Gateway-override path (`pipeline.py`) and the
+NL-translator path (`validator.py`) before generation ever ran. Fixed by correcting exactly
+those 3 registry entries (and the matching `gateway/services/public_game.py`
+`certified_difficulties`) -- `CFB_THREE_CLUES_ONE_CHAMPION` (a genuinely narrower, SB_CHAMPION-
+only pool with real zero Hard boards) was left untouched. Verified: 30/30 across 10 seeds x 3
+modes locally, then confirmed live in production for all 3 modes (`difficulty=hard` returns a
+real, correctly-labeled Hard question; answer grading correct in both directions). The 5 exact
+NL prompts from spec ("Make me a hard Spot the Fake game", etc.) all resolve through
+translator -> validator -> Director -> generated package with the requested difficulty intact.
+
+**Every Gateway deploy caused a real 6-8 minute outage.** `gateway/app.py`'s lifespan startup
+handler ran the full `PRAGMA quick_check` (`check_engine_readiness_deep()`) synchronously before
+serving a single request -- including Fly's own health checks -- so the documented ~166s
+(measured, longer under this box's own ambient I/O variance) full-database integrity scan was a
+real, total outage window on every single deploy, not a quiet one-time startup cost as the code
+this pass replaced assumed. Confirmed directly: Fly release v65 stuck at "Waiting for
+application startup" for 8m5s before self-recovering; releases v60-v64 show the identical
+"failed" release status in `fly releases` history, all from this same cause. Fix: startup now
+runs only the fast check (the same one `/v1/ready` already used -- file exists/opens, one
+indexed COUNT, schema marker present); the full deep check moved to a background task
+(`_run_periodic_deep_integrity_check()`) that runs once ~60s after boot and then every 6 hours
+for the life of the process, off the request-serving critical path entirely. A confirmed failure
+updates a cached status `/v1/ready` reads passively (fails closed on real corruption, never
+blocks on it) -- surfaced automatically by the existing `gateway-monitor.yml` GitHub Actions job
+(already polling `/v1/ready` every 15 minutes), no new external service or secret needed. The
+admin `/v1/admin/diagnostics/db-integrity` route now returns this cached result instantly by
+default, with `force=true` still available for an on-demand live check.
+
+Real deploy result after the fix (`fly releases`): **v67, status `complete`** -- the first
+non-"failed" release in this app's visible history. Real timeline from `fly logs`: old process
+shutdown at 07:49:33, new machine's "Application startup complete" at 07:49:37 -- **4 seconds**
+of actual outage, down from 6-8 minutes. Health checks passed immediately, no
+"not responding properly" errors at all during this deploy (compare to every prior deploy's log,
+which shows several before eventually passing). Single-machine, single-attach-volume topology
+means this is NOT true zero-downtime (Fly volumes attach to exactly one running machine, so the
+old process must stop before the new one can mount `/data` -- a real, disclosed architectural
+constraint, not something this pass attempted to redesign) -- but 4 seconds is a different class
+of problem than 6-8 minutes, achieved via the safest available strategy (the existing rolling
+replace, now fast) without weakening any backup/rollback/disk-space/corruption-detection
+safeguard.
+
+234 gateway tests pass across the affected suites (`test_hard_difficulty_reliability.py` -- new,
+31 tests; `test_readiness_latency.py`, `test_staging_hardening.py`, `test_gateway.py`,
+`test_public_game.py`, `test_public_mode_wiring.py`, `test_rivalry_gold_standard_integration.py`).
+Two pre-existing failures in `test_phase6_mechanics.py`
+(`test_ten_playable_nfl_ideas_represent_at_least_six_mechanics`,
+`test_ten_playable_cfb_ideas_stay_in_domain_and_never_pad`) were found during this pass's own
+regression run -- confirmed present on unmodified `main` via `git stash` before this pass's
+changes existed, unrelated to either fix here, not touched. Real, unresolved gap: this pass
+verified the background integrity task's mechanism locally (a real 632s local run completed
+successfully while the app kept serving other requests concurrently, and `/v1/ready` correctly
+reflected the result afterward) and confirmed it starts correctly in production (visible via
+`/v1/ready`'s `deep_integrity_check` field going from `checked_at: null` right after boot), but
+did not sit through this session watching its first live production run complete (it runs ~60s
+after boot, can take several minutes) or its 6-hourly recurrence -- re-check
+`/v1/ready`'s `deep_integrity_check` field directly to confirm a completed run.
 
 ## Rivalry Pack + Gold Standard Game Ideas — audited, extended (2026-09-01)
 
