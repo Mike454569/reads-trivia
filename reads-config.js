@@ -98,16 +98,17 @@ window.READS_CONFIG = {
 
   // Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities newly
   // certified public this pass (gateway/services/public_game.py's own
-  // PUBLIC_MODES entries carry the real candidate surveys). Left OFF here
-  // pending local verification + real production canary, matching this
-  // file's own established rollout discipline (flip only after each mode
-  // is individually canary-verified against production).
-  enableEngineCfbRivalryPilot: false,
-  enableEngineCfbRivalryLookupPilot: false,
-  enableEngineCfbSpotTheFakePilot: false,
-  enableEngineCfbThreeCluesPilot: false,
-  enableEngineEraGauntletPilot: false,
-  enableEngineCfbOddCollegeOutPilot: false,
-  enableEngineCfbOneSchoolMissingPilot: false,
-  enableEngineFranchiseMarathonPilot: false,
+  // PUBLIC_MODES entries carry the real candidate surveys). Flipped on
+  // after real production canary verification: all 8 fetched, graded, and
+  // (for the two sequential modes) sequenced correctly against the live
+  // Gateway, and READS_PUBLIC_MODES on Fly was re-synced to actually serve
+  // them (see gateway/fly.toml's own comment on that drift).
+  enableEngineCfbRivalryPilot: true,
+  enableEngineCfbRivalryLookupPilot: true,
+  enableEngineCfbSpotTheFakePilot: true,
+  enableEngineCfbThreeCluesPilot: true,
+  enableEngineEraGauntletPilot: true,
+  enableEngineCfbOddCollegeOutPilot: true,
+  enableEngineCfbOneSchoolMissingPilot: true,
+  enableEngineFranchiseMarathonPilot: true,
 };
