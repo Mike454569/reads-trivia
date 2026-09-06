@@ -114,6 +114,13 @@ def nfl_team_season_roster_boards(c) -> list[dict]:
         boards.append({
             "board_id": f"NFL_TEAM_SEASON:{season}:{team_code}",
             "team_display_name": franchise["full_name"], "season": season,
+            # Era Gauntlet / Three Clues diversification (Pass 2.7): real
+            # team_code carried through so a caller can look up REAL
+            # non-championship facts (coach, season record) for this
+            # team-season directly -- these boards are not champions, so
+            # nfl_championship_events has no row for them; team_code lets
+            # coach_team_seasons/season_standings be queried without one.
+            "team_code": team_code,
             "difficulty": _score_to_label(diff_score),
             "positions": slots, "pool_kind": "NFL_TEAM_SEASON_ROSTER",
             "title": f"{season} {franchise['full_name']} starting offense",

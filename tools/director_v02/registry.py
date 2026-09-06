@@ -1723,21 +1723,33 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "generate_fn": _generate_guess_package,
         "known_limitations": [
             "Gold Standard concept #28. Gold Standard Modes + Creator Quality follow-up pass: no longer "
-            "mainly roster/college clues -- real clue candidates come from _champion_clue_common.py's 5 "
-            "families (real Super Bowl opponent, real final score, real head coach [1999+ only, a real "
-            "disclosed coverage floor], real Super Bowl MVP, and college as one family among five). At "
-            "least 2 of the 3 revealed clues must be non-roster; a champion without enough real "
-            "non-roster data (measured: 59 of 60) is excluded outright, never padded with an all-roster "
-            "puzzle.",
-            "era_gauntlet (Gold Standard concept #51, redesigned this pass): one real champion per real "
-            "represented decade, chosen only from champions with a real non-roster-majority clue set, "
-            "returned oldest-era-first -- a real football-history progression, not a roster/college-list "
-            "filter (the prior version filtered the 11-position roster board itself).",
+            "mainly roster/college clues -- real clue candidates come from _champion_clue_common.py's real "
+            "fact families (real Super Bowl opponent/score/MVP for real champions; real head coach and "
+            "real season record/playoff result for ANY team-season; college, for every pool_kind). At "
+            "least 2 of the 3 revealed clues must be non-roster; a board without enough real non-roster "
+            "data is excluded outright, never padded with an all-roster puzzle.",
+            "era_gauntlet (Gold Standard concept #51, redesigned again this pass): one real team-season "
+            "per real represented decade, chosen only from boards with a real non-roster-majority clue "
+            "set, returned oldest-era-first -- a real football-history progression, not a roster/"
+            "college-list filter.",
+            "Era Gauntlet rebuild (Pass 2.7): this domain used to draw ONLY from the 60 real SB_CHAMPION "
+            "boards (100% Super Bowl content by construction -- the adapter simply never imported the "
+            "wider _group_board_common pool 3 sibling adapters already used). Now spans 502 real "
+            "team-seasons (SB_CHAMPION 60 + CURRENT_TEAM_2026 32 + NFL_TEAM_SEASON_ROSTER 410) -- a real "
+            "target_count=500 survey exported 500/500 with 0 duplicates, only 11.8% Super Bowl-sourced. "
+            "DRAFT_CLASS/HONOR_GROUP deliberately excluded: they represent a draft class or All-Pro "
+            "class, not a team's season, so 'guess the team AND season' has no coherent answer for them.",
         ],
         "competition_id": "NFL", "entity_type": "nfl_sb_champion_offense_board_college", "object_type": "team_season",
-        "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 60,
-        # Same real-zero-HARD-band fix as NFL_SB_CHAMPION_OFFENSE_COLLEGE.
-        "supported_difficulties": frozenset({"any", "easy", "medium"}), "supports_difficulty_filter": True,
+        "answer_type": "team_season", "group_size": 4, "min_question_count": 1, "max_question_count": 500,
+        # Reliability pass (Pass 2.6) found and fixed this exact stale-
+        # allowlist pattern for 3 sibling domains; Era Gauntlet rebuild
+        # (Pass 2.7) found the same thing here -- "hard" was blocked by a
+        # comment claiming a real-zero-HARD-band ceiling that predates this
+        # pass's pool expansion. A real target_count=5000 per-difficulty
+        # survey (this pass) found 171 real Easy / 164 real Medium / 164
+        # real Hard candidates, all distinct, all QA-passed.
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset({"era_gauntlet"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 937000,
     },

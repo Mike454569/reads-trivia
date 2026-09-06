@@ -185,19 +185,21 @@ def test_nl_difficulty_qualifier_survives_to_generated_package(prompt, expected_
 
 # --- existing (untouched) domain keeps its real, genuine hard exclusion ----
 
-def test_three_clues_domain_still_correctly_excludes_hard():
-    """CFB_THREE_CLUES_ONE_CHAMPION (cfb_three_clues_guess / era_gauntlet_guess)
-    draws from a DIFFERENT, narrower pool (_college_offense_curated_common,
-    the same 60-board SB_CHAMPION-only source as NFL_SB_CHAMPION_OFFENSE_
-    COLLEGE) which genuinely has zero real Hard boards -- confirmed directly
-    in Pass 2.5's own full-pool survey. This pass's registry fix must not
-    have touched this domain's supported_difficulties."""
+def test_three_clues_domain_now_correctly_includes_hard():
+    """Superseded by the Era Gauntlet rebuild (Pass 2.7): at the time this
+    test was written (Pass 2.6), CFB_THREE_CLUES_ONE_CHAMPION drew from a
+    narrower, 60-board SB_CHAMPION-only pool with genuinely zero real Hard
+    boards, so excluding "hard" was correct. Pass 2.7 legitimately expanded
+    this domain's real pool to 502 team-seasons (SB_CHAMPION +
+    CURRENT_TEAM_2026 + NFL_TEAM_SEASON_ROSTER), which DOES have real Hard
+    candidates (164, confirmed by a direct target_count=5000 survey) --
+    "hard" is now correctly supported, not a regression of Pass 2.6's fix."""
     from tools.director_v02 import registry as director_registry
 
     cap = director_registry.CAPABILITY_REGISTRY[
         ("guess", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES")
     ]
-    assert "hard" not in cap["supported_difficulties"]
+    assert "hard" in cap["supported_difficulties"]
 
 
 def test_allowlist_unchanged_by_this_pass():

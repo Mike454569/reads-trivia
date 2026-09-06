@@ -464,13 +464,21 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
     "cfb_three_clues_guess": {
         "competition": "CFB",
         "title": "Three Clues, One Champion",
-        "instructions": "You'll be given a real Super Bowl champion's clues one at a time -- opponent, "
-                        "score, coach, MVP, or college. Guess the team and season.",
+        "instructions": "You'll be given clues about a real NFL team's season one at a time -- real "
+                        "opponent, score, coach, MVP, season record, or college. Guess the team and season.",
         "kind": "multiple_choice",
-        # Real survey: 12/12 eligible at easy and medium (0 duplicate
-        # questions), 0/12 at hard (same real-zero-HARD-band ceiling as the
-        # shared curated board pool).
-        "certified_difficulties": frozenset({"easy", "medium"}),
+        # Era Gauntlet rebuild (Pass 2.7): this domain no longer draws only
+        # from the 60 real SB_CHAMPION boards -- it now spans 502 real
+        # team-seasons (SB_CHAMPION + CURRENT_TEAM_2026 +
+        # NFL_TEAM_SEASON_ROSTER; see cfb_three_clues_one_champion.py's own
+        # module docstring). Real per-difficulty survey (target_count=5000,
+        # this pass's own methodology): 171 real, distinct Easy / 164 real,
+        # distinct Medium / 164 real, distinct Hard candidates, all
+        # qa_status PASSED -- unlike the old 60-board SB_CHAMPION-only pool,
+        # this wider pool genuinely has real Hard-band candidates (the
+        # NFL_TEAM_SEASON_ROSTER source's own difficulty scoring spans all
+        # three bands by season recency).
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "CFB_THREE_CLUES_ONE_CHAMPION",
@@ -480,25 +488,34 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
-    # Era Gauntlet: real bug found and fixed this pass (see
-    # generation.generate_public()'s own docstring) -- the underlying
-    # adapter already correctly returns exactly 7 real champions, one per
-    # real represented decade (1960s-2020s), in real oldest-first order,
-    # but the public route's hardcoded puzzle_count=1 could only ever
-    # surface stage 0 forever, no matter the seed. Fixed by threading a
-    # real `stage_index` (see get_public_game()) through to
-    # generate_public()'s now-real `puzzle_count` parameter. Deliberately
-    # "any"-difficulty only (certified_difficulties left empty): difficulty
-    # filtering happens on the flat accepted-candidates list BEFORE the
-    # era-ordering is re-applied, which could silently drop an era and
-    # shift every later stage_index to the wrong era -- not worth the risk
-    # for a mode whose whole point is "the real fixed history," not a
-    # difficulty-scoped subset.
+    # Era Gauntlet: Pass 2.5 found and fixed a real bug (see
+    # generation.generate_public()'s own docstring) -- the public route's
+    # hardcoded puzzle_count=1 could only ever surface stage 0 forever, no
+    # matter the seed. Fixed by threading a real `stage_index` (see
+    # get_public_game()) through to generate_public()'s now-real
+    # `puzzle_count` parameter.
+    #
+    # Era Gauntlet rebuild (Pass 2.7): the underlying adapter used to only
+    # ever have real Super Bowl champions to choose from (100% Super Bowl
+    # content, one per real represented decade) -- not a deliberate design,
+    # just the only real pool cfb_three_clues_one_champion.py imported. It
+    # now draws from 502 real team-seasons (SB_CHAMPION + CURRENT_TEAM_2026
+    # + NFL_TEAM_SEASON_ROSTER -- see that module's own docstring), so a
+    # real 7-era run is now typically mostly REAL non-champion team-seasons
+    # (real record, real coach, real college facts) with real champions
+    # appearing as one real possibility among many per era, not the only
+    # one. Deliberately "any"-difficulty only (certified_difficulties left
+    # empty): difficulty filtering happens on the flat accepted-candidates
+    # list BEFORE the era-ordering is re-applied, which could silently drop
+    # an era and shift every later stage_index to the wrong era -- not
+    # worth the risk for a mode whose whole point is "the real fixed
+    # history," not a difficulty-scoped subset.
     "era_gauntlet_guess": {
         "competition": "CFB",
         "title": "Era Gauntlet",
-        "instructions": "Progress through real NFL history -- one real Super Bowl champion from each "
-                        "represented decade, oldest era first.",
+        "instructions": "Progress through real NFL history -- one real team's season from each "
+                        "represented decade (a real champion, current team, or historical roster), "
+                        "oldest era first.",
         "kind": "multiple_choice",
         "sequential": True,
         "certified_difficulties": frozenset(),

@@ -1,17 +1,34 @@
-"""Three Clues, One Champion -- Gold Standard concept #28: "Reveal exactly
-three structured clues; name team + season."
+"""Three Clues, One Champion / Era Gauntlet -- Gold Standard concept #28:
+"Reveal exactly three structured clues; name team + season."
 
-Gold Standard Modes + Creator Quality follow-up pass: no longer relies
-mainly on roster/college clues. Real clue candidates now come from
-`_champion_clue_common.py`'s 5 real, independently verified families
-(real Super Bowl opponent, real final score, real head coach, real Super
-Bowl MVP, and college -- kept as one family among five, never the default).
-At least 2 of the 3 revealed clues must be non-roster real facts -- a
-champion without enough real non-roster data on file (pre-1999 coach
-coverage gap, unresolved MVP) is rejected outright rather than silently
-falling back to an all-roster puzzle. Same curated SB_CHAMPION source as
-sb_champion_offense_college.py for team+season identity and the college
-family (60 real champions, 1966-2025).
+Era Gauntlet rebuild (Pass 2.7): this domain used to draw ONLY from the 60
+real Super Bowl champions (`curated_nfl_offense_college_board`,
+board_type='SB_CHAMPION') -- 100% Super Bowl content by construction, since
+that was the only real pool this adapter ever imported, despite
+`_group_board_common.py`'s wider, already-proven 5-source pool sitting
+right next to it and already used by 3 sibling adapters. Now draws from the
+3 pool_kinds that genuinely represent a real (team, season) pair --
+SB_CHAMPION (60), CURRENT_TEAM_2026 (32), NFL_TEAM_SEASON_ROSTER (410) --
+502 real boards instead of 60. (DRAFT_CLASS/HONOR_GROUP are deliberately
+excluded: they represent a draft class or an All-Pro class, not a team's
+season, so "guess the team AND season" has no coherent answer for them.)
+
+Real clue candidates come from `_champion_clue_common.py`'s real,
+independently verified families -- see that module's own docstring for the
+full real-fact-by-pool_kind breakdown (opponent/score/SB MVP for real
+champions; real head coach and real season record/playoff result for ANY
+team-season; college, for every pool_kind). At least 2 of the 3 revealed
+clues must be non-roster real facts -- a board without enough real
+non-roster data on file (pre-1999 coach coverage gap, unresolved MVP, no
+standings row) is rejected outright rather than silently falling back to an
+all-roster puzzle -- unchanged discipline, now applied across the wider
+pool.
+
+Question/notes wording is pool_kind-aware (Pass 2.7 fix): the OLD hardcoded
+"Guess the Super Bowl-winning team AND season" would have been FALSE for
+the newly-added non-champion boards (a CURRENT_TEAM_2026/
+NFL_TEAM_SEASON_ROSTER board's real answer team did not necessarily win
+the Super Bowl that season) -- see _question_and_notes_template() below.
 """
 from __future__ import annotations
 
@@ -19,7 +36,7 @@ from collections import Counter
 
 from .. import serializer
 from . import _champion_clue_common as clue_common
-from . import _college_offense_curated_common as common
+from . import _group_board_common as group_common
 
 CATEGORY = "Three Clues, One Champion"
 OUT_PATH = None
@@ -27,6 +44,17 @@ REQUIRED_SOURCE_ID = "READS_GOLD_STANDARD_BLUEPRINT_V1"
 REQUIRED_VERIFICATION_STATUS = "SOURCE_BACKED_FROM_GOLD_STANDARD_BLUEPRINT_V1"
 TRACK_ENTITY = True
 _DIFF_MAP = {"EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"}
+
+# The 3 real pool_kinds this domain can coherently ask "guess the team AND
+# season" about -- see module docstring for why DRAFT_CLASS/HONOR_GROUP are
+# excluded.
+_TEAM_SEASON_POOL_KINDS = ("SB_CHAMPION", "CURRENT_TEAM_2026", "NFL_TEAM_SEASON_ROSTER")
+
+# Era anti-leak rule (Pass 2.7): distractors must be plausible teams from
+# roughly the same period, never a random mix across 60 years -- a +/-12
+# year window around the real answer's season, widened only if that window
+# doesn't have enough real distinct options.
+_DISTRACTOR_ERA_WINDOW_YEARS = 12
 
 
 def safety_check(c) -> dict:
@@ -46,29 +74,52 @@ def safety_check(c) -> dict:
             c, "nfl_season_awards", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
             where_extra="award_type = 'SB_MVP'",
         ),
+        "season_standings": safety.check_verification_status_safety(
+            c, "season_standings", "NFLVERSE_DATA", "SOURCE_BACKED",
+        ),
     }
 
 
-# Era Gauntlet (Gold Standard concept #51) redesign (Gold Standard Modes +
-# Creator Quality follow-up pass): the OLD version filtered
-# NFL_SB_CHAMPION_OFFENSE_COLLEGE (full 11-position roster boards) to one
-# per decade -- still a roster/college-list game, just fewer of them. This
-# capability's real non-roster clue majority (>=2 of 3 clues from real
-# opponent/score/coach/MVP facts, enforced in evaluate()) makes THIS the
-# genuine redesign target instead: one real champion per real represented
-# decade, chosen only from champions with enough real non-roster data to
-# guarantee a real non-roster-majority puzzle for every era slot, returned
-# oldest-era-first (a real progression -- earlier eras have less real
-# non-roster data on file, e.g. no coach coverage pre-1999, so they are
-# naturally harder, not artificially graded).
+# Era Gauntlet (Gold Standard concept #51): one real board per real
+# represented decade, chosen only from boards with enough real non-roster
+# data to guarantee a real non-roster-majority puzzle for every era slot,
+# returned oldest-era-first (a real progression -- earlier eras have less
+# real non-roster data on file, e.g. no coach/standings coverage pre-2002,
+# so they naturally lean on SB_CHAMPION's own opponent/score/MVP facts
+# instead, never artificially graded).
 _ERAS = [(1960, 1969), (1970, 1979), (1980, 1989), (1990, 1999), (2000, 2009), (2010, 2019), (2020, 2029)]
 SUPPORTS_FILTERS = True
 
 
+
+# Real perf fix caught by this pass's own test suite, not assumed: evaluate()
+# below used to re-call group_common.fetch_all_boards() once PER CANDIDATE
+# to build the distractor pool (502 real calls for a real 502-board pool).
+# That function's own docstring says it's designed to be "called exactly
+# once per real request, before any evaluate() calls" -- it CLEARS its own
+# internal per-pool_kind cache on every call, so calling it 502 times
+# doesn't just skip the cache, it actively defeats it, redoing every real
+# source query (including NFL_TEAM_SEASON_ROSTER's own real per-team-season
+# resolve_franchise() joins) 502 times. Measured directly: this alone
+# accounted for ~145ms/candidate, ~73s total for a 502-board pool -- enough
+# to blow generation.py's 45s GENERATION_TIMEOUT_SECONDS on every single
+# public request (confirmed: gateway/tests/test_public_mode_wiring.py's
+# cfb_three_clues_guess round-trip test consistently timed out at 45.4s
+# before this fix). fetch_ordered_candidates() is always called exactly
+# once before any evaluate() call in the real pipeline
+# (game_director_v01.generate_package_from_spec()) -- caching its own
+# all_boards list here, once, and having evaluate() reuse it instead of
+# re-fetching respects the same one-call contract group_common.py's own
+# cache already assumes, just one level up.
+_all_boards_cache: list[dict] | None = None
+
+
 def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
+    global _all_boards_cache
     from .. import engine
     filters = filters or {}
-    boards = common.fetch_boards(c, "SB_CHAMPION")
+    boards = group_common.fetch_all_boards(c, pool_kinds=_TEAM_SEASON_POOL_KINDS)
+    _all_boards_cache = boards
 
     if filters.get("era_gauntlet"):
         eligible = [b for b in boards if len([cl for cl in clue_common.real_available_clues(c, b) if cl[0] != "COLLEGE"]) >= 2]
@@ -111,9 +162,24 @@ def evaluate(c, board, rng, guard):
     clue_families = [family for family, _ in chosen]
     clue_texts = [text for _, text in chosen]
 
-    all_boards = common.fetch_boards(c, "SB_CHAMPION")
+    # Reuse the list fetch_ordered_candidates() already built -- see the
+    # module-level _all_boards_cache docstring above for why re-calling
+    # group_common.fetch_all_boards() here would be a real, measured perf
+    # regression, not just a style choice. Falls back to a fresh fetch only
+    # if evaluate() were ever somehow called without fetch_ordered_candidates()
+    # having run first (never true in the real pipeline, but a safe, cheap
+    # guard rather than a hard crash).
+    all_boards = _all_boards_cache if _all_boards_cache is not None else group_common.fetch_all_boards(c, pool_kinds=_TEAM_SEASON_POOL_KINDS)
     correct_text = _display(board)
-    pool = {b["board_id"]: _display(b) for b in all_boards if b["board_id"] != board["board_id"]}
+    others = [b for b in all_boards if b["board_id"] != board["board_id"]]
+    # Era anti-leak rule (Pass 2.7): prefer distractors from roughly the
+    # same period as the real answer, not an unscoped mix across 60 years
+    # of real team-seasons -- widen the window only if it doesn't have
+    # enough real, distinct options (never silently narrower than needed).
+    season = board["season"]
+    near = {b["board_id"]: _display(b) for b in others
+            if abs(b["season"] - season) <= _DISTRACTOR_ERA_WINDOW_YEARS and _display(b) != correct_text}
+    pool = near if len(near) >= 3 else {b["board_id"]: _display(b) for b in others if _display(b) != correct_text}
     if len(pool) < 3:
         return "INSUFFICIENT_DISTRACTORS"
     distractor_ids = rng.sample(sorted(pool.keys()), 3)
@@ -123,8 +189,14 @@ def evaluate(c, board, rng, guard):
     if len(set(options)) != 4:
         return "DUPLICATE_OPTIONS"
 
+    # Pool_kind-aware wording (Pass 2.7 fix): the old hardcoded "Guess the
+    # Super Bowl-winning team AND season" would be FALSE for a non-champion
+    # board (CURRENT_TEAM_2026/NFL_TEAM_SEASON_ROSTER) -- its real answer
+    # team did not necessarily win the Super Bowl that season.
+    is_champion = board.get("pool_kind") == "SB_CHAMPION"
     clue_list = "; ".join(clue_texts)
-    question = f"Exactly 3 real clues, 1 champion: {clue_list}. Guess the Super Bowl-winning team AND season."
+    ask = "Guess the Super Bowl-winning team AND season." if is_champion else "Guess the team AND season."
+    question = f"Exactly 3 real clues, 1 team: {clue_list}. {ask}"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
     entity_key = f"cfb_three_clues_one_champion:{board['board_id']}"
@@ -135,7 +207,11 @@ def evaluate(c, board, rng, guard):
     if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != correct_text:
         return "INVALID_CORRECT_INDEX"
 
-    notes = f"The {correct_text} won the Super Bowl -- these 3 real clues ({', '.join(clue_families)}) all describe it."
+    notes = (
+        f"The {correct_text} won the Super Bowl -- these 3 real clues ({', '.join(clue_families)}) all describe it."
+        if is_champion else
+        f"These 3 real clues ({', '.join(clue_families)}) all describe the {correct_text}."
+    )
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,
@@ -151,10 +227,10 @@ def evaluate(c, board, rng, guard):
 
 def shortfall_reason(accepted_count, considered_count, target_count) -> str:
     return (
-        f"Only {accepted_count} of the {considered_count} real curated Super Bowl champions had at least "
-        f"2 real non-roster clues (real opponent/score/coach/MVP) plus a 3rd real clue on file; exported "
-        f"the maximum available ({accepted_count}) rather than loosen the non-roster-majority rule to "
-        f"reach {target_count}."
+        f"Only {accepted_count} of the {considered_count} real team-seasons (Super Bowl champions, current "
+        f"2026 teams, and historical team-season rosters) had at least 2 real non-roster clues (real "
+        f"opponent/score/coach/MVP/season record) plus a 3rd real clue on file; exported the maximum "
+        f"available ({accepted_count}) rather than loosen the non-roster-majority rule to reach {target_count}."
     )
 
 
@@ -175,8 +251,9 @@ def header_lines(seed: str) -> list[str]:
 def human_review_context(record: dict) -> list[str]:
     a = record["_audit"]
     return [
-        f"- **Champion:** \"{record['options'][record['correctIndex']]}\"",
+        f"- **Answer:** \"{record['options'][record['correctIndex']]}\"",
         f"- **3 revealed clue families:** {', '.join(a['clue_families'])}",
         f"- **Underlying Engine source:** `nfl_championship_events` / `coach_team_seasons` / "
-        f"`nfl_season_awards` / `curated_nfl_offense_college_board`",
+        f"`nfl_season_awards` / `season_standings` / `curated_nfl_offense_college_board` / "
+        f"`canonical_roster_seasons`",
     ]
