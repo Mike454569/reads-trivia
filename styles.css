@@ -1839,6 +1839,12 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .f101-hash { stroke: rgba(244,247,241,0.18); stroke-width: 0.4; }
 .f101-los { stroke: var(--accent); stroke-width: 0.6; stroke-dasharray: 1.4 1; }
 .f101-player-dot { fill: var(--bg-card); stroke: var(--accent-2); stroke-width: 0.5; }
+/* Football 101 Graphics Quality pass: a separate, invisible, larger tap
+   target (football-field.js's playerMarkerSVG()/hitRadiusFor()) -- an SVG
+   shape with fill:transparent does NOT receive pointer events by default,
+   so this needs pointer-events:all explicitly, or every added hit circle
+   would be visually present but silently untappable. */
+.f101-player-hit { pointer-events: all; }
 .f101-player-label { font-size: 1.7px; font-weight: 700; fill: var(--text); pointer-events: none; }
 .f101-player-tag { font-size: 1.25px; fill: var(--text-dim); pointer-events: none; }
 .f101-player { cursor: pointer; }
