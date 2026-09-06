@@ -1415,7 +1415,16 @@ class MockDeterministicTranslator(Translator):
                 clarifying_question="Which franchise? (e.g. \"Give me a Cowboys franchise marathon\")",
             )
 
-        if "era gauntlet" in text_lower_gs:
+        # Public Mode Wiring pass: "historical football challenge" (and
+        # close variants) is a real, distinctive phrase for the same real
+        # concept "era gauntlet" already names -- a generic history-themed
+        # request has no other real capability to route to today, so this
+        # is additive (never fires unless BOTH "historical"/"history" AND
+        # "challenge" are present, narrow enough to not misroute an
+        # unrelated request that merely mentions football history).
+        if "era gauntlet" in text_lower_gs or (
+            ("historical" in text_lower_gs or "history" in text_lower_gs) and "challenge" in text_lower_gs
+        ):
             # Gold Standard Modes + Creator Quality follow-up pass: redesigned
             # to route to the real, non-roster-majority Three Clues capability
             # instead of the roster-by-college board -- see that capability's
@@ -1428,7 +1437,8 @@ class MockDeterministicTranslator(Translator):
                 "filters": {"era_gauntlet": True}, "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec,
-                            "Matched 'era gauntlet' -> TEAM_SEASON_FROM_THREE_CLUES guess capability, "
+                            "Matched 'era gauntlet' or a historical-challenge phrase -> "
+                            "TEAM_SEASON_FROM_THREE_CLUES guess capability, "
                             "scoped to one real champion per era with a real non-roster-majority clue set "
                             "(not a roster/college-list filter).")
 

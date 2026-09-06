@@ -277,7 +277,7 @@ def generate(*, request_text: str | None, spec: dict | None, provider: str,
     )
 
 
-def generate_public(*, spec: dict, difficulty: str | None, seed: str | None) -> dict:
+def generate_public(*, spec: dict, difficulty: str | None, seed: str | None, puzzle_count: int = 1) -> dict:
     """PUBLIC generation path (gateway/services/public_game.py only) -- v1.6,
     Part A. Same pipeline, same timeout, but a bounded worker pool sized for
     real concurrent throughput instead of the admin path's single slot. Only
@@ -285,12 +285,28 @@ def generate_public(*, spec: dict, difficulty: str | None, seed: str | None) -> 
     certified templates (gateway/services/public_game.py), never arbitrary
     caller input -- see module docstring for the read-only proof this relies
     on. `provider` is always "mock" here (public gameplay never calls a real
-    LLM) and `puzzle_count` is always 1 (one question per fetch) -- both
-    fixed rather than parameters, since a public caller never has a reason
-    to vary either."""
+    LLM) -- fixed rather than a parameter, since a public caller never has a
+    reason to vary it.
+
+    Public Mode Wiring pass (Franchise Marathon / Era Gauntlet real fix):
+    `puzzle_count` defaults to 1 (every existing public mode's exact prior
+    behavior, unchanged) but a "sequential" mode (see public_game.py's
+    `_ensure_mode_public`) needs `stage_index + 1` real candidates computed
+    in ONE call so it can select the one at `stage_index` -- the underlying
+    adapters for franchise_name/era_gauntlet filters return their
+    candidates in real, deliberate, NON-shuffled order (chronological /
+    oldest-era-first -- see sb_champion_offense_college.py's
+    fetch_ordered_candidates()), and generate_package_from_spec() slices
+    `accepted_for_export[:target_count]` -- so target_count=1 (the old
+    hardcoded value) could only ever return the FIRST real stage, forever,
+    regardless of seed. This was verified directly: existing tests
+    (test_franchise_marathon_filter_scopes_to_one_franchise_chronologically,
+    test_era_gauntlet_filter_returns_one_board_per_era) already pass
+    target_count=10, which is exactly why they never caught this -- they
+    never exercised the public single-question-per-fetch contract."""
     return _run_pipeline_bounded(
         request_text=None, spec=spec, provider="mock",
-        puzzle_count=1, difficulty=difficulty, seed=seed,
+        puzzle_count=puzzle_count, difficulty=difficulty, seed=seed,
         gate=_public_generation_semaphore, executor=_public_executor,
         busy_message="This game is popular right now -- try again in a moment.",
     )

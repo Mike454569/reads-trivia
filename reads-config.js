@@ -95,4 +95,19 @@ window.READS_CONFIG = {
   // with 400 INVALID_REQUEST) before this flip -- matching this file's own
   // established rollout discipline.
   enablePickem: true,
+
+  // Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities newly
+  // certified public this pass (gateway/services/public_game.py's own
+  // PUBLIC_MODES entries carry the real candidate surveys). Left OFF here
+  // pending local verification + real production canary, matching this
+  // file's own established rollout discipline (flip only after each mode
+  // is individually canary-verified against production).
+  enableEngineCfbRivalryPilot: false,
+  enableEngineCfbRivalryLookupPilot: false,
+  enableEngineCfbSpotTheFakePilot: false,
+  enableEngineCfbThreeCluesPilot: false,
+  enableEngineEraGauntletPilot: false,
+  enableEngineCfbOddCollegeOutPilot: false,
+  enableEngineCfbOneSchoolMissingPilot: false,
+  enableEngineFranchiseMarathonPilot: false,
 };

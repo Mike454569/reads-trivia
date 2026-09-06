@@ -92,7 +92,18 @@ def evaluate(c, row, rng, guard):
     if len(set(options)) != 4:
         return "DUPLICATE_OPTIONS"
 
-    rivalry_phrase = f' ("{row["nickname"]}")' if row["nickname"] else ""
+    # Public Mode Wiring pass: real bug found while making this capability
+    # public -- 32 of 96 real rows have a literal "-" placeholder nickname
+    # (no real nickname exists for that rivalry), which the original
+    # `if row["nickname"]` check didn't catch (a non-empty "-" string is
+    # still truthy), producing 'in the game known as ("-")' for a full
+    # third of all real questions. Treat a dash/whitespace-only placeholder
+    # the same as no nickname at all -- matches this line's own clear
+    # intent, doesn't change any real, meaningful nickname.
+    real_nickname = (row["nickname"] or "").strip()
+    if real_nickname == "-":
+        real_nickname = ""
+    rivalry_phrase = f' ("{real_nickname}")' if real_nickname else ""
     question = f"Which school is {row['ask_name']}’s rival in the game known as{rivalry_phrase}?"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
@@ -109,7 +120,7 @@ def evaluate(c, row, rng, guard):
     diff_label = "Medium"
 
     extra = row["series_record"] or row["fun_fact"] or ""
-    notes = f"{row['ask_name']} and {row['answer_name']} play in {row['nickname'] or 'a rivalry game'}. {extra}".strip()
+    notes = f"{row['ask_name']} and {row['answer_name']} play in {real_nickname or 'a rivalry game'}. {extra}".strip()
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,

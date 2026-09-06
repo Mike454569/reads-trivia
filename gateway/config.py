@@ -285,6 +285,15 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # entries for each.
     "offense_college_guess", "sb_champion_offense_college_guess",
     "cfb_ranking_guess", "cfb_upset_guess",
+    # Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities
+    # audited and certified this pass (7 target modes from the spec, plus
+    # cfb_rivalry_lookup_guess, added to close a real NL-routing gap -- see
+    # public_game.py's own comment on that entry) -- real candidate surveys
+    # recorded in gateway/services/public_game.py's own PUBLIC_MODES
+    # entries for each.
+    "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
+    "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess",
+    "franchise_marathon_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

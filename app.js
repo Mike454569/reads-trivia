@@ -93,6 +93,18 @@ var ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01 = READS_CONFIG.enableEngineOffenseCo
 var ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01 = READS_CONFIG.enableEngineSbChampionOffenseCollegePilot === true;
 var ENABLE_ENGINE_CFB_RANKING_PILOT_V01 = READS_CONFIG.enableEngineCfbRankingPilot === true;
 var ENABLE_ENGINE_CFB_UPSET_PILOT_V01 = READS_CONFIG.enableEngineCfbUpsetPilot === true;
+// Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities newly
+// certified public this pass (gateway/services/public_game.py's own
+// PUBLIC_MODES entries carry the real candidate surveys) -- same
+// fail-closed pattern, default OFF until individually canary-verified.
+var ENABLE_ENGINE_CFB_RIVALRY_PILOT_V01 = READS_CONFIG.enableEngineCfbRivalryPilot === true;
+var ENABLE_ENGINE_CFB_RIVALRY_LOOKUP_PILOT_V01 = READS_CONFIG.enableEngineCfbRivalryLookupPilot === true;
+var ENABLE_ENGINE_CFB_SPOT_THE_FAKE_PILOT_V01 = READS_CONFIG.enableEngineCfbSpotTheFakePilot === true;
+var ENABLE_ENGINE_CFB_THREE_CLUES_PILOT_V01 = READS_CONFIG.enableEngineCfbThreeCluesPilot === true;
+var ENABLE_ENGINE_ERA_GAUNTLET_PILOT_V01 = READS_CONFIG.enableEngineEraGauntletPilot === true;
+var ENABLE_ENGINE_CFB_ODD_COLLEGE_OUT_PILOT_V01 = READS_CONFIG.enableEngineCfbOddCollegeOutPilot === true;
+var ENABLE_ENGINE_CFB_ONE_SCHOOL_MISSING_PILOT_V01 = READS_CONFIG.enableEngineCfbOneSchoolMissingPilot === true;
+var ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01 = READS_CONFIG.enableEngineFranchiseMarathonPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -161,6 +173,9 @@ var ICON_PATHS = {
   // plain padlock (Pick'em's locked/kicked-off game state).
   mystery: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/><path d="M9.8 15.2a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.8.6-.8 1.2"/><path d="M11.5 20.4h.01"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  // Public Mode Wiring pass: Era Gauntlet's own symbol -- a real timeline
+  // (a line with era markers), not reused from an unrelated concept.
+  timeline: '<path d="M3 12h18"/><circle cx="5" cy="12" r="1.6"/><circle cx="10.3" cy="12" r="1.6"/><circle cx="15.7" cy="12" r="1.6"/><circle cx="21" cy="12" r="1.6" fill="currentColor"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
@@ -256,6 +271,28 @@ function renderBinaryChoiceHtml(sideA, sideB, opts) {
     side(sideA) +
     '<div class="binary-choice-vs">' + icon('versus') + '</div>' +
     side(sideB) +
+    '</div>';
+}
+
+// Shared "equal candidate cards" component (Public Mode Wiring pass) --
+// Odd College Out ("player selects the outlier") and One School Missing
+// ("grouped-card display" for its real, confirmed-UNORDERED group-
+// membership question -- see cfb_one_school_missing.py's own real shape)
+// both want the same real thing: N equally-weighted real options
+// presented as a grid, not a vertical A/B/C/D list. Reuses the exact
+// .quiz-option correct/wrong/selected semantics under new class names so
+// grading feedback looks and behaves identically to every other mode.
+function renderCandidateCardsHtml(options, opts) {
+  opts = opts || {};
+  var dataAttr = opts.dataAttr || 'data-candidate-card';
+  return '<div class="candidate-cards-grid">' +
+    options.map(function (opt, i) {
+      var cls = 'candidate-card';
+      if (opts.state) cls += ' ' + opts.state(i, opt);
+      var disabledAttr = opts.disabled ? ' disabled' : '';
+      return '<button class="' + cls + '"' + disabledAttr + ' ' + dataAttr + '="' + i + '">' +
+        '<span class="candidate-card-label">' + esc(opt) + '</span></button>';
+    }).join('') +
     '</div>';
 }
 
@@ -1358,6 +1395,20 @@ function goToMode(mode) {
     // other mode, without engine-game-ui.js needing to know either exists.
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    // Franchise Marathon: a real franchise choice is required before any
+    // round can start (the mode has no "any franchise" default) -- route
+    // to the IDLE screen's own franchise picker instead of immediately
+    // starting a round with no filter value, which would silently fall
+    // through to the unfiltered random-shuffle candidate order instead of
+    // one real franchise's real chronological history.
+    if (ENGINE_PILOT_MODES[engineEntry.engineMode].needsFilterValue) {
+      enginePilotCurrentModeKey = engineEntry.engineMode;
+      state.enginePilot = null;
+      state.enginePilotPendingFranchise = null;
+      state.screen = 'enginePilot';
+      renderAll();
+      return;
+    }
     startEnginePilotRound(engineEntry.engineMode);
     return;
   }
@@ -1716,6 +1767,56 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'cfb_upset_guess', icon: 'flame', title: ENGINE_PILOT_MODES.cfbUpset.title,
       desc: ENGINE_PILOT_MODES.cfbUpset.desc, engineMode: 'cfbUpset', league: 'cfb', difficulty: 'hardcore', featured: true,
+    });
+  }
+  // Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities newly
+  // certified public this pass.
+  if (ENGINE_PILOT_MODES.cfbRivalry.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_rivalry_guess', icon: 'versus', title: ENGINE_PILOT_MODES.cfbRivalry.title,
+      desc: ENGINE_PILOT_MODES.cfbRivalry.desc, engineMode: 'cfbRivalry', league: 'cfb', difficulty: 'competitive', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.cfbRivalryLookup.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_rivalry_lookup_guess', icon: 'shield', title: ENGINE_PILOT_MODES.cfbRivalryLookup.title,
+      desc: ENGINE_PILOT_MODES.cfbRivalryLookup.desc, engineMode: 'cfbRivalryLookup', league: 'cfb', difficulty: 'casual',
+    });
+  }
+  if (ENGINE_PILOT_MODES.spotTheFake.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_spot_the_fake_guess', icon: 'xMark', title: ENGINE_PILOT_MODES.spotTheFake.title,
+      desc: ENGINE_PILOT_MODES.spotTheFake.desc, engineMode: 'spotTheFake', league: 'cfb', difficulty: 'hardcore', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.threeClues.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_three_clues_guess', icon: 'mystery', title: ENGINE_PILOT_MODES.threeClues.title,
+      desc: ENGINE_PILOT_MODES.threeClues.desc, engineMode: 'threeClues', league: 'cfb', difficulty: 'competitive', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.eraGauntlet.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'era_gauntlet_guess', icon: 'timeline', title: ENGINE_PILOT_MODES.eraGauntlet.title,
+      desc: ENGINE_PILOT_MODES.eraGauntlet.desc, engineMode: 'eraGauntlet', league: 'cfb', difficulty: 'competitive', featured: true,
+    });
+  }
+  if (ENGINE_PILOT_MODES.oddCollegeOut.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_odd_college_out_guess', icon: 'search', title: ENGINE_PILOT_MODES.oddCollegeOut.title,
+      desc: ENGINE_PILOT_MODES.oddCollegeOut.desc, engineMode: 'oddCollegeOut', league: 'cfb', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_PILOT_MODES.oneSchoolMissing.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'cfb_one_school_missing_guess', icon: 'grid', title: ENGINE_PILOT_MODES.oneSchoolMissing.title,
+      desc: ENGINE_PILOT_MODES.oneSchoolMissing.desc, engineMode: 'oneSchoolMissing', league: 'cfb', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_PILOT_MODES.franchiseMarathon.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'franchise_marathon_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.franchiseMarathon.title,
+      desc: ENGINE_PILOT_MODES.franchiseMarathon.desc, engineMode: 'franchiseMarathon', league: 'nfl', difficulty: 'competitive', featured: true,
     });
   }
 }
@@ -9852,7 +9953,7 @@ document.addEventListener('click', function (e) {
     '[data-clues-start], [data-clues-submit], [data-clues-hint], [data-clues-giveup], [data-clues-next], ' +
     '[data-clues-filter-decade], [data-clues-filter-difficulty], ' +
     '[data-cfb-clues-start], [data-cfb-clues-submit], [data-cfb-clues-hint], [data-cfb-clues-giveup], [data-cfb-clues-next], ' +
-    '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], ' +
+    '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], [data-pilot-franchise-pick], [data-pilot-reveal-clue], ' +
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
     '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
     '[data-mechanic-hl-guess], [data-elim-guess], ' +
@@ -10141,7 +10242,24 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cfbCluesGiveup !== undefined) { giveCfbPlayerCluesUp(); return; }
   if (t.dataset.cfbCluesNext !== undefined) { advanceCfbPlayerClues(); return; }
 
-  if (t.dataset.pilotStart !== undefined) { startEnginePilotRound(); return; }
+  if (t.dataset.pilotFranchisePick !== undefined) { state.enginePilotPendingFranchise = t.dataset.pilotFranchisePick; renderAll(); return; }
+  if (t.dataset.pilotRevealClue !== undefined) {
+    var pilotClueState = state.enginePilot;
+    if (pilotClueState && (pilotClueState.cluesRevealedCount || 1) < 3) { pilotClueState.cluesRevealedCount = (pilotClueState.cluesRevealedCount || 1) + 1; renderAll(); }
+    return;
+  }
+  if (t.dataset.pilotStart !== undefined) {
+    var pilotCfgForStart = enginePilotModeConfig(enginePilotCurrentModeKey);
+    // "Play Again" from a just-finished sequential round (state.enginePilot
+    // still holds the completed round's own filterValue) reuses that same
+    // real franchise -- the picker's own pending-selection state was
+    // already cleared when THAT round started, so falling back to it here
+    // would silently no-op Play Again for Franchise Marathon specifically.
+    var filterValueForStart = (state.enginePilot && state.enginePilot.filterValue) || state.enginePilotPendingFranchise;
+    if (pilotCfgForStart.needsFilterValue && !filterValueForStart) return; // Start is disabled in this state, but never proceed on no real selection
+    startEnginePilotRound(undefined, filterValueForStart);
+    return;
+  }
   if (t.dataset.pilotAnswer !== undefined) { pickEnginePilotAnswer(parseInt(t.dataset.pilotAnswer, 10)); return; }
   if (t.dataset.pilotNext !== undefined) { advanceEnginePilot(); return; }
   if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
@@ -10424,6 +10542,14 @@ if (ENABLE_ENGINE_OFFENSE_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#offensecollegepilot
 if (ENABLE_ENGINE_SB_CHAMPION_OFFENSE_COLLEGE_PILOT_V01) HIDDEN_ROUTES['#sbchampionoffensecollegepilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CFB_RANKING_PILOT_V01) HIDDEN_ROUTES['#cfbrankingpilot'] = 'enginePilot';
 if (ENABLE_ENGINE_CFB_UPSET_PILOT_V01) HIDDEN_ROUTES['#cfbupsetpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_RIVALRY_PILOT_V01) HIDDEN_ROUTES['#cfbrivalrypilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_RIVALRY_LOOKUP_PILOT_V01) HIDDEN_ROUTES['#cfbrivalrylookuppilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_SPOT_THE_FAKE_PILOT_V01) HIDDEN_ROUTES['#spotthefakepilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_THREE_CLUES_PILOT_V01) HIDDEN_ROUTES['#threecluespilot'] = 'enginePilot';
+if (ENABLE_ENGINE_ERA_GAUNTLET_PILOT_V01) HIDDEN_ROUTES['#eragauntletpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_ODD_COLLEGE_OUT_PILOT_V01) HIDDEN_ROUTES['#oddcollegeoutpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_CFB_ONE_SCHOOL_MISSING_PILOT_V01) HIDDEN_ROUTES['#oneschoolmissingpilot'] = 'enginePilot';
+if (ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01) HIDDEN_ROUTES['#franchisemarathonpilot'] = 'enginePilot';
 // Public-readiness punch-list: the 4 new-shape mechanic-pilot modes route
 // to their own 'mechanicPilot' screen (a separate shared shell -- see
 // engine-game-ui.js's own module comment for why these don't fit the
@@ -10449,6 +10575,14 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_PILOT_MODES.sbChampionOffenseCollege.hash) enginePilotCurrentModeKey = 'sbChampionOffenseCollege';
   else if (location.hash === ENGINE_PILOT_MODES.cfbRanking.hash) enginePilotCurrentModeKey = 'cfbRanking';
   else if (location.hash === ENGINE_PILOT_MODES.cfbUpset.hash) enginePilotCurrentModeKey = 'cfbUpset';
+  else if (location.hash === ENGINE_PILOT_MODES.cfbRivalry.hash) enginePilotCurrentModeKey = 'cfbRivalry';
+  else if (location.hash === ENGINE_PILOT_MODES.cfbRivalryLookup.hash) enginePilotCurrentModeKey = 'cfbRivalryLookup';
+  else if (location.hash === ENGINE_PILOT_MODES.spotTheFake.hash) enginePilotCurrentModeKey = 'spotTheFake';
+  else if (location.hash === ENGINE_PILOT_MODES.threeClues.hash) enginePilotCurrentModeKey = 'threeClues';
+  else if (location.hash === ENGINE_PILOT_MODES.eraGauntlet.hash) enginePilotCurrentModeKey = 'eraGauntlet';
+  else if (location.hash === ENGINE_PILOT_MODES.oddCollegeOut.hash) enginePilotCurrentModeKey = 'oddCollegeOut';
+  else if (location.hash === ENGINE_PILOT_MODES.oneSchoolMissing.hash) enginePilotCurrentModeKey = 'oneSchoolMissing';
+  else if (location.hash === ENGINE_PILOT_MODES.franchiseMarathon.hash) enginePilotCurrentModeKey = 'franchiseMarathon';
   else if (location.hash === ENGINE_MECHANIC_MODES.matching.hash) mechanicPilotCurrentModeKey = 'matching';
   else if (location.hash === ENGINE_MECHANIC_MODES.sorting.hash) mechanicPilotCurrentModeKey = 'sorting';
   else if (location.hash === ENGINE_MECHANIC_MODES.higherLowerEngine.hash) mechanicPilotCurrentModeKey = 'higherLowerEngine';

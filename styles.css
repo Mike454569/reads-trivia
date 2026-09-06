@@ -2046,3 +2046,63 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .hl-guess-row { gap: 8px; }
   .hl-guess-btn { padding: 10px 6px; font-size: 13px; }
 }
+
+/* ============================== Public Mode Wiring pass ==================
+   Odd College Out / One School Missing: equal candidate cards. */
+.candidate-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0; }
+.candidate-card {
+  padding: 16px 10px; min-height: 44px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-elevated); color: var(--text); text-align: center; font: inherit; font-weight: 700;
+  cursor: pointer; transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+}
+.candidate-card:not(:disabled):hover { border-color: var(--home-accent, var(--accent)); }
+.candidate-card:not(:disabled):active { transform: scale(0.98); }
+.candidate-card:disabled { cursor: default; }
+.candidate-card.selected { border-color: var(--accent); background: rgba(217,166,60,.12); }
+.candidate-card.correct { border-color: var(--good); background: rgba(34,197,94,.14); animation: pop-feedback-strong 0.4s ease; }
+.candidate-card.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); opacity: .85; animation: shake-feedback-strong 0.45s ease; }
+.candidate-card-label { font-size: 14px; word-break: break-word; }
+
+/* Era Gauntlet: real 7-decade timeline. */
+.era-gauntlet-timeline { display: flex; align-items: center; margin: 10px 0 16px; overflow-x: auto; padding-bottom: 2px; }
+.era-gauntlet-marker { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; min-width: 44px; }
+.era-gauntlet-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--border); }
+.era-gauntlet-marker.done .era-gauntlet-dot { background: var(--good); border-color: var(--good); }
+.era-gauntlet-marker.current .era-gauntlet-dot { background: var(--home-accent, var(--accent)); border-color: var(--home-accent, var(--accent)); width: 16px; height: 16px; }
+.era-gauntlet-label { font-size: 10.5px; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
+.era-gauntlet-marker.current .era-gauntlet-label { color: var(--text); }
+.era-gauntlet-connector { flex: 1; height: 2px; background: var(--border); min-width: 10px; margin-bottom: 16px; }
+
+/* Three Clues, One Champion (also used by Era Gauntlet's own per-question
+   clue reveal): real progressive clue cards. */
+.three-clues-count {
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 10px;
+}
+.three-clues-count .icon { width: 14px; height: 14px; }
+.three-clues-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.three-clues-card {
+  display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; line-height: 1.45;
+}
+.three-clues-card-latest { border-color: var(--home-accent, var(--accent)); box-shadow: 0 0 0 1px var(--home-accent, var(--accent)) inset; }
+.three-clues-num {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--bg-elevated);
+  color: var(--text-dim); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+.three-clues-card-latest .three-clues-num { background: var(--home-accent, var(--accent)); color: var(--accent-text); }
+.three-clues-text { flex: 1; }
+
+@media (max-width: 390px) {
+  .candidate-card { padding: 12px 6px; }
+  .candidate-card-label { font-size: 12.5px; }
+  .three-clues-card { padding: 11px; font-size: 14px; }
+  .era-gauntlet-label { font-size: 9.5px; }
+}
+@media (max-width: 340px) {
+  .candidate-cards-grid { gap: 6px; }
+  .candidate-card { padding: 10px 4px; }
+}
+@media (min-width: 1280px) {
+  .candidate-cards-grid { max-width: 640px; margin-left: auto; margin-right: auto; }
+}

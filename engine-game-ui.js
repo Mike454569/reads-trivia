@@ -269,6 +269,114 @@ var ENGINE_PILOT_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // ==========================================================================
+  // Public Mode Wiring pass (Pass 2.5): 8 real backend capabilities newly
+  // certified public this pass (see gateway/services/public_game.py's own
+  // PUBLIC_MODES entries for the real candidate surveys behind each).
+  // eraGauntlet/franchiseMarathon are the two "sequential" modes -- see
+  // their own `sequential: true` flag below and startEnginePilotRound()'s
+  // real stage_index handling.
+  cfbRivalry: {
+    apiMode: 'cfb_rivalry_guess',
+    icon: 'versus',
+    hash: '#cfbrivalrypilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_RIVALRY_PILOT_V01; },
+    title: 'CFB Rivalries',
+    desc: "See a real question from a real, named CFB rivalry (Iron Bowl, Civil War, and more).",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  cfbRivalryLookup: {
+    apiMode: 'cfb_rivalry_lookup_guess',
+    icon: 'shield',
+    hash: '#cfbrivalrylookuppilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_RIVALRY_LOOKUP_PILOT_V01; },
+    title: 'CFB Rivalries: Name the Rival',
+    desc: "See a real school, and guess its real, named rivalry opponent.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  spotTheFake: {
+    apiMode: 'cfb_spot_the_fake_guess',
+    icon: 'xMark',
+    hash: '#spotthefakepilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_SPOT_THE_FAKE_PILOT_V01; },
+    title: 'Spot the Fake',
+    desc: "See a real starting lineup by position and college -- one slot's college has been swapped for a fake. Find it.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  threeClues: {
+    apiMode: 'cfb_three_clues_guess',
+    icon: 'mystery',
+    hash: '#threecluespilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_THREE_CLUES_PILOT_V01; },
+    title: "Three Clues, One Champion",
+    desc: "A real Super Bowl champion's clues, revealed one at a time. Guess the team and season.",
+    fallbackLabel: 'Play NFL Trivia Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
+  },
+  eraGauntlet: {
+    apiMode: 'era_gauntlet_guess',
+    icon: 'timeline',
+    hash: '#eragauntletpilot',
+    flagOn: function () { return ENABLE_ENGINE_ERA_GAUNTLET_PILOT_V01; },
+    title: 'Era Gauntlet',
+    desc: "Progress through real NFL history -- one real Super Bowl champion from each represented decade, oldest era first.",
+    fallbackLabel: 'Play NFL Trivia Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
+    sequential: true,
+  },
+  oddCollegeOut: {
+    apiMode: 'cfb_odd_college_out_guess',
+    icon: 'search',
+    hash: '#oddcollegeoutpilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_ODD_COLLEGE_OUT_PILOT_V01; },
+    title: 'Odd College Out',
+    desc: "See four real colleges. Three were part of the same real group -- find the one that wasn't.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  oneSchoolMissing: {
+    apiMode: 'cfb_one_school_missing_guess',
+    icon: 'grid',
+    hash: '#oneschoolmissingpilot',
+    flagOn: function () { return ENABLE_ENGINE_CFB_ONE_SCHOOL_MISSING_PILOT_V01; },
+    title: 'One School Missing',
+    desc: "See most of a real group's colleges. Pick the real one that's missing.",
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  franchiseMarathon: {
+    apiMode: 'franchise_marathon_guess',
+    icon: 'lombardiTrophy',
+    hash: '#franchisemarathonpilot',
+    flagOn: function () { return ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01; },
+    title: 'Franchise Marathon',
+    desc: "Pick a real NFL franchise and play through its real Super Bowl-winning offenses in chronological order, by college and position.",
+    fallbackLabel: 'Play NFL Trivia Instead',
+    fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
+    sequential: true,
+    needsFilterValue: true,
+    filterParamName: 'franchise',
+    // Real, verified list (sb_champion_offense_college.fetch_ordered_
+    // candidates() called directly for each, this pass) -- every one of
+    // these has 1+ real surviving stage after the standard duplicate-
+    // question guard. Never invented; a franchise not on this list simply
+    // isn't offered as a starting choice.
+    franchiseChoices: [
+      { value: 'cowboys', label: 'Dallas Cowboys' },
+      { value: 'packers', label: 'Green Bay Packers' },
+      { value: 'patriots', label: 'New England Patriots' },
+      { value: 'steelers', label: 'Pittsburgh Steelers' },
+      { value: '49ers', label: 'San Francisco 49ers' },
+      { value: 'giants', label: 'New York Giants' },
+      { value: 'chiefs', label: 'Kansas City Chiefs' },
+      { value: 'broncos', label: 'Denver Broncos' },
+      { value: 'raiders', label: 'Raiders (Oakland/LA)' },
+      { value: 'dolphins', label: 'Miami Dolphins' },
+    ],
+  },
 };
 var enginePilotCurrentModeKey = 'draft';
 function enginePilotModeConfig(modeKey) {
@@ -317,9 +425,18 @@ function enginePilotFetchJson(path, options) {
     throw err;
   });
 }
-function startEnginePilotRound(modeKey) {
+function startEnginePilotRound(modeKey, filterValue) {
   if (modeKey) enginePilotCurrentModeKey = modeKey;
-  state.enginePilot = { modeKey: enginePilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundIndex: 0, roundSize: ENGINE_PILOT_ROUNDSIZE, correctCount: 0, seenGameIds: [], current: null, error: null };
+  state.enginePilot = {
+    modeKey: enginePilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundIndex: 0, roundSize: ENGINE_PILOT_ROUNDSIZE,
+    correctCount: 0, seenGameIds: [], current: null, error: null,
+    // Public Mode Wiring pass: stageIndex/filterValue/sequenceCompleted are
+    // no-ops for every mode except the two "sequential" ones (see
+    // ENGINE_PILOT_MODES' own sequential/needsFilterValue flags) -- every
+    // other mode's behavior below is byte-identical to before this change.
+    stageIndex: 0, filterValue: filterValue || null, sequenceCompleted: false, sequenceStageCount: null,
+  };
+  state.enginePilotPendingFranchise = null;
   state.screen = 'enginePilot';
   renderAll();
   loadNextEnginePilotQuestion();
@@ -341,13 +458,46 @@ function loadNextEnginePilotQuestion() {
   s.screen = ENGINE_GAME_SCREEN.LOADING;
   s.error = null;
   renderAll();
-  var exclude = s.seenGameIds.slice(-20).join(',');
-  enginePilotFetchJson('/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode) + (exclude ? '&exclude=' + encodeURIComponent(exclude) : ''))
+  var url = '/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode);
+  if (cfg.sequential) {
+    // Real progression (Franchise Marathon / Era Gauntlet): stage_index
+    // addresses a specific real position in an intentionally-ordered
+    // candidate list (chronological season / oldest-era-first) -- exclude
+    // is meaningless here (see get_public_game()'s own docstring for why
+    // target_count=1 + exclude-based retry could never advance a
+    // sequential mode before this pass).
+    url += '&stage=' + s.stageIndex;
+  } else {
+    var exclude = s.seenGameIds.slice(-20).join(',');
+    if (exclude) url += '&exclude=' + encodeURIComponent(exclude);
+  }
+  if (cfg.needsFilterValue && s.filterValue) {
+    url += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
+  }
+  enginePilotFetchJson(url)
     .then(function (game) {
       if (state.enginePilot !== s) return; // player navigated away while this was in flight
+      // SEQUENCE_COMPLETE is a well-defined 200 (see gateway/errors.py) --
+      // enginePilotFetchJson only ever throws on a non-2xx status, so this
+      // arrives here as a normal resolved value, not a .catch(). A real,
+      // honest "you reached the end" outcome, not an error state.
+      if (game.error) {
+        if (game.error.code === 'SEQUENCE_COMPLETE') {
+          s.sequenceCompleted = true;
+          s.sequenceStageCount = game.error.stage_count != null ? game.error.stage_count : s.stageIndex;
+          s.screen = ENGINE_GAME_SCREEN.COMPLETE;
+          renderAll();
+          return;
+        }
+        s.screen = ENGINE_GAME_SCREEN.ERROR;
+        s.error = enginePilotUserFacingError(game.error);
+        renderAll();
+        return;
+      }
       s.current = game;
       s.pickedOption = null;
       s.answerResult = null;
+      s.cluesRevealedCount = 1; // Three Clues / Era Gauntlet: each new question starts back at Clue 1 of 3
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
     })
@@ -387,6 +537,16 @@ function pickEnginePilotAnswer(optionIndex) {
 function advanceEnginePilot() {
   var s = state.enginePilot;
   if (!s) return;
+  var cfg = enginePilotModeConfig(s.modeKey);
+  if (cfg.sequential) {
+    // No fixed roundSize for a sequential mode -- the real stage count
+    // varies (a franchise's real title count; Era Gauntlet's real 7
+    // represented decades) and is only known for certain once the server
+    // returns SEQUENCE_COMPLETE (see loadNextEnginePilotQuestion()).
+    s.stageIndex++;
+    loadNextEnginePilotQuestion();
+    return;
+  }
   if (s.roundIndex + 1 >= s.roundSize) { s.screen = ENGINE_GAME_SCREEN.COMPLETE; renderAll(); return; }
   s.roundIndex++;
   loadNextEnginePilotQuestion();
@@ -399,6 +559,21 @@ function advanceEnginePilot() {
    validation). See tools/director_v02/visual_templates.py and
    tools/quiz_export/adapters/lineup.py for why OL is one grouped row of 5,
    not 5 individually-labeled slots. */
+// Era Gauntlet's real timeline -- the exact same 7 real, fixed decade
+// boundaries the adapter itself uses (sb_champion_offense_college.py's
+// _ERAS: 1960s-2020s), not an invented visual. Section 7's own progress-
+// should-match-the-mechanic instruction, and Section 10's timeline symbol.
+var ERA_GAUNTLET_ERA_LABELS = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
+function renderEraGauntletTimelineHtml(stageIndex) {
+  var markers = ERA_GAUNTLET_ERA_LABELS.map(function (label, i) {
+    var cls = 'era-gauntlet-marker';
+    if (i < stageIndex) cls += ' done';
+    else if (i === stageIndex) cls += ' current';
+    return '<div class="' + cls + '"><span class="era-gauntlet-dot"></span><span class="era-gauntlet-label">' + label + '</span></div>';
+  }).join('<div class="era-gauntlet-connector"></div>');
+  return '<div class="era-gauntlet-timeline" role="img" aria-label="Era ' + (stageIndex + 1) + ' of 7: ' +
+    esc(ERA_GAUNTLET_ERA_LABELS[stageIndex] || '') + '">' + markers + '</div>';
+}
 function renderPositionLineupBoard(payload) {
   // UI/product polish pass: this used to be two visually-identical rows of
   // gray boxes with no framing -- functionally clear, but read as a
@@ -455,7 +630,34 @@ function highlightRankNumbers(promptText) {
   var escaped = esc(promptText);
   return escaped.replace(/No\.\s?\d+/g, function (m) { return '<span class="rank-number-highlight">' + m + '</span>'; });
 }
-function renderEnginePilotPromptHtml(game) {
+// Three Clues, One Champion / Era Gauntlet: real progressive clue reveal
+// (Section 6 -- "do not dump all three clues into a generic text block at
+// once"). No backend/visual_payload change needed -- the adapter's own
+// prompt format is a single, stable string
+// ("Exactly 3 real clues, 1 champion: {clue1}; {clue2}; {clue3}. Guess the
+// Super Bowl-winning team AND season.", see
+// cfb_three_clues_one_champion.py) -- parsed client-side into its real 3
+// clue segments. Falls back to showing the whole prompt unparsed (never
+// broken) if the real format ever doesn't match exactly 3 segments.
+var THREE_CLUES_PROMPT_RE = /^Exactly 3 real clues, 1 champion: (.+)\. Guess the Super Bowl-winning team AND season\.$/;
+function parseThreeCluesPrompt(prompt) {
+  var m = THREE_CLUES_PROMPT_RE.exec(prompt);
+  if (!m) return null;
+  var parts = m[1].split('; ').filter(Boolean);
+  return parts.length === 3 ? parts : null;
+}
+function renderThreeCluesProgressiveHtml(game, revealedCount) {
+  var clues = parseThreeCluesPrompt(game.payload.prompt);
+  if (!clues) return '<div class="quiz-question">' + highlightRankNumbers(game.payload.prompt) + '</div>';
+  var shown = clues.slice(0, revealedCount);
+  return '<div class="three-clues-count">' + icon('mystery') + ' Clue ' + revealedCount + ' of 3</div>' +
+    '<div class="three-clues-list">' + shown.map(function (c, i) {
+      return '<div class="three-clues-card' + (i === revealedCount - 1 ? ' three-clues-card-latest' : '') + '">' +
+        '<span class="three-clues-num">' + (i + 1) + '</span><span class="three-clues-text">' + esc(c) + '</span></div>';
+    }).join('') + '</div>' +
+    (revealedCount < 3 ? '<button class="btn-secondary" data-pilot-reveal-clue>' + icon('search') + ' Reveal Clue ' + (revealedCount + 1) + '</button>' : '');
+}
+function renderEnginePilotPromptHtml(game, s) {
   var promptHtml = highlightRankNumbers(game.payload.prompt);
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
@@ -464,6 +666,9 @@ function renderEnginePilotPromptHtml(game) {
   if (game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
       renderPositionLineupCollegeBoard(game.payload.visual_payload);
+  }
+  if (s && (s.modeKey === 'threeClues' || s.modeKey === 'eraGauntlet')) {
+    return renderThreeCluesProgressiveHtml(game, s.cluesRevealedCount || 1);
   }
   return '<div class="quiz-question">' + promptHtml + '</div>';
 }
@@ -487,10 +692,25 @@ function renderEnginePilotScreen() {
   if (!cfg.flagOn()) return renderHome();
   if (!s) {
     // IDLE -- state.enginePilot hasn't been created yet.
+    // Franchise Marathon: a real franchise must be chosen before Start is
+    // meaningful (the mode has no "any franchise" default -- see
+    // get_public_game()'s own INVALID_REQUEST guard for a missing filter
+    // value on a mode that declares caller_filter_key).
+    var franchiseHtml = '';
+    if (cfg.needsFilterValue) {
+      var picked = state.enginePilotPendingFranchise;
+      franchiseHtml = '<div class="chip-row" role="group" aria-label="Choose a franchise">' +
+        cfg.franchiseChoices.map(function (f) {
+          return '<button class="chip-toggle' + (picked === f.value ? ' active' : '') + '" data-pilot-franchise-pick="' + esc(f.value) + '">' +
+            esc(f.label) + '</button>';
+        }).join('') + '</div>';
+    }
+    var startDisabled = cfg.needsFilterValue && !state.enginePilotPendingFranchise;
     return '<div class="panel">' +
       '<h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
       '<p class="mode-desc">' + esc(cfg.desc) + '</p>' +
-      '<div class="btn-row"><button class="btn-primary" data-pilot-start>Start</button></div>' +
+      franchiseHtml +
+      '<div class="btn-row"><button class="btn-primary" data-pilot-start' + (startDisabled ? ' disabled' : '') + '>Start</button></div>' +
       '</div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
@@ -522,9 +742,30 @@ function renderEnginePilotScreen() {
     // other mode's completion screen already pairs Play Again with a real
     // Home button and the same recommended-next-mode nudge; this brings
     // the shared engine-pilot shell in line with that, in one place.
+    // Public Mode Wiring pass: a sequential mode's real completion is
+    // "reached the real end of the sequence" (a franchise's full real
+    // title history; all 7 real represented decades), not a fixed
+    // roundSize -- only ever shows a stat this file actually tracked
+    // (s.correctCount/s.sequenceStageCount), never a fabricated
+    // personal-best/history value this shell doesn't store.
+    var completeTitle = 'Round Complete';
+    var completeStat = s.correctCount + ' / ' + s.roundSize + ' correct.';
+    if (cfg.sequential && s.sequenceCompleted) {
+      var stageCount = s.sequenceStageCount != null ? s.sequenceStageCount : s.stageIndex;
+      if (s.modeKey === 'franchiseMarathon') {
+        var franchiseLabel = (cfg.franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
+        completeTitle = 'Marathon Complete';
+        completeStat = 'You played through all ' + stageCount + ' real ' + esc(franchiseLabel) +
+          ' Super Bowl-winning stage' + (stageCount === 1 ? '' : 's') + ' -- ' + s.correctCount + ' / ' + stageCount + ' correct.';
+      } else if (s.modeKey === 'eraGauntlet') {
+        completeTitle = 'Gauntlet Complete';
+        completeStat = 'You reached the end of the gauntlet -- ' + stageCount + ' real historical eras, ' +
+          s.correctCount + ' / ' + stageCount + ' correct.';
+      }
+    }
     return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
-      '<h2 class="panel-title">Round Complete</h2>' +
-      '<p class="mode-desc">' + s.correctCount + ' / ' + s.roundSize + ' correct.</p>' +
+      '<h2 class="panel-title">' + esc(completeTitle) + '</h2>' +
+      '<p class="mode-desc">' + completeStat + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button>' +
       '<button class="btn-secondary" data-share="' + esc(s.modeKey) + '">' + icon('share') + ' Share</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +
@@ -546,8 +787,25 @@ function renderEnginePilotScreen() {
   // a vertical 4-option list, with zero backend/state change: same
   // s.pickedOption, same data-pilot-answer index, same pickEnginePilotAnswer().
   var isBinary = options.length === 2;
+  // Odd College Out / One School Missing: real "equal candidate cards"
+  // (Sections 8/9) instead of a vertical A/B/C/D list -- same real
+  // options/correctIndex grading underneath, same data-pilot-answer index.
+  var isCandidateCards = s.modeKey === 'oddCollegeOut' || s.modeKey === 'oneSchoolMissing';
   var optionsHtml;
-  if (isBinary) {
+  if (isCandidateCards) {
+    optionsHtml = renderCandidateCardsHtml(options, {
+      dataAttr: 'data-pilot-answer',
+      disabled: s.screen !== ENGINE_GAME_SCREEN.QUESTION_READY,
+      state: function (i, opt) {
+        if (answered) {
+          if (opt === s.answerResult.canonical_answer) return 'correct';
+          if (i === s.pickedOption) return 'wrong';
+          return '';
+        }
+        return (submitting && i === s.pickedOption) ? 'selected' : '';
+      },
+    });
+  } else if (isBinary) {
     var sideFor = function (i) {
       var st = 'default';
       if (answered) {
@@ -583,9 +841,28 @@ function renderEnginePilotScreen() {
   // this one mode via its modeKey, since the shared shell below is
   // otherwise identical across all ~12 Engine Pilot modes.
   var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '');
-  return '<div class="' + panelCls + '">' + enginePilotToolbarHtml(cfg, { score: s.correctCount + ' correct', difficulty: game.difficulty }) +
-    quizProgressRowHtml('Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize, s.roundIndex, s.roundSize) +
-    renderEnginePilotPromptHtml(game) +
+  // Section 7 (progress should match the mechanic): a sequential mode's
+  // real progress is "which real stage," not "question X of a fixed
+  // roundSize" -- Era Gauntlet's real domain size (7 represented decades)
+  // is fixed/known, so it gets a real "N of 7"; Franchise Marathon's real
+  // stage count varies per franchise and is only known once the server
+  // says SEQUENCE_COMPLETE, so it only ever shows "Stage N" (badge shown
+  // in the header via franchiseLabel below), never a fabricated total.
+  var progressHtml;
+  var franchiseLabel = null;
+  if (cfg.sequential && s.modeKey === 'eraGauntlet') {
+    progressHtml = renderEraGauntletTimelineHtml(s.stageIndex);
+  } else if (cfg.sequential && s.modeKey === 'franchiseMarathon') {
+    franchiseLabel = (cfg.franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
+    progressHtml = quizProgressRowHtml('Stage ' + (s.stageIndex + 1), null, null);
+  } else {
+    progressHtml = quizProgressRowHtml('Question ' + (s.roundIndex + 1) + ' of ' + s.roundSize, s.roundIndex, s.roundSize);
+  }
+  var headerOpts = { score: s.correctCount + ' correct', difficulty: game.difficulty };
+  if (franchiseLabel) headerOpts.badge = franchiseLabel;
+  return '<div class="' + panelCls + '">' + enginePilotToolbarHtml(cfg, headerOpts) +
+    progressHtml +
+    renderEnginePilotPromptHtml(game, s) +
     optionsHtml +
     // Part 9: real, visible feedback that a submission is in flight (not
     // just silently-disabled buttons) -- aria-live so it's announced.

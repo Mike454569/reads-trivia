@@ -1006,11 +1006,22 @@ def public_game_route(request: Request,
                        difficulty: Optional[str] = Query(default=None),
                        seed: Optional[str] = Query(default=None, min_length=1, max_length=config.MAX_SEED_LENGTH),
                        exclude: Optional[str] = Query(default=None, max_length=2000),
+                       # Public Mode Wiring pass: `stage` (Franchise Marathon /
+                       # Era Gauntlet real progression) and `franchise`
+                       # (Franchise Marathon's one caller-controlled filter
+                       # value) -- both rejected by get_public_game() itself
+                       # for any mode that doesn't explicitly declare support
+                       # (see PUBLIC_MODES' "sequential"/"caller_filter_key"),
+                       # so this is additive for every other mode, not a
+                       # second API surface.
+                       stage: Optional[int] = Query(default=None, ge=0, le=99),
+                       franchise: Optional[str] = Query(default=None, min_length=1, max_length=64),
                        _rl=Depends(rate_limit_public_game)):
     if difficulty is not None and difficulty not in config.ALLOWED_DIFFICULTIES:
         raise GatewayError("INVALID_REQUEST", f"difficulty must be one of {sorted(config.ALLOWED_DIFFICULTIES)}.")
     exclude_ids = [x for x in (exclude.split(",") if exclude else []) if x][:50]
-    return public_game.get_public_game(mode=mode, difficulty=difficulty, seed=seed, exclude_game_ids=exclude_ids)
+    return public_game.get_public_game(mode=mode, difficulty=difficulty, seed=seed, exclude_game_ids=exclude_ids,
+                                        stage_index=stage, filter_value=franchise)
 
 
 @app.get("/v1/public/six_degrees/game")

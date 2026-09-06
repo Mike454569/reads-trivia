@@ -44,6 +44,13 @@ ERROR_CODES = frozenset({
     "GAME_EXPIRED",       # v1.2 -- reserved for a future TTL on public game sessions; not enforced yet
                            # (packages are retained indefinitely, same as admin-generated ones), but the
                            # code exists now so a client's error-handling switch statement is future-proof.
+    "SEQUENCE_COMPLETE",  # Public Mode Wiring pass -- a "sequential" mode (Franchise Marathon, Era
+                           # Gauntlet) requesting stage_index N got a real, QA-passed generation result
+                           # with fewer than N+1 real candidates -- the sequence has honestly run out of
+                           # real content (e.g. a franchise's real title count), not a transient failure.
+                           # Routed through this same 200-status "well-defined structured outcome" shape as
+                           # NEEDS_CLARIFICATION/etc, not a 5xx -- a client should show "marathon complete!",
+                           # never a retry button.
 })
 
 # HTTP status per code -- kept alongside the code itself so a raise site
@@ -67,6 +74,7 @@ STATUS_FOR_CODE = {
     "NO_ELIGIBLE_GAME": 503,
     "INVALID_GAME_ID": 404,
     "GAME_EXPIRED": 410,
+    "SEQUENCE_COMPLETE": 200,
 }
 
 

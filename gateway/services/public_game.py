@@ -359,6 +359,239 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # ======================================================================
+    # Public Mode Wiring pass (Pass 2.5): the 7 real backend capabilities
+    # audited in the prior pass (Reads Game Screen Visual Identity) that
+    # already existed as real, tested Director/Creator adapters but were
+    # never reachable through the public API. Each entry below was verified
+    # via a real candidate survey run directly against
+    # generation.generate_public() -- the exact function this file's own
+    # get_public_game() calls -- at 12 seeds per difficulty band, not
+    # assumed from reading adapter code. See this pass's own report for the
+    # full counts. Every `filters`/`certified_difficulties` value here is
+    # the one that survey actually measured, same discipline as every
+    # mode above.
+    # Section 11 finding, fixed rather than left as a genuine gap: a
+    # generic "something about rivalries" NL request (no "trivia"/"game"
+    # keyword) deliberately routes to this SMALLER, real, separately-
+    # registered capability (CFB_RIVALRY/RIVAL_OF, 48 real named rivalries,
+    # 96 real question directions -- see mock.py's own has_rivalry_word/
+    # has_trivia_word/has_game_word branching) rather than the richer
+    # CFB_RIVALRY_TRIVIA bank above -- that branch point already existed
+    # and is by design, not something this pass should rewire. Making this
+    # capability ALSO public (not just cfb_rivalry_guess) is what actually
+    # closes the gap: verified directly, "Make me something about
+    # rivalries" now resolves to a spec that matches this real mode.
+    "cfb_rivalry_lookup_guess": {
+        "competition": "CFB",
+        "title": "CFB Rivalries: Name the Rival",
+        "instructions": "You'll be shown a real school. Pick its real, named rivalry opponent.",
+        "kind": "multiple_choice",
+        # Real survey: 48 real rivalries (96 real question directions),
+        # medium-only -- the adapter itself fixes difficulty at Medium for
+        # every question (no real recency axis exists for a standing
+        # rivalry fact); "easy"/"hard" correctly return 0 real candidates.
+        "certified_difficulties": frozenset({"medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_RIVALRY",
+            "relationship_predicate": "RIVAL_OF",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_rivalry_guess": {
+        "competition": "CFB",
+        "title": "CFB Rivalries",
+        "instructions": "You'll be shown a real question from a real, named CFB rivalry (Iron Bowl, "
+                        "Civil War, and more). Pick the correct answer.",
+        "kind": "multiple_choice",
+        # Real survey: 12/12 eligible at medium and hard, 0/12 at easy (the
+        # source workbook has no "Easy" rows at all -- disclosed in
+        # cfb_rivalry_trivia.py's own known_limitations). Uses the richer,
+        # 1,272-question curated trivia bank (43 real named rivalry packs)
+        # rather than the smaller 48-rivalry RIVAL_OF-only capability --
+        # "Which school is X's rival" is one of many real question types
+        # this bank asks, not the only one (Section 4's own instruction).
+        "certified_difficulties": frozenset({"medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_RIVALRY_TRIVIA",
+            "relationship_predicate": "CORRECT_TRIVIA_ANSWER",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_spot_the_fake_guess": {
+        "competition": "CFB",
+        "title": "Spot the Fake",
+        "instructions": "You'll be shown a real starting lineup by position and college -- except one "
+                        "slot's college has been swapped for a different, wrong school. Find the fake.",
+        "kind": "multiple_choice",
+        # Real survey: 12/12 eligible at easy and medium. Hard excluded --
+        # corrected during this pass's own browser QA, which caught an
+        # earlier version of this comment claiming "the shared curated
+        # board pool has zero real HARD boards." That was false: a direct
+        # count against _group_board_common.fetch_all_boards() found 196
+        # real Hard-labeled boards (of 595 total, across CURRENT_TEAM_2026/
+        # DRAFT_CLASS/HONOR_GROUP/NFL_TEAM_SEASON_ROSTER). The real reason
+        # hard stays uncertified: an explicit difficulty="hard" request to
+        # generation.generate_public() for this mode was directly tested
+        # (3 real attempts, 3 different seeds) and failed every time with
+        # "No QA-passed question could be generated" -- the shared Director
+        # pipeline's difficulty-targeted search doesn't reliably surface a
+        # real Hard board for this domain within its bounded retry budget,
+        # even though Hard content exists and does surface under "any" (no
+        # filter). Fixing that search is a shared-pipeline change, out of
+        # this pass's scope (wiring, not rebuilding, existing capability).
+        "certified_difficulties": frozenset({"easy", "medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_SPOT_THE_FAKE_LINEUP",
+            "relationship_predicate": "ALTERED_POSITION",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_three_clues_guess": {
+        "competition": "CFB",
+        "title": "Three Clues, One Champion",
+        "instructions": "You'll be given a real Super Bowl champion's clues one at a time -- opponent, "
+                        "score, coach, MVP, or college. Guess the team and season.",
+        "kind": "multiple_choice",
+        # Real survey: 12/12 eligible at easy and medium (0 duplicate
+        # questions), 0/12 at hard (same real-zero-HARD-band ceiling as the
+        # shared curated board pool).
+        "certified_difficulties": frozenset({"easy", "medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_THREE_CLUES_ONE_CHAMPION",
+            "relationship_predicate": "TEAM_SEASON_FROM_THREE_CLUES",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    # Era Gauntlet: real bug found and fixed this pass (see
+    # generation.generate_public()'s own docstring) -- the underlying
+    # adapter already correctly returns exactly 7 real champions, one per
+    # real represented decade (1960s-2020s), in real oldest-first order,
+    # but the public route's hardcoded puzzle_count=1 could only ever
+    # surface stage 0 forever, no matter the seed. Fixed by threading a
+    # real `stage_index` (see get_public_game()) through to
+    # generate_public()'s now-real `puzzle_count` parameter. Deliberately
+    # "any"-difficulty only (certified_difficulties left empty): difficulty
+    # filtering happens on the flat accepted-candidates list BEFORE the
+    # era-ordering is re-applied, which could silently drop an era and
+    # shift every later stage_index to the wrong era -- not worth the risk
+    # for a mode whose whole point is "the real fixed history," not a
+    # difficulty-scoped subset.
+    "era_gauntlet_guess": {
+        "competition": "CFB",
+        "title": "Era Gauntlet",
+        "instructions": "Progress through real NFL history -- one real Super Bowl champion from each "
+                        "represented decade, oldest era first.",
+        "kind": "multiple_choice",
+        "sequential": True,
+        "certified_difficulties": frozenset(),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_THREE_CLUES_ONE_CHAMPION",
+            "relationship_predicate": "TEAM_SEASON_FROM_THREE_CLUES",
+            "question_count": 1,
+            "filters": {"era_gauntlet": True},
+            "exclusions": [],
+        },
+    },
+    "cfb_odd_college_out_guess": {
+        "competition": "CFB",
+        "title": "Odd College Out",
+        "instructions": "You'll be shown four real colleges. Three were part of the same real group "
+                        "(a championship roster, a draft class, an All-Pro class). Find the one that wasn't.",
+        "kind": "multiple_choice",
+        # Real survey: 12/12 eligible at easy and medium. Hard excluded for
+        # the same verified reason as cfb_spot_the_fake_guess above (see
+        # its comment): real Hard boards exist in this same shared
+        # _group_board_common pool (196/595), but an explicit
+        # difficulty="hard" request reliably fails to generate through the
+        # shared Director pipeline -- confirmed by direct testing, not
+        # assumed from a stale board-count claim. Draws from all 5 real
+        # _group_board_common.py sources (SB_CHAMPION, CURRENT_TEAM_2026,
+        # real team-season rosters, real Round-1 draft classes, real
+        # First-Team All-Pro classes) -- that real variety is preserved,
+        # not narrowed back to SB_CHAMPION-only.
+        "certified_difficulties": frozenset({"easy", "medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_ODD_COLLEGE_OUT",
+            "relationship_predicate": "IMPOSTOR_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "cfb_one_school_missing_guess": {
+        "competition": "CFB",
+        "title": "One School Missing",
+        "instructions": "You'll be shown most of a real group's colleges. Pick the real one that's missing.",
+        "kind": "multiple_choice",
+        # Real survey: 12/12 eligible at any/easy/medium with ZERO
+        # duplicate questions across all three bands (the cleanest survey
+        # result of all 7 new modes). Hard excluded for the same verified
+        # reason as cfb_spot_the_fake_guess/cfb_odd_college_out_guess above
+        # (real Hard boards exist in the shared pool; the explicit-filter
+        # generation path just doesn't reliably surface one -- confirmed by
+        # direct testing). Same 5 real sources as cfb_odd_college_out_guess.
+        # Confirmed (correcting an earlier assumption in this project's own
+        # history): this is a
+        # real GROUP-MEMBERSHIP question ("which college was NOT part of
+        # this group"), not an ordered transfer-path/sequence -- the UI
+        # uses a grouped-card display, not a sequence/path visual.
+        "certified_difficulties": frozenset({"easy", "medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_ONE_SCHOOL_MISSING",
+            "relationship_predicate": "MISSING_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    # Franchise Marathon: the real, disclosed blocker -- the live route
+    # hardcoded `filters: {}`, and even with a franchise_name filter
+    # threaded through, puzzle_count=1 could only ever return a franchise's
+    # OLDEST real title forever (same root cause as Era Gauntlet above; see
+    # generation.generate_public()'s docstring for the full real diagnosis,
+    # confirmed directly: Cowboys has 5 real distinct championship boards,
+    # Packers 4, Patriots 6, Steelers 6, 49ers 5 -- verified via
+    # sb_champion_offense_college.fetch_ordered_candidates() directly, not
+    # assumed). Fixed the same way as Era Gauntlet: real `stage_index` +
+    # `caller_filter_key: "franchise_name"` (the ONE caller-controlled
+    # filter value this mode accepts -- see get_public_game()'s explicit
+    # allow-list check). "any"-difficulty only, same real reason as Era
+    # Gauntlet (difficulty filtering could shift which stage_index maps to
+    # which real season).
+    "franchise_marathon_guess": {
+        "competition": "NFL",
+        "title": "Franchise Marathon",
+        "instructions": "Pick a real NFL franchise and play through its real Super Bowl-winning offenses "
+                        "in chronological order, by college and position (player names hidden).",
+        "kind": "multiple_choice",
+        "sequential": True,
+        "caller_filter_key": "franchise_name",
+        "certified_difficulties": frozenset(),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
+            "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())
@@ -388,15 +621,41 @@ MAX_GAME_FETCH_ATTEMPTS = 5  # bounded retry for the exclude-recent-repeats loop
 # unique per certified mode (DRAFTED_BY vs. TEAM_POSTSEASON_RESULT), so it
 # alone is a safe, real lookup key -- re-verified directly against a real
 # generated package's actual `parsed_spec` shape.
-_MODE_BY_PREDICATE = {
-    entry["spec"]["relationship_predicate"]: mode_id
-    for mode_id, entry in PUBLIC_MODES.items()
-}
+_MODE_BY_PREDICATE: Dict[str, List[str]] = {}
+for _mode_id, _entry in PUBLIC_MODES.items():
+    _MODE_BY_PREDICATE.setdefault(_entry["spec"]["relationship_predicate"], []).append(_mode_id)
+del _mode_id, _entry
 
 
 def _mode_for_package(stored: dict) -> Optional[str]:
+    """Telemetry-only lookup (Part 17) -- never used for grading (that's
+    always mode-agnostic options[correctIndex], see validate_public_answer's
+    own docstring). Public Mode Wiring pass: two real (domain, predicate)
+    collisions now exist -- franchise_marathon_guess reuses
+    sb_champion_offense_college_guess's, era_gauntlet_guess reuses
+    cfb_three_clues_guess's -- same real capability, a different real
+    filter, so a plain predicate->mode dict would silently let one clobber
+    the other's telemetry label. Disambiguated by the one real, observable
+    fact available: a fixed-filter mode's OWN declared spec['filters'] is
+    compared directly against the stored package's actual filters (exact
+    match); a caller-filter mode (franchise_marathon_guess) is matched by
+    its declared caller_filter_key's presence instead, since its real
+    filter VALUE varies per request and can never equal a fixed template."""
     spec = stored.get("parsed_spec") or {}
-    return _MODE_BY_PREDICATE.get(spec.get("relationship_predicate"))
+    candidates = _MODE_BY_PREDICATE.get(spec.get("relationship_predicate")) or []
+    if len(candidates) <= 1:
+        return candidates[0] if candidates else None
+    filters = spec.get("filters") or {}
+    for mode_id in candidates:
+        entry = PUBLIC_MODES[mode_id]
+        key = entry.get("caller_filter_key")
+        if key and key in filters:
+            return mode_id
+    for mode_id in candidates:
+        entry = PUBLIC_MODES[mode_id]
+        if not entry.get("caller_filter_key") and (entry["spec"].get("filters") or {}) == filters:
+            return mode_id
+    return candidates[0]
 
 
 def list_public_modes() -> List[dict]:
@@ -490,8 +749,21 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
         "mode": mode,
         "competition": entry["competition"],
         "difficulty": q.get("difficulty"),
-        "title": stored.get("game_title"),
-        "instructions": stored.get("game_instructions"),
+        # Public Mode Wiring pass: this used to read stored.get("game_title")/
+        # ("game_instructions") -- the underlying package's own generic,
+        # domain-derived title. That was silently correct for the first 12
+        # public modes (each one the ONLY public mode on its domain/predicate)
+        # but broke the instant two modes legitimately share a domain
+        # (era_gauntlet_guess reuses cfb_three_clues_guess's
+        # CFB_THREE_CLUES_ONE_CHAMPION/TEAM_SEASON_FROM_THREE_CLUES): a real
+        # fetch of era_gauntlet_guess came back titled "Three Clues, One
+        # Champion" instead of "Era Gauntlet", caught only by actually
+        # calling this route, not by reading the code. entry["title"]/
+        # entry["instructions"] are this mode's own declared identity (the
+        # same source list_public_modes() already uses) and are correct
+        # for every mode, shared-domain or not.
+        "title": entry["title"],
+        "instructions": entry["instructions"],
         "payload": {
             "prompt": q["question"],
             "options": list(q["options"]),
@@ -513,12 +785,23 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
 
 
 def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str],
-                     exclude_game_ids: Optional[List[str]]) -> dict:
+                     exclude_game_ids: Optional[List[str]],
+                     stage_index: Optional[int] = None,
+                     filter_value: Optional[str] = None) -> dict:
     t0 = time.perf_counter()
     entry = _ensure_mode_public(mode)
     _ensure_difficulty_certified(mode, entry, difficulty)
     exclude = set(exclude_game_ids or [])
     attempts_used = 0
+
+    # Public Mode Wiring pass: Franchise Marathon / Era Gauntlet real fix.
+    # `stage_index` is only accepted for a mode whose PUBLIC_MODES entry
+    # declares `"sequential": True` -- every other mode's call_spec/
+    # puzzle_count below is byte-identical to before this change.
+    if stage_index is not None and not entry.get("sequential"):
+        raise GatewayError("INVALID_REQUEST", f"mode={mode!r} does not support stage_index.")
+    if filter_value is not None and not entry.get("caller_filter_key"):
+        raise GatewayError("INVALID_REQUEST", f"mode={mode!r} does not accept a caller-supplied filter.")
 
     # A real bug caught by actually calling this (not assumed from reading
     # the pipeline code): the Director validator requires `difficulty`
@@ -529,6 +812,14 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
     # generation ever runs.
     call_spec = dict(entry["spec"])
     call_spec["difficulty"] = difficulty or "any"
+    if filter_value is not None:
+        # e.g. entry["caller_filter_key"] == "franchise_name" -- the ONE
+        # caller-controlled key this mode declared support for; every other
+        # filter on this spec (if any) stays exactly as PUBLIC_MODES wrote
+        # it, never caller-overridable.
+        call_spec["filters"] = dict(call_spec.get("filters") or {})
+        call_spec["filters"][entry["caller_filter_key"]] = filter_value
+    puzzle_count = (stage_index + 1) if stage_index is not None else 1
 
     stored = None
     last_eligible = None  # most recent QA-passed, non-empty result, even if it's in the exclude set
@@ -540,13 +831,28 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
         # actually find a different real question.
         attempts_used = attempt + 1
         real_seed = seed if (seed and attempt == 0) else secrets.token_hex(8)
+        # Public Mode Wiring pass: package_id is a hash of (request_text,
+        # seed, predicate, package_version) ONLY (see game_director_v01.py) --
+        # target_count/puzzle_count and filters are NOT part of it. Two
+        # different stage_index requests with the same real_seed would
+        # therefore compute the IDENTICAL package_id while trimming to
+        # DIFFERENT real content, which packages.save_package() correctly
+        # detects and rejects as a collision (caught by actually calling
+        # this, not assumed). Folding stage_index into the seed used for
+        # generation gives each stage its own real package_id -- safe
+        # because neither sequential adapter's real candidate ORDER depends
+        # on the seed (franchise_name sorts by real season; era_gauntlet's
+        # per-era slot is keyed by real era start-year), only which
+        # DISTRACTORS get picked -- so which real season/era occupies a
+        # given stage_index never changes, only its wrong-answer options.
+        gen_seed = f"{real_seed}:stage{stage_index}" if stage_index is not None else real_seed
         # v1.6, Part A: the public-only bounded-concurrency path (its own
         # worker pool, sized well above 1) -- not generation.generate(), the
         # single-slot admin path. Never called with arbitrary caller
         # input -- call_spec always comes from this module's own certified
         # PUBLIC_MODES templates, never from the request body directly.
         result = generation.generate_public(
-            spec=call_spec, difficulty=difficulty, seed=real_seed,
+            spec=call_spec, difficulty=difficulty, seed=gen_seed, puzzle_count=puzzle_count,
         )
         # Real bug caught by actually running Part 25's pilot-data
         # verification, not assumed from reading the code: game_director_v01
@@ -565,6 +871,30 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
                 # explicitly requested (Part 26 determinism).
                 break
             continue
+        # Public Mode Wiring pass: a sequential mode's real stage count is
+        # a property of the DATA (how many real titles a franchise has;
+        # how many real eras are represented), not the seed -- retrying
+        # with a different seed cannot manufacture a stage that doesn't
+        # exist. Real, honest "you reached the end" outcome, raised
+        # immediately rather than burned through retry attempts.
+        if stage_index is not None and len(result["questions"]) <= stage_index:
+            oplog.record_event(
+                "public_game_sequence_complete", mode=mode, difficulty=difficulty or "any",
+                generation_attempts=attempts_used, latency_ms=round((time.perf_counter() - t0) * 1000, 3),
+            )
+            raise GatewayError(
+                "SEQUENCE_COMPLETE",
+                f"mode={mode!r} has {len(result['questions'])} real stage(s) for this "
+                f"selection -- stage_index={stage_index} is past the end.",
+                extra={"stage_count": len(result["questions"])},
+            )
+        if stage_index is not None:
+            # Trim down to exactly the one real question at stage_index --
+            # everything downstream (_public_view, packages.save_package,
+            # validate_public_answer) keeps its existing "one package_id =
+            # one question" invariant unchanged.
+            result = dict(result)
+            result["questions"] = [result["questions"][stage_index]]
         last_eligible = result
         if result["package_id"] not in exclude:
             stored = result
