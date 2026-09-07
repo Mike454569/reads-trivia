@@ -80,10 +80,28 @@ def _grp(rec: dict, key: str) -> dict:
 
 
 def run_cfb_standings_refresh(seasons: list[int] | None = None) -> dict:
+    # Absolute Final Closeout fix: the real, confirmed-in-production root
+    # cause of a healthy refresh being reported FAILED_RESTORED. A no-args
+    # scheduled call only ever deletes+reinserts ONE season (target_seasons
+    # below), but the row-count-floor sanity check used to compare the
+    # resulting WHOLE-TABLE count against a WHOLE-TABLE baseline taken
+    # before the run -- so any real, ordinary decrease in the CURRENT
+    # (still in-progress) season's own row count (a team reclassified, a
+    # game voided, CFBD correcting its own data) looks like a catastrophic
+    # drop against 20+ untouched prior seasons, even when only 1 row out of
+    # thousands actually changed. Confirmed live: a real cfb_standings run
+    # (Sep 7 2026) safely restored 683 real, correct current-season rows
+    # because the previous run had published 684 -- a real, healthy,
+    # single-row correction, not data corruption. The floor must be scoped
+    # to the SAME season(s) this run actually touches, not the whole table.
+    target_seasons = seasons if seasons is not None else [MAX_SEASON_ATTEMPT]
     c = engine_bootstrap.connect()
     safety.ensure_refresh_tables(c)
     _ensure_schema(c)
-    baseline_count = c.execute("SELECT COUNT(*) FROM cfb_standings").fetchone()[0]
+    baseline_count = c.execute(
+        f"SELECT COUNT(*) FROM cfb_standings WHERE season IN ({','.join('?' * len(target_seasons))})",
+        target_seasons,
+    ).fetchone()[0]
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
     c.close()
 
@@ -102,8 +120,7 @@ def run_cfb_standings_refresh(seasons: list[int] | None = None) -> dict:
     # cfb_all_america_import.py already use. A deliberate full/partial
     # historical backfill is still just one explicit `seasons=` call away
     # (exactly how the real 2002-2025 backfill already in this database
-    # was produced).
-    target_seasons = seasons if seasons is not None else [MAX_SEASON_ATTEMPT]
+    # was produced). (target_seasons computed above, before baseline_count.)
     total_published = 0
     seasons_done: list[int] = []
 

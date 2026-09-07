@@ -68,10 +68,22 @@ def _ensure_schema(c) -> None:
 
 
 def run_cfb_rankings_refresh(seasons: list[int] | None = None) -> dict:
+    # Absolute Final Closeout fix (see cfb_standings_refresh.py's identical
+    # comment for the full incident): a no-args scheduled call only
+    # deletes+reinserts ONE season, so the row-count-floor check must
+    # compare against that SAME season's prior count, not the whole
+    # table's -- otherwise an ordinary single-row real correction in the
+    # current in-progress season (a poll reissued, a team's rank data
+    # corrected upstream) looks like a catastrophic drop against 20+
+    # untouched prior seasons.
+    target_seasons = seasons if seasons is not None else [MAX_SEASON_ATTEMPT]
     c = engine_bootstrap.connect()
     safety.ensure_refresh_tables(c)
     _ensure_schema(c)
-    baseline_count = c.execute("SELECT COUNT(*) FROM cfb_rankings").fetchone()[0]
+    baseline_count = c.execute(
+        f"SELECT COUNT(*) FROM cfb_rankings WHERE season IN ({','.join('?' * len(target_seasons))})",
+        target_seasons,
+    ).fetchone()[0]
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
     c.close()
 
@@ -90,8 +102,7 @@ def run_cfb_rankings_refresh(seasons: list[int] | None = None) -> dict:
     # cfb_all_america_import.py already use. A deliberate full/partial
     # historical backfill is still just one explicit `seasons=` call away
     # (exactly how the real 2002-2025 backfill already in this database
-    # was produced).
-    target_seasons = seasons if seasons is not None else [MAX_SEASON_ATTEMPT]
+    # was produced). (target_seasons computed above, before baseline_count.)
     total_published = 0
     seasons_done: list[int] = []
 

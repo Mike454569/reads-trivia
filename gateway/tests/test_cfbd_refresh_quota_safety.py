@@ -107,3 +107,42 @@ def test_cfbd_scripts_are_wired_into_the_admin_dispatcher():
     }
     for key, fn in expected.items():
         assert admin_refresh.run_fn_for(key) is fn
+
+
+# Absolute Final Closeout fix: a real, confirmed-in-production incident.
+# betting_lines/rankings/standings DELETE-and-republish per run, scoped to
+# ONE season on a no-args call -- but their post-refresh min_row_count_floor
+# check used to compare the resulting WHOLE-TABLE count against a
+# WHOLE-TABLE baseline taken before the run. Any ordinary, real decrease in
+# the CURRENT (still in-progress) season's own row count -- a poll
+# reissued, a game voided, CFBD correcting its own data -- looks like a
+# catastrophic drop against 20+ untouched prior seasons, even when only 1
+# row out of thousands actually changed. Confirmed live: a real
+# cfb_standings run (Sep 7 2026) was safely restored (not corrupted, but
+# also not published) because the current season published 683 rows where
+# the previous run had 684 -- a real, healthy, single-row correction.
+# cfb_games_postseason/cfb_pbp/cfb_weather are NOT in this list: they
+# UPDATE or upsert an existing shared table (cfb_games_canonical/
+# cfb_plays) rather than delete-and-republish, so their row count can only
+# grow, and the whole-table baseline is the CORRECT check for them.
+_SEASON_SCOPED_BASELINE_SCRIPTS = ["cfb_betting_lines_refresh", "cfb_rankings_refresh", "cfb_standings_refresh"]
+
+
+def test_delete_scoped_cfbd_scripts_scope_their_row_count_floor_to_the_same_season():
+    for name in _SEASON_SCOPED_BASELINE_SCRIPTS:
+        src = _source(name)
+        # The real fix: baseline_count's own query filters by season IN
+        # target_seasons, computed BEFORE baseline_count (not the whole
+        # table, and not computed before target_seasons exists).
+        assert "WHERE season IN ({','.join('?' * len(target_seasons))})" in src, (
+            f"{name}.py's baseline_count must be scoped to target_seasons, not the whole table -- "
+            f"otherwise an ordinary single-row correction in the current season falsely trips the "
+            f"row-count-floor safety check and restores a perfectly healthy refresh."
+        )
+        # target_seasons must be computed BEFORE baseline_count's query runs.
+        target_seasons_line = src.index("target_seasons = seasons if seasons is not None else [MAX_SEASON_ATTEMPT]")
+        baseline_count_line = src.index("baseline_count = c.execute(")
+        assert target_seasons_line < baseline_count_line, (
+            f"{name}.py computes baseline_count before target_seasons exists -- the season-scoped "
+            f"query would fail with a NameError"
+        )
