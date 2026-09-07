@@ -75,12 +75,17 @@ def test_public_modes_no_auth_needed(client):
     # Public Mode Wiring pass (Pass 2.5): 7 real backend capabilities
     # certified public this pass -- real candidate surveys recorded in
     # gateway/services/public_game.py's own PUBLIC_MODES entries for each.
+    # Absolute Final Closeout: nfl_super_bowl_guess added -- was already
+    # catalog-verified but never wired to a real public route until this
+    # pass's real-name-based team resolution fix made its full 60-game
+    # real pool (up from 24) worth exposing.
     assert set(modes_by_id) == {
         "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess", "lineup_college_guess",
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
+        "nfl_super_bowl_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -240,6 +245,9 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     # from Creator-only to public certification this pass.
     # Public Mode Wiring pass (Pass 2.5): 7 real backend capabilities
     # certified public this pass.
+    # Absolute Final Closeout: nfl_super_bowl_guess added -- already
+    # catalog-verified (LEGACY_PUBLIC_PENDING_REVALIDATION), never wired
+    # up until its real team-resolution pool grew from 24/60 to 60/60.
     assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
@@ -247,6 +255,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
+        "nfl_super_bowl_guess",
     })
 
 
@@ -582,6 +591,9 @@ def test_all_twenty_certified_guess_modes_registered(client):
     # smaller CFB_RIVALRY/RIVAL_OF capability a generic "something about
     # rivalries" NL request resolves to -- also made public so BOTH real
     # rivalry-shaped translator branches land on something playable).
+    # Absolute Final Closeout added the twenty-first: nfl_super_bowl_guess
+    # -- already catalog-verified (LEGACY_PUBLIC_PENDING_REVALIDATION) but
+    # never wired up until its real team-resolution pool grew 24/60->60/60.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {
@@ -591,6 +603,7 @@ def test_all_twenty_certified_guess_modes_registered(client):
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
+        "nfl_super_bowl_guess",
     }
 
 

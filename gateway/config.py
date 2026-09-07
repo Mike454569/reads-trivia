@@ -315,6 +315,12 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
     "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess",
     "franchise_marathon_guess",
+    # Absolute Final Closeout: NFL_SUPER_BOWL was already catalog-verified
+    # (LEGACY_PUBLIC_PENDING_REVALIDATION) but never added to this
+    # allowlist -- only 24 of 60 real Super Bowls resolved before this
+    # pass's real-name-based team resolution fix, too thin to bother
+    # exposing. Now all 60 of 60 resolve with real Easy/Medium/Hard depth.
+    "nfl_super_bowl_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

@@ -135,6 +135,28 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Absolute Final Closeout: NFL_SUPER_BOWL was already catalog-verified
+    # (LEGACY_PUBLIC_PENDING_REVALIDATION) but never wired to a real public
+    # route -- only 24 of 60 real Super Bowls resolved a real team identity
+    # before this pass's real-name-based resolution fix (nfl_super_bowl.py),
+    # too thin to have been worth exposing. All 60 now resolve; real
+    # candidate survey this pass: Easy 18, Medium 12, Hard 30 -- all three
+    # bands genuinely represented.
+    "nfl_super_bowl_guess": {
+        "competition": "NFL",
+        "title": "NFL Super Bowl History",
+        "instructions": "You'll be shown a real Super Bowl. Pick the team that actually won it.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_SUPER_BOWL",
+            "relationship_predicate": "WON_CHAMPIONSHIP",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
     # Added v1.8, Part F/O -- the milestone's primary acceptance-test capability,
     # certified public the same deliberate way Draft/Championship were (Part 33).
     # Real candidate survey this phase, all 412 accepted candidates: Easy 125,
