@@ -173,9 +173,24 @@ def test_nfl_coordinator_coach_identity_reused_not_duplicated(c):
 
 
 def test_nfl_coordinator_all_32_teams_covered(c):
+    """Absolute Final Closeout fix: this used to assert exactly 32 (one
+    team_code per current franchise), which stopped holding once real
+    historical coordinator data for 3 relocated franchises' OLD codes was
+    also captured (OAK+LV for the Raiders, SD+LAC for the Chargers,
+    STL+LA for the Rams) -- real, comprehensive, accurate coverage, not a
+    bug. 35 real distinct codes map to exactly 32 real distinct
+    franchises; both invariants are checked directly rather than pinning
+    only the naive one."""
     from tools.quiz_export import nfl_coordinator_facts as ncf
     report = ncf.eligibility_report(c)
-    assert report["teams_covered"] == 32
+    assert report["teams_covered"] == 35
+
+    relocated_code_pairs = {"OAK": "LV", "SD": "LAC", "STL": "LA"}
+    codes = {r[0] for r in c.execute(
+        "SELECT DISTINCT team_code FROM nfl_coordinators WHERE team_code IS NOT NULL"
+    )}
+    franchises = {relocated_code_pairs.get(code, code) for code in codes}
+    assert len(franchises) == 32, f"35 real codes must still resolve to exactly 32 real franchises: {sorted(franchises)}"
 
 
 # --- CFB coordinators ----------------------------------------------------------------

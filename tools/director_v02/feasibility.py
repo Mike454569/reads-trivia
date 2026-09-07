@@ -497,6 +497,29 @@ def assess(request_text: str | None = None, *, spec: dict | None = None, provide
         return result
 
     if gate_status == "NEEDS_CLARIFICATION":
+        # Absolute Final Closeout fix: the generic "broad request" bag-of-
+        # words fallback (mock.py's own creator_intelligence.generate_ideas()
+        # wiring) can out-rank a real, SPECIFIC, ABSOLUTE-dead-end signal --
+        # e.g. "Make me an NFL trivia game about injuries" bag-of-words-
+        # matched onto unrelated NFL_GAME_BOXSCORE concepts (sacks/turnovers/
+        # penalties -- nothing to do with injuries) instead of the real,
+        # honest "no injury table exists at all" answer
+        # KNOWN_MISSING_DATA_SIGNALS already has on file. Deliberately
+        # narrow: ONLY the hand-curated KNOWN_MISSING_DATA_SIGNALS words
+        # (injury/salary/contract -- topics this Engine has literally zero
+        # real capability for, confirmed by that dict's own entries), never
+        # the broader _general_college_missing_data_reason() path -- a
+        # "college"-mentioning broad request already has its own real,
+        # deliberate, GOOD-suggestion design (test_feasibility.py's
+        # test_bare_college_request_gets_real_playable_suggestions_not_a_
+        # dead_end) that must not be overridden here.
+        if request_text:
+            words = _words(request_text)
+            for signal_words, reason in KNOWN_MISSING_DATA_SIGNALS.items():
+                if words & signal_words:
+                    result["support_status"] = "MISSING_DATA"
+                    result["reason"] = reason
+                    return result
         result["support_status"] = "UNKNOWN"
         result["clarifying_question"] = gate.get("clarifying_question")
         return result
