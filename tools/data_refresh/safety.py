@@ -230,6 +230,48 @@ def create_verified_backup() -> dict:
     return backup_manager.create()
 
 
+class BackupCreationFailure(RuntimeError):
+    pass
+
+
+def create_verified_backup_or_finish_failed(run_id: str) -> dict:
+    """Closeout pass: the real, confirmed-in-production root cause of a
+    refresh run sitting as RUNNING forever. Every one of the 34 real
+    refresh/import scripts calls the bare create_verified_backup() BEFORE
+    entering its own try/except block (the same copy-pasted shape in all
+    34) -- so an exception during backup creation (concretely: production
+    once had /data/engine/backups root-owned while the Gateway runs as an
+    unprivileged user, so every backup attempt raised
+    sqlite3.OperationalError) escaped every one of those try/excepts
+    entirely, meaning finish_run() was never called and the run_id's row
+    stayed status='RUNNING' indefinitely -- invisible to the health/status
+    view except via the separate, much-slower 30-minute stale-reclaim
+    watchdog (admin_refresh.py's _reclaim_stale_running_rows), which is a
+    real safety net but was never meant to be the PRIMARY detection path
+    for an immediate, deterministic failure like this.
+
+    Callers replace their bare `backup = safety.create_verified_backup()`
+    with `backup = safety.create_verified_backup_or_finish_failed(run_id)`
+    -- one line, no restructuring of each script's own try/except needed,
+    since a failure here means there is no backup to restore from (nothing
+    was published yet) and no rows were touched, so FAILED_BACKUP is
+    already a complete, accurate terminal state on its own. Raises
+    BackupCreationFailure (never BackupCreationFailure swallowed) so a
+    caller's own broad `except Exception` (if the bare call happened to
+    already sit inside one) still sees a real exception and does not
+    mistake this for success -- but finish_run has already run by the time
+    that happens, so a second finish_run call for the same run_id would be
+    a harmless no-op UPDATE, never a crash."""
+    try:
+        return create_verified_backup()
+    except Exception as e:
+        c = engine_bootstrap.connect()
+        ensure_refresh_tables(c)
+        finish_run(c, run_id, status="FAILED_BACKUP", failure_reason=repr(e))
+        c.close()
+        raise BackupCreationFailure(repr(e)) from e
+
+
 def restore_from_backup(backup_path: str) -> dict:
     """The one real gap in backup_manager.py: it can create+verify a backup
     but has no restore. Real, careful restore: verify the backup's own
@@ -254,6 +296,25 @@ def restore_from_backup(backup_path: str) -> dict:
         raise RuntimeError(f"restore copy failed its own integrity check, aborted: {tmp_check}")
     os.replace(tmp, live)
     return {"restored_from": str(src), "sha256": tmp_check["sha256"]}
+
+
+def safe_restore_from_backup(backup_path: str) -> dict:
+    """Closeout pass: every one of the 34 refresh scripts' failure-path
+    `except Exception as e:` block calls restore_from_backup(backup["path"])
+    and only THEN calls finish_run() with the result -- so if the restore
+    itself also raises (a real possibility: same class of permission/disk
+    issue that broke the original backup could just as easily break a
+    restore), that second exception propagates uncaught, finish_run() never
+    runs, and the row is stuck at RUNNING again -- the exact failure mode
+    this whole pass exists to close, just one step later in the same
+    function. This never raises: any exception during restore is captured
+    and returned as data, so the caller's own finish_run() call always
+    executes with an honest (possibly restore-failed) detail payload
+    instead of never executing at all."""
+    try:
+        return restore_from_backup(backup_path)
+    except Exception as e:
+        return {"restored": False, "restore_error": repr(e)}
 
 
 class SanityCheckFailure(RuntimeError):

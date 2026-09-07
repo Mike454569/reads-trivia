@@ -139,7 +139,7 @@ def run_import(*, seasons: tuple[int, ...] = (2022, 2023, 2024, 2025), per_seaso
     _ensure_schema(c)
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
     c.close()
-    backup = safety.create_verified_backup()
+    backup = safety.create_verified_backup_or_finish_failed(run_id)
 
     report = {"games_attempted": 0, "games_succeeded": 0, "games_no_kicking_category": 0,
               "rows_published": 0, "identity_resolved": 0, "identity_unresolved": 0}
@@ -222,7 +222,7 @@ def run_import(*, seasons: tuple[int, ...] = (2022, 2023, 2024, 2025), per_seaso
             c.close()
         except Exception:
             pass
-        restore_info = safety.restore_from_backup(backup["path"])
+        restore_info = safety.safe_restore_from_backup(backup["path"])
         c2 = engine_bootstrap.connect()
         safety.finish_run(c2, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
                            failure_reason=repr(e), detail={"restore": restore_info})

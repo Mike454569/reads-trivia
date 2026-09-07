@@ -87,7 +87,7 @@ def run_nfl_refresh(*, seasons: list[int] | None = None) -> dict:
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id="NFLVERSE_PLAYERS")
     c.close()
 
-    backup = safety.create_verified_backup()
+    backup = safety.create_verified_backup_or_finish_failed(run_id)
 
     try:
         players_meta = fetch_nflverse_current.download(
@@ -148,7 +148,7 @@ def run_nfl_refresh(*, seasons: list[int] | None = None) -> dict:
                 )
         except safety.SanityCheckFailure as e:
             c.close()
-            restore_info = safety.restore_from_backup(backup["path"])
+            restore_info = safety.safe_restore_from_backup(backup["path"])
             c = engine_bootstrap.connect()
             safety.finish_run(
                 c, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
@@ -175,7 +175,7 @@ def run_nfl_refresh(*, seasons: list[int] | None = None) -> dict:
         # Any unexpected failure (network error, malformed CSV the staging
         # layer itself didn't catch, etc.) -- fail closed, restore, never
         # leave production in a half-updated or unknown state.
-        restore_info = safety.restore_from_backup(backup["path"])
+        restore_info = safety.safe_restore_from_backup(backup["path"])
         c2 = engine_bootstrap.connect()
         safety.finish_run(
             c2, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],

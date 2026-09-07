@@ -192,7 +192,7 @@ def run_nfl_injuries_refresh() -> dict:
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
     c.close()
 
-    backup = safety.create_verified_backup()
+    backup = safety.create_verified_backup_or_finish_failed(run_id)
 
     import time
     import urllib.error
@@ -275,7 +275,7 @@ def run_nfl_injuries_refresh() -> dict:
             )
         except safety.SanityCheckFailure as e:
             c.close()
-            restore_info = safety.restore_from_backup(backup["path"])
+            restore_info = safety.safe_restore_from_backup(backup["path"])
             c = engine_bootstrap.connect()
             safety.finish_run(
                 c, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
@@ -307,7 +307,7 @@ def run_nfl_injuries_refresh() -> dict:
             c.close()
         except Exception:
             pass
-        restore_info = safety.restore_from_backup(backup["path"])
+        restore_info = safety.safe_restore_from_backup(backup["path"])
         c2 = engine_bootstrap.connect()
         safety.finish_run(
             c2, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],

@@ -144,7 +144,7 @@ def run_migration() -> dict:
     c = engine_bootstrap.connect()
     run_id = safety.start_run(c, league="ALL", dataset="pickem_schema_migration", source_id=None)
     c.close()
-    backup = safety.create_verified_backup()
+    backup = safety.create_verified_backup_or_finish_failed(run_id)
     c = engine_bootstrap.connect()
     try:
         added = ensure_pickem_schema(c)

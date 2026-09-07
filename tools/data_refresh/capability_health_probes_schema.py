@@ -103,5 +103,5 @@ def run_health_probe_schema_migration() -> dict:
         c.close()
         return {"status": "SUCCESS", "backup_id": backup["backup_id"]}
     except Exception as e:
-        restore_info = safety.restore_from_backup(backup["path"])
+        restore_info = safety.safe_restore_from_backup(backup["path"])
         return {"status": "FAILED_RESTORED", "reason": repr(e), "backup": backup, "restore": restore_info}

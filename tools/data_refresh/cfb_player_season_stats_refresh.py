@@ -231,7 +231,7 @@ def run_cfb_player_season_stats_refresh() -> dict:
     run_id = safety.start_run(c, league=LEAGUE, dataset=DATASET, source_id=SOURCE_ID)
     c.close()
 
-    backup = safety.create_verified_backup()
+    backup = safety.create_verified_backup_or_finish_failed(run_id)
 
     total_downloaded = total_published = total_unresolved_school = 0
     seasons_imported: list[int] = []
@@ -325,7 +325,7 @@ def run_cfb_player_season_stats_refresh() -> dict:
             )
         except safety.SanityCheckFailure as e:
             c.close()
-            restore_info = safety.restore_from_backup(backup["path"])
+            restore_info = safety.safe_restore_from_backup(backup["path"])
             c = engine_bootstrap.connect()
             safety.finish_run(
                 c, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
@@ -354,7 +354,7 @@ def run_cfb_player_season_stats_refresh() -> dict:
             "backup_id": backup["backup_id"],
         }
     except Exception as e:
-        restore_info = safety.restore_from_backup(backup["path"])
+        restore_info = safety.safe_restore_from_backup(backup["path"])
         c2 = engine_bootstrap.connect()
         safety.finish_run(
             c2, run_id, status="FAILED_RESTORED", backup_id=backup["backup_id"],
