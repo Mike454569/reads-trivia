@@ -737,6 +737,30 @@ def test_six_degrees_master_switch_independent_of_public_game_switch(client, mon
     monkeypatch.setattr(public_coach_connections.config, "PUBLIC_SIX_DEGREES_ENABLED", True)
 
 
+def test_flytoml_READS_PUBLIC_MODES_matches_the_code_certified_allowlist():
+    """Real, recurring incident (Pass 2.5, then again in the Absolute Final
+    Closeout): a code-certified new PUBLIC_MODES entry came back
+    MODE_UNAVAILABLE in production TWICE because fly.toml's own
+    READS_PUBLIC_MODES env var (which can only ever NARROW
+    config.PUBLIC_MODE_ALLOWLIST, never expand it -- see
+    public_modes_allowed()'s own docstring) wasn't updated alongside the
+    code change, and nothing caught the drift before a live canary request
+    did. Parses the real fly.toml file directly (not a mock) so this can
+    never silently drift a third time."""
+    import re
+    from pathlib import Path
+
+    fly_toml = (Path(__file__).resolve().parent.parent / "fly.toml").read_text()
+    m = re.search(r'READS_PUBLIC_MODES\s*=\s*"([^"]*)"', fly_toml)
+    assert m, "fly.toml no longer sets READS_PUBLIC_MODES -- update this test if that's now intentional"
+    deployed_modes = frozenset(x.strip() for x in m.group(1).split(",") if x.strip())
+    assert deployed_modes == config.PUBLIC_MODE_ALLOWLIST, (
+        f"fly.toml's READS_PUBLIC_MODES has drifted from config.PUBLIC_MODE_ALLOWLIST -- "
+        f"missing from fly.toml: {config.PUBLIC_MODE_ALLOWLIST - deployed_modes}; "
+        f"extra in fly.toml (a mode that no longer exists?): {deployed_modes - config.PUBLIC_MODE_ALLOWLIST}"
+    )
+
+
 def test_public_modes_env_var_narrows_but_cannot_expand(monkeypatch):
     monkeypatch.setenv("READS_PUBLIC_MODES", "draft_guess")
     assert config.public_modes_allowed() == frozenset({"draft_guess"})

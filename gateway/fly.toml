@@ -182,7 +182,12 @@ primary_region = "iad"
   # (which can only ever NARROW the code allowlist, never grant beyond it --
   # see config.py's public_modes_allowed()) still only listed the pre-pass
   # 12. Added the 8 new mode ids below.
-  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess,nfl_game_result_guess,cfb_game_result_guess,nfl_game_boxscore_guess,lineup_college_guess,offense_college_guess,sb_champion_offense_college_guess,cfb_ranking_guess,cfb_upset_guess,cfb_rivalry_guess,cfb_rivalry_lookup_guess,cfb_spot_the_fake_guess,cfb_three_clues_guess,era_gauntlet_guess,cfb_odd_college_out_guess,cfb_one_school_missing_guess,franchise_marathon_guess"
+  #
+  # Absolute Final Closeout: found the exact same drift a third time, again
+  # by the canary itself -- nfl_super_bowl_guess (already-catalog-verified,
+  # now fully certified with a real 60/60-game pool) came back
+  # MODE_UNAVAILABLE post-deploy despite being code-certified. Added below.
+  READS_PUBLIC_MODES = "draft_guess,championship_guess,lineup_guess,cfb_heisman_guess,nfl_game_result_guess,cfb_game_result_guess,nfl_game_boxscore_guess,lineup_college_guess,offense_college_guess,sb_champion_offense_college_guess,cfb_ranking_guess,cfb_upset_guess,cfb_rivalry_guess,cfb_rivalry_lookup_guess,cfb_spot_the_fake_guess,cfb_three_clues_guess,era_gauntlet_guess,cfb_odd_college_out_guess,cfb_one_school_missing_guess,franchise_marathon_guess,nfl_super_bowl_guess"
   READS_PUBLIC_SIX_DEGREES_ENABLED = "true"
 
 # --- resource sizing (Part Q -- measured, not guessed; re-confirmed v1.4) --
