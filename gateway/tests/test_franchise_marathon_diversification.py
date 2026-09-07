@@ -159,3 +159,51 @@ def test_shortfall_never_pads_with_a_fabricated_stage():
         pkg = _generate(nickname, f"pytest-fm-shortfall-{nickname}")
         assert len(pkg["questions"]) <= 8
         assert pkg["qa_status"] == "PASSED"
+
+
+# The exact 32 real, current NFL franchise search values engine-game-ui.js's
+# franchiseChoices now offers (this project's own frontend picker) --
+# expanded from an old 10-team list left over from before this Closeout
+# Part 3 rebuild, when the mode was a thin filter over the 60-board
+# SB_CHAMPION table and a franchise needed a real title just to have any
+# surviving stage. "washington" (not "commanders") is deliberate: Washington
+# is the one real franchise whose 3 distinct historical names (Redskins/
+# Football Team/Commanders) share no common nickname substring, and only
+# the city-based search reaches its full real 2002-2026 history (see
+# engine-game-ui.js's own comment on this exact franchise for the concrete
+# proof -- "commanders" alone silently misses both the real IDENTITY/rename
+# stage and the real Super Bowl deep-cut stage).
+ALL_32_REAL_FRANCHISE_SEARCH_VALUES = [
+    "cardinals", "falcons", "ravens", "bills", "panthers", "bears", "bengals", "browns",
+    "cowboys", "broncos", "lions", "packers", "texans", "colts", "jaguars", "chiefs",
+    "raiders", "chargers", "rams", "dolphins", "vikings", "patriots", "saints", "giants",
+    "jets", "eagles", "steelers", "49ers", "seahawks", "buccaneers", "titans", "washington",
+]
+
+
+def test_all_32_real_nfl_franchises_produce_a_real_playable_marathon():
+    assert len(ALL_32_REAL_FRANCHISE_SEARCH_VALUES) == 32
+    for value in ALL_32_REAL_FRANCHISE_SEARCH_VALUES:
+        pkg = _generate(value, f"pytest-fm-all32-{value}")
+        assert pkg["qa_status"] == "PASSED", value
+        assert len(pkg["questions"]) >= 1, value
+
+
+def test_washington_search_reaches_its_full_real_history_not_just_the_current_name():
+    """The one franchise this project's own frontend deliberately searches
+    by city rather than nickname -- confirms searching "commanders" alone
+    really would miss real content "washington" reaches, so a future editor
+    doesn't "simplify" this back to the nickname and silently regress it."""
+    pkg_nickname_only = _generate("Commanders", "pytest-fm-wsh-nickname")
+    pkg_city = _generate("Washington", "pytest-fm-wsh-city")
+    assert pkg_city["qa_status"] == "PASSED"
+    identity_stage_present = any(q["question"].startswith("Before becoming the") for q in pkg_city["questions"])
+    deep_cut_stage_present = any(q["question"].startswith("Final boss:") for q in pkg_city["questions"])
+    assert identity_stage_present, "searching the city should reach the real Redskins->Commanders rename stage"
+    assert deep_cut_stage_present, "searching the city should reach the real Washington Redskins Super Bowl deep-cut stage"
+    nickname_had_identity = any(q["question"].startswith("Before becoming the") for q in pkg_nickname_only["questions"])
+    nickname_had_deep_cut = any(q["question"].startswith("Final boss:") for q in pkg_nickname_only["questions"])
+    assert not (nickname_had_identity and nickname_had_deep_cut), (
+        "if searching \"commanders\" alone now also reaches both stages, the city-only special case "
+        "in engine-game-ui.js's franchiseChoices may no longer be necessary -- re-verify before simplifying"
+    )

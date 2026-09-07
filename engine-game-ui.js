@@ -359,22 +359,61 @@ var ENGINE_PILOT_MODES = {
     sequential: true,
     needsFilterValue: true,
     filterParamName: 'franchise',
-    // Real, verified list (sb_champion_offense_college.fetch_ordered_
-    // candidates() called directly for each, this pass) -- every one of
-    // these has 1+ real surviving stage after the standard duplicate-
-    // question guard. Never invented; a franchise not on this list simply
-    // isn't offered as a starting choice.
+    // All 32 real current NFL franchises -- verified directly this pass
+    // (generate_package_from_spec() called for each real franchise_name
+    // value below against the rebuilt 8-stage adapter): every one reaches
+    // 7 or 8 real, QA-passed stages, qa_status PASSED. This list used to
+    // cover only 10 franchises, left over from BEFORE Franchise Marathon's
+    // Closeout Part 3 rebuild (when the mode was a thin filter over
+    // sb_champion_offense_college.py's 60-board SB_CHAMPION table, so a
+    // franchise needed a real Super Bowl title just to have ANY surviving
+    // stage) -- the rebuilt adapter draws from 7 different real Engine
+    // tables (identity/season-record/coach/draft/award/playoffs/roster,
+    // deep-cut only for real champions), so every real franchise now has a
+    // full marathon regardless of championship history. `value` is matched
+    // via a real, case-insensitive LIKE against team_seasons.full_name
+    // (_team_codes_for_franchise) -- the nickname alone is enough for
+    // every team EXCEPT Washington, whose 3 real distinct full_name eras
+    // (Redskins/Football Team/Commanders) share no common nickname
+    // substring; "washington" (the constant city) is required there to
+    // reach the franchise's full real 2002-2026 history, including its
+    // real Super Bowl deep-cut stage (as "Washington Redskins" in the
+    // curated SB_CHAMPION table) and its real IDENTITY/rename stage --
+    // confirmed directly: searching "commanders" alone silently misses
+    // both.
     franchiseChoices: [
+      { value: 'cardinals', label: 'Arizona Cardinals' },
+      { value: 'falcons', label: 'Atlanta Falcons' },
+      { value: 'ravens', label: 'Baltimore Ravens' },
+      { value: 'bills', label: 'Buffalo Bills' },
+      { value: 'panthers', label: 'Carolina Panthers' },
+      { value: 'bears', label: 'Chicago Bears' },
+      { value: 'bengals', label: 'Cincinnati Bengals' },
+      { value: 'browns', label: 'Cleveland Browns' },
       { value: 'cowboys', label: 'Dallas Cowboys' },
+      { value: 'broncos', label: 'Denver Broncos' },
+      { value: 'lions', label: 'Detroit Lions' },
       { value: 'packers', label: 'Green Bay Packers' },
+      { value: 'texans', label: 'Houston Texans' },
+      { value: 'colts', label: 'Indianapolis Colts' },
+      { value: 'jaguars', label: 'Jacksonville Jaguars' },
+      { value: 'chiefs', label: 'Kansas City Chiefs' },
+      { value: 'raiders', label: 'Raiders (Oakland/Las Vegas)' },
+      { value: 'chargers', label: 'Chargers (San Diego/LA)' },
+      { value: 'rams', label: 'Rams (St. Louis/LA)' },
+      { value: 'dolphins', label: 'Miami Dolphins' },
+      { value: 'vikings', label: 'Minnesota Vikings' },
       { value: 'patriots', label: 'New England Patriots' },
+      { value: 'saints', label: 'New Orleans Saints' },
+      { value: 'giants', label: 'New York Giants' },
+      { value: 'jets', label: 'New York Jets' },
+      { value: 'eagles', label: 'Philadelphia Eagles' },
       { value: 'steelers', label: 'Pittsburgh Steelers' },
       { value: '49ers', label: 'San Francisco 49ers' },
-      { value: 'giants', label: 'New York Giants' },
-      { value: 'chiefs', label: 'Kansas City Chiefs' },
-      { value: 'broncos', label: 'Denver Broncos' },
-      { value: 'raiders', label: 'Raiders (Oakland/LA)' },
-      { value: 'dolphins', label: 'Miami Dolphins' },
+      { value: 'seahawks', label: 'Seattle Seahawks' },
+      { value: 'buccaneers', label: 'Tampa Bay Buccaneers' },
+      { value: 'titans', label: 'Tennessee Titans' },
+      { value: 'washington', label: 'Washington Commanders' },
     ],
   },
 };
