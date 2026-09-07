@@ -121,6 +121,24 @@ def test_stale_running_row_is_reclaimed_and_no_longer_blocks():
         _finish_row(run_id)  # no-op if already reclaimed, harmless either way
 
 
+def test_stale_threshold_has_real_headroom_above_an_observed_long_run():
+    """Absolute Final Closeout (Item 1C): the threshold used to be
+    calibrated against an ~11m24s historical worst case. A live, manually-
+    triggered cfb_rankings refresh (Sep 7 2026) was observed running past
+    60 real minutes while genuinely still healthy (DB file mtime still
+    advancing, backup completed cleanly, no crash) -- at the old 30-minute
+    threshold, an unrelated scheduled trigger firing during that window
+    would have wrongly reclaimed a live, healthy run (SQLite's own
+    busy_timeout prevents actual corruption from the resulting concurrent
+    writer, but it would still waste a duplicate run and report a false
+    failure). This locks in real headroom above that observed duration so
+    the threshold can't silently drift back down."""
+    assert admin_refresh.STALE_RUNNING_THRESHOLD_MINUTES >= 90, (
+        "real-world CFBD-dependent refreshes have been observed running past 60 minutes -- "
+        "keep meaningful headroom above that before reclaiming a still-healthy run"
+    )
+
+
 def test_recent_running_row_is_not_reclaimed():
     """The other half of the same guarantee -- a run that's genuinely still
     in progress (started well within the threshold) must still block, or

@@ -156,10 +156,26 @@ def _runners():
 # past the ~130-200s that normally takes). Nothing ever calls finish_run()
 # for a run killed that way, so without this, that one RUNNING row would
 # block EVERY future refresh, forever, via the global guard below -- a
-# real, live production bug, not a hypothetical. 30 minutes is comfortably
-# above the worst real measured run time (~11m24s for nfl_games_refresh
-# against the actual production volume).
-STALE_RUNNING_THRESHOLD_MINUTES = 30
+# real, live production bug, not a hypothetical.
+#
+# Absolute Final Closeout (Item 1C): the original 30-minute value was
+# calibrated against the worst measured run at the time (~11m24s for
+# nfl_games_refresh) -- that assumption did not hold. A live, manually-
+# triggered cfb_rankings refresh (Sep 7 2026, investigating this exact
+# dataset's multi-week production staleness) ran well past 60 real minutes
+# while genuinely still alive and actively writing (confirmed directly:
+# the live DB file's mtime kept advancing, backup completed cleanly, disk
+# healthy, no crash in the logs) -- a real, healthy CFBD-dependent run, not
+# a hang. At the old 30-minute threshold, the NEXT unrelated scheduled
+# trigger (any dataset, since this guard is global) would have called
+# _reclaim_stale_running_rows() and wrongly marked that live run
+# FAILED_STALE, freeing the guard for a SECOND concurrent writer against
+# the same real database file. SQLite's own busy_timeout PRAGMA keeps that
+# from corrupting data (the second writer would cleanly fail with "database
+# is locked" instead), but it would still waste a full duplicate run and
+# report a false failure for a refresh that was actually healthy. Raised to
+# a bound with real headroom above an observed real 60+ minute CFBD run.
+STALE_RUNNING_THRESHOLD_MINUTES = 120
 
 
 def _reclaim_stale_running_rows(c) -> None:
