@@ -181,3 +181,62 @@ def test_draft_class_and_honor_group_never_appear_as_answers():
     for q in pkg["questions"]:
         assert "NFL Draft, Round 1" not in q["question"] and "NFL Draft" not in q["answer"]
         assert "All-Pro" not in q["answer"]
+
+
+# --- Closeout pass (Part 5): STATISTICAL_LEADER / NOTABLE_GAME clue families --
+
+def test_statistical_leader_clue_family_appears_in_the_real_pool():
+    """New real, non-roster clue family: a team-season's real passing/
+    rushing/receiving yardage leader (player_season_stats), added alongside
+    OPPONENT/SCORE/COACH/SB_MVP/RECORD/COLLEGE."""
+    pkg = _generate("pytest-stat-leader-seed", target_count=800)
+    assert any("leader that season gained" in q["question"] and "yards" in q["question"]
+               for q in pkg["questions"])
+
+
+def test_notable_game_clue_family_appears_in_the_real_pool():
+    """New real, non-roster, deterministic clue family: a team-season's
+    real biggest margin-of-victory game (games table home/away scores) --
+    never a subjective 'craziest game' label."""
+    pkg = _generate("pytest-notable-game-seed", target_count=800)
+    assert any("margin of victory" in q["question"] for q in pkg["questions"])
+
+
+def test_statistical_leader_clue_never_fabricates_a_zero_stat():
+    """A team-season with no real passing/rushing/receiving production on
+    file must simply not offer this clue -- never a fabricated 0-yard
+    'leader'."""
+    from tools.quiz_export.adapters import _champion_clue_common as clue_common
+    from tools.quiz_export import engine
+
+    c = engine.connect()
+    try:
+        cache = clue_common._load_stat_cache(c)
+        for key, entries in list(cache.items())[:200]:
+            for label, name, yards in entries:
+                assert yards > 0, f"{key} {label} clue would report a non-positive yardage: {yards}"
+    finally:
+        c.close()
+
+
+def test_notable_game_margin_is_always_a_real_positive_number():
+    from tools.quiz_export.adapters import _champion_clue_common as clue_common
+    from tools.quiz_export import engine
+
+    c = engine.connect()
+    try:
+        cache = clue_common._load_game_margin_cache(c)
+        for key, (margin, opponent) in list(cache.items())[:200]:
+            assert margin > 0
+            assert opponent
+    finally:
+        c.close()
+
+
+def test_ranking_family_deliberately_not_offered_for_this_nfl_only_domain():
+    """Explicit, documented scope decision (Part 5): this adapter's whole
+    domain is NFL team-seasons, which have no real weekly/final poll
+    ranking the way CFB does -- RANKING must never be fabricated here."""
+    pkg = _generate("pytest-no-fake-ranking-seed", target_count=800)
+    for q in pkg["questions"]:
+        assert "ranked" not in q["question"].lower() and "ranking" not in q["question"].lower()

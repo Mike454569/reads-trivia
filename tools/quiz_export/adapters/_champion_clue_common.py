@@ -167,6 +167,111 @@ def college_clue(board: dict, position: str) -> str:
     return f"{position} from {board['positions'][position]}"
 
 
+# Closeout pass (Part 5): 2 more real, non-roster clue families. RANKING
+# was explicitly requested too, but this adapter's whole domain is NFL
+# team-seasons (SB_CHAMPION/CURRENT_TEAM_2026/NFL_TEAM_SEASON_ROSTER all
+# describe an NFL team's real season) -- the NFL has no weekly/final poll
+# ranking system the way CFB does, so a "ranking" clue here would have no
+# real underlying fact to describe. Rather than invent a false association
+# (the exact failure mode this pass explicitly warns against), RANKING is
+# deliberately not added to this adapter; CFB modes with real poll data
+# (cfb_ranking.py, Odd College Out/Spot the Fake boards) already carry it.
+_STAT_CACHE: dict[tuple[str, int], list[tuple[str, str, int]]] | None = None
+
+
+def _load_stat_cache(c) -> dict[tuple[str, int], list[tuple[str, str, int]]]:
+    """(team_code, season) -> [(family_label, player_name, yards), ...] for
+    whichever of pass/rush/receiving yards this team-season's real top
+    performer actually accumulated (only real, non-null, non-zero values
+    -- a team with no real passing production that year, for example,
+    simply has no PASSING entry, never a fabricated 0)."""
+    global _STAT_CACHE
+    if _STAT_CACHE is None:
+        _STAT_CACHE = {}
+        rows = c.execute(
+            "SELECT pss.team_code, pss.season, cp.display_name, "
+            "pss.pass_yards, pss.rush_yards, pss.rec_yards "
+            "FROM player_season_stats pss JOIN canonical_players cp ON cp.player_id = pss.player_key "
+            "WHERE cp.display_name IS NOT NULL"
+        ).fetchall()
+        best: dict[tuple[str, int], dict[str, tuple[str, int]]] = {}
+        for r in rows:
+            key = (r["team_code"], r["season"])
+            slot = best.setdefault(key, {})
+            for label, col in (("Passing", "pass_yards"), ("Rushing", "rush_yards"), ("Receiving", "rec_yards")):
+                val = r[col]
+                if val and val > 0:
+                    current = slot.get(label)
+                    if current is None or val > current[1]:
+                        slot[label] = (r["display_name"], val)
+        for key, slot in best.items():
+            _STAT_CACHE[key] = [(label, name, yards) for label, (name, yards) in slot.items()]
+    return _STAT_CACHE
+
+
+def statistical_leader_clue(c, team_code: str | None, season: int) -> str | None:
+    """Real per-team-season statistical leader -- passing preferred (the
+    most commonly recognized "leader" stat), falling back to rushing then
+    receiving only when no real passing production exists for that
+    team-season (deliberately never all three, to keep this to ONE real
+    clue, and never fabricating a category with zero real yards)."""
+    if not team_code:
+        return None
+    entries = _load_stat_cache(c).get((team_code, season))
+    if not entries:
+        return None
+    priority = {"Passing": 0, "Rushing": 1, "Receiving": 2}
+    label, name, yards = sorted(entries, key=lambda e: priority[e[0]])[0]
+    verb = {"Passing": "passing", "Rushing": "rushing", "Receiving": "receiving"}[label]
+    return f"This team's real {verb} leader that season gained {yards} yards."
+
+
+_GAME_MARGIN_CACHE: dict[tuple[str, int], tuple[int, str]] | None = None
+
+
+def _load_game_margin_cache(c) -> dict[tuple[str, int], tuple[int, str]]:
+    """(team_code, season) -> (largest real margin of victory, real
+    opponent display name) for that team's biggest real win that season --
+    a deterministic, objective fact (max score differential in a real,
+    completed, non-tied game), never a subjective "craziest game" label."""
+    global _GAME_MARGIN_CACHE
+    if _GAME_MARGIN_CACHE is None:
+        _GAME_MARGIN_CACHE = {}
+        names = {
+            (r["team_code"], r["season"]): r["full_name"]
+            for r in c.execute("SELECT DISTINCT team_code, season, full_name FROM team_seasons")
+        }
+        rows = c.execute(
+            "SELECT season, home_team, home_score, away_team, away_score FROM games "
+            "WHERE home_score IS NOT NULL AND away_score IS NOT NULL AND home_score != away_score"
+        ).fetchall()
+        best: dict[tuple[str, int], tuple[int, str]] = {}
+        for r in rows:
+            for team, opp, margin in (
+                (r["home_team"], r["away_team"], r["home_score"] - r["away_score"]),
+                (r["away_team"], r["home_team"], r["away_score"] - r["home_score"]),
+            ):
+                if margin <= 0:
+                    continue
+                key = (team, r["season"])
+                current = best.get(key)
+                if current is None or margin > current[0]:
+                    opp_name = names.get((opp, r["season"]), opp)
+                    best[key] = (margin, opp_name)
+        _GAME_MARGIN_CACHE = best
+    return _GAME_MARGIN_CACHE
+
+
+def notable_game_clue(c, team_code: str | None, season: int) -> str | None:
+    if not team_code:
+        return None
+    entry = _load_game_margin_cache(c).get((team_code, season))
+    if not entry:
+        return None
+    margin, opponent = entry
+    return f"This team's biggest real margin of victory that season was {margin} points, over the {opponent}."
+
+
 # (clue_family_id, generator) -- SB_CHAMPION-only real facts. COACH/RECORD
 # are handled separately below since they resolve for any pool_kind via the
 # board's own team_code, never through a championship-event lookup that
@@ -203,6 +308,12 @@ def real_available_clues(c, board: dict) -> list[tuple[str, str]]:
     record_text = record_clue(c, team_code, season)
     if record_text:
         clues.append(("RECORD", record_text))
+    stat_text = statistical_leader_clue(c, team_code, season)
+    if stat_text:
+        clues.append(("STATISTICAL_LEADER", stat_text))
+    game_text = notable_game_clue(c, team_code, season)
+    if game_text:
+        clues.append(("NOTABLE_GAME", game_text))
 
     # COLLEGE family: up to 3 real position/college pairs, offered as
     # individual candidate clues (never more than 1 actually used per
