@@ -302,8 +302,10 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # CFB-team-roster-based capability -- both registered via
     # register_new_capability() and promoted to GENERATION_VERIFIED via a
     # real, passing Tier-2 probe, same discipline as every capability above).
+    # Closeout pass, Part 3: 66 -> 67 (NFL_FRANCHISE_MARATHON__
+    # FRANCHISE_MARATHON_STAGE, Tier-2 certified 100/100, 0 leaks).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 66
+    assert len(summary) == 67
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

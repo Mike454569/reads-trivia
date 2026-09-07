@@ -204,10 +204,13 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # RANKED_HIGHER (true 2-team ranking comparison) and CFB_OFFENSE_
     # LINEUP__TEAM_SEASON_OF_STARTING_OFFENSE (first real CFB-team-roster
     # capability), each individually Tier-2 certified.
+    # Closeout pass, Part 3: 66 -> 67 -- NFL_FRANCHISE_MARATHON__
+    # FRANCHISE_MARATHON_STAGE (Franchise Marathon's real 8-stage rebuild),
+    # Tier-2 certified (100/100 rounds, 0 leaks).
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 66
+    assert len(caps) == 67
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

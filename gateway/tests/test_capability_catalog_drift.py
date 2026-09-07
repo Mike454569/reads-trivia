@@ -152,9 +152,13 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     # real, passing Tier-2 probe (100/100 generations, zero leakage, 2,120
     # real eligible candidates) -- capabilities_missing_scoping_fields stays
     # at 21.
+    # Closeout pass, Part 3: 66 -> 67 (NFL_FRANCHISE_MARATHON__
+    # FRANCHISE_MARATHON_STAGE, registered via register_new_capability()
+    # with real scoping fields, promoted via a real, passing Tier-2 probe --
+    # capabilities_missing_scoping_fields stays at 21).
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 66
+    assert result["total_capabilities"] == 67
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]

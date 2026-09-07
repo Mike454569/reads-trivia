@@ -142,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -331,6 +331,19 @@ questions each). DIFFERENT from and richer than capability 21 (CFB_RIVALRY/RIVAL
 "who is this school's rival" fact) -- matches a request for rivalry TRIVIA/a rivalry GAME, or \
 one naming a specific real rivalry by nickname or by both schools (e.g. "Make me an Iron Bowl \
 trivia game"), not a bare "who is X's rival" fact-lookup phrasing.
+
+33. mechanic=guess, domain=NFL_FRANCHISE_MARATHON, relationship_predicate=FRANCHISE_MARATHON_STAGE
+    Closeout pass rebuild: given a real NFL franchise_name filter, plays through a real 8-stage \
+history of that franchise -- its real division/relocation identity, a real season record, a real \
+head coach, a real draft pick, a real All-Pro/Pro Bowl honoree, a real playoff result, a real \
+roster member, and (ONLY for a franchise with a real Super Bowl title) one deep-cut Super Bowl \
+stage reusing capability 23's starting-offense-by-college shape. DIFFERENT from capability 23: \
+that capability's franchise_name filter walked ONLY that franchise's real championship boards, \
+so a title-less franchise (e.g. the Bills) got nothing at all -- this one always builds a full \
+real marathon regardless of championship history, with Super Bowl content as at most one of the \
+8 stages, never the whole thing. Matches "franchise marathon" / "team history game" / "dynasty \
+history" phrasing naming a specific real franchise -- never matches a bare "Super Bowl" request \
+with no franchise named (that's capability 23).
 
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
 Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \
