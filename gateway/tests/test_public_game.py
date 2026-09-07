@@ -373,8 +373,9 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # test_gateway.py::test_capabilities_unauthenticated_and_exactly_twenty_one.
     # Rivalry Data + Gold Standard Content Integration operation added 11
     # more, 22nd-32nd, all walked to PUBLIC_ENABLED -- same real reason as
-    # that test's sibling assertion.
-    assert len(r.json()["capabilities"]) == 32
+    # that test's sibling assertion. Closeout pass Part 3 added a 33rd
+    # (Franchise Marathon's real 8-stage rebuild).
+    assert len(r.json()["capabilities"]) == 33
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------

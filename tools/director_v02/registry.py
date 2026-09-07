@@ -78,6 +78,7 @@ from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_a
 from tools.quiz_export.adapters import cfb_rivalry_trivia as cfb_rivalry_trivia_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_offense_college_curated as nfl_offense_college_curated_adapter  # noqa: E402
 from tools.quiz_export.adapters import sb_champion_offense_college as sb_champion_offense_college_adapter  # noqa: E402
+from tools.quiz_export.adapters import franchise_marathon as franchise_marathon_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_odd_college_out as cfb_odd_college_out_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_fill_the_colleges as cfb_fill_the_colleges_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_spot_the_fake_lineup as cfb_spot_the_fake_lineup_adapter  # noqa: E402
@@ -1628,6 +1629,33 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         # fetch_ordered_candidates() comment.
         "supported_filter_keys": frozenset({"franchise_name", "era_gauntlet", "oline_only"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 932000,
+    },
+    # Closeout pass (Part 3): full rebuild, no longer a filter over
+    # NFL_SB_CHAMPION_OFFENSE_COLLEGE. See franchise_marathon.py's own module
+    # docstring for the real, verified 8-stage design (identity/season-
+    # record/coach/draft/award/playoffs/roster/deep-cut) replacing the old
+    # "every stage is a Super Bowl roster question" version. "any"-difficulty
+    # only -- difficulty is determined by stage position (Easy->Hard
+    # progression built into the adapter itself), not caller-selectable,
+    # same reasoning the old entry used.
+    ("guess", "NFL_FRANCHISE_MARATHON", "FRANCHISE_MARATHON_STAGE"): {
+        "adapter": franchise_marathon_adapter, "category": franchise_marathon_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Exactly 8 real stages per franchise, in a fixed order (identity, season-record, coach, "
+            "draft, award, playoffs, roster, deep-cut) -- a franchise with sparse data in one family "
+            "(e.g. no real title, so no deep-cut) gets a second, harder roster stage in that slot "
+            "instead of a fabricated one, so some franchises legitimately have < 8 stages.",
+            "team_seasons/season_standings coverage is 2002-2026; coach_team_seasons/"
+            "canonical_roster_seasons is 1999-2026; draft_facts is 1980-2026; nfl_all_pro/pro_bowl_"
+            "selections is 1932-2026 but only queried from 1970 onward for reliable team_code coverage. "
+            "Only the deep-cut stage (curated SB_CHAMPION boards) reaches back to 1966.",
+        ],
+        "competition_id": "NFL", "entity_type": "nfl_franchise_marathon_stage", "object_type": "mixed",
+        "answer_type": "mixed", "group_size": 4, "min_question_count": 1, "max_question_count": 8,
+        "supported_difficulties": frozenset({"any"}), "supports_difficulty_filter": False,
+        "supported_filter_keys": frozenset({"franchise_name"}), "supports_exclusions": False,
+        "proven_in": ["closeout-pass"], "pipeline_id_start": 937000,
     },
     # Remaining Gold Standard "10. New Game Modes" P0 concepts explicitly
     # requested this operation -- all built on the SAME curated SB_CHAMPION

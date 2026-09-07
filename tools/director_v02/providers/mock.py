@@ -1396,17 +1396,22 @@ class MockDeterministicTranslator(Translator):
         if _FRANCHISE_MARATHON_PHRASE_RE.search(text_lower_gs):
             nickname = next((n for n in _FRANCHISE_MARATHON_NICKNAMES if n in text_lower_gs), None)
             if nickname:
+                # Closeout pass (Part 3 rebuild): moved off
+                # NFL_SB_CHAMPION_OFFENSE_COLLEGE onto franchise_marathon.py's
+                # own real domain/predicate -- a real 8-stage progression
+                # (identity/season-record/coach/draft/award/playoffs/roster/
+                # deep-cut) instead of a Super Bowl roster filter.
                 spec = {
-                    "mechanic": "guess", "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
-                    "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+                    "mechanic": "guess", "domain": "NFL_FRANCHISE_MARATHON",
+                    "relationship_predicate": "FRANCHISE_MARATHON_STAGE",
                     "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
                     "filters": {"franchise_name": nickname}, "exclusions": [],
                 }
                 return _result(request_text, "TRANSLATED", spec,
                                 f"Matched Franchise Marathon phrasing + a real franchise nickname "
-                                f"({nickname!r}) -> TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE guess "
-                                f"capability, scoped to that franchise's full real championship history "
-                                f"in chronological order.")
+                                f"({nickname!r}) -> FRANCHISE_MARATHON_STAGE guess capability, scoped to that "
+                                f"franchise's real 8-stage history (identity/season-record/coach/draft/award/"
+                                f"playoffs/roster/deep-cut).")
             return _result(
                 request_text, "NEEDS_CLARIFICATION", None,
                 "Recognized a Franchise Marathon request but no specific real franchise was named.",

@@ -584,33 +584,28 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
-    # Franchise Marathon: the real, disclosed blocker -- the live route
-    # hardcoded `filters: {}`, and even with a franchise_name filter
-    # threaded through, puzzle_count=1 could only ever return a franchise's
-    # OLDEST real title forever (same root cause as Era Gauntlet above; see
-    # generation.generate_public()'s docstring for the full real diagnosis,
-    # confirmed directly: Cowboys has 5 real distinct championship boards,
-    # Packers 4, Patriots 6, Steelers 6, 49ers 5 -- verified via
-    # sb_champion_offense_college.fetch_ordered_candidates() directly, not
-    # assumed). Fixed the same way as Era Gauntlet: real `stage_index` +
-    # `caller_filter_key: "franchise_name"` (the ONE caller-controlled
-    # filter value this mode accepts -- see get_public_game()'s explicit
-    # allow-list check). "any"-difficulty only, same real reason as Era
-    # Gauntlet (difficulty filtering could shift which stage_index maps to
-    # which real season).
+    # Franchise Marathon (Closeout pass, Part 3 rebuild): no longer a filter
+    # over NFL_SB_CHAMPION_OFFENSE_COLLEGE -- a real 8-stage progression
+    # (identity/season-record/coach/draft/award/playoffs/roster/deep-cut)
+    # over franchise_marathon.py's own adapter. Super Bowl content now
+    # appears in exactly ONE stage (deep-cut), never the whole mode. Same
+    # real `stage_index` + `caller_filter_key: "franchise_name"` mechanism
+    # as before; "any"-difficulty only, since difficulty is determined by
+    # stage position (built into the adapter), not caller-selectable.
     "franchise_marathon_guess": {
         "competition": "NFL",
         "title": "Franchise Marathon",
-        "instructions": "Pick a real NFL franchise and play through its real Super Bowl-winning offenses "
-                        "in chronological order, by college and position (player names hidden).",
+        "instructions": "Pick a real NFL franchise and play through 8 real stages of its history -- "
+                        "identity, season records, coaches, draft picks, awards, playoff runs, roster "
+                        "history, and (for champions) one Super Bowl deep-cut.",
         "kind": "multiple_choice",
         "sequential": True,
         "caller_filter_key": "franchise_name",
         "certified_difficulties": frozenset(),
         "spec": {
             "mechanic": "guess",
-            "domain": "NFL_SB_CHAMPION_OFFENSE_COLLEGE",
-            "relationship_predicate": "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE",
+            "domain": "NFL_FRANCHISE_MARATHON",
+            "relationship_predicate": "FRANCHISE_MARATHON_STAGE",
             "question_count": 1,
             "filters": {},
             "exclusions": [],

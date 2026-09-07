@@ -58,9 +58,13 @@ def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 32
+    assert len(caps) == 33
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
+        # Closeout pass, Part 3: Franchise Marathon's real 8-stage rebuild,
+        # walked all the way to PUBLIC_ENABLED via a real, passing Tier-2
+        # certification probe (100/100 rounds, 0 leaks).
+        ("guess", "NFL_FRANCHISE_MARATHON", "FRANCHISE_MARATHON_STAGE"),
         ("guess", "CFB_RIVALRY_TRIVIA", "CORRECT_TRIVIA_ANSWER"),
         ("guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE"),
         ("guess", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE"),

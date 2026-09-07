@@ -83,32 +83,51 @@ def test_era_gauntlet_stage_seven_is_sequence_complete(client):
     assert body["error"]["stage_count"] == 7
 
 
-def test_franchise_marathon_real_chronological_progression(client):
-    seasons = []
-    for stage in range(3):  # Steelers has >=3 real distinct stages (measured this pass)
+def test_franchise_marathon_real_eight_stage_progression(client):
+    # Closeout pass (Part 3 rebuild): franchise_marathon_guess is no longer
+    # a filter over the 60-board SB_CHAMPION table (where every stage was a
+    # "guess team+season" roster question) -- it's franchise_marathon.py's
+    # own real 8-stage progression (identity/season-record/coach/draft/
+    # award/playoffs/roster/deep-cut), each stage pulling from a different
+    # real table. Steelers reach all 8 real stages.
+    seen_stage_markers = []
+    for stage in range(8):
         r = _get(client, "franchise_marathon_guess", seed="pytest-marathon-fixed", stage=stage, franchise="steelers")
         assert r.status_code == 200, r.json()
-        game_id = r.json()["game_id"]
-        canonical = _answer(client, game_id, "x").json()["canonical_answer"]
-        assert "Steelers" in canonical
-        seasons.append(int(canonical.split()[0]))
-    assert seasons == sorted(seasons), "Franchise Marathon must progress in real chronological order"
-    assert len(set(seasons)) == len(seasons), "each stage must be a distinct real season"
+        prompt = r.json()["payload"]["prompt"]
+        assert "Pittsburgh Steelers" in prompt or "Final boss" in prompt
+        seen_stage_markers.append(prompt)
+    assert len(set(seen_stage_markers)) == 8, "all 8 real stages must be genuinely distinct questions"
+    # The 9th stage_index must cleanly signal sequence-complete, not error.
+    r9 = _get(client, "franchise_marathon_guess", seed="pytest-marathon-fixed", stage=8, franchise="steelers")
+    assert r9.status_code == 200
+    assert r9.json()["error"]["code"] == "SEQUENCE_COMPLETE"
+    assert r9.json()["error"]["stage_count"] == 8
 
 
-def test_franchise_marathon_eventually_sequence_completes(client):
-    # Dolphins has 2 real raw boards (1972, 1973) but only 1 real SURVIVING
-    # stage after the standard duplicate-question guard -- measured
-    # directly this pass, not assumed (the two back-to-back dynasty
-    # seasons collide on question text, same documented behavior as
-    # Cowboys' 1990s three-peat above).
-    r = _get(client, "franchise_marathon_guess", seed="pytest-marathon-dolphins", stage=0, franchise="dolphins")
+def test_franchise_marathon_super_bowl_content_is_at_most_one_of_eight_stages(client):
+    """The core regression this rebuild exists to fix: 100% Super Bowl
+    roster content is no longer acceptable for a generic franchise mode."""
+    sb_stage_count = 0
+    for stage in range(8):
+        r = _get(client, "franchise_marathon_guess", seed="pytest-marathon-sb-share", stage=stage, franchise="cowboys")
+        if r.status_code != 200:
+            break
+        if "Final boss" in r.json()["payload"]["prompt"]:
+            sb_stage_count += 1
+    assert sb_stage_count <= 1
+
+
+def test_franchise_marathon_titleless_franchise_still_completes_a_real_marathon(client):
+    """Bills have never won a Super Bowl -- the old adapter gave them
+    nothing at all. Now they get a real marathon built from the other 7
+    real families, with a second, harder roster stage filling the
+    would-be deep-cut slot instead of a fabricated championship."""
+    r = _get(client, "franchise_marathon_guess", seed="pytest-marathon-bills", stage=0, franchise="bills")
     assert r.status_code == 200, r.json()
-    r2 = _get(client, "franchise_marathon_guess", seed="pytest-marathon-dolphins", stage=1, franchise="dolphins")
-    assert r2.status_code == 200
-    body = r2.json()
-    assert body["error"]["code"] == "SEQUENCE_COMPLETE"
-    assert body["error"]["stage_count"] == 1
+    assert "Final boss" not in r.json()["payload"]["prompt"]
+    r6 = _get(client, "franchise_marathon_guess", seed="pytest-marathon-bills", stage=6, franchise="bills")
+    assert r6.status_code == 200, r6.json()
 
 
 # --- hard eligibility gate: caller cannot misuse sequential/filter params ---
@@ -127,11 +146,17 @@ def test_franchise_filter_rejected_for_mode_without_caller_filter_key(client):
 
 # --- telemetry mode disambiguation (two real domain/predicate collisions) --
 
-def test_franchise_marathon_and_sb_champion_offense_share_predicate_but_resolve_distinctly():
+def test_franchise_marathon_no_longer_shares_a_predicate_with_sb_champion_offense():
+    """Closeout pass (Part 3 rebuild): franchise_marathon_guess moved off
+    NFL_SB_CHAMPION_OFFENSE_COLLEGE onto its own real domain/predicate
+    (NFL_FRANCHISE_MARATHON / FRANCHISE_MARATHON_STAGE) -- the disambiguation
+    collision this pair used to need no longer exists. Each mode now
+    resolves via the simple single-candidate path in _mode_for_package,
+    never needing the caller_filter_key tiebreak."""
     from gateway.services import public_game as pg
     fm = pg.PUBLIC_MODES["franchise_marathon_guess"]
     sb = pg.PUBLIC_MODES["sb_champion_offense_college_guess"]
-    assert fm["spec"]["relationship_predicate"] == sb["spec"]["relationship_predicate"]
+    assert fm["spec"]["relationship_predicate"] != sb["spec"]["relationship_predicate"]
     assert pg._mode_for_package({"parsed_spec": {"relationship_predicate": fm["spec"]["relationship_predicate"],
                                                    "filters": {"franchise_name": "cowboys"}}}) == "franchise_marathon_guess"
     assert pg._mode_for_package({"parsed_spec": {"relationship_predicate": sb["spec"]["relationship_predicate"],
@@ -158,7 +183,7 @@ def test_era_gauntlet_and_three_clues_share_predicate_but_resolve_distinctly():
     ("Make me an Era Gauntlet", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES", lambda f: f.get("era_gauntlet") is True),
     ("Give me Odd College Out", "CFB_ODD_COLLEGE_OUT", "IMPOSTOR_COLLEGE", lambda f: f == {}),
     ("Make me play One School Missing", "CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE", lambda f: f == {}),
-    ("Give me a Packers Franchise Marathon", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE", lambda f: f.get("franchise_name") == "packers"),
+    ("Give me a Packers Franchise Marathon", "NFL_FRANCHISE_MARATHON", "FRANCHISE_MARATHON_STAGE", lambda f: f.get("franchise_name") == "packers"),
     # Two real gaps found and fixed this pass:
     ("Make me something about rivalries", "CFB_RIVALRY", "RIVAL_OF", lambda f: f == {}),
     ("Give me a historical football challenge", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES", lambda f: f.get("era_gauntlet") is True),

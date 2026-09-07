@@ -31,11 +31,22 @@ def test_franchise_marathon_phrase_now_reachable_from_natural_language():
     r = MockDeterministicTranslator().translate("Give me a Cowboys franchise marathon.")
     assert r["translation_status"] == "TRANSLATED"
     spec = r["spec"]
-    assert spec["domain"] == "NFL_SB_CHAMPION_OFFENSE_COLLEGE"
+    # Closeout pass (Part 3 rebuild): moved off NFL_SB_CHAMPION_OFFENSE_COLLEGE
+    # onto franchise_marathon.py's own real 8-stage-progression domain.
+    assert spec["domain"] == "NFL_FRANCHISE_MARATHON"
+    assert spec["relationship_predicate"] == "FRANCHISE_MARATHON_STAGE"
     assert spec["filters"] == {"franchise_name": "cowboys"}
 
 
-def test_franchise_marathon_generates_real_chronological_dynasty_history():
+def test_franchise_marathon_generates_a_real_eight_stage_dynasty_history():
+    """Closeout pass (Part 3 rebuild): the old assumption that every real
+    answer is a "<season> <team>" string embedding the franchise name no
+    longer holds -- only the deep-cut (Super Bowl) stage's answer is a
+    season; the other 7 real stages answer with a division, a W-L record, a
+    coach, a drafted player, an award honoree, a playoff-result phrase, and
+    a roster member. What must still hold: every question NAMES the real
+    franchise (see franchise_marathon.py's wording-quality fix), and no two
+    stages repeat a question or an answer."""
     from tools.director_v02 import pipeline
 
     pkg = pipeline.run(
@@ -43,19 +54,22 @@ def test_franchise_marathon_generates_real_chronological_dynasty_history():
         seed="test-franchise-marathon-cowboys", question_count_override=20,
     )
     assert pkg["qa_status"] == "PASSED"
-    # The real season is embedded in the answer text itself ("<season> <team>").
+    assert len(pkg["questions"]) >= 6
+    for q in pkg["questions"]:
+        assert "Dallas Cowboys" in q["question"] or "Final boss" in q["question"]
+    texts = [q["question"] for q in pkg["questions"]]
     answers = [q["options"][q["correctIndex"]] for q in pkg["questions"]]
-    assert len(answers) >= 1
-    for a in answers:
-        assert "Cowboys" in a
-    real_seasons = [int(a.split()[0]) for a in answers]
-    assert real_seasons == sorted(real_seasons), "Franchise Marathon must be real chronological order, not shuffled"
+    assert len(set(texts)) == len(texts)
+    assert len(set(answers)) == len(answers)
+    assert sum(1 for q in pkg["questions"] if q["question"].startswith("Final boss:")) <= 1
 
 
 def test_franchise_marathon_reunites_relocated_franchise_across_display_names():
-    """Raiders real championship history spans 3 different real
-    team_display_name strings (Oakland/LA/"Oakland-LA") -- all 3 must be
-    reachable from one nickname, not just the exact-match display string."""
+    """Raiders real history spans 2 different real team_seasons full_name
+    strings (Oakland Raiders / Las Vegas Raiders) -- every family must be
+    queried across the franchise's FULL real team_code history, not just
+    its current one, and the identity stage should surface the real
+    relocation directly."""
     from tools.director_v02 import pipeline
 
     pkg = pipeline.run(
@@ -63,10 +77,8 @@ def test_franchise_marathon_reunites_relocated_franchise_across_display_names():
         seed="test-franchise-marathon-raiders", question_count_override=20,
     )
     assert pkg["qa_status"] == "PASSED"
-    answers = [q["options"][q["correctIndex"]] for q in pkg["questions"]]
-    assert any("Oakland" in a for a in answers) or any("Los Angeles" in a for a in answers)
-    for a in answers:
-        assert "Raiders" in a
+    assert any("Oakland Raiders" in q["question"] or "Las Vegas Raiders" in q["question"]
+               for q in pkg["questions"])
 
 
 def test_college_offense_bare_phrase_routes_to_real_cfb_capability_not_nfl():
