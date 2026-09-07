@@ -148,7 +148,17 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
         "title": "NFL Draft History: Guess the Team",
         "instructions": "You'll be shown a real NFL player. Pick the team that actually drafted him.",
         "kind": "multiple_choice",
-        "certified_difficulties": frozenset({"medium", "hard"}),
+        # Absolute Final Closeout fix: "easy" was real-zero at the time this
+        # was first certified (the vendored Engine's own band() function
+        # never scored this domain low enough), but draft.py's evaluate()
+        # now applies a real, defensible difficulty override (round-1
+        # top-10 picks; any round-1 pick from season>=2010) -- re-surveyed
+        # (target_count=5000): 220 real, distinct, QA-passed Easy
+        # candidates. This registry entry had been fixed at the adapter/
+        # internal-registry level but never actually certified public here
+        # -- caught by cross-checking the live /v1/capabilities response
+        # against registry.py, not assumed from memory.
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "NFL_DRAFT",

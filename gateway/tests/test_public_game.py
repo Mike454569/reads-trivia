@@ -93,8 +93,12 @@ def test_public_modes_no_auth_needed(client):
     assert draft["kind"] == "multiple_choice"
     assert draft["available"] is True
     # Part 20: only real, certified difficulties advertised -- "easy" was
-    # surveyed this phase (0/232 real candidates) and must never appear.
-    assert set(draft["difficulties"]) == {"medium", "hard", "any"}
+    # surveyed 0/232 real candidates at the time. Absolute Final Closeout
+    # fix: draft.py's evaluate() now applies a real difficulty override
+    # (round-1 top-10 picks; any round-1 pick from season>=2010) -- a
+    # re-survey (target_count=5000) found 220 real, distinct Easy
+    # candidates, so "easy" is certified now.
+    assert set(draft["difficulties"]) == {"easy", "medium", "hard", "any"}
     champ = modes_by_id["championship_guess"]
     assert champ["competition"] == "NFL"
     assert champ["kind"] == "multiple_choice"
@@ -616,10 +620,15 @@ def test_player_from_clues_remains_internal_only(client):
 
 # --- v1.3: certified-difficulty enforcement (Part 20/21) -----------------------
 
-def test_draft_uncertified_easy_difficulty_rejected_immediately(client):
-    r = _get_game(client, difficulty="easy")
-    assert r.status_code == 400
-    assert r.json()["error"]["code"] == "INVALID_REQUEST"
+def test_draft_easy_difficulty_now_certified_and_real(client):
+    """Absolute Final Closeout fix: draft_guess used to reject "easy"
+    outright (0/232 real candidates at the time). draft.py's evaluate() now
+    applies a real difficulty override (round-1 top-10 picks; any round-1
+    pick from season>=2010), re-surveyed at 220 real, distinct candidates
+    -- "easy" is certified now, so this must succeed, not 400."""
+    r = _get_game(client, difficulty="easy", seed="test-draft-easy-now-real")
+    assert r.status_code == 200
+    assert r.json()["difficulty"] == "Easy"
 
 
 def test_championship_uncertified_easy_difficulty_rejected_immediately(client):
@@ -629,7 +638,7 @@ def test_championship_uncertified_easy_difficulty_rejected_immediately(client):
 
 
 def test_draft_certified_difficulties_actually_work(client):
-    for diff in ("medium", "hard", "any"):
+    for diff in ("easy", "medium", "hard", "any"):
         r = _get_game(client, difficulty=diff, seed=f"test-draft-diff-{diff}")
         assert r.status_code == 200, f"difficulty={diff!r} should be certified and real"
 

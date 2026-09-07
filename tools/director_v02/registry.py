@@ -182,13 +182,18 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "max_question_count": 100,
         # P0 Accuracy + Reliability Hardening pass: real-generation audit
         # (target_count=5000 per band) found 0 real "easy" candidates for
-        # this capability -- the same real 0/232 gap public_game.py's own
-        # draft_guess entry already discloses ("0 'Easy' candidates ...
-        # deliberately absent from both, not an oversight"), just not yet
-        # reflected here in the internal registry a Creator admin request
-        # actually reads. Removed rather than left to silently return an
-        # empty package.
-        "supported_difficulties": frozenset({"any", "medium", "hard"}),
+        # this capability at the time -- the vendored Engine's own band()
+        # scoring function structurally never produced a low-enough score
+        # for this domain (0 of 3,340 real questions).
+        #
+        # Absolute Final Closeout fix: draft.py's evaluate() now applies a
+        # real, defensible adapter-level override (_real_difficulty_override)
+        # for round-1 top-10 picks and any round-1 pick from season>=2010 --
+        # real, disclosed signals (round/pick/recency), never touching the
+        # vendored band() function itself. Re-surveyed (target_count=5000):
+        # 220 real, distinct, QA-passed Easy candidates now exist (1218
+        # Medium, 1892 Hard) -- "easy" restored here.
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
         "supports_difficulty_filter": True,  # Engine-side post-filter on the adapter's own
                                               # already-computed difficulty_band; never invented.
         "supported_filter_keys": frozenset(),  # none yet
