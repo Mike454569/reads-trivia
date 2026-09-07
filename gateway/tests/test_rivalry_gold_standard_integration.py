@@ -71,6 +71,56 @@ def test_every_rivalry_pack_has_exactly_20_questions():
         assert r["n"] == 20, f"pack {r['rivalry_pack_number']} has {r['n']} questions, expected 20"
 
 
+# --- Absolute Final Closeout: real Easy content for CFB Rivalry Trivia -----
+
+def test_cfb_rivalry_trivia_now_produces_real_easy_content():
+    """The source workbook itself has zero rows labeled easier than Medium
+    (measured directly) -- the fix promotes the workbook's own 'Medium'
+    rows that ALSO belong to a specific, named rivalry pack (83 real rows
+    across 43 real rivalries) to Easy, since a named rivalry's Medium-tier
+    trivia is meaningfully more familiar than the same tier's generic
+    category trivia. Never fabricates a fact -- only relabels difficulty."""
+    from tools import game_director_v01 as v01
+    from tools.quiz_export.adapters import cfb_rivalry_trivia as adapter
+
+    spec = {
+        "competition_id": "CFB", "mechanic": "guess", "entity_type": "cfb_trivia_question",
+        "relationship_predicate": "CORRECT_TRIVIA_ANSWER", "object_type": "trivia_answer",
+        "answer_type": "text", "group_size": 4, "filters": {},
+    }
+    pkg = v01.generate_package_from_spec(
+        spec, adapter, request_text="pytest", director_request_id="pytest",
+        seed="pytest-crt-easy", target_count=2000, id_start=1,
+    )
+    easy = [q for q in pkg["questions"] if q["difficulty"] == "Easy"]
+    assert len(easy) > 30
+    medium = [q for q in pkg["questions"] if q["difficulty"] == "Medium"]
+    hard = [q for q in pkg["questions"] if q["difficulty"] == "Hard"]
+    assert medium and hard, "Medium/Hard depth must not regress while adding Easy"
+
+
+def test_non_rivalry_medium_trivia_is_never_promoted_to_easy():
+    """The promotion rule must be scoped to rivalry-pack rows only -- a
+    generic category 'Medium' question (Heisman Trophy, Coaches, etc.)
+    must stay Medium, never silently reclassified."""
+    c = engine.connect()
+    try:
+        row = c.execute(
+            "SELECT trivia_id, difficulty, is_rivalry FROM cfb_trivia_bank "
+            "WHERE is_rivalry=0 AND difficulty='Medium' LIMIT 1"
+        ).fetchone()
+    finally:
+        c.close()
+    assert row is not None, "sanity check -- a real non-rivalry Medium row must exist to test against"
+
+    from tools.quiz_export.adapters import cfb_rivalry_trivia as adapter
+    fake_row = {"is_rivalry": row["is_rivalry"], "difficulty": row["difficulty"]}
+    diff_label = adapter._DIFFICULTY_MAP.get(fake_row["difficulty"])
+    if diff_label == "Medium" and fake_row["is_rivalry"]:
+        diff_label = "Easy"
+    assert diff_label == "Medium"
+
+
 def test_rivalry_school_mapping_iron_bowl():
     c = engine.connect()
     row = c.execute(

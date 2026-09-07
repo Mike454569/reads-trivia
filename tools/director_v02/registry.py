@@ -1552,12 +1552,15 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
             "One rivalry pack (#13, Southwest Classic) has a genuinely ambiguous second school in the "
             "source workbook itself ('Texas/Texas A&M') -- left with school_b_id unresolved rather than "
             "guessed; the pack's 20 questions still import and generate normally.",
-            "Difficulty bands only distinguish medium (workbook 'Medium') from hard (workbook 'Hard'/'Very "
-            "Hard') -- no 'easy' rows exist in the source workbook.",
+            "Absolute Final Closeout fix: no 'Easy'-labeled rows exist in the source workbook itself "
+            "(0 of 1,272), but the workbook's own 'Medium' rows that ALSO belong to a specific, named "
+            "rivalry pack (83 real rows across 43 real rivalries) are promoted to Easy -- a named "
+            "rivalry's Medium-tier trivia is meaningfully more familiar/recognizable than the same tier's "
+            "generic category trivia, never a fabricated fact.",
         ],
         "competition_id": "CFB", "entity_type": "cfb_trivia_question", "object_type": "trivia_answer",
         "answer_type": "text", "group_size": 4, "min_question_count": 1, "max_question_count": 100,
-        "supported_difficulties": frozenset({"any", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset({"rivalry_pack_number", "rivalry_only"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 930000,
     },
