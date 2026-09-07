@@ -318,9 +318,16 @@ def test_pickem_health_reports_both_leagues(client, auth_headers):
         # A real schedule exists for both leagues in this real DB -- a real
         # current week and real game counts should resolve, not None.
         assert entry["current_week"] is not None
-        assert entry["upcoming_count"] is not None
+        # Priority-Zero Pick'em closeout: open/locked (replacing the old
+        # single "upcoming_count", which conflated a game still open for
+        # picks with one already past kickoff but not yet final).
+        assert entry["open_count"] is not None
+        assert entry["locked_count"] is not None
         assert entry["final_count"] is not None
-        assert entry["upcoming_count"] + entry["final_count"] + entry["voided_count"] == entry["total_games_this_week"]
+        assert (entry["open_count"] + entry["locked_count"] + entry["final_count"] + entry["voided_count"]
+                == entry["slate_game_count"])
+        assert entry["status"] in ("HEALTHY", "STALE", "EMPTY_SLATE", "REFRESH_FAILED",
+                                    "SLATE_OUT_OF_SYNC", "WEEK_RESOLUTION_ERROR")
         assert "last_status" in entry["refresh"]
 
 
@@ -333,5 +340,6 @@ def test_pickem_health_function_direct():
     for league_entry in result.values():
         if league_entry["current_week"] is None:
             continue
-        total = league_entry["upcoming_count"] + league_entry["final_count"] + league_entry["voided_count"]
-        assert total == league_entry["total_games_this_week"]
+        total = (league_entry["open_count"] + league_entry["locked_count"]
+                  + league_entry["final_count"] + league_entry["voided_count"])
+        assert total == league_entry["slate_game_count"]

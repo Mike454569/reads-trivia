@@ -332,6 +332,31 @@ def test_refresh_route_schedules_background_task(client, auth_headers, monkeypat
     assert calls == ["ran"]
 
 
+def test_refresh_trigger_logs_the_real_caller_source(client, auth_headers, monkeypatch, tmp_path):
+    """Priority-Zero Pick'em closeout (P0.12): the admin bearer token alone
+    can't distinguish Netlify's real scheduled invocation from a manual
+    curl after the fact -- this proves the distinguishing header actually
+    gets logged, for both a real scheduled call and a manual one."""
+    from gateway import config
+
+    monkeypatch.setattr(admin_refresh, "run_fn_for", lambda dataset_key: (lambda: {"status": "SUCCESS"}))
+    log_path = tmp_path / "op_log.jsonl"
+    monkeypatch.setattr(config, "OPERATIONAL_LOG_PATH", log_path)
+
+    r1 = client.post("/v1/admin/refresh/cfb", headers={**auth_headers, "X-Reads-Trigger-Source": "netlify-scheduled-function"})
+    assert r1.status_code == 200
+    r2 = client.post("/v1/admin/refresh/cfb", headers=auth_headers)  # a manual call, no header
+    assert r2.status_code == 200
+
+    lines = [line for line in log_path.read_text().splitlines() if "admin_refresh_triggered" in line]
+    assert len(lines) == 2
+    import json as _json
+    entries = [_json.loads(line) for line in lines]
+    assert entries[0]["trigger_source"] == "netlify-scheduled-function"
+    assert entries[1]["trigger_source"] == "manual-or-unidentified"
+    assert all(e["dataset_key"] == "cfb" for e in entries)
+
+
 # --- backup retention (real production incident: unbounded backups filled --
 # the entire 5GB Fly volume solid, taking the Gateway down with
 # "OSError: No space left on device") ------------------------------------

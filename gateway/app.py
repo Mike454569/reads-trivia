@@ -611,6 +611,21 @@ def admin_refresh_trigger(dataset_key: str, request: Request, background_tasks: 
     if dataset_key not in _REFRESH_DATASET_KEYS:
         raise GatewayError("INVALID_REQUEST", f"dataset_key must be one of {sorted(_REFRESH_DATASET_KEYS)}.")
     check = _refresh_import_guard(admin_refresh.check_can_start, dataset_key)
+    # Priority-Zero Pick'em closeout (P0.12): the admin bearer token is
+    # shared by every real caller (Netlify's scheduled functions and a
+    # human's manual curl alike), so it alone can never answer "did the
+    # real scheduled trigger actually fire" after the fact. Netlify's own
+    # trigger functions (netlify/functions/lib/refresh_shared.js) now send
+    # a real, distinguishing X-Reads-Trigger-Source header; a manual call
+    # simply omits it. Logged unconditionally (both branches below) so a
+    # future audit can answer "when did each real source last reach this
+    # route" directly from the operational log, without needing Netlify's
+    # own (unavailable to this project) invocation history.
+    trigger_source = request.headers.get("x-reads-trigger-source") or "manual-or-unidentified"
+    oplog.record_event(
+        "admin_refresh_triggered", dataset_key=dataset_key, trigger_source=trigger_source,
+        pre_check_status=check["status"],
+    )
     if check["status"] == "ALREADY_RUNNING":
         return check
     background_tasks.add_task(_refresh_import_guard(admin_refresh.run_fn_for, dataset_key))

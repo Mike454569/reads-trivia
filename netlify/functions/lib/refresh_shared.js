@@ -24,9 +24,13 @@ async function triggerRefresh(datasetKey) {
     return { statusCode: 200, body: 'Refresh trigger not configured, skipped.' };
   }
   try {
+    // Priority-Zero Pick'em closeout (P0.12): the admin bearer token alone
+    // can't distinguish a real scheduled invocation from a manual curl
+    // after the fact -- this header lets the Gateway's operational log
+    // record which real source triggered each real refresh, going forward.
     const res = await fetch(`${baseUrl}/v1/admin/refresh/${datasetKey}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'X-Reads-Trigger-Source': 'netlify-scheduled-function' },
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {

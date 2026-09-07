@@ -282,6 +282,25 @@ def test_all_nfl_games_request_still_resolves_nfl_no_slate():
 
 # --- pick persistence across CFB slate variants ------------------------------
 
+def _first_still_open_game(games: list[dict]) -> dict | None:
+    """Priority-Zero Pick'em closeout, real fix (not a weakening) for a real
+    flaky-test class: this suite deliberately tests against the REAL, live
+    current-week slate (see module docstring) rather than a frozen fixture,
+    so as real time passes during a real game week, `games[0]` can genuinely
+    have already kicked off -- correctly rejected by the real kickoff-lock,
+    which must never be loosened. The fix is choosing a game the live
+    kickoff-lock itself confirms is still open, not assuming any fixed
+    position in the list is safe."""
+    from tools.director_v04 import weekly_pickem
+
+    game_ids = [g["game_id"] for g in games]
+    statuses = weekly_pickem.live_game_statuses("CFB_WEEKLY_PICKEM", game_ids)
+    for g in games:
+        if (statuses.get(g["game_id"]) or {}).get("status") == "SCHEDULED":
+            return g
+    return None
+
+
 def test_pick_made_in_featured_slate_appears_in_full_and_conference_slates(client):
     """The core cross-slate identity guarantee: client_id+league+season+
     week+game_id is the only real pick key -- a pick made while looking at
@@ -290,7 +309,9 @@ def test_pick_made_in_featured_slate_appears_in_full_and_conference_slates(clien
     featured = client.get("/v1/public/pickem/CFB", params={"slate": "FEATURED"}).json()
     view = featured["view"]
     assert view["game_count"] >= 1
-    game = view["games"][0]
+    game = _first_still_open_game(view["games"])
+    if game is None:
+        pytest.skip("every real game in this real fixture week's Featured slate has already kicked off")
     season, week = featured["season"], featured["week"]
     client_id = _TEST_CLIENT_PREFIX + "cross-slate"
 
@@ -323,9 +344,11 @@ def test_pick_made_while_viewing_featured_is_valid_even_if_game_not_in_featured(
     full = client.get("/v1/public/pickem/CFB", params={"slate": "FULL"}).json()
     featured = client.get("/v1/public/pickem/CFB", params={"slate": "FEATURED"}).json()
     featured_ids = {g["game_id"] for g in featured["view"]["games"]}
-    non_featured_game = next((g for g in full["view"]["games"] if g["game_id"] not in featured_ids), None)
+    non_featured_game = _first_still_open_game(
+        [g for g in full["view"]["games"] if g["game_id"] not in featured_ids])
     if non_featured_game is None:
-        pytest.skip("real fixture week's Featured slate happens to equal Full this run -- nothing to test")
+        pytest.skip("real fixture week's Featured slate happens to equal Full this run, or every real "
+                     "non-Featured game has already kicked off -- nothing to test")
     season, week = full["season"], full["week"]
     client_id = _TEST_CLIENT_PREFIX + "non-featured"
     sub = client.post(f"/v1/public/pickem/cfb/{season}/{week}/pick", json={
