@@ -170,6 +170,71 @@ def test_era_gauntlet_seven_stages_are_not_all_super_bowl_boards():
     assert non_sb_seen > 0, "expected at least one non-Super-Bowl stage across 3 real 7-stage runs"
 
 
+# --- Absolute Final Closeout: hard SB-stage cap (real data-shape fix) ------
+
+def test_era_gauntlet_never_exceeds_the_hard_sb_stage_cap():
+    """The real regression this fix closes: 1960s-1990s are each 100% real
+    SB_CHAMPION-only (zero non-champion alternative exists in this Engine
+    for those decades), so the OLD one-stage-per-decade algorithm forced
+    4 of 7 stages to be Super Bowl content on every single run regardless
+    of randomness -- measured directly at 71.4% SB share in one real
+    playthrough. The fix caps chosen SB-only decades at 2, filling the
+    rest from the real, deep 2000s/2010s/2020s non-champion pools. Swept
+    across 500 real seeds -- the count-based cap must never break."""
+    from tools import game_director_v01 as v01
+    from tools.quiz_export.adapters import cfb_three_clues_one_champion as adapter
+
+    factory_spec = {
+        "competition_id": "NFL", "mechanic": "guess", "entity_type": "nfl_sb_champion_offense_board_college",
+        "relationship_predicate": "TEAM_SEASON_FROM_THREE_CLUES", "object_type": "team_season",
+        "answer_type": "team_season", "group_size": 4, "filters": {"era_gauntlet": True},
+    }
+    violations = []
+    zero_stage_runs = 0
+    for i in range(500):
+        pkg = v01.generate_package_from_spec(
+            factory_spec, adapter, request_text="pytest", director_request_id="pytest",
+            seed=f"pytest-sb-cap-sweep-{i}", target_count=10, id_start=1,
+        )
+        n = len(pkg["questions"])
+        if n == 0:
+            zero_stage_runs += 1
+            continue
+        sb_count = sum(1 for q in pkg["questions"] if "won the Super Bowl" in q["notes"])
+        if sb_count > 2:
+            violations.append((i, sb_count, n))
+    assert zero_stage_runs == 0, "every real seed must produce a real, non-empty gauntlet"
+    assert violations == [], f"runs exceeding the hard 2-SB-stage cap: {violations}"
+
+
+def test_era_gauntlet_sb_only_decades_are_spread_not_always_the_same_two():
+    """The stratified-sample fix: which 2 of the 4 real SB-only decades
+    (1960s/1970s/1980s/1990s) get chosen must genuinely vary across seeds,
+    not silently collapse to the same pair every time."""
+    from tools import game_director_v01 as v01
+    from tools.quiz_export.adapters import cfb_three_clues_one_champion as adapter
+
+    factory_spec = {
+        "competition_id": "NFL", "mechanic": "guess", "entity_type": "nfl_sb_champion_offense_board_college",
+        "relationship_predicate": "TEAM_SEASON_FROM_THREE_CLUES", "object_type": "team_season",
+        "answer_type": "team_season", "group_size": 4, "filters": {"era_gauntlet": True},
+    }
+    seen_decade_pairs = set()
+    for i in range(60):
+        pkg = v01.generate_package_from_spec(
+            factory_spec, adapter, request_text="pytest", director_request_id="pytest",
+            seed=f"pytest-sb-spread-{i}", target_count=10, id_start=1,
+        )
+        sb_seasons = tuple(sorted(
+            int(q["notes"].split()[1]) for q in pkg["questions"] if "won the Super Bowl" in q["notes"]
+        ))
+        decades = tuple(sorted({(s // 10) * 10 for s in sb_seasons}))
+        seen_decade_pairs.add(decades)
+    assert len(seen_decade_pairs) >= 3, (
+        f"expected the chosen SB-only decade pair to vary meaningfully across seeds, only saw {seen_decade_pairs}"
+    )
+
+
 # --- DRAFT_CLASS/HONOR_GROUP correctly excluded (no coherent team+season) --
 
 def test_draft_class_and_honor_group_never_appear_as_answers():
