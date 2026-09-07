@@ -459,6 +459,14 @@ function loadNextEnginePilotQuestion() {
   s.error = null;
   renderAll();
   var url = '/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode);
+  // Cross-Mode Repetition pass: getClientId() (app.js, already the exact
+  // helper Pick'em's pickem-ui.js reuses) lets the Gateway recognize the
+  // same real board/entity across DIFFERENT engine-pilot modes played back
+  // to back in this browser -- see public_game.py's own module comment.
+  // Sent on every mode, not just the ones that share the 595-board pool:
+  // harmless for a mode with no entity_key (recent_entities check is a
+  // no-op for it), and keeps this one call site mode-agnostic.
+  url += '&client_id=' + encodeURIComponent(getClientId());
   if (cfg.sequential) {
     // Real progression (Franchise Marathon / Era Gauntlet): stage_index
     // addresses a specific real position in an intentionally-ordered

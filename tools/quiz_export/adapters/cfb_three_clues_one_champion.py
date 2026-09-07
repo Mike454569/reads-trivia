@@ -304,7 +304,10 @@ def evaluate(c, board, rng, guard):
     question = f"Exactly 3 real clues, 1 team: {clue_list}. {ask}"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"cfb_three_clues_one_champion:{board['board_id']}"
+    # Cross-Mode Repetition pass: shared "board:" prefix -- see
+    # cfb_odd_college_out.py's identical comment for why this must match
+    # the other 4 board-pool sibling adapters' own entity_key exactly.
+    entity_key = f"board:{board['board_id']}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_BOARD"
 

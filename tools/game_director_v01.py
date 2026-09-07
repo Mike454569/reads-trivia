@@ -341,6 +341,14 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
             # only. See tools/director_v02/visual_templates.py.
             "visual_template": q.get("visual_template", "DEFAULT_MULTIPLE_CHOICE"),
             "visual_payload": q.get("visual_payload"),
+            # Cross-Mode Repetition pass: additive, backward-compatible --
+            # None for every capability that never sets one (most of them).
+            # Internal only, same boundary as source_ids/provenance below
+            # (public_game.py's _public_view() never allow-lists this) --
+            # several entity_key values (e.g. "board:NFL_TEAM_SEASON:2015:NE")
+            # directly encode the correct answer for a team/season-guessing
+            # mode, so it must never reach a public response.
+            "entity_key": a.get("entity_key"),
             "source_ids": {
                 "player_key": a.get("player_key"),
                 "draft_team_code": a.get("draft_team_code"),

@@ -581,6 +581,7 @@ def _deep_cut_candidate(c, franchise_name: str, rng) -> dict | None:
         "subtype": "DEEP_CUT", "season": board["season"], "team_code": board["team_code"],
         "correct_text": str(board["season"]), "distractors": distractor_seasons, "player_key": None,
         "positions": board["positions"], "team_display_name": board["team_display_name"],
+        "board_id": board["board_id"],
     }
 
 
@@ -594,7 +595,13 @@ def _deep_cut_eval(row, rng, guard):
     )
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"franchise_marathon:DEEP_CUT:{row['team_display_name']}:{row['season']}"
+    # Cross-Mode Repetition pass: DEEP_CUT draws from the exact same
+    # curated SB_CHAMPION boards as CFB_ODD_COLLEGE_OUT/SPOT_THE_FAKE_
+    # LINEUP/ONE_SCHOOL_MISSING/THREE_CLUES_ONE_CHAMPION -- shared "board:"
+    # prefix (board_id, not team_display_name+season) lets the public API's
+    # exclude_entities param recognize the same real board across all 5
+    # modes, not just within this adapter's own 8-stage export.
+    entity_key = f"board:{row['board_id']}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_ENTITY"
     options = [correct_text] + row["distractors"]

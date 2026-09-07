@@ -102,7 +102,14 @@ def evaluate(c, board, rng, guard):
     question = f"Three of these four colleges were part of the {group_phrase}. Which one was NOT?"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"cfb_odd_college_out:{board['board_id']}"
+    # Cross-Mode Repetition pass: "board:" (not this adapter's own name) --
+    # board_id is already globally unique across all 5 _group_board_common
+    # pool kinds (see that module's own board_id formats), so this same
+    # key is shared with Spot the Fake Lineup / One School Missing / Three
+    # Clues / Franchise Marathon's DEEP_CUT stage, letting the public API's
+    # exclude_entities param recognize "this exact real board" across ALL
+    # of those modes, not just within this one adapter's own export batch.
+    entity_key = f"board:{board['board_id']}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_BOARD"
 

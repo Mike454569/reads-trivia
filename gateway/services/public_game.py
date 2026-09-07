@@ -73,6 +73,7 @@ yet.
 """
 from __future__ import annotations
 
+import collections
 import secrets
 import time
 from typing import Any, Dict, List, Optional
@@ -80,6 +81,43 @@ from typing import Any, Dict, List, Optional
 from .. import config
 from ..errors import GatewayError
 from . import generation, oplog, packages
+
+# --- Cross-Mode Repetition pass -----------------------------------------------
+# The lightest mechanism that fits this file's existing, deliberately
+# stateless architecture (see the module docstring's "packages.py's
+# package_id IS ENOUGH FOR A GAME SESSION" reasoning): a small, bounded,
+# in-memory recency window per client_id, tracking real board/entity ids
+# (see e.g. cfb_odd_college_out.py's "board:{board_id}" entity_key) across
+# EVERY mode that shares the underlying 595-board _group_board_common pool
+# (Odd College Out, Spot the Fake Lineup, One School Missing, Three Clues /
+# Era Gauntlet, Franchise Marathon's DEEP_CUT stage) -- the concrete real
+# overlap the Absolute Final Closeout audit found (see registry.py's own
+# comments on that shared pool). NOT returned to the client (entity_key
+# values like "board:NFL_TEAM_SEASON:2015:NE" or "board:GOLD_SB_1999" would
+# directly leak the correct answer for team/season-guessing modes -- see
+# this module's own "ANSWER LEAKAGE BOUNDARY" section above) -- tracked
+# server-side only, keyed by the same client_id already established by
+# Pick'em's getClientId() convention (app.js). Bounded two ways so this can
+# never become a permanent ban list: each client's own window is a
+# fixed-size deque (oldest entity simply falls off), and the total number
+# of tracked clients is capped (oldest CLIENT evicted once the cap is hit).
+# Resets on every deploy (in-memory, not persisted) -- a real, disclosed
+# limitation, not fabricated durability.
+_RECENT_ENTITY_WINDOW = 30
+_MAX_TRACKED_CLIENTS = 20000
+_recent_entities_by_client: "collections.OrderedDict[str, collections.deque]" = collections.OrderedDict()
+
+
+def _recent_entities_for(client_id: str) -> collections.deque:
+    dq = _recent_entities_by_client.get(client_id)
+    if dq is not None:
+        _recent_entities_by_client.move_to_end(client_id)
+        return dq
+    dq = collections.deque(maxlen=_RECENT_ENTITY_WINDOW)
+    _recent_entities_by_client[client_id] = dq
+    if len(_recent_entities_by_client) > _MAX_TRACKED_CLIENTS:
+        _recent_entities_by_client.popitem(last=False)
+    return dq
 
 # The public game contract's own version (Part 31) -- distinct from
 # `package_version` (metadata.version below), which is the internal
@@ -830,11 +868,13 @@ def _public_view(mode: str, entry: dict, stored: dict) -> dict:
 def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str],
                      exclude_game_ids: Optional[List[str]],
                      stage_index: Optional[int] = None,
-                     filter_value: Optional[str] = None) -> dict:
+                     filter_value: Optional[str] = None,
+                     client_id: Optional[str] = None) -> dict:
     t0 = time.perf_counter()
     entry = _ensure_mode_public(mode)
     _ensure_difficulty_certified(mode, entry, difficulty)
     exclude = set(exclude_game_ids or [])
+    recent_entities = _recent_entities_for(client_id) if client_id else None
     attempts_used = 0
 
     # Public Mode Wiring pass: Franchise Marathon / Era Gauntlet real fix.
@@ -939,7 +979,16 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
             result = dict(result)
             result["questions"] = [result["questions"][stage_index]]
         last_eligible = result
-        if result["package_id"] not in exclude:
+        # Cross-Mode Repetition pass: same "meaningless for a sequential
+        # mode" carve-out the exclude_game_ids docstring above already
+        # establishes -- Franchise Marathon/Era Gauntlet stages are a real,
+        # intentionally-ordered progression, so entity recency (which would
+        # try to skip to a DIFFERENT stage_index's answer) is never checked
+        # when stage_index is set.
+        entity_key = None
+        if recent_entities is not None and stage_index is None:
+            entity_key = result["questions"][0].get("entity_key")
+        if result["package_id"] not in exclude and (entity_key is None or entity_key not in recent_entities):
             stored = result
             break
     if stored is None:
@@ -956,6 +1005,17 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
         # honest outcome for a very small eligible pool, not an
         # infrastructure failure.
         stored = last_eligible
+
+    if recent_entities is not None:
+        # Recorded even for a sequential (stage_index) request -- a
+        # Franchise Marathon DEEP_CUT stage still occupies a real board
+        # from the exact same shared pool, and a LATER non-sequential mode
+        # call in this session should know to avoid repeating it, even
+        # though the sequential mode's own retry loop above never consults
+        # recent_entities to pick which stage it serves.
+        served_entity_key = stored["questions"][0].get("entity_key")
+        if served_entity_key is not None:
+            recent_entities.append(served_entity_key)
 
     saved = packages.save_package(stored)
     view = _public_view(mode, entry, saved)

@@ -1146,12 +1146,21 @@ def public_game_route(request: Request,
                        # second API surface.
                        stage: Optional[int] = Query(default=None, ge=0, le=99),
                        franchise: Optional[str] = Query(default=None, min_length=1, max_length=64),
+                       # Cross-Mode Repetition pass: optional, same
+                       # getClientId() convention Pick'em already uses --
+                       # lets public_game.py track a small server-side
+                       # recency window of real entities (see that module's
+                       # own comment) across every mode the caller plays,
+                       # never trusted for anything but this soft
+                       # repetition hint (no auth, no persistence beyond
+                       # the in-memory window).
+                       client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
                        _rl=Depends(rate_limit_public_game)):
     if difficulty is not None and difficulty not in config.ALLOWED_DIFFICULTIES:
         raise GatewayError("INVALID_REQUEST", f"difficulty must be one of {sorted(config.ALLOWED_DIFFICULTIES)}.")
     exclude_ids = [x for x in (exclude.split(",") if exclude else []) if x][:50]
     return public_game.get_public_game(mode=mode, difficulty=difficulty, seed=seed, exclude_game_ids=exclude_ids,
-                                        stage_index=stage, filter_value=franchise)
+                                        stage_index=stage, filter_value=franchise, client_id=client_id)
 
 
 @app.get("/v1/public/six_degrees/game")
