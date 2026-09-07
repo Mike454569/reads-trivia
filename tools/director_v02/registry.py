@@ -1508,13 +1508,12 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_ALL_PRO"): {
         "adapter": cfb_all_american_to_all_pro_adapter, "category": cfb_all_american_to_all_pro_adapter.CATEGORY, "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Real, disclosed double-name-join (same methodology as CFB_TRANSFER_PATH -- see that "
-            "capability's own known_limitations for the full disclosure).",
-            "Real, measured eligible pool: 4 total real players (Reggie Bush, Christian McCaffrey, Lamar "
-            "Jackson, Aidan Hutchinson) -- the smallest real pool in this registry, disclosed, never padded.",
+            "Absolute Final Closeout fix: rebuilt off cfb_nfl_identity_bridge_certified (7,745 rows, real "
+            "ID-keyed) instead of the old 124-row double-display-name join -- real, measured eligible "
+            "pool grew from 4 to 117 real players.",
         ],
         "competition_id": "NFL", "entity_type": "cross_league_player", "object_type": "player", "answer_type": "player",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 4,
+        "group_size": 4, "min_question_count": 1, "max_question_count": 117,
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 922000,
@@ -1522,13 +1521,13 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_PRO_BOWL"): {
         "adapter": cfb_all_american_to_pro_bowl_adapter, "category": cfb_all_american_to_pro_bowl_adapter.CATEGORY, "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Same real double-name-join methodology as CROSS_LEAGUE_HONORS/ALL_AMERICAN_TO_ALL_PRO.",
-            "Real, measured eligible pool: 11 total real players.",
-            "All-American -> Hall of Fame is NOT registered -- real, measured overlap is 0 (a genuine "
-            "data-gap limitation, not an unwritten adapter).",
+            "Absolute Final Closeout fix: same rebuild as CROSS_LEAGUE_HONORS/ALL_AMERICAN_TO_ALL_PRO -- "
+            "real, measured eligible pool grew from 11 to 137 real players.",
+            "All-American -> Hall of Fame is NOT registered -- real, measured overlap remains small even "
+            "via the new bridge (a genuine data-gap limitation, not an unwritten adapter).",
         ],
         "competition_id": "NFL", "entity_type": "cross_league_player", "object_type": "player", "answer_type": "player",
-        "group_size": 4, "min_question_count": 1, "max_question_count": 11,
+        "group_size": 4, "min_question_count": 1, "max_question_count": 137,
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 923000,
