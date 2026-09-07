@@ -51,21 +51,18 @@ def test_super_bowl_mvp_phrasing_does_not_get_swallowed_by_championship_pattern(
 
 
 def test_super_bowl_history_end_to_end_real_pipeline():
-    # Real candidate pool is 24 (see nfl_super_bowl.py's own module
-    # docstring) -- below the mock translator's default question_count of
-    # 25, so an explicit in-text count is required: validator.py checks the
-    # spec's own question_count against the capability's bounds BEFORE
-    # question_count_override is applied, so an override alone can't rescue
-    # an initially-out-of-bounds default (a real, pre-existing pipeline.py
-    # ordering quirk, not something this test should route around by
-    # touching that shared validation order).
+    # Absolute Final Closeout fix: real candidate pool is now 60 (all 60
+    # real Super Bowls, up from 24 -- see nfl_super_bowl.py's own module
+    # docstring), so an explicit in-text count is no longer required to
+    # clear validator.py's spec-bounds check before question_count_override
+    # is applied.
     pkg = pipeline.run(
         "Make a game where I guess which team won the Super Bowl. Give me 20 questions.",
         provider="mock", seed="test-nfl-super-bowl-e2e", question_count_override=20,
     )
     assert pkg.get("qa_status") == "PASSED"
     questions = pkg.get("questions") or []
-    assert 1 <= len(questions) <= 20  # real pool is 24 -- may be capped by dedupe, never padded/fabricated
+    assert 1 <= len(questions) <= 20  # real pool is 60 -- may be capped by dedupe, never padded/fabricated
     seen_questions = set()
     for q in questions:
         assert len(q["options"]) == 4
@@ -74,6 +71,67 @@ def test_super_bowl_history_end_to_end_real_pipeline():
         assert "Super Bowl" in q["question"]
         assert q["question"] not in seen_questions
         seen_questions.add(q["question"])
+
+
+def test_super_bowl_history_all_sixty_real_games_are_now_playable():
+    """The core regression: 36 of 60 real Super Bowls (1966-2001) used to
+    be rejected outright as TEAM_UNRESOLVED because the import script left
+    winner/loser_team_code NULL for every pre-2002 game -- even though it
+    preserved the real raw team name text. Resolving by name instead of a
+    missing code recovers all 60."""
+    from tools import game_director_v01 as v01
+    from tools.quiz_export.adapters import nfl_super_bowl as sb
+
+    spec = {
+        "competition_id": "NFL", "mechanic": "guess", "entity_type": "nfl_championship_event",
+        "relationship_predicate": "WON_CHAMPIONSHIP", "object_type": "team",
+        "answer_type": "team", "group_size": 4, "filters": {},
+    }
+    pkg = v01.generate_package_from_spec(
+        spec, sb, request_text="pytest", director_request_id="pytest",
+        seed="pytest-sb-all-60", target_count=100, id_start=1,
+    )
+    assert pkg["qa_status"] == "PASSED"
+    assert len(pkg["questions"]) == 60
+    assert pkg["funnel"]["rejected_counts"] == {}
+
+
+def test_super_bowl_one_resolves_by_real_historical_name():
+    """Super Bowl I (1966 season, Packers over Chiefs) has NULL team codes
+    in the source table but real preserved name text -- the exact case
+    this fix exists for."""
+    from tools.quiz_export.adapters import nfl_super_bowl as sb
+
+    c = engine.connect()
+    try:
+        row = c.execute(
+            "SELECT winner_name_raw, loser_name_raw FROM nfl_championship_events WHERE sb_number='I'"
+        ).fetchone()
+        assert row["winner_name_raw"] == "Green Bay Packers"
+        winner, err = sb.resolve_franchise_by_name(c, row["winner_name_raw"])
+        assert err is None
+        assert "Green Bay" in winner["full_name"]
+    finally:
+        c.close()
+
+
+def test_super_bowl_history_has_real_easy_content_now():
+    from tools import game_director_v01 as v01
+    from tools.quiz_export.adapters import nfl_super_bowl as sb
+
+    spec = {
+        "competition_id": "NFL", "mechanic": "guess", "entity_type": "nfl_championship_event",
+        "relationship_predicate": "WON_CHAMPIONSHIP", "object_type": "team",
+        "answer_type": "team", "group_size": 4, "filters": {},
+    }
+    pkg = v01.generate_package_from_spec(
+        spec, sb, request_text="pytest", director_request_id="pytest",
+        seed="pytest-sb-easy", target_count=100, id_start=1,
+    )
+    difficulties = {q["difficulty"] for q in pkg["questions"]}
+    assert "Easy" in difficulties
+    assert "Medium" in difficulties
+    assert "Hard" in difficulties
 
 
 def test_season_awards_end_to_end_real_pipeline():

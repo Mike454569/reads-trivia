@@ -636,9 +636,10 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "generate_fn": _generate_guess_package,
         "known_limitations": [
             "Covers real Super Bowl games (SB I-LX) imported from Wikipedia as a secondary structured "
-            "source, but team identity only resolves via team_aliases, which covers seasons 2002+ -- "
-            "24 of 60 real Super Bowls (2002-2025 seasons) are playable; the other 36 (1966-2001) are "
-            "excluded, never guessed at.",
+            "source. Absolute Final Closeout fix: team identity now resolves by real raw team name "
+            "(winner_name_raw/loser_name_raw, preserved by the import even when the code-based "
+            "resolution failed) whenever the code-based path can't resolve a pre-2002 team_code -- "
+            "all 60 of 60 real Super Bowls (1966-2025) are now playable, up from 24/60.",
         ],
         "competition_id": "NFL",
         "entity_type": "nfl_championship_event",
@@ -646,7 +647,7 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "answer_type": "team",
         "group_size": 4,
         "min_question_count": 1,
-        "max_question_count": 24,  # the real, total size of this resolved domain -- see the adapter's own audit
+        "max_question_count": 60,  # the real, total size of this domain -- all 60 now resolve, see the adapter's own audit
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}),
         "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(),
