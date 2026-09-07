@@ -69,7 +69,22 @@ CLUE_SOURCE_META = {
 }
 
 QA_CHECKS_PERFORMED = [
-    "target player resolved through the fixed 4,506-player safe universe (DIRECTOR_V04_IDENTITY_POLICY.md)",
+    # Absolute Final Closeout fix: this cited a stale number. 4,506 is
+    # player_identity_links' own row count (DIRECTOR_V04_IDENTITY_POLICY.md's
+    # "safe universe" -- confirmed still real and unchanged, not a
+    # regression) -- the raw pool of players resolvable through
+    # draft_facts.player_key -> canonical_players.player_id at all,
+    # BEFORE this mechanic's own further narrowing. A later pass added the
+    # MIN_REAL_SEASONS=5 filter above (build_universe()'s own "Real bug
+    # found in production validation" comment) specifically to exclude
+    # drafted-but-never-played players from making unfair/unfun targets,
+    # which correctly narrows the REAL, CURRENT eligible universe this
+    # mechanic actually draws from to 2,489 (verified directly against the
+    # live Engine, not assumed) -- that pass never updated this comment's
+    # older, now-superseded number. Both figures are real; this one was
+    # simply describing an earlier stage of the same real pipeline.
+    "target player resolved through the current 2,489-player eligible universe (a further real, disclosed "
+    "MIN_REAL_SEASONS>=5 narrowing of the 4,506-player safe universe from DIRECTOR_V04_IDENTITY_POLICY.md)",
     "every clue value independently re-derived from its index and re-checked to contain the target player_id "
     "(not merely trusted from construction)",
     "every clue's source/verification_status checked against the constant per-type provenance table",

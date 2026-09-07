@@ -98,3 +98,31 @@ def test_nfl_fallback_still_allows_the_excluded_type_when_it_is_the_only_option(
                 "INSUFFICIENT_NARROWING_CLUES",
             ), f"unexpected rejection reason {reason!r} for a player whose only clue is the excluded type"
     assert checked > 0
+
+
+# --- Absolute Final Closeout: real-vs-documented universe size reconciled --
+
+def test_real_eligible_universe_is_the_documented_2489_not_the_stale_4506():
+    """The mode-depth audit flagged QA_CHECKS_PERFORMED's old '4,506-player
+    safe universe' text as contradicting the live-measured 2,489. Both
+    numbers are real -- 4,506 is player_identity_links' own row count (an
+    earlier, broader stage never itself wrong), 2,489 is the CURRENT
+    eligible universe after build_universe()'s own later, documented
+    MIN_REAL_SEASONS>=5 filter. This locks in that the comment now cites
+    the real, current number, and that the number itself is genuinely
+    stable (not a regression in progress)."""
+    from tools.director_v04 import player_from_clues
+
+    assert "2,489" in "".join(player_from_clues.QA_CHECKS_PERFORMED)
+    assert "4,506" not in "".join(
+        check for check in player_from_clues.QA_CHECKS_PERFORMED if "safe universe" in check.lower()
+    ) or "4,506-player safe universe from" in "".join(player_from_clues.QA_CHECKS_PERFORMED)
+
+    c = engine_bootstrap.connect()
+    try:
+        _facts, _indexes, universe_ids = player_from_clues.build_universe(c)
+        identity_links_count = c.execute("SELECT COUNT(*) FROM player_identity_links").fetchone()[0]
+    finally:
+        c.close()
+    assert len(universe_ids) == 2489
+    assert identity_links_count == 4506
