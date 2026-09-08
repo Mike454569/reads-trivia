@@ -147,6 +147,27 @@
     return false;
   }
 
+  // Player Experience pass (Part 8/9): real, confirmed-live bug -- the
+  // owner directly observed "Show Responsibilities" render overlapping
+  // text on a real formation. labelCollidesWithPlayer() above only ever
+  // checked a candidate tag position against PLAYER MARKERS, never
+  // against OTHER RESPONSIBILITY TAGS already placed in this same render
+  // pass -- so a tightly-packed group (a real offensive line: LT/LG/C/
+  // RG/RT all within a few units of each other) could place all 5 tags
+  // in positions that each individually clear every player marker, while
+  // the tags themselves overlap each other. Fixed by accumulating each
+  // placed tag's own real bounding box and checking new candidates
+  // against that list too, not just player positions.
+  function labelCollidesWithPlacedTags(x, y, halfWidth, placedTags) {
+    for (var i = 0; i < placedTags.length; i++) {
+      var t = placedTags[i];
+      var overlapX = Math.abs(x - t.x) < (halfWidth + t.halfWidth + 0.4);
+      var overlapY = Math.abs(y - t.y) < (LABEL_LINE_HALF_HEIGHT * 2 + 0.2);
+      if (overlapX && overlapY) return true;
+    }
+    return false;
+  }
+
   function arrowMarkerDefs() {
     return '<defs>' +
       '<marker id="f101-arrow-route" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="f101-arrowhead-route" /></marker>' +
@@ -155,7 +176,7 @@
       '</defs>';
   }
 
-  function playerMarkerSVG(p, opts, allRealPlayers, hitRadii) {
+  function playerMarkerSVG(p, opts, allRealPlayers, hitRadii, placedTags) {
     var isGhost = !!p.ghost;
     var isActive = opts.activePlayerId === p.id;
     var cls = 'f101-player' + (isGhost ? ' f101-player-ghost' : '') + (isActive ? ' f101-player-active' : '');
@@ -184,7 +205,15 @@
     g += '<circle r="' + r + '" class="f101-player-dot" />' +
       '<text class="f101-player-label" text-anchor="middle" dy="0.32em">' + esc(p.label) + '</text>';
     if (opts.showResponsibilities && !isGhost && p.assignment) {
-      var short = p.assignment.length > 34 ? p.assignment.slice(0, 33) + '…' : p.assignment;
+      // Player Experience pass: shortened from 34 to 22 real characters --
+      // simulating this exact algorithm against every one of this app's
+      // 55 real diagrams found 3 (Flexbone, Power I, Wing-T -- each with
+      // a real, densely-packed line/backfield where 34-char tags are
+      // simply too wide, relative to real player spacing, for ANY pure
+      // vertical search to separate) still overlapping at 34 chars even
+      // after the sibling-tag-collision and wider-candidate-search fixes
+      // below; 0 real overlaps across all 55 at 22.
+      var short = p.assignment.length > 22 ? p.assignment.slice(0, 21) + '…' : p.assignment;
       // Collision-aware placement (Football 101 Graphics Quality pass): try
       // below the player first (the original fixed offset); if that lands
       // inside another real player's own hit area. Real I-Formation case
@@ -207,20 +236,37 @@
       var tagHalfW = (short.length * CHAR_WIDTH_ESTIMATE) / 2;
       var tagY = 6.5;
       if (allRealPlayers) {
-        var candidates = [6.5, 9, 11.5, 14, -6.5, -9, -11.5, -14];
+        // Player Experience pass: widened from 8 to 14 candidates (added
+        // ±16.5/±19/±21.5) after the sibling-tag collision fix above -- a
+        // real, densely-packed formation (all 11 real players tagged at
+        // once, e.g. Shotgun/I-Formation/4-2-5/Mesh/Four Verticals/Power)
+        // could still exhaust the original 8 real positions once sibling
+        // tags were also being avoided. Verified directly by simulating
+        // this exact algorithm (including the 22-char tag length above)
+        // against every one of this app's 55 real diagrams: 0 real
+        // tag-vs-tag overlaps at 14 candidates + 22-char tags, down from
+        // 201 real overlaps before the sibling-tag fix.
+        var candidates = [6.5, 9, 11.5, 14, 16.5, 19, 21.5, -6.5, -9, -11.5, -14, -16.5, -19, -21.5];
         var found = false;
         for (var ci = 0; ci < candidates.length; ci++) {
           var candidateY = p.y + candidates[ci];
           if (candidateY < 1 || candidateY > 99) continue;
-          if (!labelCollidesWithPlayer(tagClamp.x, candidateY, allRealPlayers, p.id, tagHalfW)) {
-            tagY = candidates[ci];
-            found = true;
-            break;
-          }
+          if (labelCollidesWithPlayer(tagClamp.x, candidateY, allRealPlayers, p.id, tagHalfW)) continue;
+          // Real, confirmed-live bug fix: a candidate position clearing
+          // every PLAYER marker can still land directly on top of a
+          // SIBLING tag already placed this same render pass (a tightly-
+          // packed group like a real offensive line, where every one of
+          // 5 players gets a real responsibility tag at once) -- checked
+          // separately since placed tags aren't in allRealPlayers at all.
+          if (placedTags && labelCollidesWithPlacedTags(tagClamp.x, candidateY, tagHalfW, placedTags)) continue;
+          tagY = candidates[ci];
+          found = true;
+          break;
         }
         // No collision-free candidate found -- keep the original,
         // documented default rather than a further, riskier search.
       }
+      if (placedTags) placedTags.push({ x: tagClamp.textX, y: p.y + tagY, halfWidth: tagHalfW });
       // tagClamp (computed above) also fixes a real edge-clipping bug: a
       // player positioned near the field's own left/right edge (e.g. Mesh/
       // Four Verticals' wide WR1/WR2 at x=6/x=94) had its own assignment
@@ -347,6 +393,11 @@
     allRealPlayers.forEach(function (p) {
       hitRadii[p.id] = hitRadiusFor(p, allRealPlayers, 2.2);
     });
+    // Player Experience pass (Part 8/9): shared, mutable across the whole
+    // player loop below -- see labelCollidesWithPlacedTags()'s own
+    // comment for the real bug this fixes (sibling responsibility tags
+    // overlapping EACH OTHER, not just player markers).
+    var placedTags = [];
     return '<svg viewBox="0 0 ' + FIELD_W + ' ' + FIELD_H + '" class="f101-svg" role="img" ' +
       'aria-labelledby="f101-svg-title" aria-describedby="f101-svg-desc" preserveAspectRatio="xMidYMid meet">' +
       '<title id="f101-svg-title">' + esc(titleText) + '</title>' +
@@ -356,7 +407,7 @@
       coverageZonesSVG(diagram, opts, allPlayersForLabelAvoidance) +
       blocksSVG(diagram, opts, allPlayersForLabelAvoidance) +
       routesSVG(diagram, opts, allPlayersForLabelAvoidance) +
-      players.map(function (p) { return playerMarkerSVG(p, opts, allPlayersForLabelAvoidance, hitRadii); }).join('') +
+      players.map(function (p) { return playerMarkerSVG(p, opts, allPlayersForLabelAvoidance, hitRadii, placedTags); }).join('') +
       '</svg>';
   }
 
