@@ -606,20 +606,26 @@ function advanceEnginePilot() {
    validation). See tools/director_v02/visual_templates.py and
    tools/quiz_export/adapters/lineup.py for why OL is one grouped row of 5,
    not 5 individually-labeled slots. */
-// Era Gauntlet's real timeline -- the exact same 7 real, fixed decade
-// boundaries the adapter itself uses (sb_champion_offense_college.py's
-// _ERAS: 1960s-2020s), not an invented visual. Section 7's own progress-
-// should-match-the-mechanic instruction, and Section 10's timeline symbol.
-var ERA_GAUNTLET_ERA_LABELS = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
-function renderEraGauntletTimelineHtml(stageIndex) {
-  var markers = ERA_GAUNTLET_ERA_LABELS.map(function (label, i) {
+// Era Gauntlet's real timeline. The backend's quota-based SB-cap redesign
+// (capping 100%-Super-Bowl-only decades like the 1960s-1990s at 2 stages
+// per run) means the real stage-to-decade mapping varies run to run -- it
+// is NOT always "stage 0 = 1960s, stage 1 = 1970s, ...". The adapter now
+// returns the real, per-run decade sequence in every stage's
+// visual_payload.era_sequence_labels (tools/quiz_export/adapters/
+// cfb_three_clues_one_champion.py's _era_gauntlet_candidates()) -- this
+// fallback array is only a last resort for an old cached game object that
+// predates that field.
+var ERA_GAUNTLET_ERA_LABELS_FALLBACK = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
+function renderEraGauntletTimelineHtml(stageIndex, sequenceLabels) {
+  var labels = (sequenceLabels && sequenceLabels.length) ? sequenceLabels : ERA_GAUNTLET_ERA_LABELS_FALLBACK;
+  var markers = labels.map(function (label, i) {
     var cls = 'era-gauntlet-marker';
     if (i < stageIndex) cls += ' done';
     else if (i === stageIndex) cls += ' current';
     return '<div class="' + cls + '"><span class="era-gauntlet-dot"></span><span class="era-gauntlet-label">' + label + '</span></div>';
   }).join('<div class="era-gauntlet-connector"></div>');
-  return '<div class="era-gauntlet-timeline" role="img" aria-label="Era ' + (stageIndex + 1) + ' of 7: ' +
-    esc(ERA_GAUNTLET_ERA_LABELS[stageIndex] || '') + '">' + markers + '</div>';
+  return '<div class="era-gauntlet-timeline" role="img" aria-label="Era ' + (stageIndex + 1) + ' of ' + labels.length + ': ' +
+    esc(labels[stageIndex] || '') + '">' + markers + '</div>';
 }
 function renderPositionLineupBoard(payload) {
   // UI/product polish pass: this used to be two visually-identical rows of
@@ -898,7 +904,8 @@ function renderEnginePilotScreen() {
   var progressHtml;
   var franchiseLabel = null;
   if (cfg.sequential && s.modeKey === 'eraGauntlet') {
-    progressHtml = renderEraGauntletTimelineHtml(s.stageIndex);
+    var eraSequenceLabels = game.payload && game.payload.visual_payload && game.payload.visual_payload.era_sequence_labels;
+    progressHtml = renderEraGauntletTimelineHtml(s.stageIndex, eraSequenceLabels);
   } else if (cfg.sequential && s.modeKey === 'franchiseMarathon') {
     franchiseLabel = (cfg.franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
     progressHtml = quizProgressRowHtml('Stage ' + (s.stageIndex + 1), null, null);

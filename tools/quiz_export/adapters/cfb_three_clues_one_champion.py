@@ -238,6 +238,16 @@ def _era_gauntlet_candidates(c, seed: str, boards: list[dict]) -> list[dict]:
     # "oldest era first") -- sorted by each board's own real season, not
     # by which quota bucket it came from.
     chosen.sort(key=lambda b: b["season"])
+    # Player Experience pass, real fix: attach the REAL, full decade
+    # sequence for this exact run to every board in it, so evaluate() can
+    # expose an accurate stage-by-stage progress bar (see its own
+    # visual_payload comment) instead of the frontend's old hardcoded
+    # "stage index N = decade N" assumption, which this quota-based
+    # selection (max 2 of 4 real SB-only decades, variable redistribution)
+    # broke.
+    era_sequence_labels = [f"{(b['season'] // 10) * 10}s" for b in chosen]
+    for b in chosen:
+        b["_era_sequence_labels"] = era_sequence_labels
     return chosen
 
 
@@ -277,14 +287,32 @@ def evaluate(c, board, rng, guard):
     all_boards = _all_boards_cache if _all_boards_cache is not None else group_common.fetch_all_boards(c, pool_kinds=_TEAM_SEASON_POOL_KINDS)
     correct_text = _display(board)
     others = [b for b in all_boards if b["board_id"] != board["board_id"]]
-    # Era anti-leak rule (Pass 2.7): prefer distractors from roughly the
-    # same period as the real answer, not an unscoped mix across 60 years
-    # of real team-seasons -- widen the window only if it doesn't have
-    # enough real, distinct options (never silently narrower than needed).
+    # Player Experience pass, real fix: the owner directly observed a real
+    # "1960s" era-gauntlet stage offering distractors from 1969/1974/1983/
+    # 1985 -- spanning three different real decades for what's presented
+    # as a single-decade question. The OLD "near in years" window (+/- 12
+    # years) is not the same thing as "same decade" (1969 and 1971 are
+    # "near" but different decades) and, worse, falls back to a fully
+    # UNSCOPED pool whenever the tight window came up short -- exactly
+    # what happened here. Every real represented decade has at least 4
+    # real boards (measured directly: 1960s=4, 1970s/1980s/1990s=10 each,
+    # 2000s+=100+), so "1 real correct answer + 3 real same-decade
+    # distractors" is always achievable without ever touching a different
+    # decade -- scoped strictly to the correct answer's own real decade,
+    # with the old wider window/fully-unscoped pool kept only as a
+    # last-resort fallback for a scenario this real data never actually
+    # hits (a caller-supplied filter narrowing the real board pool so much
+    # that even the correct answer's own decade has < 4 real boards left).
     season = board["season"]
-    near = {b["board_id"]: _display(b) for b in others
-            if abs(b["season"] - season) <= _DISTRACTOR_ERA_WINDOW_YEARS and _display(b) != correct_text}
-    pool = near if len(near) >= 3 else {b["board_id"]: _display(b) for b in others if _display(b) != correct_text}
+    decade_start = (season // 10) * 10
+    same_decade = {b["board_id"]: _display(b) for b in others
+                   if decade_start <= b["season"] <= decade_start + 9 and _display(b) != correct_text}
+    if len(same_decade) >= 3:
+        pool = same_decade
+    else:
+        near = {b["board_id"]: _display(b) for b in others
+                if abs(b["season"] - season) <= _DISTRACTOR_ERA_WINDOW_YEARS and _display(b) != correct_text}
+        pool = near if len(near) >= 3 else {b["board_id"]: _display(b) for b in others if _display(b) != correct_text}
     if len(pool) < 3:
         return "INSUFFICIENT_DISTRACTORS"
     distractor_ids = rng.sample(sorted(pool.keys()), 3)
@@ -321,9 +349,28 @@ def evaluate(c, board, rng, guard):
         f"These 3 real clues ({', '.join(clue_families)}) all describe the {correct_text}."
     )
 
+    # Player Experience pass, real fix: Era Gauntlet's own progress bar
+    # used to hardcode a fixed "1960s, 1970s, 1980s, ... 2020s" label
+    # sequence assuming stage index N always represents decade N -- true
+    # under the OLD "exactly one board per represented decade" algorithm,
+    # broken by the newer quota-based redesign (caps real SB-only decades
+    # at 2 of 4, redistributing the rest across non-SB eras, which can
+    # skip a decade or repeat one). era_decade_label is this board's own
+    # REAL decade (never the stage's position); era_sequence_labels (only
+    # present on an Era Gauntlet board -- see _era_gauntlet_candidates())
+    # is the REAL, full 7-stage decade sequence for this exact run,
+    # computed once and attached to every board in it, so the frontend can
+    # render an accurate progress bar from the very first stage fetch
+    # instead of a hardcoded guess. Neither leaks the correct answer: a
+    # decade spans up to 10 real seasons and many possible teams.
+    visual_payload = {"era_decade_label": f"{decade_start}s"}
+    if "_era_sequence_labels" in board:
+        visual_payload["era_sequence_labels"] = board["_era_sequence_labels"]
+
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,
         "options": shuffled_options, "correctIndex": correct_index, "notes": notes,
+        "visual_payload": visual_payload,
         "_audit": {
             "board_id": board["board_id"], "correct_answer_text": correct_text,
             "season": board["season"], "difficulty_band": diff_label, "clue_families": clue_families,

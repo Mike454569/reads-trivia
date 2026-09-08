@@ -126,19 +126,105 @@ def test_public_route_hard_difficulty_completes_well_within_timeout(client):
 # --- era anti-leak rule -------------------------------------------------
 
 def test_era_gauntlet_distractors_are_era_plausible():
-    """Section 12's anti-leak rule: distractors must be plausible teams
-    from roughly the same period, not an unscoped mix across 60 years."""
+    """Real user-reported bug (screenshot): a '1960s'-labeled stage showed a
+    real 1974 Pittsburgh Steelers question with distractor options from
+    1969/1983/1985 -- spanning 3 different decades. Root cause was a
+    'near in years' (_DISTRACTOR_ERA_WINDOW_YEARS=12) distractor window
+    that fell back to a fully-unscoped 502-board pool whenever fewer than
+    3 same-window candidates existed. Fixed with a strict same-decade-
+    first pool (every real decade 1960s-2020s has >=4 real boards, so the
+    strict pool is always achievable -- verified directly against the live
+    Engine DB before writing this fix). This test enforces the ACTUAL
+    user complaint: every option (correct + all distractors) must share
+    the same real decade, not just be 'within 30 years' of each other."""
     pkg = _generate("pytest-era-leak-seed", target_count=10, filters={"era_gauntlet": True})
     assert pkg["qa_status"] == "PASSED"
     for q in pkg["questions"]:
-        seasons = []
+        decades = set()
         for opt in q["options"]:
-            year_str = opt.split(" ", 1)[0]
-            seasons.append(int(year_str))
-        # The correct answer's season and every distractor's season should
-        # fall within a real, plausible window of each other -- not one
-        # option from the 1960s next to another from the 2020s.
-        assert max(seasons) - min(seasons) <= 30, f"options span too wide an era: {q['options']}"
+            year = int(opt.split(" ", 1)[0])
+            decades.add((year // 10) * 10)
+        assert len(decades) == 1, f"options span multiple decades {decades}: {q['options']}"
+
+
+def test_era_gauntlet_distractors_never_fall_back_to_the_unscoped_pool():
+    """Swept regression: across many real seeds, the strict same-decade
+    pool must always have >=3 candidates (real per-decade board counts
+    measured directly: 1960s=4, 1970s=10, 1980s=10, 1990s=10, 2000s=137,
+    2010s=293, 2020s=38 -- every decade clears the bar), so the old
+    unscoped-fallback path should never actually trigger in practice."""
+    for i in range(40):
+        pkg = _generate(f"pytest-era-no-fallback-{i}", target_count=10, filters={"era_gauntlet": True})
+        assert pkg["qa_status"] == "PASSED"
+        for q in pkg["questions"]:
+            decades = {(int(opt.split(" ", 1)[0]) // 10) * 10 for opt in q["options"]}
+            assert len(decades) == 1, f"seed {i}: options span multiple decades {decades}: {q['options']}"
+
+
+def test_era_gauntlet_visual_payload_reports_the_real_decade_label():
+    """The frontend used to hardcode a fixed ['1960s', ..., '2020s'] array
+    indexed by stage number, which silently broke once the SB-cap redesign
+    let a run skip a decade or repeat one. The adapter now exposes the
+    real decade for each stage (and the real, full per-run sequence) via
+    the existing visual_payload channel so the frontend never has to
+    guess the stage-to-decade mapping."""
+    pkg = _generate("pytest-era-visual-payload", target_count=10, filters={"era_gauntlet": True})
+    assert pkg["qa_status"] == "PASSED"
+    questions = pkg["questions"]
+    assert questions, "expected a real, non-empty gauntlet"
+    for q in questions:
+        vp = q.get("visual_payload")
+        assert vp and "era_decade_label" in vp, f"missing visual_payload.era_decade_label: {q}"
+        answer_year = int(q["answer"].split(" ", 1)[0])
+        expected = f"{(answer_year // 10) * 10}s"
+        assert vp["era_decade_label"] == expected, (vp["era_decade_label"], expected)
+
+
+def test_era_gauntlet_sequence_labels_match_the_real_stage_order():
+    """era_sequence_labels (when present) must be the exact real, full
+    7-stage decade sequence for this run -- the frontend's replacement for
+    the old hardcoded array."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import cfb_three_clues_one_champion as adapter
+    from tools.quiz_export.duplicates import DuplicateGuard
+
+    c = engine.connect()
+    try:
+        for seed in ("pytest-era-seq-a", "pytest-era-seq-b", "pytest-era-seq-c"):
+            candidates = adapter.fetch_ordered_candidates(c, seed, {"era_gauntlet": True})
+            assert candidates, "expected a real, non-empty gauntlet candidate list"
+            expected_sequence = [f"{(b['season'] // 10) * 10}s" for b in candidates]
+            rng = engine.seeded(seed)
+            guard = DuplicateGuard()
+            for board in candidates:
+                result = adapter.evaluate(c, board, rng, guard)
+                assert isinstance(result, dict), result
+                vp = result["visual_payload"]
+                assert vp.get("era_sequence_labels") == expected_sequence
+                guard.record(result["question"], result.get("_audit", {}).get("entity_key"))
+    finally:
+        c.close()
+
+
+def test_era_gauntlet_board_mutation_does_not_leak_across_unrelated_requests():
+    """Safety guard for the in-place board mutation _era_gauntlet_candidates()
+    uses to attach _era_sequence_labels: fetch_all_boards() clears and
+    rebuilds its own module-level cache on every call (verified directly in
+    _group_board_common.py), so every call returns fresh dict objects --
+    mutating them must never bleed into a later, unrelated (e.g. plain
+    Three Clues, non-gauntlet) request."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import cfb_three_clues_one_champion as adapter
+
+    c = engine.connect()
+    try:
+        adapter.fetch_ordered_candidates(c, "pytest-mutation-a", {"era_gauntlet": True})
+        plain_boards = adapter.fetch_ordered_candidates(c, "pytest-mutation-b", {})
+        assert not any("_era_sequence_labels" in b for b in plain_boards), (
+            "a plain (non-gauntlet) request picked up stale _era_sequence_labels from an earlier gauntlet run"
+        )
+    finally:
+        c.close()
 
 
 def test_era_gauntlet_still_progresses_through_seven_real_eras(client):
