@@ -477,22 +477,30 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
         "instructions": "You'll be shown a real question from a real, named CFB rivalry (Iron Bowl, "
                         "Civil War, and more). Pick the correct answer.",
         "kind": "multiple_choice",
-        # Absolute Final Closeout fix: the source workbook itself has no
-        # "Easy" rows, but cfb_rivalry_trivia.py now promotes its own
-        # "Medium" rows that belong to a specific, named rivalry pack (83
-        # real rows across 43 real rivalries) to Easy -- a real,
-        # measured-nonzero band, not the old genuine 0/12 gap. Uses the
-        # richer, 1,272-question curated trivia bank (43 real named rivalry
-        # packs) rather than the smaller 48-rivalry RIVAL_OF-only
-        # capability -- "Which school is X's rival" is one of many real
-        # question types this bank asks, not the only one.
-        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        # Player Experience pass, real fix: this mode's own instructions
+        # already promised "a real question from a real, named CFB
+        # rivalry" -- but the spec below had no rivalry_only filter, so it
+        # actually drew from the FULL 1,272-row curated bank (860 real
+        # rivalry rows + 412 real GENERAL category rows -- Heisman Trophy,
+        # National Championships, Coaches, Records & Stats, and more,
+        # nothing to do with any specific rivalry). Scoped to
+        # rivalry_only=True (cfb_rivalry_trivia.py's own existing, already-
+        # wired filter key) so a real "Who won the Heisman in 1985?"
+        # question can no longer surface in a mode advertised as rivalry-
+        # specific. Real, measured pool after scoping: 846 candidates (77
+        # Easy, 0 Medium, 769 Hard) -- "medium" removed from certified
+        # difficulties below rather than declared and silently returning
+        # empty, same discipline this project follows for every other
+        # real-zero band (the rivalry-only source rows are only ever
+        # Hard/Very Hard, plus the 83 Medium-and-named-rivalry rows already
+        # promoted to Easy -- nothing left in the middle).
+        "certified_difficulties": frozenset({"easy", "hard"}),
         "spec": {
             "mechanic": "guess",
             "domain": "CFB_RIVALRY_TRIVIA",
             "relationship_predicate": "CORRECT_TRIVIA_ANSWER",
             "question_count": 1,
-            "filters": {},
+            "filters": {"rivalry_only": True},
             "exclusions": [],
         },
     },

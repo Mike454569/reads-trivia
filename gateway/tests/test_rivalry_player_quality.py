@@ -342,3 +342,58 @@ def test_trivia_bank_game_never_repeats_a_correct_answer():
             continue
         answers = [q["answer"] for q in qs]
         assert len(set(answers)) == len(answers), (i, answers)
+
+
+# --- Real fix: cfb_rivalry_guess must be strictly rivalry-based ---------------
+
+def test_public_cfb_rivalry_guess_mode_is_scoped_to_rivalry_only(client):
+    """Real, confirmed-live bug: this mode's own instructions promise "a
+    real question from a real, named CFB rivalry", but the spec had no
+    rivalry_only filter -- a real "Who won the 1985 Heisman?" (a general-
+    category row, nothing to do with any specific rivalry) could surface
+    in a mode advertised as rivalry-specific. Every one of many real
+    samples must come from a real, named rivalry pack."""
+    from tools.quiz_export import engine
+    from gateway.services import packages as packages_mod
+
+    c = engine.connect()
+    # game_director_v01.py's final question-rebuild loop only allow-lists a
+    # hand-picked set of _audit fields onto the persisted question (entity_key,
+    # source_ids, provenance) -- is_rivalry/rivalry_pack_name aren't among
+    # them, so _audit itself is empty on the saved package. entity_key
+    # ("cfbtrivia:<trivia_id>") IS in that allow-list, so it's the real,
+    # already-surviving field to verify against the source of truth with.
+    seen_any_pack = False
+    for i in range(15):
+        r = client.get("/v1/public/game", params={"mode": "cfb_rivalry_guess", "seed": f"pytest-rivalry-only-{i}"})
+        assert r.status_code == 200
+        saved = packages_mod.load_package(r.json()["game_id"])
+        question = saved["questions"][0]
+        entity_key = question.get("entity_key", "")
+        assert entity_key.startswith("cfbtrivia:"), question
+        trivia_id = entity_key.split(":", 1)[1]
+        row = c.execute(
+            "SELECT is_rivalry, rivalry_pack_name FROM cfb_trivia_bank WHERE trivia_id = ?", (trivia_id,)
+        ).fetchone()
+        assert row is not None, trivia_id
+        assert row[0] == 1, question["question"]
+        assert row[1], f"rivalry row {trivia_id} has no rivalry_pack_name"
+        seen_any_pack = True
+    assert seen_any_pack
+
+
+def test_public_cfb_rivalry_guess_no_longer_certifies_medium():
+    """Real, measured: the rivalry-only pool has 0 real Medium-labeled
+    rows (the source bank's own Medium-and-named-rivalry rows are already
+    promoted to Easy elsewhere in this same pipeline) -- "medium" must be
+    removed from certified difficulties, not silently return empty."""
+    from gateway.services import public_game
+    entry = public_game.PUBLIC_MODES["cfb_rivalry_guess"]
+    assert entry["certified_difficulties"] == frozenset({"easy", "hard"})
+    assert entry["spec"]["filters"] == {"rivalry_only": True}
+
+
+def test_public_cfb_rivalry_guess_medium_is_cleanly_rejected(client):
+    r = client.get("/v1/public/game", params={"mode": "cfb_rivalry_guess", "difficulty": "medium"})
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "INVALID_REQUEST"
