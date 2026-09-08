@@ -43,10 +43,43 @@ function startPickemRound(league) {
     league: league, screen: 'LOADING', season: null, week: null,
     slate: league === 'CFB' ? 'FEATURED' : 'FULL', conference: null,
     view: null, pendingPickGameId: null, lastPickError: null, error: null,
+    seasonRecord: null,
   };
   state.screen = 'pickem';
   renderAll();
   loadPickemView();
+  loadPickemSeasonRecord();
+}
+
+// User request: "keep a record of your pick em's throughout the season so
+// u can compete with other users." A season record aggregates every real
+// concluded week (heavier than the single-week view above), so it's
+// fetched once per round start and again after a pick actually changes it
+// -- never on every loadPickemView() slate-switch, which doesn't affect
+// the season total at all. Pushed to the same existing Firestore
+// leaderboard every other mode already uses (app.js's pushLeaderboard) --
+// no new cross-device sync mechanism.
+function loadPickemSeasonRecord() {
+  var s = state.pickem;
+  if (!s) return;
+  enginePilotFetchJson('/v1/public/pickem/' + s.league.toLowerCase() + '/record?client_id=' + encodeURIComponent(getClientId())).then(function (record) {
+    if (state.pickem !== s) return;
+    s.seasonRecord = record;
+    if (record.total_graded) {
+      // Whole-number percentage (0-100), matching every other leaderboard
+      // mode's own bestPct convention (e.g. finishQuizRound() in app.js) --
+      // the backend's win_pct is a 0-1 fraction, only converted here.
+      pushLeaderboard(s.league === 'NFL' ? 'pickemNfl' : 'pickemCfb', {
+        winPct: Math.round(record.win_pct * 100), correctCount: record.total_correct,
+        gradedCount: record.total_graded, weeksPlayed: record.weeks_played,
+      });
+    }
+    renderAll();
+  }).catch(function () {
+    // Real, non-critical background fetch -- the weekly slate above is
+    // still fully playable without a season record, so this fails silently
+    // rather than surfacing a second error banner on top of loadPickemView()'s.
+  });
 }
 
 function pickemPath(s) {
@@ -103,6 +136,7 @@ function submitPickemPick(gameId, teamCode) {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
     loadPickemView();
+    loadPickemSeasonRecord();
   }).catch(function (err) {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
@@ -149,6 +183,7 @@ function renderPickemScreen() {
   if (v.graded_count > 0) headerOpts.badge = v.correct_count + '/' + v.graded_count + ' correct';
   if (s.league === 'CFB') headerOpts.difficulty = PICKEM_SLATE_LABELS[s.slate];
   var header = '<div class="panel">' + renderReadsShellHeader(headerOpts) +
+    renderPickemSeasonRecordHtml(s) +
     (s.league === 'CFB' ? renderPickemSlateChips(s) : '') +
     (s.lastPickError ? '<div class="quiz-feedback">' + esc(s.lastPickError) + '</div>' : '') +
     (allGraded ? renderPickemCompletionSummary(v) : '') +
@@ -174,6 +209,21 @@ function renderPickemCompletionSummary(v) {
     (counts.VOID ? '<span class="pickem-complete-stat">' + counts.VOID + ' void</span>' : '') +
     (counts.unpicked ? '<span class="pickem-complete-stat">' + counts.unpicked + ' not picked</span>' : '') +
     '</div></div>';
+}
+
+// Season-long record display -- real, aggregated win/loss across every
+// concluded real week (loadPickemSeasonRecord() above), not this week's
+// slate alone. Hidden until at least one real week has been graded so a
+// brand-new player never sees a hollow "0-0" line.
+function renderPickemSeasonRecordHtml(s) {
+  var r = s.seasonRecord;
+  if (!r || !r.total_graded) return '';
+  var pct = Math.round(r.win_pct * 100);
+  // "correct/graded" rather than a "W-L" record -- graded_count includes
+  // real TIE outcomes (mechanic_engine.py), which aren't losses; this
+  // stays accurate without needing a 3rd tie-count field from the backend.
+  return '<div class="status-line">' + icon('trophy') + ' Season record: ' + r.total_correct + '/' + r.total_graded +
+    ' correct (' + pct + '%) across ' + r.weeks_played + ' week' + (r.weeks_played === 1 ? '' : 's') + '</div>';
 }
 
 function renderPickemSlateChips(s) {

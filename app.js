@@ -7959,7 +7959,12 @@ var LEADERBOARD_MODES = [
   { id: 'cfbBlitz', label: 'CFB Blitz', sortKey: 'bestMatched', cols: [['bestMatched', 'Best Matched'], ['attempts', 'Attempts']] },
   { id: 'cfbGrid', label: 'CFB Immaculate Grid', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['cleanSweeps', 'Clean Sweeps'], ['gamesPlayed', 'Games']] },
   { id: 'cfbLegends', label: 'CFB 12-0', sortKey: 'bestWins', cols: [['bestRecord', 'Best Record'], ['bestGrade', 'Best Grade'], ['gamesPlayed', 'Drafts']] },
-  { id: 'h2h', label: 'Head-to-Head', sortKey: 'wins', cols: [['wins', 'Wins'], ['losses', 'Losses'], ['ties', 'Ties']] }
+  { id: 'h2h', label: 'Head-to-Head', sortKey: 'wins', cols: [['wins', 'Wins'], ['losses', 'Losses'], ['ties', 'Ties']] },
+  // User request: "keep a record of your pick em's throughout the season
+  // so u can compete with other users" -- pushed by loadPickemSeasonRecord()
+  // in pickem-ui.js every time a real season record is fetched.
+  { id: 'pickemNfl', label: "NFL Pick'em", sortKey: 'winPct', cols: [['winPct', 'Win %'], ['correctCount', 'Correct'], ['gradedCount', 'Graded'], ['weeksPlayed', 'Weeks Played']] },
+  { id: 'pickemCfb', label: "CFB Pick'em", sortKey: 'winPct', cols: [['winPct', 'Win %'], ['correctCount', 'Correct'], ['gradedCount', 'Graded'], ['weeksPlayed', 'Weeks Played']] }
 ];
 // "Today"/"This Week" reads each row's updatedAt (a Firestore serverTimestamp
 // set on every pushScore() — see firebase-sync.js) rather than any separate
