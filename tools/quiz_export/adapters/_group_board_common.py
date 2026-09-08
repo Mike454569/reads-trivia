@@ -32,13 +32,26 @@ stop depending on one single 92-board dataset:
     `schools.school_name`, grouped by season. 76 real season groups
     measured directly (>=4 distinct real schools), floored at 1950 to
     avoid single-platoon-era obscurity.
+  - `cfb_conference_season_boards()`: Player Experience pass, real fix --
+    every source above (CFB_ALL_AMERICA included) is still fundamentally
+    "a roster of real people, each with a college," which kept Odd
+    College Out / Spot the Fake Lineup / One School Missing feeling like
+    the same underlying game regardless of source. This is a genuinely
+    different real group: FBS conference realignment membership itself
+    (`cfb_standings`, 2002-2025) -- "real 2024 SEC members" is a group of
+    real SCHOOLS directly, not an attribute of some other roster entity.
+    267 real (season, conference) groups measured directly with >=4
+    distinct real FBS member schools; "FBS Independents" deliberately
+    excluded (a real classification for "no conference," not a genuine
+    shared conference membership).
 
-Every source's `positions` dict values are real colleges attributed to a
-real person for a real (season, team/draft-class/honor-class/All-America
-class) -- nothing here is invented, inferred, or guessed. `pool_kind` is
-carried through to every board so a caller can log/audit which real
-source produced a given generated question (provenance preserved end to
-end).
+Every source's `positions` dict values are real colleges -- either
+attributed to a real person for a real (season, team/draft-class/honor-
+class/All-America class), or (CFB_CONFERENCE_SEASON only) the real member
+schools of a real conference directly -- nothing here is invented,
+inferred, or guessed. `pool_kind` is carried through to every board so a
+caller can log/audit which real source produced a given generated
+question (provenance preserved end to end).
 """
 from __future__ import annotations
 
@@ -53,7 +66,7 @@ HONOR_GROUP_MIN_SEASON, HONOR_GROUP_MAX_SEASON = 1980, 2025
 
 ALL_POOL_KINDS = (
     "SB_CHAMPION", "CURRENT_TEAM_2026", "NFL_TEAM_SEASON_ROSTER",
-    "DRAFT_CLASS", "HONOR_GROUP", "CFB_ALL_AMERICA",
+    "DRAFT_CLASS", "HONOR_GROUP", "CFB_ALL_AMERICA", "CFB_CONFERENCE_SEASON",
 )
 
 
@@ -290,6 +303,64 @@ def cfb_all_america_boards(c) -> list[dict]:
     return boards
 
 
+CFB_CONFERENCE_SEASON_MIN_SEASON, CFB_CONFERENCE_SEASON_MAX_SEASON = 2002, 2025
+
+
+def cfb_conference_season_table_exists(c) -> bool:
+    """Same real, disclosed guard as cfb_all_america_table_exists() above --
+    see that function's own docstring for the production/local Engine
+    schema-drift risk this protects against."""
+    return c.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cfb_standings'"
+    ).fetchone() is not None
+
+
+def cfb_conference_season_boards(c) -> list[dict]:
+    """Player Experience pass, real fix: every source above (including
+    cfb_all_america_boards()) is still fundamentally "a roster of real
+    people, each with a college" -- Odd College Out / Spot the Fake
+    Lineup / One School Missing kept feeling like the same underlying
+    game regardless of which roster fed it. This source is a genuinely
+    different real group: FBS conference REALIGNMENT membership itself
+    (`cfb_standings`, SOURCE_BACKED/CFBD_API_LIVE), 2002-2025 -- "these
+    are real 2024 SEC members" is a group of real SCHOOLS directly, not
+    an attribute of some other underlying roster entity. 267 real
+    (season, conference) groups measured directly with >=4 distinct real
+    FBS member schools. "FBS Independents" is deliberately excluded --
+    it is a real classification for "no conference," not a real shared
+    conference membership, so grouping by it would be a fabricated
+    framing rather than a genuine shared trait."""
+    if not cfb_conference_season_table_exists(c):
+        return []
+    rows = c.execute(
+        "SELECT season, conference, school_id, school_name_raw FROM cfb_standings "
+        "WHERE classification='fbs' AND conference IS NOT NULL AND conference != 'FBS Independents' "
+        "AND season BETWEEN ? AND ? ORDER BY season, conference, school_id",
+        (CFB_CONFERENCE_SEASON_MIN_SEASON, CFB_CONFERENCE_SEASON_MAX_SEASON),
+    ).fetchall()
+    school_names = {r["school_id"]: r["school_name"] for r in c.execute("SELECT school_id, school_name FROM schools")}
+
+    groups: dict[tuple[int, str], list] = {}
+    for r in rows:
+        groups.setdefault((r["season"], r["conference"]), []).append(r)
+
+    boards = []
+    for (season, conference), members in groups.items():
+        distinct = {m["school_id"]: school_names.get(m["school_id"], m["school_name_raw"]) for m in members}
+        if len(distinct) < 4:
+            continue
+        slots = {f"Member {i + 1}": name for i, name in enumerate(sorted(distinct.values()))}
+        diff_score = (CFB_CONFERENCE_SEASON_MAX_SEASON - season) / max(CFB_CONFERENCE_SEASON_MAX_SEASON - CFB_CONFERENCE_SEASON_MIN_SEASON, 1)
+        boards.append({
+            "board_id": f"CFB_CONFERENCE_SEASON:{season}:{conference}",
+            "team_display_name": f"{season} {conference}",
+            "season": season, "difficulty": _score_to_label(diff_score),
+            "positions": slots, "pool_kind": "CFB_CONFERENCE_SEASON",
+            "title": f"{season} {conference} membership",
+        })
+    return boards
+
+
 def _score_to_label(diff_score: float) -> str:
     # The curated SB_CHAMPION/CURRENT_TEAM_2026 boards' own `difficulty`
     # field is a plain 3-band {"EASY","MEDIUM","HARD"} string (this is what
@@ -313,6 +384,7 @@ _SOURCE_FUNCS = {
     "DRAFT_CLASS": draft_class_boards,
     "HONOR_GROUP": honor_group_boards,
     "CFB_ALL_AMERICA": cfb_all_america_boards,
+    "CFB_CONFERENCE_SEASON": cfb_conference_season_boards,
 }
 
 # Real, measured N+1 fix (same class of defect this pass already fixed in

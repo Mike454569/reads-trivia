@@ -32,6 +32,7 @@ _GROUP_PHRASE = {
     "DRAFT_CLASS": "{group}",
     "HONOR_GROUP": "{group}",
     "CFB_ALL_AMERICA": "{group}",
+    "CFB_CONFERENCE_SEASON": "{group}",
 }
 
 
@@ -72,6 +73,12 @@ def safety_check(c) -> dict:
         )
     else:
         result["cfb_all_america"] = {"status": "TABLE_NOT_YET_AVAILABLE_IN_THIS_ENGINE_DEPLOYMENT"}
+    if group_common.cfb_conference_season_table_exists(c):
+        result["cfb_conference_season"] = safety.check_verification_status_safety(
+            c, "cfb_standings", "CFBD_API_LIVE", "SOURCE_BACKED",
+        )
+    else:
+        result["cfb_conference_season"] = {"status": "TABLE_NOT_YET_AVAILABLE_IN_THIS_ENGINE_DEPLOYMENT"}
     return result
 
 
