@@ -5077,8 +5077,13 @@ function cfbPlayerCluesFilteredPuzzles() {
   var f = state.cfbPlayerCluesFilter;
   return CFB_PLAYER_CLUES_PACKAGE.puzzles.filter(function (p) {
     if (f.decade !== 'any' && p.decade !== f.decade) return false;
-    if (f.difficulty !== 'any' && p.difficultyBand !== f.difficulty) return false;
-    return true;
+    // Player Experience pass: "Any Difficulty" means any of the real
+    // Easy/Medium/Hard recognizable-player bands -- Sicko (zero real
+    // recognizability signal, see cfb_player_from_clues.py) is a
+    // separate, explicit, deliberately-chosen tier, never silently mixed
+    // into the default experience a casual fan gets by picking "Any."
+    if (f.difficulty === 'any') return p.difficultyBand !== 'Sicko';
+    return p.difficultyBand === f.difficulty;
   });
 }
 function setCfbPlayerCluesFilter(key, value) {
@@ -5175,14 +5180,20 @@ function renderCfbPlayerCluesSetup() {
       esc(CFB_PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
       '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
-  // Reliability pass (Pass 2.7): real Engine-generated pool (3,300 puzzles
-  // across 267 real schools, replacing the old 12-puzzle hand-authored
-  // Heisman-only prototype -- see tools/export_cfb_player_from_clues_frontend.py) --
-  // same decade/difficulty filter UI the NFL screen already has, since this
-  // pool now carries the same real metadata.
+  // Reliability pass (Pass 2.7): real Engine-generated pool, replacing the
+  // old 12-puzzle hand-authored Heisman-only prototype -- same decade/
+  // difficulty filter UI the NFL screen already has, since this pool now
+  // carries the same real metadata.
+  // Player Experience pass (user request: "use players that are more
+  // relevant and that casual and normal cfb fans would know and then make
+  // a sicko difficulty where CFB sickos can test themselves"): Easy/Medium/
+  // Hard now draw exclusively from a real recognizability-signal pool
+  // (All-America/NFL-drafted/genuine season-stat notability); Sicko is a
+  // separate, explicit, opt-in tier with zero recognizability signal --
+  // never blended into "Any Difficulty" (see cfbPlayerCluesFilteredPuzzles()).
   var f = state.cfbPlayerCluesFilter;
   var decades = cfbPlayerCluesAvailableDecades();
-  var difficulties = ['Easy', 'Medium', 'Hard'];
+  var difficulties = ['Easy', 'Medium', 'Hard', 'Sicko'];
   var matchCount = cfbPlayerCluesFilteredPuzzles().length;
   return '<div class="panel">' +
     '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +

@@ -1,51 +1,46 @@
 #!/usr/bin/env python3
 """CFB companion to tools/export_player_from_clues_frontend.py -- Reliability
 pass (Pass 2.7). Deterministic conversion of the real, Engine-generated
-`generated_games/director-v04-cfb-player-from-clues.json` into the browser-safe
-static JS file the Reads frontend loads.
+source packages into the browser-safe static JS file the Reads frontend
+loads.
 
-This REPLACES the previous data/cfb-player-from-clues-v01.js, which was a
-hand-authored 12-puzzle prototype (`sourceId: "HAND_AUTHORED_CFB_PROTOTYPE"`)
-that never got swapped out for real Engine output -- see this pass's own
-audit: the real `identify_player_from_clues`/CFB_PLAYER_IDENTITY capability
-(tools/director_v04/cfb_player_from_clues.py) has a 50,632-player real
-eligible universe and can produce up to ~12,040 real, QA-passed puzzles in a
-single scan (bounded only by a performance scan_cap, not by data scarcity).
-The 12-puzzle prototype was purely a content-shipping gap, never a real
-capability limit.
+Player Experience pass (user request: "use players that are more relevant
+and that casual and normal cfb fans would know and then make a sicko
+difficulty where CFB sickos can test themselves"): audited the original
+single-pool 3,300-puzzle pack and found this mode's ONLY eligibility bar
+was "3+ real recorded roster seasons" -- no requirement of ever being a
+real, meaningful on-field contributor. Confirmed directly: 2,843/3,300
+(86%) of puzzles landed in "Hard" purely because the only prior
+difficulty signals (All-America, NFL draft) are each real but rare.
 
-Does NOT regenerate, reorder, or recompute anything -- pure 1:1 reshaping of
-the already-QA'd package, same discipline as the NFL exporter: refuses to
-write output if qa_status != "PASSED".
+tools/director_v04/cfb_player_from_clues.py now computes a real,
+non-fabricated recognizability signal per player directly (All-America /
+NFL draft / a genuine season-stat threshold from cfb_player_season_stats_real
+-- see that module's own STAT_THRESHOLDS/_attach_difficulty_bands) and
+generates two SEPARATE, non-overlapping source packages:
+  - director-v04-cfb-player-from-clues-notable.json: Easy/Medium/Hard --
+    the real "a normal CFB fan could plausibly know this player" pool.
+  - director-v04-cfb-player-from-clues-sicko.json: Sicko -- the real,
+    explicit deep-cut tier (no recognizability signal found at all).
+This script now reads difficulty_band directly off each puzzle (stamped
+at generation time, when every real signal was available) rather than
+re-deriving it here from a second, narrower NFL-bridge-only query.
 
-CFB has no Pro Bowl/All-Pro/HOF tables to derive a fame-based difficulty band
-from (unlike the NFL exporter's _fetch_fame_data/_difficulty_band_for_fame).
-The real, disclosed CFB-appropriate proxy used here instead:
-  - all_america clue present on the puzzle (real, certified, rare -- 939
-    distinct players in cfb_all_america_certified) -> Easy
-  - certified NFL draftee (cfb_nfl_identity_bridge_certified, 7,745 rows,
-    joined to draft_facts on nfl_player_key for round/pick where available)
-    drafted in round 1-2 (or bridge-certified with no draft_facts match at
-    all, since a certified bridge match alone already means "went on to an
-    NFL roster") -> Easy
-  - any other certified NFL draftee -> Medium
-  - everyone else -> Hard
-This never invents a signal -- every band is derived from a real, certified
-table, and a player with no bridge/All-America record simply falls to Hard
-rather than being guessed at.
+Does NOT regenerate, reorder, or recompute anything else -- pure 1:1
+reshaping of the already-QA'd packages, same discipline as the NFL
+exporter: refuses to write output if either qa_status != "PASSED".
 """
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SOURCE_PACKAGE = REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues.json"
+SOURCE_PACKAGES = {
+    "notable": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-notable.json",
+    "sicko": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-sicko.json",
+}
 OUTPUT_JS = REPO_ROOT / "data" / "cfb-player-from-clues-v01.js"
-
-sys.path.insert(0, str(REPO_ROOT))
-from tools.quiz_export import engine  # noqa: E402
 
 
 def convert_clue(clue: dict) -> dict:
@@ -79,9 +74,8 @@ def convert_clue(clue: dict) -> dict:
 
 
 def _decade_for_puzzle(puzzle: dict) -> int | None:
-    """Real, derived from the puzzle's own career_span clue (present on
-    every puzzle in this pass's real generation run -- 600/600). Bucketed
-    by career START year, matching the NFL exporter's own convention."""
+    """Real, derived from the puzzle's own career_span clue. Bucketed by
+    career START year, matching the NFL exporter's own convention."""
     for c in puzzle["clues"]:
         if c["clue_type"] == "career_span":
             start_year = c["value"][0]
@@ -89,49 +83,7 @@ def _decade_for_puzzle(puzzle: dict) -> int | None:
     return None
 
 
-def _fetch_nfl_bridge_data(c, cfb_player_ids: list[str]) -> dict[str, dict]:
-    """Real per-player NFL-crossover signal for CFB players -- whether this
-    college player is a CERTIFIED match to a real NFL player
-    (cfb_nfl_identity_bridge_certified, 7,745 rows, cfb_player_id keyed,
-    confirmed this pass to join 100% cleanly to canonical_cfb_players'
-    own cfb_player_id namespace), and if so, that NFL player's real draft
-    round/pick (draft_facts, joined on nfl_player_key=player_key -- only
-    3,996/7,745 bridge rows have a draft_facts match, since some bridge
-    matches are undrafted free agents; a bridge match with no draft_facts
-    row still counts as "went on to the NFL", just without a round/pick
-    signal)."""
-    placeholders = ",".join("?" for _ in cfb_player_ids)
-    bridge: dict[str, dict] = {pid: {"nfl_bridge": False, "draft_round": None, "draft_pick_overall": None} for pid in cfb_player_ids}
-
-    rows = c.execute(
-        f"""
-        SELECT b.cfb_player_id, d.draft_round, d.draft_pick_overall
-        FROM cfb_nfl_identity_bridge_certified b
-        LEFT JOIN draft_facts d ON b.nfl_player_key = d.player_key
-        WHERE b.cfb_player_id IN ({placeholders})
-        """,
-        cfb_player_ids,
-    ).fetchall()
-    for pid, draft_round, draft_pick_overall in rows:
-        bridge[pid]["nfl_bridge"] = True
-        bridge[pid]["draft_round"] = draft_round
-        bridge[pid]["draft_pick_overall"] = draft_pick_overall
-    return bridge
-
-
-def _difficulty_band_for_cfb(puzzle: dict, bridge: dict) -> str:
-    """See module docstring for the full real-signal reasoning."""
-    has_all_america = any(c["clue_type"] == "all_america" for c in puzzle["clues"])
-    if has_all_america:
-        return "Easy"
-    if bridge["nfl_bridge"]:
-        if bridge["draft_round"] is not None and bridge["draft_round"] <= 2:
-            return "Easy"
-        return "Medium"
-    return "Hard"
-
-
-def convert_puzzle(puzzle: dict, bridge_by_player: dict) -> dict:
+def convert_puzzle(puzzle: dict) -> dict:
     return {
         "id": puzzle["puzzle_id"],
         "answer": {
@@ -142,38 +94,51 @@ def convert_puzzle(puzzle: dict, bridge_by_player: dict) -> dict:
         "finalCandidateCount": puzzle["final_candidate_count"],
         "qaStatus": puzzle["qa_status"],
         "decade": _decade_for_puzzle(puzzle),
-        "difficultyBand": _difficulty_band_for_cfb(puzzle, bridge_by_player[puzzle["answer"]["player_id"]]),
+        # Stamped directly by cfb_player_from_clues.py's generate_pack() at
+        # generation time (real all_america/NFL-draft/season-stat signals,
+        # not re-derived here from a narrower re-query).
+        "difficultyBand": puzzle["difficulty_band"],
     }
 
 
-def convert(package: dict, bridge_by_player: dict) -> dict:
+def convert_one_package(package: dict, pool_label: str) -> list[dict]:
     if package.get("qa_status") != "PASSED":
         raise SystemExit(
-            f"ABORT: source package qa_status is {package.get('qa_status')!r}, not PASSED -- "
+            f"ABORT: {pool_label} source package qa_status is {package.get('qa_status')!r}, not PASSED -- "
             f"refusing to export an unvalidated package to the frontend."
         )
-    puzzle_ids = [p["puzzle_id"] for p in package["puzzles"]]
-    if len(set(puzzle_ids)) != len(puzzle_ids):
-        raise SystemExit("ABORT: duplicate puzzle_id found in source package.")
-    answer_ids = [p["answer"]["player_id"] for p in package["puzzles"]]
-    if len(set(answer_ids)) != len(answer_ids):
-        raise SystemExit("ABORT: duplicate answer player found across puzzles in source package.")
     for p in package["puzzles"]:
         if p["final_candidate_count"] != 1:
-            raise SystemExit(f"ABORT: puzzle {p['puzzle_id']} has final_candidate_count != 1.")
+            raise SystemExit(f"ABORT: {pool_label} puzzle {p['puzzle_id']} has final_candidate_count != 1.")
         if len(p["clues"]) < 3:
-            raise SystemExit(f"ABORT: puzzle {p['puzzle_id']} has fewer than 3 clues.")
+            raise SystemExit(f"ABORT: {pool_label} puzzle {p['puzzle_id']} has fewer than 3 clues.")
+    return [convert_puzzle(p) for p in package["puzzles"]]
 
+
+def convert(packages: dict[str, dict]) -> dict:
+    all_puzzles: list[dict] = []
+    for pool_label, package in packages.items():
+        all_puzzles.extend(convert_one_package(package, pool_label))
+
+    puzzle_ids = [p["id"] for p in all_puzzles]
+    if len(set(puzzle_ids)) != len(puzzle_ids):
+        raise SystemExit("ABORT: duplicate puzzle_id found across the combined source packages.")
+    answer_ids = [p["answer"]["playerId"] for p in all_puzzles]
+    if len(set(answer_ids)) != len(answer_ids):
+        raise SystemExit("ABORT: duplicate answer player found across the combined source packages "
+                          "-- the notable/sicko pools must be strictly non-overlapping.")
+
+    notable_package = packages["notable"]
     result = {
-        "packageId": package["package_id"],
-        "packageVersion": package["package_version"],
-        "mechanic": package["mechanic"],
-        "gameTitle": package["game_title"],
-        "gameInstructions": package["game_instructions"],
-        "generatedAt": package["generated_at"],
-        "qaStatus": package["qa_status"],
-        "puzzleCount": package["puzzle_count"],
-        "puzzles": [convert_puzzle(p, bridge_by_player) for p in package["puzzles"]],
+        "packageId": notable_package["package_id"],
+        "packageVersion": notable_package["package_version"],
+        "mechanic": notable_package["mechanic"],
+        "gameTitle": notable_package["game_title"],
+        "gameInstructions": notable_package["game_instructions"],
+        "generatedAt": notable_package["generated_at"],
+        "qaStatus": "PASSED",
+        "puzzleCount": len(all_puzzles),
+        "puzzles": all_puzzles,
     }
 
     # Permanent regression guard: a real bug this pass found before shipping
@@ -198,12 +163,11 @@ def convert(package: dict, bridge_by_player: dict) -> dict:
 
 
 def main() -> None:
-    package = json.loads(SOURCE_PACKAGE.read_text(encoding="utf-8"))
-    player_ids = sorted({p["answer"]["player_id"] for p in package["puzzles"]})
-    c = engine.connect()
-    bridge_by_player = _fetch_nfl_bridge_data(c, player_ids)
-    c.close()
-    browser_data = convert(package, bridge_by_player)
+    packages = {
+        pool_label: json.loads(path.read_text(encoding="utf-8"))
+        for pool_label, path in SOURCE_PACKAGES.items()
+    }
+    browser_data = convert(packages)
 
     band_counts: dict[str, int] = {}
     for p in browser_data["puzzles"]:
@@ -212,17 +176,14 @@ def main() -> None:
     lines = [
         "// AUTO-GENERATED -- do not hand-edit.",
         "// Produced by tools/export_cfb_player_from_clues_frontend.py from",
-        f"// {SOURCE_PACKAGE.relative_to(REPO_ROOT)} (package_id {browser_data['packageId']}).",
-        "// Reliability pass (Pass 2.7): replaces the previous hand-authored 12-puzzle",
-        "// prototype (sourceId HAND_AUTHORED_CFB_PROTOTYPE) with real Engine output from",
-        "// the identify_player_from_clues/CFB_PLAYER_IDENTITY capability -- a real,",
-        "// 50,632-player eligible universe (tools/director_v04/cfb_player_from_clues.py),",
-        "// never a data/filter limitation, just a static file that was never swapped for",
-        "// real output. Pure reshaping of the already-QA'd Engine package -- no facts",
-        "// added, removed, or reordered (decade/difficultyBand are the one addition, from",
-        "// this script's own _decade_for_puzzle()/_difficulty_band_for_cfb() -- see this",
-        "// file's module docstring for the real, disclosed CFB difficulty-signal proxy).",
-        "// Re-run the script after regenerating the source package to refresh this file.",
+        "// generated_games/director-v04-cfb-player-from-clues-{notable,sicko}.json",
+        f"// (packageId {browser_data['packageId']}).",
+        "// Player Experience pass: real players only (All-America/NFL-drafted/genuine",
+        "// season-stat notability) feed the default Easy/Medium/Hard bands -- 'Sicko' is",
+        "// a separate, explicit, opt-in deep-cut tier with zero recognizability signal.",
+        "// See tools/director_v04/cfb_player_from_clues.py's own module comment for the",
+        "// real signals/thresholds used, and this file's own module docstring for why.",
+        "// Re-run this script after regenerating either source package to refresh this file.",
         "window.CFB_PLAYER_FROM_CLUES_V01 = " + json.dumps(browser_data, indent=2, ensure_ascii=False) + ";",
     ]
     OUTPUT_JS.write_text("\n".join(lines) + "\n", encoding="utf-8")

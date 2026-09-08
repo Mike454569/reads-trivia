@@ -213,6 +213,8 @@ def build_universe(c):
         for r in transfer_rows:
             facts[r["cfb_player_id"]]["transfer_school_count"] = r["school_count"]
 
+    _attach_difficulty_bands(c, facts, universe_ids)
+
     indexes: dict = {ct: {} for ct in CLUE_TEMPLATES}
     for pid, f in facts.items():
         for ct in ("school", "position"):
@@ -229,6 +231,80 @@ def build_universe(c):
             indexes["transfer_school_count"].setdefault(tsc, set()).add(pid)
 
     return facts, indexes, universe_ids
+
+
+
+# Player Experience pass, real fix: this capability's only eligibility bar
+# was "3+ real recorded roster seasons" -- no requirement of ever having
+# been a real, meaningful on-field contributor, so the ~50,632-player
+# universe is overwhelmingly walk-ons, backups, and deep-bench players a
+# normal CFB fan would never recognize. Confirmed directly against the
+# shipped 3,300-puzzle pack before this fix: 2,843/3,300 (86%) landed in
+# "Hard" purely because the only prior difficulty signals (All-America,
+# NFL draft) are each real but rare (939 / a few thousand players
+# respectively) -- "Hard" was really "everyone else," not "a real
+# recognizable player who's just tough to place."
+#
+# Real, non-fabricated "was a real contributor" signal added here:
+# cfb_player_season_stats_real (2014-2025 coverage only -- a real,
+# disclosed gap for 2004-2013 players, who fall back to the All-America/
+# draft signal alone). STAT_THRESHOLDS are round, defensible single-
+# season starter-level marks (a real season passing/rushing/receiving
+# leader-caliber year, or a real meaningful defensive/kicking season) --
+# 5,600 real distinct players clear at least one of them, out of 39,817
+# total players with any stat row at all (measured directly).
+STAT_THRESHOLDS = {
+    "passing_yards": 1500, "rushing_yards": 600, "receiving_yards": 600,
+    "defensive_interceptions": 3, "sacks": 5, "field_goals_made": 10,
+}
+DIFFICULTY_BANDS = ("Easy", "Medium", "Hard", "Sicko")
+
+
+def _attach_difficulty_bands(c, facts: dict, universe_ids: frozenset) -> None:
+    """Stamps facts[pid]['difficulty_band'] for every real player in the
+    universe -- Easy/Medium/Hard together are this mode's real "a normal
+    CFB fan could plausibly know this player" pool; Sicko is the real,
+    explicit deep-cut tier (no recognizability signal found at all),
+    never silently mixed into the other three. See module comment above
+    for the real signals and thresholds used."""
+    if not universe_ids:
+        return
+    placeholders = ",".join("?" * len(universe_ids))
+
+    bridge: dict[str, int | None] = {}
+    for row in c.execute(
+        f"""
+        SELECT b.cfb_player_id, d.draft_round
+        FROM cfb_nfl_identity_bridge_certified b
+        LEFT JOIN draft_facts d ON b.nfl_player_key = d.player_key
+        WHERE b.cfb_player_id IN ({placeholders})
+        """,
+        tuple(universe_ids),
+    ).fetchall():
+        pid, draft_round = row["cfb_player_id"], row["draft_round"]
+        # A player can have multiple bridge/draft rows (rare data overlap);
+        # keep the best (lowest) real draft round seen for this player.
+        if pid not in bridge or (draft_round is not None and (bridge[pid] is None or draft_round < bridge[pid])):
+            bridge[pid] = draft_round
+
+    stat_conditions = " OR ".join(f"{col} >= {threshold}" for col, threshold in STAT_THRESHOLDS.items())
+    notable_stat_ids = {
+        row["cfb_player_id"] for row in c.execute(
+            f"SELECT DISTINCT cfb_player_id FROM cfb_player_season_stats_real "
+            f"WHERE cfb_player_id IN ({placeholders}) AND ({stat_conditions})",
+            tuple(universe_ids),
+        ).fetchall()
+    }
+
+    for pid, f in facts.items():
+        if f.get("all_america") or (pid in bridge and bridge[pid] is not None and bridge[pid] <= 2):
+            f["difficulty_band"] = "Easy"
+        elif pid in bridge:
+            f["difficulty_band"] = "Medium"
+        elif pid in notable_stat_ids:
+            f["difficulty_band"] = "Hard"
+        else:
+            f["difficulty_band"] = "Sicko"
 
 
 def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
@@ -368,13 +444,29 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
     return issues
 
 
-def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -> dict:
+def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START, pool: str = "notable") -> dict:
+    """`pool`: "notable" (default) draws puzzle TARGETS only from players
+    with a real Easy/Medium/Hard recognizability signal (see
+    _attach_difficulty_bands) -- this is the real fix for "use players
+    that casual and normal cfb fans would know." "sicko" draws targets
+    only from the real complement (no recognizability signal found at
+    all) -- an explicit, opt-in deep-cut tier, never silently mixed into
+    the default pool. Either way, clue narrowing/uniqueness math still
+    runs against the FULL real universe (universe_ids unrestricted) --
+    only which players are eligible to be a puzzle's ANSWER changes."""
+    if pool not in ("notable", "sicko"):
+        raise ValueError(f"pool must be 'notable' or 'sicko', got {pool!r}")
     c = engine.connect()
     safety_result = safety_check(c)
     facts, indexes, universe_ids = build_universe(c)
     c.close()
 
-    order = sorted(universe_ids)
+    if pool == "notable":
+        target_pids = {pid for pid in universe_ids if facts[pid]["difficulty_band"] != "Sicko"}
+    else:
+        target_pids = {pid for pid in universe_ids if facts[pid]["difficulty_band"] == "Sicko"}
+
+    order = sorted(target_pids)
     rng = engine.seeded(seed)
     rng.shuffle(order)
 
@@ -421,6 +513,7 @@ def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -
                     puzzle["puzzle_id"] = id_start + len(accepted)
                     puzzle["mechanic"] = MECHANIC
                     puzzle["qa_status"] = "PASSED"
+                    puzzle["difficulty_band"] = facts[pid]["difficulty_band"]
                     accepted.append(puzzle)
                     guard.record(sequence_signature, pid)
 
@@ -431,11 +524,10 @@ def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -
     shortfall_reason = None
     if len(exported) < target_count:
         shortfall_reason = (
-            f"Only {len(accepted)} of {len(universe_ids)} real CFB roster players produced a puzzle "
-            f"passing every rule, out of {scanned_count} scanned (in this seeded order, up to a real "
-            f"performance cap -- a full unbounded scan of this 109,221-player universe was directly "
-            f"timed at 3+ minutes); exported the maximum available ({len(accepted)}) rather than loosen "
-            f"the minimum-clue-count or uniqueness requirements to reach {target_count}."
+            f"Only {len(accepted)} of {len(target_pids)} real CFB roster players in the {pool!r} pool "
+            f"produced a puzzle passing every rule, out of {scanned_count} scanned (in this seeded "
+            f"order, up to a real performance cap); exported the maximum available ({len(accepted)}) "
+            f"rather than loosen the minimum-clue-count or uniqueness requirements to reach {target_count}."
         )
 
     clue_type_counts: Counter = Counter()
@@ -446,6 +538,8 @@ def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -
             clue_type_counts[cl["clue_type"]] += 1
 
     funnel = {
+        "pool": pool,
+        "pool_size": len(target_pids),
         "universe_size": len(universe_ids),
         "attempted": scanned_count,
         "rejected_counts": dict(rejected_counts),
@@ -476,9 +570,9 @@ def _engine_version_fingerprint(c) -> dict:
     }
 
 
-def build_package(seed: str, target_count: int = 25, id_start: int = ID_START,
+def build_package(seed: str, target_count: int = 25, id_start: int = ID_START, pool: str = "notable",
                    requested_description: str | None = None, freeze_timestamp: str | None = None) -> dict:
-    pack = generate_pack(seed, target_count=target_count, id_start=id_start)
+    pack = generate_pack(seed, target_count=target_count, id_start=id_start, pool=pool)
 
     c = engine.connect()
     engine_version_fingerprint = _engine_version_fingerprint(c)
