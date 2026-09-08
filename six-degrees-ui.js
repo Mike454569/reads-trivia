@@ -212,9 +212,11 @@ function submitSixDegreesMove(nodeType, nodeId, name) {
     body: JSON.stringify({ game_id: s.game.game_id, node_type: nodeType, node_id: nodeId }),
   }).then(function (result) {
     if (state.sixDegrees !== s) return;
+    var justEnded = !s.game.completed && !s.game.out_of_moves && (result.completed || result.out_of_moves);
     s.game = result;
     s.moveFeedback = result.last_move || null;
     playSound((result.last_move && result.last_move.accepted) ? 'correct' : 'wrong');
+    if (justEnded) finishSixDegreesSession(result);
     renderAll();
     if (!result.completed && !result.out_of_moves) sixDegreesFocusSearchInput();
   }).catch(function (err) {
@@ -225,6 +227,29 @@ function submitSixDegreesMove(nodeType, nodeId, name) {
   });
 }
 
+// User request: "let's make sure that all game modes are connected to
+// your Football score." Real gap: Coach Connections never called
+// updateRatingDrift() at all. Unlike trivia's real "N questions, X
+// correct" shape, a graph puzzle either gets solved or doesn't -- the
+// real, server-computed `par` (shortest real path length, see
+// gateway/services/public_coach_connections.py) gives a fair, non-
+// fabricated efficiency signal: solving at or under par is full credit,
+// solving over par scales down toward a 50 floor by max_moves, and not
+// solving it at all (ran out of moves) is 0 -- never fired on a
+// deliberate give-up (see giveUpSixDegrees() below), matching this app's
+// existing convention that quitting early never counts toward any mode's
+// stats/rating.
+function finishSixDegreesSession(game) {
+  var pct;
+  if (game.completed) {
+    var over = Math.max(0, game.moves_made - game.par);
+    var span = Math.max(1, game.max_moves - game.par);
+    pct = over === 0 ? 100 : Math.max(50, 100 - Math.round((over / span) * 50));
+  } else {
+    pct = 0; // out_of_moves -- a real, unsolved attempt
+  }
+  updateRatingDrift(pct);
+}
 function giveUpSixDegrees() {
   var s = state.sixDegrees;
   if (!s || !s.game || s.game.completed) return;

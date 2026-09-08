@@ -532,6 +532,7 @@ function loadNextEnginePilotQuestion() {
         if (game.error.code === 'SEQUENCE_COMPLETE') {
           s.sequenceCompleted = true;
           s.sequenceStageCount = game.error.stage_count != null ? game.error.stage_count : s.stageIndex;
+          finishEnginePilotSession(s.correctCount, s.sequenceStageCount);
           s.screen = ENGINE_GAME_SCREEN.COMPLETE;
           renderAll();
           return;
@@ -594,9 +595,32 @@ function advanceEnginePilot() {
     loadNextEnginePilotQuestion();
     return;
   }
-  if (s.roundIndex + 1 >= s.roundSize) { s.screen = ENGINE_GAME_SCREEN.COMPLETE; renderAll(); return; }
+  if (s.roundIndex + 1 >= s.roundSize) {
+    finishEnginePilotSession(s.correctCount, s.roundSize);
+    s.screen = ENGINE_GAME_SCREEN.COMPLETE;
+    renderAll();
+    return;
+  }
   s.roundIndex++;
   loadNextEnginePilotQuestion();
+}
+// User request: "let's make sure that all game modes are connected to
+// your Football score." Real, live gap found: none of the ~17 Engine
+// Pilot modes (Three Clues, Era Gauntlet, CFB Rivalries, Odd College Out,
+// Franchise Marathon, and more -- everything routed through this shared
+// shell) ever called updateRatingDrift(), despite being exactly the same
+// "N questions, X correct" shape as Quiz/CFB Quiz, which already do. This
+// is the one shared choke point both completion paths above call through,
+// mirroring every legacy finish* function's own "updateRatingDrift(pct)
+// right before the completion screen" call, and same denominator
+// discipline sequential modes already established for their own summary
+// stat display just above. showRatingMoveToast() (fired from inside
+// updateRatingDrift itself) is the real user-facing feedback -- no
+// separate share-card plumbing exists for this shell to hang a stored
+// delta off of, unlike the legacy modes that use one.
+function finishEnginePilotSession(correctCount, totalCount) {
+  if (!totalCount) return; // a real, disclosed zero-stage edge case -- never divide by zero
+  updateRatingDrift(100 * correctCount / totalCount);
 }
 /* v1.8, Part E/F: POSITION_LINEUP visual template -- a real football
    position board (5 skill positions, then 5 grouped OL) instead of a plain
@@ -1040,12 +1064,33 @@ function mechanicPilotAdvance() {
     // at this point (mechanicPilotAdvance only clears s.result on the
     // non-complete branch below) -- renderMechanicPilotCompleteSummary reads
     // it straight off s, no new fetch or state needed.
+    finishMechanicPilotSession(mechanicPilotModeConfig(s.modeKey), s);
     s.screen = ENGINE_GAME_SCREEN.COMPLETE;
     renderAll();
     return;
   }
   s.screen = ENGINE_GAME_SCREEN.QUESTION_READY; s.result = null;
   renderAll();
+}
+// User request: "let's make sure that all game modes are connected to
+// your Football score" -- same real gap as finishEnginePilotSession()
+// above, for this shell's own 4 mechanics (Matching/Sorting/Higher-Lower/
+// Elimination; all currently flag-off in production, but the same real
+// gap regardless). Each mechanic has its own real "how well did you do"
+// shape, so pct isn't one uniform formula: matching/sorting are real
+// N-correct-of-N fractions; higher_lower/elimination are open-ended streaks
+// with no fixed denominator, so they reuse the exact same streak-to-pct
+// heuristic app.js's own legacy Higher or Lower mode already established
+// (Math.min(100, streak * 10)) rather than inventing a second one.
+function finishMechanicPilotSession(cfg, s) {
+  var r = s.result || {}, v = s.view || {};
+  var pct = null;
+  if (cfg.kind === 'matching' && r.total_pairs) pct = 100 * r.correct_count / r.total_pairs;
+  else if (cfg.kind === 'sorting' && r.total_items) pct = 100 * r.correct_positions / r.total_items;
+  else if (cfg.kind === 'higher_lower') pct = Math.min(100, (v.streak != null ? v.streak : (r.streak || 0)) * 10);
+  else if (cfg.kind === 'elimination') pct = Math.min(100, (v.survived_count != null ? v.survived_count : (r.survived_count || 0)) * 10);
+  if (pct == null) return;
+  updateRatingDrift(pct);
 }
 /* Section 9/10/22 fix: the COMPLETE screen used to render nothing but
    "Round Complete" for all four mechanics -- no final score, no streak

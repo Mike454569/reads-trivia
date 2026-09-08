@@ -74,12 +74,39 @@ function loadPickemSeasonRecord() {
         gradedCount: record.total_graded, weeksPlayed: record.weeks_played,
       });
     }
+    applyPickemWeeksToRating(s.league, record.season, record.per_week);
     renderAll();
   }).catch(function () {
     // Real, non-critical background fetch -- the weekly slate above is
     // still fully playable without a season record, so this fails silently
     // rather than surfacing a second error banner on top of loadPickemView()'s.
   });
+}
+
+// User request: "let's make sure that all game modes are connected to
+// your Football score." Pick'em's real shape doesn't fit a single "session
+// just ended" moment the way trivia does -- picks grade asynchronously as
+// real games conclude over hours/days, and this same season record gets
+// re-fetched every time the Pick'em screen loads. Counting every fetch
+// would apply the same real week's result to rating over and over. Fixed
+// by tracking which real (league, season, week) results have already been
+// applied, in localStorage, and only feeding NEWLY concluded weeks --
+// each real week's own graded_count/correct_count contributes exactly
+// once, the same real-quiz-accuracy semantics as every other mode.
+function pickemRatedWeeksKey(league, season) { return 'nflTriviaPickemRatedWeeks__' + league + '__' + season; }
+function applyPickemWeeksToRating(league, season, perWeek) {
+  if (!perWeek || !perWeek.length) return;
+  var key = pickemRatedWeeksKey(league, season);
+  var already = lsGet(key, []);
+  var alreadySet = {};
+  already.forEach(function (w) { alreadySet[w] = true; });
+  var newlyRated = already.slice();
+  perWeek.forEach(function (w) {
+    if (alreadySet[w.week] || !w.graded_count) return;
+    updateRatingDrift(100 * w.correct_count / w.graded_count);
+    newlyRated.push(w.week);
+  });
+  if (newlyRated.length !== already.length) lsSet(key, newlyRated);
 }
 
 function pickemPath(s) {
