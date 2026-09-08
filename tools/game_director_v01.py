@@ -284,6 +284,18 @@ def generate_package_from_spec(spec: dict, adapter, *, request_text: str, direct
         accepted_for_export = [q for q in accepted if q["difficulty"].lower() == difficulty_filter.lower()]
         rejected_counts["DIFFICULTY_FILTER_MISMATCH"] = len(accepted) - len(accepted_for_export)
 
+    # Player Experience pass: optional, additive per-adapter hook -- a
+    # module may define compose_export_order(accepted, target_count) to
+    # REORDER (never add/remove/fabricate) the accepted candidate list
+    # before truncation, so a real 10-question game draws deliberately
+    # from the full accepted pool (family/entity/answer diversity) instead
+    # of just the first N in whatever order the seeded shuffle produced.
+    # Absent for every adapter that doesn't define it -- byte-identical to
+    # the prior plain truncation for all of them.
+    compose_fn = getattr(adapter, "compose_export_order", None)
+    if compose_fn is not None:
+        accepted_for_export = compose_fn(accepted_for_export, target_count)
+
     exported = accepted_for_export[:target_count]
     shortfall_reason = None
     if len(exported) < target_count:

@@ -135,6 +135,55 @@ def _choose_family(row, rng) -> str:
     return available[rng.randrange(len(available))]
 
 
+def _real_fun_fact(row) -> str:
+    ff = (row.get("fun_fact") or "").strip()
+    return "" if ff in ("", "-") else ff
+
+
+def _compose_notes(row, family: str, real_nickname: str, correct_text: str) -> str:
+    """Player Experience pass: real, confirmed-live bug -- the old notes
+    were a single generic line ("X and Y play in a rivalry game.") that
+    just restates the question's own premise, exactly the "useless
+    explanation" failure class called out for this pass. Every one of the
+    48 real rivalries has at least one real extra fact on file (nickname,
+    trophy, series_record, or fun_fact -- confirmed directly, 0/48 have
+    none), so this never needs to fall back to filler. Composes from
+    whichever real fields exist, skipping whichever field the QUESTION
+    itself already reveals for this family (never restate the premise),
+    and leads with fun_fact when available since it's this dataset's most
+    genuinely informative field."""
+    real_trophy = _real_trophy(row)
+    real_series = (row.get("series_record") or "").strip()
+    real_series = "" if real_series == "-" else real_series
+    real_fun_fact = _real_fun_fact(row)
+
+    parts = []
+    if family == "WHO_IS_RIVAL":
+        if real_nickname:
+            parts.append(f"{row['ask_name']} and {row['answer_name']} play in a rivalry known as \"{real_nickname}\".")
+        else:
+            parts.append(f"{row['ask_name']} and {row['answer_name']} are real, longtime college football rivals.")
+        if real_trophy:
+            parts.append(f"The winner takes home the {real_trophy}.")
+        if real_series:
+            parts.append(real_series + ".")
+    elif family == "TROPHY":
+        parts.append(f"The {correct_text} goes to the winner of {row['ask_name']} vs. {row['answer_name']}"
+                      + (f", known as \"{real_nickname}\"" if real_nickname else "") + ".")
+        if real_series:
+            parts.append(real_series + ".")
+    else:  # SERIES_LEADER
+        if real_series:
+            parts.append(real_series + ".")
+        else:
+            parts.append(f"{correct_text} leads the real all-time series.")
+        if real_trophy:
+            parts.append(f"The two schools play for the {real_trophy}.")
+    if real_fun_fact:
+        parts.append(real_fun_fact)
+    return " ".join(parts).strip()
+
+
 def evaluate(c, row, rng, guard):
     if not row["ask_id"] or not row["answer_id"] or not row["ask_name"] or not row["answer_name"]:
         return "SCHOOL_UNRESOLVED"
@@ -151,8 +200,19 @@ def evaluate(c, row, rng, guard):
             return "INSUFFICIENT_DISTRACTORS"
         distractor_names = list(distractor_map.values())
         correct_text = row["answer_name"]
-        rivalry_phrase = f' ("{real_nickname}")' if real_nickname else ""
-        question = f"Which school is {row['ask_name']}’s rival in the game known as{rivalry_phrase}?"
+        # Player Experience pass: real, confirmed-live bug -- 16 of 48 real
+        # rivalries have no real nickname (the source data's "-" placeholder,
+        # already correctly normalized to "" by _real_nickname() above), but
+        # the OLD template always appended the literal phrase "in the game
+        # known as" regardless, producing a dangling "...rival in the game
+        # known as?" with nothing after it (reproduced live for LSU-Ole Miss
+        # and North Carolina-NC State, both real "-" rows). "in the game
+        # known as X" is only ever grammatical when a real X exists --
+        # falls back to a complete, simpler sentence otherwise.
+        if real_nickname:
+            question = f"Which school is {row['ask_name']}’s rival in the game known as \"{real_nickname}\"?"
+        else:
+            question = f"Which school is {row['ask_name']}’s real college football rival?"
     elif family == "TROPHY":
         trophy = _real_trophy(row)
         # Distractors: other real trophies from other real rivalries --
@@ -196,8 +256,7 @@ def evaluate(c, row, rng, guard):
     # flat "medium" rather than a fabricated recency score.
     diff_label = "Medium"
 
-    extra = row["series_record"] or row["fun_fact"] or ""
-    notes = f"{row['ask_name']} and {row['answer_name']} play in {real_nickname or 'a rivalry game'}. {extra}".strip()
+    notes = _compose_notes(row, family, real_nickname, correct_text)
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,
@@ -237,6 +296,56 @@ def header_lines(seed: str) -> list[str]:
         "// tools/quiz_export/adapters/cfb_rivalry.py -- CFB Rivalries.",
         f"// Deterministic seed: \"{seed}\".",
     ]
+
+
+def compose_export_order(accepted: list, target_count: int) -> list:
+    """Player Experience pass (Part 5): a real 10-question Rivalries game
+    used to be whatever order the seeded shuffle happened to produce --
+    since _choose_family() is a per-candidate coin flip over a small,
+    real-data-constrained option list (most rows only ever offer 1-2 real
+    families), nothing stopped 8 of 10 questions in one real game from
+    landing on the same family, or the same rivalry appearing twice, or
+    the same correct answer repeating. Greedy reorder (never adds, drops,
+    or fabricates a candidate -- pure reordering of the same real, already-
+    accepted pool): at each of the first target_count slots, picks the
+    real candidate with the lowest "feels repetitive" penalty among
+    everything not yet placed -- avoiding the same family back-to-back,
+    a family exceeding half the real game, a repeated rivalry_id, and a
+    repeated correct answer, in that priority order. Ties broken by
+    original (seeded) order, so this never introduces new randomness."""
+    if not accepted or target_count <= 0:
+        return accepted
+    max_per_family = max(1, -(-target_count // 2))  # ceil(target_count / 2) -- "no family >50%"
+    remaining = list(accepted)
+    selected: list = []
+    used_rivalries: set = set()
+    used_answers: set = set()
+    family_counts: Counter = Counter()
+    while remaining and len(selected) < target_count:
+        best_idx, best_penalty = 0, None
+        for i, item in enumerate(remaining):
+            a = item.get("_audit", {})
+            fam = a.get("clue_family")
+            riv = a.get("rivalry_id")
+            ans = a.get("correct_answer_text")
+            penalty = 0
+            if selected and selected[-1].get("_audit", {}).get("clue_family") == fam:
+                penalty += 1000  # never repeat the same family two in a row
+            if family_counts[fam] >= max_per_family:
+                penalty += 100  # avoid one family dominating the whole game
+            if riv in used_rivalries:
+                penalty += 20  # maximize unique rivalries represented
+            if ans in used_answers:
+                penalty += 10  # avoid repeating a correct answer
+            if best_penalty is None or penalty < best_penalty:
+                best_idx, best_penalty = i, penalty
+        item = remaining.pop(best_idx)
+        selected.append(item)
+        a = item.get("_audit", {})
+        used_rivalries.add(a.get("rivalry_id"))
+        used_answers.add(a.get("correct_answer_text"))
+        family_counts[a.get("clue_family")] += 1
+    return selected + remaining  # leftovers appended; truncated away by target_count regardless
 
 
 def human_review_context(record: dict) -> list[str]:
