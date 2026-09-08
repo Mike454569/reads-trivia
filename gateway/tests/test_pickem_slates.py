@@ -112,6 +112,17 @@ def test_featured_slate_is_deterministic_across_repeated_calls():
 
 
 def test_top25_slate_only_includes_games_with_a_real_ranked_participant():
+    """This must keep working as the real season progresses (see
+    _real_cfb_full_slate()'s own docstring) -- but "the real current week"
+    can legitimately roll into a week the AP hasn't published a poll for
+    yet (confirmed live, Sep 2026: the season's real Week 1 had a real
+    published poll; the moment the schedule bridge resolved forward to
+    Week 2, that week's own AP Top 25 genuinely didn't exist yet -- CFBD/AP
+    publish a few days after each week's games, not before). weekly_pickem.
+    _ap_top25() queries the exact requested week with no fallback to the
+    most recent prior poll (a real, disclosed, intentional design choice,
+    not a bug this test should paper over) -- so an honestly EMPTY TOP25
+    slate is the correct real behavior for such a week, not a failure."""
     from tools.director_v04 import weekly_pickem
     season, week, games = _real_cfb_full_slate()
     filtered, meta = weekly_pickem.filter_games_for_slate(games, slate="TOP25", conference=None, season=season, week=week)
@@ -124,6 +135,10 @@ def test_top25_slate_only_includes_games_with_a_real_ranked_participant():
         )}
     finally:
         c.close()
+    if not ranked_school_ids:
+        assert filtered == [], "no real ranked schools this week, but TOP25 still returned a game -- real bug"
+        pytest.skip(f"no real AP Top 25 poll published yet for season={season} week={week!r} -- "
+                    f"an honestly empty TOP25 slate, not a real failure")
     assert len(filtered) >= 1  # real, current AP Top 25 data exists for this fixture week
     for g in filtered:
         assert g["home_team"] in ranked_school_ids or g["away_team"] in ranked_school_ids
