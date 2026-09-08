@@ -70,9 +70,13 @@ function sfxElement(name) {
 // playback in code instead.)
 var SFX_MAX_DURATION = { wrong: 900, correct: 2500 };
 // Only one correct/wrong/complete effect plays at a time — starting a new one
-// (or advancing past the one currently playing, via stopSfx()) always cuts off
-// whatever's already going, so a long crowd-cheer/whistle clip never bleeds
-// into the next question.
+// always cuts off whatever's already going (stopSfx(), called at the top of
+// playSound() below). SFX_MAX_DURATION above is a fallback cap for a player
+// who just sits on the answered screen; the real, immediate cutoff is
+// app.js's single global click handler calling stopSfx() on every real
+// navigation click, so clicking straight through to the next question never
+// waits out that timer — a long crowd-cheer/whistle clip never bleeds into
+// the next question either way.
 var currentSfx = null;
 function stopSfx() {
   if (currentSfx) { try { currentSfx.pause(); currentSfx.currentTime = 0; } catch (e) {} currentSfx = null; }

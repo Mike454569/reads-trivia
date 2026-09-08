@@ -10080,6 +10080,15 @@ document.addEventListener('click', function (e) {
     '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry]');
   if (!t) return;
 
+  // User request: the correct-answer crowd-cheer (and wrong-answer whistle)
+  // used to just play out its fixed SFX_MAX_DURATION cap (sound.js)
+  // regardless of what the player did next -- clicking straight through to
+  // the next question no longer waits out that timer; any sound still
+  // playing from the previous answer cuts off immediately on any of these
+  // real navigation clicks, the same way starting a brand-new playSound()
+  // already does via its own stopSfx() call.
+  stopSfx();
+
   if (t.id === 'help-toggle') {
     var helpMode = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === state.screen; });
     openOnboarding(helpMode ? contextualHelpSteps(helpMode) : null);
