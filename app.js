@@ -9528,6 +9528,17 @@ function renderEncyclopediaConceptDetail() {
     if (node.verification_status === 'DIAGRAM_ONLY') {
       badgeText = 'Diagram reference -- not a source-verified encyclopedia entry';
       badgeClass = 'encyc-badge-caution';
+    } else if (node.verification_status === 'SOURCE_BACKED_PLUS_GENERAL_KNOWLEDGE') {
+      // Encyclopedia 2.0 pass: honest, distinct badge for a real gap this
+      // pass found -- some concept pages have thinner depth than others
+      // (a real, disclosed consequence of which source-workbook sheet
+      // built them, not a quality problem to hide) and were enriched with
+      // additional, well-established football knowledge that ISN'T cited
+      // to a specific workbook (sheet, row) the way the rest of this
+      // node's fields are. Never silently presented as "Source-verified"
+      // for content that doesn't have that same citation.
+      badgeText = 'Source-verified, plus general football knowledge';
+      badgeClass = 'encyc-badge-verified';
     } else {
       badgeText = node.verification_status === 'SOURCE_BACKED' ? 'Source-verified' : 'Documented';
       badgeClass = 'encyc-badge-verified';

@@ -3793,7 +3793,12 @@ window.LEARN_ENCYCLOPEDIA = {
     "strategic_objective": "No-huddle, boundary/timeout management and chunk-stop balance.",
     "key_decision_variable": "Maximize scoring opportunity before half/game.",
     "common_misread": "Clock rules differ NFL/CFB.",
-    "source": "https://operations.nfl.com/rules-officiating/2026-nfl-rulebook"
+    "source": "https://operations.nfl.com/rules-officiating/2026-nfl-rulebook",
+    "personnel_and_tempo": "Teams commonly stay in one personnel grouping (often 11 personnel: one running back, one tight end, three receivers) to avoid substitution stoppages, using no-huddle or hurry-up tempo to limit a defense's ability to substitute and communicate calls.",
+    "clock_stopping_methods": "Common ways to stop the clock include throwing the ball out of bounds, spiking it (an intentional incomplete pass), calling a timeout, or completing a pass to a receiver who reaches the sideline.",
+    "sideline_route_concepts": "Routes that naturally end near the sideline (outs, comebacks, sideline fades) are common in two-minute situations, since an incompletion or an out-of-bounds catch stops the clock without needing a timeout.",
+    "timeout_usage_strategy": "Offenses often try to preserve timeouts for use late in the drive or for a potential replay challenge; how many timeouts remain is a major factor in play selection in the closing minutes.",
+    "nfl_vs_cfb_note": "Clock-management rules can differ meaningfully between the NFL and college football in some situations (for example, how the game clock behaves in the final moments of a half) -- always worth checking the current rulebook for the exact mechanics rather than assuming one level's rules apply to the other."
    },
    "source_rows": [
     {
@@ -3803,7 +3808,7 @@ window.LEARN_ENCYCLOPEDIA = {
    ],
    "canonical_id": "SITUATION_TWO_MINUTE_OFFENSE",
    "label": "Two-minute offense",
-   "verification_status": "SOURCE_BACKED"
+   "verification_status": "SOURCE_BACKED_PLUS_GENERAL_KNOWLEDGE"
   },
   "SITUATION_FOUR_MINUTE_OFFENSE": {
    "domain": "SITUATIONAL",
@@ -13085,7 +13090,14 @@ window.LEARN_ENCYCLOPEDIA = {
     "what_it_usually_tells_you": "Creates trips checks, backside isolation and poach stress.",
     "confirmation_cue": "Number trips receivers outside-in: No. 1, No. 2, No. 3.",
     "terminology_variation_warning": "Trips can be open, TE trips, Trey or bunch.",
-    "common_misread": "Using Trips and Trey as synonyms."
+    "common_misread": "Using Trips and Trey as synonyms.",
+    "spacing_advantage": "Stacking three receivers to one side forces the defense to declare coverage help toward that side before the snap, which can open natural leverage and space for the single receiver on the backside.",
+    "coverage_stress": "A trips look commonly triggers a defense to rotate a safety or nickel defender toward the trips side (a 'trips check'), which can leave the backside cornerback without deep help against a lone receiver.",
+    "trips_side_route_combinations": "Common trips-side concepts include flood routes (three receivers stretching one defender at different depths), triangle reads (flat/curl/corner), and switch releases meant to create confusion against man coverage.",
+    "backside_isolation": "The single receiver away from trips is frequently left one-on-one, which is why backside slants, comebacks, and fades are a common answer when a defense commits extra help to the trips side.",
+    "motion_possibilities": "Offenses can also create trips after the snap-adjacent motion from a 2x2 alignment, forcing the defense to declare in real time whether it will rotate to match the new receiver count.",
+    "personnel_considerations": "Trips can be built from three wide receivers (spread trips), a tight end plus two receivers (tighter trips), or a bunched/stacked alignment -- each stresses leverage and spacing differently.",
+    "what_the_qb_may_read": "Quarterbacks often look to the trips side first to judge leverage and coverage rotation, working back to the backside isolation route when the trips-side concept is covered."
    },
    "source_rows": [
     {
@@ -13095,7 +13107,7 @@ window.LEARN_ENCYCLOPEDIA = {
    ],
    "canonical_id": "FORMATION_3X1_TRIPS",
    "label": "3x1 Trips",
-   "verification_status": "SOURCE_BACKED"
+   "verification_status": "SOURCE_BACKED_PLUS_GENERAL_KNOWLEDGE"
   },
   "FORMATION_TREY": {
    "domain": "FORMATIONS",
