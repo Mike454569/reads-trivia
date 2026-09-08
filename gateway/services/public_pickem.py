@@ -168,3 +168,30 @@ def submit_pick(*, league: str, season, week, client_id: str, game_id: str, pred
                         season=resolved_season, week=resolved_week)
     return {"league": league_upper, "season": resolved_season, "week": resolved_week,
             "game_id": game_id, "predicted_winner": predicted_winner, "status": "SAVED"}
+
+
+def get_season_record(*, league: str, season, client_id: str) -> dict:
+    """Real, live-computed season-to-date Pick'em record for one real
+    client -- see tools/director_v04/pickem_season_record.py's own module
+    docstring for the full reasoning (aggregates the exact same real,
+    already-established single-week grading across every real concluded
+    week, never a second grading implementation)."""
+    if not config.PUBLIC_GAME_ENABLED:
+        oplog.record_event("public_pickem_disabled", mode="pickem", reason="master_switch_off")
+        raise GatewayError("SERVICE_UNAVAILABLE", "Public gameplay is temporarily disabled.")
+
+    from tools.director_v04 import pickem_season_record, pickem_store
+
+    league_upper = (league or "").upper()
+    if league_upper not in _LEAGUE_TO_VARIANT:
+        raise GatewayError("INVALID_MODE", f"league must be one of {sorted(_LEAGUE_TO_VARIANT)}.")
+    resolved_season = int(season) if season is not None else _current_season()
+
+    try:
+        record = pickem_season_record.compute_season_record(
+            client_id=client_id, league=league_upper, season=resolved_season)
+    except pickem_store.InvalidClientId as e:
+        raise GatewayError("INVALID_REQUEST", str(e))
+    oplog.record_event("public_pickem_season_record_served", mode="pickem", league=league_upper,
+                        season=resolved_season, weeks_played=record["weeks_played"])
+    return record

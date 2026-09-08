@@ -267,6 +267,13 @@ PUBLIC_PICKEM_VIEW_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_PICK
 PUBLIC_PICKEM_VIEW_RATE_LIMIT_WINDOW_SECONDS = 60.0
 PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_PICKEM_SUBMIT_RATE_LIMIT", "60"))
 PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS = 60.0
+# Pick'em Season Record pass: a season-record request rebuilds every real
+# concluded week's full slate (heavier than a single-week view, which is
+# exactly the one week a caller is currently looking at) -- a tighter
+# limit than PUBLIC_PICKEM_VIEW_RATE_LIMIT_MAX above, matching the real
+# cost difference rather than reusing the same budget.
+PUBLIC_PICKEM_RECORD_RATE_LIMIT_MAX = int(os.environ.get("READS_ENGINE_PUBLIC_PICKEM_RECORD_RATE_LIMIT", "10"))
+PUBLIC_PICKEM_RECORD_RATE_LIMIT_WINDOW_SECONDS = 60.0
 
 # Reliability-design Phase 2: async Creator jobs -- admin-only routes
 # (already gated by require_admin), so this rate limit exists to protect

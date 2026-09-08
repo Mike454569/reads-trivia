@@ -107,6 +107,9 @@ public_pickem_view_limiter = SlidingWindowRateLimiter(
 public_pickem_submit_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_MAX,
     window_seconds=config.PUBLIC_PICKEM_SUBMIT_RATE_LIMIT_WINDOW_SECONDS)
+public_pickem_record_limiter = SlidingWindowRateLimiter(
+    max_requests=config.PUBLIC_PICKEM_RECORD_RATE_LIMIT_MAX,
+    window_seconds=config.PUBLIC_PICKEM_RECORD_RATE_LIMIT_WINDOW_SECONDS)
 public_mechanic_round_limiter = SlidingWindowRateLimiter(
     max_requests=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_MAX,
     window_seconds=config.PUBLIC_MECHANIC_ROUND_RATE_LIMIT_WINDOW_SECONDS)
@@ -1279,6 +1282,10 @@ def rate_limit_public_pickem_submit(request: Request) -> None:
     _rate_limit(public_pickem_submit_limiter, request)
 
 
+def rate_limit_public_pickem_record(request: Request) -> None:
+    _rate_limit(public_pickem_record_limiter, request)
+
+
 @app.get("/v1/public/pickem/{league}")
 def public_pickem_current(league: str, request: Request,
                            client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
@@ -1304,6 +1311,14 @@ def public_pickem_pick(league: str, season: int, week: str, body: PublicPickemSu
                         _rl=Depends(rate_limit_public_pickem_submit)):
     return public_pickem.submit_pick(league=league, season=season, week=week, client_id=body.client_id,
                                       game_id=body.game_id, predicted_winner=body.predicted_winner)
+
+
+@app.get("/v1/public/pickem/{league}/record")
+def public_pickem_season_record(league: str, request: Request,
+                                 client_id: str = Query(..., min_length=6, max_length=64),
+                                 season: Optional[int] = Query(default=None),
+                                 _rl=Depends(rate_limit_public_pickem_record)):
+    return public_pickem.get_season_record(league=league, season=season, client_id=client_id)
 
 
 @app.post("/v1/admin/pickem/game-status")

@@ -155,6 +155,79 @@ def _current_season() -> int:
     return datetime.now(timezone.utc).year
 
 
+def _nfl_week_candidates(c, season: int) -> list[tuple[str, str, str]]:
+    """Every real (identifier, first_date, last_date) NFL week/postseason
+    slate for this season -- the exact same real candidate shape
+    resolve_current_week() already builds internally, extracted so a
+    second real caller (Pick'em Season Record, see pickem_season_record.py)
+    can enumerate every real CONCLUDED week without re-deriving this same
+    real game_type/postseason-token logic a second, possibly-inconsistent
+    way. `first_date`/`last_date` are the same value for NFL (each real
+    week's games all share one real week number, unlike CFB's own wide
+    Week 1) -- kept as a pair for a uniform shape with the CFB variant."""
+    rows = c.execute(
+        "SELECT week, game_type, MIN(game_date) AS first_date, MAX(game_date) AS last_date FROM games "
+        "WHERE season=? GROUP BY week, game_type", (season,),
+    ).fetchall()
+    candidates = []
+    for r in rows:
+        if not r["first_date"]:
+            continue
+        identifier = r["game_type"] if r["game_type"] != "REG" else str(r["week"])
+        candidates.append((identifier, r["first_date"], r["last_date"]))
+    return candidates
+
+
+def _cfb_week_candidates(c, season: int) -> list[tuple[str, str, str]]:
+    """Every real (identifier, first_date, last_date) CFB week/postseason
+    slate for this season -- see _nfl_week_candidates()'s own docstring
+    for why this is a shared extraction, not a re-derivation."""
+    rows = c.execute(
+        "SELECT week, MIN(game_date) AS first_date, MAX(game_date) AS last_date FROM cfb_games_canonical "
+        "WHERE season=? AND season_type='regular' GROUP BY week", (season,),
+    ).fetchall()
+    candidates = [(str(r["week"]), r["first_date"], r["last_date"]) for r in rows if r["first_date"]]
+
+    cfp_round_to_token = {
+        "first_round": "CFP_FIRST_ROUND", "quarterfinal": "CFP_QUARTERFINAL",
+        "semifinal": "CFP_SEMIFINAL", "championship": "CFP_CHAMPIONSHIP",
+    }
+    for round_name, token in cfp_round_to_token.items():
+        row = c.execute(
+            "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
+            "WHERE season=? AND is_playoff=1 AND playoff_round=?", (season, round_name),
+        ).fetchone()
+        if row["d"]:
+            candidates.append((token, row["d"], row["d2"]))
+    bowl_row = c.execute(
+        "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
+        "WHERE season=? AND season_type='postseason' AND is_playoff=0", (season,),
+    ).fetchone()
+    if bowl_row["d"]:
+        candidates.append(("BOWLS", bowl_row["d"], bowl_row["d2"]))
+    return candidates
+
+
+def real_week_candidates(c, league: str, season: int) -> list[tuple[str, str, str]]:
+    """Public entry point for both real leagues' candidate lists -- see
+    the two league-specific helpers above."""
+    return _nfl_week_candidates(c, season) if league == "NFL" else _cfb_week_candidates(c, season)
+
+
+def weeks_concluded_so_far(c, league: str, season: int) -> list[str]:
+    """Every real week/postseason slate identifier for this (league,
+    season) whose own last real game has already been played, oldest
+    first -- the real, complete history a season-long Pick'em record can
+    be graded against. Deliberately reuses real_week_candidates() (the
+    same real data resolve_current_week() itself is built from) rather
+    than a second, independent "what counts as a real week" query."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    candidates = real_week_candidates(c, league, season)
+    concluded = [cand for cand in candidates if cand[2][:10] < today]
+    concluded.sort(key=lambda cand: cand[1])
+    return [identifier for identifier, _, _ in concluded]
+
+
 def resolve_current_week(c, league: str, season: int) -> str | None:
     """Real current/next week for (league, season), derived from the live
     schedule tables -- never fabricated. Returns None only when this
@@ -174,63 +247,44 @@ def resolve_current_week(c, league: str, season: int) -> str | None:
     _nfl_slate_rows() / _NFL_POSTSEASON_WEEK_CODES already expect."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if league == "NFL":
-        rows = c.execute(
-            "SELECT week, game_type, MIN(game_date) AS first_date FROM games "
-            "WHERE season=? GROUP BY week, game_type", (season,),
-        ).fetchall()
-        weeks = [(r["week"], r["game_type"], r["first_date"]) for r in rows if r["first_date"]]
-        if not weeks:
+        # Pick'em Season Record pass: reuses the same real candidate list
+        # weeks_concluded_so_far() is built from (_nfl_week_candidates())
+        # instead of re-deriving this identical query a second, possibly-
+        # inconsistent way -- byte-identical selection logic to before
+        # this extraction (earliest-first_date-not-yet-passed, else the
+        # most recent past week by first_date).
+        candidates = _nfl_week_candidates(c, season)
+        if not candidates:
             return None
-        weeks.sort(key=lambda w: w[2])
-        for week, game_type, first_date in weeks:
+        candidates.sort(key=lambda cand: cand[1])
+        for identifier, first_date, _last_date in candidates:
             if first_date[:10] >= today:
-                return game_type if game_type != "REG" else str(week)
-        last_week, last_game_type, _ = weeks[-1]  # every real game already final -- most recent past week
-        return last_game_type if last_game_type != "REG" else str(last_week)
+                return identifier
+        return candidates[-1][0]  # every real game already final -- most recent past week
 
     # Dynamic Weekly Pick'em pass, real bug fix: cfb_games_canonical.week is
     # NOT globally unique across season_type the way games.week already is
     # for NFL (confirmed live: season=2025,week=1 holds 200 real regular-
     # season games PLUS 43 real bowls PLUS 11 real CFP games, all
-    # mislabeled week=1). Scoping to season_type='regular' here fixes the
-    # same real bug class the NFL branch above was already fixed for --
-    # without it, a live CFB postseason would silently resolve back to a
-    # bowl/CFP game mislabeled as an early regular-season week instead.
-    rows = c.execute(
-        "SELECT week, MIN(game_date) AS first_date, MAX(game_date) AS last_date FROM cfb_games_canonical "
-        "WHERE season=? AND season_type='regular' GROUP BY week", (season,),
-    ).fetchall()
-    weeks = [(r["week"], r["first_date"], r["last_date"]) for r in rows if r["first_date"]]
-
+    # mislabeled week=1). Scoping to season_type='regular' fixes the same
+    # real bug class the NFL branch above was already fixed for -- without
+    # it, a live CFB postseason would silently resolve back to a bowl/CFP
+    # game mislabeled as an early regular-season week instead.
+    #
     # Dynamic Weekly Pick'em pass, second real bug fix found while verifying
     # the first one: gather EVERY real candidate slate (regular weeks, each
     # CFP round, bowls) as (identifier, first_date, last_date) and rank them
     # UNIFORMLY by real date, rather than checking regular season first and
     # only falling back to postseason as an afterthought -- the earlier
-    # version's final fallback (`weeks[-1]`) could return a real, but
-    # already-superseded, LAST REGULAR week even once the real postseason
-    # (which runs weeks after the regular season ends) had also already
-    # finished, since it never compared against real postseason dates at
-    # all. Tokens match weekly_pickem.py's own
-    # _CFB_POSTSEASON_WEEK_TOKENS/_CFP_ROUND_TO_TOKEN exactly.
-    candidates = [(str(week), first_date, last_date) for week, first_date, last_date in weeks]
-    cfp_round_to_token = {
-        "first_round": "CFP_FIRST_ROUND", "quarterfinal": "CFP_QUARTERFINAL",
-        "semifinal": "CFP_SEMIFINAL", "championship": "CFP_CHAMPIONSHIP",
-    }
-    for round_name, token in cfp_round_to_token.items():
-        row = c.execute(
-            "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
-            "WHERE season=? AND is_playoff=1 AND playoff_round=?", (season, round_name),
-        ).fetchone()
-        if row["d"]:
-            candidates.append((token, row["d"], row["d2"]))
-    bowl_row = c.execute(
-        "SELECT MIN(game_date) AS d, MAX(game_date) AS d2 FROM cfb_games_canonical "
-        "WHERE season=? AND season_type='postseason' AND is_playoff=0", (season,),
-    ).fetchone()
-    if bowl_row["d"]:
-        candidates.append(("BOWLS", bowl_row["d"], bowl_row["d2"]))
+    # version's final fallback could return a real, but already-superseded,
+    # LAST REGULAR week even once the real postseason (which runs weeks
+    # after the regular season ends) had also already finished, since it
+    # never compared against real postseason dates at all. Tokens match
+    # weekly_pickem.py's own _CFB_POSTSEASON_WEEK_TOKENS/_CFP_ROUND_TO_TOKEN
+    # exactly. Pick'em Season Record pass: now built via _cfb_week_
+    # candidates() (see that function's own docstring) instead of inline
+    # duplicate queries -- byte-identical selection logic to before.
+    candidates = _cfb_week_candidates(c, season)
 
     if not candidates:
         return None  # genuinely no real schedule rows for this (league, season) at all
