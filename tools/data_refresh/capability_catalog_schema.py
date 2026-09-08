@@ -294,6 +294,32 @@ def backfill_legacy_capabilities(c) -> dict:
 
 
 def run_capability_catalog_migration() -> dict:
+    """Absolute Final Closeout (Item 10): the earlier "database is locked"
+    difficulty running this against production was never a code bug --
+    confirmed directly, Sep 7 2026 -- it was running this (or attempting
+    to) WHILE a data refresh held the database's write lock. This function
+    has no admin HTTP route (it isn't tracked via refresh_runs/run_id the
+    way the 34 scheduled refresh scripts are, since it only ever runs
+    on-demand after a code deploy adds a new registry.py capability, not on
+    a schedule), so it must be invoked directly over SSH:
+
+        fly ssh console -C "python3 -c \"
+        import sys; sys.path.insert(0,'/app')
+        from tools.data_refresh import capability_catalog_schema
+        print(capability_catalog_schema.run_capability_catalog_migration())
+        \""
+
+    ALWAYS check GET /v1/admin/refresh/status first and confirm no dataset
+    shows RUNNING (this function calls create_verified_backup(), the same
+    real ~1.6-4GB file-copy-and-verify every scheduled refresh does, and
+    the whole Gateway machine only safely supports one such operation at a
+    time -- see admin_refresh.py's own module docstring). backfill_
+    legacy_capabilities() above is idempotent (INSERT-if-not-exists only,
+    never UPDATE), so a re-run when nothing has changed is always a safe,
+    cheap no-op -- confirmed live: a real run with the queue idle completed
+    in well under the ~35-90 minute range this project's other backup-
+    verified operations take, and safely inserted exactly the 3 real rows
+    that were missing (no drift on any subsequent re-run)."""
     backup = safety.create_verified_backup()
     try:
         c = engine_bootstrap.connect()
