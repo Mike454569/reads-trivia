@@ -31,6 +31,7 @@ _GROUP_PHRASE = {
     "NFL_TEAM_SEASON_ROSTER": "{group} real starting offense",
     "DRAFT_CLASS": "{group}",
     "HONOR_GROUP": "{group}",
+    "CFB_ALL_AMERICA": "{group}",
 }
 
 
@@ -57,6 +58,9 @@ def safety_check(c) -> dict:
         "honor_group": safety.check_verification_status_safety(
             c, "nfl_all_pro_selections", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
             where_extra="is_ap = 1 AND honor_level = 'FIRST_TEAM'",
+        ),
+        "cfb_all_america": safety.check_verification_status_safety(
+            c, "cfb_all_america", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
         ),
     }
 

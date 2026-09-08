@@ -24,12 +24,21 @@ stop depending on one single 92-board dataset:
     `nfl_all_pro_selections`, joined to `nfl_players_draft.college` by
     player_id. 46 real season groups measured directly (>=4 college-
     resolved honorees), 1980-2025.
+  - `cfb_all_america_boards()`: Player Experience pass, real fix -- every
+    source above is NFL data (colleges only ever appear as an attribute of
+    an NFL player); this is the first genuinely COLLEGE-football-sourced
+    board in the pool. Real named College Football All-America honorees
+    from `cfb_all_america` (WIKIPEDIA_STRUCTURED_SECONDARY), resolved to
+    `schools.school_name`, grouped by season. 76 real season groups
+    measured directly (>=4 distinct real schools), floored at 1950 to
+    avoid single-platoon-era obscurity.
 
 Every source's `positions` dict values are real colleges attributed to a
-real person for a real (season, team/draft-class/honor-class) -- nothing
-here is invented, inferred, or guessed. `pool_kind` is carried through to
-every board so a caller can log/audit which real source produced a given
-generated question (provenance preserved end to end).
+real person for a real (season, team/draft-class/honor-class/All-America
+class) -- nothing here is invented, inferred, or guessed. `pool_kind` is
+carried through to every board so a caller can log/audit which real
+source produced a given generated question (provenance preserved end to
+end).
 """
 from __future__ import annotations
 
@@ -44,7 +53,7 @@ HONOR_GROUP_MIN_SEASON, HONOR_GROUP_MAX_SEASON = 1980, 2025
 
 ALL_POOL_KINDS = (
     "SB_CHAMPION", "CURRENT_TEAM_2026", "NFL_TEAM_SEASON_ROSTER",
-    "DRAFT_CLASS", "HONOR_GROUP",
+    "DRAFT_CLASS", "HONOR_GROUP", "CFB_ALL_AMERICA",
 )
 
 
@@ -200,6 +209,61 @@ def honor_group_boards(c) -> list[dict]:
     return boards
 
 
+CFB_ALL_AMERICA_MIN_SEASON, CFB_ALL_AMERICA_MAX_SEASON = 1950, 2025
+
+
+def cfb_all_america_boards(c) -> list[dict]:
+    """Player Experience pass, real fix: every existing board source above
+    is NFL data (colleges only ever appear as an attribute of an NFL
+    player) -- Odd College Out / Spot the Fake Lineup / One School Missing
+    never actually showed a real group of COLLEGE players. This source is
+    built entirely from real CFB players: `cfb_all_america`'s real, named
+    All-America honorees (WIKIPEDIA_STRUCTURED_SECONDARY), grouped by
+    season, resolved to `schools.school_name` (this database's one
+    canonical CFB school identity, same table cfb_offense_lineup.py/
+    cfb_ranking.py already resolve through -- never the row's own raw
+    `school_name_raw`, which is inconsistent for the same real school
+    across different source pages). Floored at 1950 (130 real seasons
+    exist all the way back to 1889, but pre-1950 single-platoon-era teams
+    are far too obscure for a player-facing distractor pool) -- 76 real
+    modern seasons measured directly with >=4 distinct real schools."""
+    rows = c.execute(
+        "SELECT a.season, a.position, a.school_id, s.school_name FROM cfb_all_america a "
+        "JOIN schools s ON s.school_id = a.school_id "
+        "WHERE a.school_id IS NOT NULL "
+        "ORDER BY a.season, a.position, a.record_id"
+    ).fetchall()
+
+    groups: dict[int, list] = {}
+    for r in rows:
+        if not (CFB_ALL_AMERICA_MIN_SEASON <= r["season"] <= CFB_ALL_AMERICA_MAX_SEASON):
+            continue
+        groups.setdefault(r["season"], []).append(r)
+
+    boards = []
+    for season, honorees in groups.items():
+        if len({h["school_id"] for h in honorees}) < 4:
+            continue  # not enough real, distinct schools to build a fair board
+        honorees = honorees[:11]  # cap, comparable size to an 11-slot lineup board
+        slots = {}
+        seen_labels: dict[str, int] = {}
+        for h in honorees:
+            base = (h["position"] or "Honoree").strip()
+            n = seen_labels.get(base, 0) + 1
+            seen_labels[base] = n
+            label = base if n == 1 else f"{base} {n}"
+            slots[label] = h["school_name"]
+        diff_score = (CFB_ALL_AMERICA_MAX_SEASON - season) / max(CFB_ALL_AMERICA_MAX_SEASON - CFB_ALL_AMERICA_MIN_SEASON, 1)
+        boards.append({
+            "board_id": f"CFB_ALL_AMERICA:{season}",
+            "team_display_name": f"{season} College Football All-America team",
+            "season": season, "difficulty": _score_to_label(diff_score),
+            "positions": slots, "pool_kind": "CFB_ALL_AMERICA",
+            "title": f"{season} College Football All-America Team",
+        })
+    return boards
+
+
 def _score_to_label(diff_score: float) -> str:
     # The curated SB_CHAMPION/CURRENT_TEAM_2026 boards' own `difficulty`
     # field is a plain 3-band {"EASY","MEDIUM","HARD"} string (this is what
@@ -222,6 +286,7 @@ _SOURCE_FUNCS = {
     "NFL_TEAM_SEASON_ROSTER": nfl_team_season_roster_boards,
     "DRAFT_CLASS": draft_class_boards,
     "HONOR_GROUP": honor_group_boards,
+    "CFB_ALL_AMERICA": cfb_all_america_boards,
 }
 
 # Real, measured N+1 fix (same class of defect this pass already fixed in
