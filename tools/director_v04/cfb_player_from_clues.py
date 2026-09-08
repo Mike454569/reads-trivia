@@ -20,19 +20,30 @@ equally here and is avoided the same way, by construction.
 Clue types, each backed by a real, disclosed source:
   school               -- the one real school this player's roster rows most
                            commonly name (cfb_roster_seasons_real.school_id
-                           -> schools.school_name).
+                           -> schools.school_name). Always shown first when
+                           real (see FORCED_OPENING_CLUE_TYPES/build_puzzle()
+                           -- a basic identifying fact every fan expects,
+                           not left to compete on narrowing power alone).
   position             -- the position from this player's most recent real
-                           roster row with a non-null position.
+                           roster row with a non-null position. Always shown
+                           second when real, same forced-opening reasoning.
   career_span          -- MIN/MAX(season) across this player's real roster
                            rows.
   all_america          -- True if certified in cfb_all_america_certified
-                           (real, cfb_player_id-keyed, 939 distinct players)
-                           -- a real, rare, strongly-narrowing honor.
+                           (real, cfb_player_id-keyed) -- a real, rare,
+                           strongly-narrowing honor. See DIFFICULTY_BANDS's
+                           own is_consensus split for why "certified" alone
+                           is no longer treated as automatically Easy.
   transfer_school_count -- this player's real school_count from
                            cfb_transfer_summary_v17 (cfb_player_id-keyed,
                            covers the full roster universe, not just
                            multi-school players -- school_count=1 is a real,
                            valid value too).
+  stat_highlight       -- this player's single most notable real college
+                           season in whichever stat category they clear
+                           STAT_THRESHOLDS by the largest real margin
+                           (cfb_player_season_stats_real, 2014-2025
+                           coverage only) -- see _attach_stat_highlights().
 
 Does not build a `college` clue (that word means something different here
 than it does for the NFL module -- there is no cross-league bridge to name)
@@ -67,6 +78,15 @@ MAX_SEASON = 2025
 REQUIRED_SOURCE_ID = "SPORTSDATAVERSE_CFB"
 REQUIRED_VERIFICATION_STATUS = "SOURCE_BACKED"
 
+STAT_CLUE_LABELS = {
+    "passing_yards": lambda v: f"This player passed for {v:,} yards in a single college season.",
+    "rushing_yards": lambda v: f"This player rushed for {v:,} yards in a single college season.",
+    "receiving_yards": lambda v: f"This player caught passes for {v:,} yards in a single college season.",
+    "defensive_interceptions": lambda v: f"This player recorded {v} interception{'s' if v != 1 else ''} in a single college season.",
+    "sacks": lambda v: f"This player recorded {v:g} sack{'s' if v != 1 else ''} in a single college season.",
+    "field_goals_made": lambda v: f"This player made {v} field goals in a single college season.",
+}
+
 CLUE_TEMPLATES = {
     "school": lambda v: f"This player played college football for {v}.",
     "position": lambda v: f"This player's college position was {v}.",
@@ -75,6 +95,11 @@ CLUE_TEMPLATES = {
     "transfer_school_count": lambda v: (
         f"This player played for {v} different real school{'s' if v != 1 else ''} across his college career."
     ),
+    # Player Experience pass (user request: "add stats into the clues if we
+    # can"): `v` is a (stat_column, value) pair -- see _attach_stat_highlights()
+    # for how a player's single most notable real season is chosen among the
+    # categories that clear STAT_THRESHOLDS.
+    "stat_highlight": lambda v: STAT_CLUE_LABELS[v[0]](v[1]),
 }
 
 CLUE_SOURCE_META = {
@@ -94,6 +119,10 @@ CLUE_SOURCE_META = {
     # inventing a source_id/verification_status value neither table has.
     "all_america": {"table": "cfb_all_america_certified", "field": "cfb_player_id membership (resolution_method + confidence 0.85-0.98)", "source_id": None, "verification_status": "IDENTITY_RESOLVED_CERTIFIED"},
     "transfer_school_count": {"table": "cfb_transfer_summary_v17", "field": "school_count (derived from cfb_roster_seasons_real)", "source_id": None, "verification_status": "DERIVED_FROM_SOURCE_BACKED_ROSTER"},
+    # cfb_player_season_stats_real carries a real, uniform verification_status/
+    # source_id of its own (confirmed directly: 100% SOURCE_BACKED_DERIVED /
+    # SPORTSDATAVERSE_CFB), unlike the two derived tables above.
+    "stat_highlight": {"table": "cfb_player_season_stats_real", "field": "single-season stat value (best qualifying category)", "source_id": "SPORTSDATAVERSE_CFB", "verification_status": "SOURCE_BACKED_DERIVED"},
 }
 
 QA_CHECKS_PERFORMED = [
@@ -198,13 +227,19 @@ def build_universe(c):
 
     if universe_ids:
         placeholders = ",".join("?" * len(universe_ids))
+        # Player Experience pass: is_consensus tracked separately from plain
+        # AA certification -- see _attach_difficulty_bands()'s own comment
+        # for why "Easy" now requires the real consensus tier, not any
+        # certified AA honor (many certified honors are single-selector/
+        # non-consensus recognitions a casual fan would not know).
         aa_rows = c.execute(
-            f"SELECT DISTINCT cfb_player_id FROM cfb_all_america_certified WHERE cfb_player_id IN ({placeholders})",
+            f"SELECT cfb_player_id, MAX(is_consensus) AS any_consensus FROM cfb_all_america_certified "
+            f"WHERE cfb_player_id IN ({placeholders}) GROUP BY cfb_player_id",
             tuple(universe_ids),
         ).fetchall()
-        aa_ids = {r["cfb_player_id"] for r in aa_rows}
-        for pid in aa_ids:
-            facts[pid]["all_america"] = True
+        for r in aa_rows:
+            facts[r["cfb_player_id"]]["all_america"] = True
+            facts[r["cfb_player_id"]]["all_america_consensus"] = bool(r["any_consensus"])
 
         transfer_rows = c.execute(
             f"SELECT cfb_player_id, school_count FROM cfb_transfer_summary_v17 WHERE cfb_player_id IN ({placeholders})",
@@ -214,6 +249,7 @@ def build_universe(c):
             facts[r["cfb_player_id"]]["transfer_school_count"] = r["school_count"]
 
     _attach_difficulty_bands(c, facts, universe_ids)
+    _attach_stat_highlights(c, facts, universe_ids)
 
     indexes: dict = {ct: {} for ct in CLUE_TEMPLATES}
     for pid, f in facts.items():
@@ -229,6 +265,9 @@ def build_universe(c):
         tsc = f.get("transfer_school_count")
         if tsc is not None:
             indexes["transfer_school_count"].setdefault(tsc, set()).add(pid)
+        sh = f.get("stat_highlight")
+        if sh is not None:
+            indexes["stat_highlight"].setdefault(sh, set()).add(pid)
 
     return facts, indexes, universe_ids
 
@@ -297,14 +336,55 @@ def _attach_difficulty_bands(c, facts: dict, universe_ids: frozenset) -> None:
     }
 
     for pid, f in facts.items():
-        if f.get("all_america") or (pid in bridge and bridge[pid] is not None and bridge[pid] <= 2):
+        # Player Experience pass, real fix: "Easy" originally meant "any
+        # certified All-America honor OR round 1-2 NFL draft pick" -- but
+        # only 299/916 real 2004+ certified AA honorees are CONSENSUS (the
+        # real "essentially every major selector agreed" tier; the other
+        # 617 are single-selector/lower-profile honors a casual fan is far
+        # less likely to know), and a round-2 pick is a real NFL player but
+        # not the same recognizability tier as a round-1 pick. Tightened to
+        # consensus AA OR round-1 specifically -- non-consensus AA and
+        # round-2/3 picks now land in the real "still notable, one tier
+        # down" Medium band instead.
+        if f.get("all_america_consensus") or (pid in bridge and bridge[pid] == 1):
             f["difficulty_band"] = "Easy"
-        elif pid in bridge:
+        elif f.get("all_america") or pid in bridge:
             f["difficulty_band"] = "Medium"
         elif pid in notable_stat_ids:
             f["difficulty_band"] = "Hard"
         else:
             f["difficulty_band"] = "Sicko"
+
+
+def _attach_stat_highlights(c, facts: dict, universe_ids: frozenset) -> None:
+    """Stamps facts[pid]['stat_highlight'] = (stat_column, value) for every
+    real player with at least one real single-season stat clearing
+    STAT_THRESHOLDS -- the same real notability signal _attach_difficulty_bands()
+    uses, now surfaced as an actual clue (user request: "add stats into the
+    clues if we can") rather than only a hidden banding input. When a
+    player clears more than one category, picks whichever they clear by
+    the largest real MARGIN over its threshold (their most standout real
+    category), not an arbitrary fixed priority order."""
+    if not universe_ids:
+        return
+    placeholders = ",".join("?" * len(universe_ids))
+    cols = ", ".join(f"MAX({col}) AS {col}" for col in STAT_THRESHOLDS)
+    rows = c.execute(
+        f"SELECT cfb_player_id, {cols} FROM cfb_player_season_stats_real "
+        f"WHERE cfb_player_id IN ({placeholders}) GROUP BY cfb_player_id",
+        tuple(universe_ids),
+    ).fetchall()
+    for row in rows:
+        best_col, best_value, best_margin = None, None, 0.0
+        for col, threshold in STAT_THRESHOLDS.items():
+            v = row[col]
+            if v is None or v < threshold:
+                continue
+            margin = v / threshold
+            if margin > best_margin:
+                best_col, best_value, best_margin = col, v, margin
+        if best_col is not None:
+            facts[row["cfb_player_id"]]["stat_highlight"] = (best_col, best_value)
 
 
 def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
@@ -336,16 +416,57 @@ def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
 OPENING_CLUE_VARIETY_EXCLUDE = frozenset({"transfer_school_count"})
 
 
+# Player Experience pass (user request: "always include the team they
+# played for and position"): forced ahead of the greedy narrowing loop
+# below, in this order, rather than left to compete on narrowing power --
+# school/position are real basic identifying facts every CFB fan expects
+# up front, even though they're rarely the MOST narrowing clue available
+# (a school/position combo is shared by many real players). Only forced
+# when the clue actually narrows the running candidate set at all (the
+# same real monotonic-decrease requirement validate_puzzle_qa() enforces
+# for every clue) -- skipped, never fabricated, on the rare real player
+# missing one of these two facts entirely.
+FORCED_OPENING_CLUE_TYPES = ("school", "position")
+
+
+def _force_clue(ct: str, pool: list, running: frozenset, f: dict) -> tuple[dict | None, frozenset]:
+    match = next((o for o in pool if o[0] == ct), None)
+    if match is None:
+        return None, running
+    _ct, v, cset = match
+    new_set = running & cset
+    if len(new_set) >= len(running):
+        return None, running  # would not narrow -- never included as a no-op clue
+    display_text = CLUE_TEMPLATES[ct](v)
+    if f["display_name"] and f["display_name"].lower() in display_text.lower():
+        return None, running
+    return {"clue_type": ct, "value": v, "display_text": display_text, "source": CLUE_SOURCE_META[ct],
+            "candidates_before": len(running), "candidates_after": len(new_set)}, new_set
+
+
 def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
     """Same real narrowing algorithm as player_from_clues.py's own
     build_puzzle() -- see that module's docstring for the rationale
     (broadest-still-narrowing clue first, deterministic tie-break, no RNG,
-    name-leakage rejection)."""
+    name-leakage rejection). FORCED_OPENING_CLUE_TYPES above are attempted
+    first, unconditionally; the remaining MAX_CLUES budget still runs the
+    original greedy-narrowing selection over every other real clue type."""
     f = facts[pid]
     running = universe_ids
     pool = _candidate_clues_for_player(pid, facts, indexes)
     selected: list = []
     used_types: set = set()
+
+    for ct in FORCED_OPENING_CLUE_TYPES:
+        if len(selected) >= MAX_CLUES or len(running) == 1:
+            break
+        clue, new_running = _force_clue(ct, pool, running, f)
+        if clue is None:
+            continue
+        clue["clue_index"] = len(selected)
+        selected.append(clue)
+        used_types.add(ct)
+        running = new_running
 
     while len(selected) < MAX_CLUES:
         step_options = []
@@ -444,27 +565,42 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
     return issues
 
 
+# Player Experience pass: generation is now stratified by exact band
+# (rather than one shuffled "notable" draw across Easy+Medium+Hard
+# together) so a real, sufficient number of genuinely Easy puzzles can be
+# guaranteed -- Easy is real but the smallest of the 3 recognizable bands
+# (593 real players universe-wide vs. 6,074 Medium / 3,003 Hard), and a
+# single unstratified draw would under-represent it by construction (a
+# uniform random sample would only pull ~6% Easy, matching what was
+# actually measured before this fix).
+POOL_TO_BANDS = {
+    "Easy": frozenset({"Easy"}), "Medium": frozenset({"Medium"}), "Hard": frozenset({"Hard"}),
+    "Sicko": frozenset({"Sicko"}), "notable": frozenset({"Easy", "Medium", "Hard"}),
+}
+
+
 def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START, pool: str = "notable") -> dict:
-    """`pool`: "notable" (default) draws puzzle TARGETS only from players
-    with a real Easy/Medium/Hard recognizability signal (see
+    """`pool`: one of POOL_TO_BANDS's keys. "Easy"/"Medium"/"Hard" each
+    draw puzzle TARGETS only from that exact real difficulty band (see
     _attach_difficulty_bands) -- this is the real fix for "use players
-    that casual and normal cfb fans would know." "sicko" draws targets
-    only from the real complement (no recognizability signal found at
-    all) -- an explicit, opt-in deep-cut tier, never silently mixed into
-    the default pool. Either way, clue narrowing/uniqueness math still
-    runs against the FULL real universe (universe_ids unrestricted) --
-    only which players are eligible to be a puzzle's ANSWER changes."""
-    if pool not in ("notable", "sicko"):
-        raise ValueError(f"pool must be 'notable' or 'sicko', got {pool!r}")
+    that casual and normal cfb fans would know," now with real control
+    over each band's own real representation. "notable" draws from all
+    three combined (Easy+Medium+Hard mixed by shuffle order) for a caller
+    that doesn't need per-band stratification. "Sicko" draws targets only
+    from the real complement (no recognizability signal found at all) --
+    an explicit, opt-in deep-cut tier, never silently mixed into any of
+    the other four. Either way, clue narrowing/uniqueness math still runs
+    against the FULL real universe (universe_ids unrestricted) -- only
+    which players are eligible to be a puzzle's ANSWER changes."""
+    if pool not in POOL_TO_BANDS:
+        raise ValueError(f"pool must be one of {sorted(POOL_TO_BANDS)}, got {pool!r}")
     c = engine.connect()
     safety_result = safety_check(c)
     facts, indexes, universe_ids = build_universe(c)
     c.close()
 
-    if pool == "notable":
-        target_pids = {pid for pid in universe_ids if facts[pid]["difficulty_band"] != "Sicko"}
-    else:
-        target_pids = {pid for pid in universe_ids if facts[pid]["difficulty_band"] == "Sicko"}
+    bands = POOL_TO_BANDS[pool]
+    target_pids = {pid for pid in universe_ids if facts[pid]["difficulty_band"] in bands}
 
     order = sorted(target_pids)
     rng = engine.seeded(seed)

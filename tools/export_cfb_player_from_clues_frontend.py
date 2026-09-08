@@ -14,16 +14,21 @@ real, meaningful on-field contributor. Confirmed directly: 2,843/3,300
 difficulty signals (All-America, NFL draft) are each real but rare.
 
 tools/director_v04/cfb_player_from_clues.py now computes a real,
-non-fabricated recognizability signal per player directly (All-America /
-NFL draft / a genuine season-stat threshold from cfb_player_season_stats_real
--- see that module's own STAT_THRESHOLDS/_attach_difficulty_bands) and
-generates two SEPARATE, non-overlapping source packages:
-  - director-v04-cfb-player-from-clues-notable.json: Easy/Medium/Hard --
-    the real "a normal CFB fan could plausibly know this player" pool.
+non-fabricated recognizability signal per player directly (consensus
+All-America / round-1 draft for Easy; other All-America/draft rounds for
+Medium; a genuine season-stat threshold from cfb_player_season_stats_real
+for Hard -- see that module's own STAT_THRESHOLDS/_attach_difficulty_bands)
+and generates FOUR separate, non-overlapping, exact-band source packages
+(one target_count per band, so the real but smaller Easy band -- 593
+real players universe-wide, vs. 6,074 Medium / 3,003 Hard -- gets a
+guaranteed sufficient real puzzle count instead of being under-
+represented by one shuffled draw across all three):
+  - director-v04-cfb-player-from-clues-{easy,medium,hard}.json: the real
+    "a normal CFB fan could plausibly know this player" pool.
   - director-v04-cfb-player-from-clues-sicko.json: Sicko -- the real,
     explicit deep-cut tier (no recognizability signal found at all).
-This script now reads difficulty_band directly off each puzzle (stamped
-at generation time, when every real signal was available) rather than
+This script reads difficulty_band directly off each puzzle (stamped at
+generation time, when every real signal was available) rather than
 re-deriving it here from a second, narrower NFL-bridge-only query.
 
 Does NOT regenerate, reorder, or recompute anything else -- pure 1:1
@@ -36,8 +41,15 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# One source package per exact real difficulty band (Player Experience pass:
+# stratified generation so Easy -- the smallest real recognizable band, 593
+# real players universe-wide -- gets a guaranteed, sufficient real puzzle
+# count instead of being under-represented by a single shuffled draw across
+# all three recognizable bands).
 SOURCE_PACKAGES = {
-    "notable": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-notable.json",
+    "easy": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-easy.json",
+    "medium": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-medium.json",
+    "hard": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-hard.json",
     "sicko": REPO_ROOT / "generated_games" / "director-v04-cfb-player-from-clues-sicko.json",
 }
 OUTPUT_JS = REPO_ROOT / "data" / "cfb-player-from-clues-v01.js"
@@ -128,14 +140,14 @@ def convert(packages: dict[str, dict]) -> dict:
         raise SystemExit("ABORT: duplicate answer player found across the combined source packages "
                           "-- the notable/sicko pools must be strictly non-overlapping.")
 
-    notable_package = packages["notable"]
+    primary_package = packages["easy"]
     result = {
-        "packageId": notable_package["package_id"],
-        "packageVersion": notable_package["package_version"],
-        "mechanic": notable_package["mechanic"],
-        "gameTitle": notable_package["game_title"],
-        "gameInstructions": notable_package["game_instructions"],
-        "generatedAt": notable_package["generated_at"],
+        "packageId": primary_package["package_id"],
+        "packageVersion": primary_package["package_version"],
+        "mechanic": primary_package["mechanic"],
+        "gameTitle": primary_package["game_title"],
+        "gameInstructions": primary_package["game_instructions"],
+        "generatedAt": primary_package["generated_at"],
         "qaStatus": "PASSED",
         "puzzleCount": len(all_puzzles),
         "puzzles": all_puzzles,
