@@ -34,7 +34,7 @@ _DIFF_MAP = {"EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"}
 
 def safety_check(c) -> dict:
     from .. import safety
-    return {
+    result = {
         "curated_boards": safety.check_verification_status_safety(
             c, "curated_nfl_offense_college_board", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
         ),
@@ -48,10 +48,20 @@ def safety_check(c) -> dict:
             c, "nfl_all_pro_selections", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
             where_extra="is_ap = 1 AND honor_level = 'FIRST_TEAM'",
         ),
-        "cfb_all_america": safety.check_verification_status_safety(
-            c, "cfb_all_america", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
-        ),
     }
+    # Real, live regression fix: this table exists in the vendored Engine
+    # snapshot but was missing from the production Fly volume when this
+    # source first shipped (production 500s, confirmed via logs) --
+    # safety_check() runs on EVERY real request before candidate fetching
+    # even starts, so this guard must live here too, not just in
+    # cfb_all_america_boards() (see group_common.cfb_all_america_table_exists()).
+    if group_common.cfb_all_america_table_exists(c):
+        result["cfb_all_america"] = safety.check_verification_status_safety(
+            c, "cfb_all_america", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
+        )
+    else:
+        result["cfb_all_america"] = {"status": "TABLE_NOT_YET_AVAILABLE_IN_THIS_ENGINE_DEPLOYMENT"}
+    return result
 
 
 def fetch_ordered_candidates(c, seed: str):

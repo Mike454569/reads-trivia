@@ -212,6 +212,23 @@ def honor_group_boards(c) -> list[dict]:
 CFB_ALL_AMERICA_MIN_SEASON, CFB_ALL_AMERICA_MAX_SEASON = 1950, 2025
 
 
+def cfb_all_america_table_exists(c) -> bool:
+    """Real, live regression this guard exists to prevent: `cfb_all_america`
+    is present in this repo's vendored Engine snapshot but was missing from
+    the production Fly volume's Engine database when this source first
+    shipped (confirmed via production logs: sqlite3.OperationalError: no
+    such table: cfb_all_america) -- the persistent production volume and a
+    freshly unpacked local Engine copy are not guaranteed to carry
+    identical table sets. Checked once via sqlite_master and reused by both
+    cfb_all_america_boards() below and every caller's own safety_check()
+    (game_director_v01.py runs safety_check() BEFORE fetch_ordered_candidates()
+    on every real request, so a guard only inside cfb_all_america_boards()
+    is not enough on its own)."""
+    return c.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cfb_all_america'"
+    ).fetchone() is not None
+
+
 def cfb_all_america_boards(c) -> list[dict]:
     """Player Experience pass, real fix: every existing board source above
     is NFL data (colleges only ever appear as an attribute of an NFL
@@ -226,7 +243,16 @@ def cfb_all_america_boards(c) -> list[dict]:
     across different source pages). Floored at 1950 (130 real seasons
     exist all the way back to 1889, but pre-1950 single-platoon-era teams
     are far too obscure for a player-facing distractor pool) -- 76 real
-    modern seasons measured directly with >=4 distinct real schools."""
+    modern seasons measured directly with >=4 distinct real schools.
+
+    See cfb_all_america_table_exists() above for why this checks table
+    existence first rather than letting the query itself crash: an
+    environment missing this table degrades to "this one real source is
+    temporarily unavailable," not a 500 that takes down 3 otherwise-
+    healthy public modes (Odd College Out, Spot the Fake Lineup, One
+    School Missing all call fetch_all_boards() with no pool_kinds filter)."""
+    if not cfb_all_america_table_exists(c):
+        return []
     rows = c.execute(
         "SELECT a.season, a.position, a.school_id, s.school_name FROM cfb_all_america a "
         "JOIN schools s ON s.school_id = a.school_id "

@@ -135,3 +135,53 @@ def test_every_cfb_all_america_school_resolves_through_the_canonical_schools_tab
         "WHERE s.school_id IS NULL AND a.school_id IS NOT NULL"
     ).fetchone()[0]
     assert missing == 0, f"{missing} real school_ids in cfb_all_america don't resolve through schools"
+
+
+def test_missing_cfb_all_america_table_degrades_gracefully_instead_of_crashing():
+    """Real, live production regression this test locks in: `cfb_all_america`
+    exists in this repo's vendored Engine snapshot but was missing from the
+    production Fly volume's Engine database when this source first shipped
+    -- confirmed via production logs (sqlite3.OperationalError: no such
+    table: cfb_all_america), which took down Odd College Out / Spot the
+    Fake Lineup / One School Missing with real 500s, since
+    game_director_v01.py calls adapter.safety_check() on EVERY request
+    before candidate fetching even starts. Simulates that exact gap by
+    renaming the table away on a real connection (restored in a finally,
+    never touching the on-disk file) and asserts generation still
+    completes -- with 4 other real, healthy sources in the shared pool,
+    losing 1 must never crash the other 3 modes."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import _group_board_common as gbc
+    from tools.quiz_export.adapters import cfb_odd_college_out, cfb_one_school_missing, cfb_spot_the_fake_lineup
+    from tools import game_director_v01 as v01
+
+    c = engine.connect()
+    c.execute("ALTER TABLE cfb_all_america RENAME TO cfb_all_america_hidden_for_test")
+    c.commit()
+    try:
+        assert gbc.cfb_all_america_table_exists(c) is False
+        assert gbc.cfb_all_america_boards(c) == []
+
+        for adapter, predicate, object_type in (
+            (cfb_odd_college_out, "IMPOSTOR_COLLEGE", "college"),
+            (cfb_one_school_missing, "MISSING_COLLEGE", "college"),
+            (cfb_spot_the_fake_lineup, "ALTERED_POSITION", "position"),
+        ):
+            safety_result = adapter.safety_check(c)
+            assert safety_result["cfb_all_america"] == {"status": "TABLE_NOT_YET_AVAILABLE_IN_THIS_ENGINE_DEPLOYMENT"}
+
+            factory_spec = {
+                "competition_id": "CFB", "mechanic": "guess", "entity_type": "odd_college_out_board",
+                "relationship_predicate": predicate, "object_type": object_type,
+                "answer_type": object_type, "group_size": 4, "filters": {},
+            }
+            pkg = v01.generate_package_from_spec(
+                factory_spec, adapter, request_text="pytest", director_request_id="pytest",
+                seed=f"pytest-missing-table-{adapter.CATEGORY}", target_count=50, id_start=1,
+            )
+            assert pkg["qa_status"] == "PASSED", f"{adapter.CATEGORY} crashed/failed with the table missing"
+            assert len(pkg["questions"]) > 0
+    finally:
+        c.execute("ALTER TABLE cfb_all_america_hidden_for_test RENAME TO cfb_all_america")
+        c.commit()
+        c.close()
