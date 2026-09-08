@@ -2074,6 +2074,11 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .era-gauntlet-marker { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; min-width: 44px; }
 .era-gauntlet-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--border); }
 .era-gauntlet-marker.done .era-gauntlet-dot { background: var(--good); border-color: var(--good); }
+/* Era Gauntlet distinctness pass: a completed stage now distinguishes a
+   real correct answer from a real miss (previously both rendered as the
+   same green "done" dot) -- turns the timeline into an actual result
+   record for this run, not just a progress indicator. */
+.era-gauntlet-marker.missed .era-gauntlet-dot { background: var(--bad); border-color: var(--bad); }
 .era-gauntlet-marker.current .era-gauntlet-dot { background: var(--home-accent, var(--accent)); border-color: var(--home-accent, var(--accent)); width: 16px; height: 16px; }
 .era-gauntlet-label { font-size: 10.5px; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
 .era-gauntlet-marker.current .era-gauntlet-label { color: var(--text); }

@@ -474,6 +474,13 @@ function startEnginePilotRound(modeKey, filterValue) {
     // ENGINE_PILOT_MODES' own sequential/needsFilterValue flags) -- every
     // other mode's behavior below is byte-identical to before this change.
     stageIndex: 0, filterValue: filterValue || null, sequenceCompleted: false, sequenceStageCount: null,
+    // Era Gauntlet distinctness pass (user request: "let's not make the
+    // era gauntlet just like the Three Clues and one champion gameplay"):
+    // a real per-stage correct/incorrect record, used to turn the shared
+    // timeline into an actual "your run through history" result instead
+    // of a plain done/current dot -- harmless, unused array for every
+    // other mode.
+    stageResults: [],
   };
   state.enginePilotPendingFranchise = null;
   state.screen = 'enginePilot';
@@ -572,6 +579,10 @@ function pickEnginePilotAnswer(optionIndex) {
     s.answerResult = result;
     s.seenGameIds.push(game.game_id);
     if (result.correct) s.correctCount++;
+    s.stageResults.push({
+      decade: game.payload.visual_payload && game.payload.visual_payload.era_decade_label,
+      correct: !!result.correct,
+    });
     playSound(result.correct ? 'correct' : 'wrong');
     s.screen = ENGINE_GAME_SCREEN.ANSWERED;
     renderAll();
@@ -640,13 +651,29 @@ function finishEnginePilotSession(correctCount, totalCount) {
 // fallback array is only a last resort for an old cached game object that
 // predates that field.
 var ERA_GAUNTLET_ERA_LABELS_FALLBACK = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
-function renderEraGauntletTimelineHtml(stageIndex, sequenceLabels) {
+// Era Gauntlet distinctness pass (user request: "let's not make the era
+// gauntlet just like the Three Clues and one champion gameplay"): the
+// timeline used to only ever show a plain "done" dot regardless of
+// whether that stage was answered correctly -- identical information to
+// Franchise Marathon's own stage counter, just drawn as dots. Now shows a
+// real check/miss per completed era (from s.stageResults, populated at
+// answer time in pickEnginePilotAnswer above), turning this into an
+// actual "your run through history" record, not a progress bar that
+// happens to have decade labels on it.
+function renderEraGauntletTimelineHtml(stageIndex, sequenceLabels, stageResults) {
   var labels = (sequenceLabels && sequenceLabels.length) ? sequenceLabels : ERA_GAUNTLET_ERA_LABELS_FALLBACK;
+  var results = stageResults || [];
   var markers = labels.map(function (label, i) {
     var cls = 'era-gauntlet-marker';
-    if (i < stageIndex) cls += ' done';
-    else if (i === stageIndex) cls += ' current';
-    return '<div class="' + cls + '"><span class="era-gauntlet-dot"></span><span class="era-gauntlet-label">' + label + '</span></div>';
+    var title = '';
+    if (i < stageIndex) {
+      var res = results[i];
+      cls += res && res.correct ? ' done' : ' missed';
+      title = ' title="' + (res && res.correct ? 'Correct' : 'Missed') + '"';
+    } else if (i === stageIndex) {
+      cls += ' current';
+    }
+    return '<div class="' + cls + '"' + title + '><span class="era-gauntlet-dot"></span><span class="era-gauntlet-label">' + label + '</span></div>';
   }).join('<div class="era-gauntlet-connector"></div>');
   return '<div class="era-gauntlet-timeline" role="img" aria-label="Era ' + (stageIndex + 1) + ' of ' + labels.length + ': ' +
     esc(labels[stageIndex] || '') + '">' + markers + '</div>';
@@ -840,9 +867,22 @@ function renderEnginePilotScreen() {
           s.correctCount + ' / ' + stageCount + ' correct.';
       }
     }
+    // Era Gauntlet distinctness pass: a real era-by-era recap (reusing the
+    // same timeline this run already showed in progress, now fully
+    // "done", each stage colored by whether it was actually answered
+    // correctly) instead of ending on the exact same plain text-only
+    // summary every other engine-pilot mode shares -- gives this mode's
+    // finish its own identity instead of reading as a generic quiz wrap-up.
+    var recapHtml = '';
+    if (s.modeKey === 'eraGauntlet' && s.stageResults.length) {
+      var recapLabels = (s.current && s.current.payload.visual_payload && s.current.payload.visual_payload.era_sequence_labels)
+        || s.stageResults.map(function (r) { return r.decade; });
+      recapHtml = renderEraGauntletTimelineHtml(recapLabels.length, recapLabels, s.stageResults);
+    }
     return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
       '<h2 class="panel-title">' + esc(completeTitle) + '</h2>' +
       '<p class="mode-desc">' + completeStat + '</p>' +
+      recapHtml +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button>' +
       '<button class="btn-secondary" data-share="' + esc(s.modeKey) + '">' + icon('share') + ' Share</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +
@@ -929,7 +969,7 @@ function renderEnginePilotScreen() {
   var franchiseLabel = null;
   if (cfg.sequential && s.modeKey === 'eraGauntlet') {
     var eraSequenceLabels = game.payload && game.payload.visual_payload && game.payload.visual_payload.era_sequence_labels;
-    progressHtml = renderEraGauntletTimelineHtml(s.stageIndex, eraSequenceLabels);
+    progressHtml = renderEraGauntletTimelineHtml(s.stageIndex, eraSequenceLabels, s.stageResults);
   } else if (cfg.sequential && s.modeKey === 'franchiseMarathon') {
     franchiseLabel = (cfg.franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
     progressHtml = quizProgressRowHtml('Stage ' + (s.stageIndex + 1), null, null);
