@@ -22,14 +22,23 @@ text uses a casual name the `schools` table doesn't -- Pittsburgh/"Pitt",
 South Florida/"USF", "Miami (FL)"/"Miami" -- and a same-prefix guard so
 e.g. "Texas" doesn't false-match inside "Texas A&M") OR the specific named
 rivalry itself (the trophy/nickname before the parenthetical in
-`rivalry_pack_name`, e.g. "Iron Bowl", "Bedlam", "Paul Bunyan's Axe")?  402
-of 860 rows pass this test and are real, on-topic rivalry content. The 458
-`trivia_id` numbers below are the rows that failed it -- verified by direct
-manual reading of every flagged pack, not just the automated pass (see
-CFBTRIV_1106-1272-range packs, Iowa/Iowa State, Penn State/Pitt, UCLA/USC
-for the clearest examples of the pattern: colors x2 + mascot x2 + fight
-song x2 + stadium name x2 + several individually-notable-alum bios, all per
-pack, out of only 1-4 real head-to-head rivalry facts each).
+`rivalry_pack_name`, e.g. "Iron Bowl", "Bedlam", "Paul Bunyan's Axe")?
+Verified by direct manual reading of every flagged pack, not just the
+automated pass (see CFBTRIV_1106-1272-range packs, Iowa/Iowa State, Penn
+State/Pitt, UCLA/USC for the clearest examples of the pattern: colors x2 +
+mascot x2 + fight song x2 + stadium name x2 + several individually-
+notable-alum bios, all per pack, out of only 1-4 real head-to-head
+rivalry facts each).
+
+Second pass, caught in live production spot-checking after the first
+458-row list shipped: 38 more rows still named the rivalry's nickname or
+trophy only in a decorative aside ("...occasional Iron Bowl host", "...a
+Paul Bunyan Trophy fixture") while the actual fact tested was still pure
+single-school identity trivia (a stadium's name, a fight song title, a
+conference a school joined) -- the name/nickname test alone isn't
+sufficient when the nickname is name-dropped rather than the row's real
+subject. These 38 are layered on top of the original 458 (496 total
+excluded of 860; 364 real rivalry-specific rows remain).
 
 This is a content-quality filter, not a data deletion -- the underlying
 `cfb_trivia_bank` rows are untouched (they're real, correctly-written
@@ -81,5 +90,11 @@ NON_RIVALRY_SPECIFIC_TRIVIA_IDS: frozenset[str] = frozenset(
         1223, 1225, 1226, 1228, 1229, 1230, 1232, 1233, 1234, 1238, 1239, 1240,
         1241, 1242, 1246, 1247, 1248, 1249, 1252, 1254, 1260, 1261, 1268, 1270,
         1271, 1272,
+        # Second pass (see docstring): nickname/trophy name-dropped in an
+        # aside, but the tested fact is still pure single-school identity.
+        420, 428, 429, 587, 596, 597, 615, 631, 648, 681, 685, 719,
+        729, 744, 799, 829, 849, 863, 886, 894, 899, 924, 963, 970,
+        982, 1028, 1038, 1058, 1070, 1075, 1078, 1083, 1101, 1111, 1123, 1131,
+        1171, 1218,
     )
 )

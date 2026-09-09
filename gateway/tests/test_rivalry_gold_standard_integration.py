@@ -82,12 +82,13 @@ def test_cfb_rivalry_trivia_now_produces_real_easy_content():
     category trivia. Never fabricates a fact -- only relabels difficulty.
 
     Player-reported content-quality pass (see
-    _cfb_rivalry_trivia_exclude_ids.py): most of those 83 Medium+rivalry
-    rows turned out to be single-school identity trivia (colors/mascot/
-    stadium name), not real head-to-head rivalry facts, and were removed
-    from the rivalry pool entirely -- only 7 of the 83 are genuine rivalry
-    content and survive that filter. The threshold below reflects that
-    real, smaller, correct count, not the original unfiltered one."""
+    _cfb_rivalry_trivia_exclude_ids.py, both its first and second passes):
+    most of those 83 Medium+rivalry rows turned out to be single-school
+    identity trivia (colors/mascot/stadium name), not real head-to-head
+    rivalry facts, and were removed from the rivalry pool entirely -- only
+    3 of the 83 are genuine rivalry content and survive that filter. The
+    threshold below reflects that real, smaller, correct count, not the
+    original unfiltered one."""
     from tools import game_director_v01 as v01
     from tools.quiz_export.adapters import cfb_rivalry_trivia as adapter
 
@@ -101,7 +102,7 @@ def test_cfb_rivalry_trivia_now_produces_real_easy_content():
         seed="pytest-crt-easy", target_count=2000, id_start=1,
     )
     easy = [q for q in pkg["questions"] if q["difficulty"] == "Easy"]
-    assert len(easy) >= 7
+    assert len(easy) >= 3
     medium = [q for q in pkg["questions"] if q["difficulty"] == "Medium"]
     hard = [q for q in pkg["questions"] if q["difficulty"] == "Hard"]
     assert medium and hard, "Medium/Hard depth must not regress while adding Easy"
