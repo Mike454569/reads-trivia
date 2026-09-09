@@ -50,15 +50,29 @@ rivalry nickname happened to appear anywhere in the same sentence, even
 as pure decoration around an unrelated achievement. Added the same kind
 of hard override for these. +353 rows.
 
-Final: 627 of 860 rows excluded, 233 remain -- verified by direct
-re-sampling after each pass (see git history on this file for each
-pass's own spot-check evidence). The 233 that remain are overwhelmingly
-real: rivalry trophy/nickname origin and history, series records and
-streaks, specific rivalry-game outcomes and moments, shared-conference-
-history framed as rivalry context. A small residual of coach-era bios
-("led the program through a strong Iron Bowl stretch") may still slip
-through pure regex classification -- a known, disclosed limit of this
-approach, not silently claimed as perfect.
+Pass 4: a live spot-check against the deployed Pass-3 fix (six real
+sampled production questions) caught 3 more of the exact same class --
+"led the program to its first-ever #1 AP ranking" / "reached #1 in the
+AP poll" / "transformed Kansas State ... into a national power" -- a
+national-ranking or program-turnaround bio, not a rivalry-game outcome.
+Added `ap ranking` / `ap poll` / `transformed ... program` / `national
+power` to the override, but deliberately kept CFBTRIV_464 ("The 2006
+edition of The Game featured both teams ranked #1 and #2 -- who won that
+game?") out of the override despite matching a ranking mention, since
+its own real subject IS the rivalry game's outcome -- a bare "#\d+
+ranked" pattern would have wrongly killed a genuinely good row along
+with the bad ones, so no such blanket pattern was added.
+
+Final: 630 of 860 rows excluded, 230 remain -- verified by direct
+re-sampling after each pass, including two live pulls from the deployed
+API (see git history on this file for each pass's own spot-check
+evidence). The 230 that remain are overwhelmingly real: rivalry trophy/
+nickname origin and history, series records and streaks, specific
+rivalry-game outcomes and moments, shared-conference-history framed as
+rivalry context. A small residual of coach-era bios ("led the program
+through a strong Iron Bowl stretch") may still slip through pure regex
+classification -- a known, disclosed limit of this approach, not
+silently claimed as perfect.
 
 This is a content-quality filter, not a data deletion -- the underlying
 `cfb_trivia_bank` rows are untouched (they're real, correctly-written
@@ -124,5 +138,8 @@ NON_RIVALRY_SPECIFIC_TRIVIA_IDS: frozenset[str] = frozenset(
         1228, 1229, 1230, 1232, 1233, 1234, 1238, 1239, 1240, 1241, 1242, 1243,
         1246, 1247, 1248, 1249, 1250, 1252, 1253, 1254, 1260, 1261, 1263, 1268,
         1270, 1271, 1272,
+        # Pass 4 (see docstring): AP ranking / program-turnaround bios
+        # caught by live spot-checking the deployed Pass-3 fix.
+        496, 993, 1190,
     )
 )
