@@ -397,3 +397,66 @@ def test_public_cfb_rivalry_guess_medium_is_cleanly_rejected(client):
     r = client.get("/v1/public/game", params={"mode": "cfb_rivalry_guess", "difficulty": "medium"})
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "INVALID_REQUEST"
+
+
+# --- Real, player-reported bugs: name the matchup + no BS team facts ----------
+
+def test_every_rivalry_trivia_question_names_the_real_matchup_up_front():
+    """Real, confirmed-live bug: a question like "Both programs claim a
+    combined total of well over a dozen national championships -- true or
+    false?" never told the player which two schools it was about until the
+    post-answer reveal note. Every rivalry-bank question must now open
+    with the real matchup (or the pack's real nickname) before the
+    question text itself."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import cfb_rivalry_trivia as adapter
+
+    c = engine.connect()
+    pkg = _generate_trivia("pytest-matchup-prefix-check", target_count=40)
+    assert pkg["qa_status"] == "PASSED"
+    for q in pkg["questions"]:
+        row = c.execute(
+            "SELECT is_rivalry, school_a_id, school_b_id, rivalry_pack_name FROM cfb_trivia_bank "
+            "WHERE trivia_id = ?", (q["entity_key"].split(":", 1)[1],),
+        ).fetchone()
+        if not row["is_rivalry"]:
+            continue
+        a_name = adapter._school_name(c, row["school_a_id"])
+        b_name = adapter._school_name(c, row["school_b_id"])
+        expected_prefix = f"{a_name} vs. {b_name}" if a_name and b_name else row["rivalry_pack_name"]
+        assert q["question"].startswith(f"{expected_prefix}: "), q["question"]
+
+
+def test_rivalry_trivia_never_serves_a_non_rivalry_specific_row():
+    """Real, player-reported bug: roughly half of every curated rivalry
+    pack is generic single-school trivia (colors/mascot/fight song/stadium
+    name/individual awards) that never tests any actual head-to-head
+    rivalry knowledge -- e.g. "What are Auburn's school colors?" inside the
+    Iron Bowl pack. See _cfb_rivalry_trivia_exclude_ids.py for the full
+    audit. None of those 458 known-bad rows may ever reach a real game."""
+    from tools.quiz_export.adapters._cfb_rivalry_trivia_exclude_ids import (
+        NON_RIVALRY_SPECIFIC_TRIVIA_IDS,
+    )
+
+    for i in range(20):
+        pkg = _generate_trivia(f"pytest-no-bs-facts-{i}", target_count=20)
+        for q in pkg["questions"]:
+            entity_key = q.get("entity_key") or ""
+            assert entity_key.startswith("cfbtrivia:"), q
+            trivia_id = entity_key.split(":", 1)[1]
+            assert trivia_id not in NON_RIVALRY_SPECIFIC_TRIVIA_IDS, q["question"]
+
+
+def test_evaluate_rejects_a_known_non_rivalry_specific_row_directly():
+    """Direct unit check on the exact reported row (Nebraska vs Oklahoma's
+    "combined national championships" question, which never named either
+    school) -- confirms it's now excluded rather than merely untested."""
+    from tools.quiz_export import engine
+    from tools.quiz_export.adapters import cfb_rivalry_trivia as adapter
+    from tools.quiz_export.duplicates import DuplicateGuard
+
+    c = engine.connect()
+    row = c.execute("SELECT * FROM cfb_trivia_bank WHERE trivia_id = 'CFBTRIV_732'").fetchone()
+    assert row is not None
+    result = adapter.evaluate(c, row, engine.seeded("pytest-732"), DuplicateGuard(track_entity=True))
+    assert result == "NOT_RIVALRY_SPECIFIC"

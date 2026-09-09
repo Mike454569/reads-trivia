@@ -38,6 +38,7 @@ from collections import Counter
 
 from .. import difficulty as difficulty_mod
 from .. import engine, safety, serializer
+from ._cfb_rivalry_trivia_exclude_ids import NON_RIVALRY_SPECIFIC_TRIVIA_IDS
 
 OUT_PATH = None  # Director-pipeline-only, like cfb_heisman.py
 CATEGORY = "CFB Rivalry Trivia"
@@ -57,6 +58,17 @@ SUPPORTS_FILTERS = True
 
 _DIFFICULTY_MAP = {"Medium": "Medium", "Hard": "Hard", "Very Hard": "Hard"}
 _LETTER_TO_FIELD = {"A": "option_a", "B": "option_b", "C": "option_c", "D": "option_d"}
+
+_school_name_cache: dict[str, str] = {}
+
+
+def _school_name(c, school_id: str | None) -> str | None:
+    if not school_id:
+        return None
+    if school_id not in _school_name_cache:
+        row = c.execute("SELECT school_name FROM schools WHERE school_id=?", (school_id,)).fetchone()
+        _school_name_cache[school_id] = row["school_name"] if row else None
+    return _school_name_cache[school_id]
 
 
 def safety_check(c) -> dict:
@@ -106,11 +118,30 @@ def evaluate(c, row, rng, guard):
     question = row["question"]
     if not question:
         return "MISSING_QUESTION"
+    # Player-reported real bug: roughly half of every curated rivalry pack
+    # is single-school identity trivia (colors/mascot/fight song/stadium
+    # name/individual awards) with a decorative "...relevant to this
+    # rivalry" clause -- never actual head-to-head rivalry knowledge. See
+    # _cfb_rivalry_trivia_exclude_ids.py's own docstring for the full
+    # audit methodology (402 of 860 real rivalry rows are genuine).
+    if row["trivia_id"] in NON_RIVALRY_SPECIFIC_TRIVIA_IDS:
+        return "NOT_RIVALRY_SPECIFIC"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
     entity_key = f"cfbtrivia:{row['trivia_id']}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_TRIVIA_ROW"
+
+    # Player-reported real bug: a rivalry question never named which two
+    # teams it was about until the post-answer reveal note. Every real
+    # rivalry row prefixes the question with the actual matchup so the
+    # player always knows which rivalry they're being asked about.
+    if row["is_rivalry"]:
+        a_name = _school_name(c, row["school_a_id"])
+        b_name = _school_name(c, row["school_b_id"])
+        matchup = f"{a_name} vs. {b_name}" if a_name and b_name else row["rivalry_pack_name"]
+        if matchup:
+            question = f"{matchup}: {question}"
 
     distractor_texts = [o for o in options_in_order if o != correct_text]
     if len(distractor_texts) != 3:
