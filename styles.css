@@ -1789,6 +1789,21 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 .encyc-classroom-link { margin: 14px 0 4px; }
 .encyc-provenance { margin-top: 18px; font-size: 11.5px; color: var(--text-dim); }
+/* Encyclopedia Diagrams + Deep Dives pass: authored "In Depth" content for
+   a concept with no exact diagram of its own -- visually distinct from the
+   DB-sourced .encyc-fields list (a real, disclosed authorship difference,
+   see data/encyclopedia-deep-dives.js's own module comment) but matching
+   the same subdued, informational tone as everything else on this page. */
+.encyc-authored-dive {
+  margin: 14px 0; padding: 12px 14px; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.encyc-authored-dive-label {
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 6px;
+}
+.encyc-authored-dive-label .icon { width: 14px; height: 14px; }
+.encyc-authored-dive p.mode-desc { margin: 0; }
 
 @media (max-width: 520px) {
   .encyc-row { flex-direction: column; align-items: flex-start; gap: 4px; }

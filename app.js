@@ -449,6 +449,11 @@ var LEARN_ENCYCLOPEDIA = window.LEARN_ENCYCLOPEDIA || null;
 // see LEARN_SECTIONS' footballEncyclopedia entry below.
 var FOOTBALL_DIAGRAMS = window.FOOTBALL_DIAGRAMS || null;
 var FootballField = window.FootballField || null;
+// Encyclopedia Diagrams + Deep Dives pass (data/encyclopedia-deep-dives.js):
+// real "closest matching diagram" overrides + authored deep-dive text for
+// concepts f101DiagramFor()'s own exact-canonical_id match can't reach --
+// see that file's own module comment for the full real-signal reasoning.
+var ENCYCLOPEDIA_DEEP_DIVES = window.ENCYCLOPEDIA_DEEP_DIVES || null;
 var GRID_PLAYERS = window.GRID_PLAYERS || [];
 var GRID_CRITERIA = window.GRID_CRITERIA || { team: [], stat: [], all: [] };
 var BLITZ_LISTS = window.BLITZ_LISTS || [];
@@ -1290,6 +1295,7 @@ function refreshDataAliases() {
   LEARN_ENCYCLOPEDIA = window.LEARN_ENCYCLOPEDIA || LEARN_ENCYCLOPEDIA;
   FOOTBALL_DIAGRAMS = window.FOOTBALL_DIAGRAMS || FOOTBALL_DIAGRAMS;
   FootballField = window.FootballField || FootballField;
+  ENCYCLOPEDIA_DEEP_DIVES = window.ENCYCLOPEDIA_DEEP_DIVES || ENCYCLOPEDIA_DEEP_DIVES;
   // Engine v4.0-sourced players (data/grid-engine-players.js, see
   // tools/grid_export/build_grid_engine_players.py) concatenated onto the
   // hand-curated pool -- recomputed from the two stable window.* sources
@@ -8466,7 +8472,7 @@ var LEARN_SECTIONS = [
     // engine and its data-driven formation/front/coverage/concept library --
     // lazy-loaded here too, never part of the initial page load, exactly
     // like every other Learn data file.
-    dataFiles: ['data/learn-encyclopedia.js', 'data/learn-coverages.js', 'football-field.js', 'data/football-diagrams.js'] },
+    dataFiles: ['data/learn-encyclopedia.js', 'data/learn-coverages.js', 'football-field.js', 'data/football-diagrams.js', 'data/encyclopedia-deep-dives.js'] },
   { id: 'coverageClassroom', league: 'nfl', icon: 'brain', title: 'Defensive Coverages: The Classroom',
     desc: 'Learn to read a defense -- Cover 0 through Cover 6, man vs. zone, and real rotations, taught step by step with interactive reps.',
     dataFiles: ['data/learn-coverages.js'] },
@@ -9231,6 +9237,22 @@ function f101DiagramFor(canonicalId) {
     var bucket = FOOTBALL_DIAGRAMS[key];
     if (bucket && bucket[canonicalId]) return { diagram: bucket[canonicalId], category: F101_DIAGRAM_CATEGORY_KEYS[key], bucketKey: key };
   }
+  // Encyclopedia Diagrams + Deep Dives pass: a real, curated "closest
+  // matching diagram" for a named variant with no diagram of its own (e.g.
+  // Cover 3 Cloud -> the base Cover 3 diagram) -- see data/encyclopedia-
+  // deep-dives.js's own module comment. Flagged isVariant so the render
+  // side shows an honest "closest related diagram" caveat instead of
+  // implying an exact match, and skips Test Me (which would generate
+  // questions against the base diagram's own canonical_id, not this one).
+  var dive = ENCYCLOPEDIA_DEEP_DIVES && ENCYCLOPEDIA_DEEP_DIVES[canonicalId];
+  if (dive && dive.diagramOverride) {
+    for (var key2 in F101_DIAGRAM_CATEGORY_KEYS) {
+      var bucket2 = FOOTBALL_DIAGRAMS[key2];
+      if (bucket2 && bucket2[dive.diagramOverride]) {
+        return { diagram: bucket2[dive.diagramOverride], category: F101_DIAGRAM_CATEGORY_KEYS[key2], bucketKey: key2, isVariant: true };
+      }
+    }
+  }
   return null;
 }
 function f101DefaultDiagramView() {
@@ -9421,7 +9443,7 @@ function renderEncyclopediaFieldsList(fields) {
 // panel. All toggle state lives on state.encyclopedia.diagramView so it
 // persists across a re-render but resets whenever a new concept opens
 // (see openEncyclopediaConcept()).
-function renderF101DiagramBlock(diagram, category) {
+function renderF101DiagramBlock(diagram, category, variantNote) {
   var dv = state.encyclopedia.diagramView || f101DefaultDiagramView();
   var chips = [];
   chips.push({ key: 'showResponsibilities', label: 'Show Responsibilities' });
@@ -9461,6 +9483,7 @@ function renderF101DiagramBlock(diagram, category) {
     panelHtml +
     (diagram.verified === false ? '<div class="encyc-caution">' + icon('flag') + ' Diagram reference -- not yet a source-verified encyclopedia entry.</div>' : '') +
     (diagram.variation_note ? '<p class="mode-desc">' + esc(diagram.variation_note) + '</p>' : '') +
+    (variantNote ? '<div class="encyc-caution">' + icon('flag') + ' ' + esc(variantNote) + '</div>' : '') +
     '</div>';
 }
 
@@ -9579,9 +9602,27 @@ function renderEncyclopediaConceptDetail() {
       var summary = f101QuickSummary(node, f101Match.diagram);
       quickSummaryHtml = summary ? '<p class="mode-desc">' + esc(summary) + '</p>' : '';
     }
-    seeItHtml = renderF101DiagramBlock(f101Match.diagram, f101Match.category);
-    testMeHtml = renderF101TestMe(id, f101Match.diagram, f101Match.category, f101Match.bucketKey);
+    // Encyclopedia Diagrams + Deep Dives pass: a variant match (e.g. Cover 3
+    // Cloud borrowing the base Cover 3 diagram) is real and useful, but
+    // isn't the same as an exact diagram for THIS concept -- an honest
+    // caveat naming both, and no Test Me (which would generate questions
+    // against the borrowed diagram's own canonical_id, not this concept).
+    var variantNote = f101Match.isVariant
+      ? 'Closest real diagram available (' + esc(f101Match.diagram.display_name || '') + ') -- see the write-up below for how ' + esc(title) + ' specifically differs.'
+      : null;
+    seeItHtml = renderF101DiagramBlock(f101Match.diagram, f101Match.category, variantNote);
+    if (!f101Match.isVariant) testMeHtml = renderF101TestMe(id, f101Match.diagram, f101Match.category, f101Match.bucketKey);
   }
+  // Encyclopedia Diagrams + Deep Dives pass (user request: "if u can't use
+  // a diagram add a deep dive"): real, authored football teaching content
+  // for a concept with no exact diagram of its own -- shown whether or not
+  // a variant diagram was also found above, since the diagram alone (exact
+  // or borrowed) never explains this concept's own specific nuance.
+  var authoredDive = kind === 'concept' && ENCYCLOPEDIA_DEEP_DIVES ? ENCYCLOPEDIA_DEEP_DIVES[id] : null;
+  var authoredDiveHtml = authoredDive
+    ? '<div class="encyc-authored-dive"><div class="encyc-authored-dive-label">' + icon('book') + ' In Depth</div>' +
+      '<p class="mode-desc">' + esc(authoredDive.text) + '</p></div>'
+    : '';
 
   var related = kind === 'concept' ? encyclopediaRelatedFor(id) : [];
   var relatedHtml = related.length ? (
@@ -9614,8 +9655,9 @@ function renderEncyclopediaConceptDetail() {
     readToggleHtml +
     quickSummaryHtml +
     seeItHtml +
+    authoredDiveHtml +
     ((!f101Match || readMode === 'deep') ? renderEncyclopediaFieldsList(fields) : '') +
-    (f101Match ? '<div class="f101-test-me-row">' + testMeHtml + '</div>' : '') +
+    (testMeHtml ? '<div class="f101-test-me-row">' + testMeHtml + '</div>' : '') +
     classroomLink +
     relatedHtml +
     provenance +
