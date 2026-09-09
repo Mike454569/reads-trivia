@@ -428,12 +428,13 @@ def test_every_rivalry_trivia_question_names_the_real_matchup_up_front():
 
 
 def test_rivalry_trivia_never_serves_a_non_rivalry_specific_row():
-    """Real, player-reported bug: roughly half of every curated rivalry
+    """Real, player-reported bug: a majority of every curated rivalry
     pack is generic single-school trivia (colors/mascot/fight song/stadium
-    name/individual awards) that never tests any actual head-to-head
-    rivalry knowledge -- e.g. "What are Auburn's school colors?" inside the
-    Iron Bowl pack. See _cfb_rivalry_trivia_exclude_ids.py for the full
-    audit. None of those 458 known-bad rows may ever reach a real game."""
+    name/individual awards/NFL Draft/national championships/coach hires)
+    that never tests any actual head-to-head rivalry knowledge -- e.g.
+    "What are Auburn's school colors?" inside the Iron Bowl pack. See
+    _cfb_rivalry_trivia_exclude_ids.py for the full three-pass audit. None
+    of those 627 known-bad rows may ever reach a real game."""
     from tools.quiz_export.adapters._cfb_rivalry_trivia_exclude_ids import (
         NON_RIVALRY_SPECIFIC_TRIVIA_IDS,
     )
