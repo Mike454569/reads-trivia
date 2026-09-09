@@ -63,16 +63,33 @@ its own real subject IS the rivalry game's outcome -- a bare "#\d+
 ranked" pattern would have wrongly killed a genuinely good row along
 with the bad ones, so no such blanket pattern was added.
 
-Final: 630 of 860 rows excluded, 230 remain -- verified by direct
+Pass 5: rather than keep chasing individual regex gaps one live sample
+at a time, every one of the 230 rows Pass 4 still kept was read and
+judged directly, row by row (not pattern-matched) -- the real test
+applied: does the question's own core interrogative target the rivalry
+itself (its trophy/nickname/history/series record, a specific rivalry-
+game outcome or moment, a coach or player's specific rivalry-game
+dominance, or a direct comparison of both rival schools), or does it
+target some other achievement (a coach's general tenure/hire/resurgence,
+a national/conference stat record, a win over a THIRD team, a program's
+own standalone tradition) with the rivalry only riding along as an era-
+marker or decorative clause? 63 more rows failed this direct read and
+were added (e.g. CFBTRIV_500's "Ole Miss coach led consecutive Egg
+Bowl-era wins over ALABAMA" -- the opponent named is a third team, not
+the Egg Bowl's own rival Mississippi State; CFBTRIV_759's "scored 6
+touchdowns against MICHIGAN in 1924 ... alongside its Northwestern
+rivalry" -- same wrong-opponent pattern).
+
+Final: 693 of 860 rows excluded, 167 remain -- verified by direct
 re-sampling after each pass, including two live pulls from the deployed
-API (see git history on this file for each pass's own spot-check
-evidence). The 230 that remain are overwhelmingly real: rivalry trophy/
-nickname origin and history, series records and streaks, specific
-rivalry-game outcomes and moments, shared-conference-history framed as
-rivalry context. A small residual of coach-era bios ("led the program
-through a strong Iron Bowl stretch") may still slip through pure regex
-classification -- a known, disclosed limit of this approach, not
-silently claimed as perfect.
+API, plus a full direct manual read of everything Pass 4 kept (Pass 5).
+The 167 that remain are overwhelmingly real: rivalry trophy/nickname
+origin and history, series records and streaks, specific rivalry-game
+outcomes and moments, a coach or player's specific in-rivalry dominance,
+and direct comparisons of both rival schools. No classification of 860
+free-text rows by any method is claimed to be perfect -- this is the
+result of five real, disclosed passes, not a claim of zero remaining
+edge cases.
 
 This is a content-quality filter, not a data deletion -- the underlying
 `cfb_trivia_bank` rows are untouched (they're real, correctly-written
@@ -141,5 +158,16 @@ NON_RIVALRY_SPECIFIC_TRIVIA_IDS: frozenset[str] = frozenset(
         # Pass 4 (see docstring): AP ranking / program-turnaround bios
         # caught by live spot-checking the deployed Pass-3 fix.
         496, 993, 1190,
+        # Pass 5 (see docstring): direct manual read of everything Pass 4
+        # still kept -- coach tenure/hire/resurgence bios, national/
+        # conference stat records, and wrong-opponent rows (a game against
+        # a THIRD team, decorated with this pack's rivalry name).
+        500, 504, 508, 528, 544, 577, 586, 589, 621, 628,
+        638, 646, 652, 668, 679, 680, 687, 688, 725, 731,
+        739, 742, 752, 754, 759, 767, 772, 794, 800, 804,
+        806, 818, 860, 861, 862, 875, 881, 897, 903, 921,
+        973, 990, 1005, 1007, 1013, 1051, 1054, 1057, 1063, 1066,
+        1076, 1105, 1108, 1120, 1133, 1170, 1177, 1193, 1197, 1217,
+        1227, 1237, 1245,
     )
 )

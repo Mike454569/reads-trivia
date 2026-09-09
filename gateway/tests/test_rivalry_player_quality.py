@@ -434,7 +434,7 @@ def test_rivalry_trivia_never_serves_a_non_rivalry_specific_row():
     that never tests any actual head-to-head rivalry knowledge -- e.g.
     "What are Auburn's school colors?" inside the Iron Bowl pack. See
     _cfb_rivalry_trivia_exclude_ids.py for the full three-pass audit. None
-    of those 630 known-bad rows may ever reach a real game."""
+    of those 693 known-bad rows may ever reach a real game."""
     from tools.quiz_export.adapters._cfb_rivalry_trivia_exclude_ids import (
         NON_RIVALRY_SPECIFIC_TRIVIA_IDS,
     )
