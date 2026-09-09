@@ -607,8 +607,11 @@ PASS_CONCEPTS = {
                             wr("WR1", 6), wr("WR2", 94, role="Z Receiver", ref="POSITION_Z_RECEIVER"),
                             slot("SL1", 20), slot("SL2", 80)],
         "routes": [
-            {"player": "SL1", "points": route_path((20, LOS), (68, LOS + 6), (78, LOS + 6)), "label": "Shallow cross"},
-            {"player": "SL2", "points": route_path((80, LOS), (32, LOS + 8), (22, LOS + 8)), "label": "Shallow cross (under)"},
+            # Player-reported real bug: both crossers were drawn with
+            # LOS + N (behind the line of scrimmage) instead of LOS - N --
+            # a real mesh crosses 4-6 yards PAST the LOS, never behind it.
+            {"player": "SL1", "points": route_path((20, LOS), (68, LOS - 6), (78, LOS - 6)), "label": "Shallow cross"},
+            {"player": "SL2", "points": route_path((80, LOS), (32, LOS - 4), (22, LOS - 4)), "label": "Shallow cross (under)"},
             {"player": "WR1", "points": route_path((6, LOS), (6, LOS - 24)), "label": "Go / clear-out"},
             {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 24)), "label": "Go / clear-out"},
             {"player": "RB", "points": route_path((40, LOS + 12), (40, LOS + 4))},
@@ -643,7 +646,9 @@ PASS_CONCEPTS = {
             {"player": "TE", "points": route_path((24, LOS), (55, LOS - 16), (90, LOS - 18)), "label": "Deep cross"},
             {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 22)), "label": "Go / hold the safety"},
             {"player": "SL1", "points": route_path((80, LOS), (80, LOS - 10), (68, LOS - 10)), "label": "Dig"},
-            {"player": "WR1", "points": route_path((6, LOS), (6, LOS + 4), (14, LOS + 4)), "label": "Drag / checkdown"},
+            # Same real bug as Mesh above: a drag/checkdown runs just past
+            # the LOS (a couple yards downfield), never behind it.
+            {"player": "WR1", "points": route_path((6, LOS), (6, LOS - 4), (14, LOS - 4)), "label": "Drag / checkdown"},
         ],
         "coverage_stress": "Attacks the middle of the field behind the linebackers -- especially effective vs. single-high coverage that has to run with the crosser.",
         "qb_read": "Deep cross first, working back to the dig, then the drag as the checkdown.",
@@ -698,7 +703,9 @@ PASS_CONCEPTS = {
         "players": ol() + [te(side="left"), qb("shotgun"), rb("RB", 58, LOS + 12),
                             wr("WR1", 6), wr("WR2", 94, role="Z Receiver", ref="POSITION_Z_RECEIVER")],
         "routes": [
-            {"player": "WR1", "points": route_path((6, LOS), (30, LOS + 3), (60, LOS + 3)), "label": "Shallow cross"},
+            # Same real bug as Mesh/Y-Cross: a shallow crossing route runs
+            # a couple yards PAST the LOS (LOS - N), never behind it.
+            {"player": "WR1", "points": route_path((6, LOS), (30, LOS - 3), (60, LOS - 3)), "label": "Shallow cross"},
             {"player": "TE", "points": route_path((24, LOS), (24, LOS - 12), (50, LOS - 12)), "label": "Dig (behind the shallow)"},
             {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 22)), "label": "Go / clear-out"},
         ],
@@ -720,6 +727,50 @@ PASS_CONCEPTS = {
         "qb_read": "Read the flat/corner defender: if he stays low on the hitch, throw the corner over him; if he carries the corner, the hitch is open underneath.",
         "weakness": "A safety who rotates over quickly, or a corner playing further off, can shrink the window the corner route needs.",
         "description": "Smash: a short outside hitch route paired with a deeper corner route from a receiver stacked inside it -- a two-level stretch on one defender.",
+    },
+    "PASSCONCEPT_DAGGER": {
+        # Player-reported real bug: the Football Encyclopedia's Route Tree
+        # entry for a Post route had no genuine diagram at all -- it was
+        # pointed at Four Verticals, which (correctly, for Go/Seam) draws
+        # nothing but straight vertical lines, so a Post rendered as "just
+        # a straight line" with no diagonal break. Dagger is a real, named
+        # concept whose outside route IS a genuine post break, so it's a
+        # real diagram to point the Post route entry at instead.
+        "display_name": "Dagger", "read": "Post clear-out into a deep dig",
+        "players": ol() + [qb("shotgun"), rb("RB", 40, LOS + 12),
+                            wr("WR1", 6), wr("WR2", 94, role="Z Receiver", ref="POSITION_Z_RECEIVER"),
+                            slot("SL1", 80)],
+        "routes": [
+            {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 10), (74, LOS - 26)), "label": "Post (clear-out)"},
+            {"player": "SL1", "points": route_path((80, LOS), (80, LOS - 16), (55, LOS - 16)), "label": "Deep dig (12-14 yd, behind the post)"},
+            {"player": "WR1", "points": route_path((6, LOS), (6, LOS - 24)), "label": "Go / hold the safety"},
+        ],
+        "coverage_stress": "Single-high shells -- the post clears the middle-of-field safety out of the way, opening the window for the dig running in behind it.",
+        "qb_read": "Post first to hold or clear the safety, then work to the dig sitting down behind him.",
+        "weakness": "Two-high shells that don't have to fully commit a safety to the post can rob the dig's window instead.",
+        "description": "Dagger: an outside receiver's post route clears out the deep safety, opening a window for a receiver running a deep dig underneath it.",
+    },
+    "PASSCONCEPT_CHINA": {
+        # Same real bug, different route: the Comeback entry had no
+        # genuine diagram either and was pointed at Smash, whose deep
+        # outside route is a Corner, not a Comeback -- so "Comeback"
+        # rendered as someone else's corner route. China is the real,
+        # named concept whose short outside route IS a genuine comeback.
+        "display_name": "China", "read": "Comeback/corner high-low",
+        "players": ol() + [qb("shotgun"), rb("RB", 40, LOS + 12),
+                            wr("WR1", 6), wr("WR2", 94, role="Z Receiver", ref="POSITION_Z_RECEIVER"),
+                            slot("SL1", 80)],
+        "routes": [
+            # WR2 is already aligned near the sideline (x=94) -- a real
+            # comeback breaks back AND toward the boundary, so the break
+            # point must have a HIGHER x than the stem, not lower.
+            {"player": "WR2", "points": route_path((94, LOS), (94, LOS - 14), (98, LOS - 10)), "label": "Comeback (outside)"},
+            {"player": "SL1", "points": route_path((80, LOS), (80, LOS - 10), (94, LOS - 18)), "label": "Corner (deep, outside)"},
+        ],
+        "coverage_stress": "Same two-level stretch as Smash, but the shorter route is a comeback instead of a hitch -- effective against off coverage, since the comeback exploits a cushioned corner's own depth.",
+        "qb_read": "Read the flat/corner defender: if he sits under the comeback, throw the corner over him; if he carries the corner, the comeback is open in front of him.",
+        "weakness": "A corner who anticipates the comeback and drives on it early can undercut the throw before the receiver finishes his break.",
+        "description": "China: a comeback route stacked with a deeper corner route from a receiver outside it -- the same two-level shape as Smash, with a comeback replacing the hitch underneath.",
     },
     "PASSCONCEPT_SLANT_FLAT": {
         "display_name": "Slants", "read": "Slant/flat high-low, quick game",

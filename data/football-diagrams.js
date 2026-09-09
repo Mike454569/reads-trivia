@@ -4149,11 +4149,11 @@ window.FOOTBALL_DIAGRAMS = {
       },
       {
        "x": 68,
-       "y": 56
+       "y": 44
       },
       {
        "x": 78,
-       "y": 56
+       "y": 44
       }
      ],
      "label": "Shallow cross"
@@ -4167,11 +4167,11 @@ window.FOOTBALL_DIAGRAMS = {
       },
       {
        "x": 32,
-       "y": 58
+       "y": 46
       },
       {
        "x": 22,
-       "y": 58
+       "y": 46
       }
      ],
      "label": "Shallow cross (under)"
@@ -4564,11 +4564,11 @@ window.FOOTBALL_DIAGRAMS = {
       },
       {
        "x": 6,
-       "y": 54
+       "y": 46
       },
       {
        "x": 14,
-       "y": 54
+       "y": 46
       }
      ],
      "label": "Drag / checkdown"
@@ -5133,11 +5133,11 @@ window.FOOTBALL_DIAGRAMS = {
       },
       {
        "x": 30,
-       "y": 53
+       "y": 47
       },
       {
        "x": 60,
-       "y": 53
+       "y": 47
       }
      ],
      "label": "Shallow cross"
@@ -5318,6 +5318,306 @@ window.FOOTBALL_DIAGRAMS = {
    "qb_read": "Read the flat/corner defender: if he stays low on the hitch, throw the corner over him; if he carries the corner, the hitch is open underneath.",
    "weakness": "A safety who rotates over quickly, or a corner playing further off, can shrink the window the corner route needs.",
    "description": "Smash: a short outside hitch route paired with a deeper corner route from a receiver stacked inside it -- a two-level stretch on one defender."
+  },
+  "PASSCONCEPT_DAGGER": {
+   "id": "PASSCONCEPT_DAGGER",
+   "side": "offense",
+   "los_y": 50,
+   "category": "pass_concept",
+   "verified": true,
+   "display_name": "Dagger",
+   "read": "Post clear-out into a deep dig",
+   "players": [
+    {
+     "id": "LT",
+     "label": "LT",
+     "x": 32,
+     "y": 50,
+     "role": "Left Tackle",
+     "position_ref": "POSITION_LEFT_RIGHT_TACKLE",
+     "assignment": "Protects the QB's blind side or drives the edge on run plays."
+    },
+    {
+     "id": "LG",
+     "label": "LG",
+     "x": 41,
+     "y": 50,
+     "role": "Left Guard",
+     "position_ref": "POSITION_GUARD",
+     "assignment": "Interior gap protection; pulls on power/counter schemes."
+    },
+    {
+     "id": "C",
+     "label": "C",
+     "x": 50,
+     "y": 50,
+     "role": "Center",
+     "position_ref": "POSITION_CENTER",
+     "assignment": "Snaps the ball; makes protection/run calls for the line."
+    },
+    {
+     "id": "RG",
+     "label": "RG",
+     "x": 59,
+     "y": 50,
+     "role": "Right Guard",
+     "position_ref": "POSITION_GUARD",
+     "assignment": "Interior gap protection; pulls on power/counter schemes."
+    },
+    {
+     "id": "RT",
+     "label": "RT",
+     "x": 68,
+     "y": 50,
+     "role": "Right Tackle",
+     "position_ref": "POSITION_LEFT_RIGHT_TACKLE",
+     "assignment": "Protects the edge on the strong/closed side."
+    },
+    {
+     "id": "QB",
+     "label": "QB",
+     "x": 50,
+     "y": 63,
+     "role": "Quarterback",
+     "position_ref": "POSITION_QUARTERBACK",
+     "assignment": "Takes the snap and directs the play."
+    },
+    {
+     "id": "RB",
+     "label": "RB",
+     "x": 40,
+     "y": 62,
+     "role": "Running Back",
+     "position_ref": "POSITION_RUNNING_BACK",
+     "assignment": "Primary ball carrier or pass-protection help."
+    },
+    {
+     "id": "WR1",
+     "label": "WR",
+     "x": 6,
+     "y": 50,
+     "role": "X Receiver",
+     "position_ref": "POSITION_X_RECEIVER",
+     "assignment": "Stretches the field vertically or works the perimeter."
+    },
+    {
+     "id": "WR2",
+     "label": "WR",
+     "x": 94,
+     "y": 50,
+     "role": "Z Receiver",
+     "position_ref": "POSITION_Z_RECEIVER",
+     "assignment": "Stretches the field vertically or works the perimeter."
+    },
+    {
+     "id": "SL1",
+     "label": "SL",
+     "x": 80,
+     "y": 48,
+     "role": "Slot / F Receiver",
+     "position_ref": "POSITION_SLOT_F_RECEIVER",
+     "assignment": "Works the middle of the field; frequent option/RPO read."
+    }
+   ],
+   "routes": [
+    {
+     "player": "WR2",
+     "points": [
+      {
+       "x": 94,
+       "y": 50
+      },
+      {
+       "x": 94,
+       "y": 40
+      },
+      {
+       "x": 74,
+       "y": 24
+      }
+     ],
+     "label": "Post (clear-out)"
+    },
+    {
+     "player": "SL1",
+     "points": [
+      {
+       "x": 80,
+       "y": 50
+      },
+      {
+       "x": 80,
+       "y": 34
+      },
+      {
+       "x": 55,
+       "y": 34
+      }
+     ],
+     "label": "Deep dig (12-14 yd, behind the post)"
+    },
+    {
+     "player": "WR1",
+     "points": [
+      {
+       "x": 6,
+       "y": 50
+      },
+      {
+       "x": 6,
+       "y": 26
+      }
+     ],
+     "label": "Go / hold the safety"
+    }
+   ],
+   "coverage_stress": "Single-high shells -- the post clears the middle-of-field safety out of the way, opening the window for the dig running in behind it.",
+   "qb_read": "Post first to hold or clear the safety, then work to the dig sitting down behind him.",
+   "weakness": "Two-high shells that don't have to fully commit a safety to the post can rob the dig's window instead.",
+   "description": "Dagger: an outside receiver's post route clears out the deep safety, opening a window for a receiver running a deep dig underneath it."
+  },
+  "PASSCONCEPT_CHINA": {
+   "id": "PASSCONCEPT_CHINA",
+   "side": "offense",
+   "los_y": 50,
+   "category": "pass_concept",
+   "verified": true,
+   "display_name": "China",
+   "read": "Comeback/corner high-low",
+   "players": [
+    {
+     "id": "LT",
+     "label": "LT",
+     "x": 32,
+     "y": 50,
+     "role": "Left Tackle",
+     "position_ref": "POSITION_LEFT_RIGHT_TACKLE",
+     "assignment": "Protects the QB's blind side or drives the edge on run plays."
+    },
+    {
+     "id": "LG",
+     "label": "LG",
+     "x": 41,
+     "y": 50,
+     "role": "Left Guard",
+     "position_ref": "POSITION_GUARD",
+     "assignment": "Interior gap protection; pulls on power/counter schemes."
+    },
+    {
+     "id": "C",
+     "label": "C",
+     "x": 50,
+     "y": 50,
+     "role": "Center",
+     "position_ref": "POSITION_CENTER",
+     "assignment": "Snaps the ball; makes protection/run calls for the line."
+    },
+    {
+     "id": "RG",
+     "label": "RG",
+     "x": 59,
+     "y": 50,
+     "role": "Right Guard",
+     "position_ref": "POSITION_GUARD",
+     "assignment": "Interior gap protection; pulls on power/counter schemes."
+    },
+    {
+     "id": "RT",
+     "label": "RT",
+     "x": 68,
+     "y": 50,
+     "role": "Right Tackle",
+     "position_ref": "POSITION_LEFT_RIGHT_TACKLE",
+     "assignment": "Protects the edge on the strong/closed side."
+    },
+    {
+     "id": "QB",
+     "label": "QB",
+     "x": 50,
+     "y": 63,
+     "role": "Quarterback",
+     "position_ref": "POSITION_QUARTERBACK",
+     "assignment": "Takes the snap and directs the play."
+    },
+    {
+     "id": "RB",
+     "label": "RB",
+     "x": 40,
+     "y": 62,
+     "role": "Running Back",
+     "position_ref": "POSITION_RUNNING_BACK",
+     "assignment": "Primary ball carrier or pass-protection help."
+    },
+    {
+     "id": "WR1",
+     "label": "WR",
+     "x": 6,
+     "y": 50,
+     "role": "X Receiver",
+     "position_ref": "POSITION_X_RECEIVER",
+     "assignment": "Stretches the field vertically or works the perimeter."
+    },
+    {
+     "id": "WR2",
+     "label": "WR",
+     "x": 94,
+     "y": 50,
+     "role": "Z Receiver",
+     "position_ref": "POSITION_Z_RECEIVER",
+     "assignment": "Stretches the field vertically or works the perimeter."
+    },
+    {
+     "id": "SL1",
+     "label": "SL",
+     "x": 80,
+     "y": 48,
+     "role": "Slot / F Receiver",
+     "position_ref": "POSITION_SLOT_F_RECEIVER",
+     "assignment": "Works the middle of the field; frequent option/RPO read."
+    }
+   ],
+   "routes": [
+    {
+     "player": "WR2",
+     "points": [
+      {
+       "x": 94,
+       "y": 50
+      },
+      {
+       "x": 94,
+       "y": 36
+      },
+      {
+       "x": 98,
+       "y": 40
+      }
+     ],
+     "label": "Comeback (outside)"
+    },
+    {
+     "player": "SL1",
+     "points": [
+      {
+       "x": 80,
+       "y": 50
+      },
+      {
+       "x": 80,
+       "y": 40
+      },
+      {
+       "x": 94,
+       "y": 32
+      }
+     ],
+     "label": "Corner (deep, outside)"
+    }
+   ],
+   "coverage_stress": "Same two-level stretch as Smash, but the shorter route is a comeback instead of a hitch -- effective against off coverage, since the comeback exploits a cushioned corner's own depth.",
+   "qb_read": "Read the flat/corner defender: if he sits under the comeback, throw the corner over him; if he carries the corner, the comeback is open in front of him.",
+   "weakness": "A corner who anticipates the comeback and drives on it early can undercut the throw before the receiver finishes his break.",
+   "description": "China: a comeback route stacked with a deeper corner route from a receiver outside it -- the same two-level shape as Smash, with a comeback replacing the hitch underneath."
   },
   "PASSCONCEPT_SLANT_FLAT": {
    "id": "PASSCONCEPT_SLANT_FLAT",
