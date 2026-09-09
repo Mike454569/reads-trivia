@@ -1177,6 +1177,31 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .hl-compare { padding: 10px; }
   .hl-value, .hl-hidden { font-size: 17px; }
 }
+/* Reusable Game Format System pass: TIMELINE_RIBBON -- a real, horizontal
+   alternate to the vertical sort-list above, over the exact same real
+   sortOrder state/data (see engine-game-ui.js's 'sorting' kind). Tap-to-
+   swap arrows, never drag-only (mobile rule: a sustained horizontal drag
+   fights page scroll; a tap does not). */
+.timeline-ribbon { display: flex; overflow-x: auto; gap: 8px; padding: 4px 2px 10px; margin-bottom: 6px; }
+.timeline-card { flex: 0 0 auto; min-width: 120px; display: flex; flex-direction: column; align-items: center;
+  gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); }
+.timeline-card-label { font-size: 13px; font-weight: 600; text-align: center; }
+/* Reusable Game Format System pass: BRACKET_TREE -- real matchups shown
+   round by round (never a full zoomed tree, per the format spec's own
+   mobile rule). Reuses .quiz-option for tappable entrant buttons (44px+
+   tap target already guaranteed there) rather than a bespoke button style. */
+.bracket-round { margin-bottom: 16px; opacity: 0.55; }
+.bracket-round-active { opacity: 1; }
+.bracket-matchup { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bracket-matchup .quiz-option { flex: 1; margin: 0; }
+.bracket-vs { font-size: 11px; font-weight: 700; color: var(--text-dim); flex-shrink: 0; }
+.bracket-matchup-decided { flex-direction: column; align-items: stretch; gap: 2px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 10px; font-size: 13.5px; }
+.bracket-matchup-decided .bracket-vs { align-self: center; }
+@media (max-width: 480px) {
+  .bracket-matchup { flex-direction: column; align-items: stretch; }
+  .bracket-matchup .bracket-vs { align-self: center; }
+}
 /* Game Creator (v1.8, Part B) -- admin-only hidden page, utilitarian
    styling reusing existing tokens/patterns rather than a parallel design
    language (same call as the pre-existing #stats owner-only page). */

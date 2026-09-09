@@ -920,6 +920,10 @@ def mechanics_start_round(body: MechanicRoundRequest, request: Request,
             raise GatewayError("INVALID_REQUEST", "LIVE_WEEKLY_FANTASY_DRAFT requires both season and week.")
         package = mechanic_engine.generate_fantasy_draft_round(
             variant=body.variant, season=body.season, week=body.week, seed=body.seed or "mechanics-round")
+    elif t == "COMPARISON_BRACKET":
+        if body.variant not in mechanic_engine.VARIANTS["COMPARISON_BRACKET"]:
+            raise GatewayError("INVALID_REQUEST", f"variant must be one of {sorted(mechanic_engine.VARIANTS['COMPARISON_BRACKET'])}.")
+        package = mechanic_engine.generate_comparison_round(variant=body.variant, seed=body.seed or "mechanics-round")
     else:
         raise GatewayError("INVALID_REQUEST", f"Unknown taxonomy_id {t!r}.")
 
@@ -929,13 +933,21 @@ def mechanics_start_round(body: MechanicRoundRequest, request: Request,
             package.get("shortfall_reason") or f"No qualifying {t} round could be generated right now.",
         )
 
+    # Reusable Game Format System pass: resolved/validated AFTER a
+    # successful generation but BEFORE the round is stored/returned -- an
+    # explicitly requested, incompatible format must still block a round
+    # from being handed back as playable (Section 29's own "if any
+    # condition fails, do not mark the game supported").
+    from .services.creator import _resolve_format
+    format_id = _resolve_format(t, body.format)
+
     stored = packages.save_package(package)
     progress = mechanic_engine.initial_progress(t)
     progress["taxonomy_id"] = t
     game_state.create_state(stored["package_id"], progress)
 
     view = mechanic_engine.client_safe_view(t, stored, progress)
-    return {"round_id": stored["package_id"], "taxonomy_id": t, "view": view}
+    return {"round_id": stored["package_id"], "taxonomy_id": t, "format_id": format_id, "view": view}
 
 
 @app.get("/v1/creator/mechanics/round/{round_id}")

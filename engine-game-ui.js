@@ -1039,6 +1039,18 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // Reusable Game Format System pass: the new `comparison` mechanic,
+  // rendered as a real BRACKET_TREE format (renderBracketTreeBody below) --
+  // the first mechanic in this shell with more than one real format
+  // (see SORT_LIST_DEFAULT/TIMELINE_RIBBON for the other, on 'sorting').
+  comparisonBracket: {
+    publicMode: 'comparison_nfl_wins', hash: '#comparisonpilot',
+    flagOn: function () { return ENABLE_ENGINE_COMPARISON_PILOT_V01; },
+    title: 'NFL Wins Bracket', kind: 'comparison',
+    desc: 'Predict the real winner of every matchup in this real 8-team bracket, based on regular-season win total.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1129,6 +1141,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'sorting' && r.total_items) pct = 100 * r.correct_positions / r.total_items;
   else if (cfg.kind === 'higher_lower') pct = Math.min(100, (v.streak != null ? v.streak : (r.streak || 0)) * 10);
   else if (cfg.kind === 'elimination') pct = Math.min(100, (v.survived_count != null ? v.survived_count : (r.survived_count || 0)) * 10);
+  else if (cfg.kind === 'comparison' && v.total_matchups) pct = 100 * v.correct_count / v.total_matchups;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1158,6 +1171,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     var survived = v.survived_count != null ? v.survived_count : r.survived_count;
     return '<p class="mode-desc">' + (survived != null ? 'Survived ' + survived + ' round' + (survived === 1 ? '' : 's') + '.' : '') +
       (r.correct === false ? ' That one ended the run.' : '') + '</p>';
+  }
+  if (cfg.kind === 'comparison') {
+    return '<p class="mode-desc">' + (v.total_matchups != null ? v.correct_count + ' of ' + v.total_matchups + ' real matchups predicted correctly.' : '') + '</p>' +
+      renderBracketTreeBody(v, {});
   }
   return '';
 }
@@ -1189,6 +1206,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'elimination') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.actual_membership ? 'That one was real.' : 'That one wasn’t real.';
+  } else if (cfg.kind === 'comparison') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = 'Real winner: ' + esc(r.real_winner) + ' (' + r.value_a + '-' + r.value_b + ').';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1227,8 +1247,30 @@ function renderMechanicPilotBody(cfg, s) {
   }
   if (cfg.kind === 'sorting') {
     if (!s.sortOrder) s.sortOrder = v.items_shuffled.map(function (it) { return it.item_id; });
+    if (!s.sortFormat) s.sortFormat = 'SORT_LIST_DEFAULT';
     var labelFor = function (id) { var it = v.items_shuffled.filter(function (x) { return x.item_id === id; })[0]; return it ? it.label : id; };
-    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    // Reusable Game Format System pass: the SAME real sorting round/data
+    // (s.sortOrder, the up/down mutation, the submit contract) playable in
+    // either format -- TIMELINE_RIBBON is a pure alternate presentation,
+    // never a second copy of the underlying game state (Section 16's own
+    // "same knowledge, different format" requirement).
+    var formatToggle = '<div class="chip-row">' +
+      '<button class="chip-toggle' + (s.sortFormat === 'SORT_LIST_DEFAULT' ? ' active' : '') + '" data-mechanic-sort-format="SORT_LIST_DEFAULT">List</button>' +
+      '<button class="chip-toggle' + (s.sortFormat === 'TIMELINE_RIBBON' ? ' active' : '') + '" data-mechanic-sort-format="TIMELINE_RIBBON">Timeline</button>' +
+      '</div>';
+    if (s.sortFormat === 'TIMELINE_RIBBON') {
+      return '<div class="quiz-question">' + esc(v.prompt) + '</div>' + formatToggle +
+        '<div class="timeline-ribbon">' + s.sortOrder.map(function (id, i) {
+          var atStart = i === 0, atEnd = i === s.sortOrder.length - 1;
+          return '<div class="timeline-card">' +
+            '<button class="btn-tiny" data-sort-up="' + i + '"' + (atStart ? ' disabled' : '') + '>&larr;</button>' +
+            '<span class="timeline-card-label">' + esc(labelFor(id)) + '</span>' +
+            '<button class="btn-tiny" data-sort-down="' + i + '"' + (atEnd ? ' disabled' : '') + '>&rarr;</button>' +
+            '</div>';
+        }).join('') + '</div>' +
+        '<div class="btn-row"><button class="btn-primary" data-sort-submit>Submit Order</button></div>';
+    }
+    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' + formatToggle +
       s.sortOrder.map(function (id, i) {
         // Section 8 polish: the up/down click handler already no-ops safely
         // at the ends (app.js's bounds check), but the buttons themselves
@@ -1258,7 +1300,47 @@ function renderMechanicPilotBody(cfg, s) {
       '<div class="quiz-question">' + esc(v.current_prompt || '(no more real items)') + '</div>' +
       (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-elim-guess="true">True</button><button class="btn-primary" data-elim-guess="false">False</button></div>');
   }
+  if (cfg.kind === 'comparison') {
+    return '<div class="status-line">Predicted: ' + (v.picks_made || 0) + ' / ' + (v.total_matchups || 0) + '</div>' +
+      renderBracketTreeBody(v, s);
+  }
   return '';
+}
+// Reusable Game Format System pass: the real BRACKET_TREE renderer -- a
+// real 8-entry single-elimination bracket, shown round by round (never a
+// full zoomed tree on one screen -- mobile rule from the format spec).
+// Generic over whatever real COMPARISON_BRACKET variant produced
+// `view.rounds` (NFL/CFB team-season win totals today); every matchup
+// still un-picked is tappable (data-mechanic-comparison-match/-side),
+// gated to the FIRST round with any unpicked matchup so the player works
+// through the bracket in real order without needing every round visible
+// and interactive at once on a small screen.
+function renderBracketTreeBody(v, s) {
+  var rounds = v.rounds || [];
+  var disabled = s.screen && s.screen !== ENGINE_GAME_SCREEN.QUESTION_READY;
+  var firstIncompleteRound = rounds.findIndex(function (r) {
+    return r.matchups.some(function (m) { return m.your_pick === undefined; });
+  });
+  return rounds.map(function (r, ri) {
+    var isActive = ri === firstIncompleteRound;
+    var matchupsHtml = r.matchups.map(function (m) {
+      if (m.your_pick !== undefined) {
+        return '<div class="bracket-matchup bracket-matchup-decided">' +
+          '<span class="' + (m.entrant_a === m.real_winner ? 'feedback-good' : (m.your_pick === m.entrant_a ? 'feedback-bad' : '')) + '">' + esc(m.entrant_a) + '</span>' +
+          '<span class="bracket-vs">vs</span>' +
+          '<span class="' + (m.entrant_b === m.real_winner ? 'feedback-good' : (m.your_pick === m.entrant_b ? 'feedback-bad' : '')) + '">' + esc(m.entrant_b) + '</span>' +
+          '<div class="status-line">Real winner: ' + esc(m.real_winner) + (m.correct ? ' -- you got it!' : '') + '</div></div>';
+      }
+      var tappable = isActive && !disabled;
+      return '<div class="bracket-matchup">' +
+        '<button class="quiz-option" ' + (tappable ? 'data-mechanic-comparison-match="' + esc(m.match_id) + '" data-mechanic-comparison-side="a"' : 'disabled') + '>' + esc(m.entrant_a) + '</button>' +
+        '<span class="bracket-vs">vs</span>' +
+        '<button class="quiz-option" ' + (tappable ? 'data-mechanic-comparison-match="' + esc(m.match_id) + '" data-mechanic-comparison-side="b"' : 'disabled') + '>' + esc(m.entrant_b) + '</button>' +
+        '</div>';
+    }).join('');
+    return '<div class="bracket-round' + (isActive ? ' bracket-round-active' : '') + '">' +
+      '<div class="encyc-subcategory-label">' + esc(r.round_label) + '</div>' + matchupsHtml + '</div>';
+  }).join('');
 }
 function renderMechanicPilotScreen() {
   var s = state.mechanicPilot;

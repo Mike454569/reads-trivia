@@ -84,6 +84,10 @@ var ENABLE_ENGINE_MATCHING_PILOT_V01 = READS_CONFIG.enableEngineMatchingPilot ==
 var ENABLE_ENGINE_SORTING_PILOT_V01 = READS_CONFIG.enableEngineSortingPilot === true;
 var ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01 = READS_CONFIG.enableEngineHigherLowerPilot === true;
 var ENABLE_ENGINE_ELIMINATION_PILOT_V01 = READS_CONFIG.enableEngineEliminationPilot === true;
+// Reusable Game Format System pass: the new `comparison` mechanic backing
+// BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
+// mechanics above, until this gets its own real player-experience pass.
+var ENABLE_ENGINE_COMPARISON_PILOT_V01 = READS_CONFIG.enableEngineComparisonPilot === true;
 // Creator stress test / discovery pass: the first 4 modes promoted
 // straight from Creator-only to public certification (real candidate
 // surveys in gateway/services/public_game.py) -- same fail-closed
@@ -10084,7 +10088,7 @@ document.addEventListener('click', function (e) {
     '[data-pilot-start], [data-pilot-answer], [data-pilot-next], [data-pilot-retry], [data-pilot-fallback], [data-pilot-franchise-pick], [data-pilot-reveal-clue], ' +
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
     '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
-    '[data-mechanic-hl-guess], [data-elim-guess], ' +
+    '[data-mechanic-hl-guess], [data-elim-guess], [data-mechanic-comparison-match], [data-mechanic-sort-format], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10435,6 +10439,20 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.mechanicHlGuess !== undefined) { submitMechanicPilotAction({ guess: t.dataset.mechanicHlGuess }); return; }
   if (t.dataset.elimGuess !== undefined) { submitMechanicPilotAction({ guess: t.dataset.elimGuess === 'true' }); return; }
+  if (t.dataset.mechanicSortFormat !== undefined) {
+    if (state.mechanicPilot) { state.mechanicPilot.sortFormat = t.dataset.mechanicSortFormat; renderAll(); }
+    return;
+  }
+  if (t.dataset.mechanicComparisonMatch !== undefined) {
+    var s = state.mechanicPilot;
+    var matchId = t.dataset.mechanicComparisonMatch, side = t.dataset.mechanicComparisonSide;
+    var match = null;
+    (s && s.view && s.view.rounds || []).some(function (r) {
+      return r.matchups.some(function (m) { if (m.match_id === matchId) { match = m; return true; } return false; });
+    });
+    if (match) submitMechanicPilotAction({ match_id: matchId, predicted_winner: side === 'a' ? match.entrant_a : match.entrant_b });
+    return;
+  }
 
   if (t.dataset.sixdegreesStart !== undefined) { startSixDegreesRound(); return; }
   if (t.dataset.sixdegreesPickId !== undefined) {
@@ -10700,6 +10718,7 @@ if (ENABLE_ENGINE_MATCHING_PILOT_V01) HIDDEN_ROUTES['#matchingpilot'] = 'mechani
 if (ENABLE_ENGINE_SORTING_PILOT_V01) HIDDEN_ROUTES['#sortingpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01) HIDDEN_ROUTES['#higherlowerenginepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_ELIMINATION_PILOT_V01) HIDDEN_ROUTES['#eliminationpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_COMPARISON_PILOT_V01) HIDDEN_ROUTES['#comparisonpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

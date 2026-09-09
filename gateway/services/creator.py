@@ -68,8 +68,64 @@ def _creator_provider() -> str:
 _DIRECT_MECHANIC_TITLES = {
     "MATCHING": "Matching", "SORTING_TIMELINE": "Sorting / Timeline",
     "HIGHER_LOWER_STREAK": "Higher / Lower Streak", "ELIMINATION_SURVIVAL": "Elimination / Survival",
-    "POSITION_LINEUP_GRID": "Position Lineup Grid",
+    "POSITION_LINEUP_GRID": "Position Lineup Grid", "COMPARISON_BRACKET": "Comparison / Bracket",
 }
+
+# Reusable Game Format System pass: the real (taxonomy_id -> format-registry
+# mechanic id) mapping -- visual_templates.py's FORMAT_COMPATIBILITY is keyed
+# by the same lowercase mechanic ids schema.py's ALLOWED_MECHANICS/
+# mechanic_engine.py's generator functions imply, not by these uppercase
+# taxonomy ids, so this is the one real translation point between the two
+# naming conventions (never duplicated elsewhere).
+_TAXONOMY_TO_FORMAT_MECHANIC = {
+    "MULTIPLE_CHOICE_SINGLE_FACT": "guess", "POSITION_LINEUP_GRID": "guess",
+    "PROGRESSIVE_CLUE_IDENTIFY": "clue",
+    "MATCHING": "matching", "SORTING_TIMELINE": "sorting",
+    "HIGHER_LOWER_STREAK": "higher_lower", "ELIMINATION_SURVIVAL": "elimination",
+    "COMPARISON_BRACKET": "comparison",
+    # WEEKLY_PICKEM / LIVE_WEEKLY_FANTASY_DRAFT are deliberately absent: they're
+    # schedule-driven (nl_schedule_bridge.py), not part of this pass's format
+    # registry scope, and their existing visual_template strings
+    # (WEEKLY_PICKEM_SLATE / FANTASY_DRAFT_BOARD) were never registered in
+    # visual_templates.py. _resolve_format() returns None for any taxonomy_id
+    # not in this dict rather than raising, so those two keep working unchanged.
+}
+
+
+def _resolve_format(taxonomy_id: str, requested_format: str | None) -> str | None:
+    """Real compatibility check + auto-selection (Sections 9/10 of the
+    format-system spec): honors an explicit, compatible request; auto-
+    selects the mechanic's real documented default when none was named;
+    raises a real FORMAT_INCOMPATIBLE error (with suggestions) rather than
+    silently substituting or ignoring an incompatible explicit request.
+    Returns None for a taxonomy_id genuinely outside this pass's format
+    registry scope (see _TAXONOMY_TO_FORMAT_MECHANIC's comment) -- an
+    explicit requested_format for one of those is still a real error, since
+    naming a format that can never apply is a real client mistake, not a
+    silent no-op."""
+    from tools.director_v02 import visual_templates
+
+    mechanic = _TAXONOMY_TO_FORMAT_MECHANIC.get(taxonomy_id)
+    if mechanic is None:
+        if requested_format is not None:
+            raise GatewayError(
+                "FORMAT_INCOMPATIBLE",
+                f"taxonomy_id={taxonomy_id!r} has no registered format at all; format={requested_format!r} cannot apply.",
+            )
+        return None
+    if requested_format is None:
+        format_id = visual_templates.default_format_for_mechanic(mechanic)
+        if format_id is None:
+            raise GatewayError("NO_ELIGIBLE_GAME", f"No real registered format supports mechanic {mechanic!r}.")
+        return format_id
+    if not visual_templates.is_format_compatible(requested_format, mechanic):
+        suggested = visual_templates.formats_for_mechanic(mechanic)
+        raise GatewayError(
+            "FORMAT_INCOMPATIBLE",
+            f"format={requested_format!r} is not compatible with mechanic {mechanic!r}. "
+            f"Compatible formats: {suggested}.",
+        )
+    return requested_format
 
 
 def _direct_mechanic_feasibility(bridged: dict) -> dict:
@@ -82,6 +138,7 @@ def _direct_mechanic_feasibility(bridged: dict) -> dict:
     function never re-derives that from scratch, it reports the same real
     fact concepts.py's own gating already established."""
     taxonomy_id, variant = bridged["taxonomy_id"], bridged["variant"]
+    format_id = _resolve_format(taxonomy_id, bridged.get("format"))
     return {
         "support_status": "SUPPORTED",
         "reason": None,
@@ -89,11 +146,12 @@ def _direct_mechanic_feasibility(bridged: dict) -> dict:
                         "category": _DIRECT_MECHANIC_TITLES[taxonomy_id]},
         "known_limitations": [],
         "visual_template": taxonomy_id,
+        "format_id": format_id,
         "clarifying_question": None,
         "closest_supported_capability": None,
-        "translator_notes": f"Matched real mechanic {taxonomy_id} (variant={variant}) via the natural-language "
-                              f"bridge (tools.director_v04.nl_mechanic_bridge) -- no (mechanic, domain, predicate) "
-                              f"triple involved.",
+        "translator_notes": f"Matched real mechanic {taxonomy_id} (variant={variant}, format={format_id}) via "
+                              f"the natural-language bridge (tools.director_v04.nl_mechanic_bridge) -- no "
+                              f"(mechanic, domain, predicate) triple involved.",
         "translation_status": "TRANSLATED",
         "catalog_status": None,
         "catalog_vocabulary_status": None,
@@ -112,6 +170,11 @@ def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
 
     taxonomy_id, variant = bridged["taxonomy_id"], bridged["variant"]
     real_seed = seed or "creator-nl-mechanic-bridge"
+    # Reusable Game Format System pass: resolved (and validated, if
+    # explicitly requested) BEFORE generation -- an incompatible explicit
+    # request must never silently fall through to generating a real round
+    # anyway (Section 10's own "do not pretend the request worked").
+    format_id = _resolve_format(taxonomy_id, bridged.get("format"))
 
     if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
         cfg = mechanic_engine.VARIANTS["POSITION_LINEUP_GRID"][variant]
@@ -124,6 +187,8 @@ def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
         package = mechanic_engine.generate_sorting_round(variant=variant, round_count=3, item_count=4, seed=real_seed)
     elif taxonomy_id == "HIGHER_LOWER_STREAK":
         package = mechanic_engine.generate_higher_lower_round(variant=variant, sequence_length=12, seed=real_seed)
+    elif taxonomy_id == "COMPARISON_BRACKET":
+        package = mechanic_engine.generate_comparison_round(variant=variant, seed=real_seed)
     else:  # ELIMINATION_SURVIVAL
         package = mechanic_engine.generate_elimination_round(variant=variant, sequence_length=12, seed=real_seed)
 
@@ -139,7 +204,7 @@ def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
     game_state.create_state(stored["package_id"], progress)
 
     view = mechanic_engine.client_safe_view(taxonomy_id, stored, progress)
-    return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "view": view}
+    return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "format_id": format_id, "view": view}
 
 
 def _schedule_driven_capability_label(bridged: dict) -> dict:

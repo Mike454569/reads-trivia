@@ -68,6 +68,14 @@ _ELIMINATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- COMPARISON_BRACKET (Reusable Game Format System pass) ------------------
+_COMPARISON_RE = re.compile(
+    r"\bbracket\s+game\b|\ba\s+bracket\b|\bin\s+a\s+bracket\b|"
+    r"\bmake\s+.*\bbracket\b|"
+    r"\bhead[\s-]to[\s-]head\s+bracket\b",
+    re.IGNORECASE,
+)
+
 # --- POSITION_LINEUP_GRID ---------------------------------------------------
 _LINEUP_RE = re.compile(
     r"\bguess\s+the\s+team\s+from\s+(its|the)\s+lineup\b|"
@@ -82,7 +90,34 @@ _LEAGUE_VARIANT = {
     "SORTING_TIMELINE": {"NFL": "NFL_DRAFT_PICK_ORDER", "CFB": "CFB_HEISMAN_YEAR_ORDER"},
     "HIGHER_LOWER_STREAK": {"NFL": "NFL_TEAM_SEASON_WINS", "CFB": "CFB_TEAM_SEASON_WINS"},
     "ELIMINATION_SURVIVAL": {"NFL": "NFL_SUPER_BOWL_CHAMPION_SURVIVAL", "CFB": "CFB_NATIONAL_CHAMPION_SURVIVAL"},
+    "COMPARISON_BRACKET": {"NFL": "NFL_TEAM_SEASON_WINS_BRACKET", "CFB": "CFB_TEAM_SEASON_WINS_BRACKET"},
 }
+
+# Reusable Game Format System pass: real, narrow-anchored FORMAT keyword
+# detection layered onto the same `detect()` result -- format is a
+# separate dimension from mechanic/variant (see visual_templates.py's own
+# module comment), so this never changes which taxonomy_id/variant match
+# above; it only adds an optional "format" key the caller can validate
+# against that capability's real supported_formats (mechanic_engine.py
+# has no opinion on formats at all -- format compatibility is checked in
+# gateway/services/creator.py, alongside the visual_templates.py registry).
+_FORMAT_RE = {
+    "TIMELINE_RIBBON": re.compile(r"\btimeline\b|\bribbon\b", re.IGNORECASE),
+    "BRACKET_TREE": re.compile(r"\bbracket\b", re.IGNORECASE),
+}
+
+
+def detect_format(request_text: str | None) -> str | None:
+    """Returns a real format_id if the request names one by a real, narrow
+    keyword, else None (meaning "no format requested -- auto-select").
+    Never guesses from an ambiguous word alone (e.g. plain "order" or
+    "sort" doesn't imply TIMELINE_RIBBON specifically -- only "timeline"/
+    "ribbon" do)."""
+    text = request_text or ""
+    for format_id, pattern in _FORMAT_RE.items():
+        if pattern.search(text):
+            return format_id
+    return None
 
 
 def _league_for(text: str) -> str:
@@ -97,11 +132,13 @@ def _league_for(text: str) -> str:
 
 
 def detect(request_text: str | None) -> dict | None:
-    """Returns {"taxonomy_id", "variant"} for a recognized MATCHING/
-    SORTING_TIMELINE/HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL/
-    POSITION_LINEUP_GRID request, or None -- in which case the caller keeps
-    using the existing translator/registry pipeline (or
-    nl_schedule_bridge.py) unchanged."""
+    """Returns {"taxonomy_id", "variant", "format"} for a recognized
+    MATCHING/SORTING_TIMELINE/HIGHER_LOWER_STREAK/ELIMINATION_SURVIVAL/
+    COMPARISON_BRACKET/POSITION_LINEUP_GRID request, or None -- in which
+    case the caller keeps using the existing translator/registry pipeline
+    (or nl_schedule_bridge.py) unchanged. `format` is None when no real
+    format keyword was matched (see detect_format() above) -- the caller
+    auto-selects in that case, never treats None as a rejection."""
     text = request_text or ""
 
     if _LINEUP_RE.search(text):
@@ -109,16 +146,18 @@ def detect(request_text: str | None) -> dict | None:
             # No real CFB POSITION_LINEUP_GRID variant exists -- never
             # silently substitute the NFL one for an explicit CFB request.
             return None
-        return {"taxonomy_id": "POSITION_LINEUP_GRID", "variant": "NFL_OFFENSE_LINEUP_COLLEGE_TEAM_ONLY"}
+        return {"taxonomy_id": "POSITION_LINEUP_GRID", "variant": "NFL_OFFENSE_LINEUP_COLLEGE_TEAM_ONLY", "format": None}
 
     for taxonomy_id, pattern in (
         ("MATCHING", _MATCHING_RE),
         ("SORTING_TIMELINE", _SORTING_RE),
         ("HIGHER_LOWER_STREAK", _HIGHER_LOWER_RE),
         ("ELIMINATION_SURVIVAL", _ELIMINATION_RE),
+        ("COMPARISON_BRACKET", _COMPARISON_RE),
     ):
         if pattern.search(text):
             league = _league_for(text)
-            return {"taxonomy_id": taxonomy_id, "variant": _LEAGUE_VARIANT[taxonomy_id][league]}
+            return {"taxonomy_id": taxonomy_id, "variant": _LEAGUE_VARIANT[taxonomy_id][league],
+                    "format": detect_format(text)}
 
     return None

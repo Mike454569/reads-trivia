@@ -29,7 +29,7 @@ from typing import Any, Optional
 TAXONOMY_IDS = frozenset({
     "MULTIPLE_CHOICE_SINGLE_FACT", "PROGRESSIVE_CLUE_IDENTIFY", "MATCHING",
     "SORTING_TIMELINE", "HIGHER_LOWER_STREAK", "ELIMINATION_SURVIVAL", "POSITION_LINEUP_GRID",
-    "WEEKLY_PICKEM", "LIVE_WEEKLY_FANTASY_DRAFT",
+    "WEEKLY_PICKEM", "LIVE_WEEKLY_FANTASY_DRAFT", "COMPARISON_BRACKET",
 })
 
 # Real, disclosed variant catalog -- the "Required relationship shape" per
@@ -77,6 +77,15 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "LIVE_WEEKLY_FANTASY_DRAFT": {
         "NFL_WEEKLY_FANTASY_DRAFT": {"competition": "NFL"},
         "CFB_WEEKLY_FANTASY_DRAFT": {"competition": "CFB"},
+    },
+    # Reusable Game Format System pass: the new head-to-head mechanic
+    # backing BRACKET_TREE (tools/director_v02/visual_templates.py) --
+    # see tools/director_v04/comparison.py's own module docstring for why
+    # this reuses higher_lower.py's exact real win-total data instead of a
+    # new dataset.
+    "COMPARISON_BRACKET": {
+        "NFL_TEAM_SEASON_WINS_BRACKET": {"competition": "NFL"},
+        "CFB_TEAM_SEASON_WINS_BRACKET": {"competition": "CFB"},
     },
 }
 
@@ -502,6 +511,65 @@ def _fantasy_draft_evaluate(package: dict, progress: dict, submission: dict) -> 
             "position": player["position"], "team_display": player["team_display"]}
 
 
+# --- COMPARISON_BRACKET (real, fully-determined single-elimination bracket) ---
+#
+# Reusable Game Format System pass -- backs the new BRACKET_TREE format
+# (tools/director_v02/visual_templates.py). See tools/director_v04/
+# comparison.py's own module docstring for why every real matchup's
+# winner is fully determined at generation time (no player-choice
+# branching) and why picks are graded per-matchup, exactly like
+# WEEKLY_PICKEM's own real per-game picks -- reused pattern, not a new one.
+
+def generate_comparison_round(*, variant: str, seed: str) -> dict:
+    from tools.director_v04 import comparison
+    return comparison.build_package(seed, variant)
+
+
+def _comparison_client_view(package: dict, progress: dict) -> dict:
+    picks = progress.get("picks", {})
+    rounds_out = []
+    for r in package["rounds"]:
+        matchups_out = []
+        for m in r["matchups"]:
+            entry = {"match_id": m["match_id"], "entrant_a": m["entrant_a"], "entrant_b": m["entrant_b"]}
+            pick = picks.get(m["match_id"])
+            if pick:
+                entry["your_pick"] = pick["predicted_winner"]
+                entry["real_winner"] = pick["real_winner"]
+                entry["correct"] = pick["predicted_winner"] == pick["real_winner"]
+            matchups_out.append(entry)
+        rounds_out.append({"round_index": r["round_index"], "round_label": r["round_label"], "matchups": matchups_out})
+    total_matchups = sum(len(r["matchups"]) for r in package["rounds"])
+    correct_count = sum(1 for p in picks.values() if p["predicted_winner"] == p["real_winner"])
+    return {
+        "rounds": rounds_out, "picks_made": len(picks), "total_matchups": total_matchups,
+        "correct_count": correct_count, "completed": len(picks) >= total_matchups,
+    }
+
+
+def _comparison_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    match_id = submission.get("match_id")
+    predicted_winner = submission.get("predicted_winner")
+    match = None
+    for r in package["_private_rounds"]:
+        for m in r:
+            if m["match_id"] == match_id:
+                match = m
+                break
+        if match is not None:
+            break
+    if match is None:
+        raise MechanicError(f"match_id {match_id!r} is not part of this bracket")
+    if predicted_winner not in (match["entrant_a"], match["entrant_b"]):
+        raise MechanicError(f"predicted_winner must be one of {[match['entrant_a'], match['entrant_b']]!r}")
+    real_winner = match["real_winner"]
+    return {
+        "match_id": match_id, "predicted_winner": predicted_winner, "real_winner": real_winner,
+        "correct": predicted_winner == real_winner,
+        "value_a": match["value_a"], "value_b": match["value_b"],
+    }
+
+
 # --- Generic dispatch used by the Gateway routes ---
 
 def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
@@ -521,6 +589,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _weekly_pickem_client_view(package, progress)
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return _fantasy_draft_client_view(package, progress)
+    if taxonomy_id == "COMPARISON_BRACKET":
+        return _comparison_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -598,6 +668,14 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         progress["completed"] = progress["current_slot_index"] >= len(package["draft_slots"])
         progress["state_version"] = progress.get("state_version", 0) + 1
         return result, progress
+    if taxonomy_id == "COMPARISON_BRACKET":
+        result = _comparison_evaluate(package, progress, submission)
+        picks = dict(progress.get("picks", {}))
+        picks[result["match_id"]] = {"predicted_winner": result["predicted_winner"], "real_winner": result["real_winner"]}
+        progress["picks"] = picks
+        total_matchups = sum(len(r["matchups"]) for r in package["rounds"])
+        progress["completed"] = len(picks) >= total_matchups
+        return result, progress
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -612,4 +690,6 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"picks": {}}
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}
+    if taxonomy_id == "COMPARISON_BRACKET":
+        return {"picks": {}}
     return {"current_index": 0, "completed": False}

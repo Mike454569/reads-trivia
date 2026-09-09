@@ -51,6 +51,11 @@ ERROR_CODES = frozenset({
                            # Routed through this same 200-status "well-defined structured outcome" shape as
                            # NEEDS_CLARIFICATION/etc, not a 5xx -- a client should show "marathon complete!",
                            # never a retry button.
+    "FORMAT_INCOMPATIBLE",  # Reusable Game Format System pass -- an explicitly requested FORMAT
+                             # (tools/director_v02/visual_templates.py) is real and registered, but not
+                             # compatible with the request's real mechanic (checked via that module's own
+                             # FORMAT_COMPATIBILITY, never guessed). The error message names real
+                             # compatible alternatives -- never silently substituted or ignored.
 })
 
 # HTTP status per code -- kept alongside the code itself so a raise site
@@ -75,6 +80,7 @@ STATUS_FOR_CODE = {
     "INVALID_GAME_ID": 404,
     "GAME_EXPIRED": 410,
     "SEQUENCE_COMPLETE": 200,
+    "FORMAT_INCOMPATIBLE": 400,  # a real, well-formed client request naming a real but incompatible format
 }
 
 

@@ -117,6 +117,24 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "One miss ends the run. Answer True or False for each real CFB (FBS) team-season.",
         "kind": "elimination", "gen_kwargs": {"sequence_length": 12},
     },
+    # Reusable Game Format System pass: the new COMPARISON_BRACKET mechanic
+    # (tools/director_v04/comparison.py), backing the new BRACKET_TREE
+    # format. gen_kwargs is empty -- comparison.build_package() takes no
+    # tunable knobs (a real, fixed 8-entry bracket every time).
+    "comparison_nfl_wins": {
+        "competition": "NFL", "taxonomy_id": "COMPARISON_BRACKET", "variant": "NFL_TEAM_SEASON_WINS_BRACKET",
+        "title": "NFL Wins Bracket",
+        "instructions": "Predict the real winner of every matchup in this real 8-team bracket, based on "
+                        "regular-season win total.",
+        "kind": "comparison", "gen_kwargs": {},
+    },
+    "comparison_cfb_wins": {
+        "competition": "CFB", "taxonomy_id": "COMPARISON_BRACKET", "variant": "CFB_TEAM_SEASON_WINS_BRACKET",
+        "title": "CFB Wins Bracket",
+        "instructions": "Predict the real winner of every matchup in this real 8-team bracket, based on "
+                        "regular-season win total.",
+        "kind": "comparison", "gen_kwargs": {},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -163,6 +181,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_higher_lower_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "ELIMINATION_SURVIVAL":
             package = mechanic_engine.generate_elimination_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "COMPARISON_BRACKET":
+            package = mechanic_engine.generate_comparison_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
