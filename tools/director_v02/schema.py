@@ -36,6 +36,7 @@ ALLOWED_MECHANICS = frozenset({
 
 ALLOWED_DOMAINS = frozenset({
     # BEGIN GENERATED -- see tools/director_v02/generate_schema_and_prompt.py
+    "CFB_2026_CURRENT_ROSTER",
     "CFB_CHAMPIONSHIP",
     "CFB_DUPLICATE_COLLEGE_HUNT",
     "CFB_FILL_THE_COLLEGES",
@@ -120,6 +121,7 @@ ALLOWED_PREDICATES = frozenset({
     "INDUCTED_HOF",
     "LED_LEAGUE_IN_STAT",
     "MISSING_COLLEGE",
+    "ON_2026_ROSTER",
     "ORDERED_PATH_NFL_BRIDGED",
     "PASSING_COMPARISON",
     "PASSING_LEADER",

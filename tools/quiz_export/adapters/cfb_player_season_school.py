@@ -63,7 +63,12 @@ SPEC = compiler.RelationshipSpec(
     season_column="season",
     team_code_column="school_id",
     required_verification_status="SOURCE_BACKED",
-    required_source_ids=("SPORTSDATAVERSE_CFB",),
+    # MASTER WORKBOOK ingestion pass added a second, independently-approved
+    # real source (2026 CFB roster rows) -- allow-list both. Safe: this
+    # capability's own "FUTURE" season-completeness gate (aggregate_presence
+    # against cfb_school_seasons, which has no 2026 row yet) already excludes
+    # every 2026 candidate before evaluate() ever runs, regardless of source_id.
+    required_source_ids=("SPORTSDATAVERSE_CFB", "READS_MASTER_KNOWLEDGE_FEED_2026_09"),
     min_season=MIN_SEASON,
     max_season=MAX_SEASON,
     entity_label="player",

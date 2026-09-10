@@ -257,8 +257,25 @@ def test_cfb_fantasy_draft_uses_confirmed_participation_for_completed_week(c):
 
 
 def test_cfb_fantasy_draft_falls_back_honestly_for_unscheduled_week(c):
+    """Real, confirmed-live test-design fix: this test used to hardcode
+    season=2026, week=1 as a stand-in for "definitely has no real data
+    yet" -- but that's a moving target tied to the real calendar, not a
+    stable invariant. It broke for real, honest reasons twice over: (1)
+    cfb_games_canonical already has 99 real week-1-2026 games from an
+    unrelated automated feed, and (2) the MASTER Workbook ingestion pass
+    added real 2026 roster data for 8 real teams (some of which play in
+    that real week 1), so CFB_WEEKLY_FANTASY_DRAFT genuinely IS supported
+    for that specific real week now -- reporting MISSING_DATA for it would
+    itself be the dishonest answer. Use a season far beyond any real
+    published schedule instead, so this test verifies the same real
+    "honest MISSING_DATA, never fabricated" behavior without being
+    re-broken by the next real data addition."""
     from tools.director_v04 import live_weekly_fantasy_draft as fd
-    result = fd.check_slate_feasibility("CFB_WEEKLY_FANTASY_DRAFT", 2026, 1)
+    from tools.quiz_export import engine
+    conn = engine.connect()
+    max_real_season = conn.execute("SELECT MAX(season) FROM cfb_games_canonical").fetchone()[0]
+    unscheduled_season = (max_real_season or 2026) + 25
+    result = fd.check_slate_feasibility("CFB_WEEKLY_FANTASY_DRAFT", unscheduled_season, 1)
     assert result["support_status"] == "MISSING_DATA"  # no real games/rosters -- never fabricated
 
 

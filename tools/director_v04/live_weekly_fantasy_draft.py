@@ -79,7 +79,12 @@ def safety_check(c) -> dict:
     return {
         "canonical_players": safety.check_table_wide_safety(c, "canonical_players", ["NFLVERSE_DATA", "NFLVERSE_ROSTERS"]),
         "canonical_roster_seasons": safety.check_table_wide_safety(c, "canonical_roster_seasons", ["NFLVERSE_DATA", "NFLVERSE_ROSTERS"]),
-        "cfb_roster_seasons_real": safety.check_table_wide_safety(c, "cfb_roster_seasons_real", "SPORTSDATAVERSE_CFB"),
+        # MASTER WORKBOOK ingestion pass added a second, independently-
+        # approved real source (2026 CFB roster rows the automated feed has
+        # never had) -- allow-list both rather than abort on mixed provenance.
+        "cfb_roster_seasons_real": safety.check_table_wide_safety(
+            c, "cfb_roster_seasons_real", ["SPORTSDATAVERSE_CFB", "READS_MASTER_KNOWLEDGE_FEED_2026_09"],
+        ),
     }
 
 

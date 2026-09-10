@@ -228,7 +228,12 @@ def test_season_status_uses_aggregate_presence_not_a_fixed_week_floor():
     try:
         for season in (2004, 2010, 2020, 2025):  # 2020: the real COVID-shortened season
             assert pst.season_status(c, season) == "COMPLETE"
-        assert c.execute("SELECT COUNT(*) FROM cfb_roster_seasons_real WHERE season=2026").fetchone()[0] == 0
+        # MASTER WORKBOOK ingestion pass: cfb_roster_seasons_real legitimately
+        # has real 2026 rows now (a real, disclosed 8-team roster snapshot) --
+        # the actual invariant this test protects is that FUTURE status comes
+        # from real presence in cfb_school_seasons (a season-END aggregate),
+        # never from roster-row presence alone, so 2026 must still be FUTURE
+        # despite roster rows now existing for it.
         assert pst.season_status(c, 2026) == "FUTURE"
     finally:
         c.close()

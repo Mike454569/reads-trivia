@@ -144,12 +144,21 @@ QA_CHECKS_PERFORMED = [
 
 
 def safety_check(c) -> dict:
+    # MASTER WORKBOOK ingestion pass: cfb_roster_seasons_real/
+    # canonical_cfb_players gained a second, independently-approved
+    # provenance (READS_MASTER_KNOWLEDGE_FEED_2026_09, real 2026 roster
+    # rows the automated SPORTSDATAVERSE_CFB feed has never had) -- the
+    # exhaustive table-wide check must allow-list BOTH real sources rather
+    # than abort on the table no longer being single-provenance. This
+    # adapter's own build_universe() query below still filters to
+    # REQUIRED_SOURCE_ID alone, so its actual real candidate pool/behavior
+    # is unchanged -- this only stops a false ABORT.
     return {
         "cfb_roster_seasons_real": safety.check_table_wide_safety(
-            c, "cfb_roster_seasons_real", REQUIRED_SOURCE_ID,
+            c, "cfb_roster_seasons_real", [REQUIRED_SOURCE_ID, "READS_MASTER_KNOWLEDGE_FEED_2026_09"],
         ),
         "canonical_cfb_players": safety.check_table_wide_safety(
-            c, "canonical_cfb_players", REQUIRED_SOURCE_ID,
+            c, "canonical_cfb_players", [REQUIRED_SOURCE_ID, "READS_MASTER_KNOWLEDGE_FEED_2026_09"],
         ),
     }
 

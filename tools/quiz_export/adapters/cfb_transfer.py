@@ -36,7 +36,13 @@ MAX_SEASON = 2025
 
 
 def safety_check(c) -> dict:
-    return safety.check_table_wide_safety(c, "cfb_roster_seasons_real", REQUIRED_SOURCE_ID)
+    # MASTER WORKBOOK ingestion pass added a second, independently-approved
+    # real source (2026 CFB roster rows) -- allow-list both rather than
+    # abort on mixed provenance. This adapter's own MAX_SEASON=2025 already
+    # keeps its real candidate pool unchanged.
+    return safety.check_table_wide_safety(
+        c, "cfb_roster_seasons_real", [REQUIRED_SOURCE_ID, "READS_MASTER_KNOWLEDGE_FEED_2026_09"],
+    )
 
 
 def fetch_ordered_candidates(c, seed: str):

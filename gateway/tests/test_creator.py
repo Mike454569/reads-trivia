@@ -207,10 +207,15 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # Closeout pass, Part 3: 66 -> 67 -- NFL_FRANCHISE_MARATHON__
     # FRANCHISE_MARATHON_STAGE (Franchise Marathon's real 8-stage rebuild),
     # Tier-2 certified (100/100 rounds, 0 leaks).
+    # MASTER WORKBOOK ingestion pass: 67 -> 68 -- CFB_2026_CURRENT_ROSTER__
+    # ON_2026_ROSTER (real 2026 CFB roster facts from the user's MASTER
+    # Knowledge Feed workbook, 8 real teams), Tier-2 certified (100/100
+    # rounds, 0 leaks), promoted to HUMAN_APPROVED (not PUBLIC_ENABLED --
+    # no public route wired this pass).
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 67
+    assert len(caps) == 68
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

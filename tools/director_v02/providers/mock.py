@@ -1533,6 +1533,27 @@ class MockDeterministicTranslator(Translator):
                 return _result(request_text, "TRANSLATED", spec,
                                 f"Matched Gold Standard concept name -> {pred} ({dom}) guess capability.")
 
+        # MASTER WORKBOOK ingestion pass -- narrow, explicit match for the
+        # new CFB_2026_CURRENT_ROSTER capability. Requires "roster" together
+        # with an explicit 2026/current-season signal so a bare "guess the
+        # roster" (no recency signal) still falls through to older roster-
+        # adjacent patterns rather than being silently captured here.
+        text_lower_2026 = text.lower()
+        has_roster_word = "roster" in text_lower_2026
+        has_2026_or_current_signal = (
+            "2026" in text_lower_2026 or "current roster" in text_lower_2026 or "this season" in text_lower_2026
+        )
+        if has_roster_word and has_2026_or_current_signal:
+            spec = {
+                "mechanic": "guess", "domain": "CFB_2026_CURRENT_ROSTER", "relationship_predicate": "ON_2026_ROSTER",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'roster' + a 2026/current-season signal -> CFB_2026_CURRENT_ROSTER guess capability.",
+            )
+
         # CFB Rivalry TRIVIA (CORRECT_TRIVIA_ANSWER), Rivalry Data + Gold
         # Standard Content Integration operation -- checked BEFORE the older,
         # narrower CFB_RIVALRY/RIVAL_OF pattern below (a single "who is X's

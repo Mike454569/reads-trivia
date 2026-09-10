@@ -76,6 +76,7 @@ from tools.quiz_export.adapters import nfl_hof_college as nfl_hof_college_adapte
 from tools.quiz_export.adapters import cfb_all_american_to_all_pro as cfb_all_american_to_all_pro_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_american_to_pro_bowl_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_rivalry_trivia as cfb_rivalry_trivia_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_2026_current_roster as cfb_2026_current_roster_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_offense_college_curated as nfl_offense_college_curated_adapter  # noqa: E402
 from tools.quiz_export.adapters import sb_champion_offense_college as sb_champion_offense_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import franchise_marathon as franchise_marathon_adapter  # noqa: E402
@@ -1567,6 +1568,37 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset({"rivalry_pack_number", "rivalry_only"}), "supports_exclusions": False,
         "proven_in": ["rivalry-gold-standard-integration"], "pipeline_id_start": 930000,
+    },
+    # MASTER WORKBOOK ingestion pass -- real 2026 CFB current-roster facts
+    # (position/class/hometown), scraped by the user directly from 8 real
+    # official team athletics sites, that no automated Engine pipeline has
+    # reached yet (cfb_roster_seasons_real's automated SPORTSDATAVERSE_CFB
+    # feed has never had a 2026 season -- confirmed directly before writing
+    # this). See tools/quiz_export/adapters/cfb_2026_current_roster.py's
+    # own module docstring for why this needed a new capability rather than
+    # reusing cfb_player_from_clues/cfb_offense_lineup (both require
+    # season-final stats a not-yet-played season can't have).
+    ("guess", "CFB_2026_CURRENT_ROSTER", "ON_2026_ROSTER"): {
+        "adapter": cfb_2026_current_roster_adapter, "category": cfb_2026_current_roster_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Real, disclosed scope limit: only 8 of 136 real FBS programs (Alabama, Auburn, Georgia Tech, "
+            "Kansas, Oregon, Texas, UCLA, USC) -- the workbook's own row-level MASTER_RELATIONSHIPS extract "
+            "only recovered these 8 teams' roster rows; other teams' roster batches were reported in daily "
+            "workbooks whose original binaries are no longer recoverable (see the workbook's own "
+            "RUN_HISTORY/SOURCE_FILE_INDEX sheets -- never fabricated to fill the gap).",
+            "25 real name collisions (a workbook player name matching multiple existing "
+            "canonical_cfb_players with no same-school 2024/2025 roster history to disambiguate) were "
+            "logged as qa_issues and excluded rather than guessed -- see "
+            "tools/data_refresh/cfb_2026_roster_workbook_import.py.",
+            "58 of 733 real roster rows have no position on file and are excluded from generation "
+            "(MISSING_REQUIRED_FIELD) rather than guessed.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_2026_roster_player", "object_type": "team",
+        "answer_type": "team", "group_size": 4, "min_question_count": 1, "max_question_count": 600,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["master-workbook-ingestion-2026-09"], "pipeline_id_start": 950000,
     },
     # Fixes the "offense by college" capability using the Gold Standard
     # workbook's own curated 2026 team data -- see
