@@ -26,3 +26,15 @@ beautifulsoup4==4.15.0
 # zoneinfo work regardless of the base image's OS tzdata, the standard-
 # recommended way to make it deployment-independent.
 tzdata==2025.2
+# openpyxl: MASTER Workbook ingestion pass -- tools/data_refresh/
+# cfb_2026_roster_workbook_import.py reads the user's real MASTER
+# Knowledge Feed .xlsx workbook directly (never a pre-baked intermediate
+# file, so a fresh workbook re-run picks up real changes). Lazily imported
+# inside the function that needs it (matching this repo's own established
+# discipline -- see beautifulsoup4's note above and admin_refresh.py's own
+# module docstring for the exact incident this pattern exists to prevent),
+# and this module is NOT in admin_refresh.py's _runners() eager-import
+# list, so a missing/broken install here cannot crash the Gateway on boot
+# or break any other dataset's refresh -- only this one standalone,
+# manually-invoked script.
+openpyxl==3.1.5
