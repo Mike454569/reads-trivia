@@ -306,8 +306,11 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # FRANCHISE_MARATHON_STAGE, Tier-2 certified 100/100, 0 leaks).
     # MASTER WORKBOOK ingestion pass: 67 -> 68 (CFB_2026_CURRENT_ROSTER__
     # ON_2026_ROSTER, HUMAN_APPROVED via a real, passing Tier-2 probe).
+    # Power4 Coverage Closeout workbook ingestion pass: 68 -> 69
+    # (CFB_2026_HEAD_COACH__COACHES_TEAM_2026, PUBLIC_ENABLED via a real,
+    # passing Tier-2 probe).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 68
+    assert len(summary) == 69
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

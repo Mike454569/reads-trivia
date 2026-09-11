@@ -328,6 +328,14 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # pass's real-name-based team resolution fix, too thin to bother
     # exposing. Now all 60 of 60 resolve with real Easy/Medium/Hard depth.
     "nfl_super_bowl_guess",
+    # MASTER WORKBOOK ingestion pass: real candidate survey in
+    # gateway/services/public_game.py's own cfb_2026_roster_guess entry --
+    # 637 real candidates, 100% Medium.
+    "cfb_2026_roster_guess",
+    # Power 4 Coverage Closeout workbook: real candidate survey in
+    # gateway/services/public_game.py's own cfb_2026_coach_guess entry --
+    # 67 real candidates, 100% Medium.
+    "cfb_2026_coach_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

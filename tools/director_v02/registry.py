@@ -77,6 +77,7 @@ from tools.quiz_export.adapters import cfb_all_american_to_all_pro as cfb_all_am
 from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_american_to_pro_bowl_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_rivalry_trivia as cfb_rivalry_trivia_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_2026_current_roster as cfb_2026_current_roster_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_2026_head_coach as cfb_2026_head_coach_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_offense_college_curated as nfl_offense_college_curated_adapter  # noqa: E402
 from tools.quiz_export.adapters import sb_champion_offense_college as sb_champion_offense_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import franchise_marathon as franchise_marathon_adapter  # noqa: E402
@@ -1599,6 +1600,30 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["master-workbook-ingestion-2026-09"], "pipeline_id_start": 950000,
+    },
+    # Power 4 Coverage Closeout workbook -- real 2026 CFB head coaches for
+    # all 67 real Power 4 teams. See
+    # tools/quiz_export/adapters/cfb_2026_head_coach.py's own module
+    # docstring for why this needed a new table (cfb_team_2026_coaching_profile)
+    # rather than cfb_coach_school_links (real PRIMARY KEY(cfb_coach_id,
+    # school_id) constraint there would either silently overwrite real
+    # historical provenance or be blocked outright for a coach who never
+    # left his school).
+    ("guess", "CFB_2026_HEAD_COACH", "COACHES_TEAM_2026"): {
+        "adapter": cfb_2026_head_coach_adapter, "category": cfb_2026_head_coach_adapter.CATEGORY,
+        "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Real, disclosed scope limit: only the 67 real Power 4 teams -- the workbook itself covers "
+            "no other FBS programs.",
+            "Coach identity resolved by exact name-slug match against the existing cfb_coaches table; "
+            "57 of 67 real coaches were genuinely new to that table (not previously registered under any "
+            "identity) and were created fresh -- 10 already existed and were reused, never duplicated.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_2026_team_coach", "object_type": "team",
+        "answer_type": "team", "group_size": 4, "min_question_count": 1, "max_question_count": 67,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["power4-coverage-closeout-2026-09"], "pipeline_id_start": 960000,
     },
     # Fixes the "offense by college" capability using the Gold Standard
     # workbook's own curated 2026 team data -- see

@@ -162,9 +162,13 @@ def _nfl_week_candidates(c, season: int) -> list[tuple[str, str, str]]:
     second real caller (Pick'em Season Record, see pickem_season_record.py)
     can enumerate every real CONCLUDED week without re-deriving this same
     real game_type/postseason-token logic a second, possibly-inconsistent
-    way. `first_date`/`last_date` are the same value for NFL (each real
-    week's games all share one real week number, unlike CFB's own wide
-    Week 1) -- kept as a pair for a uniform shape with the CFB variant."""
+    way. `first_date`/`last_date` are genuinely DIFFERENT for a real NFL
+    week (confirmed live: 2026 Week 1 runs Thursday 2026-09-09 through
+    Monday night 2026-09-14) -- an earlier version of this docstring
+    claimed they were "the same value," which fed directly into a real
+    bug in resolve_current_week()'s NFL branch (see that function's own
+    docstring); kept as a pair so both real values are available to
+    callers, same shape as the CFB variant."""
     rows = c.execute(
         "SELECT week, game_type, MIN(game_date) AS first_date, MAX(game_date) AS last_date FROM games "
         "WHERE season=? GROUP BY week, game_type", (season,),
@@ -247,20 +251,28 @@ def resolve_current_week(c, league: str, season: int) -> str | None:
     _nfl_slate_rows() / _NFL_POSTSEASON_WEEK_CODES already expect."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if league == "NFL":
-        # Pick'em Season Record pass: reuses the same real candidate list
-        # weeks_concluded_so_far() is built from (_nfl_week_candidates())
-        # instead of re-deriving this identical query a second, possibly-
-        # inconsistent way -- byte-identical selection logic to before
-        # this extraction (earliest-first_date-not-yet-passed, else the
-        # most recent past week by first_date).
+        # Real bug fix, found live against the real 2026 season: this
+        # branch used to test only first_date (earliest-first_date-not-
+        # yet-passed, else the most recent past week by first_date) on the
+        # mistaken assumption (stated in _nfl_week_candidates()'s own old
+        # docstring) that an NFL week's first_date and last_date are
+        # "the same value" -- false for a real week whose games span
+        # Thursday through Monday (confirmed live: 2026 Week 1 runs
+        # 2026-09-09 to 2026-09-14). Testing only first_date treated the
+        # Thursday opener alone as proof the WHOLE week was over, jumping
+        # straight to Week 2 while 14 of Week 1's 16 real games (all of
+        # Sunday's slate plus Monday night) were still ahead -- the exact
+        # same bug class the CFB branch below was already fixed for. Now
+        # mirrors that same real "not yet concluded" last_date test.
         candidates = _nfl_week_candidates(c, season)
         if not candidates:
             return None
-        candidates.sort(key=lambda cand: cand[1])
-        for identifier, first_date, _last_date in candidates:
-            if first_date[:10] >= today:
-                return identifier
-        return candidates[-1][0]  # every real game already final -- most recent past week
+        not_yet_concluded = [cand for cand in candidates if cand[2][:10] >= today]
+        if not_yet_concluded:
+            not_yet_concluded.sort(key=lambda cand: cand[1])
+            return not_yet_concluded[0][0]  # the real week with the earliest start that isn't fully over yet
+        candidates.sort(key=lambda cand: cand[2])
+        return candidates[-1][0]  # every real game already final -- the one that ran latest
 
     # Dynamic Weekly Pick'em pass, real bug fix: cfb_games_canonical.week is
     # NOT globally unique across season_type the way games.week already is

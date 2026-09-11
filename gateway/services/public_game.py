@@ -504,6 +504,49 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # MASTER WORKBOOK ingestion pass: CFB_2026_CURRENT_ROSTER made public.
+    # Real, disclosed scope limit carried into the instructions themselves
+    # (not hidden) -- only 8 of 136 real FBS programs have recoverable
+    # 2026 roster data (see tools/data_refresh/cfb_2026_roster_workbook_import.py's
+    # own module docstring for why). Real, measured pool: 637 candidates,
+    # 100% Medium (the adapter itself has no other difficulty branch) --
+    # "easy"/"hard" correctly return 0 real candidates, so only "medium"
+    # is certified rather than declared and silently returning empty.
+    "cfb_2026_roster_guess": {
+        "competition": "CFB",
+        "title": "CFB 2026 Roster",
+        "instructions": "You'll be shown a real player's position, class, and hometown from a real 2026 "
+                        "roster (Alabama, Auburn, Georgia Tech, Kansas, Oregon, Texas, UCLA, or USC). "
+                        "Guess his real team.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_2026_CURRENT_ROSTER",
+            "relationship_predicate": "ON_2026_ROSTER",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    # Power 4 Coverage Closeout workbook: CFB_2026_HEAD_COACH made public.
+    # Real, measured pool: 67 candidates (one per real Power 4 team), 100%
+    # Medium (the adapter itself has no other difficulty branch).
+    "cfb_2026_coach_guess": {
+        "competition": "CFB",
+        "title": "CFB 2026 Head Coaches",
+        "instructions": "You'll be shown a real 2026 Power 4 head coach's name. Guess his real team.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_2026_HEAD_COACH",
+            "relationship_predicate": "COACHES_TEAM_2026",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
     "cfb_spot_the_fake_guess": {
         "competition": "CFB",
         "title": "Spot the Fake",

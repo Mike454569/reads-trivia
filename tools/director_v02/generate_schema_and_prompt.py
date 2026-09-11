@@ -137,12 +137,21 @@ def generate_schema_allowlists(*, write: bool = False) -> dict:
 
 # --- Anthropic prompt verification (not rewritten -- see module docstring) --
 
-_ENUM_LINE_RE = re.compile(r'"domain":\s*((?:"[A-Z_]+"\s*\|\s*)*"[A-Z_]+")')
-_PRED_ENUM_LINE_RE = re.compile(r'"relationship_predicate":\s*((?:"[A-Z_]+"\s*\|\s*)*"[A-Z_]+")')
+
+# MASTER WORKBOOK ingestion pass, real bug fix: [A-Z_]+ silently excluded
+# digits, so CFB_2026_CURRENT_ROSTER (a real, valid, already-registered
+# domain name) truncated the match right before it -- the drift check
+# then falsely reported it "missing from the prompt enum" even once it
+# really was there. Every existing domain/predicate name happened to be
+# digit-free by coincidence, not by any real naming rule -- confirmed
+# live: the registry has no constraint against a digit in a capability
+# name. [A-Z0-9_]+ matches the real convention, not a narrower one.
+_ENUM_LINE_RE = re.compile(r'"domain":\s*((?:"[A-Z0-9_]+"\s*\|\s*)*"[A-Z0-9_]+")')
+_PRED_ENUM_LINE_RE = re.compile(r'"relationship_predicate":\s*((?:"[A-Z0-9_]+"\s*\|\s*)*"[A-Z0-9_]+")')
 
 
 def _extract_quoted_values(line: str) -> set[str]:
-    return set(re.findall(r'"([A-Z_]+)"', line))
+    return set(re.findall(r'"([A-Z0-9_]+)"', line))
 
 
 def catalog_readiness_for_structured_description_generation() -> dict:
@@ -212,7 +221,7 @@ def catalog_readiness_for_structured_description_generation() -> dict:
     }
 
 
-_SYSTEM_PROMPT_SNAPSHOT_SHA256 = "72d640d646b7b1400f018567c4b0e56d96c8e61d0af3d916402d76033d6c74c5"
+_SYSTEM_PROMPT_SNAPSHOT_SHA256 = "9ab60c6f3a3ff645f5a2cd3498977ae44d9aca737211427f38683671117bec14"
 
 
 def _current_prompt_sha256() -> str:

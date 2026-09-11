@@ -212,10 +212,15 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # Knowledge Feed workbook, 8 real teams), Tier-2 certified (100/100
     # rounds, 0 leaks), promoted to HUMAN_APPROVED (not PUBLIC_ENABLED --
     # no public route wired this pass).
+    # Power4 Coverage Closeout workbook ingestion pass: 68 -> 69 --
+    # CFB_2026_HEAD_COACH__COACHES_TEAM_2026 (real 2026 Power 4 head coach/
+    # scheme facts from the user's Power4 Coverage Closeout workbook, 67
+    # teams), Tier-2 certified (100/100 rounds, 0 leaks), promoted straight
+    # through to PUBLIC_ENABLED.
     r = client.get("/v1/creator/capabilities", headers=auth_headers)
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 68
+    assert len(caps) == 69
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")

@@ -79,13 +79,16 @@ def test_public_modes_no_auth_needed(client):
     # catalog-verified but never wired to a real public route until this
     # pass's real-name-based team resolution fix made its full 60-game
     # real pool (up from 24) worth exposing.
+    # MASTER Workbook + Power4 Coverage Closeout ingestion passes:
+    # cfb_2026_roster_guess and cfb_2026_coach_guess added -- both walked
+    # to PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
     assert set(modes_by_id) == {
         "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess", "lineup_college_guess",
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
-        "nfl_super_bowl_guess",
+        "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -252,6 +255,9 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     # Absolute Final Closeout: nfl_super_bowl_guess added -- already
     # catalog-verified (LEGACY_PUBLIC_PENDING_REVALIDATION), never wired
     # up until its real team-resolution pool grew from 24/60 to 60/60.
+    # MASTER Workbook + Power4 Coverage Closeout ingestion passes:
+    # cfb_2026_roster_guess and cfb_2026_coach_guess added -- both walked
+    # to PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
     assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
@@ -259,7 +265,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
-        "nfl_super_bowl_guess",
+        "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
     })
 
 
@@ -387,8 +393,11 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # Rivalry Data + Gold Standard Content Integration operation added 11
     # more, 22nd-32nd, all walked to PUBLIC_ENABLED -- same real reason as
     # that test's sibling assertion. Closeout pass Part 3 added a 33rd
-    # (Franchise Marathon's real 8-stage rebuild).
-    assert len(r.json()["capabilities"]) == 33
+    # (Franchise Marathon's real 8-stage rebuild). MASTER Workbook + Power4
+    # Coverage Closeout ingestion passes added a 34th and 35th
+    # (CFB_2026_CURRENT_ROSTER, CFB_2026_HEAD_COACH), both walked to
+    # PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
+    assert len(r.json()["capabilities"]) == 35
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -598,6 +607,10 @@ def test_all_twenty_certified_guess_modes_registered(client):
     # Absolute Final Closeout added the twenty-first: nfl_super_bowl_guess
     # -- already catalog-verified (LEGACY_PUBLIC_PENDING_REVALIDATION) but
     # never wired up until its real team-resolution pool grew 24/60->60/60.
+    # MASTER Workbook + Power4 Coverage Closeout ingestion passes added the
+    # twenty-second and twenty-third: cfb_2026_roster_guess and
+    # cfb_2026_coach_guess, both walked to PUBLIC_ENABLED via a real,
+    # passing Tier-2 certification probe.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {
@@ -607,7 +620,7 @@ def test_all_twenty_certified_guess_modes_registered(client):
         "offense_college_guess", "sb_champion_offense_college_guess", "cfb_ranking_guess", "cfb_upset_guess",
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
-        "nfl_super_bowl_guess",
+        "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
     }
 
 

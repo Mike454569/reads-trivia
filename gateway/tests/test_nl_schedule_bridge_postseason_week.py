@@ -64,3 +64,58 @@ def test_resolved_postseason_week_produces_a_real_nonempty_slate(season):
     finally:
         c.close()
     assert len(rows) >= 1, f"season {season}, week {week!r}: resolved week has zero real games"
+
+
+# --- Player-reported real bug: NFL showed "Week 2" while Week 1 was still
+# in progress (user confirmed real-world: today 2026-09-11, real Week 1
+# games run 2026-09-09 through 2026-09-14 -- only the Thursday opener had
+# been played). resolve_current_week()'s NFL branch tested only
+# first_date, so the instant the Thursday game's date passed, it treated
+# the WHOLE week as over and jumped to Week 2 while 14 of 16 real games
+# were still ahead. The CFB branch already had the correct "not yet
+# concluded" (last_date-based) test for this exact bug class -- this locks
+# in the NFL branch now matching it. CFB's own behavior is deliberately
+# NOT touched or asserted here (the user was explicit CFB's week detection
+# is already correct) -- see test_resolve_current_week_uses_last_date_not_
+# first_date_for_cfb_too's sibling coverage elsewhere if that ever needs
+# its own lock-in test.
+
+def test_resolve_current_week_nfl_uses_last_date_not_first_date():
+    """Direct, real-data reproduction of the reported bug: a real NFL week
+    whose first game has already been played but whose last game has not
+    must NOT be treated as concluded."""
+    from tools.director_v04 import nl_schedule_bridge as bridge
+
+    c = engine_bootstrap.connect()
+    try:
+        candidates = bridge._nfl_week_candidates(c, 2026)
+    finally:
+        c.close()
+    week1 = next((cand for cand in candidates if cand[0] == "1"), None)
+    assert week1 is not None, "real NFL 2026 Week 1 schedule rows are missing from this database"
+    _, first_date, last_date = week1
+    assert first_date < last_date, (
+        "this test needs a real week whose games span multiple real days to mean anything -- "
+        f"got first_date == last_date == {first_date!r}"
+    )
+
+    import datetime as _dt
+    from unittest import mock
+
+    # Pin "today" to a real date after Week 1's first game but before its
+    # last one -- the exact real-world condition the user hit.
+    pinned_today = _dt.datetime.fromisoformat(first_date).replace(tzinfo=_dt.timezone.utc) + _dt.timedelta(days=1)
+    assert pinned_today.strftime("%Y-%m-%d") < last_date, "pinned date must still be before Week 1 concludes"
+
+    class _FixedDatetime(_dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return pinned_today
+
+    c = engine_bootstrap.connect()
+    try:
+        with mock.patch.object(bridge, "datetime", _FixedDatetime):
+            week = bridge.resolve_current_week(c, "NFL", 2026)
+    finally:
+        c.close()
+    assert week == "1", f"expected Week 1 (still in progress), got {week!r} -- the first_date-only bug is back"

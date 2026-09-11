@@ -1346,14 +1346,43 @@ class MockDeterministicTranslator(Translator):
             }
             return _result(request_text, "TRANSLATED", spec, note)
 
+        # Power 4 Coverage Closeout workbook -- narrow, explicit match for
+        # the new CFB_2026_HEAD_COACH capability, checked BEFORE the bare
+        # has_coach_word NFL_COACHING fallback right below (which would
+        # otherwise unconditionally intercept every "coach"-mentioning
+        # request first). Requires "coach" AND an explicit CFB signal AND a
+        # 2026/current-season signal, all three -- a bare "who's the coach"
+        # (no CFB, no recency) still correctly falls through to NFL_COACHING
+        # exactly as before; this only carves out the genuinely new, narrow
+        # real case this workbook actually supports.
+        text_lower_coach_2026 = text.lower()
+        has_2026_or_current_signal_coach = (
+            "2026" in text_lower_coach_2026 or "current" in text_lower_coach_2026
+            or "this season" in text_lower_coach_2026
+        )
+        if has_coach_word and has_cfb_signal and has_2026_or_current_signal_coach:
+            spec = {
+                "mechanic": "guess", "domain": "CFB_2026_HEAD_COACH", "relationship_predicate": "COACHES_TEAM_2026",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(
+                request_text, "TRANSLATED", spec,
+                "Matched 'coach' + a CFB signal + a 2026/current-season signal -> CFB_2026_HEAD_COACH "
+                "guess capability.",
+            )
+
         # NFL Coaching History (COACHED_TEAM), Creator-gap-audit operation.
         # "coach"/"coached"/"coaching" alone is unambiguous enough in a
         # football-trivia context (same single-keyword discipline "heisman"/
-        # award words already use above) -- no CFB equivalent is registered
-        # (cfb_coaches has real, disclosed data-quality problems -- see
-        # tools/quiz_export/adapters/cfb_heisman.py's own module docstring
-        # for the precedent of NOT building on a table with known parsing
-        # artifacts), so this always routes to NFL, never CFB.
+        # award words already use above) -- no CFB equivalent was registered
+        # until the Power 4 Coverage Closeout workbook pass added the real,
+        # narrow CFB_2026_HEAD_COACH case checked immediately above (cfb_coaches
+        # itself still has real, disclosed data-quality problems for a general
+        # CFB coaching-history capability -- see tools/quiz_export/adapters/
+        # cfb_heisman.py's own module docstring for that precedent), so a
+        # request without both an explicit CFB signal and a 2026/current
+        # signal still always routes to NFL, never CFB.
         if has_coach_word:
             spec = {
                 "mechanic": "guess", "domain": "NFL_COACHING", "relationship_predicate": "COACHED_TEAM",

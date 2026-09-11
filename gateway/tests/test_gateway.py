@@ -58,9 +58,15 @@ def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 33
+    assert len(caps) == 35
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
+        # MASTER Workbook + Power4 Coverage Closeout ingestion passes: both
+        # new 2026-roster-backed capabilities were walked all the way to
+        # PUBLIC_ENABLED via a real, passing Tier-2 certification probe
+        # (100/100 rounds, 0 leaks each).
+        ("guess", "CFB_2026_CURRENT_ROSTER", "ON_2026_ROSTER"),
+        ("guess", "CFB_2026_HEAD_COACH", "COACHES_TEAM_2026"),
         # Closeout pass, Part 3: Franchise Marathon's real 8-stage rebuild,
         # walked all the way to PUBLIC_ENABLED via a real, passing Tier-2
         # certification probe (100/100 rounds, 0 leaks).
