@@ -36,10 +36,22 @@ _CONNECTION_GRID_RE = re.compile(
 
 # --- PERFECT_DRIVE / GOAL_LINE_STAND (DRIVE_PROGRESSION) --------------------
 _PERFECT_DRIVE_RE = re.compile(r"\bperfect\s+drive\b|\bdrive\s+down\s+the\s+field\b", re.IGNORECASE)
-_GOAL_LINE_STAND_RE = re.compile(r"\bgoal\s+line\s+stand\b|\bfour\s+downs\b", re.IGNORECASE)
+# "four[- ]down(s)" covers both "four downs" and the user's own real
+# example phrasing "four-down CFB trivia game" (a hyphenated adjective,
+# not the plural noun phrase the original pattern alone required).
+_GOAL_LINE_STAND_RE = re.compile(r"\bgoal\s+line\s+stand\b|\bfour[\s-]+downs?\b", re.IGNORECASE)
 
 # --- LINEUP_BUILDER / AUCTION_DRAFT / CAP_CHALLENGE (ROSTER_BUILD) ----------
-_LINEUP_BUILDER_RE = re.compile(r"\bbuild\s+an?\s+offense\b|\blineup\s+builder\b", re.IGNORECASE)
+# Also covers the user's own real example phrasing "skill-position lineup
+# game" / "skill position lineup" -- always anchored to "lineup" together
+# with a build/construct signal, never a bare "lineup" alone (which must
+# keep meaning the existing POSITION_LINEUP_GRID guess capability).
+_LINEUP_BUILDER_RE = re.compile(
+    r"\bbuild\s+an?\s+offense\b|\blineup\s+builder\b|"
+    r"\b(build|construct)\w*\b.{0,30}\b(skill[\s-]position)?\s*lineup\b|"
+    r"\bskill[\s-]position\s+lineup\b",
+    re.IGNORECASE,
+)
 _AUCTION_DRAFT_RE = re.compile(
     r"\bauction\s+draft\b|\b(give|giving)\s+(everyone|each\s+player)\s+a\s+budget\b", re.IGNORECASE,
 )
@@ -56,7 +68,9 @@ _SIX_DEGREES_RE = re.compile(
 _CHAIN_REACTION_RE = re.compile(r"\bchain\s+reaction\b", re.IGNORECASE)
 
 # --- CHOOSE_YOUR_PATH (BRANCH_STATE) ----------------------------------------
-_CHOOSE_YOUR_PATH_RE = re.compile(r"\bchoose\s+your\s+path\b", re.IGNORECASE)
+# [\s-]+ (not just \s+) so the user's own real example phrasing
+# "choose-your-path" (hyphenated) matches, not only "choose your path".
+_CHOOSE_YOUR_PATH_RE = re.compile(r"\bchoose[\s-]+your[\s-]+path\b", re.IGNORECASE)
 
 
 def detect(request_text: str | None) -> dict | None:

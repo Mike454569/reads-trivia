@@ -127,8 +127,17 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # DRAFT's real sequential-slot-filling shape with a swappable pool
     # query instead of a new mechanic convention.
     "ROSTER_BUILD": {
-        "NFL_2010S_OFFENSE_BUILDER": {"competition": "NFL"},
-        "NFL_AUCTION_DRAFT": {"competition": "NFL"},
+        "NFL_2010S_OFFENSE_BUILDER": {"competition": "NFL", "flow": "SEQUENTIAL"},
+        "CFB_SKILL_POSITION_BUILDER": {"competition": "CFB", "flow": "SEQUENTIAL"},
+        "NFL_AUCTION_DRAFT": {"competition": "NFL", "flow": "SEQUENTIAL"},
+        "NFL_AUCTION_DRAFT_REAL_CONTRACT": {"competition": "NFL", "flow": "SEQUENTIAL"},
+        "CFB_AUCTION_DRAFT": {"competition": "CFB", "flow": "SEQUENTIAL"},
+        # Finish-10-Formats pass: CAP_CHALLENGE reuses the identical real
+        # pool/cost data as its AUCTION_DRAFT sibling, generated with
+        # flow="FREE_SELECT" instead of "SEQUENTIAL" -- never a second
+        # pool/cost implementation (see roster_build.py's own docstring).
+        "NFL_CAP_CHALLENGE": {"competition": "NFL", "flow": "FREE_SELECT", "base_variant": "NFL_AUCTION_DRAFT"},
+        "CFB_CAP_CHALLENGE": {"competition": "CFB", "flow": "FREE_SELECT", "base_variant": "CFB_AUCTION_DRAFT"},
     },
     # 40-Format Expansion pass -- see tools/director_v04/knockout_bracket.py's
     # own module docstring for why this generalizes COMPARISON_BRACKET's
@@ -690,6 +699,16 @@ def _branch_state_client_view(package: dict, progress: dict) -> dict:
     node_id = progress.get("current_node", "root")
     tree = package["_private_tree"]
     node = tree[node_id]
+    # Real bug found and fixed while wiring the frontend (Finish-10-Formats
+    # pass): the leaf's own node type never changes after its question is
+    # answered (node_id still points at the same leaf), so without this
+    # explicit check this function would keep re-showing the same leaf
+    # question with completed=False forever -- the player would never see
+    # a real "you're done" state after answering. progress["completed"] is
+    # the one authoritative signal (set by _branch_state_evaluate's caller
+    # below once the leaf question itself has been answered).
+    if progress.get("completed"):
+        return {"node_id": node_id, "completed": True}
     if "choices" in node:
         return {"node_id": node_id, "completed": False, "prompt": node["prompt"], "choices": node["choices"]}
     # A leaf node -- generate (or reuse) the real question for this path.
@@ -853,10 +872,15 @@ def _drive_progression_evaluate(package: dict, progress: dict, submission: dict)
 
 def generate_roster_build_round(*, variant: str, seed: str) -> dict:
     from tools.director_v04 import roster_build
-    return roster_build.build_package(seed, variant)
+
+    cfg = VARIANTS["ROSTER_BUILD"][variant]
+    real_variant = cfg.get("base_variant", variant)
+    return roster_build.build_package(seed, real_variant, flow=cfg["flow"])
 
 
 def _roster_build_client_view(package: dict, progress: dict) -> dict:
+    if package.get("flow") == "FREE_SELECT":
+        return _roster_build_free_select_client_view(package, progress)
     slots = package["roster_slots"]
     drafted = progress.get("drafted", [])
     drafted_ids = set(progress.get("drafted_player_ids", []))
@@ -878,7 +902,7 @@ def _roster_build_client_view(package: dict, progress: dict) -> dict:
                 "position": p["position"], "cost": p["cost"],
             })
     return {
-        "domain_variant": package["domain_variant"], "roster_slots": slots,
+        "domain_variant": package["domain_variant"], "flow": "SEQUENTIAL", "roster_slots": slots,
         "current_slot_index": current_index, "current_slot": current_slot,
         "roster": drafted, "picks_made": len(drafted), "slots_total": len(slots),
         "remaining_pool_size": len(remaining_pool), "remaining_pool": remaining_pool,
@@ -888,6 +912,8 @@ def _roster_build_client_view(package: dict, progress: dict) -> dict:
 
 
 def _roster_build_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    if package.get("flow") == "FREE_SELECT":
+        return _roster_build_free_select_evaluate(package, progress, submission)
     slots = package["roster_slots"]
     current_index = progress.get("current_slot_index", 0)
     if current_index >= len(slots):
@@ -918,6 +944,94 @@ def _roster_build_evaluate(package: dict, progress: dict, submission: dict) -> d
 
     return {"slot": current_slot, "player_id": player_id, "display_name": player["display_name"],
             "position": player["position"], "cost": player["cost"]}
+
+
+# --- ROSTER_BUILD, FREE_SELECT flow (Finish-10-Formats pass -- backs
+# CAP_CHALLENGE's real, distinct mechanic: select/swap/remove any open slot
+# freely; nothing is locked in until a final `submit_lineup` action, which
+# is the one authoritative point a real over-cap or incomplete roster is
+# rejected. Shares the identical real pool/cost data as the SEQUENTIAL
+# (AUCTION_DRAFT) flow above -- never a second data source.) ---
+
+def _roster_build_free_select_client_view(package: dict, progress: dict) -> dict:
+    slots = package["roster_slots"]
+    roster = progress.get("roster") or [None] * len(slots)
+    filled_ids = {r["player_id"] for r in roster if r}
+    spent = sum(r["cost"] for r in roster if r) if package["budgeted"] else 0
+    remaining_budget = package["budget_total"] - spent if package["budgeted"] else None
+    submitted = progress.get("submitted", False)
+
+    pool_by_slot = {}
+    if not submitted:
+        for i, slot in enumerate(slots):
+            candidates = []
+            for p in package["players"]:
+                if p["position"] != slot or p["player_id"] in filled_ids:
+                    continue
+                if package["budgeted"] and p["cost"] > (remaining_budget or 0):
+                    continue
+                candidates.append({"player_id": p["player_id"], "display_name": p["display_name"],
+                                    "position": p["position"], "cost": p["cost"]})
+            pool_by_slot[str(i)] = candidates
+
+    return {
+        "domain_variant": package["domain_variant"], "flow": "FREE_SELECT", "roster_slots": slots,
+        "roster": roster, "slots_filled": sum(1 for r in roster if r), "slots_total": len(slots),
+        "budgeted": package["budgeted"], "budget_total": package["budget_total"], "remaining_budget": remaining_budget,
+        "pool_by_slot": pool_by_slot, "submitted": submitted,
+        "completed": submitted,
+    }
+
+
+def _roster_build_free_select_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    if progress.get("submitted"):
+        raise MechanicError("this lineup has already been submitted")
+    slots = package["roster_slots"]
+    roster = list(progress.get("roster") or [None] * len(slots))
+    action = submission.get("action")
+
+    if action == "select":
+        slot_index = submission.get("slot_index")
+        player_id = submission.get("player_id")
+        if not isinstance(slot_index, int) or not (0 <= slot_index < len(slots)):
+            raise MechanicError(f"slot_index must be an int in [0, {len(slots)})")
+        players_by_id = {p["player_id"]: p for p in package["players"]}
+        player = players_by_id.get(player_id)
+        if player is None:
+            raise MechanicError(f"player_id {player_id!r} is not in this roster's real eligible pool")
+        if player["position"] != slots[slot_index]:
+            raise MechanicError(f"player {player_id!r} plays {player['position']!r}, not eligible for slot {slots[slot_index]!r}")
+        filled_ids = {r["player_id"] for i, r in enumerate(roster) if r and i != slot_index}
+        if player_id in filled_ids:
+            raise MechanicError(f"player {player_id!r} is already used in another slot -- no player can fill two slots")
+        if package["budgeted"]:
+            spent = sum(r["cost"] for i, r in enumerate(roster) if r and i != slot_index)
+            if spent + player["cost"] > package["budget_total"]:
+                raise MechanicError(
+                    f"selecting {player_id!r} (cost {player['cost']}) would exceed the fictional budget "
+                    f"(spent {spent} + cost {player['cost']} > {package['budget_total']})"
+                )
+        return {"action": "select", "slot_index": slot_index, "player_id": player_id,
+                "display_name": player["display_name"], "position": player["position"], "cost": player["cost"]}
+
+    if action == "deselect":
+        slot_index = submission.get("slot_index")
+        if not isinstance(slot_index, int) or not (0 <= slot_index < len(slots)):
+            raise MechanicError(f"slot_index must be an int in [0, {len(slots)})")
+        return {"action": "deselect", "slot_index": slot_index}
+
+    if action == "submit_lineup":
+        if any(r is None for r in roster):
+            missing = [slots[i] for i, r in enumerate(roster) if r is None]
+            raise MechanicError(f"lineup is incomplete -- missing real picks for slot(s) {missing}")
+        if package["budgeted"]:
+            total_spent = sum(r["cost"] for r in roster)
+            if total_spent > package["budget_total"]:
+                raise MechanicError(f"final lineup costs {total_spent}, exceeding the fictional cap {package['budget_total']}")
+            return {"action": "submit_lineup", "roster": roster, "total_spent": total_spent}
+        return {"action": "submit_lineup", "roster": roster, "total_spent": None}
+
+    raise MechanicError(f"action must be one of 'select', 'deselect', 'submit_lineup', got {action!r}")
 
 
 # --- Generic dispatch used by the Gateway routes ---
@@ -1096,6 +1210,21 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
                 progress["downs_remaining"] = progress.get("downs_remaining", package["downs_total"]) - 1
                 if progress["downs_remaining"] <= 0 or progress["current_index"] >= total:
                     progress["ended"] = True
+        return result, progress
+    if taxonomy_id == "ROSTER_BUILD" and package.get("flow") == "FREE_SELECT":
+        result = _roster_build_free_select_evaluate(package, progress, submission)
+        roster = list(progress.get("roster") or [None] * len(package["roster_slots"]))
+        if result["action"] == "select":
+            roster[result["slot_index"]] = {
+                "player_id": result["player_id"], "display_name": result["display_name"],
+                "position": result["position"], "cost": result["cost"],
+            }
+        elif result["action"] == "deselect":
+            roster[result["slot_index"]] = None
+        else:  # submit_lineup
+            progress["submitted"] = True
+        progress["roster"] = roster
+        progress["completed"] = progress.get("submitted", False)
         return result, progress
     if taxonomy_id == "ROSTER_BUILD":
         result = _roster_build_evaluate(package, progress, submission)

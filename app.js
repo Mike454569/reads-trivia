@@ -109,6 +109,20 @@ var ENABLE_ENGINE_ERA_GAUNTLET_PILOT_V01 = READS_CONFIG.enableEngineEraGauntletP
 var ENABLE_ENGINE_CFB_ODD_COLLEGE_OUT_PILOT_V01 = READS_CONFIG.enableEngineCfbOddCollegeOutPilot === true;
 var ENABLE_ENGINE_CFB_ONE_SCHOOL_MISSING_PILOT_V01 = READS_CONFIG.enableEngineCfbOneSchoolMissingPilot === true;
 var ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01 = READS_CONFIG.enableEngineFranchiseMarathonPilot === true;
+// Finish-10-Formats pass: the 10 new game formats' real backend/public
+// pipeline (gateway/services/public_mechanics.py's PUBLIC_MECHANIC_MODES) --
+// same fail-closed pattern as every pilot above, default OFF until
+// individually canary-verified against production.
+var ENABLE_ENGINE_CONNECTION_GRID_PILOT_V01 = READS_CONFIG.enableEngineConnectionGridPilot === true;
+var ENABLE_ENGINE_PERFECT_DRIVE_PILOT_V01 = READS_CONFIG.enableEnginePerfectDrivePilot === true;
+var ENABLE_ENGINE_GOAL_LINE_STAND_PILOT_V01 = READS_CONFIG.enableEngineGoalLineStandPilot === true;
+var ENABLE_ENGINE_LINEUP_BUILDER_PILOT_V01 = READS_CONFIG.enableEngineLineupBuilderPilot === true;
+var ENABLE_ENGINE_AUCTION_DRAFT_PILOT_V01 = READS_CONFIG.enableEngineAuctionDraftPilot === true;
+var ENABLE_ENGINE_CAP_CHALLENGE_PILOT_V01 = READS_CONFIG.enableEngineCapChallengePilot === true;
+var ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01 = READS_CONFIG.enableEngineKnockoutTournamentPilot === true;
+var ENABLE_ENGINE_SIX_DEGREES_CHAIN_PILOT_V01 = READS_CONFIG.enableEngineSixDegreesChainPilot === true;
+var ENABLE_ENGINE_CHAIN_REACTION_PILOT_V01 = READS_CONFIG.enableEngineChainReactionPilot === true;
+var ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01 = READS_CONFIG.enableEngineChooseYourPathPilot === true;
 // Never hardcode a machine-specific filesystem path here; this is a
 // network origin, not a path. Falls back to the same local-dev value as
 // before if reads-config.js didn't provide one -- a missing Gateway URL
@@ -10089,6 +10103,10 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-start], [data-mechanic-retry], [data-mechanic-fallback], [data-mechanic-next], [data-mechanic-exit], ' +
     '[data-match-left], [data-match-submit], [data-sort-up], [data-sort-down], [data-sort-submit], ' +
     '[data-mechanic-hl-guess], [data-elim-guess], [data-mechanic-comparison-match], [data-mechanic-sort-format], ' +
+    '[data-mechanic-grid-cell], [data-mechanic-grid-submit], [data-mechanic-grid-cancel], [data-mechanic-drive-answer], ' +
+    '[data-mechanic-roster-pick], [data-mechanic-roster-slot], [data-mechanic-roster-candidate], ' +
+    '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], ' +
+    '[data-mechanic-branch-choice], [data-mechanic-branch-answer], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10454,6 +10472,77 @@ document.addEventListener('click', function (e) {
     return;
   }
 
+  // Finish-10-Formats pass: 5 new Mechanic Pilot interactions
+  // (KNOCKOUT_TOURNAMENT reuses the existing data-mechanic-comparison-match
+  // handler above unchanged -- same real view shape, same submit contract).
+  if (t.dataset.mechanicGridCell !== undefined) {
+    if (state.mechanicPilot) { state.mechanicPilot.gridActiveCell = t.dataset.mechanicGridCell; renderAll(); }
+    return;
+  }
+  if (t.dataset.mechanicGridCancel !== undefined) {
+    if (state.mechanicPilot) { state.mechanicPilot.gridActiveCell = null; renderAll(); }
+    return;
+  }
+  if (t.dataset.mechanicGridSubmit !== undefined) {
+    var gridKey = state.mechanicPilot && state.mechanicPilot.gridActiveCell;
+    if (!gridKey) return;
+    var gridParts = gridKey.split(':');
+    var gridInputEl = document.getElementById('mechanic-grid-input');
+    var gridGuess = gridInputEl ? gridInputEl.value.trim() : '';
+    if (!gridGuess) return;
+    state.mechanicPilot.gridActiveCell = null;
+    submitMechanicPilotAction({ row_index: parseInt(gridParts[0], 10), col_index: parseInt(gridParts[1], 10), guess: gridGuess });
+    return;
+  }
+  if (t.dataset.mechanicDriveAnswer !== undefined) {
+    var s = state.mechanicPilot;
+    var driveOptIdx = parseInt(t.dataset.mechanicDriveAnswer, 10);
+    if (s && s.view && s.view.options) submitMechanicPilotAction({ answer: s.view.options[driveOptIdx] });
+    return;
+  }
+  if (t.dataset.mechanicRosterPick !== undefined) {
+    submitMechanicPilotAction({ player_id: t.dataset.mechanicRosterPick });
+    return;
+  }
+  if (t.dataset.mechanicRosterSlot !== undefined) {
+    if (state.mechanicPilot) { state.mechanicPilot.rosterOpenSlot = parseInt(t.dataset.mechanicRosterSlot, 10); renderAll(); }
+    return;
+  }
+  if (t.dataset.mechanicRosterCandidate !== undefined) {
+    var rs = state.mechanicPilot;
+    if (rs && rs.rosterOpenSlot !== null && rs.rosterOpenSlot !== undefined) {
+      var openSlot = rs.rosterOpenSlot;
+      rs.rosterOpenSlot = null;
+      submitMechanicPilotAction({ action: 'select', slot_index: openSlot, player_id: t.dataset.mechanicRosterCandidate });
+    }
+    return;
+  }
+  if (t.dataset.mechanicRosterDeselect !== undefined) {
+    submitMechanicPilotAction({ action: 'deselect', slot_index: parseInt(t.dataset.mechanicRosterDeselect, 10) });
+    return;
+  }
+  if (t.dataset.mechanicRosterSubmitLineup !== undefined) {
+    submitMechanicPilotAction({ action: 'submit_lineup' });
+    return;
+  }
+  if (t.dataset.mechanicChainSubmit !== undefined) {
+    var chainInputEl = document.getElementById('mechanic-chain-input');
+    var chainGuess = chainInputEl ? chainInputEl.value.trim() : '';
+    if (!chainGuess) return;
+    submitMechanicPilotAction({ guess: chainGuess });
+    return;
+  }
+  if (t.dataset.mechanicBranchChoice !== undefined) {
+    submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
+    return;
+  }
+  if (t.dataset.mechanicBranchAnswer !== undefined) {
+    var bs = state.mechanicPilot;
+    var branchOptIdx = parseInt(t.dataset.mechanicBranchAnswer, 10);
+    if (bs && bs.view && bs.view.options) submitMechanicPilotAction({ answer: bs.view.options[branchOptIdx] });
+    return;
+  }
+
   if (t.dataset.sixdegreesStart !== undefined) { startSixDegreesRound(); return; }
   if (t.dataset.sixdegreesPickId !== undefined) {
     submitSixDegreesMove(t.dataset.sixdegreesPickType, t.dataset.sixdegreesPickId, t.dataset.sixdegreesPickName);
@@ -10719,6 +10808,24 @@ if (ENABLE_ENGINE_SORTING_PILOT_V01) HIDDEN_ROUTES['#sortingpilot'] = 'mechanicP
 if (ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01) HIDDEN_ROUTES['#higherlowerenginepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_ELIMINATION_PILOT_V01) HIDDEN_ROUTES['#eliminationpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_COMPARISON_PILOT_V01) HIDDEN_ROUTES['#comparisonpilot'] = 'mechanicPilot';
+// Finish-10-Formats pass: same registration pattern for the 10 new real
+// game formats, all routed through the shared 'mechanicPilot' screen.
+if (ENABLE_ENGINE_CONNECTION_GRID_PILOT_V01) HIDDEN_ROUTES['#connectiongridpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_PERFECT_DRIVE_PILOT_V01) HIDDEN_ROUTES['#perfectdrivenflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_PERFECT_DRIVE_PILOT_V01) HIDDEN_ROUTES['#perfectdrivecfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_GOAL_LINE_STAND_PILOT_V01) HIDDEN_ROUTES['#goallinestandnflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_GOAL_LINE_STAND_PILOT_V01) HIDDEN_ROUTES['#goallinestandcfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_LINEUP_BUILDER_PILOT_V01) HIDDEN_ROUTES['#lineupbuildernflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_LINEUP_BUILDER_PILOT_V01) HIDDEN_ROUTES['#lineupbuildercfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_AUCTION_DRAFT_PILOT_V01) HIDDEN_ROUTES['#auctiondraftnflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_AUCTION_DRAFT_PILOT_V01) HIDDEN_ROUTES['#auctiondraftcfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CAP_CHALLENGE_PILOT_V01) HIDDEN_ROUTES['#capchallengenflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CAP_CHALLENGE_PILOT_V01) HIDDEN_ROUTES['#capchallengecfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01) HIDDEN_ROUTES['#knockouttournamentnflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01) HIDDEN_ROUTES['#knockouttournamentcfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_SIX_DEGREES_CHAIN_PILOT_V01) HIDDEN_ROUTES['#sixdegreeschainpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CHAIN_REACTION_PILOT_V01) HIDDEN_ROUTES['#chainreactionpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01) HIDDEN_ROUTES['#chooseyourpathpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
@@ -10748,6 +10855,23 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_MECHANIC_MODES.sorting.hash) mechanicPilotCurrentModeKey = 'sorting';
   else if (location.hash === ENGINE_MECHANIC_MODES.higherLowerEngine.hash) mechanicPilotCurrentModeKey = 'higherLowerEngine';
   else if (location.hash === ENGINE_MECHANIC_MODES.elimination.hash) mechanicPilotCurrentModeKey = 'elimination';
+  else if (location.hash === ENGINE_MECHANIC_MODES.comparisonBracket.hash) mechanicPilotCurrentModeKey = 'comparisonBracket';
+  else if (location.hash === ENGINE_MECHANIC_MODES.connectionGrid.hash) mechanicPilotCurrentModeKey = 'connectionGrid';
+  else if (location.hash === ENGINE_MECHANIC_MODES.perfectDriveNfl.hash) mechanicPilotCurrentModeKey = 'perfectDriveNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.perfectDriveCfb.hash) mechanicPilotCurrentModeKey = 'perfectDriveCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.goalLineStandNfl.hash) mechanicPilotCurrentModeKey = 'goalLineStandNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.goalLineStandCfb.hash) mechanicPilotCurrentModeKey = 'goalLineStandCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.lineupBuilderNfl.hash) mechanicPilotCurrentModeKey = 'lineupBuilderNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.lineupBuilderCfb.hash) mechanicPilotCurrentModeKey = 'lineupBuilderCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.auctionDraftNfl.hash) mechanicPilotCurrentModeKey = 'auctionDraftNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.auctionDraftCfb.hash) mechanicPilotCurrentModeKey = 'auctionDraftCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.capChallengeNfl.hash) mechanicPilotCurrentModeKey = 'capChallengeNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.capChallengeCfb.hash) mechanicPilotCurrentModeKey = 'capChallengeCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.knockoutTournamentNfl.hash) mechanicPilotCurrentModeKey = 'knockoutTournamentNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.knockoutTournamentCfb.hash) mechanicPilotCurrentModeKey = 'knockoutTournamentCfb';
+  else if (location.hash === ENGINE_MECHANIC_MODES.sixDegreesChain.hash) mechanicPilotCurrentModeKey = 'sixDegreesChain';
+  else if (location.hash === ENGINE_MECHANIC_MODES.chainReaction.hash) mechanicPilotCurrentModeKey = 'chainReaction';
+  else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPath.hash) mechanicPilotCurrentModeKey = 'chooseYourPath';
   if (state.screen === 'creator') {
     state.creator = {
       screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,

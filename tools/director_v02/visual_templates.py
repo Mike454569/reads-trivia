@@ -479,10 +479,8 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "every submitted name is checked live against the real database, never a "
                         "precomputed client-visible answer key.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "grid_constraint.py for the real, tested backend (generation + live "
-                                   "per-cell answer verification, confirmed against real data).",
-        "proven_in": [], "supported_mechanics": ["grid_constraint_board"],
+        "renderer": "renderConnectionGridBody (engine-game-ui.js)",
+        "proven_in": ["connection_grid_nfl"], "supported_mechanics": ["grid_constraint_board"],
         "mechanic_family": "GRID_CONSTRAINT_BOARD",
         "supported_entity_types": ["player", "team"],
         "required_data_relationships": ["draft_facts", "canonical_roster_seasons"],
@@ -490,14 +488,14 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "nfl_support": "SUPPORTED", "cfb_support": "UNKNOWN",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "BINARY",
-        "interaction_model": "Type a real name for each of 9 cells; checked live against the database.",
+        "interaction_model": "Tap a cell, type a real name, submit -- checked live against the database.",
         "validation_rules": "Every cell verified to have >=1 real candidate at generation time; every "
                              "submitted answer re-verified live, never against a precomputed key.",
         "answer_schema": "{row_index, col_index, guess: <free-text name>}",
         "generation_schema": "tools/director_v04/grid_constraint.py:build_package()",
         "qa_requirements": "Live per-cell COUNT() verification before publishing; no cell with 0 real candidates.",
         "casual_aliases": ["connection grid", "3x3 grid trivia"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "PERFECT_DRIVE": {
         "format_id": "PERFECT_DRIVE", "display_name": "Perfect Drive",
@@ -505,9 +503,8 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "capability) gain real yardage toward the end zone, keyed to each question's own "
                         "already-computed difficulty. One wrong answer ends the drive.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "drive_progression.py for the real, tested backend (YARDAGE mode).",
-        "proven_in": [], "supported_mechanics": ["drive_progression"],
+        "renderer": "renderDriveProgressionBody (engine-game-ui.js)",
+        "proven_in": ["perfect_drive_nfl", "perfect_drive_cfb"], "supported_mechanics": ["drive_progression"],
         "mechanic_family": "DRIVE_PROGRESSION",
         "supported_entity_types": ["player", "team"],
         "required_data_relationships": ["any registered 'guess' capability's own real question pool"],
@@ -522,16 +519,15 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/drive_progression.py:build_package(mode='YARDAGE')",
         "qa_requirements": "Inherits the underlying capability's own real QA pipeline unchanged.",
         "casual_aliases": ["perfect drive", "drive down the field"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "GOAL_LINE_STAND": {
         "format_id": "GOAL_LINE_STAND", "display_name": "Goal Line Stand",
         "description": "A fixed number of downs (default 4) to score; each wrong answer costs a down. "
                         "Questions are real, drawn from any existing registered 'guess' capability.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "drive_progression.py for the real, tested backend (DOWNS mode).",
-        "proven_in": [], "supported_mechanics": ["drive_progression"],
+        "renderer": "renderDriveProgressionBody (engine-game-ui.js)",
+        "proven_in": ["goal_line_stand_nfl", "goal_line_stand_cfb"], "supported_mechanics": ["drive_progression"],
         "mechanic_family": "DRIVE_PROGRESSION",
         "supported_entity_types": ["player", "team"],
         "required_data_relationships": ["any registered 'guess' capability's own real question pool"],
@@ -546,83 +542,105 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/drive_progression.py:build_package(mode='DOWNS')",
         "qa_requirements": "Inherits the underlying capability's own real QA pipeline unchanged.",
         "casual_aliases": ["goal line stand", "four downs"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "LINEUP_BUILDER": {
         "format_id": "LINEUP_BUILDER", "display_name": "Lineup Builder",
-        "description": "Construct a themed real lineup (e.g. a 2010s all-decade offense) one real, "
-                        "eligible, not-yet-picked player per slot -- a construction exercise, never a "
-                        "scored 'best lineup' claim (no ranking model backs this variant).",
+        "description": "Construct a themed real lineup (e.g. a 2010s NFL all-decade offense, or a real CFB "
+                        "skill-position build) one real, eligible, not-yet-picked player per slot -- a "
+                        "construction exercise, never a scored 'best lineup' claim (no ranking model backs "
+                        "this variant).",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "roster_build.py for the real, tested backend (NFL_2010S_OFFENSE_BUILDER).",
-        "proven_in": [], "supported_mechanics": ["roster_build"],
+        "renderer": "renderRosterBuildBody (engine-game-ui.js)",
+        "proven_in": ["lineup_builder_nfl", "lineup_builder_cfb"],
+        "supported_mechanics": ["roster_build"],
         "mechanic_family": "ROSTER_BUILD",
         "supported_entity_types": ["player"],
-        "required_data_relationships": ["canonical_roster_seasons"],
+        "required_data_relationships": ["canonical_roster_seasons", "cfb_roster_seasons_real"],
         "min_items": 6, "max_items": 6, "min_pool_size": 100,
-        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        # Finish-10-Formats pass correction: CFB is NOT globally MISSING_DATA
+        # -- a real, narrower skill-position-only configuration
+        # (CFB_SKILL_POSITION_BUILDER) is fully supported, confirmed live
+        # this pass with 32,550 distinct real CFB players across QB/RB/WR/TE.
+        # A full 11-player CFB offense including 5 verified O-linemen
+        # remains genuinely unsupported (no real CFB O-line data exists at
+        # all) -- that narrower configuration, and only that one, is
+        # MISSING_DATA; the format as a whole is SUPPORTED_WITH_LIMITATIONS.
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED_WITH_LIMITATIONS",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "BINARY",
-        "interaction_model": "Pick one real, eligible, not-yet-drafted player per real roster slot.",
+        "interaction_model": "Tap a real, eligible, not-yet-drafted player to fill each real roster slot.",
         "validation_rules": "Every pick checked against the real, live eligible pool for its slot; no "
                              "player draftable twice.",
         "answer_schema": "{player_id}",
-        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_2010S_OFFENSE_BUILDER')",
+        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_2010S_OFFENSE_BUILDER'|'CFB_SKILL_POSITION_BUILDER')",
         "qa_requirements": "Refuses to generate if any required position (QB/RB/WR/TE) has zero real candidates.",
-        "casual_aliases": ["build an offense", "lineup builder"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "casual_aliases": ["build an offense", "lineup builder", "skill position lineup", "build a cfb offense"],
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "AUCTION_DRAFT": {
         "format_id": "AUCTION_DRAFT", "display_name": "Auction Draft",
-        "description": "Build a real roster under a fixed FICTIONAL budget, where every player's cost is "
-                        "their real career-average annual contract value (nfl_player_contracts). The "
-                        "budget itself is fictional; every dollar figure backing a cost is real.",
+        "description": "Build a real roster one slot at a time under a fixed FICTIONAL budget. DEFAULT "
+                        "cost mode: a real, balanced, deterministic fictional value derived from certified "
+                        "career production (NFL: real career AV sum; CFB: real career yardage sum) -- "
+                        "neither league requires real salary/NIL data. An explicit REAL_CONTRACT opt-in "
+                        "variant (NFL only) uses each player's real career-average annual contract value "
+                        "instead, clearly labeled and never the default.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "roster_build.py for the real, tested backend (NFL_AUCTION_DRAFT), "
-                                   "including a real, verified live budget-affordability check.",
-        "proven_in": [], "supported_mechanics": ["roster_build"],
+        "renderer": "renderRosterBuildBody (engine-game-ui.js)",
+        "proven_in": ["auction_draft_nfl", "auction_draft_cfb"],
+        "supported_mechanics": ["roster_build"],
         "mechanic_family": "ROSTER_BUILD",
         "supported_entity_types": ["player"],
-        "required_data_relationships": ["nfl_player_contracts", "canonical_players"],
+        "required_data_relationships": ["canonical_roster_seasons", "cfb_player_season_stats_real", "nfl_player_contracts (REAL_CONTRACT variant only)"],
         "min_items": 6, "max_items": 6, "min_pool_size": 80,
-        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        # Finish-10-Formats pass correction: CFB never required NIL/salary
+        # data -- CFB_AUCTION_DRAFT uses the same real, deterministic
+        # fictional cost model as NFL's default, confirmed live this pass
+        # (no CFB player alone can exceed the fictional budget).
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "WAGER",
-        "interaction_model": "Pick one real, eligible, affordable, not-yet-drafted player per real roster slot.",
-        "validation_rules": "Every pick checked against real remaining budget (fictional total, real "
-                             "per-player cost) before being accepted -- confirmed live during this pass "
-                             "(a real over-budget pick was correctly rejected).",
+        "interaction_model": "Tap one real, eligible, affordable player per slot, in order -- each pick "
+                              "locks in immediately.",
+        "validation_rules": "Every pick checked against real remaining budget before being accepted; "
+                             "confirmed live this pass: the fictional default guarantees no single real "
+                             "player can ever consume the whole budget (real correction from the prior "
+                             "pass's real-contract-only implementation, where a single $50M+ QB could).",
         "answer_schema": "{player_id}",
-        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_AUCTION_DRAFT')",
-        "qa_requirements": "Refuses to generate if any required position has zero real, resolved-contract candidates.",
-        "casual_aliases": ["auction draft", "give everyone a budget"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_AUCTION_DRAFT'|'CFB_AUCTION_DRAFT'|'NFL_AUCTION_DRAFT_REAL_CONTRACT', flow='SEQUENTIAL')",
+        "qa_requirements": "Refuses to generate if any required position has zero real candidates.",
+        "casual_aliases": ["auction draft", "give everyone a budget", "cfb auction draft with fictional player values"],
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "CAP_CHALLENGE": {
         "format_id": "CAP_CHALLENGE", "display_name": "Cap Challenge",
-        "description": "The same real budget-constrained roster build as AUCTION_DRAFT, framed as "
-                        "optimization under a cap rather than bidding -- identical real mechanic/data, "
-                        "different presentation framing only.",
+        "description": "Shares AUCTION_DRAFT's real pool/cost data but a genuinely distinct mechanic: "
+                        "freely select, swap, or remove any real player in any slot -- nothing is locked "
+                        "in until a final submit_lineup action, which is the one authoritative point a "
+                        "real over-cap or incomplete roster is rejected. AUCTION_DRAFT is sequential "
+                        "acquisition; CAP_CHALLENGE is optimize-then-submit.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- shares AUCTION_DRAFT's real, "
-                                   "tested backend (tools/director_v04/roster_build.py, NFL_AUCTION_DRAFT).",
-        "proven_in": [], "supported_mechanics": ["roster_build"],
+        "renderer": "renderRosterBuildBody (engine-game-ui.js)",
+        "proven_in": ["cap_challenge_nfl", "cap_challenge_cfb"],
+        "supported_mechanics": ["roster_build"],
         "mechanic_family": "ROSTER_BUILD",
         "supported_entity_types": ["player"],
-        "required_data_relationships": ["nfl_player_contracts", "canonical_players"],
+        "required_data_relationships": ["canonical_roster_seasons", "cfb_player_season_stats_real"],
         "min_items": 6, "max_items": 6, "min_pool_size": 80,
-        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "WAGER",
-        "interaction_model": "Same as AUCTION_DRAFT -- pick real, eligible, affordable players per slot.",
-        "validation_rules": "Identical to AUCTION_DRAFT.",
-        "answer_schema": "{player_id}",
-        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_AUCTION_DRAFT')",
-        "qa_requirements": "Identical to AUCTION_DRAFT.",
-        "casual_aliases": ["salary cap challenge", "cap challenge"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "interaction_model": "Freely select/swap/remove real players per slot; submit the finished lineup "
+                              "when ready -- real over-cap or incomplete submissions are rejected.",
+        "validation_rules": "Live running-budget check on every select; final authoritative completeness + "
+                             "cap check on submit_lineup; confirmed live this pass (both a real completed "
+                             "in-cap submission and a real incomplete-lineup rejection).",
+        "answer_schema": "node stage: {action: 'select', slot_index, player_id} | {action: 'deselect', slot_index} | {action: 'submit_lineup'}",
+        "generation_schema": "tools/director_v04/roster_build.py:build_package('NFL_AUCTION_DRAFT'|'CFB_AUCTION_DRAFT', flow='FREE_SELECT')",
+        "qa_requirements": "Identical real pool/cost requirements as AUCTION_DRAFT.",
+        "casual_aliases": ["salary cap challenge", "cap challenge", "nfl cap challenge"],
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "KNOCKOUT_TOURNAMENT": {
         "format_id": "KNOCKOUT_TOURNAMENT", "display_name": "Knockout Tournament",
@@ -634,13 +652,12 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                       "your_pick?, real_winner?, correct?}]}]",
             "picks_made": "int", "total_matchups": "int", "correct_count": "int", "completed": "bool",
         },
-        "existing_renderer_note": "The view shape is byte-identical to BRACKET_TREE's (confirmed during "
-                                   "this pass -- both flow through the same _comparison_client_view()/"
-                                   "_comparison_evaluate() functions), so renderBracketTreeBody(v, s) "
-                                   "(engine-game-ui.js:1318) would work UNCHANGED if wired up -- but no new "
-                                   "client-side mode-config entry (ENGINE_MECHANIC_MODES) was added this "
-                                   "pass, so it is not yet reachable by a real player.",
-        "proven_in": [], "supported_mechanics": ["knockout_bracket"],
+        "renderer": "renderBracketTreeBody(v, s) (engine-game-ui.js) -- reused UNCHANGED from BRACKET_TREE; "
+                    "its view shape (rounds/picks_made/total_matchups/correct_count) is byte-identical, "
+                    "confirmed live this pass (both flow through the same _comparison_client_view()/"
+                    "_comparison_evaluate() functions server-side). Wired to its own real "
+                    "ENGINE_MECHANIC_MODES entries (knockoutTournamentNfl/Cfb) this pass.",
+        "proven_in": ["knockout_tournament_nfl", "knockout_tournament_cfb"], "supported_mechanics": ["knockout_bracket"],
         "mechanic_family": "KNOCKOUT_BRACKET",
         "supported_entity_types": ["team", "season"],
         "required_data_relationships": ["season_standings", "cfb_standings"],
@@ -655,7 +672,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/knockout_bracket.py:build_package()",
         "qa_requirements": "Refuses to generate if fewer than the required real, tie-free entrants exist.",
         "casual_aliases": ["knockout tournament", "elimination bracket"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
     "SIX_DEGREES": {
         "format_id": "SIX_DEGREES", "display_name": "Six Degrees (Cross-League Chain)",
@@ -665,9 +682,8 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "a different, more general product) -- this is a distinct, narrower, cross-league "
                         "format slot.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "relationship_chain.py for the real, tested backend.",
-        "proven_in": [], "supported_mechanics": ["relationship_chain"],
+        "renderer": "renderRelationshipChainBody (engine-game-ui.js)",
+        "proven_in": ["six_degrees_cfb_nfl"], "supported_mechanics": ["relationship_chain"],
         "mechanic_family": "RELATIONSHIP_CHAIN",
         "supported_entity_types": ["school", "player", "team"],
         "required_data_relationships": ["cfb_nfl_identity_bridge_certified"],
@@ -675,14 +691,22 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "nfl_support": "SUPPORTED_WITH_LIMITATIONS", "cfb_support": "SUPPORTED_WITH_LIMITATIONS",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "BINARY",
-        "interaction_model": "See the start of a real chain, guess where it real-ly ends.",
+        "interaction_model": "See the start of a real chain, type where it real-ly ends.",
         "validation_rules": "Every hop is a real, HIGH_CONFIDENCE-tier row from the certified bridge table; "
                              "no invented or inferred relationship.",
         "answer_schema": "{guess: <free-text end-node name>}",
         "generation_schema": "tools/director_v04/relationship_chain.py:build_package()",
         "qa_requirements": "Confidence-tier filtered; refuses to generate below MIN_CHAINS real chains.",
         "casual_aliases": ["six degrees", "connect these two players"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        # Real, deliberate, disclosed limitation (per explicit instruction:
+        # "do not falsely claim arbitrary Six Degrees support") -- generation/
+        # renderer/interaction/server-validation are all real and playable,
+        # but the backend is bounded to 2 pre-validated hops, never the
+        # harder, unbounded live-pathfinding search a "true" Six Degrees
+        # implies (that harder engine already exists separately, NFL-only,
+        # as Coach Connections). Never promoted to PRODUCTION_READY while
+        # this scope gap stands.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "SUPPORTED_WITH_LIMITATIONS",
     },
     "CHAIN_REACTION": {
         "format_id": "CHAIN_REACTION", "display_name": "Chain Reaction",
@@ -690,9 +714,8 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "SIX_DEGREES are two format names over the identical real underlying chain shape "
                         "this pass, differing only in framing (start-to-end guess vs. link-by-link reveal).",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- shares SIX_DEGREES' real, "
-                                   "tested backend (tools/director_v04/relationship_chain.py).",
-        "proven_in": [], "supported_mechanics": ["relationship_chain"],
+        "renderer": "renderRelationshipChainBody (engine-game-ui.js) -- shares SIX_DEGREES' real renderer.",
+        "proven_in": ["chain_reaction_cfb_nfl"], "supported_mechanics": ["relationship_chain"],
         "mechanic_family": "RELATIONSHIP_CHAIN",
         "supported_entity_types": ["school", "player", "team"],
         "required_data_relationships": ["cfb_nfl_identity_bridge_certified"],
@@ -706,7 +729,9 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/relationship_chain.py:build_package()",
         "qa_requirements": "Identical to SIX_DEGREES.",
         "casual_aliases": ["chain reaction"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        # Same real, disclosed bounded-chain limitation as SIX_DEGREES -- see
+        # that entry's own comment.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "SUPPORTED_WITH_LIMITATIONS",
     },
     "CHOOSE_YOUR_PATH": {
         "format_id": "CHOOSE_YOUR_PATH", "display_name": "Choose Your Path",
@@ -714,9 +739,8 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "each node picks which already-registered real 'guess' capability backs the next "
                         "real question. Never a general branching engine.",
         "payload_schema": None,
-        "existing_renderer_note": "No frontend renderer built this pass -- see tools/director_v04/"
-                                   "branch_state.py for the real, tested backend.",
-        "proven_in": [], "supported_mechanics": ["branch_state"],
+        "renderer": "renderBranchStateBody (engine-game-ui.js)",
+        "proven_in": ["choose_your_path_nfl"], "supported_mechanics": ["branch_state"],
         "mechanic_family": "BRANCH_STATE",
         "supported_entity_types": ["player", "team"],
         "required_data_relationships": ["NFL_DRAFT", "NFL_CHAMPIONSHIP", "NFL_COACHING (already-registered capabilities)"],
@@ -731,7 +755,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/branch_state.py:build_package()",
         "qa_requirements": "Every leaf's question generated through the real, unchanged guess-mechanic pipeline.",
         "casual_aliases": ["choose your path"],
-        "mobile_verified": False, "creator_selectable": True, "production_status": "BLOCKED_RENDERER",
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
 }
 

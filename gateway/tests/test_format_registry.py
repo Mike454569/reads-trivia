@@ -109,23 +109,30 @@ def test_every_real_mechanic_engine_taxonomy_has_at_least_one_compatible_format(
         assert default in formats
 
 
-def test_new_taxonomy_formats_are_honestly_blocked_on_renderer_not_production_ready():
-    """40-Format Expansion pass -- none of the 6 new mechanic_engine.py
-    taxonomies have a real, reachable frontend renderer yet (confirmed: even
-    KNOCKOUT_TOURNAMENT, whose view shape is byte-identical to BRACKET_TREE's,
-    needs a new client-side ENGINE_MECHANIC_MODES entry that was not added
-    this pass). Real backend/generation/answer-checking work must never be
-    reported as a complete, playable format."""
+def test_finish_10_formats_reached_real_production_status():
+    """Finish-10-Formats pass: all 10 formats now have a real, wired,
+    live-verified frontend renderer in engine-game-ui.js and a real
+    ENGINE_MECHANIC_MODES entry (KNOCKOUT_TOURNAMENT included -- its own
+    dedicated entries were added this pass, closing the exact gap the
+    prior pass's version of this test locked in). SIX_DEGREES/
+    CHAIN_REACTION stay honestly SUPPORTED_WITH_LIMITATIONS (a real,
+    disclosed bounded-chain scope, never silently upgraded to
+    PRODUCTION_READY) -- every other one reached real PRODUCTION_READY."""
     from tools.director_v02 import visual_templates as vt
 
-    for format_id in (
-        "CONNECTION_GRID", "PERFECT_DRIVE", "GOAL_LINE_STAND", "LINEUP_BUILDER", "AUCTION_DRAFT",
-        "CAP_CHALLENGE", "KNOCKOUT_TOURNAMENT", "SIX_DEGREES", "CHAIN_REACTION", "CHOOSE_YOUR_PATH",
-    ):
+    expected_status = {
+        "CONNECTION_GRID": "PRODUCTION_READY", "PERFECT_DRIVE": "PRODUCTION_READY",
+        "GOAL_LINE_STAND": "PRODUCTION_READY", "LINEUP_BUILDER": "PRODUCTION_READY",
+        "AUCTION_DRAFT": "PRODUCTION_READY", "CAP_CHALLENGE": "PRODUCTION_READY",
+        "KNOCKOUT_TOURNAMENT": "PRODUCTION_READY",
+        "SIX_DEGREES": "SUPPORTED_WITH_LIMITATIONS", "CHAIN_REACTION": "SUPPORTED_WITH_LIMITATIONS",
+        "CHOOSE_YOUR_PATH": "PRODUCTION_READY",
+    }
+    for format_id, status in expected_status.items():
         entry = vt.lookup(format_id)
         assert entry is not None, format_id
-        assert entry["production_status"] == "BLOCKED_RENDERER", format_id
-        assert "existing_renderer_note" in entry and "renderer" not in entry, format_id
+        assert entry["production_status"] == status, format_id
+        assert "renderer" in entry and entry["renderer"], format_id
 
 
 def test_timeline_ribbon_and_bracket_tree_are_now_production_ready():

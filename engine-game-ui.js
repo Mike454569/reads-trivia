@@ -1051,6 +1051,147 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // ==========================================================================
+  // Finish-10-Formats pass: the 10 real new game formats, each backed by a
+  // real, live-verified taxonomy from the 40-Format Expansion pass and now
+  // wired through the exact same real public pipeline (gateway/services/
+  // public_mechanics.py) every mechanic above already uses -- no parallel
+  // architecture, no admin-preview-only shortcut.
+  connectionGrid: {
+    publicMode: 'connection_grid_nfl', hash: '#connectiongridpilot',
+    flagOn: function () { return ENABLE_ENGINE_CONNECTION_GRID_PILOT_V01; },
+    title: 'NFL Connection Grid', kind: 'grid_constraint',
+    desc: 'Each cell needs a real player who satisfies both its row and column criteria.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  perfectDriveNfl: {
+    publicMode: 'perfect_drive_nfl', hash: '#perfectdrivenflpilot',
+    flagOn: function () { return ENABLE_ENGINE_PERFECT_DRIVE_PILOT_V01; },
+    title: 'Perfect Drive (NFL)', kind: 'drive_progression',
+    desc: 'Answer correctly to gain real yardage toward the end zone. One wrong answer ends the drive.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  perfectDriveCfb: {
+    publicMode: 'perfect_drive_cfb', hash: '#perfectdrivecfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_PERFECT_DRIVE_PILOT_V01; },
+    title: 'Perfect Drive (CFB)', kind: 'drive_progression',
+    desc: 'Answer correctly to gain real yardage toward the end zone. One wrong answer ends the drive.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  goalLineStandNfl: {
+    publicMode: 'goal_line_stand_nfl', hash: '#goallinestandnflpilot',
+    flagOn: function () { return ENABLE_ENGINE_GOAL_LINE_STAND_PILOT_V01; },
+    title: 'Goal Line Stand (NFL)', kind: 'drive_progression',
+    desc: 'You have 4 downs to score. A wrong answer costs a down.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  goalLineStandCfb: {
+    publicMode: 'goal_line_stand_cfb', hash: '#goallinestandcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_GOAL_LINE_STAND_PILOT_V01; },
+    title: 'Goal Line Stand (CFB)', kind: 'drive_progression',
+    desc: 'You have 4 downs to score. A wrong answer costs a down.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  lineupBuilderNfl: {
+    publicMode: 'lineup_builder_nfl', hash: '#lineupbuildernflpilot',
+    flagOn: function () { return ENABLE_ENGINE_LINEUP_BUILDER_PILOT_V01; },
+    title: '2010s Offense Builder', kind: 'roster_build',
+    desc: 'Build a real roster from real 2010s starters -- one real player per slot, no player twice.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  lineupBuilderCfb: {
+    publicMode: 'lineup_builder_cfb', hash: '#lineupbuildercfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_LINEUP_BUILDER_PILOT_V01; },
+    title: 'CFB Skill Position Builder', kind: 'roster_build',
+    desc: 'Build a real CFB skill-position lineup -- one real player per slot, no player twice.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  auctionDraftNfl: {
+    publicMode: 'auction_draft_nfl', hash: '#auctiondraftnflpilot',
+    flagOn: function () { return ENABLE_ENGINE_AUCTION_DRAFT_PILOT_V01; },
+    title: 'NFL Auction Draft', kind: 'roster_build',
+    desc: 'Draft a real roster one slot at a time under a fictional $50,000,000 budget.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  auctionDraftCfb: {
+    publicMode: 'auction_draft_cfb', hash: '#auctiondraftcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_AUCTION_DRAFT_PILOT_V01; },
+    title: 'CFB Auction Draft', kind: 'roster_build',
+    desc: 'Draft a real roster one slot at a time under a fictional $50,000,000 budget.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  capChallengeNfl: {
+    publicMode: 'cap_challenge_nfl', hash: '#capchallengenflpilot',
+    flagOn: function () { return ENABLE_ENGINE_CAP_CHALLENGE_PILOT_V01; },
+    title: 'NFL Cap Challenge', kind: 'roster_build',
+    desc: 'Freely select, swap, or remove real players under a fictional $50,000,000 cap.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  capChallengeCfb: {
+    publicMode: 'cap_challenge_cfb', hash: '#capchallengecfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_CAP_CHALLENGE_PILOT_V01; },
+    title: 'CFB Cap Challenge', kind: 'roster_build',
+    desc: 'Freely select, swap, or remove real players under a fictional $50,000,000 cap.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  knockoutTournamentNfl: {
+    publicMode: 'knockout_tournament_nfl', hash: '#knockouttournamentnflpilot',
+    flagOn: function () { return ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01; },
+    title: 'NFL Knockout Tournament', kind: 'knockout_bracket',
+    desc: 'Predict the real winner of every matchup in this real 16-team knockout field.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  knockoutTournamentCfb: {
+    publicMode: 'knockout_tournament_cfb', hash: '#knockouttournamentcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01; },
+    title: 'CFB Knockout Tournament', kind: 'knockout_bracket',
+    desc: 'Predict the real winner of every matchup in this real 16-team knockout field.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  // SIX_DEGREES and CHAIN_REACTION share the identical real bounded-chain
+  // backend (tools/director_v04/relationship_chain.py) -- two real format
+  // framings, never two implementations. Deliberately distinct hash/mode
+  // keys from the EXISTING, unrelated "Six Degrees" (Coach Connections)
+  // feature (startSixDegreesRound/ENABLE_ENGINE_SIX_DEGREES_V01) -- this is
+  // a bounded, narrower, cross-league format, not that harder, unbounded
+  // graph-pathfinding product.
+  sixDegreesChain: {
+    publicMode: 'six_degrees_cfb_nfl', hash: '#sixdegreeschainpilot',
+    flagOn: function () { return ENABLE_ENGINE_SIX_DEGREES_CHAIN_PILOT_V01; },
+    title: 'Six Degrees: College to NFL', kind: 'relationship_chain',
+    desc: 'See a real player’s college. Guess the real NFL team that drafted him.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  chainReaction: {
+    publicMode: 'chain_reaction_cfb_nfl', hash: '#chainreactionpilot',
+    flagOn: function () { return ENABLE_ENGINE_CHAIN_REACTION_PILOT_V01; },
+    title: 'Chain Reaction: College to NFL', kind: 'relationship_chain',
+    desc: 'Follow the real chain from college to the NFL team that drafted him.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  chooseYourPath: {
+    publicMode: 'choose_your_path_nfl', hash: '#chooseyourpathpilot',
+    flagOn: function () { return ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01; },
+    title: 'Choose Your Path', kind: 'branch_state',
+    desc: 'Pick a path at each step -- your choice determines the next real question.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1058,7 +1199,7 @@ function mechanicPilotModeConfig(modeKey) {
 }
 function startMechanicPilotRound(modeKey) {
   if (modeKey) mechanicPilotCurrentModeKey = modeKey;
-  state.mechanicPilot = { modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null, result: null, error: null, matchSelection: {} };
+  state.mechanicPilot = { modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null, result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null };
   state.screen = 'mechanicPilot';
   renderAll();
   loadMechanicPilotRound();
@@ -1072,6 +1213,7 @@ function loadMechanicPilotRound() {
   if (!s) return;
   var cfg = mechanicPilotModeConfig(s.modeKey);
   s.screen = ENGINE_GAME_SCREEN.LOADING; s.error = null; s.result = null; s.matchSelection = {};
+  s.gridActiveCell = null; s.rosterOpenSlot = null;
   renderAll();
   enginePilotFetchJson('/v1/public/mechanics/round?mode=' + encodeURIComponent(cfg.publicMode))
     .then(function (data) {
@@ -1097,6 +1239,25 @@ function submitMechanicPilotAction(submission) {
   }).then(function (data) {
     if (state.mechanicPilot !== s) return;
     s.result = data.result; s.view = data.view; s.matchSelection = {};
+    s.gridActiveCell = null; s.rosterOpenSlot = null;
+    // ROSTER_BUILD's FREE_SELECT flow (CAP_CHALLENGE) has no per-action
+    // correct/incorrect concept -- select/deselect are just real,
+    // reversible roster edits, not a question with a graded answer.
+    // Forcing a full correct/incorrect pause + "Continue" tap after every
+    // single select/deselect would be real, needless friction (the format
+    // spec's own "freely select, swap, or remove" requirement implies a
+    // fluid, non-modal interaction). Only the terminal submit_lineup
+    // action -- a real, final, graded outcome -- gets the normal
+    // ANSWERED-screen pause below.
+    // BRANCH_STATE's root-choice step is the same real shape: picking a
+    // path is navigation, not a graded answer (its result is
+    // {advanced_to, leaf_question}, with no real correct/incorrect concept
+    // at all) -- only the LEAF question afterward is genuinely graded.
+    if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' || data.result.advanced_to !== undefined)) {
+      s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
+      renderAll();
+      return;
+    }
     var wasCorrect = data.result && (data.result.correct === true || data.result.all_correct === true || data.result.exact_match === true);
     playSound(wasCorrect ? 'correct' : 'wrong');
     s.screen = ENGINE_GAME_SCREEN.ANSWERED;
@@ -1141,7 +1302,12 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'sorting' && r.total_items) pct = 100 * r.correct_positions / r.total_items;
   else if (cfg.kind === 'higher_lower') pct = Math.min(100, (v.streak != null ? v.streak : (r.streak || 0)) * 10);
   else if (cfg.kind === 'elimination') pct = Math.min(100, (v.survived_count != null ? v.survived_count : (r.survived_count || 0)) * 10);
-  else if (cfg.kind === 'comparison' && v.total_matchups) pct = 100 * v.correct_count / v.total_matchups;
+  else if ((cfg.kind === 'comparison' || cfg.kind === 'knockout_bracket') && v.total_matchups) pct = 100 * v.correct_count / v.total_matchups;
+  else if (cfg.kind === 'grid_constraint' && v.total_cells) pct = 100 * v.correct_count / v.total_cells;
+  else if (cfg.kind === 'drive_progression') pct = v.mode === 'YARDAGE' ? Math.min(100, (v.field_position_yards || 0)) : (v.scored ? 100 : 0);
+  else if (cfg.kind === 'roster_build' && v.slots_total) pct = 100 * (v.flow === 'FREE_SELECT' ? (v.submitted ? 1 : 0) : (v.picks_made || 0) / v.slots_total);
+  else if (cfg.kind === 'relationship_chain' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'branch_state' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1172,9 +1338,29 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (survived != null ? 'Survived ' + survived + ' round' + (survived === 1 ? '' : 's') + '.' : '') +
       (r.correct === false ? ' That one ended the run.' : '') + '</p>';
   }
-  if (cfg.kind === 'comparison') {
+  if (cfg.kind === 'comparison' || cfg.kind === 'knockout_bracket') {
     return '<p class="mode-desc">' + (v.total_matchups != null ? v.correct_count + ' of ' + v.total_matchups + ' real matchups predicted correctly.' : '') + '</p>' +
       renderBracketTreeBody(v, {});
+  }
+  if (cfg.kind === 'grid_constraint') {
+    return '<p class="mode-desc">' + (v.correct_count != null ? v.correct_count + ' of ' + v.total_cells + ' cells correct.' : '') + '</p>';
+  }
+  if (cfg.kind === 'drive_progression') {
+    return '<p class="mode-desc">' + (v.mode === 'YARDAGE'
+      ? (v.scored ? 'Touchdown! ' + v.field_position_yards + ' real yards.' : 'Drive ended at ' + (v.field_position_yards || 0) + ' yards.')
+      : (v.scored ? 'You scored with ' + v.downs_remaining + ' down(s) to spare.' : 'Turnover on downs.')) + '</p>';
+  }
+  if (cfg.kind === 'roster_build') {
+    if (v.flow === 'FREE_SELECT') {
+      return '<p class="mode-desc">' + (v.submitted ? 'Lineup submitted' + (v.budgeted ? ' -- real fictional cost within the cap.' : '.') : 'Lineup not completed.') + '</p>';
+    }
+    return '<p class="mode-desc">Roster complete: ' + (v.picks_made != null ? v.picks_made : v.slots_total) + ' of ' + v.slots_total + ' real slots filled.</p>';
+  }
+  if (cfg.kind === 'relationship_chain') {
+    return '<p class="mode-desc">' + (r.full_chain ? 'Real chain: ' + r.full_chain.map(esc).join(' &rarr; ') + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'branch_state') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') + (r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1206,9 +1392,32 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'elimination') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.actual_membership ? 'That one was real.' : 'That one wasn’t real.';
-  } else if (cfg.kind === 'comparison') {
+  } else if (cfg.kind === 'comparison' || cfg.kind === 'knockout_bracket') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = 'Real winner: ' + esc(r.real_winner) + ' (' + r.value_a + '-' + r.value_b + ').';
+  } else if (cfg.kind === 'grid_constraint') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? 'Correct!' : 'Not a real match for both criteria.';
+    detail = esc(r.row_label) + ' &times; ' + esc(r.col_label);
+  } else if (cfg.kind === 'drive_progression') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? (r.yards_gained ? '+' + r.yards_gained + ' yards!' : 'Correct!') : 'Not quite.';
+    detail = 'Real answer: ' + esc(r.canonical_answer) + '.';
+  } else if (cfg.kind === 'roster_build') {
+    wasCorrect = true; // a locked-in pick or a successful lineup submission -- never a "wrong answer" concept
+    if (r.action === 'submit_lineup') {
+      headline = 'Lineup submitted!';
+      detail = r.total_spent != null ? 'Total fictional cost: $' + Math.round(r.total_spent).toLocaleString() + '.' : '';
+    } else {
+      headline = esc(r.display_name) + ' added at ' + esc(r.slot || r.position) + '.';
+      detail = r.cost != null ? 'Cost: $' + Math.round(r.cost).toLocaleString() : '';
+    }
+  } else if (cfg.kind === 'relationship_chain') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = 'Real answer: ' + esc(r.canonical_answer) + '.';
+  } else if (cfg.kind === 'branch_state') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1300,11 +1509,184 @@ function renderMechanicPilotBody(cfg, s) {
       '<div class="quiz-question">' + esc(v.current_prompt || '(no more real items)') + '</div>' +
       (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-elim-guess="true">True</button><button class="btn-primary" data-elim-guess="false">False</button></div>');
   }
-  if (cfg.kind === 'comparison') {
+  if (cfg.kind === 'comparison' || cfg.kind === 'knockout_bracket') {
+    // Finish-10-Formats pass: KNOCKOUT_TOURNAMENT's real view shape
+    // (rounds/picks_made/total_matchups/correct_count) is byte-identical to
+    // COMPARISON_BRACKET's -- confirmed directly against mechanic_engine.py,
+    // which routes both through the same _comparison_client_view/
+    // _comparison_evaluate functions server-side. Reuses renderBracketTreeBody
+    // verbatim; the only difference is the real field size (4/8/16 vs a
+    // fixed 8), which that function already renders generically.
     return '<div class="status-line">Predicted: ' + (v.picks_made || 0) + ' / ' + (v.total_matchups || 0) + '</div>' +
       renderBracketTreeBody(v, s);
   }
+  if (cfg.kind === 'grid_constraint') return renderConnectionGridBody(v, s);
+  if (cfg.kind === 'drive_progression') return renderDriveProgressionBody(v, s);
+  if (cfg.kind === 'roster_build') return renderRosterBuildBody(v, s);
+  if (cfg.kind === 'relationship_chain') return renderRelationshipChainBody(v, s);
+  if (cfg.kind === 'branch_state') return renderBranchStateBody(v, s);
   return '';
+}
+/* ============================== Finish-10-Formats pass: 5 new
+   Mechanic Pilot body renderers (KNOCKOUT_TOURNAMENT reuses
+   renderBracketTreeBody above unchanged) ==============================
+   Each follows the exact same real discipline every renderer above
+   already established: render server-provided state verbatim, submit via
+   submitMechanicPilotAction() (never decide correctness client-side), and
+   reuse existing CSS primitives (.panel/.quiz-option/.btn-primary/
+   .status-line/.chip-toggle) wherever the shape allows, adding only the
+   handful of genuinely new classes each format's shape requires
+   (.grid-board/.drive-meter/.roster-slot/.chain-node -- see reads.css). */
+
+// CONNECTION_GRID: tap a cell to make it "active," type a real name, submit.
+// Never renders a precomputed valid-answer list -- the server's view only
+// ever carries the two real criteria LABELS per cell (see
+// grid_constraint.py's own module docstring for why: a client-visible
+// answer key would defeat the whole point of live server verification).
+function renderConnectionGridBody(v, s) {
+  if (!s.gridActiveCell) s.gridActiveCell = null;
+  var rows = v.row_labels || [], cols = v.col_labels || [];
+  var cellsByKey = {};
+  (v.cells || []).forEach(function (c) { cellsByKey[c.row_index + ':' + c.col_index] = c; });
+  var gridHtml = '<div class="grid-board" style="--grid-cols:' + cols.length + '">' +
+    '<div class="grid-board-cell grid-board-corner"></div>' +
+    cols.map(function (c) { return '<div class="grid-board-cell grid-board-header">' + esc(c) + '</div>'; }).join('') +
+    rows.map(function (rowLabel, ri) {
+      return '<div class="grid-board-cell grid-board-header">' + esc(rowLabel) + '</div>' +
+        cols.map(function (colLabel, ci) {
+          var key = ri + ':' + ci;
+          var cell = cellsByKey[key];
+          var answered = cell && cell.your_guess !== undefined;
+          var cls = 'grid-board-cell grid-board-answer';
+          if (answered) cls += cell.correct ? ' correct' : ' incorrect';
+          else if (s.gridActiveCell === key) cls += ' selected';
+          var label = answered ? esc(cell.your_guess) : (s.gridActiveCell === key ? 'Typing&hellip;' : 'Tap to answer');
+          return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-mechanic-grid-cell="' + key + '"') + '>' + label + '</button>';
+        }).join('');
+    }).join('') +
+    '</div>';
+  var inputHtml = '';
+  if (s.gridActiveCell) {
+    var parts = s.gridActiveCell.split(':');
+    inputHtml = '<div class="grid-answer-row">' +
+      '<div class="mode-desc">' + esc(rows[parts[0]]) + ' &times; ' + esc(cols[parts[1]]) + '</div>' +
+      '<input type="text" class="learn-filter-input" id="mechanic-grid-input" placeholder="Type a real player name" autocomplete="off">' +
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-grid-submit>Submit</button>' +
+      '<button class="btn-secondary" data-mechanic-grid-cancel>Cancel</button></div></div>';
+  }
+  return '<div class="status-line">Answered: ' + (v.cells_answered || 0) + ' / ' + (v.total_cells || 9) +
+    ' &middot; Correct: ' + (v.correct_count || 0) + '</div>' + gridHtml + inputHtml;
+}
+
+// DRIVE_PROGRESSION: PERFECT_DRIVE (YARDAGE) and GOAL_LINE_STAND (DOWNS)
+// share this one renderer but stay visually distinct per their real
+// server-reported `mode`, matching the format spec's own explicit
+// requirement -- a yardage meter for one, a downs counter for the other.
+function renderDriveProgressionBody(v, s) {
+  var statusHtml;
+  if (v.mode === 'YARDAGE') {
+    var pos = v.field_position_yards || 0, total = v.field_length_yards || 100;
+    var pct = Math.min(100, Math.round(100 * pos / total));
+    statusHtml = '<div class="drive-meter"><div class="drive-meter-fill" style="width:' + pct + '%"></div>' +
+      '<div class="drive-meter-label">' + pos + ' / ' + total + ' yards</div></div>';
+  } else {
+    var downsLeft = v.downs_remaining != null ? v.downs_remaining : (v.downs_total || 4);
+    var downsTotal = v.downs_total || 4;
+    var boxes = [];
+    for (var i = 0; i < downsTotal; i++) boxes.push('<span class="down-box' + (i < downsLeft ? ' down-box-active' : '') + '"></span>');
+    statusHtml = '<div class="status-line">Down ' + (downsTotal - downsLeft + 1) + ' of ' + downsTotal + '</div>' +
+      '<div class="down-tracker">' + boxes.join('') + '</div>';
+  }
+  if (v.ended) {
+    return statusHtml + '<div class="quiz-feedback" aria-live="polite">' +
+      (v.scored ? '<span class="feedback-good">' + icon('check') + ' Touchdown!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Drive ended.</span>') +
+      '</div>';
+  }
+  var optionsHtml = '<div class="quiz-options">' + (v.options || []).map(function (opt, i) {
+    return '<button class="quiz-option" data-mechanic-drive-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+  }).join('') + '</div>';
+  return statusHtml + '<div class="quiz-question">' + esc(v.prompt || '') + '</div>' + optionsHtml;
+}
+
+// ROSTER_BUILD: LINEUP_BUILDER (unbudgeted), AUCTION_DRAFT (SEQUENTIAL
+// budgeted), CAP_CHALLENGE (FREE_SELECT budgeted) all share this renderer,
+// branching on the server-reported real `flow`/`budgeted` fields -- never
+// a client-side guess at which variant is active.
+function renderRosterBuildBody(v, s) {
+  var budgetHtml = v.budgeted
+    ? '<div class="budget-display">Budget remaining: <strong>$' + Math.round(v.remaining_budget).toLocaleString() +
+      '</strong> / $' + Math.round(v.budget_total).toLocaleString() + '</div>'
+    : '';
+  if (v.flow === 'FREE_SELECT') {
+    if (!s.rosterOpenSlot) s.rosterOpenSlot = null;
+    var slotsHtml = '<div class="roster-slots">' + v.roster_slots.map(function (slot, i) {
+      var picked = v.roster[i];
+      var cls = 'roster-slot' + (picked ? ' roster-slot-filled' : '') + (s.rosterOpenSlot === i ? ' roster-slot-open' : '');
+      var body = picked
+        ? esc(picked.display_name) + (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(picked.cost).toLocaleString() + '</span>' : '') +
+          (v.submitted ? '' : ' <button class="btn-tiny" data-mechanic-roster-deselect="' + i + '">Remove</button>')
+        : 'Tap to fill';
+      return '<div class="' + cls + '"><div class="roster-slot-label">' + esc(slot) + '</div>' +
+        '<div class="roster-slot-body" ' + (!picked && !v.submitted ? 'data-mechanic-roster-slot="' + i + '"' : '') + '>' + body + '</div></div>';
+    }).join('') + '</div>';
+    var candidatesHtml = '';
+    if (s.rosterOpenSlot !== null && !v.submitted) {
+      var cands = (v.pool_by_slot && v.pool_by_slot[String(s.rosterOpenSlot)]) || [];
+      candidatesHtml = '<div class="roster-candidate-list">' + cands.slice(0, 30).map(function (p) {
+        return '<button class="roster-candidate" data-mechanic-roster-candidate="' + esc(p.player_id) + '">' + esc(p.display_name) +
+          (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(p.cost).toLocaleString() + '</span>' : '') + '</button>';
+      }).join('') + '</div>';
+    }
+    var allFilled = v.roster.every(function (r) { return r; });
+    return '<div class="status-line">Filled: ' + v.slots_filled + ' / ' + v.slots_total + '</div>' + budgetHtml +
+      slotsHtml + candidatesHtml +
+      (v.submitted ? '' : '<div class="btn-row"><button class="btn-primary" data-mechanic-roster-submit-lineup' +
+        (allFilled ? '' : ' disabled') + '>Submit Lineup</button></div>');
+  }
+  // SEQUENTIAL flow (AUCTION_DRAFT / LINEUP_BUILDER): one slot at a time,
+  // pick locks in immediately.
+  var filledHtml = '<div class="roster-slots">' + v.roster.map(function (pick) {
+    return '<div class="roster-slot roster-slot-filled"><div class="roster-slot-label">' + esc(pick.slot) + '</div>' +
+      '<div class="roster-slot-body">' + esc(pick.display_name) +
+      (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(pick.cost).toLocaleString() + '</span>' : '') + '</div></div>';
+  }).join('') + '</div>';
+  if (v.completed) {
+    return '<div class="status-line">Roster complete: ' + v.picks_made + ' / ' + v.slots_total + '</div>' + budgetHtml + filledHtml;
+  }
+  var poolHtml = '<div class="roster-candidate-list">' + (v.remaining_pool || []).slice(0, 30).map(function (p) {
+    return '<button class="roster-candidate" data-mechanic-roster-pick="' + esc(p.player_id) + '">' + esc(p.display_name) +
+      (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(p.cost).toLocaleString() + '</span>' : '') + '</button>';
+  }).join('') + '</div>';
+  return '<div class="status-line">Current slot: ' + esc(v.current_slot) + ' &middot; ' + v.picks_made + ' / ' + v.slots_total + ' filled</div>' +
+    budgetHtml + filledHtml + poolHtml;
+}
+
+// SIX_DEGREES / CHAIN_REACTION: a real, bounded 2-hop chain -- the start
+// node is shown, the player types the real end-node name, never shown the
+// full chain upfront (see relationship_chain.py's own module docstring).
+function renderRelationshipChainBody(v, s) {
+  return '<div class="status-line">Chain ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="chain-node chain-node-start">' + icon('flag') + ' ' + esc(v.start_node.label) + '</div>' +
+    '<div class="chain-connector">&darr;</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    '<input type="text" class="learn-filter-input" id="mechanic-chain-input" placeholder="Type the real answer" autocomplete="off">' +
+    '<div class="btn-row"><button class="btn-primary" data-mechanic-chain-submit>Submit</button></div>';
+}
+
+// CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root
+// shows real choices; each leaf renders exactly like a normal multiple-
+// choice question (same submit contract underneath, different node type).
+function renderBranchStateBody(v, s) {
+  if (v.choices) {
+    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+      '<div class="chip-row" role="group" aria-label="Choose a path">' + v.choices.map(function (c) {
+        return '<button class="chip-toggle" data-mechanic-branch-choice="' + esc(c.choice_id) + '">' + esc(c.label) + '</button>';
+      }).join('') + '</div>';
+  }
+  return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    '<div class="quiz-options">' + (v.options || []).map(function (opt, i) {
+      return '<button class="quiz-option" data-mechanic-branch-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+    }).join('') + '</div>';
 }
 // Reusable Game Format System pass: the real BRACKET_TREE renderer -- a
 // real 8-entry single-elimination bracket, shown round by round (never a

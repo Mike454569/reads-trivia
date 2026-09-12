@@ -1202,6 +1202,76 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .bracket-matchup { flex-direction: column; align-items: stretch; }
   .bracket-matchup .bracket-vs { align-self: center; }
 }
+/* Finish-10-Formats pass -- 5 new Mechanic Pilot component families
+   (CONNECTION_GRID/DRIVE_PROGRESSION/ROSTER_BUILD/RELATIONSHIP_CHAIN/
+   BRANCH_STATE; KNOCKOUT_TOURNAMENT reuses .bracket-* above unchanged).
+   Reuses existing tokens (--bg-elevated/--border/--text/--text-dim/
+   --accent/--accent-text) and existing primitives (.quiz-option/
+   .chip-toggle/.btn-tiny/.status-line/.learn-filter-input) throughout --
+   only the handful of genuinely new layout shapes get new classes. */
+
+/* CONNECTION_GRID: a real CSS grid, column count set per-instance via the
+   inline --grid-cols custom property (never hardcoded to 3, so a future
+   NxN variant needs no CSS change). min-width on cells + horizontal
+   scroll on the board itself (never the page body) keeps this usable on
+   narrow phones per the mobile requirement. */
+.grid-board {
+  display: grid; grid-template-columns: 96px repeat(var(--grid-cols, 3), minmax(96px, 1fr));
+  gap: 4px; margin: 12px 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.grid-board-cell {
+  min-height: 56px; min-width: 88px; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 6px 4px; font-size: 12.5px; border-radius: 8px; line-height: 1.25;
+}
+.grid-board-corner { background: transparent; }
+.grid-board-header { background: var(--bg-elevated); border: 1px solid var(--border); font-weight: 600; color: var(--text-dim); }
+.grid-board-answer {
+  background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+  cursor: pointer; font-weight: 500;
+}
+.grid-board-answer:disabled { cursor: default; }
+.grid-board-answer.selected { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.grid-board-answer.correct { border-color: var(--good); color: var(--good); }
+.grid-board-answer.incorrect { border-color: var(--bad); color: var(--bad); }
+.grid-answer-row { margin-top: 8px; }
+
+/* DRIVE_PROGRESSION: a real field-position meter (PERFECT_DRIVE / YARDAGE
+   mode) vs. a 4-box downs tracker (GOAL_LINE_STAND / DOWNS mode) --
+   deliberately distinct visual shapes for the two formats sharing this
+   one mechanic, per the format spec's own explicit requirement. */
+.drive-meter { position: relative; height: 28px; border-radius: 14px; background: var(--bg-elevated); border: 1px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+.drive-meter-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); transition: width 0.3s ease; }
+.drive-meter-label { position: relative; z-index: 1; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; color: var(--text); }
+.down-tracker { display: flex; gap: 6px; margin-bottom: 10px; }
+.down-box { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-elevated); }
+.down-box-active { background: var(--accent); border-color: var(--accent); }
+
+/* ROSTER_BUILD: real roster slots (LINEUP_BUILDER/AUCTION_DRAFT/
+   CAP_CHALLENGE all share this) + a scrollable real-candidate list.
+   Single-column on mobile (grid-template-columns collapses at the
+   existing 480px breakpoint) so slot labels/names never truncate into
+   unreadable tap targets. */
+.roster-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.roster-slot { border: 1px solid var(--border); border-radius: 10px; padding: 8px; background: var(--bg-elevated); min-height: 52px; }
+.roster-slot-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-dim); }
+.roster-slot-body { font-size: 13px; color: var(--text); cursor: pointer; padding-top: 2px; }
+.roster-slot-filled .roster-slot-body { cursor: default; font-weight: 600; }
+.roster-slot-open { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.roster-slot-cost { display: block; font-size: 11px; color: var(--text-dim); font-weight: 400; }
+.roster-candidate-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.roster-candidate {
+  text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--bg-elevated); color: var(--text); font-size: 13.5px; min-height: 44px;
+}
+.budget-display { font-size: 13.5px; font-weight: 600; margin: 6px 0; color: var(--text); }
+@media (max-width: 480px) {
+  .roster-slots { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* SIX_DEGREES / CHAIN_REACTION: a simple real start-node card + connector,
+   the free-text guess input reuses .learn-filter-input unchanged. */
+.chain-node { padding: 12px; border-radius: 10px; background: var(--bg-elevated); border: 1px solid var(--border); font-weight: 600; text-align: center; }
+.chain-connector { text-align: center; font-size: 18px; color: var(--text-dim); margin: 4px 0; }
 /* Game Creator (v1.8, Part B) -- admin-only hidden page, utilitarian
    styling reusing existing tokens/patterns rather than a parallel design
    language (same call as the pre-existing #stats owner-only page). */

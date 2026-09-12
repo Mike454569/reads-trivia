@@ -135,6 +135,119 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                         "regular-season win total.",
         "kind": "comparison", "gen_kwargs": {},
     },
+    # ==========================================================================
+    # Finish-10-Formats pass: the 6 new taxonomies from the 40-Format
+    # Expansion pass, now real, public, unauthenticated modes -- not
+    # admin-preview-only. Same real safety argument as every entry above:
+    # each generator opens one connection, issues only SELECT queries
+    # (GRID_CONSTRAINT_BOARD's answer-check is the one live re-verification
+    # query, also read-only), and every caller-influenced value is looked up
+    # against this fixed table, never taken directly from the request.
+    "connection_grid_nfl": {
+        "competition": "NFL", "taxonomy_id": "GRID_CONSTRAINT_BOARD", "variant": "NFL_TEAM_DRAFT_ROUND_GRID",
+        "title": "NFL Connection Grid",
+        "instructions": "Each cell needs a real player who satisfies BOTH its row and column criteria.",
+        "kind": "grid_constraint", "gen_kwargs": {},
+    },
+    "perfect_drive_nfl": {
+        "competition": "NFL", "taxonomy_id": "DRIVE_PROGRESSION", "variant": "NFL_DRAFT_PERFECT_DRIVE",
+        "title": "Perfect Drive (NFL)",
+        "instructions": "Answer correctly to gain real yardage toward the end zone. One wrong answer ends the drive.",
+        "kind": "drive_progression", "gen_kwargs": {"question_count": 15},
+    },
+    "perfect_drive_cfb": {
+        "competition": "CFB", "taxonomy_id": "DRIVE_PROGRESSION", "variant": "CFB_HEISMAN_PERFECT_DRIVE",
+        "title": "Perfect Drive (CFB)",
+        "instructions": "Answer correctly to gain real yardage toward the end zone. One wrong answer ends the drive.",
+        "kind": "drive_progression", "gen_kwargs": {"question_count": 15},
+    },
+    "goal_line_stand_nfl": {
+        "competition": "NFL", "taxonomy_id": "DRIVE_PROGRESSION", "variant": "NFL_DRAFT_GOAL_LINE_STAND",
+        "title": "Goal Line Stand (NFL)",
+        "instructions": "You have 4 downs to score. A wrong answer costs a down.",
+        "kind": "drive_progression", "gen_kwargs": {"question_count": 10},
+    },
+    "goal_line_stand_cfb": {
+        "competition": "CFB", "taxonomy_id": "DRIVE_PROGRESSION", "variant": "CFB_HEISMAN_GOAL_LINE_STAND",
+        "title": "Goal Line Stand (CFB)",
+        "instructions": "You have 4 downs to score. A wrong answer costs a down.",
+        "kind": "drive_progression", "gen_kwargs": {"question_count": 10},
+    },
+    "lineup_builder_nfl": {
+        "competition": "NFL", "taxonomy_id": "ROSTER_BUILD", "variant": "NFL_2010S_OFFENSE_BUILDER",
+        "title": "2010s Offense Builder",
+        "instructions": "Build a real roster from real 2010s starters -- one real player per slot, no player twice.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "lineup_builder_cfb": {
+        "competition": "CFB", "taxonomy_id": "ROSTER_BUILD", "variant": "CFB_SKILL_POSITION_BUILDER",
+        "title": "CFB Skill Position Builder",
+        "instructions": "Build a real CFB skill-position lineup -- one real player per slot, no player twice.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "auction_draft_nfl": {
+        "competition": "NFL", "taxonomy_id": "ROSTER_BUILD", "variant": "NFL_AUCTION_DRAFT",
+        "title": "NFL Auction Draft",
+        "instructions": "Draft a real roster one slot at a time under a fictional $50,000,000 budget. "
+                        "Each player's cost is a fictional value derived from real career production.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "auction_draft_cfb": {
+        "competition": "CFB", "taxonomy_id": "ROSTER_BUILD", "variant": "CFB_AUCTION_DRAFT",
+        "title": "CFB Auction Draft",
+        "instructions": "Draft a real roster one slot at a time under a fictional $50,000,000 budget. "
+                        "Each player's cost is a fictional value derived from real career production.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "cap_challenge_nfl": {
+        "competition": "NFL", "taxonomy_id": "ROSTER_BUILD", "variant": "NFL_CAP_CHALLENGE",
+        "title": "NFL Cap Challenge",
+        "instructions": "Freely select, swap, or remove real players per slot under a fictional "
+                        "$50,000,000 cap. Nothing locks in until you submit the finished lineup.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "cap_challenge_cfb": {
+        "competition": "CFB", "taxonomy_id": "ROSTER_BUILD", "variant": "CFB_CAP_CHALLENGE",
+        "title": "CFB Cap Challenge",
+        "instructions": "Freely select, swap, or remove real players per slot under a fictional "
+                        "$50,000,000 cap. Nothing locks in until you submit the finished lineup.",
+        "kind": "roster_build", "gen_kwargs": {},
+    },
+    "knockout_tournament_nfl": {
+        "competition": "NFL", "taxonomy_id": "KNOCKOUT_BRACKET", "variant": "NFL_TEAM_SEASON_WINS_KNOCKOUT_16",
+        "title": "NFL Knockout Tournament",
+        "instructions": "Predict the real winner of every matchup in this real 16-team knockout field, "
+                        "based on regular-season win total.",
+        "kind": "knockout_bracket", "gen_kwargs": {},
+    },
+    "knockout_tournament_cfb": {
+        "competition": "CFB", "taxonomy_id": "KNOCKOUT_BRACKET", "variant": "CFB_TEAM_SEASON_WINS_KNOCKOUT_16",
+        "title": "CFB Knockout Tournament",
+        "instructions": "Predict the real winner of every matchup in this real 16-team knockout field, "
+                        "based on regular-season win total.",
+        "kind": "knockout_bracket", "gen_kwargs": {},
+    },
+    # SIX_DEGREES and CHAIN_REACTION share the identical real bounded-chain
+    # backend/data (tools/director_v04/relationship_chain.py) -- two format
+    # framings over one real mechanic, never two implementations.
+    "six_degrees_cfb_nfl": {
+        "competition": "CFB", "taxonomy_id": "RELATIONSHIP_CHAIN", "variant": "CFB_SCHOOL_TO_NFL_TEAM_CHAIN",
+        "title": "Six Degrees: College to NFL",
+        "instructions": "See a real player's college. Guess the real NFL team that drafted him.",
+        "kind": "relationship_chain", "gen_kwargs": {"chain_count": 8},
+    },
+    "chain_reaction_cfb_nfl": {
+        "competition": "CFB", "taxonomy_id": "RELATIONSHIP_CHAIN", "variant": "CFB_SCHOOL_TO_NFL_TEAM_CHAIN",
+        "title": "Chain Reaction: College to NFL",
+        "instructions": "Follow the real chain from college to the NFL team that drafted him.",
+        "kind": "relationship_chain", "gen_kwargs": {"chain_count": 8},
+    },
+    "choose_your_path_nfl": {
+        "competition": "NFL", "taxonomy_id": "BRANCH_STATE", "variant": "NFL_TOPIC_PATH",
+        "title": "Choose Your Path",
+        "instructions": "Pick a path at each step -- your choice determines the next real question.",
+        "kind": "branch_state", "gen_kwargs": {},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -183,6 +296,18 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_elimination_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "COMPARISON_BRACKET":
             package = mechanic_engine.generate_comparison_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "GRID_CONSTRAINT_BOARD":
+            package = mechanic_engine.generate_grid_constraint_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "DRIVE_PROGRESSION":
+            package = mechanic_engine.generate_drive_progression_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "ROSTER_BUILD":
+            package = mechanic_engine.generate_roster_build_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "KNOCKOUT_BRACKET":
+            package = mechanic_engine.generate_knockout_bracket_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "RELATIONSHIP_CHAIN":
+            package = mechanic_engine.generate_relationship_chain_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "BRANCH_STATE":
+            package = mechanic_engine.generate_branch_state_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
