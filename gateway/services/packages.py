@@ -11,13 +11,19 @@ chars>` (v0.4+, Player From Clues / PROGRESSIVE_CLUE_IDENTIFY), and, added
 in Reliability Design Phase 6 for the four genuinely new mechanic
 templates, `GGP5:` (MATCHING), `GGP6:` (SORTING_TIMELINE), `GGP7:`
 (ELIMINATION_SURVIVAL), `GGP8:` (HIGHER_LOWER_STREAK), added in Phase 7A
-`GGP9:` (WEEKLY_PICKEM), and added in Phase 7B `GGP10:`
-(LIVE_WEEKLY_FANTASY_DRAFT) -- all are `"GGP" + optional version digit(s) +
-":" + sha256(...)[:24]`, the same extension pattern GGP4 already
-established (a new mechanic gets the next digit, never a new ID scheme).
+`GGP9:` (WEEKLY_PICKEM, also reused by comparison.py's COMPARISON_BRACKET),
+and added in Phase 7B `GGP10:` (LIVE_WEEKLY_FANTASY_DRAFT) -- all are
+`"GGP" + optional version digit(s) + ":" + sha256(...)[:24]`, the same
+extension pattern GGP4 already established (a new mechanic gets the next
+digit, never a new ID scheme). The 40-Format Expansion pass added 6 more
+for its 6 new mechanics: `GGP11:` (GRID_CONSTRAINT_BOARD), `GGP12:`
+(DRIVE_PROGRESSION), `GGP13:` (ROSTER_BUILD), `GGP14:` (KNOCKOUT_BRACKET),
+`GGP15:` (RELATIONSHIP_CHAIN), `GGP16:` (BRANCH_STATE).
 Produced by `game_director_v01.
 generate_package_from_spec()` / `player_from_clues.build_package()` /
-`tools/director_v04/{matching,sorting,elimination,higher_lower,weekly_pickem,live_weekly_fantasy_draft}.py`'s own
+`tools/director_v04/{matching,sorting,elimination,higher_lower,weekly_pickem,
+live_weekly_fantasy_draft,grid_constraint,drive_progression,roster_build,
+knockout_bracket,relationship_chain,branch_state}.py`'s own
 `build_package()` functions. `_safe_filename_for_id()` is the ONLY place a
 package_id ever touches a filesystem path, and it does so through a strict
 allowlist regex first -- never through direct string interpolation into a
@@ -39,7 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.director_v02.package_contract import validate_package_contract  # noqa: E402
 
-PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|10)?:[0-9a-f]{24}$")
+PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|1[0-6])?:[0-9a-f]{24}$")
 
 _write_lock = threading.Lock()
 

@@ -172,9 +172,21 @@ REQUIRED_SPEC_KEYS = frozenset({
     "mechanic", "domain", "relationship_predicate", "question_count", "difficulty",
 })
 OPTIONAL_SPEC_KEYS = frozenset({
-    "filters", "exclusions",
+    "filters", "exclusions", "format",
 })
 ALL_SPEC_KEYS = REQUIRED_SPEC_KEYS | OPTIONAL_SPEC_KEYS
+
+# 40-Format Expansion pass: the real, canonical presentation-format
+# registry, exposed here as an allowlist so `format` is validated the exact
+# same way every other enumerated field is (an `in <hardcoded allowlist>`
+# check, never a free-form string) -- derived from visual_templates.py,
+# never hand-duplicated, same discipline schema.py's own generated
+# ALLOWED_DOMAINS/ALLOWED_PREDICATES already use. Purely additive: `format`
+# is optional, and every existing spec that omits it validates exactly as
+# it always has.
+from . import visual_templates as _visual_templates  # noqa: E402
+
+ALLOWED_FORMATS: frozenset[str] = frozenset(_visual_templates.all_template_ids())
 
 # Filters/exclusions extension points. Kept as typed, structural fields (not
 # a free-form dict/string) so a capability can declare support for a

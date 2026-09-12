@@ -17,15 +17,22 @@ def test_every_registered_format_has_the_full_required_metadata():
     from tools.director_v02 import visual_templates as vt
 
     required_keys = {
-        "description", "payload_schema", "proven_in", "supported_mechanics",
-        "min_items", "max_items", "interaction_model", "mobile_verified",
+        "format_id", "display_name", "description", "payload_schema", "proven_in", "supported_mechanics",
+        "mechanic_family", "supported_entity_types", "required_data_relationships", "min_pool_size",
+        "min_items", "max_items", "interaction_model", "mobile_verified", "nfl_support", "cfb_support",
+        "difficulty_support", "timed", "multiplayer_compatible", "scoring_model", "validation_rules",
+        "answer_schema", "generation_schema", "qa_requirements", "casual_aliases",
         "creator_selectable", "production_status",
     }
+    status_vocab = {"SUPPORTED", "SUPPORTED_WITH_LIMITATIONS", "MISSING_DATA", "UNKNOWN", "FORMAT_INCOMPATIBLE"}
     for format_id, entry in vt.VISUAL_TEMPLATE_REGISTRY.items():
         missing = required_keys - set(entry.keys())
         assert not missing, f"{format_id} is missing required metadata: {missing}"
-        assert entry["production_status"] in ("PRODUCTION_READY", "NEW_THIS_PASS"), format_id
+        assert entry["production_status"] in vt.PRODUCTION_STATUS_VALUES, format_id
         assert isinstance(entry["supported_mechanics"], list) and entry["supported_mechanics"], format_id
+        assert entry["format_id"] == format_id, format_id
+        assert entry["nfl_support"] in status_vocab, format_id
+        assert entry["cfb_support"] in status_vocab, format_id
 
 
 def test_every_format_names_either_a_real_renderer_or_a_real_existing_renderer_note():
@@ -90,19 +97,69 @@ def test_guess_ladder_and_the_real_server_higher_lower_mechanic_are_not_falsely_
 def test_every_real_mechanic_engine_taxonomy_has_at_least_one_compatible_format():
     from tools.director_v02 import visual_templates as vt
 
-    for mechanic in ("guess", "sorting", "matching", "higher_lower", "elimination", "comparison", "clue"):
+    for mechanic in (
+        "guess", "sorting", "matching", "higher_lower", "elimination", "comparison", "clue",
+        # 40-Format Expansion pass: the 6 new mechanic families.
+        "grid_constraint_board", "drive_progression", "roster_build", "knockout_bracket",
+        "relationship_chain", "branch_state",
+    ):
         formats = vt.formats_for_mechanic(mechanic)
         assert formats, f"mechanic {mechanic!r} has zero registered compatible formats"
         default = vt.default_format_for_mechanic(mechanic)
         assert default in formats
 
 
-def test_timeline_ribbon_and_bracket_tree_are_the_two_new_formats_this_pass():
+def test_new_taxonomy_formats_are_honestly_blocked_on_renderer_not_production_ready():
+    """40-Format Expansion pass -- none of the 6 new mechanic_engine.py
+    taxonomies have a real, reachable frontend renderer yet (confirmed: even
+    KNOCKOUT_TOURNAMENT, whose view shape is byte-identical to BRACKET_TREE's,
+    needs a new client-side ENGINE_MECHANIC_MODES entry that was not added
+    this pass). Real backend/generation/answer-checking work must never be
+    reported as a complete, playable format."""
     from tools.director_v02 import visual_templates as vt
 
-    assert vt.lookup("TIMELINE_RIBBON")["production_status"] == "NEW_THIS_PASS"
-    assert vt.lookup("BRACKET_TREE")["production_status"] == "NEW_THIS_PASS"
+    for format_id in (
+        "CONNECTION_GRID", "PERFECT_DRIVE", "GOAL_LINE_STAND", "LINEUP_BUILDER", "AUCTION_DRAFT",
+        "CAP_CHALLENGE", "KNOCKOUT_TOURNAMENT", "SIX_DEGREES", "CHAIN_REACTION", "CHOOSE_YOUR_PATH",
+    ):
+        entry = vt.lookup(format_id)
+        assert entry is not None, format_id
+        assert entry["production_status"] == "BLOCKED_RENDERER", format_id
+        assert "existing_renderer_note" in entry and "renderer" not in entry, format_id
+
+
+def test_timeline_ribbon_and_bracket_tree_are_now_production_ready():
+    """40-Format Expansion pass: these two shipped and proved out under the
+    Reusable Game Format System pass's own NEW_THIS_PASS status -- that
+    status value no longer exists (replaced by the 5-value taxonomy), and
+    both are real, proven, PRODUCTION_READY formats now."""
+    from tools.director_v02 import visual_templates as vt
+
+    assert vt.lookup("TIMELINE_RIBBON")["production_status"] == "PRODUCTION_READY"
+    assert vt.lookup("BRACKET_TREE")["production_status"] == "PRODUCTION_READY"
     assert vt.is_format_compatible("TIMELINE_RIBBON", "sorting")
     assert vt.is_format_compatible("BRACKET_TREE", "comparison")
     assert not vt.is_format_compatible("BRACKET_TREE", "sorting")
     assert not vt.is_format_compatible("TIMELINE_RIBBON", "comparison")
+
+
+def test_bracket_tree_renderer_string_names_the_real_function():
+    """Real bug fixed during the 40-Format Expansion pass: this entry used
+    to claim a nonexistent renderBracketTree() -- the real function is
+    renderBracketTreeBody(v, s) (engine-game-ui.js:1318)."""
+    from tools.director_v02 import visual_templates as vt
+
+    assert "renderBracketTreeBody" in vt.lookup("BRACKET_TREE")["renderer"]
+
+
+def test_timeline_ribbon_discloses_it_has_no_standalone_renderer():
+    """Real bug fixed during the 40-Format Expansion pass: this entry used
+    to claim a nonexistent renderTimelineRibbon() via `renderer` -- the
+    real UI is an inline branch inside renderMechanicPilotBody's 'sorting'
+    kind, so this format now (correctly) carries existing_renderer_note
+    instead of a renderer string."""
+    from tools.director_v02 import visual_templates as vt
+
+    entry = vt.lookup("TIMELINE_RIBBON")
+    assert "renderer" not in entry
+    assert "existing_renderer_note" in entry

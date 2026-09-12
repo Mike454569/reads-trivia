@@ -24,7 +24,7 @@ Returns a GateResult:
 """
 from __future__ import annotations
 
-from . import registry, schema
+from . import format_resolution, registry, schema
 
 GATE_STATUSES = frozenset({
     "READY",
@@ -36,6 +36,10 @@ GATE_STATUSES = frozenset({
                                      # but no registered capability covers it
     "NEEDS_CLARIFICATION",          # translator recognized partial signal but not enough to resolve --
                                      # see DIRECTOR_V03_CLARIFICATION_CONTRACT.md
+    # 40-Format Expansion pass: an explicit `format` was requested but is
+    # not compatible with the matched capability's mechanic/adapter shape --
+    # see format_resolution.py. Never silently substituted or ignored.
+    "FORMAT_INCOMPATIBLE",
 })
 
 
@@ -50,6 +54,7 @@ def _blocked(status: str, reason: str, **extra) -> dict:
         "understood": None,
         "missing_fields": None,
         "clarifying_question": None,
+        "suggested_formats": None,
     }
     out.update(extra)
     return out
@@ -120,6 +125,7 @@ def validate_translation(translation_result: dict) -> dict:
     difficulty = spec.get("difficulty")
     filters = spec.get("filters", {})
     exclusions = spec.get("exclusions", [])
+    requested_format = spec.get("format")
 
     if not isinstance(mechanic, str) or mechanic not in schema.ALLOWED_MECHANICS:
         return _blocked("BLOCKED_INVALID_SPEC", f"mechanic {mechanic!r} is not in the allowlist {sorted(schema.ALLOWED_MECHANICS)}")
@@ -141,6 +147,8 @@ def validate_translation(translation_result: dict) -> dict:
         return _blocked("BLOCKED_UNSUPPORTED_FILTER", f"filters {filters!r} contains keys no capability supports yet")
     if not isinstance(exclusions, list) or (exclusions and not schema.EXCLUSIONS_SUPPORTED):
         return _blocked("BLOCKED_UNSUPPORTED_FILTER", f"exclusions {exclusions!r} are not supported by any registered capability yet")
+    if requested_format is not None and (not isinstance(requested_format, str) or requested_format not in schema.ALLOWED_FORMATS):
+        return _blocked("BLOCKED_INVALID_SPEC", f"format {requested_format!r} is not in the allowlist {sorted(schema.ALLOWED_FORMATS)}")
 
     capability = registry.lookup(mechanic, domain, predicate)
     if capability is None:
@@ -166,10 +174,24 @@ def validate_translation(translation_result: dict) -> dict:
             f"(supports: {sorted(capability['supported_filter_keys'])})",
         )
 
+    # 40-Format Expansion pass: resolve the real presentation format for
+    # this capability -- a true no-op when `format` is absent (preserves
+    # every existing capability's own current rendering unchanged), or a
+    # real compatibility+payload-shape check when explicitly requested.
+    # See format_resolution.py's own module docstring for why this is NOT
+    # the same "auto-select the mechanic's first-registered default" logic
+    # creator.py._resolve_format() uses for the other track.
+    try:
+        resolved_format = format_resolution.resolve_format_for_capability(capability, mechanic, requested_format)
+    except format_resolution.FormatIncompatibleError as e:
+        return _blocked("FORMAT_INCOMPATIBLE", str(e), suggested_formats=e.suggested_formats)
+
+    validated_spec = dict(spec)
+    validated_spec["format"] = resolved_format
     return {
         "gate_status": "READY",
         "gate_reason": "spec is schema-valid and matches a registered capability",
-        "validated_spec": dict(spec),
+        "validated_spec": validated_spec,
         "capability": capability,
         "missing_capability": None,
         "closest_supported_capability": None,

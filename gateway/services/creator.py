@@ -48,7 +48,7 @@ forces every Creator request back to "mock" outright.
 from __future__ import annotations
 
 from tools.director_v02 import feasibility as feasibility_mod
-from tools.director_v04 import nl_mechanic_bridge, nl_schedule_bridge
+from tools.director_v04 import nl_mechanic_bridge, nl_new_taxonomy_bridge, nl_schedule_bridge
 
 from .. import config
 from . import generation, packages, game_state
@@ -207,6 +207,81 @@ def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
     return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "format_id": format_id, "view": view}
 
 
+# --- 40-Format Expansion pass: the 6 new taxonomies' NL bridge ------------
+# Same real pattern as _direct_mechanic_feasibility()/_generate_direct_mechanic()
+# above, for tools.director_v04.nl_new_taxonomy_bridge's 6 new taxonomies.
+# Every one of these formats is honestly BLOCKED_RENDERER in
+# visual_templates.py (no frontend wiring built this pass) -- this bridge
+# still makes them real, live-generatable, and inspectable through the
+# admin Creator API today (a real JSON package, not a player-facing UI).
+
+_NEW_TAXONOMY_TITLES = {
+    "GRID_CONSTRAINT_BOARD": "Connection Grid", "DRIVE_PROGRESSION": "Drive Progression",
+    "ROSTER_BUILD": "Roster Build", "KNOCKOUT_BRACKET": "Knockout Bracket",
+    "RELATIONSHIP_CHAIN": "Relationship Chain", "BRANCH_STATE": "Choose Your Path",
+}
+
+
+def _new_taxonomy_feasibility(bridged: dict) -> dict:
+    taxonomy_id, variant, format_id = bridged["taxonomy_id"], bridged["variant"], bridged["format"]
+    return {
+        "support_status": "SUPPORTED",
+        "reason": None,
+        "capability": {"mechanic": taxonomy_id, "domain": variant, "relationship_predicate": None,
+                        "category": _NEW_TAXONOMY_TITLES[taxonomy_id]},
+        "known_limitations": ["No frontend renderer built yet for this format -- reachable through the "
+                               "admin Creator API for real package inspection, not yet playable in the app."],
+        "visual_template": format_id,
+        "format_id": format_id,
+        "clarifying_question": None,
+        "closest_supported_capability": None,
+        "translator_notes": f"Matched real new-taxonomy mechanic {taxonomy_id} (variant={variant}, "
+                              f"format={format_id}) via tools.director_v04.nl_new_taxonomy_bridge -- no "
+                              f"(mechanic, domain, predicate) triple involved.",
+        "translation_status": "TRANSLATED",
+        "catalog_status": None,
+        "catalog_vocabulary_status": None,
+        "taxonomy_id": taxonomy_id,
+        "variant": variant,
+    }
+
+
+def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
+    from tools.director_v02 import mechanic_engine
+
+    taxonomy_id, variant, gen_kwargs = bridged["taxonomy_id"], bridged["variant"], bridged["gen_kwargs"]
+    real_seed = seed or "creator-nl-new-taxonomy-bridge"
+
+    if taxonomy_id == "GRID_CONSTRAINT_BOARD":
+        package = mechanic_engine.generate_grid_constraint_round(variant=variant, seed=real_seed)
+    elif taxonomy_id == "DRIVE_PROGRESSION":
+        package = mechanic_engine.generate_drive_progression_round(
+            variant=variant, question_count=gen_kwargs.get("question_count", 10), seed=real_seed)
+    elif taxonomy_id == "ROSTER_BUILD":
+        package = mechanic_engine.generate_roster_build_round(variant=variant, seed=real_seed)
+    elif taxonomy_id == "KNOCKOUT_BRACKET":
+        package = mechanic_engine.generate_knockout_bracket_round(variant=variant, seed=real_seed)
+    elif taxonomy_id == "RELATIONSHIP_CHAIN":
+        package = mechanic_engine.generate_relationship_chain_round(
+            variant=variant, chain_count=gen_kwargs.get("chain_count", 8), seed=real_seed)
+    else:  # BRANCH_STATE
+        package = mechanic_engine.generate_branch_state_round(variant=variant, seed=real_seed)
+
+    if package.get("qa_status") != "PASSED":
+        raise GatewayError(
+            "NO_ELIGIBLE_GAME",
+            package.get("shortfall_reason") or f"No qualifying {taxonomy_id} round could be generated right now.",
+        )
+
+    stored = packages.save_package(package)
+    progress = mechanic_engine.initial_progress(taxonomy_id)
+    progress["taxonomy_id"] = taxonomy_id
+    game_state.create_state(stored["package_id"], progress)
+
+    view = mechanic_engine.client_safe_view(taxonomy_id, stored, progress)
+    return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "format_id": bridged["format"], "view": view}
+
+
 def _schedule_driven_capability_label(bridged: dict) -> dict:
     game_title = "Weekly Pick'em" if bridged["taxonomy_id"] == "WEEKLY_PICKEM" else "Weekly Fantasy Draft"
     return {"mechanic": bridged["taxonomy_id"], "domain": bridged["league"],
@@ -255,12 +330,19 @@ def _schedule_driven_feasibility(bridged: dict) -> dict:
 
 
 def assess_feasibility(request_text: str) -> dict:
+    # Fixed, documented, most-specific-first bridge order (40-Format
+    # Expansion pass): schedule-driven -> direct-mechanic -> new-taxonomy ->
+    # normal translator/registry pipeline. Each bridge is self-contained;
+    # this ordering is never encoded inside any of them.
     bridged = nl_schedule_bridge.detect(request_text)
     if bridged is not None:
         return _schedule_driven_feasibility(bridged)
     direct = nl_mechanic_bridge.detect(request_text)
     if direct is not None:
         return _direct_mechanic_feasibility(direct)
+    new_taxonomy = nl_new_taxonomy_bridge.detect(request_text)
+    if new_taxonomy is not None:
+        return _new_taxonomy_feasibility(new_taxonomy)
     return feasibility_mod.assess(request_text, provider=_creator_provider())
 
 
@@ -335,6 +417,9 @@ def generate_for_review(*, request_text: str, puzzle_count, difficulty, seed) ->
     direct = nl_mechanic_bridge.detect(request_text)
     if direct is not None:
         return _generate_direct_mechanic(direct, seed=seed)
+    new_taxonomy = nl_new_taxonomy_bridge.detect(request_text)
+    if new_taxonomy is not None:
+        return _generate_new_taxonomy(new_taxonomy, seed=seed)
 
     result = generation.generate(
         request_text=request_text, spec=None, provider=_creator_provider(),

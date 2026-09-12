@@ -40,7 +40,17 @@ from typing import Any
 # only to pick a single unambiguous key to validate contents of when more
 # than one happens to be present (never expected in practice; each mechanic
 # only ever sets one).
-_CONTENT_LIST_KEYS = ("questions", "puzzles", "rounds", "items", "games", "steps", "sequence", "players")
+# 40-Format Expansion pass: 3 more recognized keys for the 3 new mechanics
+# whose real content list doesn't fit any existing name -- GRID_CONSTRAINT_
+# BOARD's "cells" (a real, fixed 9-cell board), RELATIONSHIP_CHAIN's
+# "chains" (a list of real 2-hop chains), BRANCH_STATE's "root_choices"
+# (the real, non-empty set of choices at the tree's root -- this mechanic's
+# genuine "is there anything to play" signal, same real gap this comment
+# block already documents recurring for every new mechanic shape).
+_CONTENT_LIST_KEYS = (
+    "questions", "puzzles", "rounds", "items", "games", "steps", "sequence", "players",
+    "cells", "chains", "root_choices",
+)
 
 # Coach Connections (public_coach_connections.py) is structurally different
 # from every mechanic above: the "content" isn't a list of rounds/questions
