@@ -268,6 +268,37 @@ function renderPickemSlateChips(s) {
   return '<div class="chip-row">' + chips + '</div>' + confPicker;
 }
 
+// Real bug fix: this used to be `new Date(g.kickoff).toLocaleString(...)`
+// unconditionally. When the server sent a date-only value ('2026-09-13',
+// no real time-of-day -- the shape every kickoff used to be sent in before
+// this fix), JS parses that as UTC MIDNIGHT, and toLocaleString() then
+// renders it in the BROWSER'S LOCAL timezone -- for every real US
+// timezone (all behind UTC), that rolls the displayed calendar day back
+// by one whenever local midnight hasn't yet reached the next UTC day
+// (e.g. a real Sunday game showed as "today" on Saturday evening). The
+// server now sends a real, honest `kickoff_has_time` flag alongside every
+// game (tools/director_v04/weekly_pickem.py) -- true only when the value
+// actually carries a genuine time-of-day. When true, real local-time
+// conversion is correct and wanted (a player should see kickoff in THEIR
+// own local time). When false, this renders the real calendar date using
+// UTC-based date parts (never local getters), so a fake attached midnight
+// can never shift the real day, and never fabricates a clock time that
+// was never real to begin with.
+function formatPickemKickoff(kickoffRaw, hasTime) {
+  if (!kickoffRaw) return '';
+  var d = new Date(kickoffRaw);
+  if (isNaN(d.getTime())) return '';
+  if (hasTime) {
+    return d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  // Date-only real value -- format the real calendar date from UTC parts
+  // only (a local getter here would reintroduce the exact same
+  // day-rollback bug this function exists to fix).
+  var weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return weekdays[d.getUTCDay()] + ', ' + months[d.getUTCMonth()] + ' ' + d.getUTCDate();
+}
+
 // Section: Weekly Pick'em real matchup presentation. Reuses the shared
 // binary-choice component (app.js) instead of a bespoke Pick'em-only
 // component -- a Pick'em pick IS a two-sided selection, the same shape
@@ -292,7 +323,7 @@ function pickemGameCardHtml(g, s) {
     };
   }
 
-  var kickoffText = g.kickoff ? new Date(g.kickoff).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  var kickoffText = formatPickemKickoff(g.kickoff, g.kickoff_has_time);
   var statusChip = isFinal
     ? '<span class="pickem-status-chip pickem-status-final">' + icon('check') + ' FINAL</span>'
     : isLocked

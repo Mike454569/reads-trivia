@@ -261,9 +261,42 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
                 else _cfb_display(c, r["home_team"])
             away_display = _nfl_display(c, r["away_team"], season) if variant == "NFL_WEEKLY_PICKEM" \
                 else _cfb_display(c, r["away_team"])
+            # Real bug fix: this used to store the bare game_date column
+            # ('2026-09-13', date-only) as "kickoff" -- the frontend then
+            # did `new Date(kickoff).toLocaleString()`, which JS parses as
+            # UTC MIDNIGHT and renders in the browser's LOCAL timezone,
+            # rolling the displayed calendar day back by one for every
+            # real US timezone (all behind UTC) whenever local midnight
+            # hasn't yet reached the next UTC day -- exactly the "shows
+            # today, real game is tomorrow (Sunday)" report this fixes.
+            # Reuses the SAME real kickoff computation live_game_statuses()
+            # already uses below (real game_time combined with game_date
+            # for NFL -- every real 2026+ row has one; a real, disclosed
+            # date-only fallback for CFB, which has no separate real
+            # kickoff-time column at all) so a real, precise UTC instant is
+            # sent whenever one genuinely exists, not just a calendar date.
+            kickoff_dt = (_pickem_status.nfl_kickoff_utc(r["game_date"], r["game_time"])
+                          if variant == "NFL_WEEKLY_PICKEM" else _cfb_kickoff(r["game_date"]))
+            # Real, honest per-row signal for the client: whether "kickoff"
+            # below carries a genuine real time-of-day, or is a date-only
+            # value with a fake midnight attached (NFL rows with no real
+            # game_time -- historical only, confirmed every real 2026 row
+            # has one). CFB's own game_date is confirmed live to already be
+            # a full real ISO-8601 timestamp (not date-only) for real rows,
+            # so it's checked the same honest way: does the RAW source
+            # value actually carry a time component, never assumed by league.
+            has_real_time = bool(r["game_time"]) if variant == "NFL_WEEKLY_PICKEM" else len(r["game_date"] or "") > 10
             games.append({
                 "game_id": r["game_id"], "home_team": r["home_team"], "away_team": r["away_team"],
-                "home_display": home_display, "away_display": away_display, "kickoff": r["game_date"],
+                "home_display": home_display, "away_display": away_display,
+                "kickoff": kickoff_dt.isoformat() if kickoff_dt else r["game_date"],
+                # The renderer must not localize/reformat a date-only value
+                # as if it had real clock-time precision -- doing so is
+                # exactly the "shows today, real game is tomorrow" bug this
+                # pass fixes (a fake UTC midnight, converted to a real
+                # negative-UTC-offset local timezone, rolls the displayed
+                # calendar day back by one).
+                "kickoff_has_time": has_real_time,
             })
     finally:
         c.close()

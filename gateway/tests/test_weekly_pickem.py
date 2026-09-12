@@ -55,6 +55,36 @@ def test_nfl_future_week_slate_is_all_scheduled_no_leakage():
     assert all(live[gid]["status"] == "SCHEDULED" for gid in game_ids), live
 
 
+def test_nfl_kickoff_is_a_real_precise_timestamp_not_a_bare_date():
+    """Real bug fix: this field used to be the bare game_date column
+    ('2026-09-13', date-only) -- the frontend's `new Date(kickoff).
+    toLocaleString()` then parsed that as UTC MIDNIGHT and rendered it in
+    the browser's LOCAL timezone, rolling the displayed calendar day back
+    by one for every real US timezone (a real Sunday game showed as
+    'today' on Saturday evening). Every real 2026 NFL row has a real
+    game_time, so `kickoff` must now be a real, precise UTC instant, and
+    `kickoff_has_time` must honestly report that."""
+    from tools.director_v04 import weekly_pickem
+    pkg = weekly_pickem.build_package("t-nfl-kickoff", "NFL_WEEKLY_PICKEM", NFL_FUTURE_SEASON, NFL_FUTURE_WEEK)
+    assert pkg["games"], "expected a real, non-empty slate"
+    for g in pkg["games"]:
+        assert g["kickoff_has_time"] is True
+        assert "T" in g["kickoff"], f"expected a real full timestamp, got {g['kickoff']!r}"
+        # A real kickoff is never exactly UTC midnight for a real 2026 NFL
+        # game (that would be the tell-tale fake-midnight fallback this fix
+        # eliminates) -- every real kickoff hour is a genuine ET game time.
+        assert not g["kickoff"].startswith(g["kickoff"][:10] + "T00:00:00"), g["kickoff"]
+
+
+def test_cfb_kickoff_is_also_a_real_precise_timestamp():
+    from tools.director_v04 import weekly_pickem
+    pkg = weekly_pickem.build_package("t-cfb-kickoff", "CFB_WEEKLY_PICKEM", CFB_PAST_SEASON, CFB_PAST_WEEK)
+    assert pkg["games"], "expected a real, non-empty slate"
+    for g in pkg["games"]:
+        assert g["kickoff_has_time"] is True
+        assert "T" in g["kickoff"]
+
+
 def test_nfl_past_week_slate_is_all_final_with_real_winners():
     from tools.director_v04 import weekly_pickem
     pkg = weekly_pickem.build_package("t-nfl-past", "NFL_WEEKLY_PICKEM", NFL_PAST_SEASON, NFL_PAST_WEEK)
