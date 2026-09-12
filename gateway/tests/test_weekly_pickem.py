@@ -323,6 +323,24 @@ def test_client_view_exposes_the_raw_team_code_a_real_caller_must_submit():
     assert result["status"] == "PENDING"
 
 
+def test_client_view_exposes_kickoff_has_time_not_just_the_raw_package_field():
+    """Real bug fix, second half: mechanic_engine.py's own client_safe_view
+    is an explicit allow-list (by design -- a field not named here is
+    never sent to the client), so adding kickoff_has_time to the package
+    alone was NOT enough -- it was being silently dropped before this
+    fix. Confirms the real, live view a player's browser actually
+    receives carries the flag, not just the underlying package."""
+    from tools.director_v02 import mechanic_engine
+    pkg = mechanic_engine.generate_weekly_pickem_round(
+        variant="NFL_WEEKLY_PICKEM", season=NFL_FUTURE_SEASON, week=NFL_FUTURE_WEEK, seed="t-kickoff-has-time-view")
+    progress = mechanic_engine.initial_progress("WEEKLY_PICKEM")
+    view = mechanic_engine.client_safe_view("WEEKLY_PICKEM", pkg, progress)
+    assert view["games"], "expected a real, non-empty slate"
+    for g in view["games"]:
+        assert g["kickoff_has_time"] is True
+        assert "T" in g["kickoff"]
+
+
 def test_evaluate_rejects_invalid_team_selection():
     from tools.director_v02 import mechanic_engine
     pkg = mechanic_engine.generate_weekly_pickem_round(

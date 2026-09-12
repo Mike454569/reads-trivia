@@ -410,7 +410,17 @@ def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
             # never a guess.
             "home_team": g["home_display"], "home_team_code": g["home_team"],
             "away_team": g["away_display"], "away_team_code": g["away_team"],
-            "kickoff": g["kickoff"], "status": live_g["status"],
+            # kickoff_has_time: real bug fix -- this explicit allow-list
+            # was silently dropping the field the frontend needs to avoid
+            # re-localizing a date-only value (see weekly_pickem.py's own
+            # comment on why that reintroduces the exact day-rollback bug
+            # this fix closes). .get() with a True default: every real
+            # game already generated before this field existed had a
+            # genuine time-of-day (NFL always has real game_time; CFB's
+            # game_date is always a full timestamp) -- never silently
+            # reinterpret old, already-correct data as date-only.
+            "kickoff": g["kickoff"], "kickoff_has_time": g.get("kickoff_has_time", True),
+            "status": live_g["status"],
         }
         # Never leak a score/winner before the game is genuinely FINAL --
         # the one hard rule this whole mechanic exists to satisfy.
