@@ -38,6 +38,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #2 -- see
     # tools/director_v04/guess_the_season.py's own module docstring.
     "GUESS_THE_SEASON",
+    # 15-Format Expansion pass (Part 2), format #3 -- see
+    # tools/director_v04/head_to_head_duel.py's own module docstring.
+    "PAIRWISE_COMPARE",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -170,6 +173,13 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/guess_the_season.py's own module docstring.
     "GUESS_THE_SEASON": {
         "NFL_SUPER_BOWL_SEASON": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #3 -- see
+    # tools/director_v04/head_to_head_duel.py's own module docstring.
+    "PAIRWISE_COMPARE": {
+        "NFL_SEASON_RUSHING_YARDS_DUEL": {"competition": "NFL"},
+        "NFL_CAREER_PASSING_TD_DUEL": {"competition": "NFL"},
+        "CFB_CAREER_RUSHING_YARDS_DUEL": {"competition": "CFB"},
     },
 }
 
@@ -335,6 +345,36 @@ def _guess_the_season_evaluate(package: dict, index: int, submission: dict) -> d
     guess = str(submission.get("guess_season", "")).strip()
     correct = bool(guess) and guess == canonical
     return {"correct": correct, "canonical_answer": canonical}
+
+
+# --- PAIRWISE_COMPARE / HEAD_TO_HEAD_DUEL (15-Format Expansion Part 2) -----
+# Real per-round binary comparison -- see tools/director_v04/
+# head_to_head_duel.py's own module docstring. current_index-based
+# progress, same shape as GUESS_THE_SEASON above -- one round == one pair,
+# one pick. Real numeric values stay server-private until evaluate() runs.
+
+def generate_pairwise_compare_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import head_to_head_duel
+    return head_to_head_duel.build_package(seed, variant, round_count=round_count)
+
+
+def _pairwise_compare_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "prompt": r["prompt"],
+            "entity_a": r["entity_a"], "entity_b": r["entity_b"]}
+
+
+def _pairwise_compare_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer"]
+    choice = str(submission.get("choice", "")).strip().upper()
+    correct = choice in ("A", "B") and choice == canonical
+    correct_entity = r["entity_a"] if canonical == "A" else r["entity_b"]
+    return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
+            "value_a": r["_value_a"], "value_b": r["_value_b"], "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1125,6 +1165,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _roster_build_client_view(package, progress)
     if taxonomy_id == "GUESS_THE_SEASON":
         return _guess_the_season_client_view(package, progress["current_index"])
+    if taxonomy_id == "PAIRWISE_COMPARE":
+        return _pairwise_compare_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1159,6 +1201,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "GUESS_THE_SEASON":
         result = _guess_the_season_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "PAIRWISE_COMPARE":
+        result = _pairwise_compare_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

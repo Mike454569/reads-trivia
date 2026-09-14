@@ -285,6 +285,26 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Read the real clues, then guess the real NFL season (e.g. 2019) they all describe.",
         "kind": "guess_the_season", "gen_kwargs": {"round_count": 5, "difficulty": "MEDIUM"},
     },
+    # 15-Format Expansion pass (Part 2), format #3 -- see
+    # tools/director_v04/head_to_head_duel.py's own module docstring.
+    "head_to_head_duel_nfl_rushing": {
+        "competition": "NFL", "taxonomy_id": "PAIRWISE_COMPARE", "variant": "NFL_SEASON_RUSHING_YARDS_DUEL",
+        "title": "Rushing Duel",
+        "instructions": "Tap whichever real player you think had more rushing yards that season.",
+        "kind": "pairwise_compare", "gen_kwargs": {"round_count": 5},
+    },
+    "head_to_head_duel_nfl_passing_td": {
+        "competition": "NFL", "taxonomy_id": "PAIRWISE_COMPARE", "variant": "NFL_CAREER_PASSING_TD_DUEL",
+        "title": "Passing TD Duel",
+        "instructions": "Tap whichever real quarterback you think threw more career passing touchdowns.",
+        "kind": "pairwise_compare", "gen_kwargs": {"round_count": 5},
+    },
+    "head_to_head_duel_cfb_rushing": {
+        "competition": "CFB", "taxonomy_id": "PAIRWISE_COMPARE", "variant": "CFB_CAREER_RUSHING_YARDS_DUEL",
+        "title": "CFB Rushing Duel",
+        "instructions": "Tap whichever real CFB player you think has more career rushing yards.",
+        "kind": "pairwise_compare", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -347,6 +367,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_branch_state_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "GUESS_THE_SEASON":
             package = mechanic_engine.generate_guess_the_season_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "PAIRWISE_COMPARE":
+            package = mechanic_engine.generate_pairwise_compare_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

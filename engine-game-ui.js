@@ -1210,6 +1210,32 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #3 -- see
+  // tools/director_v04/head_to_head_duel.py's own module docstring.
+  headToHeadDuelRushing: {
+    publicMode: 'head_to_head_duel_nfl_rushing', hash: '#headtoheadduelrushingpilot',
+    flagOn: function () { return ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01; },
+    title: 'Rushing Duel', kind: 'pairwise_compare',
+    desc: 'Tap whichever real player you think had more rushing yards that season.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  headToHeadDuelPassingTd: {
+    publicMode: 'head_to_head_duel_nfl_passing_td', hash: '#headtoheadduelpassingtdpilot',
+    flagOn: function () { return ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01; },
+    title: 'Passing TD Duel', kind: 'pairwise_compare',
+    desc: 'Tap whichever real quarterback you think threw more career passing touchdowns.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  headToHeadDuelCfbRushing: {
+    publicMode: 'head_to_head_duel_cfb_rushing', hash: '#headtoheadduelcfbrushingpilot',
+    flagOn: function () { return ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01; },
+    title: 'CFB Rushing Duel', kind: 'pairwise_compare',
+    desc: 'Tap whichever real CFB player you think has more career rushing yards.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1326,6 +1352,12 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'roster_build' && v.slots_total) pct = 100 * (v.flow === 'FREE_SELECT' ? (v.submitted ? 1 : 0) : (v.picks_made || 0) / v.slots_total);
   else if (cfg.kind === 'relationship_chain' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'branch_state' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  // Real gap found and fixed this pass: guess_the_season shipped without a
+  // branch here at all, so a completed Guess the Season round never
+  // updated the player's rating -- same real r.correct-based pattern
+  // branch_state above already established for a single-boolean result.
+  else if (cfg.kind === 'guess_the_season' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'pairwise_compare' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1382,6 +1414,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   }
   if (cfg.kind === 'guess_the_season') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') + (r.canonical_answer ? 'The real season was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'pairwise_compare') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.correct_label ? esc(r.correct_label) + ' had the real higher value.' : '') + '</p>';
   }
   return '';
 }
@@ -1454,6 +1490,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'guess_the_season') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real season was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'pairwise_compare') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = (r.correct_label && r.value_a != null && r.value_b != null)
+      ? esc(r.correct_label) + ' had the real higher value (' + r.value_a + ' vs ' + r.value_b + ').' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1562,6 +1602,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'relationship_chain') return renderRelationshipChainBody(v, s);
   if (cfg.kind === 'branch_state') return renderBranchStateBody(v, s);
   if (cfg.kind === 'guess_the_season') return renderGuessTheSeasonBody(v, s);
+  if (cfg.kind === 'pairwise_compare') return renderPairwiseCompareBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1722,6 +1763,19 @@ function renderGuessTheSeasonBody(v, s) {
     '<input type="text" class="learn-filter-input" id="mechanic-season-input" placeholder="e.g. 2019" ' +
     'inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">' +
     '<div class="btn-row"><button class="btn-primary" data-mechanic-season-submit>Submit</button></div>';
+}
+
+// HEAD_TO_HEAD_DUEL: reuses renderBinaryChoiceHtml (app.js) verbatim, its
+// first real reuse site -- see visual_templates.py's own HEAD_TO_HEAD
+// entry for the disclosed consolidation note this format fulfills.
+function renderPairwiseCompareBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    renderBinaryChoiceHtml(
+      { code: 'A', label: v.entity_a.label },
+      { code: 'B', label: v.entity_b.label },
+      { dataAttr: 'data-mechanic-duel-choice' },
+    );
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

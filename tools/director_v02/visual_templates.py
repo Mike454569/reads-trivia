@@ -830,6 +830,38 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # reasoning STAT_LADDER's own mobile_verified: True relied on).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "HEAD_TO_HEAD_DUEL": {
+        "format_id": "HEAD_TO_HEAD_DUEL", "display_name": "Head to Head Duel",
+        "description": "Two real players shown side by side; tap whichever you think has the higher real "
+                        "value on one real statistical total (season rushing yards, career passing "
+                        "touchdowns, or CFB career rushing yards). Real values revealed only after you answer.",
+        "payload_schema": None,
+        "renderer": "renderPairwiseCompareBody (engine-game-ui.js)",
+        "proven_in": ["head_to_head_duel_nfl_rushing", "head_to_head_duel_nfl_passing_td",
+                      "head_to_head_duel_cfb_rushing"],
+        "supported_mechanics": ["pairwise_compare"], "mechanic_family": "PAIRWISE_COMPARE",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED), "
+                                         "cfb_player_season_stats_real (SPORTSDATAVERSE_CFB, "
+                                         "SOURCE_BACKED_DERIVED)"],
+        "min_items": 2, "max_items": 2, "min_pool_size": 2,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Tap one of 2 side-by-side real player cards (reuses renderBinaryChoiceHtml).",
+        "validation_rules": "Every round resampled until the two real values are genuinely distinct -- a "
+                             "real tie is never silently broken or invented a winner for.",
+        "answer_schema": "{choice: 'A'|'B'}",
+        "generation_schema": "tools/director_v04/head_to_head_duel.py:build_package()",
+        "qa_requirements": "Both real values traced to a real, resolved row; neither value sent to the "
+                            "client before evaluate() runs.",
+        "casual_aliases": ["head to head", "head to head duel", "1v1", "one on one duel"],
+        # True because renderPairwiseCompareBody introduces zero new CSS --
+        # built entirely from the already-shipped renderBinaryChoiceHtml
+        # component (app.js:272), same reasoning GUESS_THE_SEASON's own
+        # mobile_verified: True relied on.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

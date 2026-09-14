@@ -142,3 +142,47 @@ def test_new_taxonomy_bridge_never_shadows_a_plain_guess_request():
 
     r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
     assert r.get("taxonomy_id") is None
+
+
+# --- HEAD_TO_HEAD_DUEL / PAIRWISE_COMPARE (15-Format Expansion Part 2, format #3) ---
+
+def test_detect_head_to_head_duel_real_phrasing_and_variant_routing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a head to head duel")
+    assert r is not None
+    assert r["taxonomy_id"] == "PAIRWISE_COMPARE"
+    assert r["format"] == "HEAD_TO_HEAD_DUEL"
+    assert r["variant"] == "NFL_SEASON_RUSHING_YARDS_DUEL"
+
+    r2 = bridge.detect("head to head duel with quarterbacks, who threw more passing touchdowns")
+    assert r2["variant"] == "NFL_CAREER_PASSING_TD_DUEL"
+
+    r3 = bridge.detect("college football head to head duel, who had more rushing yards")
+    assert r3["variant"] == "CFB_CAREER_RUSHING_YARDS_DUEL"
+
+    r4 = bridge.detect("1v1 duel")
+    assert r4["taxonomy_id"] == "PAIRWISE_COMPARE"
+
+
+def test_head_to_head_duel_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="head to head duel", puzzle_count=None, difficulty=None, seed="pytest-duel-bridge",
+    )
+    assert r["taxonomy_id"] == "PAIRWISE_COMPARE"
+    assert r["format_id"] == "HEAD_TO_HEAD_DUEL"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP18:")
+    assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]
+
+
+def test_new_taxonomy_bridge_never_shadows_a_plain_guess_request_with_duel_bridge_active():
+    """Regression guard for the new HEAD_TO_HEAD_DUEL bridge specifically --
+    ordinary 2-option guess requests (no real duel/head-to-head signal) must
+    keep routing exactly as they always have."""
+    from gateway.services import creator
+
+    r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
+    assert r.get("taxonomy_id") is None

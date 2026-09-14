@@ -279,6 +279,41 @@ def test_guess_the_season_never_leaks_the_answer_before_submission():
         assert real_answer not in clue.get("display_text", "")
 
 
+# --- 12. HEAD_TO_HEAD_DUEL (15-Format Expansion Part 2, format #3) ----------
+
+@pytest.mark.parametrize("mode", [
+    "head_to_head_duel_nfl_rushing", "head_to_head_duel_nfl_passing_td", "head_to_head_duel_cfb_rushing",
+])
+def test_head_to_head_duel_full_public_playthrough_correct_and_incorrect(mode):
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode=mode)
+    rid = r["round_id"]
+    assert rid.startswith("GGP18:")
+    assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer"]
+    sub_correct = pm.submit_public_round(round_id=rid, submission={"choice": correct})
+    assert sub_correct["result"]["correct"] is True
+
+    r2 = pm.start_public_round(mode=mode)
+    rid2 = r2["round_id"]
+    pkg2 = packages.load_package(rid2)
+    wrong = "B" if pkg2["rounds"][0]["_answer"] == "A" else "A"
+    sub_wrong = pm.submit_public_round(round_id=rid2, submission={"choice": wrong})
+    assert sub_wrong["result"]["correct"] is False
+
+
+def test_head_to_head_duel_never_leaks_real_values_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="head_to_head_duel_nfl_rushing")
+    assert set(r["view"]["entity_a"].keys()) == {"entity_id", "label"}
+    assert set(r["view"]["entity_b"].keys()) == {"entity_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -293,6 +328,7 @@ def test_guess_the_season_never_leaks_the_answer_before_submission():
     ("Make me a chain reaction game about NFL players and colleges.", "RELATIONSHIP_CHAIN"),
     ("Give me a choose-your-path game about SEC football.", "BRANCH_STATE"),
     ("Guess the season this real NFL team won it all.", "GUESS_THE_SEASON"),
+    ("Give me a head to head duel between two real quarterbacks.", "PAIRWISE_COMPARE"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

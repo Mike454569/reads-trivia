@@ -704,3 +704,82 @@ def test_guess_the_season_easy_clue_set_is_superset_of_hard_clue_set():
     assert shared_seasons, "expected overlapping seasons between EASY and HARD samples for the same seed"
     for season in shared_seasons:
         assert hard_by_season[season].issubset(easy_by_season[season])
+
+
+# --- PAIRWISE_COMPARE / HEAD_TO_HEAD_DUEL (15-Format Expansion Part 2, format #3) ---
+
+def test_pairwise_compare_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "PAIRWISE_COMPARE" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("PAIRWISE_COMPARE"), "PAIRWISE_COMPARE has no registered variants"
+
+
+@pytest.mark.parametrize("variant", [
+    "NFL_SEASON_RUSHING_YARDS_DUEL", "NFL_CAREER_PASSING_TD_DUEL", "CFB_CAREER_RUSHING_YARDS_DUEL",
+])
+def test_head_to_head_duel_generates_real_rounds_with_two_distinct_real_values(variant):
+    from tools.director_v04 import head_to_head_duel
+
+    pkg = head_to_head_duel.build_package("test-duel-1", variant, round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert r["entity_a"]["label"] and r["entity_b"]["label"]
+        assert r["entity_a"]["label"] != r["entity_b"]["label"]
+        assert r["_value_a"] != r["_value_b"], "a real tie must never be silently broken"
+        assert r["_answer"] in ("A", "B")
+        expected_winner = "A" if r["_value_a"] > r["_value_b"] else "B"
+        assert r["_answer"] == expected_winner
+
+
+def test_head_to_head_duel_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pairwise_compare_round(
+        variant="NFL_SEASON_RUSHING_YARDS_DUEL", round_count=3, seed="test-duel-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("PAIRWISE_COMPARE")
+    canonical = pkg["rounds"][0]["_answer"]
+    result, progress = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress, {"choice": canonical})
+    assert result["correct"] is True
+    assert result["canonical_answer"] == canonical
+    assert result["value_a"] == pkg["rounds"][0]["_value_a"]
+    assert result["value_b"] == pkg["rounds"][0]["_value_b"]
+
+    progress2 = me.initial_progress("PAIRWISE_COMPARE")
+    wrong = "B" if canonical == "A" else "A"
+    result2, progress2 = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress2, {"choice": wrong})
+    assert result2["correct"] is False
+
+
+def test_head_to_head_duel_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pairwise_compare_round(
+        variant="NFL_SEASON_RUSHING_YARDS_DUEL", round_count=2, seed="test-duel-malformed")
+
+    progress = me.initial_progress("PAIRWISE_COMPARE")
+    result, progress = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress, {"choice": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("PAIRWISE_COMPARE")
+    result2, progress2 = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress2, {"choice": "Z"})
+    assert result2["correct"] is False
+
+    progress3 = me.initial_progress("PAIRWISE_COMPARE")
+    result3, progress3 = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress3, {})
+    assert result3["correct"] is False
+
+
+def test_head_to_head_duel_client_view_never_leaks_real_values_before_submission():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pairwise_compare_round(
+        variant="NFL_CAREER_PASSING_TD_DUEL", round_count=2, seed="test-duel-leak")
+    progress = me.initial_progress("PAIRWISE_COMPARE")
+    view = me.client_safe_view("PAIRWISE_COMPARE", pkg, progress)
+    assert set(view["entity_a"].keys()) == {"entity_id", "label"}
+    assert set(view["entity_b"].keys()) == {"entity_id", "label"}
+    assert "value" not in view["entity_a"] and "value" not in view["entity_b"]

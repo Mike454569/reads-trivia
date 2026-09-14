@@ -193,6 +193,20 @@ _GUESS_THE_SEASON_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- HEAD_TO_HEAD_DUEL (PAIRWISE_COMPARE, 15-Format Expansion pass, Part 2,
+# format #3) ------------------------------------------------------------
+# Same real "who had more <stat>" signal STAT_LADDER's own
+# nl_mechanic_bridge.py regex established, reused here for a binary
+# ("who had more" between exactly two named things) rather than a ranking
+# -- "head to head"/"1v1"/"duel" are the distinctive phrase; a bare "who
+# had more X" alone would collide with ordinary 2-option `guess` questions
+# already served elsewhere, so a real duel/head-to-head signal is required.
+_HEAD_TO_HEAD_DUEL_RE = re.compile(
+    r"\bhead[\s-]to[\s-]head\b|\b1\s*v\s*1\b|\bone[\s-]on[\s-]one\s+duel\b|\bduel\b",
+    re.IGNORECASE,
+)
+_CAREER_PASSING_TD_RE = re.compile(r"\b(career\s+)?passing\s+(touchdowns?|tds?)\b|\bquarterbacks?\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -260,5 +274,16 @@ def detect(request_text: str | None) -> dict | None:
     if _GUESS_THE_SEASON_RE.search(text):
         return {"taxonomy_id": "GUESS_THE_SEASON", "variant": "NFL_SUPER_BOWL_SEASON",
                 "format": "GUESS_THE_SEASON", "gen_kwargs": {}}
+
+    if _HEAD_TO_HEAD_DUEL_RE.search(text):
+        league = _league_for(text)
+        if league == "CFB":
+            variant = "CFB_CAREER_RUSHING_YARDS_DUEL"
+        elif _CAREER_PASSING_TD_RE.search(text):
+            variant = "NFL_CAREER_PASSING_TD_DUEL"
+        else:
+            variant = "NFL_SEASON_RUSHING_YARDS_DUEL"
+        return {"taxonomy_id": "PAIRWISE_COMPARE", "variant": variant,
+                "format": "HEAD_TO_HEAD_DUEL", "gen_kwargs": {}}
 
     return None
