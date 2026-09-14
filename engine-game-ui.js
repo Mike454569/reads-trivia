@@ -1236,6 +1236,20 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #4 -- see
+  // tools/director_v04/head_to_head_duel.py's own module docstring. Same
+  // 'pairwise_compare' kind as HEAD_TO_HEAD_DUEL above -- reuses
+  // renderPairwiseCompareBody verbatim; the real match_summary this
+  // variant's packages carry is handled generically in
+  // renderMechanicPilotCompleteSummary below.
+  bestOfSevenDuel: {
+    publicMode: 'best_of_seven_duel_nfl_qb', hash: '#bestofsevenduelpilot',
+    flagOn: function () { return ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01; },
+    title: 'QB Best of Seven', kind: 'pairwise_compare',
+    desc: 'Tap whichever real quarterback had more in each of up to 7 real career categories.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1416,8 +1430,21 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') + (r.canonical_answer ? 'The real season was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   if (cfg.kind === 'pairwise_compare') {
-    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+    var pcSummary = '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.correct_label ? esc(r.correct_label) + ' had the real higher value.' : '') + '</p>';
+    // BEST_OF_SEVEN_DUEL only: the real overall match outcome, computed
+    // from real data alone at generation time (independent of the
+    // player's own picks) -- present only on that variant's final round.
+    if (r.match_summary) {
+      var ms = r.match_summary;
+      var matchLine = ms.winner === 'TIE'
+        ? 'Real duel tied ' + ms.wins_a + '-' + ms.wins_b + ' across ' + ms.categories_played + ' real categories.'
+        : (ms.winner === 'A' ? esc(ms.entity_a_label) : esc(ms.entity_b_label)) + ' won the real duel ' +
+          Math.max(ms.wins_a, ms.wins_b) + '-' + Math.min(ms.wins_a, ms.wins_b) +
+          ' across ' + ms.categories_played + ' real categories.';
+      pcSummary += '<p class="mode-desc">' + matchLine + '</p>';
+    }
+    return pcSummary;
   }
   return '';
 }

@@ -314,6 +314,35 @@ def test_head_to_head_duel_never_leaks_real_values_before_submission():
     assert set(r["view"]["entity_b"].keys()) == {"entity_id", "label"}
 
 
+# --- 13. BEST_OF_SEVEN_DUEL (15-Format Expansion Part 2, format #4) ---------
+
+def test_best_of_seven_duel_full_public_playthrough_reveals_match_summary_only_at_the_end():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="best_of_seven_duel_nfl_qb")
+    rid = r["round_id"]
+    assert rid.startswith("GGP18:")
+    pkg = packages.load_package(rid)
+    total = pkg["round_count"]
+    assert 3 <= total <= 7
+    # Same fixed real pair every round -- a real requirement of "best of
+    # seven", distinct from plain HEAD_TO_HEAD_DUEL where each round is an
+    # unrelated new pair.
+    assert r["view"]["entity_a"]["label"] == pkg["rounds"][0]["entity_a"]["label"]
+
+    last_sub = None
+    for i in range(total):
+        correct = pkg["rounds"][i]["_answer"]
+        last_sub = pm.submit_public_round(round_id=rid, submission={"choice": correct})
+        if i < total - 1:
+            assert "match_summary" not in last_sub["result"]
+    assert "match_summary" in last_sub["result"]
+    ms = last_sub["result"]["match_summary"]
+    assert ms["wins_a"] + ms["wins_b"] == ms["categories_played"] == total
+    assert last_sub["view"]["completed"] is True
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -329,6 +358,7 @@ def test_head_to_head_duel_never_leaks_real_values_before_submission():
     ("Give me a choose-your-path game about SEC football.", "BRANCH_STATE"),
     ("Guess the season this real NFL team won it all.", "GUESS_THE_SEASON"),
     ("Give me a head to head duel between two real quarterbacks.", "PAIRWISE_COMPARE"),
+    ("Give me a best of seven duel between two real quarterbacks.", "PAIRWISE_COMPARE"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

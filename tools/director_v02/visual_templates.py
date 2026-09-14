@@ -862,6 +862,42 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # mobile_verified: True relied on.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "BEST_OF_SEVEN_DUEL": {
+        "format_id": "BEST_OF_SEVEN_DUEL", "display_name": "Best of Seven Duel",
+        "description": "The same 2 real NFL quarterbacks compared across up to 7 real distinct career "
+                        "categories (passing yards, passing touchdowns, completions, attempts, "
+                        "interceptions thrown, rushing yards, PPR fantasy points -- honestly capped at "
+                        "however many exist, never padded to a fake 7th). Any category where the two are "
+                        "genuinely tied is dropped, never assigned an invented winner. The real overall "
+                        "match outcome (most real categories won, or a genuine tie) is computed from real "
+                        "data alone and revealed once the final round is answered.",
+        "payload_schema": None,
+        "renderer": "renderPairwiseCompareBody (engine-game-ui.js, shared with HEAD_TO_HEAD_DUEL)",
+        "proven_in": ["best_of_seven_duel_nfl_qb"],
+        "supported_mechanics": ["pairwise_compare"], "mechanic_family": "PAIRWISE_COMPARE",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 2, "max_items": 2, "min_pool_size": 2,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Tap one of 2 side-by-side real player cards, once per real category, for the "
+                              "same fixed real pair across the whole duel.",
+        "validation_rules": "A real pair is rejected and resampled unless at least 3 of its real categories "
+                             "are genuinely distinct; every tied category is dropped rather than assigned an "
+                             "invented winner.",
+        "answer_schema": "{choice: 'A'|'B'}",
+        "generation_schema": "tools/director_v04/head_to_head_duel.py:build_package() "
+                              "(NFL_CAREER_QB_BEST_OF_SEVEN variant)",
+        "qa_requirements": "Every real value traced to a real, resolved row; the real match_summary is "
+                            "computed once at generation time, independent of the player's own picks, and "
+                            "never sent to the client before the final round is answered.",
+        "casual_aliases": ["best of seven", "best of 7", "best of seven duel"],
+        # True for the same reason HEAD_TO_HEAD_DUEL's own mobile_verified
+        # relied on -- this variant reuses renderPairwiseCompareBody
+        # verbatim, introducing zero new CSS or layout.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

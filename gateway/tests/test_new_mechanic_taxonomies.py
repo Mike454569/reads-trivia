@@ -783,3 +783,75 @@ def test_head_to_head_duel_client_view_never_leaks_real_values_before_submission
     assert set(view["entity_a"].keys()) == {"entity_id", "label"}
     assert set(view["entity_b"].keys()) == {"entity_id", "label"}
     assert "value" not in view["entity_a"] and "value" not in view["entity_b"]
+
+
+# --- BEST_OF_SEVEN_DUEL (15-Format Expansion Part 2, format #4) -----------
+
+def test_best_of_seven_duel_is_a_registered_pairwise_compare_variant():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "NFL_CAREER_QB_BEST_OF_SEVEN" in me.VARIANTS["PAIRWISE_COMPARE"]
+
+
+def test_best_of_seven_duel_generates_real_categories_for_a_fixed_real_pair():
+    from tools.director_v04 import head_to_head_duel
+
+    pkg = head_to_head_duel.build_package("test-b7-1", "NFL_CAREER_QB_BEST_OF_SEVEN", round_count=7)
+    assert pkg["qa_status"] == "PASSED"
+    assert 3 <= pkg["round_count"] <= 7
+    labels_a = {r["entity_a"]["label"] for r in pkg["rounds"]}
+    labels_b = {r["entity_b"]["label"] for r in pkg["rounds"]}
+    assert len(labels_a) == 1 and len(labels_b) == 1, "the same real pair must be compared across every round"
+    assert labels_a != labels_b
+    for r in pkg["rounds"]:
+        assert r["_value_a"] != r["_value_b"], "a real tie must never be silently broken"
+        assert r["prompt"] != ""
+
+    ms = pkg["_match_summary"]
+    assert ms["categories_played"] == pkg["round_count"]
+    assert ms["wins_a"] + ms["wins_b"] == ms["categories_played"]
+    if ms["wins_a"] > ms["wins_b"]:
+        assert ms["winner"] == "A"
+    elif ms["wins_b"] > ms["wins_a"]:
+        assert ms["winner"] == "B"
+    else:
+        assert ms["winner"] == "TIE"
+
+
+def test_best_of_seven_duel_match_summary_only_revealed_on_the_final_round():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pairwise_compare_round(
+        variant="NFL_CAREER_QB_BEST_OF_SEVEN", round_count=7, seed="test-b7-reveal")
+    total = pkg["round_count"]
+    progress = me.initial_progress("PAIRWISE_COMPARE")
+    for i in range(total):
+        canonical = pkg["rounds"][i]["_answer"]
+        result, progress = me.evaluate_submission("PAIRWISE_COMPARE", pkg, progress, {"choice": canonical})
+        if i < total - 1:
+            assert "match_summary" not in result, f"match_summary leaked early at round {i} of {total}"
+        else:
+            assert "match_summary" in result
+            assert result["match_summary"] == pkg["_match_summary"]
+    assert progress["completed"] is True
+
+
+def test_best_of_seven_duel_match_winner_independent_of_any_single_round_answer():
+    """Real regression guard for the exact scenario caught during live
+    verification: the match's overall real winner (most real categories)
+    can differ from the winner of any individual real category, including
+    the final one -- the two concepts must never be conflated."""
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pairwise_compare_round(
+        variant="NFL_CAREER_QB_BEST_OF_SEVEN", round_count=7, seed="test-b7-independent")
+    ms = pkg["_match_summary"]
+    last_round_answer = pkg["rounds"][-1]["_answer"]
+    # This is a real-data assertion of internal consistency, not a claim
+    # that they must differ -- just that match winner is computed from the
+    # full real category tally, never copied from the last round's answer.
+    assert ms["winner"] in ("A", "B", "TIE")
+    recomputed_wins_a = sum(1 for r in pkg["rounds"] if r["_answer"] == "A")
+    recomputed_wins_b = sum(1 for r in pkg["rounds"] if r["_answer"] == "B")
+    assert ms["wins_a"] == recomputed_wins_a
+    assert ms["wins_b"] == recomputed_wins_b

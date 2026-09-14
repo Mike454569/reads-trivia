@@ -84,6 +84,9 @@ window.READS_CONFIG = {
   // 15-Format Expansion pass (Part 2), format #3 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineHeadToHeadDuelPilot: false,
+  // 15-Format Expansion pass (Part 2), format #4 -- same off-by-default
+  // convention as its own sibling pilots above.
+  enableEngineBestOfSevenDuelPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

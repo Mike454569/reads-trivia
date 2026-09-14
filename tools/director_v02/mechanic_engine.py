@@ -174,12 +174,14 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "GUESS_THE_SEASON": {
         "NFL_SUPER_BOWL_SEASON": {"competition": "NFL"},
     },
-    # 15-Format Expansion pass (Part 2), format #3 -- see
-    # tools/director_v04/head_to_head_duel.py's own module docstring.
+    # 15-Format Expansion pass (Part 2), formats #3 (HEAD_TO_HEAD_DUEL) and
+    # #4 (BEST_OF_SEVEN_DUEL) -- see tools/director_v04/head_to_head_duel.py's
+    # own module docstring.
     "PAIRWISE_COMPARE": {
         "NFL_SEASON_RUSHING_YARDS_DUEL": {"competition": "NFL"},
         "NFL_CAREER_PASSING_TD_DUEL": {"competition": "NFL"},
         "CFB_CAREER_RUSHING_YARDS_DUEL": {"competition": "CFB"},
+        "NFL_CAREER_QB_BEST_OF_SEVEN": {"competition": "NFL"},
     },
 }
 
@@ -347,11 +349,18 @@ def _guess_the_season_evaluate(package: dict, index: int, submission: dict) -> d
     return {"correct": correct, "canonical_answer": canonical}
 
 
-# --- PAIRWISE_COMPARE / HEAD_TO_HEAD_DUEL (15-Format Expansion Part 2) -----
+# --- PAIRWISE_COMPARE / HEAD_TO_HEAD_DUEL / BEST_OF_SEVEN_DUEL (15-Format
+# Expansion Part 2) ----------------------------------------------------------
 # Real per-round binary comparison -- see tools/director_v04/
 # head_to_head_duel.py's own module docstring. current_index-based
 # progress, same shape as GUESS_THE_SEASON above -- one round == one pair,
 # one pick. Real numeric values stay server-private until evaluate() runs.
+# BEST_OF_SEVEN_DUEL reuses this exact same taxonomy for a fixed real pair
+# compared across multiple real rounds (categories) -- its real, package-
+# level _match_summary (who actually won more real categories, computed
+# from real data alone, independent of the player's own picks) is only
+# ever present on that variant's packages, and is only surfaced to the
+# client once the final round of the match has been answered.
 
 def generate_pairwise_compare_round(*, variant: str, round_count: int, seed: str) -> dict:
     from tools.director_v04 import head_to_head_duel
@@ -373,8 +382,11 @@ def _pairwise_compare_evaluate(package: dict, index: int, submission: dict) -> d
     choice = str(submission.get("choice", "")).strip().upper()
     correct = choice in ("A", "B") and choice == canonical
     correct_entity = r["entity_a"] if canonical == "A" else r["entity_b"]
-    return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
-            "value_a": r["_value_a"], "value_b": r["_value_b"], "notes": r["_notes"]}
+    result = {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
+              "value_a": r["_value_a"], "value_b": r["_value_b"], "notes": r["_notes"]}
+    if index == len(package["rounds"]) - 1 and package.get("_match_summary"):
+        result["match_summary"] = package["_match_summary"]
+    return result
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---

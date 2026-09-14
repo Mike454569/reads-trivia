@@ -207,6 +207,16 @@ _HEAD_TO_HEAD_DUEL_RE = re.compile(
 )
 _CAREER_PASSING_TD_RE = re.compile(r"\b(career\s+)?passing\s+(touchdowns?|tds?)\b|\bquarterbacks?\b", re.IGNORECASE)
 
+# --- BEST_OF_SEVEN_DUEL (PAIRWISE_COMPARE, 15-Format Expansion pass, Part 2,
+# format #4) ------------------------------------------------------------
+# Checked BEFORE _HEAD_TO_HEAD_DUEL_RE -- "best of seven duel" also
+# contains the bare word "duel", which would otherwise match the plain
+# HEAD_TO_HEAD_DUEL pattern first. Only one real variant exists
+# (NFL_CAREER_QB_BEST_OF_SEVEN -- see head_to_head_duel.py's own module
+# docstring for why this is NFL-QB-only for now), so this never branches
+# on league/stat the way HEAD_TO_HEAD_DUEL's own routing does.
+_BEST_OF_SEVEN_DUEL_RE = re.compile(r"\bbest\s+of\s+(seven|7)\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -274,6 +284,10 @@ def detect(request_text: str | None) -> dict | None:
     if _GUESS_THE_SEASON_RE.search(text):
         return {"taxonomy_id": "GUESS_THE_SEASON", "variant": "NFL_SUPER_BOWL_SEASON",
                 "format": "GUESS_THE_SEASON", "gen_kwargs": {}}
+
+    if _BEST_OF_SEVEN_DUEL_RE.search(text):
+        return {"taxonomy_id": "PAIRWISE_COMPARE", "variant": "NFL_CAREER_QB_BEST_OF_SEVEN",
+                "format": "BEST_OF_SEVEN_DUEL", "gen_kwargs": {}}
 
     if _HEAD_TO_HEAD_DUEL_RE.search(text):
         league = _league_for(text)

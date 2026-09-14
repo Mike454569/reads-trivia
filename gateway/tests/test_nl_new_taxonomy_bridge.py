@@ -186,3 +186,44 @@ def test_new_taxonomy_bridge_never_shadows_a_plain_guess_request_with_duel_bridg
 
     r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
     assert r.get("taxonomy_id") is None
+
+
+# --- BEST_OF_SEVEN_DUEL / PAIRWISE_COMPARE (15-Format Expansion Part 2, format #4) ---
+
+def test_detect_best_of_seven_duel_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    for phrase in ["give me a best of seven duel", "best of 7 duel between two quarterbacks",
+                   "best of seven"]:
+        r = bridge.detect(phrase)
+        assert r is not None, f"expected a match for {phrase!r}"
+        assert r["taxonomy_id"] == "PAIRWISE_COMPARE"
+        assert r["format"] == "BEST_OF_SEVEN_DUEL"
+        assert r["variant"] == "NFL_CAREER_QB_BEST_OF_SEVEN"
+
+
+def test_best_of_seven_duel_checked_before_head_to_head_duel_since_both_contain_the_word_duel():
+    """Real ordering regression guard: 'best of seven duel' contains the
+    bare word 'duel', which would otherwise match the plain
+    HEAD_TO_HEAD_DUEL pattern first if checked out of order."""
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a best of seven duel")
+    assert r["format"] == "BEST_OF_SEVEN_DUEL"
+
+    r2 = bridge.detect("give me a head to head duel")
+    assert r2["format"] == "HEAD_TO_HEAD_DUEL"
+
+
+def test_best_of_seven_duel_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="give me a best of seven duel", puzzle_count=None, difficulty=None, seed="pytest-b7-bridge",
+    )
+    assert r["taxonomy_id"] == "PAIRWISE_COMPARE"
+    assert r["format_id"] == "BEST_OF_SEVEN_DUEL"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP18:")
+    assert r["view"]["round_count"] >= 3
+    assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]

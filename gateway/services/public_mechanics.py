@@ -305,6 +305,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Tap whichever real CFB player you think has more career rushing yards.",
         "kind": "pairwise_compare", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #4 -- see
+    # tools/director_v04/head_to_head_duel.py's own module docstring for
+    # the real, disclosed NFL-QB-only scope this variant starts with.
+    "best_of_seven_duel_nfl_qb": {
+        "competition": "NFL", "taxonomy_id": "PAIRWISE_COMPARE", "variant": "NFL_CAREER_QB_BEST_OF_SEVEN",
+        "title": "QB Best of Seven",
+        "instructions": "Tap whichever real quarterback had more in each of up to 7 real career categories "
+                         "-- most categories won takes the duel.",
+        "kind": "pairwise_compare", "gen_kwargs": {"round_count": 7},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
