@@ -305,6 +305,118 @@ def test_roster_build_cfb_skill_position_builder_is_real_and_supported():
         assert pkg["by_position"].get(pos, 0) > 0
 
 
+def test_roster_build_cfb_lineup_builder_school_filter_is_actually_enforced():
+    """Regression guard for the Part 1B fix: a real school filter must
+    genuinely restrict the pool (never be silently ignored)."""
+    from tools.director_v02 import mechanic_engine as me
+    from tools.director_v04 import roster_build
+
+    pkg = me.generate_roster_build_round(
+        variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-lineup-alabama", filters={"school_name": "Alabama"},
+    )
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["filters_applied"] == {"school_name": "Alabama"}
+    assert 0 < pkg["player_count"] < 1000  # genuinely narrower than the >1000-player unfiltered pool
+
+    from tools.quiz_export import engine as engine_bootstrap
+    c = engine_bootstrap.connect()
+    try:
+        alabama_id = roster_build._cfb_school_id_for_name(c, "Alabama")
+        real_ids = {
+            r["cfb_player_id"] for r in c.execute(
+                "SELECT DISTINCT cfb_player_id FROM cfb_roster_seasons_real WHERE school_id = ?", (alabama_id,)
+            ).fetchall()
+        }
+    finally:
+        c.close()
+    for p in pkg["players"]:
+        assert p["player_id"] in real_ids, p
+
+
+def test_roster_build_conference_filter_is_actually_enforced():
+    from tools.director_v02 import mechanic_engine as me
+
+    unfiltered = me.generate_roster_build_round(variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-conf-base")
+    filtered = me.generate_roster_build_round(
+        variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-conf-base", filters={"conference": "SEC"},
+    )
+    assert filtered["qa_status"] == "PASSED"
+    assert 0 < filtered["player_count"] < unfiltered["player_count"]
+
+
+def test_roster_build_nfl_franchise_filter_is_actually_enforced():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_roster_build_round(
+        variant="NFL_2010S_OFFENSE_BUILDER", seed="test-nfl-packers", filters={"franchise_name": "Packers"},
+    )
+    assert pkg["qa_status"] == "PASSED"
+    assert 0 < pkg["player_count"] < 200
+
+
+def test_roster_build_nl_offense_phrasing_actually_routes_with_filters():
+    """Regression guard for the Part 1B NL-routing fix: the pool-filter
+    tests above all construct filters dicts directly, which never would
+    have caught that the real natural-language phrase this task names as
+    its own example -- "Build me an SEC offense." -- failed to route at
+    all. _LINEUP_BUILDER_RE's original "offense" alternative required a
+    rigid contiguous "build an offense" phrase; real requests always have
+    words in between ("build ME an ... offense"). Exercises the actual
+    detect() -> build_package() round-trip, not just the filter dict."""
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+    from tools.director_v04 import roster_build
+
+    detected = bridge.detect("Build me an SEC offense.")
+    assert detected is not None
+    assert detected["taxonomy_id"] == "ROSTER_BUILD"
+    assert detected["variant"] == "CFB_SKILL_POSITION_BUILDER"
+    assert detected["gen_kwargs"]["filters"] == {"conference": "SEC"}
+
+    pkg = roster_build.build_package(
+        seed="test-nl-sec-offense", variant=detected["variant"], filters=detected["gen_kwargs"]["filters"],
+    )
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["filters_applied"] == {"conference": "SEC"}
+    assert pkg["player_count"] > 0
+
+    # A bare "build an offense" (no team/conference name) must still route,
+    # just with no filters -- the original phrasing wasn't wrong, just too
+    # rigid about what can sit between "build" and "offense".
+    bare = bridge.detect("Build me an offense.")
+    assert bare is not None and bare["taxonomy_id"] == "ROSTER_BUILD"
+
+    # An unrelated "offense" mention (not a build/construct request) must
+    # still NOT match -- the fix must not have widened the pattern into a
+    # false positive.
+    assert bridge.detect("What is a zone blitz on offense?") is None
+
+
+def test_roster_build_unmatched_filter_is_honestly_rejected_not_silently_ignored():
+    """An unresolvable filter must fail with a disclosed shortfall_reason --
+    never silently fall back to generating from the unfiltered pool."""
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_roster_build_round(
+        variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-bogus",
+        filters={"school_name": "Not A Real School XYZ"},
+    )
+    assert pkg["qa_status"] == "FAILED"
+    assert pkg["player_count"] == 0
+    assert "school_name" in pkg["shortfall_reason"]
+
+
+def test_roster_build_filters_change_package_identity():
+    """Filtered and unfiltered rosters at the same seed must never collide
+    under the same content-addressed package_id."""
+    from tools.director_v02 import mechanic_engine as me
+
+    unfiltered = me.generate_roster_build_round(variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-identity")
+    filtered = me.generate_roster_build_round(
+        variant="CFB_SKILL_POSITION_BUILDER", seed="test-cfb-identity", filters={"school_name": "Alabama"},
+    )
+    assert unfiltered["package_id"] != filtered["package_id"]
+
+
 def test_roster_build_cfb_auction_draft_uses_fictional_cost_never_nil():
     """Real correction verified: CFB AUCTION_DRAFT never requires NIL/salary
     data -- its cost is the same real, deterministic fictional model as
@@ -408,3 +520,51 @@ def test_branch_state_rejects_invalid_choice_id():
         assert False, "expected MechanicError"
     except me.MechanicError:
         pass
+
+
+def test_branch_state_cfb_topic_path_real_generation_and_full_traversal():
+    """Part 1C: CFB gets a real branch tree, not a copy of NFL's -- 5
+    distinct real leaf capabilities, each independently registered in
+    tools/director_v02/registry.py (never a shared generic generator)."""
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_branch_state_round(variant="CFB_TOPIC_PATH", seed="test-cfb-branch-1")
+    assert pkg["qa_status"] == "PASSED"
+    choice_ids = {c["choice_id"] for c in pkg["root_choices"]}
+    assert choice_ids == {"HEISMAN", "CHAMPIONSHIP", "RIVALRY", "RANKING", "UPSET"}
+
+    for choice_id in ("HEISMAN", "CHAMPIONSHIP", "RIVALRY", "RANKING"):
+        progress = me.initial_progress("BRANCH_STATE")
+        result, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"choice_id": choice_id})
+        assert "leaf_question" in result, choice_id
+        q = result["leaf_question"]
+        correct = q["options"][q["correctIndex"]]
+        result2, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"answer": correct})
+        assert result2["correct"] is True, choice_id
+        assert progress["completed"] is True, choice_id
+
+
+def test_branch_state_cfb_upset_branch_is_a_genuine_second_level_not_decorative():
+    """The UPSET choice leads to a real second branch node (Ranking Upset
+    vs. Betting Upset -- two structurally distinct real capabilities), not
+    straight to a leaf and not to the same generator as any sibling."""
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_branch_state_round(variant="CFB_TOPIC_PATH", seed="test-cfb-branch-upset")
+    seen_domains = set()
+    for sub_choice in ("RANKING_UPSET", "BETTING_UPSET"):
+        progress = me.initial_progress("BRANCH_STATE")
+        result, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"choice_id": "UPSET"})
+        assert "leaf_question" not in result  # intermediate branch node, no question yet
+        assert progress["current_node"] == "cfb_upset_branch"
+        view = me.client_safe_view("BRANCH_STATE", pkg, progress)
+        assert {c["choice_id"] for c in view["choices"]} == {"RANKING_UPSET", "BETTING_UPSET"}
+
+        result2, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"choice_id": sub_choice})
+        assert "leaf_question" in result2
+        seen_domains.add(result2["leaf_question"]["question"])
+        q = result2["leaf_question"]
+        correct = q["options"][q["correctIndex"]]
+        result3, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"answer": correct})
+        assert result3["correct"] is True
+        assert progress["completed"] is True

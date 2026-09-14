@@ -45,6 +45,58 @@ def test_detect_returns_bracket_taxonomy_with_the_named_format():
     assert cfb_result["variant"] == "CFB_TEAM_SEASON_WINS_BRACKET"
 
 
+def test_detect_stat_ladder_picks_the_right_real_variant():
+    from tools.director_v04 import nl_mechanic_bridge as bridge
+
+    assert bridge.detect_format("make a stat ladder with running backs") == "STAT_LADDER"
+
+    running_backs = bridge.detect("make a stat ladder with running backs")
+    assert running_backs == {"taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_SEASON_RUSHING_YARDS_LADDER",
+                              "format": "STAT_LADDER"}
+
+    quarterbacks = bridge.detect("give me a stat ladder game with quarterbacks")
+    assert quarterbacks["variant"] == "NFL_CAREER_PASSING_TD_LADDER"
+    assert quarterbacks["format"] == "STAT_LADDER"
+
+    cfb = bridge.detect("make a college football stat ladder")
+    assert cfb["variant"] == "CFB_CAREER_RUSHING_YARDS_LADDER"
+
+    casual = bridge.detect("put these stats in order")
+    assert casual["taxonomy_id"] == "SORTING_TIMELINE"
+    assert casual["format"] == "STAT_LADDER"
+
+    # A plain chronological sorting request must be completely unaffected.
+    plain = bridge.detect("put these NFL draft picks in order")
+    assert plain == {"taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_DRAFT_PICK_ORDER", "format": None}
+
+
+def test_detect_stat_ladder_matches_real_stat_phrasing_not_just_the_format_name():
+    """Regression guard: the cleanup pass's own required example --
+    "Rank these quarterbacks by career passing yards." -- never says "stat
+    ladder" at all. Real requests describe the STAT, not the format name;
+    the original pattern only recognized the latter."""
+    from tools.director_v04 import nl_mechanic_bridge as bridge
+
+    r = bridge.detect("Rank these quarterbacks by career passing yards.")
+    assert r is not None
+    assert r["taxonomy_id"] == "SORTING_TIMELINE"
+    assert r["format"] == "STAT_LADDER"
+
+    r2 = bridge.detect("Order these players by rushing yards.")
+    assert r2 is not None and r2["format"] == "STAT_LADDER"
+    assert r2["variant"] == "NFL_SEASON_RUSHING_YARDS_LADDER"
+
+    r3 = bridge.detect("Rank these running backs by rushing yards, most to least.")
+    assert r3 is not None and r3["format"] == "STAT_LADDER"
+
+    # Must not widen into matching a bare "rank"/"order" with no real stat
+    # keyword nearby -- "year" isn't one, so this must NOT be pulled into
+    # STAT_LADDER (it also doesn't match the generic _SORTING_RE's own
+    # narrower phrasing, so the honest, correct result is no match at all,
+    # not a false-positive STAT_LADDER format).
+    assert bridge.detect("Order these Heisman winners by year.") is None
+
+
 def test_detect_never_matches_an_unrelated_request():
     from tools.director_v04 import nl_mechanic_bridge as bridge
 

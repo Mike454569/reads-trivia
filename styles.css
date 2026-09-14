@@ -1248,8 +1248,8 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 
 /* ROSTER_BUILD: real roster slots (LINEUP_BUILDER/AUCTION_DRAFT/
    CAP_CHALLENGE all share this) + a scrollable real-candidate list.
-   Single-column on mobile (grid-template-columns collapses at the
-   existing 480px breakpoint) so slot labels/names never truncate into
+   Drops from 3 to 2 columns on mobile (grid-template-columns collapses at
+   the existing 480px breakpoint) so slot labels/names never truncate into
    unreadable tap targets. */
 .roster-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
 .roster-slot { border: 1px solid var(--border); border-radius: 10px; padding: 8px; background: var(--bg-elevated); min-height: 52px; }

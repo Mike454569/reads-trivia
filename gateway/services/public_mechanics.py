@@ -93,6 +93,29 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Put these real Heisman Trophy winners in order, earliest year first.",
         "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
     },
+    # STAT_LADDER (40-Format Expansion Part 2) -- same SORTING_TIMELINE
+    # mechanic/taxonomy as the two variants above, same reasoning for why
+    # each variant gets its own dedicated public mode entry (matches how
+    # sorting_nfl_draft/sorting_cfb_heisman are each independently listed,
+    # not just reachable via Creator's dynamic NL generation).
+    "stat_ladder_nfl_rushing": {
+        "competition": "NFL", "taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_SEASON_RUSHING_YARDS_LADDER",
+        "title": "NFL Rushing Ladder",
+        "instructions": "Rank these real NFL rushers from a single season, most rushing yards first.",
+        "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
+    },
+    "stat_ladder_nfl_passing_td": {
+        "competition": "NFL", "taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_CAREER_PASSING_TD_LADDER",
+        "title": "NFL Passing TD Ladder",
+        "instructions": "Rank these real NFL quarterbacks by career passing touchdowns, most first.",
+        "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
+    },
+    "stat_ladder_cfb_rushing": {
+        "competition": "CFB", "taxonomy_id": "SORTING_TIMELINE", "variant": "CFB_CAREER_RUSHING_YARDS_LADDER",
+        "title": "CFB Rushing Ladder",
+        "instructions": "Rank these real CFB players by career rushing yards, most first.",
+        "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
+    },
     "higher_lower_nfl_wins": {
         "competition": "NFL", "taxonomy_id": "HIGHER_LOWER_STREAK", "variant": "NFL_TEAM_SEASON_WINS",
         "title": "NFL Wins Streak",
@@ -245,6 +268,12 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
     "choose_your_path_nfl": {
         "competition": "NFL", "taxonomy_id": "BRANCH_STATE", "variant": "NFL_TOPIC_PATH",
         "title": "Choose Your Path",
+        "instructions": "Pick a path at each step -- your choice determines the next real question.",
+        "kind": "branch_state", "gen_kwargs": {},
+    },
+    "choose_your_path_cfb": {
+        "competition": "CFB", "taxonomy_id": "BRANCH_STATE", "variant": "CFB_TOPIC_PATH",
+        "title": "Choose Your Path: College Football",
         "instructions": "Pick a path at each step -- your choice determines the next real question.",
         "kind": "branch_state", "gen_kwargs": {},
     },

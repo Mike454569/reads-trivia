@@ -26,7 +26,108 @@ _CFB_SIGNAL = re.compile(r"\bcollege\s+football\b|\bcfb\b|\bncaa\b|\bcollege\b",
 
 
 def _league_for(text: str) -> str:
-    return "CFB" if _CFB_SIGNAL.search(text) else "NFL"
+    """A real CFB conference name (e.g. "SEC football") is just as strong a
+    CFB signal as the word "college" itself -- the user's own real example
+    phrase "choose-your-path game about SEC football" has no "college"/
+    "cfb"/"ncaa" token at all, so relying on _CFB_SIGNAL alone would
+    silently mis-route it to the NFL tree."""
+    if _CFB_SIGNAL.search(text):
+        return "CFB"
+    lowered = text.lower()
+    for alias in _CONFERENCE_ALIASES:
+        if re.search(r"\b" + re.escape(alias) + r"\b", lowered):
+            return "CFB"
+    return "NFL"
+
+
+# --- Real, DB-validated school/conference/franchise filter extraction for
+# ROSTER_BUILD requests (LINEUP_BUILDER/AUCTION_DRAFT/CAP_CHALLENGE) -------
+# Reuses nl_schedule_bridge.py's own real _CONFERENCE_ALIASES (never
+# duplicated -- every value is a confirmed member of
+# weekly_pickem.REAL_CFB_CONFERENCES) plus roster_build.py's own real
+# school/franchise resolvers, so a filter is only ever populated when it
+# genuinely resolves against certified Engine data -- never a guessed or
+# fabricated name.
+from tools.director_v04.nl_schedule_bridge import _CONFERENCE_ALIASES  # noqa: E402
+
+_PROPER_RUN_RE = re.compile(r"\b[A-Z][a-zA-Z.'&]*(?:\s+[A-Z][a-zA-Z.'&]*)*\b")
+_FILTER_STOPWORDS = {
+    "build", "give", "giving", "make", "create", "generate", "lineup", "builder",
+    "skill", "position", "auction", "draft", "budget", "cap", "challenge", "cfb",
+    "nfl", "ncaa", "college", "football", "trivia", "game", "me", "i", "a", "an",
+    "the", "for", "with", "using", "based", "on", "of", "and",
+}
+
+
+def _trim_stopwords(tokens: list[str]) -> list[str]:
+    start, end = 0, len(tokens)
+    while start < end and tokens[start].lower() in _FILTER_STOPWORDS:
+        start += 1
+    while end > start and tokens[end - 1].lower() in _FILTER_STOPWORDS:
+        end -= 1
+    return tokens[start:end]
+
+
+def _proper_noun_candidates(text: str) -> list[str]:
+    """Longest-first list of plausible school/franchise name candidates --
+    trims generic request words (Build/Give/CFB/NFL/etc.) off both ends of
+    each capitalized-word run, and also offers the run's last word alone
+    (e.g. "Packers" out of "Green Bay Packers", "Alabama" out of "the
+    Alabama Crimson Tide"). Every candidate still has to resolve against
+    real Engine data below -- this only narrows what gets tried."""
+    candidates: list[str] = []
+    for m in _PROPER_RUN_RE.finditer(text):
+        trimmed = _trim_stopwords(m.group(0).split())
+        if not trimmed:
+            continue
+        candidates.append(" ".join(trimmed))
+        if len(trimmed) > 1:
+            candidates.append(trimmed[-1])
+    seen: list[str] = []
+    for cand in sorted(candidates, key=len, reverse=True):
+        if cand not in seen:
+            seen.append(cand)
+    return seen
+
+
+def _extract_roster_filters(text: str) -> tuple[str | None, dict]:
+    """Returns (league_override, filters). league_override is None when no
+    real school/franchise name resolved, in which case the caller falls
+    back to _league_for(text)'s plain keyword check. Never invents a
+    filter value -- a candidate only becomes a filter once it is confirmed
+    against the real Engine database (schools / team_seasons tables)."""
+    from tools.director_v04.roster_build import _cfb_school_id_for_name, _nfl_franchise_team_codes
+    from tools.quiz_export import engine as engine_bootstrap
+
+    filters: dict = {}
+    lowered = text.lower()
+    for alias, real_name in sorted(_CONFERENCE_ALIASES.items(), key=lambda kv: -len(kv[0])):
+        if re.search(r"\b" + re.escape(alias) + r"\b", lowered):
+            filters["conference"] = real_name
+            break
+
+    candidates = _proper_noun_candidates(text)
+    school_name = franchise_name = None
+    if candidates:
+        c = engine_bootstrap.connect()
+        try:
+            for cand in candidates:
+                if _cfb_school_id_for_name(c, cand):
+                    school_name = cand
+                    break
+                if _nfl_franchise_team_codes(c, cand):
+                    franchise_name = cand
+                    break
+        finally:
+            c.close()
+
+    if school_name:
+        filters["school_name"] = school_name
+        return "CFB", filters
+    if franchise_name:
+        filters["franchise_name"] = franchise_name
+        return "NFL", filters
+    return ("CFB" if filters.get("conference") else None), filters
 
 
 # --- CONNECTION_GRID (GRID_CONSTRAINT_BOARD) --------------------------------
@@ -46,8 +147,16 @@ _GOAL_LINE_STAND_RE = re.compile(r"\bgoal\s+line\s+stand\b|\bfour[\s-]+downs?\b"
 # game" / "skill position lineup" -- always anchored to "lineup" together
 # with a build/construct signal, never a bare "lineup" alone (which must
 # keep meaning the existing POSITION_LINEUP_GRID guess capability).
+#
+# The "offense" alternative originally required "build an offense" as a
+# rigid contiguous phrase -- real requests never actually talk that way
+# ("build ME an offense", "build an SEC offense", "build an all-star
+# offense"), so the task's own named example ("Build me an SEC offense.")
+# silently failed to route at all. Given the same .{0,30} gap-tolerance
+# idiom the "lineup" alternative already uses, for consistency rather than
+# a second, differently-shaped fix.
 _LINEUP_BUILDER_RE = re.compile(
-    r"\bbuild\s+an?\s+offense\b|\blineup\s+builder\b|"
+    r"\b(build|construct)\w*\b.{0,30}\boffense\b|\blineup\s+builder\b|"
     r"\b(build|construct)\w*\b.{0,30}\b(skill[\s-]position)?\s*lineup\b|"
     r"\bskill[\s-]position\s+lineup\b",
     re.IGNORECASE,
@@ -96,16 +205,25 @@ def detect(request_text: str | None) -> dict | None:
                 "format": "PERFECT_DRIVE", "gen_kwargs": {"question_count": 15}}
 
     if _AUCTION_DRAFT_RE.search(text):
-        return {"taxonomy_id": "ROSTER_BUILD", "variant": "NFL_AUCTION_DRAFT",
-                "format": "AUCTION_DRAFT", "gen_kwargs": {}}
+        league, filters = _extract_roster_filters(text)
+        league = league or _league_for(text)
+        variant = "CFB_AUCTION_DRAFT" if league == "CFB" else "NFL_AUCTION_DRAFT"
+        return {"taxonomy_id": "ROSTER_BUILD", "variant": variant, "format": "AUCTION_DRAFT",
+                "gen_kwargs": {"filters": filters} if filters else {}}
 
     if _CAP_CHALLENGE_RE.search(text):
-        return {"taxonomy_id": "ROSTER_BUILD", "variant": "NFL_AUCTION_DRAFT",
-                "format": "CAP_CHALLENGE", "gen_kwargs": {}}
+        league, filters = _extract_roster_filters(text)
+        league = league or _league_for(text)
+        variant = "CFB_CAP_CHALLENGE" if league == "CFB" else "NFL_CAP_CHALLENGE"
+        return {"taxonomy_id": "ROSTER_BUILD", "variant": variant, "format": "CAP_CHALLENGE",
+                "gen_kwargs": {"filters": filters} if filters else {}}
 
     if _LINEUP_BUILDER_RE.search(text):
-        return {"taxonomy_id": "ROSTER_BUILD", "variant": "NFL_2010S_OFFENSE_BUILDER",
-                "format": "LINEUP_BUILDER", "gen_kwargs": {}}
+        league, filters = _extract_roster_filters(text)
+        league = league or _league_for(text)
+        variant = "CFB_SKILL_POSITION_BUILDER" if league == "CFB" else "NFL_2010S_OFFENSE_BUILDER"
+        return {"taxonomy_id": "ROSTER_BUILD", "variant": variant, "format": "LINEUP_BUILDER",
+                "gen_kwargs": {"filters": filters} if filters else {}}
 
     if _KNOCKOUT_RE.search(text):
         league = _league_for(text)
@@ -123,7 +241,8 @@ def detect(request_text: str | None) -> dict | None:
                 "format": "CHAIN_REACTION", "gen_kwargs": {"chain_count": 8}}
 
     if _CHOOSE_YOUR_PATH_RE.search(text):
-        return {"taxonomy_id": "BRANCH_STATE", "variant": "NFL_TOPIC_PATH",
+        variant = "CFB_TOPIC_PATH" if _league_for(text) == "CFB" else "NFL_TOPIC_PATH"
+        return {"taxonomy_id": "BRANCH_STATE", "variant": variant,
                 "format": "CHOOSE_YOUR_PATH", "gen_kwargs": {}}
 
     return None

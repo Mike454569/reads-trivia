@@ -258,7 +258,8 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
         package = mechanic_engine.generate_drive_progression_round(
             variant=variant, question_count=gen_kwargs.get("question_count", 10), seed=real_seed)
     elif taxonomy_id == "ROSTER_BUILD":
-        package = mechanic_engine.generate_roster_build_round(variant=variant, seed=real_seed)
+        package = mechanic_engine.generate_roster_build_round(
+            variant=variant, seed=real_seed, filters=gen_kwargs.get("filters"))
     elif taxonomy_id == "KNOCKOUT_BRACKET":
         package = mechanic_engine.generate_knockout_bracket_round(variant=variant, seed=real_seed)
     elif taxonomy_id == "RELATIONSHIP_CHAIN":

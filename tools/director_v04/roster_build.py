@@ -101,32 +101,88 @@ def safety_check(c) -> dict:
     }
 
 
-def _lineup_builder_pool(c) -> dict:
+def _nfl_franchise_team_codes(c, franchise_name: str) -> list[str]:
+    """Reuses the exact real, proven resolution franchise_marathon.py's own
+    _team_codes_for_franchise() already established -- a real, fuzzy,
+    era-aware LIKE match against team_seasons.full_name, never a second,
+    hand-maintained nickname map."""
+    needle = f"%{franchise_name.strip()}%"
+    rows = c.execute(
+        "SELECT DISTINCT team_code FROM team_seasons WHERE full_name LIKE ? COLLATE NOCASE", (needle,),
+    ).fetchall()
+    return [r["team_code"] for r in rows]
+
+
+def _cfb_school_id_for_name(c, school_name: str) -> str | None:
+    row = c.execute("SELECT school_id FROM schools WHERE school_name = ? COLLATE NOCASE", (school_name.strip(),)).fetchone()
+    return row["school_id"] if row else None
+
+
+def _lineup_builder_pool(c, filters: dict) -> dict:
+    where = ["rs.season BETWEEN 2010 AND 2019", "rs.starts > 0",
+             "rs.position IN ('QB','RB','WR','TE')", "rs.verification_status='SOURCE_BACKED'"]
+    params: list = []
+    franchise_name = filters.get("franchise_name")
+    if franchise_name:
+        codes = _nfl_franchise_team_codes(c, franchise_name)
+        if not codes:
+            return {}
+        where.append(f"rs.team_code IN ({','.join('?' for _ in codes)})")
+        params.extend(codes)
     rows = c.execute(
         "SELECT DISTINCT rs.player_id, p.display_name, rs.position "
         "FROM canonical_roster_seasons rs JOIN canonical_players p ON p.player_id = rs.player_id "
-        "WHERE rs.season BETWEEN 2010 AND 2019 AND rs.starts > 0 "
-        "AND rs.position IN ('QB','RB','WR','TE') AND rs.verification_status='SOURCE_BACKED'"
+        f"WHERE {' AND '.join(where)}", params,
     ).fetchall()
     return {r["player_id"]: {"display_name": r["display_name"], "position": r["position"], "cost": None} for r in rows}
 
 
-def _cfb_skill_position_pool(c) -> dict:
+def _cfb_skill_position_pool(c, filters: dict) -> dict:
+    where = ["rs.position IN ('QB','RB','WR','TE')", "rs.verification_status='SOURCE_BACKED'", "p.display_name IS NOT NULL"]
+    params: list = []
+    joins = ""
+    school_name = filters.get("school_name")
+    conference = filters.get("conference")
+    if school_name:
+        school_id = _cfb_school_id_for_name(c, school_name)
+        if not school_id:
+            return {}
+        where.append("rs.school_id = ?")
+        params.append(school_id)
+    if conference:
+        # Real, live per-(player, season) conference from cfb_player_season_stats_real
+        # -- the only real table this Engine has that carries conference at
+        # all (schools.school_id has no conference column) -- joined on the
+        # exact (cfb_player_id, season) pair so a school's real conference
+        # changes over time (realignment) are respected, never assumed static.
+        joins += (" JOIN cfb_player_season_stats_real stats ON stats.cfb_player_id = rs.cfb_player_id "
+                  "AND stats.season = rs.season")
+        where.append("stats.conference = ? COLLATE NOCASE")
+        params.append(conference.strip())
     rows = c.execute(
         "SELECT DISTINCT rs.cfb_player_id, p.display_name, rs.position "
-        "FROM cfb_roster_seasons_real rs JOIN canonical_cfb_players p ON p.cfb_player_id = rs.cfb_player_id "
-        "WHERE rs.position IN ('QB','RB','WR','TE') AND rs.verification_status='SOURCE_BACKED' "
-        "AND p.display_name IS NOT NULL"
+        f"FROM cfb_roster_seasons_real rs JOIN canonical_cfb_players p ON p.cfb_player_id = rs.cfb_player_id{joins} "
+        f"WHERE {' AND '.join(where)}", params,
     ).fetchall()
     return {r["cfb_player_id"]: {"display_name": r["display_name"], "position": r["position"], "cost": None} for r in rows}
 
 
-def _nfl_auction_pool(c, real_contract: bool) -> dict:
+def _nfl_auction_pool(c, real_contract: bool, filters: dict) -> dict:
+    where = ["is_active=1", "verification_status='SOURCE_BACKED'", "position IN ('QB','RB','WR','TE')"]
+    params: list = []
+    franchise_name = filters.get("franchise_name")
+    if franchise_name:
+        codes = _nfl_franchise_team_codes(c, franchise_name)
+        if not codes:
+            return {}
+        where.append(f"team_code IN ({','.join('?' for _ in codes)})")
+        params.extend(codes)
+    where_sql = " AND ".join(where)
+
     if real_contract:
         rows = c.execute(
-            "SELECT player_key, position, apy FROM nfl_player_contracts "
-            "WHERE is_active=1 AND verification_status='SOURCE_BACKED' AND apy IS NOT NULL "
-            "AND position IN ('QB','RB','WR','TE')"
+            f"SELECT player_key, position, apy FROM nfl_player_contracts WHERE {where_sql} AND apy IS NOT NULL",
+            params,
         ).fetchall()
         names = {r["player_id"]: r["display_name"] for r in c.execute("SELECT player_id, display_name FROM canonical_players")}
         pool = {}
@@ -142,8 +198,7 @@ def _nfl_auction_pool(c, real_contract: bool) -> dict:
     # pool), real COST from the fictional model keyed to real career AV --
     # never the contract's own real APY.
     contract_rows = c.execute(
-        "SELECT DISTINCT player_key, position FROM nfl_player_contracts "
-        "WHERE is_active=1 AND verification_status='SOURCE_BACKED' AND position IN ('QB','RB','WR','TE')"
+        f"SELECT DISTINCT player_key, position FROM nfl_player_contracts WHERE {where_sql}", params,
     ).fetchall()
     names = {r["player_id"]: r["display_name"] for r in c.execute("SELECT player_id, display_name FROM canonical_players")}
     av_sums = {
@@ -164,13 +219,32 @@ def _nfl_auction_pool(c, real_contract: bool) -> dict:
     return pool
 
 
-def _cfb_auction_pool(c) -> dict:
+def _cfb_auction_pool(c, filters: dict) -> dict:
+    where = ["rs.position IN ('QB','RB','WR','TE')", "rs.verification_status='SOURCE_BACKED'", "p.display_name IS NOT NULL"]
+    params: list = []
+    school_name = filters.get("school_name")
+    if school_name:
+        school_id = _cfb_school_id_for_name(c, school_name)
+        if not school_id:
+            return {}
+        where.append("rs.school_id = ?")
+        params.append(school_id)
     roster_rows = c.execute(
         "SELECT DISTINCT rs.cfb_player_id, p.display_name, rs.position "
         "FROM cfb_roster_seasons_real rs JOIN canonical_cfb_players p ON p.cfb_player_id = rs.cfb_player_id "
-        "WHERE rs.position IN ('QB','RB','WR','TE') AND rs.verification_status='SOURCE_BACKED' "
-        "AND p.display_name IS NOT NULL"
+        f"WHERE {' AND '.join(where)}", params,
     ).fetchall()
+    if not roster_rows:
+        return {}
+    conference = filters.get("conference")
+    if conference:
+        valid_ids = {
+            r["cfb_player_id"] for r in c.execute(
+                "SELECT DISTINCT cfb_player_id FROM cfb_player_season_stats_real WHERE conference = ? COLLATE NOCASE",
+                (conference.strip(),),
+            ).fetchall()
+        }
+        roster_rows = [r for r in roster_rows if r["cfb_player_id"] in valid_ids]
     yard_sums = {
         r["cfb_player_id"]: r["tot"] for r in c.execute(
             "SELECT cfb_player_id, SUM(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(receiving_yards,0)) tot "
@@ -186,21 +260,22 @@ def _cfb_auction_pool(c) -> dict:
     return pool
 
 
-def generate_pool(seed: str, variant: str) -> dict:
+def generate_pool(seed: str, variant: str, filters: dict | None = None) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
+    filters = filters or {}
 
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
         if variant == "NFL_2010S_OFFENSE_BUILDER":
-            pool = _lineup_builder_pool(c)
+            pool = _lineup_builder_pool(c, filters)
         elif variant == "CFB_SKILL_POSITION_BUILDER":
-            pool = _cfb_skill_position_pool(c)
+            pool = _cfb_skill_position_pool(c, filters)
         elif variant in ("NFL_AUCTION_DRAFT", "NFL_AUCTION_DRAFT_REAL_CONTRACT"):
-            pool = _nfl_auction_pool(c, real_contract=variant in _REAL_CONTRACT_VARIANTS)
+            pool = _nfl_auction_pool(c, real_contract=variant in _REAL_CONTRACT_VARIANTS, filters=filters)
         else:  # CFB_AUCTION_DRAFT
-            pool = _cfb_auction_pool(c)
+            pool = _cfb_auction_pool(c, filters)
     finally:
         c.close()
 
@@ -216,11 +291,20 @@ def generate_pool(seed: str, variant: str) -> dict:
     for p in players:
         by_position[p["position"]] = by_position.get(p["position"], 0) + 1
     missing = sorted(pos for pos in _REQUIRED_POSITIONS if by_position.get(pos, 0) == 0)
+    filter_desc = ", ".join(f"{k}={v!r}" for k, v in filters.items()) if filters else None
     shortfall_reason = None
     if not players:
-        shortfall_reason = f"No real eligible players found for variant={variant!r}."
+        shortfall_reason = (
+            f"No real eligible players found for variant={variant!r}" +
+            (f" with filters ({filter_desc}) -- refusing to silently ignore an unmatched filter "
+             f"and generate from the unfiltered pool instead." if filter_desc else ".")
+        )
     elif missing:
-        shortfall_reason = f"No real eligible players at position(s) {missing} -- refusing to generate an incompletable roster."
+        shortfall_reason = (
+            f"No real eligible players at position(s) {missing}" +
+            (f" once filtered to ({filter_desc})" if filter_desc else "") +
+            " -- refusing to generate an incompletable roster."
+        )
 
     return {"players": players, "by_position": by_position, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
@@ -234,39 +318,55 @@ _GAME_TITLES = {
 }
 
 
-def build_package(seed: str, variant: str, *, flow: str = "SEQUENTIAL") -> dict:
+def build_package(seed: str, variant: str, *, flow: str = "SEQUENTIAL", filters: dict | None = None) -> dict:
     if flow not in ("SEQUENTIAL", "FREE_SELECT"):
         raise ValueError(f"flow must be 'SEQUENTIAL' or 'FREE_SELECT', got {flow!r}")
-    result = generate_pool(seed, variant)
+    filters = filters or {}
+    result = generate_pool(seed, variant, filters)
+    # A real, applied filter changes package IDENTITY -- two different
+    # real Alabama-only vs. all-CFB rosters must never collide under the
+    # same content-addressed package_id.
+    filter_key = "|".join(f"{k}={v}" for k, v in sorted(filters.items()))
     package_id = "GGP13:" + hashlib.sha256(
-        f"ROSTER_BUILD|{variant}|{flow}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
+        f"ROSTER_BUILD|{variant}|{flow}|{filter_key}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
     budgeted = variant in _BUDGETED_VARIANTS
     real_contract = variant in _REAL_CONTRACT_VARIANTS
     valid = bool(result["players"]) and not result["shortfall_reason"]
 
+    filter_phrase = ""
+    if filters.get("school_name"):
+        filter_phrase = f" from {filters['school_name']}"
+    elif filters.get("conference"):
+        filter_phrase = f" from the {filters['conference']}"
+    elif filters.get("franchise_name"):
+        filter_phrase = f" who played for the {filters['franchise_name']}"
+
     if not budgeted:
         instructions = (
-            f"Build a real roster ({', '.join(ROSTER_SLOTS)}) from real eligible players -- one real "
-            f"player per slot, no player twice."
+            f"Build a real roster ({', '.join(ROSTER_SLOTS)}) from real eligible players{filter_phrase} -- "
+            f"one real player per slot, no player twice."
         )
     elif real_contract:
         instructions = (
-            f"Build a real roster ({', '.join(ROSTER_SLOTS)}) using each player's REAL career-average "
-            f"annual salary as their cost, under a fictional ${AUCTION_BUDGET:,} budget. Every dollar "
-            f"figure is a real contract value; the budget itself is not a real salary cap."
+            f"Build a real roster ({', '.join(ROSTER_SLOTS)}) from real eligible players{filter_phrase} "
+            f"using each player's REAL career-average annual salary as their cost, under a fictional "
+            f"${AUCTION_BUDGET:,} budget. Every dollar figure is a real contract value; the budget itself "
+            f"is not a real salary cap."
         )
     elif flow == "SEQUENTIAL":
         instructions = (
-            f"Draft a real roster ({', '.join(ROSTER_SLOTS)}) one slot at a time under a fictional "
-            f"${AUCTION_BUDGET:,} budget. Each pick's cost is a fictional, deterministic value derived "
-            f"from real career production -- locked in immediately, no player twice."
+            f"Draft a real roster ({', '.join(ROSTER_SLOTS)}) from real eligible players{filter_phrase} "
+            f"one slot at a time under a fictional ${AUCTION_BUDGET:,} budget. Each pick's cost is a "
+            f"fictional, deterministic value derived from real career production -- locked in "
+            f"immediately, no player twice."
         )
     else:
         instructions = (
-            f"Assemble a complete real roster ({', '.join(ROSTER_SLOTS)}) under a fictional "
-            f"${AUCTION_BUDGET:,} cap. Freely select, swap, or remove picks -- nothing is locked until "
-            f"you submit the finished lineup, which must be complete and within the cap."
+            f"Assemble a complete real roster ({', '.join(ROSTER_SLOTS)}) from real eligible "
+            f"players{filter_phrase} under a fictional ${AUCTION_BUDGET:,} cap. Freely select, swap, or "
+            f"remove picks -- nothing is locked until you submit the finished lineup, which must be "
+            f"complete and within the cap."
         )
 
     return {
@@ -280,6 +380,7 @@ def build_package(seed: str, variant: str, *, flow: str = "SEQUENTIAL") -> dict:
         "by_position": result["by_position"], "roster_slots": list(ROSTER_SLOTS),
         "budgeted": budgeted, "budget_total": AUCTION_BUDGET if budgeted else None,
         "cost_model": ("REAL_CONTRACT" if real_contract else ("FICTIONAL" if budgeted else None)),
+        "filters_applied": dict(filters),
         "production_safety": result["safety"], "shortfall_reason": result["shortfall_reason"],
         "review_status": "UNREVIEWED", "_diagnostics": {"seed": seed},
     }

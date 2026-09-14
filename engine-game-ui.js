@@ -1184,13 +1184,21 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
-  chooseYourPath: {
+  chooseYourPathNfl: {
     publicMode: 'choose_your_path_nfl', hash: '#chooseyourpathpilot',
     flagOn: function () { return ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01; },
     title: 'Choose Your Path', kind: 'branch_state',
     desc: 'Pick a path at each step -- your choice determines the next real question.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  chooseYourPathCfb: {
+    publicMode: 'choose_your_path_cfb', hash: '#chooseyourpathcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01; },
+    title: 'Choose Your Path: College Football', kind: 'branch_state',
+    desc: 'Pick a path at each step -- your choice determines the next real question.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
 };
 var mechanicPilotCurrentModeKey = 'matching';
@@ -1386,6 +1394,18 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'sorting') {
     headline = wasCorrect ? 'Perfect order!' : 'Not quite.';
     detail = r.correct_positions + ' of ' + r.total_items + ' in the correct spot.';
+    // STAT_LADDER rounds (sorting.py's real values_by_item_id) reveal the
+    // real stat total per player as evidence, in real descending order --
+    // TIMELINE_RIBBON/SORT_LIST_DEFAULT rounds have no values_by_item_id,
+    // so this stays absent for them exactly as before. Plain text, no
+    // markup: this whole `detail` string is esc()'d as one block by this
+    // function's own return statement below, same as every other branch.
+    if (r.values_by_item_id && r.canonical_order && s.lastSortLabels) {
+      var labels = s.lastSortLabels;
+      detail += ' -- ' + r.canonical_order.map(function (itemId) {
+        return (labels[itemId] || itemId) + ': ' + String(r.values_by_item_id[itemId]);
+      }).join(', ');
+    }
   } else if (cfg.kind === 'higher_lower') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = esc(r.revealed_next_label) + ' was ' + esc(r.actual_direction) + '.';

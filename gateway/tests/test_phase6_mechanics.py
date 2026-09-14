@@ -69,6 +69,54 @@ def test_sorting_generates_real_nfl_and_cfb_rounds_tie_free():
     assert cfb["qa_status"] == "PASSED"
 
 
+def test_stat_ladder_generates_real_tie_free_rounds_and_reveals_real_values():
+    """40-Format Expansion Part 2: STAT_LADDER reuses SORTING_TIMELINE's
+    own mechanic with 3 new real, stat-based variants -- every round's
+    sampled stat totals must be genuinely distinct (the format spec's own
+    "the Engine must resolve ties deterministically" requirement), and the
+    real numeric value must be exposed for post-answer reveal."""
+    from tools.director_v04 import sorting
+
+    for variant in ("NFL_SEASON_RUSHING_YARDS_LADDER", "NFL_CAREER_PASSING_TD_LADDER",
+                    "CFB_CAREER_RUSHING_YARDS_LADDER"):
+        pkg = sorting.build_package("t-ladder", variant, round_count=2, item_count=4)
+        assert pkg["qa_status"] == "PASSED", variant
+        r = pkg["rounds"][0]
+        assert len(r["items_shuffled"]) == 4
+        values = r["values_by_item_id"]
+        assert len(values) == 4
+        assert len(set(values.values())) == 4  # genuinely tie-free, never an invented tiebreak
+        correct_order = r["_private_correct_order"]
+        ordered_values = [values[item_id] for item_id in correct_order]
+        assert ordered_values == sorted(ordered_values, reverse=True)  # descending, matches the real prompt
+
+
+def test_stat_ladder_career_passing_td_ladder_only_includes_real_quarterbacks():
+    """Regression guard: a non-QB's incidental real trick-play passing
+    stat must never surface under a prompt that calls the field
+    'quarterbacks' -- see sorting.py's own real EXISTS(...position='QB')
+    join."""
+    from tools.director_v04 import sorting
+    from tools.quiz_export import engine as engine_bootstrap
+
+    pkg = sorting.build_package("t-ladder-qb-check", "NFL_CAREER_PASSING_TD_LADDER", round_count=3, item_count=4)
+    assert pkg["qa_status"] == "PASSED"
+    player_keys = set()
+    for r in pkg["rounds"]:
+        for item in r["_audit"]["items"]:
+            player_keys.add(item["player_key"])
+    c = engine_bootstrap.connect()
+    try:
+        for player_key in player_keys:
+            row = c.execute(
+                "SELECT 1 FROM canonical_roster_seasons WHERE player_id = ? AND position = 'QB' LIMIT 1",
+                (player_key,),
+            ).fetchone()
+            assert row is not None, f"{player_key} was included in a 'quarterbacks' ladder without a real QB season"
+    finally:
+        c.close()
+
+
 def test_higher_lower_generates_real_nfl_and_cfb_sequences_tie_free():
     from tools.director_v04 import higher_lower
 

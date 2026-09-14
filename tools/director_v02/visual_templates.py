@@ -212,6 +212,41 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "casual_aliases": ["timeline", "put these on a timeline"],
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "STAT_LADDER": {
+        "format_id": "STAT_LADDER",
+        "display_name": "Stat Ladder",
+        "description": "Rank real players by one real statistical total (season rushing yards, career "
+                        "passing touchdowns, career rushing yards) without seeing the real numbers first -- "
+                        "reuses SORT_LIST_DEFAULT's exact vertical reorder UI (the correct visual for a "
+                        "ladder is already a numbered list; no new component was built), the real numeric "
+                        "values are revealed as evidence only after the player submits an order.",
+        "payload_schema": None,
+        "existing_renderer_note": "Reuses renderMechanicPilotBody's 'sorting' kind verbatim, same as "
+                                   "SORT_LIST_DEFAULT -- the only real difference is the underlying "
+                                   "SORTING_TIMELINE variant's data (a stat total instead of a draft pick "
+                                   "or award year) and the post-submit values_by_item_id reveal.",
+        "proven_in": ["NFL_SEASON_RUSHING_YARDS_LADDER", "NFL_CAREER_PASSING_TD_LADDER",
+                      "CFB_CAREER_RUSHING_YARDS_LADDER"],
+        "supported_mechanics": ["sorting"],
+        "mechanic_family": "sorting",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFL, SOURCE_BACKED) / "
+                                         "cfb_player_season_stats_real (CFB, SOURCE_BACKED_DERIVED)"],
+        "min_items": 4, "max_items": 6, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"],
+        "timed": False, "multiplayer_compatible": False, "scoring_model": "WEIGHTED",
+        "interaction_model": "Reorder a vertical list of real player names (values hidden), submit, then "
+                              "see each real stat total revealed next to the name.",
+        "validation_rules": "Same real order-comparison as SORT_LIST_DEFAULT; every round's sampled stat "
+                             "totals are verified genuinely distinct at generation time (resampled, never "
+                             "given an invented tiebreak) -- see sorting.py's own module docstring.",
+        "answer_schema": "{order: list[item_id]}",
+        "generation_schema": "tools/director_v04/sorting.py:generate_sorting_round()",
+        "qa_requirements": "No duplicate item_ids; every item's real stat value in a round is distinct.",
+        "casual_aliases": ["stat ladder", "put these stats in order", "rank these by"],
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
     "BRACKET_TREE": {
         "format_id": "BRACKET_TREE",
         "display_name": "Bracket Tree",
@@ -740,12 +775,15 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
                         "real question. Never a general branching engine.",
         "payload_schema": None,
         "renderer": "renderBranchStateBody (engine-game-ui.js)",
-        "proven_in": ["choose_your_path_nfl"], "supported_mechanics": ["branch_state"],
+        "proven_in": ["choose_your_path_nfl", "choose_your_path_cfb"], "supported_mechanics": ["branch_state"],
         "mechanic_family": "BRANCH_STATE",
-        "supported_entity_types": ["player", "team"],
-        "required_data_relationships": ["NFL_DRAFT", "NFL_CHAMPIONSHIP", "NFL_COACHING (already-registered capabilities)"],
+        "supported_entity_types": ["player", "team", "school"],
+        "required_data_relationships": [
+            "NFL_DRAFT, NFL_CHAMPIONSHIP, NFL_COACHING (NFL tree) and CFB_HEISMAN, CFB_CHAMPIONSHIP, "
+            "CFB_RIVALRY, CFB_RANKING, CFB_UPSET (CFB tree) -- all already-registered capabilities",
+        ],
         "min_items": 1, "max_items": 1, "min_pool_size": 1,
-        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
         "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
         "scoring_model": "BINARY",
         "interaction_model": "Pick a path at each node; answer the real question at the leaf.",

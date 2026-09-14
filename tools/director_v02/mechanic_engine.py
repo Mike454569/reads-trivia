@@ -161,6 +161,7 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # small-fixed-tree scope).
     "BRANCH_STATE": {
         "NFL_TOPIC_PATH": {"competition": "NFL"},
+        "CFB_TOPIC_PATH": {"competition": "CFB"},
     },
 }
 
@@ -290,9 +291,15 @@ def _sorting_evaluate(package: dict, index: int, submission: dict) -> dict:
     submitted_order = list(submission.get("order") or [])
     correct_positions = sum(1 for i, item_id in enumerate(submitted_order)
                              if i < len(correct_order) and item_id == correct_order[i])
-    return {"correct_positions": correct_positions, "total_items": len(correct_order),
-            "exact_match": submitted_order == correct_order, "canonical_order": correct_order,
-            "notes": r.get("notes")}
+    result = {"correct_positions": correct_positions, "total_items": len(correct_order),
+              "exact_match": submitted_order == correct_order, "canonical_order": correct_order,
+              "notes": r.get("notes")}
+    # STAT_LADDER rounds (sorting.py) carry a real per-item numeric value --
+    # revealed only now, after the player has committed to an order, never
+    # shown up front (that would make the ranking trivial).
+    if "values_by_item_id" in r:
+        result["values_by_item_id"] = r["values_by_item_id"]
+    return result
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -743,9 +750,13 @@ def _branch_state_evaluate(package: dict, progress: dict, submission: dict) -> d
         if choice_id not in valid_ids:
             raise MechanicError(f"choice_id must be one of {sorted(valid_ids)}")
         next_node_id = next(c["next"] for c in node["choices"] if c["choice_id"] == choice_id)
-        leaf = tree[next_node_id]
+        next_node = tree[next_node_id]
+        if "choices" in next_node:
+            # Advancing to an intermediate branch node (e.g. CFB_TOPIC_PATH's
+            # UPSET split) -- no leaf question yet, the player picks again.
+            return {"advanced_to": next_node_id}
         question = branch_state._generate_leaf_question(
-            domain=leaf["domain"], relationship_predicate=leaf["relationship_predicate"],
+            domain=next_node["domain"], relationship_predicate=next_node["relationship_predicate"],
             seed=f"{package['package_id']}:{next_node_id}",
         )
         if question is None:
@@ -880,12 +891,12 @@ def _drive_progression_evaluate(package: dict, progress: dict, submission: dict)
 # AUCTION_DRAFT/CAP_CHALLENGE; see tools/director_v04/roster_build.py's own
 # module docstring) ---
 
-def generate_roster_build_round(*, variant: str, seed: str) -> dict:
+def generate_roster_build_round(*, variant: str, seed: str, filters: dict | None = None) -> dict:
     from tools.director_v04 import roster_build
 
     cfg = VARIANTS["ROSTER_BUILD"][variant]
     real_variant = cfg.get("base_variant", variant)
-    return roster_build.build_package(seed, real_variant, flow=cfg["flow"])
+    return roster_build.build_package(seed, real_variant, flow=cfg["flow"], filters=filters)
 
 
 def _roster_build_client_view(package: dict, progress: dict) -> dict:
@@ -1179,7 +1190,7 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         result = _branch_state_evaluate(package, progress, submission)
         if "advanced_to" in result:
             progress["current_node"] = result["advanced_to"]
-            progress["leaf_question"] = result["leaf_question"]
+            progress["leaf_question"] = result.get("leaf_question")
         else:
             progress["completed"] = True
         return result, progress

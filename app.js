@@ -10452,7 +10452,19 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (t.dataset.sortSubmit !== undefined) {
-    if (state.mechanicPilot) { submitMechanicPilotAction({ order: state.mechanicPilot.sortOrder }); state.mechanicPilot.sortOrder = null; }
+    if (state.mechanicPilot) {
+      // STAT_LADDER's post-answer reveal (values_by_item_id) needs each
+      // item's real label, but by the time the submit response arrives
+      // s.view has already advanced to the NEXT round -- capture the
+      // CURRENT round's labels now, before they're gone.
+      var mp = state.mechanicPilot;
+      if (mp.view && mp.view.items_shuffled) {
+        mp.lastSortLabels = {};
+        mp.view.items_shuffled.forEach(function (it) { mp.lastSortLabels[it.item_id] = it.label; });
+      }
+      submitMechanicPilotAction({ order: mp.sortOrder });
+      mp.sortOrder = null;
+    }
     return;
   }
   if (t.dataset.mechanicHlGuess !== undefined) { submitMechanicPilotAction({ guess: t.dataset.mechanicHlGuess }); return; }
@@ -10826,6 +10838,7 @@ if (ENABLE_ENGINE_KNOCKOUT_TOURNAMENT_PILOT_V01) HIDDEN_ROUTES['#knockouttournam
 if (ENABLE_ENGINE_SIX_DEGREES_CHAIN_PILOT_V01) HIDDEN_ROUTES['#sixdegreeschainpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_CHAIN_REACTION_PILOT_V01) HIDDEN_ROUTES['#chainreactionpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01) HIDDEN_ROUTES['#chooseyourpathpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01) HIDDEN_ROUTES['#chooseyourpathcfbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:
@@ -10871,7 +10884,8 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_MECHANIC_MODES.knockoutTournamentCfb.hash) mechanicPilotCurrentModeKey = 'knockoutTournamentCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.sixDegreesChain.hash) mechanicPilotCurrentModeKey = 'sixDegreesChain';
   else if (location.hash === ENGINE_MECHANIC_MODES.chainReaction.hash) mechanicPilotCurrentModeKey = 'chainReaction';
-  else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPath.hash) mechanicPilotCurrentModeKey = 'chooseYourPath';
+  else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPathNfl.hash) mechanicPilotCurrentModeKey = 'chooseYourPathNfl';
+  else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPathCfb.hash) mechanicPilotCurrentModeKey = 'chooseYourPathCfb';
   if (state.screen === 'creator') {
     state.creator = {
       screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,

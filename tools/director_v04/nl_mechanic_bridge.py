@@ -104,7 +104,32 @@ _LEAGUE_VARIANT = {
 _FORMAT_RE = {
     "TIMELINE_RIBBON": re.compile(r"\btimeline\b|\bribbon\b", re.IGNORECASE),
     "BRACKET_TREE": re.compile(r"\bbracket\b", re.IGNORECASE),
+    # The task's own named example ("Rank these quarterbacks by career
+    # passing yards.") doesn't say "stat ladder" at all -- real requests
+    # describe the STAT, not the format name. Added a "rank/order ... by
+    # ... <a real stat keyword>" alternative so a genuine numeric-stat
+    # request routes here instead of falling through to the generic
+    # _SORTING_RE (which would pick a chronological variant like
+    # NFL_DRAFT_PICK_ORDER -- order by draft position, not by a stat).
+    "STAT_LADDER": re.compile(
+        r"\bstat\s+ladder\b|\bput\s+these\s+stats?\s+in\s+order\b|"
+        r"\b(rank|order|sort)\b.{0,40}\bby\b.{0,30}\b(yards?|touchdowns?|tds?|sacks|receptions?|interceptions?)\b",
+        re.IGNORECASE,
+    ),
 }
+
+# --- STAT_LADDER (real SORTING_TIMELINE variants ordering by a real stat
+# total, not a draft pick or award year) -- reuses _FORMAT_RE["STAT_LADDER"]
+# itself (not a second, possibly-diverging copy of the same phrase) as the
+# gate, checked BEFORE the generic _SORTING_RE fallback below, so "make a
+# stat ladder with running backs" resolves to a real stat-based variant
+# instead of the chronological NFL_DRAFT_PICK_ORDER default. A career-total
+# phrase (e.g. "career passing touchdowns"/"quarterbacks") picks the career
+# passing variant; anything else defaults to the season rushing-yards
+# variant, the only NFL season-level stat variant this pass built. CFB
+# requires the explicit college/CFB signal, same convention as every other
+# bridge in this module.
+_CAREER_PASSING_TD_RE = re.compile(r"\b(career\s+)?passing\s+(touchdowns?|tds?)\b|\bquarterbacks?\b", re.IGNORECASE)
 
 
 def detect_format(request_text: str | None) -> str | None:
@@ -147,6 +172,16 @@ def detect(request_text: str | None) -> dict | None:
             # silently substitute the NFL one for an explicit CFB request.
             return None
         return {"taxonomy_id": "POSITION_LINEUP_GRID", "variant": "NFL_OFFENSE_LINEUP_COLLEGE_TEAM_ONLY", "format": None}
+
+    if _FORMAT_RE["STAT_LADDER"].search(text):
+        league = _league_for(text)
+        if league == "CFB":
+            variant = "CFB_CAREER_RUSHING_YARDS_LADDER"
+        elif _CAREER_PASSING_TD_RE.search(text):
+            variant = "NFL_CAREER_PASSING_TD_LADDER"
+        else:
+            variant = "NFL_SEASON_RUSHING_YARDS_LADDER"
+        return {"taxonomy_id": "SORTING_TIMELINE", "variant": variant, "format": "STAT_LADDER"}
 
     for taxonomy_id, pattern in (
         ("MATCHING", _MATCHING_RE),

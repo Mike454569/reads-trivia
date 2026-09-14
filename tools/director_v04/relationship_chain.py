@@ -20,6 +20,25 @@ Every hop is a real, already-certified row -- never invented or inferred.
 Progressive reveal mirrors player_from_clues.py's real "reveal one node at a
 time, guess the next" shape, generalized from biographical clues to
 relationship hops.
+
+Part 1D investigation (cleanup pass): could a 3rd hop extend this to a real
+teammate or coach (e.g. school -> player -> teammate -> franchise, or
+school -> player -> coach)? Confirmed live: cfb_nfl_identity_bridge_certified.
+nfl_player_key uses the exact same real "PFR:xxxxxx00" key scheme as
+gateway/services/coach_connections_graph.py's graph_edges table, so a
+genuine ID-keyed (never fuzzy-name) join is possible -- of the 2,542
+HIGH_CONFIDENCE bridge rows, 1,435 (56%) resolve at least one real
+TEAMMATE_OF edge and 2,395 (94%) resolve a real season-overlapping
+COACHED_TEAM_IN_SEASON edge. Not built this pass anyway: doing this
+honestly (not just "pick any teammate") needs its own real distractor
+generation for a "guess the teammate/coach" question, a real fallback path
+for the 44% of rows with no resolvable teammate, a new UI node "kind", and
+its own dedicated tests/live verification -- a genuinely new capability
+scoped like RELATIONSHIP_CHAIN itself was, not a small bounded tweak to
+this one. Per the user's own instruction not to force a significant new
+architecture into this pass, SIX_DEGREES/CHAIN_REACTION stay at their
+current real, disclosed 2-hop bound (SUPPORTED_WITH_LIMITATIONS) rather
+than ship a half-verified 3rd hop.
 """
 from __future__ import annotations
 
