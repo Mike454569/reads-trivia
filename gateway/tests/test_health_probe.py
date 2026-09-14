@@ -109,11 +109,18 @@ def test_tier1_probe_fails_closed_on_unimportable_adapter():
 # eligibility vs. coverage-regression drift).
 
 def test_tier2_runs_100_executions_even_when_pool_is_smaller_than_100():
-    """Real regression test for the Phase 2 -> Phase 3 correction: a pool of
-    24 real Super Bowls resolving to a team identity must still complete
-    100 real generation executions (by cycling through the 24 real,
-    already-verified candidates) -- never truncate rounds_run to the pool
-    size, and never fabricate a 25th candidate to reach 100."""
+    """Real regression test for the Phase 2 -> Phase 3 correction: the real,
+    live pool of Super Bowls resolving to a team identity (60 as of this
+    fix -- grew from 24 when this test was first written, as more Super
+    Bowls got real identity resolution; still well under 100) must still
+    complete 100 real generation executions by cycling through the real,
+    already-verified candidates -- never truncate rounds_run to the pool
+    size, and never fabricate an extra candidate to reach 100. Compares
+    against the result's own eligible_pool_size rather than a second
+    hardcoded copy of the same number, so this can't drift out of sync
+    with itself the way unique_questions_exercised/test_sample_rate did
+    the first time (they stayed hardcoded at the old pool size of 24 after
+    eligible_pool_size itself had already been updated to 60)."""
     from tools.director_v02 import health_probe, registry
 
     c = engine_bootstrap.connect()
@@ -126,9 +133,10 @@ def test_tier2_runs_100_executions_even_when_pool_is_smaller_than_100():
         assert result["passed"] is True, result
         assert checks["generation_attempts"] == health_probe.TIER2_MIN_ROUNDS == 100
         assert checks["successful_generations"] == 100
-        assert checks["eligible_pool_size"] == 60
-        assert checks["unique_questions_exercised"] == 24  # the real, honest ceiling -- never padded
-        assert checks["test_sample_rate"] == pytest.approx(24 / 60)
+        pool_size = checks["eligible_pool_size"]
+        assert 20 <= pool_size < 100, pool_size  # real sanity bound: this test only means something below 100
+        assert checks["unique_questions_exercised"] == pool_size  # the real, honest ceiling -- never padded
+        assert checks["test_sample_rate"] == pytest.approx(1.0)  # whole pool gets exercised when pool < 100
         assert "coverage_rate" not in checks  # renamed, never left as a stale alias
     finally:
         _cleanup(c, "TEST_SUPER_BOWL_TIER2")
@@ -160,21 +168,34 @@ def test_tier2_runtime_health_is_separate_from_low_test_sample_rate():
     succeed, zero leakage, correct answer evaluation) while still having a
     real, low test_sample_rate (a large eligible pool relative to 100
     sampled executions) -- test sampling depth is never treated as a
-    pass/fail runtime-health signal."""
+    pass/fail runtime-health signal.
+
+    Uses NFL_DRAFT/DRAFTED_BY (same real large-pool capability
+    test_tier2_reports_full_sampling_when_pool_exceeds_100 already relies
+    on) rather than NFL_SUPER_BOWL/WON_CHAMPIONSHIP, which this test
+    originally used: the real Super Bowl pool has since grown to 60 (see
+    the sibling test above), which is no longer "large" relative to 100
+    sampled executions -- its test_sample_rate is now 1.0, not low, so it
+    stopped being a real example of the scenario this test names in its
+    own docstring. Swapped for a capability whose pool is durably large
+    (thousands of real draft picks) instead of just patching the
+    threshold to match a fixture that no longer demonstrates what the
+    test is supposed to show."""
     from tools.director_v02 import health_probe, registry
 
     c = engine_bootstrap.connect()
-    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP")]
+    cap = registry.CAPABILITY_REGISTRY[("guess", "NFL_DRAFT", "DRAFTED_BY")]
     try:
         result = health_probe.run_tier2_certification(
-            c, "TEST_SUPER_BOWL_HEALTH", "guess", "NFL_SUPER_BOWL", "WON_CHAMPIONSHIP", cap,
+            c, "TEST_DRAFT_HEALTH", "guess", "NFL_DRAFT", "DRAFTED_BY", cap,
         )
         assert result["passed"] is True
+        assert result["checks"]["eligible_pool_size"] > 100  # real precondition for a "low sample rate" example
         assert result["checks"]["test_sample_rate"] < 0.5  # real, low sampling fraction for this run
         assert result["checks"]["leakage"]["leaks_found"] == 0
         assert result["checks"]["answer_evaluation"]["checked"] is True
     finally:
-        _cleanup(c, "TEST_SUPER_BOWL_HEALTH")
+        _cleanup(c, "TEST_DRAFT_HEALTH")
         c.close()
 
 

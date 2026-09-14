@@ -28,9 +28,54 @@ pytestmark = pytest.mark.skipif(
 
 _LEAK_MARKERS = ("_private", "correctIndex", "_audit", "home_score", "away_score", "winner")
 
+def _resolve_real_future_nfl_week() -> tuple[int, str]:
+    """Finds a genuinely still-future NFL week live from the real schedule,
+    instead of a hardcoded week number. The previous hardcode (2026 week 1)
+    went stale in exactly the way this function exists to prevent: it was
+    real and future when written, but by the time this suite ran again the
+    real calendar had caught up to and passed it (week 1's own last game
+    fell on the same real date this suite was run), so the app's own real
+    "picks close at kickoff" logic correctly started rejecting it -- the
+    test broke, not the app. Picks the earliest week, in the latest season
+    the Engine has real schedule data for, whose games all start after
+    today's real date (date-level granularity is sufficient here: a week
+    entirely on later calendar dates is guaranteed to be later in wall-
+    clock time too, regardless of any single game's kickoff time-of-day)."""
+    from datetime import datetime, timezone
+    c = engine_bootstrap.connect()
+    try:
+        season = c.execute("SELECT MAX(season) FROM games WHERE game_type='REG'").fetchone()[0]
+        today = datetime.now(timezone.utc).date().isoformat()
+        row = c.execute(
+            "SELECT week FROM games WHERE season = ? AND game_type = 'REG' "
+            "GROUP BY week HAVING MIN(game_date) > ? ORDER BY CAST(week AS INTEGER) LIMIT 1",
+            (season, today),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(
+                f"No fully-future NFL week found for season {season} as of {today} -- "
+                "the Engine's schedule data likely needs a refresh (or the season is over)."
+            )
+        return season, row[0]
+    finally:
+        c.close()
+
+
 # Real, confirmed-live fixtures (see the module docstring's own reasoning
-# for why these specific season/weeks were chosen, not arbitrary):
-NFL_FUTURE_SEASON, NFL_FUTURE_WEEK = 2026, "1"    # real future schedule, both scores NULL -- confirmed live
+# for why these specific season/weeks were chosen, not arbitrary). The
+# future NFL week is resolved dynamically (see the function above) so this
+# can't go stale as the real calendar advances -- everything else here is
+# a fixed historical week, which by definition never becomes untrue.
+#
+# Guarded by the same ENGINE_DIR check pytestmark above uses: this whole
+# module still has to *import* cleanly (module-level code runs at
+# collection time, before skipif can take effect) even when no Engine
+# database is configured at all -- the placeholder below is never actually
+# used by a test in that case, since every test using it is skipped.
+if engine_bootstrap.ENGINE_DIR.is_dir():
+    NFL_FUTURE_SEASON, NFL_FUTURE_WEEK = _resolve_real_future_nfl_week()
+else:
+    NFL_FUTURE_SEASON, NFL_FUTURE_WEEK = 1900, "1"
 NFL_PAST_SEASON, NFL_PAST_WEEK = 2025, "1"        # real completed week -- confirmed live
 CFB_PAST_SEASON, CFB_PAST_WEEK = 2025, 1          # real completed CFB week -- confirmed live
 NFL_TIE_SEASON, NFL_TIE_WEEK = 2002, "10"         # real NFL tie: 2002_10_ATL_PIT, 34-34

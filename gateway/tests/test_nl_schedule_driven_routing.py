@@ -138,7 +138,14 @@ def test_pickem_natural_language_playthrough_is_actually_playable(client, auth_h
     assert view["season"] == NFL_SEASON and view["week"] == NFL_WEEK
     assert view["game_count"] >= 1
 
-    first_game = view["games"][0]
+    # Pick the first genuinely still-open game, not just games[0] -- NFL_WEEK
+    # names a real, identifiable week, but doesn't promise every game in it
+    # is still unplayed (mid-week, the earlier slate has already kicked off
+    # even though the week overall is still real/current). A real player
+    # picking games for "this week" would skip the ones already locked too.
+    open_games = [g for g in view["games"] if g["status"] == "SCHEDULED"]
+    assert open_games, f"no still-open game in {NFL_SEASON} week {NFL_WEEK} -- pick a later real week"
+    first_game = open_games[0]
     sub = client.post(
         f"/v1/creator/mechanics/round/{round_id}/submit",
         json={"submission": {"game_id": first_game["game_id"], "predicted_winner": first_game["home_team_code"]}},
