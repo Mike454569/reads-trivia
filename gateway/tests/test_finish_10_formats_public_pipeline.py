@@ -239,6 +239,46 @@ def test_choose_your_path_branches_materially_change_the_question_domain():
     assert len(set(choices.values())) == len(choices), "every real choice must lead to a distinct real leaf"
 
 
+# --- 11. GUESS_THE_SEASON (15-Format Expansion Part 2) ----------------------
+
+def test_guess_the_season_full_public_playthrough_correct_and_incorrect():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="guess_the_season_nfl")
+    rid = r["round_id"]
+    assert rid.startswith("GGP17:")
+    assert len(r["view"]["clues"]) >= 2
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer"]
+    sub_wrong = pm.submit_public_round(round_id=rid, submission={"guess_season": "1899"})
+    assert sub_wrong["result"]["correct"] is False
+    assert sub_wrong["result"]["canonical_answer"] == correct
+
+    r2 = pm.start_public_round(mode="guess_the_season_nfl")
+    rid2 = r2["round_id"]
+    pkg2 = packages.load_package(rid2)
+    correct2 = pkg2["rounds"][0]["_answer"]
+    sub_correct = pm.submit_public_round(round_id=rid2, submission={"guess_season": correct2})
+    assert sub_correct["result"]["correct"] is True
+
+
+def test_guess_the_season_never_leaks_the_answer_before_submission():
+    """Real requirement: the client-safe view must never include the real
+    answer (season) before the player submits -- only the clue texts."""
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="guess_the_season_nfl")
+    rid = r["round_id"]
+    pkg = packages.load_package(rid)
+    real_answer = pkg["rounds"][0]["_answer"]
+    assert "season" not in r["view"] and "_answer" not in r["view"]
+    for clue in r["view"]["clues"]:
+        assert real_answer not in clue.get("display_text", "")
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -252,6 +292,7 @@ def test_choose_your_path_branches_materially_change_the_question_domain():
     ("Connect these two players.", "RELATIONSHIP_CHAIN"),
     ("Make me a chain reaction game about NFL players and colleges.", "RELATIONSHIP_CHAIN"),
     ("Give me a choose-your-path game about SEC football.", "BRANCH_STATE"),
+    ("Guess the season this real NFL team won it all.", "GUESS_THE_SEASON"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

@@ -181,6 +181,18 @@ _CHAIN_REACTION_RE = re.compile(r"\bchain\s+reaction\b", re.IGNORECASE)
 # "choose-your-path" (hyphenated) matches, not only "choose your path".
 _CHOOSE_YOUR_PATH_RE = re.compile(r"\bchoose[\s-]+your[\s-]+path\b", re.IGNORECASE)
 
+# --- GUESS_THE_SEASON (15-Format Expansion pass, Part 2) --------------------
+# Only one real variant exists (NFL_SUPER_BOWL_SEASON -- see
+# guess_the_season.py's own module docstring for why CFB isn't offered
+# here) so, unlike every league-branching regex above, this never checks
+# _league_for(text) -- there is nothing to branch to yet.
+_GUESS_THE_SEASON_RE = re.compile(
+    r"\bguess\s+the\s+(season|year)\b|"
+    r"\bwhat\s+(season|year)\s+(was|is)\s+this\b|"
+    r"\b(name|identify)\s+the\s+(season|year)\b",
+    re.IGNORECASE,
+)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -244,5 +256,9 @@ def detect(request_text: str | None) -> dict | None:
         variant = "CFB_TOPIC_PATH" if _league_for(text) == "CFB" else "NFL_TOPIC_PATH"
         return {"taxonomy_id": "BRANCH_STATE", "variant": variant,
                 "format": "CHOOSE_YOUR_PATH", "gen_kwargs": {}}
+
+    if _GUESS_THE_SEASON_RE.search(text):
+        return {"taxonomy_id": "GUESS_THE_SEASON", "variant": "NFL_SUPER_BOWL_SEASON",
+                "format": "GUESS_THE_SEASON", "gen_kwargs": {}}
 
     return None

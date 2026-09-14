@@ -77,6 +77,10 @@ window.READS_CONFIG = {
   enableEngineSortingPilot: false,
   enableEngineHigherLowerPilot: false,
   enableEngineEliminationPilot: false,
+  // 15-Format Expansion pass (Part 2) -- off by default like its
+  // Mechanic Pilot siblings just above, pending the same real canary
+  // verification before a public flip.
+  enableEngineGuessTheSeasonPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

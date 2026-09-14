@@ -795,6 +795,41 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "casual_aliases": ["choose your path"],
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "GUESS_THE_SEASON": {
+        "format_id": "GUESS_THE_SEASON", "display_name": "Guess the Season",
+        "description": "Reveals several real clues about one real NFL season -- the Super Bowl champion "
+                        "plus real season awards (MVP, OPOY, DPOY, ROTY awards, Super Bowl MVP) -- and the "
+                        "player guesses the real season/year. Difficulty controls how many of the same real "
+                        "clues are shown, never which ones (EASY is always a superset of HARD for the same "
+                        "real season, not a differently-selected set).",
+        "payload_schema": None,
+        "renderer": "renderGuessTheSeasonBody (engine-game-ui.js)",
+        "proven_in": ["guess_the_season_nfl"], "supported_mechanics": ["guess_the_season"],
+        "mechanic_family": "GUESS_THE_SEASON",
+        "supported_entity_types": ["season"],
+        "required_data_relationships": ["nfl_championship_events (WIKIPEDIA_STRUCTURED_SECONDARY), "
+                                         "nfl_season_awards (WIKIPEDIA_STRUCTURED_SECONDARY)"],
+        "min_items": 2, "max_items": 4, "min_pool_size": 24,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["EASY", "MEDIUM", "HARD"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Read the revealed real clues, then submit one real season-year guess per round.",
+        "validation_rules": "Restricted to the 24 real seasons with both a resolved Super Bowl champion and "
+                             "2+ real season awards -- a season missing either is skipped, never padded with "
+                             "an invented or unresolved clue. See guess_the_season.py's own documented fix for "
+                             "a confirmed real SB_MVP indexing bug in the underlying nfl_season_awards table.",
+        "answer_schema": "{guess_season: '<4-digit year>'}",
+        "generation_schema": "tools/director_v04/guess_the_season.py:build_package()",
+        "qa_requirements": "Every revealed clue traces to a real, resolved row; canonical answer never sent "
+                            "to the client before evaluate() runs.",
+        "casual_aliases": ["guess the season", "guess the year", "what season was this"],
+        # True (not just left unverified) because renderGuessTheSeasonBody
+        # introduces zero new CSS -- it's built entirely from .chain-node/
+        # .chain-connector/.learn-filter-input, already-shipped classes this
+        # session has no new mobile-layout risk to introduce (same
+        # reasoning STAT_LADDER's own mobile_verified: True relied on).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

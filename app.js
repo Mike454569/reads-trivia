@@ -84,6 +84,7 @@ var ENABLE_ENGINE_MATCHING_PILOT_V01 = READS_CONFIG.enableEngineMatchingPilot ==
 var ENABLE_ENGINE_SORTING_PILOT_V01 = READS_CONFIG.enableEngineSortingPilot === true;
 var ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01 = READS_CONFIG.enableEngineHigherLowerPilot === true;
 var ENABLE_ENGINE_ELIMINATION_PILOT_V01 = READS_CONFIG.enableEngineEliminationPilot === true;
+var ENABLE_ENGINE_GUESS_THE_SEASON_PILOT_V01 = READS_CONFIG.enableEngineGuessTheSeasonPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10106,7 +10107,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-grid-cell], [data-mechanic-grid-submit], [data-mechanic-grid-cancel], [data-mechanic-drive-answer], ' +
     '[data-mechanic-roster-pick], [data-mechanic-roster-slot], [data-mechanic-roster-candidate], ' +
     '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], ' +
-    '[data-mechanic-branch-choice], [data-mechanic-branch-answer], ' +
+    '[data-mechanic-branch-choice], [data-mechanic-branch-answer], [data-mechanic-season-submit], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10544,6 +10545,13 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ guess: chainGuess });
     return;
   }
+  if (t.dataset.mechanicSeasonSubmit !== undefined) {
+    var seasonInputEl = document.getElementById('mechanic-season-input');
+    var seasonGuess = seasonInputEl ? seasonInputEl.value.trim() : '';
+    if (!seasonGuess) return;
+    submitMechanicPilotAction({ guess_season: seasonGuess });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -10839,6 +10847,7 @@ if (ENABLE_ENGINE_SIX_DEGREES_CHAIN_PILOT_V01) HIDDEN_ROUTES['#sixdegreeschainpi
 if (ENABLE_ENGINE_CHAIN_REACTION_PILOT_V01) HIDDEN_ROUTES['#chainreactionpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01) HIDDEN_ROUTES['#chooseyourpathpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_CHOOSE_YOUR_PATH_PILOT_V01) HIDDEN_ROUTES['#chooseyourpathcfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_GUESS_THE_SEASON_PILOT_V01) HIDDEN_ROUTES['#guesstheseasonpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

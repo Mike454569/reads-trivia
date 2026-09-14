@@ -1200,6 +1200,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #2 -- see
+  // tools/director_v04/guess_the_season.py's own module docstring.
+  guessTheSeason: {
+    publicMode: 'guess_the_season_nfl', hash: '#guesstheseasonpilot',
+    flagOn: function () { return ENABLE_ENGINE_GUESS_THE_SEASON_PILOT_V01; },
+    title: 'Guess the Season', kind: 'guess_the_season',
+    desc: 'Read the real clues, then guess the real NFL season they all describe.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1370,6 +1380,9 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'branch_state') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') + (r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
+  if (cfg.kind === 'guess_the_season') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') + (r.canonical_answer ? 'The real season was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1438,6 +1451,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'branch_state') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'guess_the_season') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real season was ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1545,6 +1561,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'roster_build') return renderRosterBuildBody(v, s);
   if (cfg.kind === 'relationship_chain') return renderRelationshipChainBody(v, s);
   if (cfg.kind === 'branch_state') return renderBranchStateBody(v, s);
+  if (cfg.kind === 'guess_the_season') return renderGuessTheSeasonBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1691,6 +1708,20 @@ function renderRelationshipChainBody(v, s) {
     '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     '<input type="text" class="learn-filter-input" id="mechanic-chain-input" placeholder="Type the real answer" autocomplete="off">' +
     '<div class="btn-row"><button class="btn-primary" data-mechanic-chain-submit>Submit</button></div>';
+}
+
+// GUESS_THE_SEASON: same free-text-guess shape as RELATIONSHIP_CHAIN above
+// (a real typed answer, not multiple choice) -- reuses the identical
+// .learn-filter-input + Submit pattern rather than a third input style.
+function renderGuessTheSeasonBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    v.clues.map(function (cl) {
+      return '<div class="chain-node">' + esc(cl.display_text) + '</div>';
+    }).join('<div class="chain-connector">&middot;</div>') +
+    '<div class="quiz-question">Which real NFL season do these clues describe?</div>' +
+    '<input type="text" class="learn-filter-input" id="mechanic-season-input" placeholder="e.g. 2019" ' +
+    'inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">' +
+    '<div class="btn-row"><button class="btn-primary" data-mechanic-season-submit>Submit</button></div>';
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

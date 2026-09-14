@@ -101,3 +101,44 @@ def test_new_taxonomy_bridge_never_shadows_a_plain_bracket_request():
     r = creator.assess_feasibility("make me a bracket game")
     assert r["taxonomy_id"] == "COMPARISON_BRACKET"
     assert r["format_id"] == "BRACKET_TREE"
+
+
+# --- GUESS_THE_SEASON (15-Format Expansion Part 2, format #2) -------------
+
+def test_detect_guess_the_season_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    for phrase in ["guess the season", "guess the year", "what season was this",
+                   "what year is this", "name the season", "identify the year"]:
+        r = bridge.detect(phrase)
+        assert r is not None, f"expected a match for {phrase!r}"
+        assert r["taxonomy_id"] == "GUESS_THE_SEASON"
+        assert r["format"] == "GUESS_THE_SEASON"
+        assert r["variant"] == "NFL_SUPER_BOWL_SEASON"
+
+
+def test_guess_the_season_creator_generate_for_review_is_a_real_playable_round():
+    """Real end-to-end proof through the same admin Creator entry point a
+    live request actually uses -- catches the class of bug the SB_MVP
+    off-by-one fix + the GGP17 package-id allowlist fix were both found
+    through (neither surfaced when calling build_package() directly)."""
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="guess the season", puzzle_count=None, difficulty=None, seed="pytest-season-bridge",
+    )
+    assert r["taxonomy_id"] == "GUESS_THE_SEASON"
+    assert r["format_id"] == "GUESS_THE_SEASON"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP17:")
+    assert len(r["view"]["clues"]) >= 2
+
+
+def test_new_taxonomy_bridge_never_shadows_a_plain_guess_request():
+    """Real ordinary 'guess' requests unrelated to seasons must keep routing
+    exactly as they always have -- this bridge is checked last in the fixed
+    order and must never accidentally swallow an unrelated phrase."""
+    from gateway.services import creator
+
+    r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
+    assert r.get("taxonomy_id") is None

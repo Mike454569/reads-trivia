@@ -35,6 +35,9 @@ TAXONOMY_IDS = frozenset({
     # generator module docstring under tools/director_v04/).
     "GRID_CONSTRAINT_BOARD", "RELATIONSHIP_CHAIN", "ROSTER_BUILD",
     "DRIVE_PROGRESSION", "KNOCKOUT_BRACKET", "BRANCH_STATE",
+    # 15-Format Expansion pass (Part 2), format #2 -- see
+    # tools/director_v04/guess_the_season.py's own module docstring.
+    "GUESS_THE_SEASON",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -162,6 +165,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "BRANCH_STATE": {
         "NFL_TOPIC_PATH": {"competition": "NFL"},
         "CFB_TOPIC_PATH": {"competition": "CFB"},
+    },
+    # 15-Format Expansion pass (Part 2), format #2 -- see
+    # tools/director_v04/guess_the_season.py's own module docstring.
+    "GUESS_THE_SEASON": {
+        "NFL_SUPER_BOWL_SEASON": {"competition": "NFL"},
     },
 }
 
@@ -300,6 +308,33 @@ def _sorting_evaluate(package: dict, index: int, submission: dict) -> dict:
     if "values_by_item_id" in r:
         result["values_by_item_id"] = r["values_by_item_id"]
     return result
+
+
+# --- GUESS_THE_SEASON (40-Format Expansion Part 2) --------------------------
+# Real, deterministic clue generation for one real season -- see
+# tools/director_v04/guess_the_season.py's own module docstring, especially
+# its documented SB_MVP off-by-one fix. current_index-based progress, same
+# shape as SORTING_TIMELINE above -- one round == one clue set, one guess.
+
+def generate_guess_the_season_round(*, variant: str, round_count: int, difficulty: str, seed: str) -> dict:
+    from tools.director_v04 import guess_the_season
+    return guess_the_season.build_package(seed, variant, round_count=round_count, difficulty=difficulty)
+
+
+def _guess_the_season_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "clues": r["clues"]}
+
+
+def _guess_the_season_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer"]
+    guess = str(submission.get("guess_season", "")).strip()
+    correct = bool(guess) and guess == canonical
+    return {"correct": correct, "canonical_answer": canonical}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1088,6 +1123,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _drive_progression_client_view(package, progress)
     if taxonomy_id == "ROSTER_BUILD":
         return _roster_build_client_view(package, progress)
+    if taxonomy_id == "GUESS_THE_SEASON":
+        return _guess_the_season_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1117,6 +1154,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "SORTING_TIMELINE":
         result = _sorting_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "GUESS_THE_SEASON":
+        result = _guess_the_season_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

@@ -568,3 +568,139 @@ def test_branch_state_cfb_upset_branch_is_a_genuine_second_level_not_decorative(
         result3, progress = me.evaluate_submission("BRANCH_STATE", pkg, progress, {"answer": correct})
         assert result3["correct"] is True
         assert progress["completed"] is True
+
+
+# --- GUESS_THE_SEASON (15-Format Expansion Part 2, format #2) -------------
+
+def test_guess_the_season_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "GUESS_THE_SEASON" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("GUESS_THE_SEASON"), "GUESS_THE_SEASON has no registered variants"
+
+
+def test_guess_the_season_generates_real_rounds_with_real_clues():
+    from tools.director_v04 import guess_the_season
+
+    pkg = guess_the_season.build_package(
+        "test-season-1", "NFL_SUPER_BOWL_SEASON", round_count=5, difficulty="MEDIUM")
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["clues"]) >= 2
+        assert r["_answer"].isdigit() and len(r["_answer"]) == 4
+        assert "Super Bowl champion" in r["clues"][0]["display_text"]
+
+
+def test_guess_the_season_sb_mvp_clue_uses_the_real_shifted_row_not_the_wrong_unshifted_one():
+    """Regression test for a real bug caught live this pass: nfl_season_awards
+    stores SB_MVP rows under season+1 (the calendar year the Super Bowl was
+    actually PLAYED), not the season it caps -- every other award type is
+    stored under the season it represents. build_package() must read SB_MVP
+    from the shifted row; this asserts the live output actually does, cross-
+    checked directly against the raw table rather than trusting the fix."""
+    from tools.director_v04 import guess_the_season
+    from tools.quiz_export import engine as engine_bootstrap
+
+    c = engine_bootstrap.connect()
+    try:
+        rows = c.execute(
+            "SELECT season, player_name_raw FROM nfl_season_awards "
+            "WHERE award_type = 'SB_MVP' AND player_name_raw IS NOT NULL"
+        ).fetchall()
+    finally:
+        c.close()
+    real_sb_mvp_by_played_season = {r["season"]: r["player_name_raw"] for r in rows}
+
+    pkg = guess_the_season.build_package(
+        "test-season-mvp-regress", "NFL_SUPER_BOWL_SEASON", round_count=25, difficulty="EASY")
+    checked_any = False
+    for r in pkg["rounds"]:
+        season = int(r["_answer"])
+        expected_mvp = real_sb_mvp_by_played_season.get(season + 1)
+        for clue in r["clues"]:
+            if "Super Bowl MVP" not in clue["display_text"]:
+                continue
+            assert expected_mvp is not None
+            assert expected_mvp in clue["display_text"]
+            wrong_row = real_sb_mvp_by_played_season.get(season)
+            if wrong_row and wrong_row != expected_mvp:
+                assert wrong_row not in clue["display_text"]
+            checked_any = True
+    assert checked_any, "no round in this sample included an SB_MVP clue -- widen round_count"
+
+
+def test_guess_the_season_known_real_history_peyton_manning_2006_season():
+    """Concrete spot-check against known real history (not just internal
+    consistency): Super Bowl XLI, capping the 2006 season, was played in
+    Feb 2007 and its real MVP was Peyton Manning."""
+    from tools.director_v04 import guess_the_season
+    from tools.quiz_export import engine as engine_bootstrap
+
+    c = engine_bootstrap.connect()
+    try:
+        row = c.execute(
+            "SELECT winner_team_code FROM nfl_championship_events WHERE season = 2006"
+        ).fetchone()
+    finally:
+        c.close()
+    if row is None or row["winner_team_code"] is None:
+        pytest.skip("season 2006 championship row not resolved in this Engine copy")
+
+    pkg = guess_the_season.build_package(
+        "test-season-manning", "NFL_SUPER_BOWL_SEASON", round_count=60, difficulty="EASY")
+    season_2006 = next((r for r in pkg["rounds"] if r["_answer"] == "2006"), None)
+    if season_2006 is None:
+        pytest.skip("season 2006 didn't have enough real corroborating evidence to be included")
+    mvp_clues = [cl["display_text"] for cl in season_2006["clues"] if "Super Bowl MVP" in cl["display_text"]]
+    if mvp_clues:
+        assert "Manning" in mvp_clues[0]
+
+
+def test_guess_the_season_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_guess_the_season_round(
+        variant="NFL_SUPER_BOWL_SEASON", round_count=3, difficulty="MEDIUM", seed="test-season-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("GUESS_THE_SEASON")
+    canonical = pkg["rounds"][0]["_answer"]
+    result, progress = me.evaluate_submission("GUESS_THE_SEASON", pkg, progress, {"guess_season": canonical})
+    assert result["correct"] is True
+    assert result["canonical_answer"] == canonical
+
+    progress2 = me.initial_progress("GUESS_THE_SEASON")
+    wrong_guess = "1899" if canonical != "1899" else "1898"
+    result2, progress2 = me.evaluate_submission("GUESS_THE_SEASON", pkg, progress2, {"guess_season": wrong_guess})
+    assert result2["correct"] is False
+
+
+def test_guess_the_season_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_guess_the_season_round(
+        variant="NFL_SUPER_BOWL_SEASON", round_count=2, difficulty="MEDIUM", seed="test-season-malformed")
+
+    progress = me.initial_progress("GUESS_THE_SEASON")
+    result, progress = me.evaluate_submission("GUESS_THE_SEASON", pkg, progress, {"guess_season": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("GUESS_THE_SEASON")
+    result2, progress2 = me.evaluate_submission("GUESS_THE_SEASON", pkg, progress2, {})
+    assert result2["correct"] is False
+
+
+def test_guess_the_season_easy_clue_set_is_superset_of_hard_clue_set():
+    from tools.director_v04 import guess_the_season
+
+    easy_pkg = guess_the_season.build_package(
+        "test-season-superset", "NFL_SUPER_BOWL_SEASON", round_count=10, difficulty="EASY")
+    hard_pkg = guess_the_season.build_package(
+        "test-season-superset", "NFL_SUPER_BOWL_SEASON", round_count=10, difficulty="HARD")
+    easy_by_season = {r["_answer"]: {cl["display_text"] for cl in r["clues"]} for r in easy_pkg["rounds"]}
+    hard_by_season = {r["_answer"]: {cl["display_text"] for cl in r["clues"]} for r in hard_pkg["rounds"]}
+    shared_seasons = set(easy_by_season) & set(hard_by_season)
+    assert shared_seasons, "expected overlapping seasons between EASY and HARD samples for the same seed"
+    for season in shared_seasons:
+        assert hard_by_season[season].issubset(easy_by_season[season])

@@ -219,6 +219,7 @@ _NEW_TAXONOMY_TITLES = {
     "GRID_CONSTRAINT_BOARD": "Connection Grid", "DRIVE_PROGRESSION": "Drive Progression",
     "ROSTER_BUILD": "Roster Build", "KNOCKOUT_BRACKET": "Knockout Bracket",
     "RELATIONSHIP_CHAIN": "Relationship Chain", "BRANCH_STATE": "Choose Your Path",
+    "GUESS_THE_SEASON": "Guess the Season",
 }
 
 
@@ -265,8 +266,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "RELATIONSHIP_CHAIN":
         package = mechanic_engine.generate_relationship_chain_round(
             variant=variant, chain_count=gen_kwargs.get("chain_count", 8), seed=real_seed)
-    else:  # BRANCH_STATE
+    elif taxonomy_id == "BRANCH_STATE":
         package = mechanic_engine.generate_branch_state_round(variant=variant, seed=real_seed)
+    else:  # GUESS_THE_SEASON
+        package = mechanic_engine.generate_guess_the_season_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 5),
+            difficulty=gen_kwargs.get("difficulty", "MEDIUM"), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(

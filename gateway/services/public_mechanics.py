@@ -277,6 +277,14 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Pick a path at each step -- your choice determines the next real question.",
         "kind": "branch_state", "gen_kwargs": {},
     },
+    # 15-Format Expansion pass (Part 2), format #2 -- see
+    # tools/director_v04/guess_the_season.py's own module docstring.
+    "guess_the_season_nfl": {
+        "competition": "NFL", "taxonomy_id": "GUESS_THE_SEASON", "variant": "NFL_SUPER_BOWL_SEASON",
+        "title": "Guess the Season",
+        "instructions": "Read the real clues, then guess the real NFL season (e.g. 2019) they all describe.",
+        "kind": "guess_the_season", "gen_kwargs": {"round_count": 5, "difficulty": "MEDIUM"},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -337,6 +345,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_relationship_chain_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "BRANCH_STATE":
             package = mechanic_engine.generate_branch_state_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "GUESS_THE_SEASON":
+            package = mechanic_engine.generate_guess_the_season_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
