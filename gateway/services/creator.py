@@ -316,8 +316,14 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "format_id": bridged["format"], "view": view}
 
 
+_SCHEDULE_DRIVEN_TITLES = {
+    "WEEKLY_PICKEM": "Weekly Pick'em", "LIVE_WEEKLY_FANTASY_DRAFT": "Weekly Fantasy Draft",
+    "CONFIDENCE_PICK": "Confidence Pick",
+}
+
+
 def _schedule_driven_capability_label(bridged: dict) -> dict:
-    game_title = "Weekly Pick'em" if bridged["taxonomy_id"] == "WEEKLY_PICKEM" else "Weekly Fantasy Draft"
+    game_title = _SCHEDULE_DRIVEN_TITLES[bridged["taxonomy_id"]]
     return {"mechanic": bridged["taxonomy_id"], "domain": bridged["league"],
             "relationship_predicate": None, "category": f"{bridged['league']} {game_title}"}
 
@@ -339,15 +345,32 @@ def _schedule_driven_feasibility(bridged: dict) -> dict:
         }
     elif taxonomy_id == "WEEKLY_PICKEM":
         slate = weekly_pickem.check_slate_feasibility(variant, season, week)
+    elif taxonomy_id == "CONFIDENCE_PICK":
+        # Reuses WEEKLY_PICKEM's own real slate-feasibility check verbatim
+        # (translating to its real "NFL_WEEKLY_PICKEM" variant string) --
+        # the underlying real slate is identical; CONFIDENCE_PICK only
+        # adds a confidence-value layer on top, which never changes
+        # whether a real slate exists.
+        slate = weekly_pickem.check_slate_feasibility("NFL_WEEKLY_PICKEM", season, week)
     else:
         slate = live_weekly_fantasy_draft.check_slate_feasibility(variant, season, week)
+
+    known_limitations = []
+    if taxonomy_id == "CONFIDENCE_PICK":
+        known_limitations.append(
+            "Admin/Creator-only for now -- no public (unauthenticated) route yet, matching "
+            "WEEKLY_PICKEM's own current, already-disclosed scope."
+        )
+    visual_template = {
+        "WEEKLY_PICKEM": "WEEKLY_PICKEM_SLATE", "CONFIDENCE_PICK": "CONFIDENCE_PICK_SLATE",
+    }.get(taxonomy_id, "FANTASY_DRAFT_BOARD")
 
     return {
         "support_status": slate["support_status"],
         "reason": slate.get("reason"),
         "capability": _schedule_driven_capability_label(bridged),
-        "known_limitations": [],
-        "visual_template": "WEEKLY_PICKEM_SLATE" if taxonomy_id == "WEEKLY_PICKEM" else "FANTASY_DRAFT_BOARD",
+        "known_limitations": known_limitations,
+        "visual_template": visual_template,
         "clarifying_question": None,
         "closest_supported_capability": None,
         "translator_notes": f"Matched schedule-driven mechanic {taxonomy_id} via the natural-language bridge "
@@ -417,6 +440,8 @@ def _generate_schedule_driven(bridged: dict, *, seed: str | None) -> dict:
             raise GatewayError("INVALID_REQUEST", str(e))
     elif taxonomy_id == "WEEKLY_PICKEM":
         package = mechanic_engine.generate_weekly_pickem_round(variant=variant, season=season, week=week, seed=real_seed)
+    elif taxonomy_id == "CONFIDENCE_PICK":
+        package = mechanic_engine.generate_confidence_pick_round(variant=variant, season=season, week=week, seed=real_seed)
     else:
         package = mechanic_engine.generate_fantasy_draft_round(variant=variant, season=season, week=week, seed=real_seed)
 

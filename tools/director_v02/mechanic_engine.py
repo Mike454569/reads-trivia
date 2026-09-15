@@ -59,6 +59,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #12 -- see
     # tools/director_v04/wager_mode.py's own module docstring.
     "WAGER_MODE",
+    # 15-Format Expansion pass (Part 2), format #13 -- see
+    # tools/director_v04/confidence_pick.py's own module docstring.
+    "CONFIDENCE_PICK",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -250,6 +253,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/wager_mode.py's own module docstring.
     "WAGER_MODE": {
         "WAGER_MODE_MIXED": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #13 -- see
+    # tools/director_v04/confidence_pick.py's own module docstring.
+    "CONFIDENCE_PICK": {
+        "NFL_CONFIDENCE_PICK": {"competition": "NFL"},
     },
 }
 
@@ -691,6 +699,115 @@ def _wager_mode_evaluate(package: dict, progress: dict, submission: dict) -> dic
         return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
                 "wager": wager, "balance_delta": wager if correct else -wager, "notes": r["_notes"]}
     raise MechanicError(f"action must be 'place_wager' or 'answer', got {action!r}")
+
+
+# --- CONFIDENCE_PICK (15-Format Expansion Part 2) ---------------------------
+# Real confidence-pool pick'em -- see tools/director_v04/confidence_pick.py's
+# own module docstring. Reuses WEEKLY_PICKEM's own real
+# weekly_pickem.live_game_statuses() for live grading verbatim (never a
+# second, parallel status-derivation) -- this taxonomy only adds the real
+# confidence-value uniqueness rule and points-equal-to-confidence scoring
+# on top of WEEKLY_PICKEM's own real per-game pick/lock contract.
+
+def generate_confidence_pick_round(*, variant: str, season: int | None, week, seed: str) -> dict:
+    from tools.director_v04 import confidence_pick
+    return confidence_pick.build_package(seed, variant, season=season, week=week)
+
+
+def _confidence_pick_client_view(package: dict, progress: dict) -> dict:
+    from tools.director_v04 import weekly_pickem
+
+    games = package["games"]
+    picks: dict = progress.get("picks", {})
+    live = weekly_pickem.live_game_statuses("NFL_WEEKLY_PICKEM", [g["game_id"] for g in games])
+
+    out_games = []
+    used_confidences = set()
+    for g in games:
+        live_g = live.get(g["game_id"], {"status": "UNKNOWN", "winner_code": None,
+                                          "home_score": None, "away_score": None})
+        entry = {
+            "game_id": g["game_id"], "home_team": g["home_display"], "home_team_code": g["home_team"],
+            "away_team": g["away_display"], "away_team_code": g["away_team"],
+            "kickoff": g["kickoff"], "kickoff_has_time": g.get("kickoff_has_time", True),
+            "status": live_g["status"],
+        }
+        if live_g["status"] == "FINAL":
+            entry["home_score"] = live_g["home_score"]
+            entry["away_score"] = live_g["away_score"]
+            entry["winner"] = live_g["winner_code"]
+        pick = picks.get(g["game_id"])
+        if pick:
+            entry["your_pick"] = pick["predicted_winner"]
+            entry["your_confidence"] = pick["confidence"]
+            used_confidences.add(pick["confidence"])
+            if live_g["status"] == "CANCELED":
+                entry["outcome"] = "VOID"
+            elif live_g["status"] == "FINAL":
+                entry["outcome"] = ("TIE" if live_g["winner_code"] == "TIE"
+                                     else ("CORRECT" if pick["predicted_winner"] == live_g["winner_code"] else "INCORRECT"))
+                entry["points_earned"] = pick["confidence"] if entry["outcome"] == "CORRECT" else 0
+            else:
+                entry["outcome"] = "PENDING"
+        out_games.append(entry)
+
+    decidable_games = [e for e in out_games if e["status"] != "CANCELED"]
+    graded = [e for e in decidable_games if e.get("outcome") in ("CORRECT", "INCORRECT", "TIE")]
+    total_score = sum(e.get("points_earned", 0) for e in graded)
+    decidable_ids = {e["game_id"] for e in decidable_games}
+    available_confidences = [v for v in range(1, package["max_confidence"] + 1) if v not in used_confidences]
+    return {
+        "season": package["season"], "week": package["week"],
+        "games": out_games, "game_count": len(out_games), "max_confidence": package["max_confidence"],
+        "picks_made": len(picks), "graded_count": len(graded), "total_score": total_score,
+        "available_confidences": available_confidences,
+        "completed": len(graded) == len(decidable_games) and decidable_ids.issubset(picks.keys()),
+    }
+
+
+def _confidence_pick_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    from tools.director_v04 import weekly_pickem
+
+    games_by_id = {g["game_id"]: g for g in package["games"]}
+    game_id = submission.get("game_id")
+    game = games_by_id.get(game_id)
+    if game is None:
+        raise MechanicError(f"game_id {game_id!r} is not part of this slate")
+
+    valid_sides = {game["home_team"], game["away_team"]}
+    predicted_winner = submission.get("predicted_winner")
+    if predicted_winner not in valid_sides:
+        raise MechanicError(f"predicted_winner must be one of {sorted(valid_sides)} for game {game_id!r}")
+
+    max_conf = package["max_confidence"]
+    confidence = submission.get("confidence")
+    if not isinstance(confidence, int) or isinstance(confidence, bool) or not (1 <= confidence <= max_conf):
+        raise MechanicError(f"confidence must be a real integer between 1 and {max_conf}, got {confidence!r}")
+
+    picks = progress.get("picks", {})
+    # Real confidence-pool rule: each value 1..N used exactly once across
+    # the whole real slate -- reject a repeat on a DIFFERENT game
+    # (re-submitting the SAME game with the confidence it already had is
+    # fine, not a real conflict).
+    for gid, p in picks.items():
+        if gid != game_id and p["confidence"] == confidence:
+            raise MechanicError(
+                f"confidence value {confidence} is already assigned to a different real game -- each "
+                f"value 1..{max_conf} may be used only once"
+            )
+
+    live = weekly_pickem.live_game_statuses("NFL_WEEKLY_PICKEM", [game_id]).get(
+        game_id, {"status": "UNKNOWN", "winner_code": None, "kickoff_utc": None})
+    if live["status"] == "CANCELED":
+        raise MechanicError(f"game {game_id!r} is canceled -- picks are closed")
+    kickoff_raw = live.get("kickoff_utc")
+    if kickoff_raw is not None:
+        kickoff_dt = datetime.fromisoformat(kickoff_raw)
+        if datetime.now(timezone.utc) >= kickoff_dt:
+            raise MechanicError(f"game {game_id!r} has already kicked off -- picks are closed")
+
+    return {"game_id": game_id, "predicted_winner": predicted_winner, "confidence": confidence,
+            "status": "PENDING", "message": "Pick recorded -- will grade automatically once this game is final."}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1495,6 +1612,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _risk_it_client_view(package, progress)
     if taxonomy_id == "WAGER_MODE":
         return _wager_mode_client_view(package, progress)
+    if taxonomy_id == "CONFIDENCE_PICK":
+        return _confidence_pick_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1592,6 +1711,15 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
             progress["current_index"] = progress.get("current_index", 0) + 1
             progress["ended"] = balance <= 0
             progress["completed"] = progress["ended"] or progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "CONFIDENCE_PICK":
+        result = _confidence_pick_evaluate(package, progress, submission)
+        picks = dict(progress.get("picks", {}))
+        picks[result["game_id"]] = {
+            "predicted_winner": result["predicted_winner"], "confidence": result["confidence"],
+            "picked_at": datetime.now(timezone.utc).isoformat(),
+        }
+        progress["picks"] = picks
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
@@ -1743,6 +1871,8 @@ def initial_progress(taxonomy_id: str) -> dict:
     if taxonomy_id == "ELIMINATION_SURVIVAL":
         return {"current_index": 0, "survived": 0, "ended": False}
     if taxonomy_id == "WEEKLY_PICKEM":
+        return {"picks": {}}
+    if taxonomy_id == "CONFIDENCE_PICK":
         return {"picks": {}}
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}

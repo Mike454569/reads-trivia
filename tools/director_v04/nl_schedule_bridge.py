@@ -92,6 +92,15 @@ _IMPOSTOR_EXCLUSION_RE = re.compile(r"\bimpostor\b|\bimposter\b", re.IGNORECASE)
 _FANTASY_ANCHOR = re.compile(r"\bfantasy\b", re.IGNORECASE)
 _FANTASY_BUILD_WORD = re.compile(r"\b(draft|drafting|lineup|team|roster)\b", re.IGNORECASE)
 
+# --- CONFIDENCE_PICK recognition (15-Format Expansion pass, Part 2, format
+# #13) --------------------------------------------------------------------
+# "confidence pick"/"confidence pool"/"confidence pickem" is the format's
+# own real distinctive phrase -- checked BEFORE _detect_pickem() (this
+# format reuses WEEKLY_PICKEM's own real slate, but is a genuinely
+# different taxonomy_id/mechanic, so it must never fall through to the
+# plain WEEKLY_PICKEM branch just because "pick" also appears).
+_CONFIDENCE_PICK_RE = re.compile(r"\bconfidence\s+(pick|pool|pickem|pick'?em)\b", re.IGNORECASE)
+
 _WEEK_RE = re.compile(r"\bweek\s*#?\s*(\d{1,2}|wc|div|con|sb)\b", re.IGNORECASE)
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 _CFB_RE = re.compile(r"\bcollege\s+football\b|\bcollege\b|\bcfb\b|\bncaa\b", re.IGNORECASE)
@@ -128,6 +137,10 @@ def _detect_pickem(text: str) -> bool:
 
 def _detect_fantasy_draft(text: str) -> bool:
     return bool(_FANTASY_ANCHOR.search(text) and _FANTASY_BUILD_WORD.search(text))
+
+
+def _detect_confidence_pick(text: str) -> bool:
+    return bool(_CONFIDENCE_PICK_RE.search(text))
 
 
 # Player Experience pass: real, CFB-only concepts (no NFL equivalent in
@@ -393,24 +406,40 @@ def _detect_cfb_slate(text: str) -> tuple[str | None, str | None]:
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "league", "season", "week",
     "slate", "conference"} for a recognized WEEKLY_PICKEM /
-    LIVE_WEEKLY_FANTASY_DRAFT request (season/week always real -- explicit
-    from the text, or resolved from the live schedule; week is None only
-    when genuinely no real schedule exists yet for that (league, season)).
-    slate/conference are populated only for a CFB Pick'em request (None for
-    NFL and for LIVE_WEEKLY_FANTASY_DRAFT, which have no slate concept) --
-    slate defaults to "FEATURED" when no slate keyword/conference name is
+    LIVE_WEEKLY_FANTASY_DRAFT / CONFIDENCE_PICK request (season/week
+    always real -- explicit from the text, or resolved from the live
+    schedule; week is None only when genuinely no real schedule exists
+    yet for that (league, season)). slate/conference are populated only
+    for a CFB Pick'em request (None for NFL, for LIVE_WEEKLY_FANTASY_DRAFT,
+    and for CONFIDENCE_PICK, none of which have a slate concept) -- slate
+    defaults to "FEATURED" when no slate keyword/conference name is
     present in the text, never "FULL". Returns None if this text isn't one
-    of these two intents, so the caller keeps using the existing
+    of these intents, so the caller keeps using the existing
     translator/registry pipeline unchanged."""
     text = request_text or ""
-    is_fantasy = _detect_fantasy_draft(text)
-    is_pickem = False if is_fantasy else _detect_pickem(text)
-    if not is_fantasy and not is_pickem:
+    is_confidence_pick = _detect_confidence_pick(text)
+    is_fantasy = False if is_confidence_pick else _detect_fantasy_draft(text)
+    is_pickem = False if (is_confidence_pick or is_fantasy) else _detect_pickem(text)
+    if not is_confidence_pick and not is_fantasy and not is_pickem:
         return None
 
-    taxonomy_id = "LIVE_WEEKLY_FANTASY_DRAFT" if is_fantasy else "WEEKLY_PICKEM"
-    league = _league_for(text)
-    variant = f"{league}_WEEKLY_FANTASY_DRAFT" if is_fantasy else f"{league}_WEEKLY_PICKEM"
+    if is_confidence_pick:
+        taxonomy_id = "CONFIDENCE_PICK"
+    elif is_fantasy:
+        taxonomy_id = "LIVE_WEEKLY_FANTASY_DRAFT"
+    else:
+        taxonomy_id = "WEEKLY_PICKEM"
+    # CONFIDENCE_PICK has no real CFB variant yet (see
+    # confidence_pick.py's own module docstring) -- always NFL, regardless
+    # of any league word in the text, rather than silently substituting a
+    # capability that doesn't exist.
+    league = "NFL" if is_confidence_pick else _league_for(text)
+    if is_confidence_pick:
+        variant = "NFL_CONFIDENCE_PICK"
+    elif is_fantasy:
+        variant = f"{league}_WEEKLY_FANTASY_DRAFT"
+    else:
+        variant = f"{league}_WEEKLY_PICKEM"
 
     season = _explicit_season(text) or _current_season()
     week = _explicit_week(text)
