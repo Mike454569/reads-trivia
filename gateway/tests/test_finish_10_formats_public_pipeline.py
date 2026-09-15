@@ -863,6 +863,39 @@ def test_fact_or_fake_never_leaks_the_real_answer_before_submission():
     assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "statement"}
 
 
+# --- 28. GUESS_THE_RANKING (75-Format Expansion, Wave 1) -------------------
+
+def test_guess_the_ranking_full_public_playthrough_correct_and_incorrect():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="guess_the_ranking_nfl")
+    rid = r["round_id"]
+    assert rid.startswith("GGP31:")
+    assert r["view"]["completed"] is False
+    assert len(r["view"]["options"]) == 4
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub = pm.submit_public_round(round_id=rid, submission={"choice_item_id": correct})
+    assert sub["result"]["correct"] is True
+    assert sub["view"]["round_index"] == 1
+
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    sub2 = pm.submit_public_round(round_id=rid, submission={"choice_item_id": wrong})
+    assert sub2["result"]["correct"] is False
+    assert sub2["view"]["round_index"] == 2
+
+
+def test_guess_the_ranking_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="guess_the_ranking_nfl")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "label", "options"}
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

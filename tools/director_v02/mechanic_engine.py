@@ -77,6 +77,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # fact_or_fake.py's own module docstring.
     "FACT_OR_FAKE",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # guess_the_ranking.py's own module docstring.
+    "GUESS_THE_RANKING",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -298,6 +301,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # fact_or_fake.py's own module docstring.
     "FACT_OR_FAKE": {
         "NFL_DRAFT_FACT_OR_FAKE": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # guess_the_ranking.py's own module docstring.
+    "GUESS_THE_RANKING": {
+        "NFL_CAREER_PASSING_YARDS_RANKING": {"competition": "NFL"},
     },
 }
 
@@ -1065,6 +1073,35 @@ def _fact_or_fake_evaluate(package: dict, index: int, submission: dict) -> dict:
     choice = str(submission.get("choice", "")).strip().upper()
     correct = choice in ("TRUE", "FAKE") and choice == canonical
     return {"correct": correct, "canonical_answer": canonical, "notes": r["_notes"]}
+
+
+# --- GUESS_THE_RANKING (75-Format Expansion, Wave 1) -------------------------
+# Real rank-identification round -- see tools/director_v04/
+# guess_the_ranking.py's own module docstring for why this is deliberately
+# distinct from LEADERBOARD_CLIMB. current_index-based progress, same
+# shape as PICK_THE_IMPOSTOR/MISSING_PIECE/BEFORE_AFTER above.
+
+def generate_guess_the_ranking_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import guess_the_ranking
+    return guess_the_ranking.build_package(seed, variant, round_count=round_count)
+
+
+def _guess_the_ranking_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "label": r["label"],
+            "options": [{"item_id": it["item_id"], "label": it["label"]} for it in r["options"]]}
+
+
+def _guess_the_ranking_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("choice_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1881,6 +1918,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _king_of_the_hill_client_view(package, progress)
     if taxonomy_id == "FACT_OR_FAKE":
         return _fact_or_fake_client_view(package, progress["current_index"])
+    if taxonomy_id == "GUESS_THE_RANKING":
+        return _guess_the_ranking_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -2036,6 +2075,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "FACT_OR_FAKE":
         result = _fact_or_fake_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "GUESS_THE_RANKING":
+        result = _guess_the_ranking_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

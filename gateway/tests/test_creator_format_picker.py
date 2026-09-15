@@ -70,6 +70,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Double or Nothing", "DOUBLE_OR_NOTHING", "NFL_DRAFT_DOUBLE_OR_NOTHING"),
     ("King of the Hill", "KING_OF_THE_HILL", "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL"),
     ("Fact or Fake", "FACT_OR_FAKE", "NFL_DRAFT_FACT_OR_FAKE"),
+    ("Guess the Ranking", "GUESS_THE_RANKING", "NFL_CAREER_PASSING_YARDS_RANKING"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.

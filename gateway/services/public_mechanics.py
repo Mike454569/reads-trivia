@@ -460,6 +460,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "it's been altered.",
         "kind": "fact_or_fake", "gen_kwargs": {"round_count": 10},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # guess_the_ranking.py's own module docstring.
+    "guess_the_ranking_nfl": {
+        "competition": "NFL", "taxonomy_id": "GUESS_THE_RANKING", "variant": "NFL_CAREER_PASSING_YARDS_RANKING",
+        "title": "Guess the Ranking",
+        "instructions": "A real player is named -- tap the real rank you think they hold on this real "
+                         "career leaderboard.",
+        "kind": "guess_the_ranking", "gen_kwargs": {"round_count": 8},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -546,6 +555,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_king_of_the_hill_round(variant=variant, seed=seed)
         elif taxonomy_id == "FACT_OR_FAKE":
             package = mechanic_engine.generate_fact_or_fake_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "GUESS_THE_RANKING":
+            package = mechanic_engine.generate_guess_the_ranking_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

@@ -1337,6 +1337,34 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped binary-choice pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "GUESS_THE_RANKING": {
+        "format_id": "GUESS_THE_RANKING", "display_name": "Guess the Ranking",
+        "description": "Real rank-identification trivia: a real player is named from a real, fixed "
+                        "career-passing-yards leaderboard -- tap the real rank (#1-#15) you think they hold.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["guess_the_ranking_nfl"],
+        "supported_mechanics": ["guess_the_ranking"], "mechanic_family": "GUESS_THE_RANKING",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real player's name, then tap 1 of 4 real candidate rank cards.",
+        "validation_rules": "The correct real rank and all 3 real decoy ranks genuinely belong to other "
+                             "real players on the same real leaderboard -- never a fabricated or "
+                             "out-of-range rank.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/guess_the_ranking.py:build_package()",
+        "qa_requirements": "The real correct rank is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["guess the ranking"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

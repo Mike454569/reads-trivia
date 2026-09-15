@@ -1451,6 +1451,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // guess_the_ranking.py's own module docstring.
+  guessTheRanking: {
+    publicMode: 'guess_the_ranking_nfl', hash: '#guesstherankingpilot',
+    flagOn: function () { return ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01; },
+    title: 'Guess the Ranking', kind: 'guess_the_ranking',
+    desc: 'A real player is named -- guess their real rank on a real career leaderboard.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1591,6 +1601,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'double_or_nothing' && v.completed) pct = Math.min(100, 100 * (v.points || 0) / 1600);
   else if (cfg.kind === 'king_of_the_hill' && v.completed) pct = Math.min(100, (v.consecutive_defenses || 0) * 10);
   else if (cfg.kind === 'fact_or_fake' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'guess_the_ranking' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1710,6 +1721,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'fact_or_fake') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'That statement was really ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'guess_the_ranking') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real rank was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1833,6 +1848,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'fact_or_fake') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'That statement was really ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'guess_the_ranking') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real rank was ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1953,6 +1971,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'double_or_nothing') return renderDoubleOrNothingBody(v, s);
   if (cfg.kind === 'king_of_the_hill') return renderKingOfTheHillBody(v, s);
   if (cfg.kind === 'fact_or_fake') return renderFactOrFakeBody(v, s);
+  if (cfg.kind === 'guess_the_ranking') return renderGuessTheRankingBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2313,6 +2332,16 @@ function renderFactOrFakeBody(v, s) {
       { code: 'FAKE', label: 'FAKE' },
       { dataAttr: 'data-mechanic-duel-choice' },
     );
+}
+
+// GUESS_THE_RANKING: reuses renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/CAREER_PATH -- zero new CSS.
+function renderGuessTheRankingBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">What real rank does ' + esc(v.label) + ' hold on this real career leaderboard?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-guess-the-ranking-pick',
+    });
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

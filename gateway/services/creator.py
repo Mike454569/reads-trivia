@@ -232,6 +232,7 @@ _NEW_TAXONOMY_TITLES = {
     "DOUBLE_OR_NOTHING": "Double or Nothing",
     "KING_OF_THE_HILL": "King of the Hill",
     "FACT_OR_FAKE": "Fact or Fake",
+    "GUESS_THE_RANKING": "Guess the Ranking",
 }
 
 
@@ -315,9 +316,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
     elif taxonomy_id == "KING_OF_THE_HILL":
         package = mechanic_engine.generate_king_of_the_hill_round(variant=variant, seed=real_seed)
-    else:  # FACT_OR_FAKE
+    elif taxonomy_id == "FACT_OR_FAKE":
         package = mechanic_engine.generate_fact_or_fake_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 10), seed=real_seed)
+    else:  # GUESS_THE_RANKING
+        package = mechanic_engine.generate_guess_the_ranking_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(
