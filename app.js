@@ -88,6 +88,7 @@ var ENABLE_ENGINE_GUESS_THE_SEASON_PILOT_V01 = READS_CONFIG.enableEngineGuessThe
 var ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01 = READS_CONFIG.enableEngineHeadToHeadDuelPilot === true;
 var ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01 = READS_CONFIG.enableEngineBestOfSevenDuelPilot === true;
 var ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01 = READS_CONFIG.enableEnginePickTheImpostorPilot === true;
+var ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01 = READS_CONFIG.enableEngineUniqueOneOutPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10870,6 +10871,7 @@ if (ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01) HIDDEN_ROUTES['#headtoheadduelcfb
 if (ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01) HIDDEN_ROUTES['#bestofsevenduelpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01) HIDDEN_ROUTES['#picktheimpostornflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01) HIDDEN_ROUTES['#picktheimpostorcfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01) HIDDEN_ROUTES['#uniqueoneoutpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

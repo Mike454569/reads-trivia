@@ -273,3 +273,43 @@ def test_pick_the_impostor_is_never_shadowed_by_weekly_pickem_despite_the_word_p
     r = creator.assess_feasibility("Give me a pick the impostor game with real NFL players.")
     assert r["support_status"] == "SUPPORTED"
     assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+
+
+# --- UNIQUE_ONE_OUT (15-Format Expansion Part 2, format #6) --------------
+
+def test_detect_unique_one_out_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    for phrase in ["give me a unique one out game", "odd one out"]:
+        r = bridge.detect(phrase)
+        assert r is not None, f"expected a match for {phrase!r}"
+        assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+        assert r["format"] == "UNIQUE_ONE_OUT"
+        assert r["variant"] == "NFL_DRAFT_CLASS_ONE_OUT"
+
+
+def test_unique_one_out_checked_before_pick_the_impostor_generic_pattern():
+    """Real ordering guard: UNIQUE_ONE_OUT's own trigger must resolve to
+    its own format, not fall through to PICK_THE_IMPOSTOR's more generic
+    roster-membership variant just because both share this taxonomy."""
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a unique one out game")
+    assert r["format"] == "UNIQUE_ONE_OUT"
+
+    r2 = bridge.detect("pick the impostor")
+    assert r2["format"] == "PICK_THE_IMPOSTOR"
+
+
+def test_unique_one_out_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="give me a unique one out game", puzzle_count=None, difficulty=None,
+        seed="pytest-oneout-bridge",
+    )
+    assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+    assert r["format_id"] == "UNIQUE_ONE_OUT"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP19:")
+    assert len(r["view"]["items"]) == 4

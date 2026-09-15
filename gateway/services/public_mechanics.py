@@ -329,6 +329,14 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "3 of these 4 real players really played for the same real school -- tap whichever one didn't.",
         "kind": "pick_the_impostor", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #6 -- see
+    # tools/director_v04/pick_the_impostor.py's own module docstring.
+    "unique_one_out_nfl": {
+        "competition": "NFL", "taxonomy_id": "PICK_THE_IMPOSTOR", "variant": "NFL_DRAFT_CLASS_ONE_OUT",
+        "title": "Unique One Out",
+        "instructions": "3 of these 4 real players were really drafted in the same real NFL Draft class -- tap whichever one wasn't.",
+        "kind": "pick_the_impostor", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)

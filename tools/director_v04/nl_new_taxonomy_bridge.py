@@ -227,6 +227,16 @@ _PICK_THE_IMPOSTOR_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- UNIQUE_ONE_OUT (PICK_THE_IMPOSTOR, 15-Format Expansion pass, Part 2,
+# format #6) ------------------------------------------------------------
+# Checked BEFORE _PICK_THE_IMPOSTOR_RE -- shares its exact same taxonomy
+# and round shape (see pick_the_impostor.py's own module docstring), but
+# is its own distinctly-named format with its own real domain (NFL Draft
+# class membership, not team/school roster membership), so it gets its
+# own distinctive trigger phrase rather than falling into the more
+# generic "which one wasn't" pattern above.
+_UNIQUE_ONE_OUT_RE = re.compile(r"\bunique\s+one\s+out\b|\bodd\s+one\s+out\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -309,6 +319,10 @@ def detect(request_text: str | None) -> dict | None:
             variant = "NFL_SEASON_RUSHING_YARDS_DUEL"
         return {"taxonomy_id": "PAIRWISE_COMPARE", "variant": variant,
                 "format": "HEAD_TO_HEAD_DUEL", "gen_kwargs": {}}
+
+    if _UNIQUE_ONE_OUT_RE.search(text):
+        return {"taxonomy_id": "PICK_THE_IMPOSTOR", "variant": "NFL_DRAFT_CLASS_ONE_OUT",
+                "format": "UNIQUE_ONE_OUT", "gen_kwargs": {}}
 
     if _PICK_THE_IMPOSTOR_RE.search(text):
         variant = "CFB_SCHOOL_ROSTER_IMPOSTOR" if _league_for(text) == "CFB" else "NFL_TEAM_ROSTER_IMPOSTOR"

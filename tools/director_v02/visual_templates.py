@@ -930,6 +930,35 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # Missing already use in production).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "UNIQUE_ONE_OUT": {
+        "format_id": "UNIQUE_ONE_OUT", "display_name": "Unique One Out",
+        "description": "4 real NFL players shown together; 3 really share the same real NFL Draft class "
+                        "(the same real draft year) and 1 genuinely does not. The player taps the one that "
+                        "doesn't belong to that real draft class.",
+        "payload_schema": None,
+        "renderer": "renderPickTheImpostorBody (engine-game-ui.js, shared with PICK_THE_IMPOSTOR)",
+        "proven_in": ["unique_one_out_nfl"],
+        "supported_mechanics": ["pick_the_impostor"], "mechanic_family": "PICK_THE_IMPOSTOR",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Tap 1 of 4 real candidate cards (reuses renderCandidateCardsHtml).",
+        "validation_rules": "The real impostor is always confirmed absent from the 3-member group's own "
+                             "real player-id set before being finalized.",
+        "answer_schema": "{impostor_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/pick_the_impostor.py:build_package() "
+                              "(NFL_DRAFT_CLASS_ONE_OUT variant)",
+        "qa_requirements": "Every real draft-class fact traced to a real, resolved row; the real impostor's "
+                            "item_id never sent to the client before evaluate() runs.",
+        "casual_aliases": ["unique one out", "odd one out"],
+        # True for the same reason PICK_THE_IMPOSTOR's own mobile_verified
+        # relied on -- this variant reuses renderPickTheImpostorBody
+        # verbatim, introducing zero new CSS or layout.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

@@ -1268,6 +1268,18 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #6 -- see
+  // tools/director_v04/pick_the_impostor.py's own module docstring. Same
+  // 'pick_the_impostor' kind as PICK_THE_IMPOSTOR above -- reuses
+  // renderPickTheImpostorBody verbatim, zero new client code.
+  uniqueOneOut: {
+    publicMode: 'unique_one_out_nfl', hash: '#uniqueoneoutpilot',
+    flagOn: function () { return ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01; },
+    title: 'Unique One Out', kind: 'pick_the_impostor',
+    desc: '3 of these 4 real players were really drafted in the same real NFL Draft class -- find the one that wasn\'t.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {

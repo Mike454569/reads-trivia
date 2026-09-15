@@ -23,6 +23,16 @@ real player-id set before being finalized -- never assumed disjoint just
 because the two groups came from different teams/schools (a genuine
 in-season trade could, in principle, put a player on two roster rows).
 
+A 3rd variant, NFL_DRAFT_CLASS_ONE_OUT (format UNIQUE_ONE_OUT, 15-Format
+Expansion Part 2, format #6), reuses this exact same taxonomy and shape
+for a real, distinct kind of shared fact: 3 real players really drafted
+in the same real NFL Draft class (draft_facts, NFLVERSE_DATA,
+SOURCE_BACKED -- the same real, already-proven table SORTING_TIMELINE's
+own NFL_DRAFT_PICK_ORDER variant uses), plus 1 real player really drafted
+in a DIFFERENT real year. No CFB equivalent exists yet -- there is no
+real per-player "class year" table on the CFB side this Engine can use
+the same way (disclosed rather than silently faked).
+
 Answer format: the item_id ('A'-'D') of the real impostor, in a real
 position shuffled per round -- never sent to the client before
 evaluate() runs.
@@ -40,7 +50,7 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "PICK_THE_IMPOSTOR"
-VARIANTS = frozenset({"NFL_TEAM_ROSTER_IMPOSTOR", "CFB_SCHOOL_ROSTER_IMPOSTOR"})
+VARIANTS = frozenset({"NFL_TEAM_ROSTER_IMPOSTOR", "CFB_SCHOOL_ROSTER_IMPOSTOR", "NFL_DRAFT_CLASS_ONE_OUT"})
 
 
 def safety_check(c) -> dict:
@@ -58,6 +68,9 @@ def safety_check(c) -> dict:
         "cfb_player_season_stats_real": safety.check_verification_status_safety(
             c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED",
         ),
+        # draft_facts is a real table-wide-uniform source, same discipline
+        # sorting.py's own NFL_DRAFT_PICK_ORDER safety_check already uses.
+        "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
     }
 
 
@@ -154,6 +167,47 @@ def _cfb_school_roster_impostor_rounds(c, seed: str, round_count: int) -> list[d
     return rounds
 
 
+def _nfl_draft_class_one_out_rounds(c, seed: str, round_count: int) -> list[dict]:
+    rows = c.execute(
+        "SELECT player_key, player_name, draft_season FROM draft_facts "
+        "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' AND draft_season IS NOT NULL"
+    ).fetchall()
+    by_season: dict[int, list] = {}
+    for r in rows:
+        by_season.setdefault(r["draft_season"], []).append(r)
+
+    rng = engine_bootstrap.seeded(seed)
+    seasons = list(by_season.keys())
+    rng.shuffle(seasons)
+
+    rounds = []
+    for season in seasons:
+        if len(rounds) >= round_count:
+            break
+        group = by_season[season]
+        if len(group) < 3:
+            continue
+        other_seasons = [s for s in by_season if s != season]
+        if not other_seasons:
+            continue
+        members = rng.sample(group, 3)
+        member_ids = {p["player_key"] for p in members}
+        impostor_season = rng.choice(other_seasons)
+        impostor_pool = [p for p in by_season[impostor_season] if p["player_key"] not in member_ids]
+        if not impostor_pool:
+            continue  # this real candidate was genuinely drafted in both years -- unreachable, but never trusted
+        impostor = rng.choice(impostor_pool)
+        rounds.append({
+            "prompt": f"3 of these were really drafted in {season}. Which one wasn't?",
+            "members": [{"label": p["player_name"], "_audit": {"player_key": p["player_key"]}} for p in members],
+            "impostor": {"label": impostor["player_name"],
+                         "_audit": {"player_key": impostor["player_key"], "actual_draft_season": impostor_season}},
+            "notes": f"Real {season} NFL Draft class vs. a real player drafted in {impostor_season} "
+                     f"(NFLVERSE_DATA, SOURCE_BACKED).",
+        })
+    return rounds
+
+
 def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
@@ -163,8 +217,10 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
         safety_result = safety_check(c)
         if variant == "NFL_TEAM_ROSTER_IMPOSTOR":
             raw_rounds = _nfl_team_roster_impostor_rounds(c, seed, round_count)
-        else:  # CFB_SCHOOL_ROSTER_IMPOSTOR
+        elif variant == "CFB_SCHOOL_ROSTER_IMPOSTOR":
             raw_rounds = _cfb_school_roster_impostor_rounds(c, seed, round_count)
+        else:  # NFL_DRAFT_CLASS_ONE_OUT
+            raw_rounds = _nfl_draft_class_one_out_rounds(c, seed, round_count)
     finally:
         c.close()
 
@@ -178,7 +234,10 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
     return {"rounds": raw_rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_TEAM_ROSTER_IMPOSTOR": "Pick the Impostor", "CFB_SCHOOL_ROSTER_IMPOSTOR": "Pick the Impostor"}
+_GAME_TITLES = {
+    "NFL_TEAM_ROSTER_IMPOSTOR": "Pick the Impostor", "CFB_SCHOOL_ROSTER_IMPOSTOR": "Pick the Impostor",
+    "NFL_DRAFT_CLASS_ONE_OUT": "Unique One Out",
+}
 
 
 def build_package(seed: str, variant: str, round_count: int = 5) -> dict:

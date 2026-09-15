@@ -934,3 +934,49 @@ def test_pick_the_impostor_client_view_never_leaks_the_real_impostor_before_subm
     assert "_impostor_item_id" not in view
     for it in view["items"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- UNIQUE_ONE_OUT (15-Format Expansion Part 2, format #6) --------------
+# Shares PICK_THE_IMPOSTOR's exact taxonomy/round shape -- see
+# tools/director_v04/pick_the_impostor.py's own module docstring.
+
+def test_unique_one_out_is_a_registered_pick_the_impostor_variant():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "NFL_DRAFT_CLASS_ONE_OUT" in me.VARIANTS["PICK_THE_IMPOSTOR"]
+
+
+def test_unique_one_out_generates_real_rounds_sharing_a_real_draft_class():
+    from tools.director_v04 import pick_the_impostor
+
+    pkg = pick_the_impostor.build_package("test-oneout-1", "NFL_DRAFT_CLASS_ONE_OUT", round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["items"]) == 4
+        item_ids = {it["item_id"] for it in r["items"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["items"]]
+        assert len(set(labels)) == 4
+        assert r["_impostor_item_id"] in item_ids
+        assert "drafted in" in r["prompt"]
+
+
+def test_unique_one_out_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pick_the_impostor_round(
+        variant="NFL_DRAFT_CLASS_ONE_OUT", round_count=3, seed="test-oneout-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("PICK_THE_IMPOSTOR")
+    canonical = pkg["rounds"][0]["_impostor_item_id"]
+    result, progress = me.evaluate_submission(
+        "PICK_THE_IMPOSTOR", pkg, progress, {"impostor_item_id": canonical})
+    assert result["correct"] is True
+
+    progress2 = me.initial_progress("PICK_THE_IMPOSTOR")
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result2, progress2 = me.evaluate_submission(
+        "PICK_THE_IMPOSTOR", pkg, progress2, {"impostor_item_id": wrong})
+    assert result2["correct"] is False

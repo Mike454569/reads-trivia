@@ -191,6 +191,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "PICK_THE_IMPOSTOR": {
         "NFL_TEAM_ROSTER_IMPOSTOR": {"competition": "NFL"},
         "CFB_SCHOOL_ROSTER_IMPOSTOR": {"competition": "CFB"},
+        # 15-Format Expansion pass (Part 2), format #6 (UNIQUE_ONE_OUT) --
+        # see tools/director_v04/pick_the_impostor.py's own module docstring.
+        "NFL_DRAFT_CLASS_ONE_OUT": {"competition": "NFL"},
     },
 }
 
