@@ -962,6 +962,48 @@ def test_reverse_trivia_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 31. THREE_STRIKES (75-Format Expansion, Wave 1) -----------------------
+
+def test_three_strikes_full_public_playthrough_tracks_score_and_strikes():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="three_strikes_nfl_draft")
+    rid = r["round_id"]
+    assert rid.startswith("GGP34:")
+    assert r["view"]["strikes"] == 3 and r["view"]["score"] == 0
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub1 = pm.submit_public_round(round_id=rid, submission={"choice_item_id": correct})
+    assert sub1["result"]["correct"] is True
+    assert sub1["result"]["points_earned"] == pkg["rounds"][0]["points"]
+    assert sub1["view"]["score"] == pkg["rounds"][0]["points"]
+    assert sub1["view"]["strikes"] == 3
+
+
+def test_three_strikes_wrong_answer_costs_a_strike_through_the_public_pipeline():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="three_strikes_nfl_draft")
+    rid = r["round_id"]
+    pkg = packages.load_package(rid)
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][0]["_answer_item_id"])
+    sub = pm.submit_public_round(round_id=rid, submission={"choice_item_id": wrong})
+    assert sub["result"]["correct"] is False
+    assert sub["view"]["strikes"] == 2
+    assert sub["view"]["score"] == 0
+
+
+def test_three_strikes_never_leaks_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="three_strikes_nfl_draft")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "tier", "points", "prompt",
+                                      "options", "score", "streak", "strikes"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

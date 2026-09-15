@@ -86,6 +86,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # reverse_trivia.py's own module docstring.
     "REVERSE_TRIVIA",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # three_strikes.py's own module docstring.
+    "THREE_STRIKES",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -322,6 +325,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # reverse_trivia.py's own module docstring.
     "REVERSE_TRIVIA": {
         "NFL_DRAFT_REVERSE_TRIVIA": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # three_strikes.py's own module docstring.
+    "THREE_STRIKES": {
+        "NFL_DRAFT_THREE_STRIKES": {"competition": "NFL"},
     },
 }
 
@@ -1177,6 +1185,48 @@ def _reverse_trivia_evaluate(package: dict, index: int, submission: dict) -> dic
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
+# --- THREE_STRIKES (75-Format Expansion, Wave 1) -----------------------------
+# Real strikes-budget survival -- see tools/director_v04/
+# three_strikes.py's own module docstring for why this is deliberately
+# distinct from RISK_IT/ELIMINATION_SURVIVAL/DOUBLE_OR_NOTHING. Full-
+# progress-dict evaluate pattern (real strikes/score/streak state doesn't
+# fit a plain current_index-increment).
+_THREE_STRIKES_STARTING_STRIKES = 3
+
+
+def generate_three_strikes_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import three_strikes
+    return three_strikes.build_package(seed, variant, round_count=round_count)
+
+
+def _three_strikes_client_view(package: dict, progress: dict) -> dict:
+    total = len(package["rounds"])
+    idx = progress.get("current_index", 0)
+    strikes = progress.get("strikes")
+    if strikes is None:
+        strikes = _THREE_STRIKES_STARTING_STRIKES
+    score = progress.get("score", 0)
+    streak = progress.get("streak", 0)
+    if progress.get("ended") or idx >= total:
+        return {"round_index": idx, "round_count": total, "completed": True,
+                "score": score, "streak": streak, "strikes": strikes, "ended": bool(progress.get("ended"))}
+    r = package["rounds"][idx]
+    return {"round_index": idx, "round_count": total, "completed": False, "tier": r["tier"],
+            "points": r["points"], "prompt": r["prompt"], "options": r["options"],
+            "score": score, "streak": streak, "strikes": strikes}
+
+
+def _three_strikes_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    idx = progress.get("current_index", 0)
+    r = package["rounds"][idx]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("choice_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label,
+            "points_earned": r["points"] if correct else 0, "tier": r["tier"], "notes": r["_notes"]}
+
+
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
 
 def generate_higher_lower_round(*, variant: str, sequence_length: int, seed: str) -> dict:
@@ -1997,6 +2047,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _stat_target_client_view(package, progress["current_index"])
     if taxonomy_id == "REVERSE_TRIVIA":
         return _reverse_trivia_client_view(package, progress["current_index"])
+    if taxonomy_id == "THREE_STRIKES":
+        return _three_strikes_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -2170,6 +2222,24 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress
+    if taxonomy_id == "THREE_STRIKES":
+        if progress.get("ended") or progress.get("completed"):
+            raise MechanicError("this run has already ended")
+        result = _three_strikes_evaluate(package, progress, submission)
+        strikes = progress.get("strikes")
+        if strikes is None:
+            strikes = _THREE_STRIKES_STARTING_STRIKES
+        progress["score"] = progress.get("score", 0) + result["points_earned"]
+        if result["correct"]:
+            progress["streak"] = progress.get("streak", 0) + 1
+        else:
+            strikes -= 1
+            progress["streak"] = 0
+        progress["strikes"] = strikes
+        progress["current_index"] = progress.get("current_index", 0) + 1
+        progress["ended"] = strikes <= 0
+        progress["completed"] = progress["ended"] or progress["current_index"] >= len(package["rounds"])
+        return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
             raise MechanicError("this streak has already ended")
@@ -2339,6 +2409,9 @@ def initial_progress(taxonomy_id: str) -> dict:
         # missing, same sentinel-fallback pattern LEADERBOARD_CLIMB's own
         # current_rank already established.
         return {"consecutive_defenses": 0, "ended": False, "completed": False}
+    if taxonomy_id == "THREE_STRIKES":
+        return {"current_index": 0, "score": 0, "streak": 0, "strikes": _THREE_STRIKES_STARTING_STRIKES,
+                "ended": False, "completed": False}
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}
     if taxonomy_id == "COMPARISON_BRACKET":

@@ -2148,3 +2148,80 @@ def test_reverse_trivia_client_view_never_leaks_the_real_answer_before_evaluate(
     assert set(view.keys()) == {"round_index", "round_count", "completed", "subject_name", "options"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- THREE_STRIKES (75-Format Expansion, Wave 1) --------------------------
+
+def test_three_strikes_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "THREE_STRIKES" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("THREE_STRIKES"), "THREE_STRIKES has no registered variants"
+
+
+def test_three_strikes_generates_real_escalating_tier_rounds():
+    from tools.director_v04 import three_strikes as ts
+
+    pkg = ts.build_package("test-ts-1", "NFL_DRAFT_THREE_STRIKES", round_count=12)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    assert pkg["starting_strikes"] == 3
+    tiers_seen = [r["tier"] for r in pkg["rounds"]]
+    if len(tiers_seen) >= 8:
+        assert tiers_seen[0] == "LOW"
+        assert tiers_seen[-1] == "HIGH"
+    for r in pkg["rounds"]:
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real option"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_three_strikes_wrong_answers_deplete_strikes_and_end_the_run():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_three_strikes_round(variant="NFL_DRAFT_THREE_STRIKES", round_count=12, seed="test-ts-wrong")
+    progress = me.initial_progress("THREE_STRIKES")
+    assert progress == {"current_index": 0, "score": 0, "streak": 0, "strikes": 3,
+                         "ended": False, "completed": False}
+
+    for i in range(3):
+        wrong = next(x for x in ("A", "B", "C", "D") if x != pkg["rounds"][i]["_answer_item_id"])
+        result, progress = me.evaluate_submission("THREE_STRIKES", pkg, progress, {"choice_item_id": wrong})
+        assert result["correct"] is False
+        assert progress["strikes"] == 3 - (i + 1)
+
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("THREE_STRIKES", pkg, progress, {"choice_item_id": "A"})
+
+
+def test_three_strikes_correct_answers_accumulate_score_and_streak():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_three_strikes_round(variant="NFL_DRAFT_THREE_STRIKES", round_count=5, seed="test-ts-correct")
+    progress = me.initial_progress("THREE_STRIKES")
+    for i in range(5):
+        correct = pkg["rounds"][i]["_answer_item_id"]
+        result, progress = me.evaluate_submission("THREE_STRIKES", pkg, progress, {"choice_item_id": correct})
+        assert result["correct"] is True
+        assert progress["streak"] == i + 1
+    assert progress["strikes"] == 3
+    assert progress["score"] == sum(r["points"] for r in pkg["rounds"])
+    assert progress["completed"] is True
+    assert progress["ended"] is False
+
+
+def test_three_strikes_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_three_strikes_round(variant="NFL_DRAFT_THREE_STRIKES", round_count=2, seed="test-ts-leak")
+    progress = me.initial_progress("THREE_STRIKES")
+    view = me.client_safe_view("THREE_STRIKES", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "tier", "points", "prompt",
+                                 "options", "score", "streak", "strikes"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

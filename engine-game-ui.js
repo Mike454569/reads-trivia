@@ -1481,6 +1481,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // three_strikes.py's own module docstring.
+  threeStrikes: {
+    publicMode: 'three_strikes_nfl_draft', hash: '#threestrikespilot',
+    flagOn: function () { return ENABLE_ENGINE_THREE_STRIKES_PILOT_V01; },
+    title: 'Three Strikes', kind: 'three_strikes',
+    desc: 'Answer real questions of rising difficulty -- a wrong answer costs a strike.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1624,6 +1634,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'guess_the_ranking' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'stat_target' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'reverse_trivia' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'three_strikes' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1756,6 +1767,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real true statement was: ' + esc(r.canonical_answer) : '') + '</p>';
   }
+  if (cfg.kind === 'three_strikes') {
+    return '<p class="mode-desc">' + (v.ended ? 'Run over -- out of real strikes! ' : 'Run complete! ') +
+      'Final score: ' + v.score + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1887,6 +1902,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'reverse_trivia') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real true statement was: ' + esc(r.canonical_answer) : '';
+  } else if (cfg.kind === 'three_strikes') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? '+' + r.points_earned + (r.points_earned === 1 ? ' point!' : ' points!') : 'Not quite -- you lost a strike.';
+    detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -2010,6 +2029,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'guess_the_ranking') return renderGuessTheRankingBody(v, s);
   if (cfg.kind === 'stat_target') return renderStatTargetBody(v, s);
   if (cfg.kind === 'reverse_trivia') return renderReverseTriviaBody(v, s);
+  if (cfg.kind === 'three_strikes') return renderThreeStrikesBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2399,6 +2419,17 @@ function renderReverseTriviaBody(v, s) {
     '<div class="quiz-question">Which real statement is actually true about ' + esc(v.subject_name) + '?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-reverse-trivia-pick',
+    });
+}
+
+// THREE_STRIKES: the real question is always shown directly (no blind
+// tier-commit like RISK_IT) -- reuses renderCandidateCardsHtml.
+function renderThreeStrikesBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Score: ' + v.score + ' &middot; Strikes left: ' + v.strikes + '</div>' +
+    '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-three-strikes-answer',
     });
 }
 

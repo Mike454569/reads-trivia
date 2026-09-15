@@ -235,6 +235,7 @@ _NEW_TAXONOMY_TITLES = {
     "GUESS_THE_RANKING": "Guess the Ranking",
     "STAT_TARGET": "Stat Target",
     "REVERSE_TRIVIA": "Reverse Trivia",
+    "THREE_STRIKES": "Three Strikes",
 }
 
 
@@ -327,9 +328,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "STAT_TARGET":
         package = mechanic_engine.generate_stat_target_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
-    else:  # REVERSE_TRIVIA
+    elif taxonomy_id == "REVERSE_TRIVIA":
         package = mechanic_engine.generate_reverse_trivia_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
+    else:  # THREE_STRIKES
+        package = mechanic_engine.generate_three_strikes_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 12), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(

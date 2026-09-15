@@ -282,6 +282,7 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Risk & Wager', title: 'Risk It', desc: 'Pick a real risk tier before you see the question.', taxonomyId: 'RISK_IT', variant: 'NFL_DRAFT_RISK_IT' },
   { category: 'Risk & Wager', title: 'Wager Mode', desc: 'Wager fictional points on a real category before it’s revealed.', taxonomyId: 'WAGER_MODE', variant: 'WAGER_MODE_MIXED' },
   { category: 'Risk & Wager', title: 'Double or Nothing', desc: 'Bank your points or risk them all doubling on a harder real question.', taxonomyId: 'DOUBLE_OR_NOTHING', variant: 'NFL_DRAFT_DOUBLE_OR_NOTHING' },
+  { category: 'Risk & Wager', title: 'Three Strikes', desc: 'Answer real questions of rising difficulty -- a wrong answer costs a strike.', taxonomyId: 'THREE_STRIKES', variant: 'NFL_DRAFT_THREE_STRIKES' },
   { category: 'Brackets & Tournaments', title: 'Knockout Tournament', desc: 'A real single-elimination bracket.', taxonomyId: 'KNOCKOUT_BRACKET', variant: 'NFL_TEAM_SEASON_WINS_KNOCKOUT_16' },
   { category: 'Brackets & Tournaments', title: 'Elimination', desc: 'Survive a real sequence of stat guesses -- one miss and you’re out.', taxonomyId: 'ELIMINATION_SURVIVAL', variant: 'NFL_SUPER_BOWL_CHAMPION_SURVIVAL' },
   { category: 'Story & Path', title: 'Choose Your Path', desc: 'Branch through a real topic tree.', taxonomyId: 'BRANCH_STATE', variant: 'NFL_TOPIC_PATH' },

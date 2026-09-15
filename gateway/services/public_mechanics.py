@@ -487,6 +487,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "about them.",
         "kind": "reverse_trivia", "gen_kwargs": {"round_count": 8},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # three_strikes.py's own module docstring.
+    "three_strikes_nfl_draft": {
+        "competition": "NFL", "taxonomy_id": "THREE_STRIKES", "variant": "NFL_DRAFT_THREE_STRIKES",
+        "title": "Three Strikes",
+        "instructions": "Answer real questions of rising real difficulty -- a wrong answer costs a strike. "
+                         "Survive 3 strikes and the run ends.",
+        "kind": "three_strikes", "gen_kwargs": {"round_count": 12},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -579,6 +588,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_stat_target_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "REVERSE_TRIVIA":
             package = mechanic_engine.generate_reverse_trivia_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "THREE_STRIKES":
+            package = mechanic_engine.generate_three_strikes_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
