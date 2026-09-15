@@ -1393,6 +1393,34 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "REVERSE_TRIVIA": {
+        "format_id": "REVERSE_TRIVIA", "display_name": "Reverse Trivia",
+        "description": "Real inverted trivia: a real player's name is shown first, then 4 candidate real "
+                        "draft-fact statements -- tap the 1 that's genuinely true for that named player.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["reverse_trivia_nfl_draft"],
+        "supported_mechanics": ["reverse_trivia"], "mechanic_family": "REVERSE_TRIVIA",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real named player, then tap 1 of 4 real candidate fact statements.",
+        "validation_rules": "The correct real statement and all 3 real decoy statements genuinely belong to "
+                             "distinct real players -- a decoy is never accidentally also true for the "
+                             "named subject.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/reverse_trivia.py:build_package()",
+        "qa_requirements": "The real correct statement is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["reverse trivia"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

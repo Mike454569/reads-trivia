@@ -129,6 +129,7 @@ window.READS_CONFIG = {
   enableEngineFactOrFakePilot: false,
   enableEngineGuessTheRankingPilot: false,
   enableEngineStatTargetPilot: false,
+  enableEngineReverseTriviaPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

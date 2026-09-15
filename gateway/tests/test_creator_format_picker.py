@@ -72,6 +72,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Fact or Fake", "FACT_OR_FAKE", "NFL_DRAFT_FACT_OR_FAKE"),
     ("Guess the Ranking", "GUESS_THE_RANKING", "NFL_CAREER_PASSING_YARDS_RANKING"),
     ("Stat Target", "STAT_TARGET", "NFL_SEASON_RUSHING_YARDS_TARGET"),
+    ("Reverse Trivia", "REVERSE_TRIVIA", "NFL_DRAFT_REVERSE_TRIVIA"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.

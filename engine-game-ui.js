@@ -1471,6 +1471,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // reverse_trivia.py's own module docstring.
+  reverseTrivia: {
+    publicMode: 'reverse_trivia_nfl_draft', hash: '#reversetriviapilot',
+    flagOn: function () { return ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01; },
+    title: 'Reverse Trivia', kind: 'reverse_trivia',
+    desc: 'A real player is named -- tap the 1 of 4 real statements that’s actually true about them.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1613,6 +1623,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'fact_or_fake' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'guess_the_ranking' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'stat_target' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'reverse_trivia' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1740,6 +1751,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'stat_target') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'Closest was really ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'reverse_trivia') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real true statement was: ' + esc(r.canonical_answer) : '') + '</p>';
   }
   return '';
 }
@@ -1869,6 +1884,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'stat_target') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'Closest was really ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'reverse_trivia') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real true statement was: ' + esc(r.canonical_answer) : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1991,6 +2009,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'fact_or_fake') return renderFactOrFakeBody(v, s);
   if (cfg.kind === 'guess_the_ranking') return renderGuessTheRankingBody(v, s);
   if (cfg.kind === 'stat_target') return renderStatTargetBody(v, s);
+  if (cfg.kind === 'reverse_trivia') return renderReverseTriviaBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2370,6 +2389,16 @@ function renderStatTargetBody(v, s) {
     '<div class="quiz-question">Which real player’s real season total came CLOSEST to ' + v.target + ' rushing yards?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-stat-target-pick',
+    });
+}
+
+// REVERSE_TRIVIA: reuses renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/STAT_TARGET -- zero new CSS.
+function renderReverseTriviaBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">Which real statement is actually true about ' + esc(v.subject_name) + '?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-reverse-trivia-pick',
     });
 }
 

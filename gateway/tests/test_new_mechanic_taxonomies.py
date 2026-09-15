@@ -2090,3 +2090,61 @@ def test_stat_target_client_view_never_leaks_the_real_answer_before_evaluate():
     assert set(view.keys()) == {"round_index", "round_count", "completed", "target", "options"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- REVERSE_TRIVIA (75-Format Expansion, Wave 1) -------------------------
+
+def test_reverse_trivia_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "REVERSE_TRIVIA" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("REVERSE_TRIVIA"), "REVERSE_TRIVIA has no registered variants"
+
+
+def test_reverse_trivia_generates_real_decoy_complete_rounds():
+    from tools.director_v04 import reverse_trivia as rt
+
+    pkg = rt.build_package("test-rt-1", "NFL_DRAFT_REVERSE_TRIVIA", round_count=8)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert r["subject_name"]
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real statement"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_reverse_trivia_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_reverse_trivia_round(
+        variant="NFL_DRAFT_REVERSE_TRIVIA", round_count=3, seed="test-rt-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("REVERSE_TRIVIA", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["subject_name"] == pkg["rounds"][0]["subject_name"]
+
+    canonical0 = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission("REVERSE_TRIVIA", pkg, progress, {"choice_item_id": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    wrong1 = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission("REVERSE_TRIVIA", pkg, progress, {"choice_item_id": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_reverse_trivia_client_view_never_leaks_the_real_answer_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_reverse_trivia_round(
+        variant="NFL_DRAFT_REVERSE_TRIVIA", round_count=2, seed="test-rt-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("REVERSE_TRIVIA", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "subject_name", "options"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
