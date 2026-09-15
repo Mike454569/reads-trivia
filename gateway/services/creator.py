@@ -223,6 +223,7 @@ _NEW_TAXONOMY_TITLES = {
     "PAIRWISE_COMPARE": "Head to Head Duel",
     "PICK_THE_IMPOSTOR": "Pick the Impostor",
     "MISSING_PIECE": "Missing Piece",
+    "BEFORE_AFTER": "Before & After",
 }
 
 
@@ -281,8 +282,11 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "PICK_THE_IMPOSTOR":
         package = mechanic_engine.generate_pick_the_impostor_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
-    else:  # MISSING_PIECE
+    elif taxonomy_id == "MISSING_PIECE":
         package = mechanic_engine.generate_missing_piece_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
+    else:  # BEFORE_AFTER
+        package = mechanic_engine.generate_before_after_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":

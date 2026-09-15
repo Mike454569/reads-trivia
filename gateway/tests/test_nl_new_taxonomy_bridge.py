@@ -359,3 +359,45 @@ def test_missing_piece_creator_generate_for_review_is_a_real_playable_round():
     assert r["round_id"].startswith("GGP20:")
     assert len(r["view"]["group_members"]) == 3
     assert len(r["view"]["items"]) == 4
+
+
+# --- BEFORE_AFTER (15-Format Expansion Part 2, format #8) ----------------
+
+def test_detect_before_after_real_phrasing_and_league_routing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a before and after game")
+    assert r is not None
+    assert r["taxonomy_id"] == "BEFORE_AFTER"
+    assert r["format"] == "BEFORE_AFTER"
+    assert r["variant"] == "NFL_TEAM_CHANGE_BEFORE_AFTER"
+
+    r2 = bridge.detect("which team did they play for first")
+    assert r2["taxonomy_id"] == "BEFORE_AFTER"
+
+    r3 = bridge.detect("college football, before and after game")
+    assert r3["variant"] == "CFB_SCHOOL_TRANSFER_BEFORE_AFTER"
+
+
+def test_before_after_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="give me a before and after game", puzzle_count=None, difficulty=None,
+        seed="pytest-before-after-bridge",
+    )
+    assert r["taxonomy_id"] == "BEFORE_AFTER"
+    assert r["format_id"] == "BEFORE_AFTER"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP21:")
+    assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]
+
+
+def test_before_after_never_shadowed_by_any_prior_bridge():
+    """Real ordering regression guard: an ordinary request unrelated to
+    before/after career questions must keep routing exactly as it always
+    has -- this bridge is checked last in the fixed order."""
+    from gateway.services import creator
+
+    r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
+    assert r.get("taxonomy_id") is None

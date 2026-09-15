@@ -90,6 +90,7 @@ var ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01 = READS_CONFIG.enableEngineBestOf
 var ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01 = READS_CONFIG.enableEnginePickTheImpostorPilot === true;
 var ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01 = READS_CONFIG.enableEngineUniqueOneOutPilot === true;
 var ENABLE_ENGINE_MISSING_PIECE_PILOT_V01 = READS_CONFIG.enableEngineMissingPiecePilot === true;
+var ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01 = READS_CONFIG.enableEngineBeforeAfterPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10883,6 +10884,8 @@ if (ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01) HIDDEN_ROUTES['#picktheimpostorcf
 if (ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01) HIDDEN_ROUTES['#uniqueoneoutpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiecenflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiececfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeafternflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeaftercfbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

@@ -1298,6 +1298,24 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #8 -- see
+  // tools/director_v04/before_after.py's own module docstring.
+  beforeAfterNfl: {
+    publicMode: 'before_after_nfl', hash: '#beforeafternflpilot',
+    flagOn: function () { return ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01; },
+    title: 'Before & After', kind: 'before_after',
+    desc: 'Tap whichever real team you think this real player played for FIRST.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  beforeAfterCfb: {
+    publicMode: 'before_after_cfb', hash: '#beforeaftercfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01; },
+    title: 'Before & After: College Football', kind: 'before_after',
+    desc: 'Tap whichever real school you think this real player played for FIRST.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1422,6 +1440,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'pairwise_compare' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'pick_the_impostor' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'missing_piece' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'before_after' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1504,6 +1523,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real missing piece was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
+  if (cfg.kind === 'before_after') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.correct_label ? esc(r.correct_label) + ' really came first.' : '') + '</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1585,6 +1608,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'missing_piece') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real missing piece was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'before_after') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = (r.correct_label && r.season_a != null && r.season_b != null)
+      ? esc(r.correct_label) + ' really came first (' + r.season_a + ' vs ' + r.season_b + ').' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1696,6 +1723,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'pairwise_compare') return renderPairwiseCompareBody(v, s);
   if (cfg.kind === 'pick_the_impostor') return renderPickTheImpostorBody(v, s);
   if (cfg.kind === 'missing_piece') return renderMissingPieceBody(v, s);
+  if (cfg.kind === 'before_after') return renderBeforeAfterBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1897,6 +1925,20 @@ function renderMissingPieceBody(v, s) {
     renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-missing-piece-pick',
     });
+}
+
+// BEFORE_AFTER: identical {choice: 'A'|'B'} submission shape to
+// PAIRWISE_COMPARE, so this reuses renderBinaryChoiceHtml AND the same
+// data-mechanic-duel-choice click handler verbatim -- zero new app.js
+// plumbing needed for this format.
+function renderBeforeAfterBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    renderBinaryChoiceHtml(
+      { code: 'A', label: v.entity_a.label },
+      { code: 'B', label: v.entity_b.label },
+      { dataAttr: 'data-mechanic-duel-choice' },
+    );
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

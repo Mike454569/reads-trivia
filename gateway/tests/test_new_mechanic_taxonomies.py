@@ -1066,3 +1066,80 @@ def test_missing_piece_client_view_never_leaks_the_real_answer_before_submission
     assert "_answer_item_id" not in view
     for it in view["items"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- BEFORE_AFTER (15-Format Expansion Part 2, format #8) ----------------
+
+def test_before_after_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "BEFORE_AFTER" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("BEFORE_AFTER"), "BEFORE_AFTER has no registered variants"
+
+
+@pytest.mark.parametrize("variant", ["NFL_TEAM_CHANGE_BEFORE_AFTER", "CFB_SCHOOL_TRANSFER_BEFORE_AFTER"])
+def test_before_after_generates_real_rounds_with_two_distinct_real_seasons(variant):
+    from tools.director_v04 import before_after
+
+    pkg = before_after.build_package("test-before-after-1", variant, round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert r["entity_a"]["label"] and r["entity_b"]["label"]
+        assert r["entity_a"]["label"] != r["entity_b"]["label"]
+        assert r["_season_a"] != r["_season_b"], "a real tie must never be silently broken"
+        assert r["_answer"] in ("A", "B")
+        expected = "A" if r["_season_a"] < r["_season_b"] else "B"
+        assert r["_answer"] == expected, "the earlier real season must always be the real answer"
+
+
+def test_before_after_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_before_after_round(
+        variant="NFL_TEAM_CHANGE_BEFORE_AFTER", round_count=3, seed="test-before-after-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("BEFORE_AFTER")
+    canonical = pkg["rounds"][0]["_answer"]
+    result, progress = me.evaluate_submission("BEFORE_AFTER", pkg, progress, {"choice": canonical})
+    assert result["correct"] is True
+    assert result["canonical_answer"] == canonical
+    assert result["season_a"] == pkg["rounds"][0]["_season_a"]
+    assert result["season_b"] == pkg["rounds"][0]["_season_b"]
+
+    progress2 = me.initial_progress("BEFORE_AFTER")
+    wrong = "B" if canonical == "A" else "A"
+    result2, progress2 = me.evaluate_submission("BEFORE_AFTER", pkg, progress2, {"choice": wrong})
+    assert result2["correct"] is False
+
+
+def test_before_after_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_before_after_round(
+        variant="NFL_TEAM_CHANGE_BEFORE_AFTER", round_count=2, seed="test-before-after-malformed")
+
+    progress = me.initial_progress("BEFORE_AFTER")
+    result, progress = me.evaluate_submission("BEFORE_AFTER", pkg, progress, {"choice": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("BEFORE_AFTER")
+    result2, progress2 = me.evaluate_submission("BEFORE_AFTER", pkg, progress2, {"choice": "Z"})
+    assert result2["correct"] is False
+
+    progress3 = me.initial_progress("BEFORE_AFTER")
+    result3, progress3 = me.evaluate_submission("BEFORE_AFTER", pkg, progress3, {})
+    assert result3["correct"] is False
+
+
+def test_before_after_client_view_never_leaks_real_seasons_before_submission():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_before_after_round(
+        variant="CFB_SCHOOL_TRANSFER_BEFORE_AFTER", round_count=2, seed="test-before-after-leak")
+    progress = me.initial_progress("BEFORE_AFTER")
+    view = me.client_safe_view("BEFORE_AFTER", pkg, progress)
+    assert set(view["entity_a"].keys()) == {"entity_id", "label"}
+    assert set(view["entity_b"].keys()) == {"entity_id", "label"}
+    assert "season" not in view["entity_a"] and "season" not in view["entity_b"]

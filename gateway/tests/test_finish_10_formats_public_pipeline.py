@@ -437,6 +437,39 @@ def test_missing_piece_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 17. BEFORE_AFTER (15-Format Expansion Part 2, format #8) --------------
+
+@pytest.mark.parametrize("mode", ["before_after_nfl", "before_after_cfb"])
+def test_before_after_full_public_playthrough_correct_and_incorrect(mode):
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode=mode)
+    rid = r["round_id"]
+    assert rid.startswith("GGP21:")
+    assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer"]
+    sub_correct = pm.submit_public_round(round_id=rid, submission={"choice": correct})
+    assert sub_correct["result"]["correct"] is True
+
+    r2 = pm.start_public_round(mode=mode)
+    rid2 = r2["round_id"]
+    pkg2 = packages.load_package(rid2)
+    wrong = "B" if pkg2["rounds"][0]["_answer"] == "A" else "A"
+    sub_wrong = pm.submit_public_round(round_id=rid2, submission={"choice": wrong})
+    assert sub_wrong["result"]["correct"] is False
+
+
+def test_before_after_never_leaks_real_seasons_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="before_after_nfl")
+    assert set(r["view"]["entity_a"].keys()) == {"entity_id", "label"}
+    assert set(r["view"]["entity_b"].keys()) == {"entity_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -456,6 +489,7 @@ def test_missing_piece_never_leaks_the_real_answer_before_submission():
     ("Give me a pick the impostor game with real NFL players.", "PICK_THE_IMPOSTOR"),
     ("Give me a unique one out game with real NFL players.", "PICK_THE_IMPOSTOR"),
     ("Give me a missing piece game with real NFL players.", "MISSING_PIECE"),
+    ("Give me a before and after game with a real NFL player.", "BEFORE_AFTER"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

@@ -993,6 +993,36 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # (PICK_THE_IMPOSTOR's own already-shipped component).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "BEFORE_AFTER": {
+        "format_id": "BEFORE_AFTER", "display_name": "Before & After",
+        "description": "One real player who genuinely played for 2 different real teams/schools across "
+                        "their own real career; the player taps whichever real team/school came FIRST. "
+                        "A real chronological self-career question, not a cross-entity comparison.",
+        "payload_schema": None,
+        "renderer": "renderBeforeAfterBody (engine-game-ui.js, reuses renderBinaryChoiceHtml)",
+        "proven_in": ["before_after_nfl", "before_after_cfb"],
+        "supported_mechanics": ["before_after"], "mechanic_family": "BEFORE_AFTER",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["canonical_roster_seasons (NFLVERSE_DATA, SOURCE_BACKED), "
+                                         "cfb_player_season_stats_real (SPORTSDATAVERSE_CFB, "
+                                         "SOURCE_BACKED_DERIVED)"],
+        "min_items": 2, "max_items": 2, "min_pool_size": 2,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Tap one of 2 side-by-side real team/school cards (reuses renderBinaryChoiceHtml).",
+        "validation_rules": "Every round resampled until the two real debut seasons are genuinely distinct "
+                             "-- a real tie is never silently broken or invented an order for.",
+        "answer_schema": "{choice: 'A'|'B'}",
+        "generation_schema": "tools/director_v04/before_after.py:build_package()",
+        "qa_requirements": "Both real debut seasons traced to a real, resolved row; neither value sent to "
+                            "the client before evaluate() runs.",
+        "casual_aliases": ["before and after", "before or after", "which came first", "played for first"],
+        # True because renderBeforeAfterBody reuses renderBinaryChoiceHtml
+        # verbatim (same reasoning HEAD_TO_HEAD_DUEL's own mobile_verified
+        # relied on) -- zero new CSS or layout.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

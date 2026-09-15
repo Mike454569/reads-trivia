@@ -47,6 +47,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #7 -- see
     # tools/director_v04/missing_piece.py's own module docstring.
     "MISSING_PIECE",
+    # 15-Format Expansion pass (Part 2), format #8 -- see
+    # tools/director_v04/before_after.py's own module docstring.
+    "BEFORE_AFTER",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -203,6 +206,12 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "MISSING_PIECE": {
         "NFL_TEAM_ROSTER_MISSING_PIECE": {"competition": "NFL"},
         "CFB_SCHOOL_ROSTER_MISSING_PIECE": {"competition": "CFB"},
+    },
+    # 15-Format Expansion pass (Part 2), format #8 -- see
+    # tools/director_v04/before_after.py's own module docstring.
+    "BEFORE_AFTER": {
+        "NFL_TEAM_CHANGE_BEFORE_AFTER": {"competition": "NFL"},
+        "CFB_SCHOOL_TRANSFER_BEFORE_AFTER": {"competition": "CFB"},
     },
 }
 
@@ -464,6 +473,36 @@ def _missing_piece_evaluate(package: dict, index: int, submission: dict) -> dict
     correct = bool(choice) and choice == canonical
     canonical_label = next(it["label"] for it in r["items"] if it["item_id"] == canonical)
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
+# --- BEFORE_AFTER (15-Format Expansion Part 2) ------------------------------
+# Real single-player career-ordering round -- see tools/director_v04/
+# before_after.py's own module docstring. current_index-based progress,
+# same shape as PAIRWISE_COMPARE above (real seasons stay server-private
+# until evaluate() runs).
+
+def generate_before_after_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import before_after
+    return before_after.build_package(seed, variant, round_count=round_count)
+
+
+def _before_after_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "prompt": r["prompt"],
+            "entity_a": r["entity_a"], "entity_b": r["entity_b"]}
+
+
+def _before_after_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer"]
+    choice = str(submission.get("choice", "")).strip().upper()
+    correct = choice in ("A", "B") and choice == canonical
+    correct_entity = r["entity_a"] if canonical == "A" else r["entity_b"]
+    return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
+            "season_a": r["_season_a"], "season_b": r["_season_b"], "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1260,6 +1299,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _pick_the_impostor_client_view(package, progress["current_index"])
     if taxonomy_id == "MISSING_PIECE":
         return _missing_piece_client_view(package, progress["current_index"])
+    if taxonomy_id == "BEFORE_AFTER":
+        return _before_after_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1309,6 +1350,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "MISSING_PIECE":
         result = _missing_piece_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "BEFORE_AFTER":
+        result = _before_after_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

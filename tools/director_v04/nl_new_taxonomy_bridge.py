@@ -247,6 +247,18 @@ _MISSING_PIECE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- BEFORE_AFTER (15-Format Expansion pass, Part 2, format #8) -----------
+# "before and after"/"before or after"/"which came first"/"played for
+# first" are the distinctive phrase -- a bare "first" or "before" alone
+# is far too generic (used constantly in unrelated phrasing), so this
+# requires the format's own real "before/after" or "which came first"
+# framing.
+_BEFORE_AFTER_RE = re.compile(
+    r"\bbefore\s+(and|or)\s+after\b|\bwhich\s+(one\s+)?(came|was)\s+first\b|"
+    r"\bwhich\b.{0,50}\bfor\s+first\b",
+    re.IGNORECASE,
+)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -343,5 +355,10 @@ def detect(request_text: str | None) -> dict | None:
         variant = "CFB_SCHOOL_ROSTER_MISSING_PIECE" if _league_for(text) == "CFB" else "NFL_TEAM_ROSTER_MISSING_PIECE"
         return {"taxonomy_id": "MISSING_PIECE", "variant": variant,
                 "format": "MISSING_PIECE", "gen_kwargs": {}}
+
+    if _BEFORE_AFTER_RE.search(text):
+        variant = "CFB_SCHOOL_TRANSFER_BEFORE_AFTER" if _league_for(text) == "CFB" else "NFL_TEAM_CHANGE_BEFORE_AFTER"
+        return {"taxonomy_id": "BEFORE_AFTER", "variant": variant,
+                "format": "BEFORE_AFTER", "gen_kwargs": {}}
 
     return None
