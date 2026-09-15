@@ -980,3 +980,89 @@ def test_unique_one_out_answer_validation_correct_and_incorrect():
     result2, progress2 = me.evaluate_submission(
         "PICK_THE_IMPOSTOR", pkg, progress2, {"impostor_item_id": wrong})
     assert result2["correct"] is False
+
+
+# --- MISSING_PIECE (15-Format Expansion Part 2, format #7) ---------------
+
+def test_missing_piece_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "MISSING_PIECE" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("MISSING_PIECE"), "MISSING_PIECE has no registered variants"
+
+
+@pytest.mark.parametrize("variant", ["NFL_TEAM_ROSTER_MISSING_PIECE", "CFB_SCHOOL_ROSTER_MISSING_PIECE"])
+def test_missing_piece_generates_real_rounds_with_a_genuine_completion(variant):
+    from tools.director_v04 import missing_piece
+
+    pkg = missing_piece.build_package("test-missing-1", variant, round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["group_members"]) == 3
+        assert len(set(r["group_members"])) == 3, "no duplicate real players in the given group"
+        assert len(r["items"]) == 4
+        item_ids = {it["item_id"] for it in r["items"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["items"]]
+        assert len(set(labels)) == 4, "no duplicate real players among the 4 candidates"
+        # the real correct completion must never coincide with a real
+        # given group member -- that would make the round trivially
+        # self-referential (a duplicate name among the 4 candidates
+        # already rules this out, but check explicitly too)
+        assert not (set(labels) & set(r["group_members"]))
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_missing_piece_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_missing_piece_round(
+        variant="NFL_TEAM_ROSTER_MISSING_PIECE", round_count=3, seed="test-missing-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("MISSING_PIECE")
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result, progress = me.evaluate_submission(
+        "MISSING_PIECE", pkg, progress, {"answer_item_id": canonical})
+    assert result["correct"] is True
+    canonical_label = next(it["label"] for it in pkg["rounds"][0]["items"] if it["item_id"] == canonical)
+    assert result["canonical_answer"] == canonical_label
+
+    progress2 = me.initial_progress("MISSING_PIECE")
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result2, progress2 = me.evaluate_submission(
+        "MISSING_PIECE", pkg, progress2, {"answer_item_id": wrong})
+    assert result2["correct"] is False
+
+
+def test_missing_piece_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_missing_piece_round(
+        variant="NFL_TEAM_ROSTER_MISSING_PIECE", round_count=2, seed="test-missing-malformed")
+
+    progress = me.initial_progress("MISSING_PIECE")
+    result, progress = me.evaluate_submission("MISSING_PIECE", pkg, progress, {"answer_item_id": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("MISSING_PIECE")
+    result2, progress2 = me.evaluate_submission("MISSING_PIECE", pkg, progress2, {"answer_item_id": "Z"})
+    assert result2["correct"] is False
+
+    progress3 = me.initial_progress("MISSING_PIECE")
+    result3, progress3 = me.evaluate_submission("MISSING_PIECE", pkg, progress3, {})
+    assert result3["correct"] is False
+
+
+def test_missing_piece_client_view_never_leaks_the_real_answer_before_submission():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_missing_piece_round(
+        variant="CFB_SCHOOL_ROSTER_MISSING_PIECE", round_count=2, seed="test-missing-leak")
+    progress = me.initial_progress("MISSING_PIECE")
+    view = me.client_safe_view("MISSING_PIECE", pkg, progress)
+    assert set(view.keys()) >= {"round_index", "round_count", "completed", "prompt", "group_members", "items"}
+    assert "_answer_item_id" not in view
+    for it in view["items"]:
+        assert set(it.keys()) == {"item_id", "label"}

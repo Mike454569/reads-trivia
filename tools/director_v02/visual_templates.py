@@ -959,6 +959,40 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # verbatim, introducing zero new CSS or layout.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "MISSING_PIECE": {
+        "format_id": "MISSING_PIECE", "display_name": "Missing Piece",
+        "description": "The inverse of PICK_THE_IMPOSTOR: 3 real players from the same real team/school "
+                        "roster in a real season are shown as given context, and the player taps which of "
+                        "4 candidates was ALSO genuinely part of that real group -- 1 real correct "
+                        "completion plus 3 real decoys who genuinely were not.",
+        "payload_schema": None,
+        "renderer": "renderMissingPieceBody (engine-game-ui.js, reuses .chain-node + renderCandidateCardsHtml)",
+        "proven_in": ["missing_piece_nfl", "missing_piece_cfb"],
+        "supported_mechanics": ["missing_piece"], "mechanic_family": "MISSING_PIECE",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["canonical_roster_seasons (NFLVERSE_DATA, SOURCE_BACKED), "
+                                         "cfb_player_season_stats_real (SPORTSDATAVERSE_CFB, "
+                                         "SOURCE_BACKED_DERIVED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Read 3 real given group members, then tap 1 of 4 real candidate cards.",
+        "validation_rules": "The real correct completion and every real decoy are drawn from a real, "
+                             "already-fetched pool for that exact real season -- no decoy is ever assumed "
+                             "absent from the real group; it is only included once confirmed not already "
+                             "among the 4 real group members.",
+        "answer_schema": "{answer_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/missing_piece.py:build_package()",
+        "qa_requirements": "Every real group-membership fact traced to a real, resolved row; the real "
+                            "correct item_id never sent to the client before evaluate() runs.",
+        "casual_aliases": ["missing piece", "who's missing", "which one belongs"],
+        # True because renderMissingPieceBody introduces zero new CSS --
+        # built entirely from .chain-node/.chain-connector (GUESS_THE_SEASON's
+        # own already-shipped clue-list classes) plus renderCandidateCardsHtml
+        # (PICK_THE_IMPOSTOR's own already-shipped component).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

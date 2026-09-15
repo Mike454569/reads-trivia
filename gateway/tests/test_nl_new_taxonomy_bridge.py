@@ -313,3 +313,49 @@ def test_unique_one_out_creator_generate_for_review_is_a_real_playable_round():
     assert "round_id" in r and r["round_id"]
     assert r["round_id"].startswith("GGP19:")
     assert len(r["view"]["items"]) == 4
+
+
+# --- MISSING_PIECE (15-Format Expansion Part 2, format #7) ---------------
+
+def test_detect_missing_piece_real_phrasing_and_league_routing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a missing piece game")
+    assert r is not None
+    assert r["taxonomy_id"] == "MISSING_PIECE"
+    assert r["format"] == "MISSING_PIECE"
+    assert r["variant"] == "NFL_TEAM_ROSTER_MISSING_PIECE"
+
+    r2 = bridge.detect("who's missing from this real roster")
+    assert r2["taxonomy_id"] == "MISSING_PIECE"
+
+    r3 = bridge.detect("college football, missing piece game")
+    assert r3["variant"] == "CFB_SCHOOL_ROSTER_MISSING_PIECE"
+
+
+def test_missing_piece_never_shadowed_by_pick_the_impostor_or_weekly_pickem():
+    """Real ordering + cross-module regression guard: MISSING_PIECE's own
+    trigger must resolve to its own format (not PICK_THE_IMPOSTOR's, even
+    though both are real "group membership" games), and -- since this
+    format's natural phrasing has no bare "pick" in it -- must not need
+    the same WEEKLY_PICKEM exclusion PICK_THE_IMPOSTOR itself needed."""
+    from gateway.services import creator
+
+    r = creator.assess_feasibility("Give me a missing piece game with real NFL players.")
+    assert r["support_status"] == "SUPPORTED"
+    assert r["taxonomy_id"] == "MISSING_PIECE"
+
+
+def test_missing_piece_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="give me a missing piece game", puzzle_count=None, difficulty=None,
+        seed="pytest-missing-bridge",
+    )
+    assert r["taxonomy_id"] == "MISSING_PIECE"
+    assert r["format_id"] == "MISSING_PIECE"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP20:")
+    assert len(r["view"]["group_members"]) == 3
+    assert len(r["view"]["items"]) == 4

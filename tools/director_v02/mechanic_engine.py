@@ -44,6 +44,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #5 -- see
     # tools/director_v04/pick_the_impostor.py's own module docstring.
     "PICK_THE_IMPOSTOR",
+    # 15-Format Expansion pass (Part 2), format #7 -- see
+    # tools/director_v04/missing_piece.py's own module docstring.
+    "MISSING_PIECE",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -194,6 +197,12 @@ VARIANTS: dict[str, dict[str, dict]] = {
         # 15-Format Expansion pass (Part 2), format #6 (UNIQUE_ONE_OUT) --
         # see tools/director_v04/pick_the_impostor.py's own module docstring.
         "NFL_DRAFT_CLASS_ONE_OUT": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #7 -- see
+    # tools/director_v04/missing_piece.py's own module docstring.
+    "MISSING_PIECE": {
+        "NFL_TEAM_ROSTER_MISSING_PIECE": {"competition": "NFL"},
+        "CFB_SCHOOL_ROSTER_MISSING_PIECE": {"competition": "CFB"},
     },
 }
 
@@ -424,6 +433,34 @@ def _pick_the_impostor_evaluate(package: dict, index: int, submission: dict) -> 
     r = package["rounds"][index]
     canonical = r["_impostor_item_id"]
     choice = str(submission.get("impostor_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["items"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
+# --- MISSING_PIECE (15-Format Expansion Part 2) -----------------------------
+# The inverse of PICK_THE_IMPOSTOR -- see tools/director_v04/
+# missing_piece.py's own module docstring. current_index-based progress,
+# same shape as PICK_THE_IMPOSTOR above.
+
+def generate_missing_piece_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import missing_piece
+    return missing_piece.build_package(seed, variant, round_count=round_count)
+
+
+def _missing_piece_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "prompt": r["prompt"],
+            "group_members": r["group_members"], "items": r["items"]}
+
+
+def _missing_piece_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("answer_item_id", "")).strip().upper()
     correct = bool(choice) and choice == canonical
     canonical_label = next(it["label"] for it in r["items"] if it["item_id"] == canonical)
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
@@ -1221,6 +1258,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _pairwise_compare_client_view(package, progress["current_index"])
     if taxonomy_id == "PICK_THE_IMPOSTOR":
         return _pick_the_impostor_client_view(package, progress["current_index"])
+    if taxonomy_id == "MISSING_PIECE":
+        return _missing_piece_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1265,6 +1304,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "PICK_THE_IMPOSTOR":
         result = _pick_the_impostor_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "MISSING_PIECE":
+        result = _missing_piece_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

@@ -1280,6 +1280,24 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #7 -- see
+  // tools/director_v04/missing_piece.py's own module docstring.
+  missingPieceNfl: {
+    publicMode: 'missing_piece_nfl', hash: '#missingpiecenflpilot',
+    flagOn: function () { return ENABLE_ENGINE_MISSING_PIECE_PILOT_V01; },
+    title: 'Missing Piece', kind: 'missing_piece',
+    desc: '3 real players from the same real NFL roster are shown -- find the 4th real player who also belongs.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  missingPieceCfb: {
+    publicMode: 'missing_piece_cfb', hash: '#missingpiececfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_MISSING_PIECE_PILOT_V01; },
+    title: 'Missing Piece: College Football', kind: 'missing_piece',
+    desc: '3 real players from the same real school roster are shown -- find the 4th real player who also belongs.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1403,6 +1421,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'guess_the_season' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'pairwise_compare' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'pick_the_impostor' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'missing_piece' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1480,6 +1499,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'pick_the_impostor') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real impostor was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'missing_piece') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real missing piece was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1559,6 +1582,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'pick_the_impostor') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real impostor was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'missing_piece') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real missing piece was ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1669,6 +1695,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'guess_the_season') return renderGuessTheSeasonBody(v, s);
   if (cfg.kind === 'pairwise_compare') return renderPairwiseCompareBody(v, s);
   if (cfg.kind === 'pick_the_impostor') return renderPickTheImpostorBody(v, s);
+  if (cfg.kind === 'missing_piece') return renderMissingPieceBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1854,6 +1881,21 @@ function renderPickTheImpostorBody(v, s) {
     '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-impostor-pick',
+    });
+}
+
+// MISSING_PIECE: the real given group_members are shown as context (reuses
+// .chain-node, the same real component GUESS_THE_SEASON's own clue list
+// already uses -- zero new CSS), then the 4 real candidates below via
+// renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR.
+function renderMissingPieceBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    v.group_members.map(function (label) {
+      return '<div class="chain-node">' + esc(label) + '</div>';
+    }).join('<div class="chain-connector">&middot;</div>') +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-missing-piece-pick',
     });
 }
 

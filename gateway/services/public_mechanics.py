@@ -337,6 +337,20 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "3 of these 4 real players were really drafted in the same real NFL Draft class -- tap whichever one wasn't.",
         "kind": "pick_the_impostor", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #7 -- see
+    # tools/director_v04/missing_piece.py's own module docstring.
+    "missing_piece_nfl": {
+        "competition": "NFL", "taxonomy_id": "MISSING_PIECE", "variant": "NFL_TEAM_ROSTER_MISSING_PIECE",
+        "title": "Missing Piece",
+        "instructions": "3 real players from the same real NFL roster are shown -- tap whichever of these 4 also really belongs.",
+        "kind": "missing_piece", "gen_kwargs": {"round_count": 5},
+    },
+    "missing_piece_cfb": {
+        "competition": "CFB", "taxonomy_id": "MISSING_PIECE", "variant": "CFB_SCHOOL_ROSTER_MISSING_PIECE",
+        "title": "Missing Piece: College Football",
+        "instructions": "3 real players from the same real school roster are shown -- tap whichever of these 4 also really belongs.",
+        "kind": "missing_piece", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -403,6 +417,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_pairwise_compare_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "PICK_THE_IMPOSTOR":
             package = mechanic_engine.generate_pick_the_impostor_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "MISSING_PIECE":
+            package = mechanic_engine.generate_missing_piece_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

@@ -89,6 +89,7 @@ var ENABLE_ENGINE_HEAD_TO_HEAD_DUEL_PILOT_V01 = READS_CONFIG.enableEngineHeadToH
 var ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01 = READS_CONFIG.enableEngineBestOfSevenDuelPilot === true;
 var ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01 = READS_CONFIG.enableEnginePickTheImpostorPilot === true;
 var ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01 = READS_CONFIG.enableEngineUniqueOneOutPilot === true;
+var ENABLE_ENGINE_MISSING_PIECE_PILOT_V01 = READS_CONFIG.enableEngineMissingPiecePilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10112,7 +10113,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-roster-pick], [data-mechanic-roster-slot], [data-mechanic-roster-candidate], ' +
     '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], ' +
     '[data-mechanic-branch-choice], [data-mechanic-branch-answer], [data-mechanic-season-submit], ' +
-    '[data-mechanic-duel-choice], [data-mechanic-impostor-pick], ' +
+    '[data-mechanic-duel-choice], [data-mechanic-impostor-pick], [data-mechanic-missing-piece-pick], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10569,6 +10570,14 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ impostor_item_id: impostorItem.item_id });
     return;
   }
+  if (t.dataset.mechanicMissingPiecePick !== undefined) {
+    var missingPieceIdx = parseInt(t.dataset.mechanicMissingPiecePick, 10);
+    var missingPieceView = state.mechanicPilot && state.mechanicPilot.view;
+    var missingPieceItem = missingPieceView && missingPieceView.items && missingPieceView.items[missingPieceIdx];
+    if (!missingPieceItem) return;
+    submitMechanicPilotAction({ answer_item_id: missingPieceItem.item_id });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -10872,6 +10881,8 @@ if (ENABLE_ENGINE_BEST_OF_SEVEN_DUEL_PILOT_V01) HIDDEN_ROUTES['#bestofsevenduelp
 if (ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01) HIDDEN_ROUTES['#picktheimpostornflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01) HIDDEN_ROUTES['#picktheimpostorcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01) HIDDEN_ROUTES['#uniqueoneoutpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiecenflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiececfbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

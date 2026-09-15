@@ -237,6 +237,16 @@ _PICK_THE_IMPOSTOR_RE = re.compile(
 # generic "which one wasn't" pattern above.
 _UNIQUE_ONE_OUT_RE = re.compile(r"\bunique\s+one\s+out\b|\bodd\s+one\s+out\b", re.IGNORECASE)
 
+# --- MISSING_PIECE (15-Format Expansion pass, Part 2, format #7) -----------
+# "missing piece"/"who's missing"/"which one belongs" are the distinctive
+# phrase -- the inverse framing of PICK_THE_IMPOSTOR (find the real
+# completion, not the real misfit), so this needs its own trigger rather
+# than sharing _PICK_THE_IMPOSTOR_RE's "which one wasn't" pattern.
+_MISSING_PIECE_RE = re.compile(
+    r"\bmissing\s+piece\b|\bwho'?s\s+missing\b|\bwhich\s+one\s+(belongs|also\s+belongs)\b",
+    re.IGNORECASE,
+)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -328,5 +338,10 @@ def detect(request_text: str | None) -> dict | None:
         variant = "CFB_SCHOOL_ROSTER_IMPOSTOR" if _league_for(text) == "CFB" else "NFL_TEAM_ROSTER_IMPOSTOR"
         return {"taxonomy_id": "PICK_THE_IMPOSTOR", "variant": variant,
                 "format": "PICK_THE_IMPOSTOR", "gen_kwargs": {}}
+
+    if _MISSING_PIECE_RE.search(text):
+        variant = "CFB_SCHOOL_ROSTER_MISSING_PIECE" if _league_for(text) == "CFB" else "NFL_TEAM_ROSTER_MISSING_PIECE"
+        return {"taxonomy_id": "MISSING_PIECE", "variant": variant,
+                "format": "MISSING_PIECE", "gen_kwargs": {}}
 
     return None
