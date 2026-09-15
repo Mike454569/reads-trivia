@@ -441,6 +441,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "real question. One wrong answer loses everything.",
         "kind": "double_or_nothing", "gen_kwargs": {"round_count": 8},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # king_of_the_hill.py's own module docstring.
+    "king_of_the_hill_nfl": {
+        "competition": "NFL", "taxonomy_id": "KING_OF_THE_HILL", "variant": "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL",
+        "title": "King of the Hill",
+        "instructions": "Tap whichever of the champion or the next real challenger you think really had "
+                         "more real wins that season -- a correct prediction keeps the gauntlet going; a "
+                         "wrong prediction ends your run.",
+        "kind": "king_of_the_hill", "gen_kwargs": {},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -523,6 +533,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_blind_resume_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "DOUBLE_OR_NOTHING":
             package = mechanic_engine.generate_double_or_nothing_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "KING_OF_THE_HILL":
+            package = mechanic_engine.generate_king_of_the_hill_round(variant=variant, seed=seed)
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

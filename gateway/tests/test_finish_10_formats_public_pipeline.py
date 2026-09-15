@@ -781,6 +781,56 @@ def test_double_or_nothing_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 26. KING_OF_THE_HILL (75-Format Expansion, Wave 1) --------------------
+
+def test_king_of_the_hill_full_public_playthrough_defends_and_dethrones():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="king_of_the_hill_nfl")
+    rid = r["round_id"]
+    assert rid.startswith("GGP29:")
+    assert r["view"]["completed"] is False
+    assert r["view"]["consecutive_defenses"] == 0
+
+    pkg = packages.load_package(rid)
+    items = pkg["items"]
+    canonical0 = "champion" if items[0]["value"] > items[1]["value"] else "challenger"
+    sub1 = pm.submit_public_round(round_id=rid, submission={"choice": canonical0})
+    assert sub1["result"]["correct"] is True
+    expected_champ_idx = 0 if canonical0 == "champion" else 1
+    expected_defenses = 1 if canonical0 == "champion" else 0
+    assert sub1["view"]["consecutive_defenses"] == expected_defenses
+    assert sub1["view"]["champion"]["label"] == items[expected_champ_idx]["label"]
+
+
+def test_king_of_the_hill_wrong_guess_ends_the_run_through_the_public_pipeline():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="king_of_the_hill_nfl")
+    rid = r["round_id"]
+    pkg = packages.load_package(rid)
+    items = pkg["items"]
+    canonical = "champion" if items[0]["value"] > items[1]["value"] else "challenger"
+    wrong = "challenger" if canonical == "champion" else "champion"
+    sub = pm.submit_public_round(round_id=rid, submission={"choice": wrong})
+    assert sub["result"]["correct"] is False
+    assert sub["view"]["completed"] is True
+
+    with pytest.raises(Exception):
+        pm.submit_public_round(round_id=rid, submission={"choice": canonical})
+
+
+def test_king_of_the_hill_never_leaks_real_win_totals_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="king_of_the_hill_nfl")
+    assert set(r["view"].keys()) == {"completed", "consecutive_defenses", "champion", "challenger"}
+    for key in ("champion", "challenger"):
+        assert set(r["view"][key].keys()) == {"entity_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

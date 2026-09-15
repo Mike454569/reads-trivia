@@ -1270,6 +1270,42 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped choice-button class) for the bank/continue choice.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "KING_OF_THE_HILL": {
+        "format_id": "KING_OF_THE_HILL", "display_name": "King of the Hill",
+        "description": "Real persistent-champion gauntlet: one real NFL team-season starts as champion. "
+                        "Predict whether the champion or the next real challenger really had more real "
+                        "wins that season -- a correct prediction resolves honestly (the real higher-win "
+                        "team becomes/stays champion, consecutive defenses tracked); a wrong prediction "
+                        "ends the run.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step binary choice per round -- reuses the exact same "
+                                   "renderBinaryChoiceHtml/data-mechanic-duel-choice pattern already shipped "
+                                   "for PAIRWISE_COMPARE/BEFORE_AFTER/LEADERBOARD_CLIMB rather than inventing "
+                                   "a new choice widget.",
+        "proven_in": ["king_of_the_hill_nfl"],
+        "supported_mechanics": ["king_of_the_hill"], "mechanic_family": "KING_OF_THE_HILL",
+        "supported_entity_types": ["team"],
+        "required_data_relationships": ["season_standings (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 16, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Tap whichever of the champion or the next real challenger you think really "
+                              "had more real wins that season.",
+        "validation_rules": "Every real item's real win total is distinct from every other item's (tie-"
+                             "exclusion by construction, reusing higher_lower.py's own real discipline) -- "
+                             "no comparison can ever tie.",
+        "answer_schema": "{choice: 'champion'|'challenger'}",
+        "generation_schema": "tools/director_v04/king_of_the_hill.py:build_package()",
+        "qa_requirements": "The real winning side is never sent to the client before evaluate() runs; only "
+                            "the champion's and challenger's real names are ever exposed pre-answer, never "
+                            "their real win totals.",
+        "casual_aliases": ["king of the hill"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderBinaryChoiceHtml (PAIRWISE_COMPARE's own
+        # already-shipped binary-choice pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

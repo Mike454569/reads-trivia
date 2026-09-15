@@ -230,6 +230,7 @@ _NEW_TAXONOMY_TITLES = {
     "LEADERBOARD_CLIMB": "Leaderboard Climb",
     "BLIND_RESUME": "Blind Resume",
     "DOUBLE_OR_NOTHING": "Double or Nothing",
+    "KING_OF_THE_HILL": "King of the Hill",
 }
 
 
@@ -308,9 +309,11 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "BLIND_RESUME":
         package = mechanic_engine.generate_blind_resume_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 7), seed=real_seed)
-    else:  # DOUBLE_OR_NOTHING
+    elif taxonomy_id == "DOUBLE_OR_NOTHING":
         package = mechanic_engine.generate_double_or_nothing_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
+    else:  # KING_OF_THE_HILL
+        package = mechanic_engine.generate_king_of_the_hill_round(variant=variant, seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(

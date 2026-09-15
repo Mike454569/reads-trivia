@@ -266,6 +266,7 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Compare & Rank', title: 'Leaderboard Climb', desc: 'Climb a real leaderboard one real rung at a time.', taxonomyId: 'LEADERBOARD_CLIMB', variant: 'NFL_CAREER_PASSING_YARDS_CLIMB' },
   { category: 'Compare & Rank', title: 'Higher or Lower', desc: 'A real streak of higher/lower stat guesses.', taxonomyId: 'HIGHER_LOWER_STREAK', variant: 'NFL_TEAM_SEASON_WINS' },
   { category: 'Compare & Rank', title: 'Comparison Bracket', desc: 'Real teams face off through a real bracket.', taxonomyId: 'COMPARISON_BRACKET', variant: 'NFL_TEAM_SEASON_WINS_BRACKET' },
+  { category: 'Compare & Rank', title: 'King of the Hill', desc: 'Defend the real champion against a gauntlet of real challengers.', taxonomyId: 'KING_OF_THE_HILL', variant: 'NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL' },
   { category: 'Spot the Odd One', title: 'Pick the Impostor', desc: '3 real players share a fact -- find the 1 that doesn’t.', taxonomyId: 'PICK_THE_IMPOSTOR', variant: 'NFL_TEAM_ROSTER_IMPOSTOR' },
   { category: 'Spot the Odd One', title: 'Unique One Out', desc: 'Same shape, real NFL Draft class membership.', taxonomyId: 'PICK_THE_IMPOSTOR', variant: 'NFL_DRAFT_CLASS_ONE_OUT' },
   { category: 'Spot the Odd One', title: 'Missing Piece', desc: 'Find the real 4th player who also belongs.', taxonomyId: 'MISSING_PIECE', variant: 'NFL_TEAM_ROSTER_MISSING_PIECE' },

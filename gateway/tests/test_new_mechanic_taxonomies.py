@@ -1819,3 +1819,89 @@ def test_double_or_nothing_client_view_never_leaks_the_real_answer():
     assert view["can_bank"] is False
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- KING_OF_THE_HILL (75-Format Expansion, Wave 1) -----------------------
+
+def test_king_of_the_hill_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "KING_OF_THE_HILL" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("KING_OF_THE_HILL"), "KING_OF_THE_HILL has no registered variants"
+
+
+def test_king_of_the_hill_generates_real_distinct_valued_items():
+    from tools.director_v04 import king_of_the_hill as koth
+
+    pkg = koth.build_package("test-koth-1", "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL")
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["item_count"] >= 4
+    values = [it["value"] for it in pkg["items"]]
+    assert len(set(values)) == len(values), "a real tie slipped through -- comparisons could be unanswerable"
+    labels = [it["label"] for it in pkg["items"]]
+    assert len(set(labels)) == len(labels), "duplicate real team-season on the same board"
+
+
+def test_king_of_the_hill_champion_defends_and_gets_dethroned_correctly():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_king_of_the_hill_round(
+        variant="NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL", seed="test-koth-play")
+    items = pkg["items"]
+    progress = {"consecutive_defenses": 0, "ended": False, "completed": False}
+
+    view0 = me.client_safe_view("KING_OF_THE_HILL", pkg, progress)
+    assert view0["completed"] is False
+    assert set(view0.keys()) == {"completed", "consecutive_defenses", "champion", "challenger"}
+    assert set(view0["champion"].keys()) == {"entity_id", "label"}
+
+    while not progress.get("completed"):
+        champ_idx = progress.get("current_champion_index", 0)
+        chall_idx = progress.get("current_challenger_index", 1)
+        champ, chall = items[champ_idx], items[chall_idx]
+        canonical = "champion" if champ["value"] > chall["value"] else "challenger"
+        result, progress = me.evaluate_submission("KING_OF_THE_HILL", pkg, progress, {"choice": canonical})
+        assert result["correct"] is True
+        expected_new_champ = champ_idx if canonical == "champion" else chall_idx
+        assert progress["current_champion_index"] == expected_new_champ
+        if canonical == "champion":
+            assert progress["consecutive_defenses"] >= 1
+        else:
+            assert progress["consecutive_defenses"] == 0
+
+    assert progress["completed"] is True
+    assert progress.get("ended") is False  # ran out of real challengers, never lost
+    assert progress["current_challenger_index"] >= len(items)
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("KING_OF_THE_HILL", pkg, progress, {"choice": "champion"})
+
+
+def test_king_of_the_hill_wrong_guess_ends_the_run_and_rejects_further_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_king_of_the_hill_round(
+        variant="NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL", seed="test-koth-wrong")
+    items = pkg["items"]
+    progress = {"consecutive_defenses": 0, "ended": False, "completed": False}
+    canonical = "champion" if items[0]["value"] > items[1]["value"] else "challenger"
+    wrong = "challenger" if canonical == "champion" else "champion"
+    result, progress = me.evaluate_submission("KING_OF_THE_HILL", pkg, progress, {"choice": wrong})
+    assert result["correct"] is False
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("KING_OF_THE_HILL", pkg, progress, {"choice": canonical})
+
+
+def test_king_of_the_hill_client_view_never_leaks_real_win_totals_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_king_of_the_hill_round(
+        variant="NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL", seed="test-koth-leak")
+    progress = {"consecutive_defenses": 0, "ended": False, "completed": False}
+    view = me.client_safe_view("KING_OF_THE_HILL", pkg, progress)
+    for key in ("champion", "challenger"):
+        assert set(view[key].keys()) == {"entity_id", "label"}
+        assert "value" not in view[key]

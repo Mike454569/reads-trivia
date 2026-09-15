@@ -125,6 +125,7 @@ window.READS_CONFIG = {
   // 75-Format Expansion, Wave 1 -- same off-by-default convention as its
   // own sibling pilots above.
   enableEngineDoubleOrNothingPilot: false,
+  enableEngineKingOfTheHillPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

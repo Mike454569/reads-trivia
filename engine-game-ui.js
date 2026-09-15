@@ -1431,6 +1431,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // king_of_the_hill.py's own module docstring.
+  kingOfTheHill: {
+    publicMode: 'king_of_the_hill_nfl', hash: '#kingofthehillpilot',
+    flagOn: function () { return ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01; },
+    title: 'King of the Hill', kind: 'king_of_the_hill',
+    desc: 'Defend the real champion team-season against a gauntlet of real random challengers.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1569,6 +1579,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'leaderboard_climb' && v.completed) pct = Math.min(100, 100 * (v.ladder_size - v.current_rank) / (v.ladder_size - 1 || 1));
   else if (cfg.kind === 'blind_resume' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'double_or_nothing' && v.completed) pct = Math.min(100, 100 * (v.points || 0) / 1600);
+  else if (cfg.kind === 'king_of_the_hill' && v.completed) pct = Math.min(100, (v.consecutive_defenses || 0) * 10);
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1679,6 +1690,11 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'double_or_nothing') {
     return '<p class="mode-desc">' + (v.banked ? 'You banked ' + v.points + ' real points! ' : 'Run over -- you risked it and lost. ') +
       'Final points: ' + v.points + '.</p>';
+  }
+  if (cfg.kind === 'king_of_the_hill') {
+    return '<p class="mode-desc">' + (v.ended ? 'Run over -- ' : 'Out of real challengers -- ') +
+      esc(v.champion) + ' ' + (v.ended ? 'was the real champion when you fell' : 'remains undefeated real champion') +
+      '. Consecutive defenses: ' + v.consecutive_defenses + '.</p>';
   }
   return '';
 }
@@ -1794,6 +1810,11 @@ function renderMechanicPilotFeedback(cfg, s) {
       headline = wasCorrect ? 'Correct! Now at ' + r.points + ' points.' : 'Wrong -- you lost it all.';
       detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
     }
+  } else if (cfg.kind === 'king_of_the_hill') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? (r.canonical_answer === 'champion' ? 'Champion defends!' : 'New champion!') : 'Dethroned.';
+    detail = (r.winner_label && r.champion_value != null && r.challenger_value != null)
+      ? esc(r.winner_label) + ' really had more wins (' + r.champion_value + ' vs ' + r.challenger_value + ').' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1912,6 +1933,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'leaderboard_climb') return renderLeaderboardClimbBody(v, s);
   if (cfg.kind === 'blind_resume') return renderBlindResumeBody(v, s);
   if (cfg.kind === 'double_or_nothing') return renderDoubleOrNothingBody(v, s);
+  if (cfg.kind === 'king_of_the_hill') return renderKingOfTheHillBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2244,6 +2266,20 @@ function renderDoubleOrNothingBody(v, s) {
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-don-answer',
     });
+}
+
+// KING_OF_THE_HILL: identical {choice: 'champion'|'challenger'} submission
+// shape to PAIRWISE_COMPARE/LEADERBOARD_CLIMB, so this reuses
+// renderBinaryChoiceHtml AND the same data-mechanic-duel-choice click
+// handler verbatim -- zero new app.js plumbing needed for this format.
+function renderKingOfTheHillBody(v, s) {
+  return '<div class="status-line">Consecutive defenses: ' + v.consecutive_defenses + '</div>' +
+    '<div class="quiz-question">Which real team-season really had MORE real wins that season?</div>' +
+    renderBinaryChoiceHtml(
+      { code: 'champion', label: v.champion.label },
+      { code: 'challenger', label: v.challenger.label },
+      { dataAttr: 'data-mechanic-duel-choice' },
+    );
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

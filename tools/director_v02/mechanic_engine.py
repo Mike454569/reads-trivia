@@ -71,6 +71,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # double_or_nothing.py's own module docstring.
     "DOUBLE_OR_NOTHING",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # king_of_the_hill.py's own module docstring.
+    "KING_OF_THE_HILL",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -282,6 +285,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # double_or_nothing.py's own module docstring.
     "DOUBLE_OR_NOTHING": {
         "NFL_DRAFT_DOUBLE_OR_NOTHING": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # king_of_the_hill.py's own module docstring.
+    "KING_OF_THE_HILL": {
+        "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL": {"competition": "NFL"},
     },
 }
 
@@ -974,6 +982,50 @@ def _double_or_nothing_evaluate(package: dict, progress: dict, submission: dict)
         return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
                 "points": new_points, "notes": r["_notes"]}
     raise MechanicError(f"action must be 'bank' or 'answer', got {action!r}")
+
+
+# --- KING_OF_THE_HILL (75-Format Expansion, Wave 1) -------------------------
+# Real persistent-champion gauntlet -- see tools/director_v04/
+# king_of_the_hill.py's own module docstring for why this is deliberately
+# distinct from LEADERBOARD_CLIMB despite the superficial "climb-until-
+# miss" family resemblance. Same full-progress-dict evaluate pattern
+# LEADERBOARD_CLIMB already established (real champion-index/defenses
+# state doesn't fit a plain current_index-increment).
+
+def generate_king_of_the_hill_round(*, variant: str, seed: str) -> dict:
+    from tools.director_v04 import king_of_the_hill
+    return king_of_the_hill.build_package(seed, variant)
+
+
+def _king_of_the_hill_client_view(package: dict, progress: dict) -> dict:
+    items = package["items"]
+    champ_idx = progress.get("current_champion_index", 0)
+    chall_idx = progress.get("current_challenger_index", 1)
+    defenses = progress.get("consecutive_defenses", 0)
+    if progress.get("ended") or chall_idx >= len(items):
+        return {"completed": True, "ended": bool(progress.get("ended")),
+                "champion": items[champ_idx]["label"], "consecutive_defenses": defenses}
+    return {"completed": False, "consecutive_defenses": defenses,
+            "champion": {"entity_id": "champion", "label": items[champ_idx]["label"]},
+            "challenger": {"entity_id": "challenger", "label": items[chall_idx]["label"]}}
+
+
+def _king_of_the_hill_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    items = package["items"]
+    champ_idx = progress.get("current_champion_index", 0)
+    chall_idx = progress.get("current_challenger_index", 1)
+    if chall_idx >= len(items):
+        raise MechanicError("no real challengers remain -- this run has already ended")
+    champion, challenger = items[champ_idx], items[chall_idx]
+    canonical = "champion" if champion["value"] > challenger["value"] else "challenger"
+    choice = str(submission.get("choice", "")).strip().lower()
+    correct = choice in ("champion", "challenger") and choice == canonical
+    new_champion_index = champ_idx if canonical == "champion" else chall_idx
+    new_defenses = (progress.get("consecutive_defenses", 0) + 1) if canonical == "champion" else 0
+    winner_label = champion["label"] if canonical == "champion" else challenger["label"]
+    return {"correct": correct, "canonical_answer": canonical, "winner_label": winner_label,
+            "champion_value": champion["value"], "challenger_value": challenger["value"],
+            "new_champion_index": new_champion_index, "new_defenses": new_defenses}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1786,6 +1838,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _blind_resume_client_view(package, progress["current_index"])
     if taxonomy_id == "DOUBLE_OR_NOTHING":
         return _double_or_nothing_client_view(package, progress)
+    if taxonomy_id == "KING_OF_THE_HILL":
+        return _king_of_the_hill_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1926,6 +1980,18 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
             else:
                 progress["ended"] = True
                 progress["completed"] = True
+        return result, progress
+    if taxonomy_id == "KING_OF_THE_HILL":
+        if progress.get("ended") or progress.get("completed"):
+            raise MechanicError("this run has already ended")
+        result = _king_of_the_hill_evaluate(package, progress, submission)
+        progress["current_champion_index"] = result["new_champion_index"]
+        progress["consecutive_defenses"] = result["new_defenses"]
+        progress["current_challenger_index"] = progress.get("current_challenger_index", 1) + 1
+        if not result["correct"]:
+            progress["ended"] = True
+        progress["completed"] = (
+            progress.get("ended", False) or progress["current_challenger_index"] >= len(package["items"]))
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
@@ -2088,6 +2154,14 @@ def initial_progress(taxonomy_id: str) -> dict:
         # balance already established (this function has no package to
         # read the real starting value from).
         return {"ended": False, "completed": False}
+    if taxonomy_id == "KING_OF_THE_HILL":
+        # current_champion_index/current_challenger_index deliberately
+        # absent -- _king_of_the_hill_client_view/_king_of_the_hill_evaluate
+        # both fall back to (0, 1) (the real package's own item[0] as the
+        # starting champion, item[1] as the first real challenger) when
+        # missing, same sentinel-fallback pattern LEADERBOARD_CLIMB's own
+        # current_rank already established.
+        return {"consecutive_defenses": 0, "ended": False, "completed": False}
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}
     if taxonomy_id == "COMPARISON_BRACKET":
