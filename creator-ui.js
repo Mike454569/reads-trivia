@@ -242,6 +242,90 @@ function creatorUseExample(text) {
   if (el) el.focus();
 }
 
+// Format Picker pass: the user's own real gap report -- "I want it to
+// give me options when you make a game mode, not just strictly to you
+// having to say the format" -- CREATOR_EXAMPLE_PROMPTS above only ever
+// illustrated the flexible old guess/identify_player_from_clues
+// translator (which tolerates loose phrasing), leaving every genuinely
+// NEW format (built via tools/director_v04/nl_new_taxonomy_bridge.py,
+// nl_mechanic_bridge.py, nl_schedule_bridge.py -- all deliberately
+// NARROW-anchored, see those modules' own docstrings) undiscoverable
+// unless the admin already knew its exact trigger phrase. Deliberately
+// the SIMPLE fix agreed with the user (build the picker after finishing
+// the 15 formats; extend incrementally as more formats/modifiers land,
+// never replace) rather than folding this into a bigger Creator
+// NL-parsing overhaul: every entry below is just a real, already-tested
+// phrase (each one live-verified this pass via creator.assess_feasibility
+// to resolve to its named taxonomy_id with SUPPORTED status -- same
+// phrases test_finish_10_formats_public_pipeline.py's own
+// test_creator_example_prompts_reach_the_intended_new_format already
+// exercises for several of these) wired through the exact same
+// creatorUseExample() flow the 5 legacy example chips already use --
+// picking a row fills the textarea and lets Check Feasibility run the
+// real pipeline, never a second, parallel generation path. To add a
+// format landing later, append one object here; nothing else changes.
+var CREATOR_FORMAT_CATALOG = [
+  { category: 'Matching & Sorting', title: 'Matching', desc: 'Pair up real players/picks.', phrase: 'Give me a matching game with NFL draft picks.' },
+  { category: 'Matching & Sorting', title: 'Timeline Order', desc: 'Put real picks/years in order.', phrase: 'Give me a timeline game with NFL Draft picks.' },
+  { category: 'Matching & Sorting', title: 'Stat Ladder', desc: 'Rank real players by a real career stat.', phrase: 'Give me a stat ladder with quarterbacks.' },
+  { category: 'Matching & Sorting', title: 'Map the Career', desc: 'Order the real teams a player actually played for.', phrase: 'Map the career of a real NFL player.' },
+  { category: 'Compare & Rank', title: 'Head to Head Duel', desc: 'Two real players, one real stat -- who’s higher?', phrase: 'Give me a head to head duel between two real quarterbacks.' },
+  { category: 'Compare & Rank', title: 'Best of Seven Duel', desc: 'A real multi-category showdown between two real QBs.', phrase: 'Give me a best of seven duel between two real quarterbacks.' },
+  { category: 'Compare & Rank', title: 'Leaderboard Climb', desc: 'Climb a real leaderboard one real rung at a time.', phrase: 'Give me a leaderboard climb game with real NFL passers.' },
+  { category: 'Compare & Rank', title: 'Higher or Lower', desc: 'A real streak of higher/lower stat guesses.', phrase: 'Give me a higher or lower game with NFL team win totals.' },
+  { category: 'Compare & Rank', title: 'Comparison Bracket', desc: 'Real teams face off through a real bracket.', phrase: 'Give me a bracket game with NFL teams.' },
+  { category: 'Spot the Odd One', title: 'Pick the Impostor', desc: '3 real players share a fact -- find the 1 that doesn’t.', phrase: 'Give me a pick the impostor game with real NFL players.' },
+  { category: 'Spot the Odd One', title: 'Unique One Out', desc: 'Same shape, real NFL Draft class membership.', phrase: 'Give me a unique one out game with real NFL players.' },
+  { category: 'Spot the Odd One', title: 'Missing Piece', desc: 'Find the real 4th player who also belongs.', phrase: 'Give me a missing piece game with real NFL players.' },
+  { category: 'Spot the Odd One', title: 'Blind Resume', desc: 'A real career stat line, name hidden -- whose is it?', phrase: 'Give me a blind resume game with a real NFL quarterback.' },
+  { category: 'Build a Team', title: 'Lineup Builder', desc: 'Build a real skill-position lineup.', phrase: 'Build me a skill position lineup.' },
+  { category: 'Build a Team', title: 'Auction Draft', desc: 'Draft real players against a fictional budget.', phrase: 'Give me an auction draft.' },
+  { category: 'Build a Team', title: 'Cap Challenge', desc: 'Build a real roster under a real salary cap.', phrase: 'Give me a salary cap challenge.' },
+  { category: 'Build a Team', title: 'Lineup Grid', desc: 'Guess the real team from its real starting lineup.', phrase: 'Guess the team from its starting lineup.' },
+  { category: 'Risk & Wager', title: 'Risk It', desc: 'Pick a real risk tier before you see the question.', phrase: 'Give me a risk it game with real NFL Draft picks.' },
+  { category: 'Risk & Wager', title: 'Wager Mode', desc: 'Wager fictional points on a real category before it’s revealed.', phrase: 'Give me a wager mode game.' },
+  { category: 'Brackets & Tournaments', title: 'Knockout Tournament', desc: 'A real single-elimination bracket.', phrase: 'Give me a 16-team knockout tournament.' },
+  { category: 'Brackets & Tournaments', title: 'Elimination', desc: 'Survive a real sequence of stat guesses -- one miss and you’re out.', phrase: 'Give me an elimination game.' },
+  { category: 'Story & Path', title: 'Choose Your Path', desc: 'Branch through a real topic tree.', phrase: 'Give me a choose-your-path game.' },
+  { category: 'Story & Path', title: 'Career Path', desc: 'Read a real career path, then guess the real player.', phrase: 'Give me a career path game with a real NFL player.' },
+  { category: 'Story & Path', title: 'Before & After', desc: 'Which real team did this real player play for FIRST?', phrase: 'Give me a before and after game with a real NFL player.' },
+  { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', phrase: 'Guess the season this real NFL team won it all.' },
+  { category: 'Story & Path', title: 'Connection Grid', desc: 'A real 3x3 grid of real team/round intersections.', phrase: 'Give me a connection grid game.' },
+  { category: 'Story & Path', title: 'Six Degrees', desc: 'Connect two real players through real teammates.', phrase: 'Connect these two players.' },
+  { category: 'Story & Path', title: 'Chain Reaction', desc: 'A real chain of players and colleges.', phrase: 'Give me a chain reaction game.' },
+  { category: 'Drives', title: 'Perfect Drive', desc: 'Answer real questions to drive down the real field.', phrase: 'Give me a perfect drive game.' },
+  { category: 'Drives', title: 'Goal Line Stand', desc: 'Real 4-down trivia from the real goal line.', phrase: 'Give me a goal line stand game.' },
+  { category: 'Live & Weekly', title: 'Weekly Pick’em', desc: 'Pick real winners for this week’s real NFL slate.', phrase: 'Give me the NFL weekly pick’em.' },
+  { category: 'Live & Weekly', title: 'Fantasy Draft', desc: 'A real live-style fantasy draft.', phrase: 'Give me a fantasy draft with NFL players.' },
+  { category: 'Live & Weekly', title: 'Confidence Pick', desc: 'Rank your real picks by confidence for real points.', phrase: 'Give me a confidence pick game for this week’s NFL games.' },
+];
+function creatorPickFormat(index) {
+  var entry = CREATOR_FORMAT_CATALOG[index];
+  if (!entry) return;
+  creatorUseExample(entry.phrase);
+}
+function renderCreatorFormatPickerHtml() {
+  var byCategory = {};
+  var order = [];
+  CREATOR_FORMAT_CATALOG.forEach(function (entry, i) {
+    if (!byCategory[entry.category]) { byCategory[entry.category] = []; order.push(entry.category); }
+    byCategory[entry.category].push({ entry: entry, index: i });
+  });
+  // Reuses .creator-examples-label (the existing small bold dim-text
+  // section label) for each category heading and .creator-queue-row (the
+  // existing Review Queue row style) for each entry -- zero new CSS.
+  return order.map(function (cat) {
+    return '<div class="creator-examples-label">' + esc(cat) + '</div>' +
+      byCategory[cat].map(function (row) {
+        return '<div class="creator-queue-row">' +
+          '<div><b>' + esc(row.entry.title) + '</b></div>' +
+          '<div class="mode-desc">' + esc(row.entry.desc) + '</div>' +
+          '<div class="btn-row"><button class="btn-tiny" data-creator-format-pick="' + row.index + '">Use This Format</button></div>' +
+          '</div>';
+      }).join('');
+  }).join('');
+}
+
 function creatorSupportBadgeHtml(status) {
   var cls = { SUPPORTED: 'good', SUPPORTED_WITH_LIMITATIONS: 'good', UNDERSTOOD_BUT_UNSUPPORTED: 'warn',
     MISSING_DATA: 'warn', UNSAFE: 'bad', UNKNOWN: 'warn' }[status] || 'warn';
@@ -424,5 +508,10 @@ function renderCreatorScreen() {
     '<div class="chip-row">' + CREATOR_EXAMPLE_PROMPTS.map(function (ex) {
       return '<button class="chip-toggle" data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>';
     }).join('') + '</div>' +
+    '<h2 class="panel-title">Or Pick a Game Format</h2>' +
+    '<p class="mode-desc">Every format below is real and already playable -- pick one to fill in a ' +
+    'proven real request, then Check Feasibility as usual. Typing your own description above still ' +
+    'works too, especially for the classic quiz categories.</p>' +
+    renderCreatorFormatPickerHtml() +
     '</div>';
 }

@@ -10127,6 +10127,7 @@ document.addEventListener('click', function (e) {
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
+    '[data-creator-format-pick], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -10672,6 +10673,7 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
   if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
+  if (t.dataset.creatorFormatPick !== undefined) { creatorPickFormat(parseInt(t.dataset.creatorFormatPick, 10)); return; }
   if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
   if (t.dataset.iqStart !== undefined) { startIQTest(); return; }
