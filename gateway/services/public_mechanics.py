@@ -451,6 +451,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "wrong prediction ends your run.",
         "kind": "king_of_the_hill", "gen_kwargs": {},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # fact_or_fake.py's own module docstring.
+    "fact_or_fake_nfl_draft": {
+        "competition": "NFL", "taxonomy_id": "FACT_OR_FAKE", "variant": "NFL_DRAFT_FACT_OR_FAKE",
+        "title": "Fact or Fake",
+        "instructions": "Read the real statement -- tap TRUE if it's a real, verbatim fact, or FAKE if "
+                         "it's been altered.",
+        "kind": "fact_or_fake", "gen_kwargs": {"round_count": 10},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -535,6 +544,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_double_or_nothing_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "KING_OF_THE_HILL":
             package = mechanic_engine.generate_king_of_the_hill_round(variant=variant, seed=seed)
+        elif taxonomy_id == "FACT_OR_FAKE":
+            package = mechanic_engine.generate_fact_or_fake_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

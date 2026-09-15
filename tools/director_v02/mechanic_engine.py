@@ -74,6 +74,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # king_of_the_hill.py's own module docstring.
     "KING_OF_THE_HILL",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # fact_or_fake.py's own module docstring.
+    "FACT_OR_FAKE",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -290,6 +293,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # king_of_the_hill.py's own module docstring.
     "KING_OF_THE_HILL": {
         "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # fact_or_fake.py's own module docstring.
+    "FACT_OR_FAKE": {
+        "NFL_DRAFT_FACT_OR_FAKE": {"competition": "NFL"},
     },
 }
 
@@ -1026,6 +1034,37 @@ def _king_of_the_hill_evaluate(package: dict, progress: dict, submission: dict) 
     return {"correct": correct, "canonical_answer": canonical, "winner_label": winner_label,
             "champion_value": champion["value"], "challenger_value": challenger["value"],
             "new_champion_index": new_champion_index, "new_defenses": new_defenses}
+
+
+# --- FACT_OR_FAKE (75-Format Expansion, Wave 1) ------------------------------
+# Real true/false judgment -- see tools/director_v04/fact_or_fake.py's own
+# module docstring. current_index-based progress, same shape as
+# PICK_THE_IMPOSTOR/MISSING_PIECE/BEFORE_AFTER above (falls through to
+# initial_progress()'s own generic default, no dedicated branch needed).
+
+def generate_fact_or_fake_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import fact_or_fake
+    return fact_or_fake.build_package(seed, variant, round_count=round_count)
+
+
+def _fact_or_fake_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "statement": r["statement"]}
+
+
+def _fact_or_fake_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = "TRUE" if r["_is_true"] else "FAKE"
+    # Reads "choice" (not a fact_or_fake-specific field name) deliberately
+    # -- lets the client reuse the exact same data-mechanic-duel-choice
+    # click handler PAIRWISE_COMPARE/BEFORE_AFTER/LEADERBOARD_CLIMB/
+    # KING_OF_THE_HILL already share, zero new app.js plumbing needed.
+    choice = str(submission.get("choice", "")).strip().upper()
+    correct = choice in ("TRUE", "FAKE") and choice == canonical
+    return {"correct": correct, "canonical_answer": canonical, "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1840,6 +1879,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _double_or_nothing_client_view(package, progress)
     if taxonomy_id == "KING_OF_THE_HILL":
         return _king_of_the_hill_client_view(package, progress)
+    if taxonomy_id == "FACT_OR_FAKE":
+        return _fact_or_fake_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1992,6 +2033,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
             progress["ended"] = True
         progress["completed"] = (
             progress.get("ended", False) or progress["current_challenger_index"] >= len(package["items"]))
+        return result, progress
+    if taxonomy_id == "FACT_OR_FAKE":
+        result = _fact_or_fake_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):

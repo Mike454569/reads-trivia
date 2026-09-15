@@ -1306,6 +1306,37 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped binary-choice pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "FACT_OR_FAKE": {
+        "format_id": "FACT_OR_FAKE", "display_name": "Fact or Fake",
+        "description": "Real true/false judgment: read one real NFL Draft statement and tap TRUE (a real, "
+                        "verbatim fact) or FAKE (one real team substituted with a different real team that "
+                        "drafted a different real player that class -- provably false, never a fabricated "
+                        "or randomly-altered number).",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step binary TRUE/FAKE choice per round -- reuses "
+                                   "renderBinaryChoiceHtml/data-mechanic-duel-choice verbatim.",
+        "proven_in": ["fact_or_fake_nfl_draft"],
+        "supported_mechanics": ["fact_or_fake"], "mechanic_family": "FACT_OR_FAKE",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 1, "max_items": 1, "min_pool_size": 2,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real statement, then tap TRUE or FAKE.",
+        "validation_rules": "Every real FAKE statement is false by a genuine real entity substitution "
+                             "(a different real team that really drafted someone else that class), never a "
+                             "fabricated or randomly-altered number. Rounds split TRUE/FAKE deterministically "
+                             "50/50, never a coin flip that could skew a short run.",
+        "answer_schema": "{guess: 'TRUE'|'FAKE'}",
+        "generation_schema": "tools/director_v04/fact_or_fake.py:build_package()",
+        "qa_requirements": "Whether a round is TRUE or FAKE is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["fact or fake"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderBinaryChoiceHtml (PAIRWISE_COMPARE's own
+        # already-shipped binary-choice pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

@@ -1905,3 +1905,69 @@ def test_king_of_the_hill_client_view_never_leaks_real_win_totals_before_evaluat
     for key in ("champion", "challenger"):
         assert set(view[key].keys()) == {"entity_id", "label"}
         assert "value" not in view[key]
+
+
+# --- FACT_OR_FAKE (75-Format Expansion, Wave 1) ---------------------------
+
+def test_fact_or_fake_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "FACT_OR_FAKE" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("FACT_OR_FAKE"), "FACT_OR_FAKE has no registered variants"
+
+
+def test_fact_or_fake_generates_a_real_deterministic_true_false_split():
+    from tools.director_v04 import fact_or_fake as fof
+
+    pkg = fof.build_package("test-fof-1", "NFL_DRAFT_FACT_OR_FAKE", round_count=10)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    flags = [r["_is_true"] for r in pkg["rounds"]]
+    assert flags[0::2] == [True] * len(flags[0::2]), "even rounds should be real, verbatim TRUE statements"
+    if len(flags) > 1:
+        assert flags[1::2] == [False] * len(flags[1::2]), "odd rounds should be real, substituted FAKE statements"
+    for r in pkg["rounds"]:
+        assert r["statement"]
+        assert r["_notes"]
+
+
+def test_fact_or_fake_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_fact_or_fake_round(variant="NFL_DRAFT_FACT_OR_FAKE", round_count=3, seed="test-fof-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("FACT_OR_FAKE", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["statement"] == pkg["rounds"][0]["statement"]
+
+    canonical0 = "TRUE" if pkg["rounds"][0]["_is_true"] else "FAKE"
+    result1, progress = me.evaluate_submission("FACT_OR_FAKE", pkg, progress, {"choice": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    canonical1 = "TRUE" if pkg["rounds"][1]["_is_true"] else "FAKE"
+    wrong1 = "FAKE" if canonical1 == "TRUE" else "TRUE"
+    result2, progress = me.evaluate_submission("FACT_OR_FAKE", pkg, progress, {"choice": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_fact_or_fake_rejects_malformed_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_fact_or_fake_round(variant="NFL_DRAFT_FACT_OR_FAKE", round_count=1, seed="test-fof-bad")
+    progress = {"current_index": 0, "completed": False}
+    result, progress = me.evaluate_submission("FACT_OR_FAKE", pkg, progress, {"choice": "MAYBE"})
+    assert result["correct"] is False
+    result2, _ = me.evaluate_submission("FACT_OR_FAKE", pkg, {"current_index": 0, "completed": False}, {})
+    assert result2["correct"] is False
+
+
+def test_fact_or_fake_client_view_never_leaks_the_real_answer_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_fact_or_fake_round(variant="NFL_DRAFT_FACT_OR_FAKE", round_count=2, seed="test-fof-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("FACT_OR_FAKE", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "statement"}

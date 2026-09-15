@@ -271,6 +271,7 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Spot the Odd One', title: 'Unique One Out', desc: 'Same shape, real NFL Draft class membership.', taxonomyId: 'PICK_THE_IMPOSTOR', variant: 'NFL_DRAFT_CLASS_ONE_OUT' },
   { category: 'Spot the Odd One', title: 'Missing Piece', desc: 'Find the real 4th player who also belongs.', taxonomyId: 'MISSING_PIECE', variant: 'NFL_TEAM_ROSTER_MISSING_PIECE' },
   { category: 'Spot the Odd One', title: 'Blind Resume', desc: 'A real career stat line, name hidden -- whose is it?', taxonomyId: 'BLIND_RESUME', variant: 'NFL_QB_CAREER_BLIND_RESUME' },
+  { category: 'True or False', title: 'Fact or Fake', desc: 'Read a real statement and decide if it’s true or been altered.', taxonomyId: 'FACT_OR_FAKE', variant: 'NFL_DRAFT_FACT_OR_FAKE' },
   { category: 'Build a Team', title: 'Lineup Builder', desc: 'Build a real skill-position lineup.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_2010S_OFFENSE_BUILDER' },
   { category: 'Build a Team', title: 'Auction Draft', desc: 'Draft real players against a fictional budget.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_AUCTION_DRAFT' },
   { category: 'Build a Team', title: 'Cap Challenge', desc: 'Build a real roster under a real salary cap.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_CAP_CHALLENGE' },

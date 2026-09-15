@@ -100,6 +100,7 @@ var ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01 = READS_CONFIG.enableEngineLeaderb
 var ENABLE_ENGINE_BLIND_RESUME_PILOT_V01 = READS_CONFIG.enableEngineBlindResumePilot === true;
 var ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01 = READS_CONFIG.enableEngineDoubleOrNothingPilot === true;
 var ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01 = READS_CONFIG.enableEngineKingOfTheHillPilot === true;
+var ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01 = READS_CONFIG.enableEngineFactOrFakePilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10968,6 +10969,7 @@ if (ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01) HIDDEN_ROUTES['#leaderboardclimbp
 if (ENABLE_ENGINE_BLIND_RESUME_PILOT_V01) HIDDEN_ROUTES['#blindresumepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01) HIDDEN_ROUTES['#doubleornothingpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01) HIDDEN_ROUTES['#kingofthehillpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01) HIDDEN_ROUTES['#factorfakepilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

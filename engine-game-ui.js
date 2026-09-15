@@ -1441,6 +1441,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // fact_or_fake.py's own module docstring.
+  factOrFake: {
+    publicMode: 'fact_or_fake_nfl_draft', hash: '#factorfakepilot',
+    flagOn: function () { return ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01; },
+    title: 'Fact or Fake', kind: 'fact_or_fake',
+    desc: 'Read a real NFL Draft statement and decide if it’s true or been altered.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1580,6 +1590,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'blind_resume' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'double_or_nothing' && v.completed) pct = Math.min(100, 100 * (v.points || 0) / 1600);
   else if (cfg.kind === 'king_of_the_hill' && v.completed) pct = Math.min(100, (v.consecutive_defenses || 0) * 10);
+  else if (cfg.kind === 'fact_or_fake' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1695,6 +1706,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (v.ended ? 'Run over -- ' : 'Out of real challengers -- ') +
       esc(v.champion) + ' ' + (v.ended ? 'was the real champion when you fell' : 'remains undefeated real champion') +
       '. Consecutive defenses: ' + v.consecutive_defenses + '.</p>';
+  }
+  if (cfg.kind === 'fact_or_fake') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'That statement was really ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1815,6 +1830,9 @@ function renderMechanicPilotFeedback(cfg, s) {
     headline = wasCorrect ? (r.canonical_answer === 'champion' ? 'Champion defends!' : 'New champion!') : 'Dethroned.';
     detail = (r.winner_label && r.champion_value != null && r.challenger_value != null)
       ? esc(r.winner_label) + ' really had more wins (' + r.champion_value + ' vs ' + r.challenger_value + ').' : '';
+  } else if (cfg.kind === 'fact_or_fake') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'That statement was really ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1934,6 +1952,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'blind_resume') return renderBlindResumeBody(v, s);
   if (cfg.kind === 'double_or_nothing') return renderDoubleOrNothingBody(v, s);
   if (cfg.kind === 'king_of_the_hill') return renderKingOfTheHillBody(v, s);
+  if (cfg.kind === 'fact_or_fake') return renderFactOrFakeBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2278,6 +2297,20 @@ function renderKingOfTheHillBody(v, s) {
     renderBinaryChoiceHtml(
       { code: 'champion', label: v.champion.label },
       { code: 'challenger', label: v.challenger.label },
+      { dataAttr: 'data-mechanic-duel-choice' },
+    );
+}
+
+// FACT_OR_FAKE: identical {choice: 'TRUE'|'FAKE'} submission shape to
+// PAIRWISE_COMPARE/KING_OF_THE_HILL, so this reuses renderBinaryChoiceHtml
+// AND the same data-mechanic-duel-choice click handler verbatim -- zero
+// new app.js plumbing needed for this format.
+function renderFactOrFakeBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">' + esc(v.statement) + '</div>' +
+    renderBinaryChoiceHtml(
+      { code: 'TRUE', label: 'TRUE' },
+      { code: 'FAKE', label: 'FAKE' },
       { dataAttr: 'data-mechanic-duel-choice' },
     );
 }

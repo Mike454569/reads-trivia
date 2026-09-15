@@ -831,6 +831,38 @@ def test_king_of_the_hill_never_leaks_real_win_totals_before_submission():
         assert set(r["view"][key].keys()) == {"entity_id", "label"}
 
 
+# --- 27. FACT_OR_FAKE (75-Format Expansion, Wave 1) ------------------------
+
+def test_fact_or_fake_full_public_playthrough_correct_and_incorrect():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="fact_or_fake_nfl_draft")
+    rid = r["round_id"]
+    assert rid.startswith("GGP30:")
+    assert r["view"]["completed"] is False
+    assert r["view"]["statement"]
+
+    pkg = packages.load_package(rid)
+    canonical0 = "TRUE" if pkg["rounds"][0]["_is_true"] else "FAKE"
+    sub1 = pm.submit_public_round(round_id=rid, submission={"choice": canonical0})
+    assert sub1["result"]["correct"] is True
+    assert sub1["view"]["round_index"] == 1
+
+    canonical1 = "TRUE" if pkg["rounds"][1]["_is_true"] else "FAKE"
+    wrong1 = "FAKE" if canonical1 == "TRUE" else "TRUE"
+    sub2 = pm.submit_public_round(round_id=rid, submission={"choice": wrong1})
+    assert sub2["result"]["correct"] is False
+    assert sub2["view"]["round_index"] == 2
+
+
+def test_fact_or_fake_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="fact_or_fake_nfl_draft")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "statement"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
