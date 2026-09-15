@@ -523,6 +523,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "tap the correct real answer.",
         "kind": "category_roulette", "gen_kwargs": {"round_count": 6},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # common_link.py's own module docstring.
+    "common_link_nfl_draft": {
+        "competition": "NFL", "taxonomy_id": "COMMON_LINK", "variant": "NFL_DRAFT_COMMON_LINK",
+        "title": "Common Link",
+        "instructions": "3 real NFL Draft picks are named -- tap the 1 of 4 real statements that correctly "
+                         "explains what connects them.",
+        "kind": "common_link", "gen_kwargs": {"round_count": 8},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -623,6 +632,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_draft_pick_ladder_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "CATEGORY_ROULETTE":
             package = mechanic_engine.generate_category_roulette_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "COMMON_LINK":
+            package = mechanic_engine.generate_common_link_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

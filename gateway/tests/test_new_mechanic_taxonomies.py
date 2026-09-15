@@ -2463,3 +2463,63 @@ def test_category_roulette_client_view_never_leaks_the_real_answer():
     assert set(view.keys()) == {"round_index", "round_count", "completed", "category", "prompt", "options"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- COMMON_LINK (75-Format Expansion, Wave 1) -----------------------------
+
+def test_common_link_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "COMMON_LINK" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("COMMON_LINK"), "COMMON_LINK has no registered variants"
+
+
+def test_common_link_generates_real_decoy_complete_rounds():
+    from tools.director_v04 import common_link as cl
+
+    pkg = cl.build_package("test-cl-1", "NFL_DRAFT_COMMON_LINK", round_count=8)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["names"]) == 3
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real statement"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_common_link_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_common_link_round(
+        variant="NFL_DRAFT_COMMON_LINK", round_count=3, seed="test-cl-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("COMMON_LINK", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["names"] == pkg["rounds"][0]["names"]
+
+    canonical0 = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission(
+        "COMMON_LINK", pkg, progress, {"choice_item_id": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    wrong1 = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission(
+        "COMMON_LINK", pkg, progress, {"choice_item_id": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_common_link_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_common_link_round(
+        variant="NFL_DRAFT_COMMON_LINK", round_count=2, seed="test-cl-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("COMMON_LINK", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "names", "options"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

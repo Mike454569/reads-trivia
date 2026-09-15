@@ -1546,6 +1546,35 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "COMMON_LINK": {
+        "format_id": "COMMON_LINK", "display_name": "Common Link",
+        "description": "Real shared-relationship identification: 3 real NFL Draft picks are named -- tap "
+                        "the 1 of 4 real statements that correctly explains what connects them (same real "
+                        "college, draft season, or drafting team).",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["common_link_nfl_draft"],
+        "supported_mechanics": ["common_link"], "mechanic_family": "COMMON_LINK",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 3, "max_items": 3, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the 3 real named players, then tap 1 of 4 real candidate statements.",
+        "validation_rules": "The correct real statement names the real attribute (college/season/team) all "
+                             "3 real players genuinely share; the 3 real decoy statements name other real, "
+                             "distinct values along that same real dimension.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/common_link.py:build_package()",
+        "qa_requirements": "The real correct statement is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["common link"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from .chain-node (GUESS_THE_SEASON's own already-
+        # shipped clue-list component) plus renderCandidateCardsHtml.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

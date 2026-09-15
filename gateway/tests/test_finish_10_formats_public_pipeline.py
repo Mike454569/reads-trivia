@@ -1105,6 +1105,39 @@ def test_category_roulette_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 35. COMMON_LINK (75-Format Expansion, Wave 1) -------------------------
+
+def test_common_link_full_public_playthrough_correct_and_incorrect():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="common_link_nfl_draft")
+    rid = r["round_id"]
+    assert rid.startswith("GGP38:")
+    assert r["view"]["completed"] is False
+    assert len(r["view"]["names"]) == 3
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub = pm.submit_public_round(round_id=rid, submission={"choice_item_id": correct})
+    assert sub["result"]["correct"] is True
+    assert sub["view"]["round_index"] == 1
+
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    sub2 = pm.submit_public_round(round_id=rid, submission={"choice_item_id": wrong})
+    assert sub2["result"]["correct"] is False
+    assert sub2["view"]["round_index"] == 2
+
+
+def test_common_link_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="common_link_nfl_draft")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "names", "options"}
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

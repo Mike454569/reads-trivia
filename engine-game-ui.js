@@ -1521,6 +1521,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // common_link.py's own module docstring.
+  commonLink: {
+    publicMode: 'common_link_nfl_draft', hash: '#commonlinkpilot',
+    flagOn: function () { return ENABLE_ENGINE_COMMON_LINK_PILOT_V01; },
+    title: 'Common Link', kind: 'common_link',
+    desc: '3 real players are named -- guess what real fact connects them.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1672,6 +1682,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'mystery_roster' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 4));
   else if (cfg.kind === 'draft_pick_ladder' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'category_roulette' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'common_link' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1819,6 +1830,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
+  if (cfg.kind === 'common_link') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real link was: ' + esc(r.canonical_answer) : '') + '</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1964,6 +1979,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'category_roulette') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'common_link') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real link was: ' + esc(r.canonical_answer) : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -2091,6 +2109,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'mystery_roster') return renderMysteryRosterBody(v, s);
   if (cfg.kind === 'draft_pick_ladder') return renderDraftPickLadderBody(v, s);
   if (cfg.kind === 'category_roulette') return renderCategoryRouletteBody(v, s);
+  if (cfg.kind === 'common_link') return renderCommonLinkBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2530,6 +2549,19 @@ function renderCategoryRouletteBody(v, s) {
     '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-category-roulette-pick',
+    });
+}
+
+// COMMON_LINK: the 3 real named players are shown as real context
+// (reuses .chain-node, the same real component GUESS_THE_SEASON's own
+// clue list already uses) then 4 real candidate statements via
+// renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR/MISSING_PIECE.
+function renderCommonLinkBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    v.names.map(function (name) { return '<div class="chain-node">' + esc(name) + '</div>'; }).join('') +
+    '<div class="quiz-question">What real connects these 3 real players?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-common-link-pick',
     });
 }
 

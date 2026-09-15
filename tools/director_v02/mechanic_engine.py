@@ -98,6 +98,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # category_roulette.py's own module docstring.
     "CATEGORY_ROULETTE",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # common_link.py's own module docstring.
+    "COMMON_LINK",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -354,6 +357,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # category_roulette.py's own module docstring.
     "CATEGORY_ROULETTE": {
         "CATEGORY_ROULETTE_MIXED": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # common_link.py's own module docstring.
+    "COMMON_LINK": {
+        "NFL_DRAFT_COMMON_LINK": {"competition": "NFL"},
     },
 }
 
@@ -1356,6 +1364,34 @@ def _category_roulette_evaluate(package: dict, index: int, submission: dict) -> 
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
+# --- COMMON_LINK (75-Format Expansion, Wave 1) -------------------------------
+# Real shared-relationship identification -- see tools/director_v04/
+# common_link.py's own module docstring. current_index-based progress,
+# same shape as PICK_THE_IMPOSTOR above.
+
+def generate_common_link_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import common_link
+    return common_link.build_package(seed, variant, round_count=round_count)
+
+
+def _common_link_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "names": r["names"],
+            "options": [{"item_id": it["item_id"], "label": it["label"]} for it in r["options"]]}
+
+
+def _common_link_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("choice_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
 
 def generate_higher_lower_round(*, variant: str, sequence_length: int, seed: str) -> dict:
@@ -2184,6 +2220,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _draft_pick_ladder_client_view(package, progress["current_index"])
     if taxonomy_id == "CATEGORY_ROULETTE":
         return _category_roulette_client_view(package, progress["current_index"])
+    if taxonomy_id == "COMMON_LINK":
+        return _common_link_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -2394,6 +2432,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "CATEGORY_ROULETTE":
         result = _category_roulette_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "COMMON_LINK":
+        result = _common_link_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

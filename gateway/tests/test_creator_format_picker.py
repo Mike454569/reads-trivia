@@ -77,6 +77,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Mystery Roster", "MYSTERY_ROSTER", "NFL_TEAM_SEASON_MYSTERY_ROSTER"),
     ("Draft Pick Ladder", "DRAFT_PICK_LADDER", "NFL_DRAFT_PICK_LADDER"),
     ("Category Roulette", "CATEGORY_ROULETTE", "CATEGORY_ROULETTE_MIXED"),
+    ("Common Link", "COMMON_LINK", "NFL_DRAFT_COMMON_LINK"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.

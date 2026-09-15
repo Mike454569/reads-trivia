@@ -134,6 +134,7 @@ window.READS_CONFIG = {
   enableEngineMysteryRosterPilot: false,
   enableEngineDraftPickLadderPilot: false,
   enableEngineCategoryRoulettePilot: false,
+  enableEngineCommonLinkPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification
