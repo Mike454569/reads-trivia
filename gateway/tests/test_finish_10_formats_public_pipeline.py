@@ -551,6 +551,56 @@ def test_career_path_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 21. RISK_IT (15-Format Expansion Part 2, format #11) ------------------
+
+def test_risk_it_full_public_playthrough_tracks_score_and_lives():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="risk_it_nfl_draft")
+    rid = r["round_id"]
+    assert rid.startswith("GGP23:")
+    assert r["view"]["awaiting_tier"] is True
+    assert r["view"]["lives"] == 3 and r["view"]["score"] == 0
+
+    pkg = packages.load_package(rid)
+    sub1 = pm.submit_public_round(round_id=rid, submission={"action": "choose_tier", "tier": "HIGH"})
+    assert sub1["view"]["awaiting_tier"] is False and sub1["view"]["tier"] == "HIGH"
+
+    correct = pkg["rounds"][0]["tiers"]["HIGH"]["_answer_item_id"]
+    sub2 = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": correct})
+    assert sub2["result"]["correct"] is True
+    assert sub2["result"]["points_earned"] == 3
+    assert sub2["view"]["score"] == 3
+    assert sub2["view"]["lives"] == 3
+    assert sub2["view"]["awaiting_tier"] is True  # back to tier-choice for the next round
+
+
+def test_risk_it_wrong_answer_costs_a_real_life_through_the_public_pipeline():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="risk_it_nfl_draft")
+    rid = r["round_id"]
+    pkg = packages.load_package(rid)
+    pm.submit_public_round(round_id=rid, submission={"action": "choose_tier", "tier": "LOW"})
+    correct = pkg["rounds"][0]["tiers"]["LOW"]["_answer_item_id"]
+    wrong = next(i for i in ("A", "B", "C", "D") if i != correct)
+    sub = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": wrong})
+    assert sub["result"]["correct"] is False
+    assert sub["view"]["lives"] == 2
+    assert sub["view"]["score"] == 0
+
+
+def test_risk_it_never_leaks_real_answer_or_other_tiers_before_they_are_chosen():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="risk_it_nfl_draft")
+    assert "tiers" not in r["view"]
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "awaiting_tier",
+                                      "tier_points", "score", "lives"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -572,6 +622,7 @@ def test_career_path_never_leaks_the_real_answer_before_submission():
     ("Give me a missing piece game with real NFL players.", "MISSING_PIECE"),
     ("Give me a before and after game with a real NFL player.", "BEFORE_AFTER"),
     ("Give me a career path game with a real NFL player.", "CAREER_PATH"),
+    ("Give me a risk it game with real NFL Draft picks.", "RISK_IT"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

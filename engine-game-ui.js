@@ -1381,6 +1381,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #11 -- see
+  // tools/director_v04/risk_it.py's own module docstring.
+  riskIt: {
+    publicMode: 'risk_it_nfl_draft', hash: '#riskitpilot',
+    flagOn: function () { return ENABLE_ENGINE_RISK_IT_PILOT_V01; },
+    title: 'Risk It', kind: 'risk_it',
+    desc: 'Pick a real risk tier before you see the question -- a wrong answer costs a life.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1442,7 +1452,12 @@ function submitMechanicPilotAction(submission) {
     // path is navigation, not a graded answer (its result is
     // {advanced_to, leaf_question}, with no real correct/incorrect concept
     // at all) -- only the LEAF question afterward is genuinely graded.
-    if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' || data.result.advanced_to !== undefined)) {
+    // RISK_IT's own "choose_tier" step is the same real navigation shape:
+    // committing to a real risk tier before seeing the question is not
+    // itself a graded answer (see risk_it.py's own module docstring) --
+    // only the subsequent "answer" action is.
+    if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
+        data.result.action === 'choose_tier' || data.result.advanced_to !== undefined)) {
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
       return;
@@ -1507,6 +1522,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'missing_piece' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'before_after' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'career_path' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'risk_it' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1597,6 +1613,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'That real career path belonged to ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
+  if (cfg.kind === 'risk_it') {
+    return '<p class="mode-desc">' + (v.ended ? 'Run over -- out of real lives! ' : 'Run complete! ') +
+      'Final score: ' + v.score + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1685,6 +1705,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'career_path') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'That real career path belonged to ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'risk_it') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? '+' + r.points_earned + (r.points_earned === 1 ? ' point!' : ' points!') : 'Not quite -- you lost a life.';
+    detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1798,6 +1822,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'missing_piece') return renderMissingPieceBody(v, s);
   if (cfg.kind === 'before_after') return renderBeforeAfterBody(v, s);
   if (cfg.kind === 'career_path') return renderCareerPathBody(v, s);
+  if (cfg.kind === 'risk_it') return renderRiskItBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2027,6 +2052,32 @@ function renderCareerPathBody(v, s) {
     '<div class="quiz-question">Which real player had this real career path?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-career-path-pick',
+    });
+}
+
+// RISK_IT: real 2-step round -- awaiting_tier=true shows the 3 real risk
+// tiers (point value only, no question content, matching the format's
+// own "commit before you see it" rule); awaiting_tier=false shows that
+// tier's real question via renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/CAREER_PATH. Score/lives shown throughout.
+function renderRiskItStatusHtml(v) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Score: ' + v.score + ' &middot; Lives: ' + v.lives + '</div>';
+}
+function renderRiskItBody(v, s) {
+  if (v.awaiting_tier) {
+    var tierOrder = ['LOW', 'MEDIUM', 'HIGH'];
+    return renderRiskItStatusHtml(v) +
+      '<div class="quiz-question">Pick a real risk tier -- higher risk means a more obscure real pick, worth more points.</div>' +
+      '<div class="chip-row" role="group" aria-label="Choose a risk tier">' + tierOrder.map(function (tier) {
+        return '<button class="chip-toggle" data-mechanic-risk-tier="' + esc(tier) + '">' +
+          esc(tier) + ' (' + v.tier_points[tier] + (v.tier_points[tier] === 1 ? ' pt' : ' pts') + ')</button>';
+      }).join('') + '</div>';
+  }
+  return renderRiskItStatusHtml(v) +
+    '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-risk-answer',
     });
 }
 

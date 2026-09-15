@@ -394,6 +394,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Read the real career path, then tap whichever real CFB player it belongs to.",
         "kind": "career_path", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #11 -- see
+    # tools/director_v04/risk_it.py's own module docstring.
+    "risk_it_nfl_draft": {
+        "competition": "NFL", "taxonomy_id": "RISK_IT", "variant": "NFL_DRAFT_RISK_IT",
+        "title": "Risk It",
+        "instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth less, "
+                         "HIGH is a real obscure pick worth more. A wrong answer costs a life.",
+        "kind": "risk_it", "gen_kwargs": {"round_count": 7},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -466,6 +475,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_before_after_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "CAREER_PATH":
             package = mechanic_engine.generate_career_path_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "RISK_IT":
+            package = mechanic_engine.generate_risk_it_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

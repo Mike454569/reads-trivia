@@ -1256,3 +1256,114 @@ def test_career_path_no_decoy_shares_the_correct_answers_own_real_path():
                 assert decoy_path != shown_path, f"decoy {opt['label']!r} shares the shown real path {shown_path}"
     finally:
         c.close()
+
+
+# --- RISK_IT (15-Format Expansion Part 2, format #11) --------------------
+
+def test_risk_it_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "RISK_IT" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("RISK_IT"), "RISK_IT has no registered variants"
+
+
+def test_risk_it_generates_real_rounds_with_all_3_tiers_and_real_decoys():
+    from tools.director_v04 import risk_it
+
+    pkg = risk_it.build_package("test-risk-1", "NFL_DRAFT_RISK_IT", round_count=7)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    assert pkg["starting_lives"] == 3
+    for r in pkg["rounds"]:
+        assert set(r["tiers"].keys()) == {"LOW", "MEDIUM", "HIGH"}
+        assert r["tiers"]["LOW"]["points"] == 1
+        assert r["tiers"]["MEDIUM"]["points"] == 2
+        assert r["tiers"]["HIGH"]["points"] == 3
+        for tier, q in r["tiers"].items():
+            item_ids = {it["item_id"] for it in q["options"]}
+            assert item_ids == {"A", "B", "C", "D"}
+            labels = [it["label"] for it in q["options"]]
+            assert len(set(labels)) == 4, f"{tier} tier has a duplicate real team option"
+            assert q["_answer_item_id"] in item_ids
+
+
+def test_risk_it_full_2_step_playthrough_correct_choose_then_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_risk_it_round(variant="NFL_DRAFT_RISK_IT", round_count=3, seed="test-risk-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("RISK_IT")
+    assert progress["lives"] == 3 and progress["score"] == 0
+
+    view0 = me.client_safe_view("RISK_IT", pkg, progress)
+    assert view0["awaiting_tier"] is True
+
+    result1, progress = me.evaluate_submission(
+        "RISK_IT", pkg, progress, {"action": "choose_tier", "tier": "HIGH"})
+    assert result1["action"] == "choose_tier"
+    assert progress["current_tier"] == "HIGH"
+
+    view1 = me.client_safe_view("RISK_IT", pkg, progress)
+    assert view1["awaiting_tier"] is False
+    assert view1["tier"] == "HIGH"
+
+    canonical = pkg["rounds"][0]["tiers"]["HIGH"]["_answer_item_id"]
+    result2, progress = me.evaluate_submission(
+        "RISK_IT", pkg, progress, {"action": "answer", "choice_item_id": canonical})
+    assert result2["correct"] is True
+    assert result2["points_earned"] == 3
+    assert progress["score"] == 3
+    assert progress["lives"] == 3  # unchanged on a correct answer
+    assert progress["current_tier"] is None  # reset for the next round
+    assert progress["current_index"] == 1
+
+
+def test_risk_it_wrong_answer_costs_a_life_and_awards_no_points():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_risk_it_round(variant="NFL_DRAFT_RISK_IT", round_count=2, seed="test-risk-wrong")
+    progress = me.initial_progress("RISK_IT")
+    _, progress = me.evaluate_submission("RISK_IT", pkg, progress, {"action": "choose_tier", "tier": "LOW"})
+    assert progress["current_tier"] == "LOW"
+    canonical = pkg["rounds"][0]["tiers"]["LOW"]["_answer_item_id"]
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result, progress = me.evaluate_submission(
+        "RISK_IT", pkg, progress, {"action": "answer", "choice_item_id": wrong})
+    assert result["correct"] is False
+    assert result["points_earned"] == 0
+    assert progress["score"] == 0
+    assert progress["lives"] == 2
+
+
+def test_risk_it_run_ends_when_lives_reach_zero_and_rejects_further_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_risk_it_round(variant="NFL_DRAFT_RISK_IT", round_count=7, seed="test-risk-ended")
+    progress = me.initial_progress("RISK_IT")
+    for i in range(3):
+        _, progress = me.evaluate_submission("RISK_IT", pkg, progress, {"action": "choose_tier", "tier": "MEDIUM"})
+        canonical = pkg["rounds"][i]["tiers"]["MEDIUM"]["_answer_item_id"]
+        wrong = next(x for x in ("A", "B", "C", "D") if x != canonical)
+        _, progress = me.evaluate_submission("RISK_IT", pkg, progress, {"action": "answer", "choice_item_id": wrong})
+    assert progress["lives"] == 0
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("RISK_IT", pkg, progress, {"action": "choose_tier", "tier": "LOW"})
+
+
+def test_risk_it_client_view_never_leaks_the_real_answer_before_the_answer_action():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_risk_it_round(variant="NFL_DRAFT_RISK_IT", round_count=2, seed="test-risk-leak")
+    progress = me.initial_progress("RISK_IT")
+    view0 = me.client_safe_view("RISK_IT", pkg, progress)
+    assert "tiers" not in view0 and "tier_points" in view0
+
+    _, progress = me.evaluate_submission("RISK_IT", pkg, progress, {"action": "choose_tier", "tier": "LOW"})
+    view1 = me.client_safe_view("RISK_IT", pkg, progress)
+    assert "_answer_item_id" not in view1
+    for it in view1["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

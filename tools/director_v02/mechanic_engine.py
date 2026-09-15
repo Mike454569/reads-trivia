@@ -53,6 +53,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #10 -- see
     # tools/director_v04/career_path.py's own module docstring.
     "CAREER_PATH",
+    # 15-Format Expansion pass (Part 2), format #11 -- see
+    # tools/director_v04/risk_it.py's own module docstring.
+    "RISK_IT",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -234,6 +237,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "CAREER_PATH": {
         "NFL_PLAYER_CAREER_PATH_IDENTIFY": {"competition": "NFL"},
         "CFB_PLAYER_CAREER_PATH_IDENTIFY": {"competition": "CFB"},
+    },
+    # 15-Format Expansion pass (Part 2), format #11 -- see
+    # tools/director_v04/risk_it.py's own module docstring.
+    "RISK_IT": {
+        "NFL_DRAFT_RISK_IT": {"competition": "NFL"},
     },
 }
 
@@ -553,6 +561,70 @@ def _career_path_evaluate(package: dict, index: int, submission: dict) -> dict:
     correct = bool(choice) and choice == canonical
     canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
+# --- RISK_IT (15-Format Expansion Part 2) -----------------------------------
+# Real 2-step "commit to a tier before you see the question" round -- see
+# tools/director_v04/risk_it.py's own module docstring. Reuses BRANCH_STATE's
+# own established pattern of passing the FULL progress dict (not just an
+# index) into its evaluate function, since real score/lives/current-tier
+# state doesn't fit the generic current_index-increment shape every
+# simpler taxonomy above uses. 3 -- matches risk_it.py's own
+# STARTING_LIVES constant; duplicated here (not imported) the same way
+# BRANCH_STATE's "root" node id is duplicated rather than imported.
+_RISK_IT_STARTING_LIVES = 3
+
+
+def generate_risk_it_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import risk_it
+    return risk_it.build_package(seed, variant, round_count=round_count)
+
+
+def _risk_it_client_view(package: dict, progress: dict) -> dict:
+    total = len(package["rounds"])
+    idx = progress.get("current_index", 0)
+    lives = progress.get("lives")
+    if lives is None:
+        lives = _RISK_IT_STARTING_LIVES
+    score = progress.get("score", 0)
+    if progress.get("ended") or idx >= total:
+        return {"round_index": idx, "round_count": total, "completed": True,
+                "score": score, "lives": lives, "ended": bool(progress.get("ended"))}
+    r = package["rounds"][idx]
+    tier = progress.get("current_tier")
+    if tier is None:
+        return {"round_index": idx, "round_count": total, "completed": False, "awaiting_tier": True,
+                "tier_points": {t: r["tiers"][t]["points"] for t in r["tiers"]},
+                "score": score, "lives": lives}
+    q = r["tiers"][tier]
+    return {"round_index": idx, "round_count": total, "completed": False, "awaiting_tier": False,
+            "tier": tier, "points": q["points"], "prompt": q["prompt"], "options": q["options"],
+            "score": score, "lives": lives}
+
+
+def _risk_it_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    idx = progress.get("current_index", 0)
+    r = package["rounds"][idx]
+    action = submission.get("action")
+    if action == "choose_tier":
+        tier = str(submission.get("tier", "")).strip().upper()
+        if tier not in r["tiers"]:
+            raise MechanicError(f"tier must be one of {sorted(r['tiers'])}, got {tier!r}")
+        q = r["tiers"][tier]
+        return {"action": "choose_tier", "tier": tier, "points": q["points"],
+                "prompt": q["prompt"], "options": q["options"]}
+    if action == "answer":
+        tier = progress.get("current_tier")
+        if tier is None:
+            raise MechanicError("no tier has been chosen for this round yet")
+        q = r["tiers"][tier]
+        canonical = q["_answer_item_id"]
+        choice = str(submission.get("choice_item_id", "")).strip().upper()
+        correct = bool(choice) and choice == canonical
+        canonical_label = next(it["label"] for it in q["options"] if it["item_id"] == canonical)
+        return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
+                "points_earned": q["points"] if correct else 0, "tier": tier, "notes": q["_notes"]}
+    raise MechanicError(f"action must be 'choose_tier' or 'answer', got {action!r}")
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1353,6 +1425,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _before_after_client_view(package, progress["current_index"])
     if taxonomy_id == "CAREER_PATH":
         return _career_path_client_view(package, progress["current_index"])
+    if taxonomy_id == "RISK_IT":
+        return _risk_it_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1414,6 +1488,25 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         result = _career_path_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "RISK_IT":
+        if progress.get("ended"):
+            raise MechanicError("this run has already ended")
+        result = _risk_it_evaluate(package, progress, submission)
+        if result["action"] == "choose_tier":
+            progress["current_tier"] = result["tier"]
+        else:  # "answer"
+            lives = progress.get("lives")
+            if lives is None:
+                lives = _RISK_IT_STARTING_LIVES
+            progress["score"] = progress.get("score", 0) + result["points_earned"]
+            if not result["correct"]:
+                lives -= 1
+            progress["lives"] = lives
+            progress["current_tier"] = None
+            progress["current_index"] = progress.get("current_index", 0) + 1
+            progress["ended"] = lives <= 0
+            progress["completed"] = progress["ended"] or progress["current_index"] >= len(package["rounds"])
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
@@ -1584,4 +1677,7 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False}
     if taxonomy_id == "BRANCH_STATE":
         return {"current_node": "root", "completed": False}
+    if taxonomy_id == "RISK_IT":
+        return {"current_index": 0, "current_tier": None, "score": 0, "lives": _RISK_IT_STARTING_LIVES,
+                "ended": False, "completed": False}
     return {"current_index": 0, "completed": False}

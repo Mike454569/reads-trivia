@@ -452,3 +452,30 @@ def test_career_path_creator_generate_for_review_is_a_real_playable_round():
     assert r["round_id"].startswith("GGP22:")
     assert len(r["view"]["path"]) == 3
     assert len(r["view"]["options"]) == 4
+
+
+# --- RISK_IT (15-Format Expansion Part 2, format #11) --------------------
+
+def test_detect_risk_it_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    for phrase in ["risk it game", "give me a risk tier game", "pick a risk game"]:
+        r = bridge.detect(phrase)
+        assert r is not None, f"expected a match for {phrase!r}"
+        assert r["taxonomy_id"] == "RISK_IT"
+        assert r["format"] == "RISK_IT"
+        assert r["variant"] == "NFL_DRAFT_RISK_IT"
+
+
+def test_risk_it_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="risk it game", puzzle_count=None, difficulty=None, seed="pytest-risk-it-bridge",
+    )
+    assert r["taxonomy_id"] == "RISK_IT"
+    assert r["format_id"] == "RISK_IT"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP23:")
+    assert r["view"]["awaiting_tier"] is True
+    assert r["view"]["lives"] == 3

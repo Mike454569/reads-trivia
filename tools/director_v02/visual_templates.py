@@ -1088,6 +1088,43 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # renderCandidateCardsHtml, both already-shipped components.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "RISK_IT": {
+        "format_id": "RISK_IT", "display_name": "Risk It",
+        "description": "Real risk-vs-reward trivia: before each round, the player picks a real risk tier "
+                        "(LOW/MEDIUM/HIGH) sight-unseen, which sets the real stakes and the real difficulty "
+                        "of the question -- a real, verifiable proxy (NFL Draft pick_overall: an early real "
+                        "pick is more recognizable, a late real pick is more obscure), never an invented "
+                        "rating. A wrong answer costs one of 3 real starting lives; the run ends at 0 lives "
+                        "or after 7 rounds.",
+        "payload_schema": None,
+        "existing_renderer_note": "Real 2-step interaction per round (choose a tier, then answer that "
+                                   "tier's real question) -- reuses BRANCH_STATE's own established "
+                                   "navigation-then-leaf-question shape rather than inventing a second "
+                                   "pattern for 'commit before you see it'.",
+        "proven_in": ["risk_it_nfl_draft"],
+        "supported_mechanics": ["risk_it"], "mechanic_family": "RISK_IT",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["LOW", "MEDIUM", "HIGH"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Tap a risk tier (point value only, no question shown yet), then tap 1 of 4 "
+                              "real candidate cards for that tier's real question.",
+        "validation_rules": "Every real question at every real tier has a genuine 4-option real decoy set "
+                             "(3 real teams that drafted different real players that exact real draft class) "
+                             "before a round is included.",
+        "answer_schema": "{action: 'choose_tier', tier: 'LOW'|'MEDIUM'|'HIGH'} then "
+                          "{action: 'answer', choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/risk_it.py:build_package()",
+        "qa_requirements": "Every real tier's correct item_id never sent to the client before evaluate() "
+                            "runs; a tier's real question is only revealed after that tier is chosen.",
+        "casual_aliases": ["risk it", "risk tier", "pick a risk"],
+        # True because renderRiskItBody introduces zero new CSS -- built
+        # entirely from .chip-row/.chip-toggle (BRANCH_STATE's own
+        # already-shipped choice-button classes) plus renderCandidateCardsHtml.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

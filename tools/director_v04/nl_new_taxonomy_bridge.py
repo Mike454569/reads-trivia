@@ -270,6 +270,13 @@ _CAREER_PATH_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- RISK_IT (15-Format Expansion pass, Part 2, format #11) ---------------
+# "risk it"/"risk tier"/"pick a risk" are the format's own real
+# distinctive phrase -- "risk" alone would be too generic (used in
+# unrelated football phrasing like "boom or bust"), so this requires a
+# genuine risk-TIER framing.
+_RISK_IT_RE = re.compile(r"\brisk\s+it\b|\brisk\s+tier\b|\bpick\s+a\s+risk\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -376,5 +383,9 @@ def detect(request_text: str | None) -> dict | None:
         variant = "CFB_PLAYER_CAREER_PATH_IDENTIFY" if _league_for(text) == "CFB" else "NFL_PLAYER_CAREER_PATH_IDENTIFY"
         return {"taxonomy_id": "CAREER_PATH", "variant": variant,
                 "format": "CAREER_PATH", "gen_kwargs": {}}
+
+    if _RISK_IT_RE.search(text):
+        return {"taxonomy_id": "RISK_IT", "variant": "NFL_DRAFT_RISK_IT",
+                "format": "RISK_IT", "gen_kwargs": {}}
 
     return None
