@@ -47,6 +47,8 @@ forces every Creator request back to "mock" outright.
 """
 from __future__ import annotations
 
+import uuid
+
 from tools.director_v02 import feasibility as feasibility_mod
 from tools.director_v04 import nl_mechanic_bridge, nl_new_taxonomy_bridge, nl_schedule_bridge
 
@@ -169,7 +171,19 @@ def _generate_direct_mechanic(bridged: dict, *, seed: str | None) -> dict:
     from tools.director_v02 import mechanic_engine
 
     taxonomy_id, variant = bridged["taxonomy_id"], bridged["variant"]
-    real_seed = seed or "creator-nl-mechanic-bridge"
+    # Bug fix (75-Format Expansion, production incident): this used to fall
+    # back to a single hardcoded literal seed shared by every unseeded call
+    # for a given taxonomy_id+variant. Since package_id is a hash of
+    # (taxonomy, variant, seed, ...) and NOT of the actual generated round
+    # content, that made every unseeded click on the same format collide on
+    # the exact same package_id forever -- the first request "won" and every
+    # later one either silently got served that same stale round back, or
+    # (if the live DB's row order for that query happened to differ between
+    # calls) hit save_package()'s PackageCollision integrity check and
+    # 500'd, which is exactly what production did for BLIND_RESUME. Each
+    # unseeded request now gets its own fresh, unique seed so every click
+    # generates a genuinely new round and package_ids never collide.
+    real_seed = seed or uuid.uuid4().hex
     # Reusable Game Format System pass: resolved (and validated, if
     # explicitly requested) BEFORE generation -- an incompatible explicit
     # request must never silently fall through to generating a real round
@@ -271,7 +285,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     from tools.director_v02 import mechanic_engine
 
     taxonomy_id, variant, gen_kwargs = bridged["taxonomy_id"], bridged["variant"], bridged["gen_kwargs"]
-    real_seed = seed or "creator-nl-new-taxonomy-bridge"
+    # Same fix as _generate_direct_mechanic() above -- see that comment for
+    # the full incident writeup. A shared hardcoded fallback seed here made
+    # every unseeded new-taxonomy request (this is the path every one of the
+    # 75-Format Expansion formats' Picker clicks and NL requests go through)
+    # collide on package_id, causing production's real BLIND_RESUME 500.
+    real_seed = seed or uuid.uuid4().hex
 
     if taxonomy_id == "GRID_CONSTRAINT_BOARD":
         package = mechanic_engine.generate_grid_constraint_round(variant=variant, seed=real_seed)
