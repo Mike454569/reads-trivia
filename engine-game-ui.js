@@ -1491,6 +1491,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // mystery_roster.py's own module docstring.
+  mysteryRoster: {
+    publicMode: 'mystery_roster_nfl', hash: '#mysteryrosterpilot',
+    flagOn: function () { return ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01; },
+    title: 'Mystery Roster', kind: 'mystery_roster',
+    desc: 'Reveal real clues about a mystery real NFL team-season, or guess at any point.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1557,8 +1567,12 @@ function submitMechanicPilotAction(submission) {
     // itself a graded answer (see risk_it.py's own module docstring) --
     // only the subsequent "answer" action is. WAGER_MODE's own
     // "place_wager" step is identical in shape (see wager_mode.py).
+    // MYSTERY_ROSTER's own "reveal" step is the same real navigation
+    // shape: revealing another real clue is not itself a graded answer --
+    // only the subsequent "guess" action is (see mystery_roster.py).
     if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
         data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
+        data.result.action === 'reveal' ||
         data.result.advanced_to !== undefined)) {
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
@@ -1635,6 +1649,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'stat_target' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'reverse_trivia' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'three_strikes' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
+  else if (cfg.kind === 'mystery_roster' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 4));
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1771,6 +1786,9 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (v.ended ? 'Run over -- out of real strikes! ' : 'Run complete! ') +
       'Final score: ' + v.score + '.</p>';
   }
+  if (cfg.kind === 'mystery_roster') {
+    return '<p class="mode-desc">Round complete! Final score: ' + v.score + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1906,6 +1924,10 @@ function renderMechanicPilotFeedback(cfg, s) {
     wasCorrect = r.correct === true;
     headline = wasCorrect ? '+' + r.points_earned + (r.points_earned === 1 ? ' point!' : ' points!') : 'Not quite -- you lost a strike.';
     detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'mystery_roster') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? '+' + r.points_earned + (r.points_earned === 1 ? ' point!' : ' points!') : 'Not quite.';
+    detail = r.canonical_answer ? 'It was really the ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -2030,6 +2052,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'stat_target') return renderStatTargetBody(v, s);
   if (cfg.kind === 'reverse_trivia') return renderReverseTriviaBody(v, s);
   if (cfg.kind === 'three_strikes') return renderThreeStrikesBody(v, s);
+  if (cfg.kind === 'mystery_roster') return renderMysteryRosterBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2430,6 +2453,24 @@ function renderThreeStrikesBody(v, s) {
     '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-three-strikes-answer',
+    });
+}
+
+// MYSTERY_ROSTER: real clues revealed so far (reuses .chain-node, the
+// same real component GUESS_THE_SEASON's own clue list already uses)
+// plus a real Reveal button (only shown while clues remain) and the 4
+// real candidate cards for guessing at any point.
+function renderMysteryRosterBody(v, s) {
+  var revealBtn = v.clues_revealed < v.max_clues
+    ? '<div class="chip-row" role="group" aria-label="Reveal another clue"><button class="chip-toggle" data-mechanic-mystery-reveal>Reveal Another Clue (' + (v.max_clues - v.clues_revealed) + ' left)</button></div>'
+    : '';
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Score: ' + v.score + '</div>' +
+    v.clues.map(function (c) { return '<div class="chain-node">' + esc(c) + '</div>'; }).join('') +
+    revealBtn +
+    '<div class="quiz-question">Which real team-season is this?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-mystery-guess',
     });
 }
 

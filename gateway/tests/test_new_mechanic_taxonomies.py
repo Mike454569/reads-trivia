@@ -2225,3 +2225,110 @@ def test_three_strikes_client_view_never_leaks_the_real_answer():
                                  "options", "score", "streak", "strikes"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- MYSTERY_ROSTER (75-Format Expansion, Wave 1) -------------------------
+
+def test_mystery_roster_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "MYSTERY_ROSTER" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("MYSTERY_ROSTER"), "MYSTERY_ROSTER has no registered variants"
+
+
+def test_mystery_roster_generates_real_decoy_complete_rounds_with_4_clues():
+    from tools.director_v04 import mystery_roster as mr
+
+    pkg = mr.build_package("test-mr-1", "NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=6)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    assert pkg["max_clues"] == 4
+    for r in pkg["rounds"]:
+        assert len(r["clues"]) == 4
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real team-season"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_mystery_roster_full_playthrough_reveal_then_guess():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_mystery_roster_round(
+        variant="NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=3, seed="test-mr-play")
+    progress = me.initial_progress("MYSTERY_ROSTER")
+    assert progress == {"current_index": 0, "clues_revealed": 1, "score": 0, "completed": False}
+
+    view0 = me.client_safe_view("MYSTERY_ROSTER", pkg, progress)
+    assert view0["completed"] is False
+    assert len(view0["clues"]) == 1
+
+    result1, progress = me.evaluate_submission("MYSTERY_ROSTER", pkg, progress, {"action": "reveal"})
+    assert result1["action"] == "reveal"
+    assert progress["clues_revealed"] == 2
+    view1 = me.client_safe_view("MYSTERY_ROSTER", pkg, progress)
+    assert len(view1["clues"]) == 2
+
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result2, progress = me.evaluate_submission(
+        "MYSTERY_ROSTER", pkg, progress, {"action": "guess", "choice_item_id": canonical})
+    assert result2["correct"] is True
+    assert result2["points_earned"] == 3  # 2 clues revealed -> 3 points
+    assert progress["score"] == 3
+    assert progress["current_index"] == 1
+    assert progress["clues_revealed"] == 1  # reset for the next round
+
+
+def test_mystery_roster_guessing_immediately_with_1_clue_scores_the_max_4_points():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_mystery_roster_round(
+        variant="NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=1, seed="test-mr-immediate")
+    progress = me.initial_progress("MYSTERY_ROSTER")
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result, progress = me.evaluate_submission(
+        "MYSTERY_ROSTER", pkg, progress, {"action": "guess", "choice_item_id": canonical})
+    assert result["correct"] is True
+    assert result["points_earned"] == 4
+
+
+def test_mystery_roster_wrong_guess_scores_zero():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_mystery_roster_round(
+        variant="NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=1, seed="test-mr-wrong")
+    progress = me.initial_progress("MYSTERY_ROSTER")
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][0]["_answer_item_id"])
+    result, progress = me.evaluate_submission(
+        "MYSTERY_ROSTER", pkg, progress, {"action": "guess", "choice_item_id": wrong})
+    assert result["correct"] is False
+    assert result["points_earned"] == 0
+    assert progress["score"] == 0
+    assert progress["completed"] is True
+
+
+def test_mystery_roster_reveal_never_exceeds_max_clues():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_mystery_roster_round(
+        variant="NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=1, seed="test-mr-cap")
+    progress = me.initial_progress("MYSTERY_ROSTER")
+    for _ in range(6):
+        result, progress = me.evaluate_submission("MYSTERY_ROSTER", pkg, progress, {"action": "reveal"})
+    assert progress["clues_revealed"] == 4
+    view = me.client_safe_view("MYSTERY_ROSTER", pkg, progress)
+    assert len(view["clues"]) == 4
+
+
+def test_mystery_roster_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_mystery_roster_round(
+        variant="NFL_TEAM_SEASON_MYSTERY_ROSTER", round_count=2, seed="test-mr-leak")
+    progress = me.initial_progress("MYSTERY_ROSTER")
+    view = me.client_safe_view("MYSTERY_ROSTER", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "clues", "clues_revealed",
+                                 "max_clues", "options", "score"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

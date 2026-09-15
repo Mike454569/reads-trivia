@@ -1452,6 +1452,39 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "MYSTERY_ROSTER": {
+        "format_id": "MYSTERY_ROSTER", "display_name": "Mystery Roster",
+        "description": "Real progressive team-season identification: reveal up to 4 real clues about a "
+                        "mystery real NFL team-season (record, starting QB, top AV player, that player's "
+                        "years of experience) one at a time, or guess at any point among 4 real candidates "
+                        "-- fewer reveals before a correct guess earns more points.",
+        "payload_schema": None,
+        "existing_renderer_note": "Real 2-action round (reveal a clue, or guess) -- reuses BRANCH_STATE/"
+                                   "RISK_IT's own established navigation-then-leaf-question interaction shape.",
+        "proven_in": ["mystery_roster_nfl"],
+        "supported_mechanics": ["mystery_roster"], "mechanic_family": "MYSTERY_ROSTER",
+        "supported_entity_types": ["team", "player"],
+        "required_data_relationships": ["season_standings (NFLVERSE_DATA, SOURCE_BACKED)",
+                                         "canonical_roster_seasons (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Tap Reveal for another real clue, or tap 1 of 4 real candidate team-seasons "
+                              "to guess.",
+        "validation_rules": "Every real clue field (QB starts, top player AV, years of experience) is "
+                             "confirmed populated in this Engine's real data before use -- jersey_number "
+                             "was checked live and found entirely unpopulated, so it is never used as a clue.",
+        "answer_schema": "{action: 'reveal'} or {action: 'guess', choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/mystery_roster.py:build_package()",
+        "qa_requirements": "The real correct team-season is never sent to the client before a guess is "
+                            "evaluated; only clues already revealed are ever exposed.",
+        "casual_aliases": ["mystery roster"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from .chain-node (GUESS_THE_SEASON's own already-
+        # shipped clue-list component) plus renderCandidateCardsHtml.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

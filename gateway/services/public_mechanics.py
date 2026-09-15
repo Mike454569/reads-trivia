@@ -496,6 +496,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "Survive 3 strikes and the run ends.",
         "kind": "three_strikes", "gen_kwargs": {"round_count": 12},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # mystery_roster.py's own module docstring.
+    "mystery_roster_nfl": {
+        "competition": "NFL", "taxonomy_id": "MYSTERY_ROSTER", "variant": "NFL_TEAM_SEASON_MYSTERY_ROSTER",
+        "title": "Mystery Roster",
+        "instructions": "Reveal real clues about a mystery real NFL team-season one at a time, or guess at "
+                         "any point -- fewer reveals before a correct guess earns more points.",
+        "kind": "mystery_roster", "gen_kwargs": {"round_count": 6},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -590,6 +599,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_reverse_trivia_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "THREE_STRIKES":
             package = mechanic_engine.generate_three_strikes_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "MYSTERY_ROSTER":
+            package = mechanic_engine.generate_mystery_roster_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

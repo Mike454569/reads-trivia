@@ -1004,6 +1004,40 @@ def test_three_strikes_never_leaks_real_answer_before_submission():
                                       "options", "score", "streak", "strikes"}
 
 
+# --- 32. MYSTERY_ROSTER (75-Format Expansion, Wave 1) ----------------------
+
+def test_mystery_roster_full_public_playthrough_reveal_then_guess():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="mystery_roster_nfl")
+    rid = r["round_id"]
+    assert rid.startswith("GGP35:")
+    assert r["view"]["clues_revealed"] == 1
+
+    sub1 = pm.submit_public_round(round_id=rid, submission={"action": "reveal"})
+    assert sub1["result"]["action"] == "reveal"
+    assert sub1["view"]["clues_revealed"] == 2
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub2 = pm.submit_public_round(round_id=rid, submission={"action": "guess", "choice_item_id": correct})
+    assert sub2["result"]["correct"] is True
+    assert sub2["result"]["points_earned"] == 3
+    assert sub2["view"]["score"] == 3
+    assert sub2["view"]["clues_revealed"] == 1
+
+
+def test_mystery_roster_never_leaks_the_real_answer_before_a_guess():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="mystery_roster_nfl")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "clues", "clues_revealed",
+                                      "max_clues", "options", "score"}
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
