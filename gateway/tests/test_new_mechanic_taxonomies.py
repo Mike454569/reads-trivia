@@ -855,3 +855,82 @@ def test_best_of_seven_duel_match_winner_independent_of_any_single_round_answer(
     recomputed_wins_b = sum(1 for r in pkg["rounds"] if r["_answer"] == "B")
     assert ms["wins_a"] == recomputed_wins_a
     assert ms["wins_b"] == recomputed_wins_b
+
+
+# --- PICK_THE_IMPOSTOR (15-Format Expansion Part 2, format #5) -----------
+
+def test_pick_the_impostor_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "PICK_THE_IMPOSTOR" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("PICK_THE_IMPOSTOR"), "PICK_THE_IMPOSTOR has no registered variants"
+
+
+@pytest.mark.parametrize("variant", ["NFL_TEAM_ROSTER_IMPOSTOR", "CFB_SCHOOL_ROSTER_IMPOSTOR"])
+def test_pick_the_impostor_generates_real_rounds_with_a_genuinely_absent_impostor(variant):
+    from tools.director_v04 import pick_the_impostor
+
+    pkg = pick_the_impostor.build_package("test-impostor-1", variant, round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["items"]) == 4
+        item_ids = {it["item_id"] for it in r["items"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["items"]]
+        assert len(set(labels)) == 4, "no duplicate real players within a round"
+        assert r["_impostor_item_id"] in item_ids
+
+
+def test_pick_the_impostor_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pick_the_impostor_round(
+        variant="NFL_TEAM_ROSTER_IMPOSTOR", round_count=3, seed="test-impostor-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("PICK_THE_IMPOSTOR")
+    canonical = pkg["rounds"][0]["_impostor_item_id"]
+    result, progress = me.evaluate_submission(
+        "PICK_THE_IMPOSTOR", pkg, progress, {"impostor_item_id": canonical})
+    assert result["correct"] is True
+    canonical_label = next(it["label"] for it in pkg["rounds"][0]["items"] if it["item_id"] == canonical)
+    assert result["canonical_answer"] == canonical_label
+
+    progress2 = me.initial_progress("PICK_THE_IMPOSTOR")
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result2, progress2 = me.evaluate_submission(
+        "PICK_THE_IMPOSTOR", pkg, progress2, {"impostor_item_id": wrong})
+    assert result2["correct"] is False
+
+
+def test_pick_the_impostor_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pick_the_impostor_round(
+        variant="NFL_TEAM_ROSTER_IMPOSTOR", round_count=2, seed="test-impostor-malformed")
+
+    progress = me.initial_progress("PICK_THE_IMPOSTOR")
+    result, progress = me.evaluate_submission("PICK_THE_IMPOSTOR", pkg, progress, {"impostor_item_id": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("PICK_THE_IMPOSTOR")
+    result2, progress2 = me.evaluate_submission("PICK_THE_IMPOSTOR", pkg, progress2, {"impostor_item_id": "Z"})
+    assert result2["correct"] is False
+
+    progress3 = me.initial_progress("PICK_THE_IMPOSTOR")
+    result3, progress3 = me.evaluate_submission("PICK_THE_IMPOSTOR", pkg, progress3, {})
+    assert result3["correct"] is False
+
+
+def test_pick_the_impostor_client_view_never_leaks_the_real_impostor_before_submission():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_pick_the_impostor_round(
+        variant="CFB_SCHOOL_ROSTER_IMPOSTOR", round_count=2, seed="test-impostor-leak")
+    progress = me.initial_progress("PICK_THE_IMPOSTOR")
+    view = me.client_safe_view("PICK_THE_IMPOSTOR", pkg, progress)
+    assert set(view.keys()) >= {"round_index", "round_count", "completed", "prompt", "items"}
+    assert "_impostor_item_id" not in view
+    for it in view["items"]:
+        assert set(it.keys()) == {"item_id", "label"}

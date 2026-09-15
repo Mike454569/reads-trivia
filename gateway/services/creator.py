@@ -221,6 +221,7 @@ _NEW_TAXONOMY_TITLES = {
     "RELATIONSHIP_CHAIN": "Relationship Chain", "BRANCH_STATE": "Choose Your Path",
     "GUESS_THE_SEASON": "Guess the Season",
     "PAIRWISE_COMPARE": "Head to Head Duel",
+    "PICK_THE_IMPOSTOR": "Pick the Impostor",
 }
 
 
@@ -273,8 +274,11 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
         package = mechanic_engine.generate_guess_the_season_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5),
             difficulty=gen_kwargs.get("difficulty", "MEDIUM"), seed=real_seed)
-    else:  # PAIRWISE_COMPARE (HEAD_TO_HEAD_DUEL)
+    elif taxonomy_id == "PAIRWISE_COMPARE":
         package = mechanic_engine.generate_pairwise_compare_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
+    else:  # PICK_THE_IMPOSTOR
+        package = mechanic_engine.generate_pick_the_impostor_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":

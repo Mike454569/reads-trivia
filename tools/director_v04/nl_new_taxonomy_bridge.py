@@ -217,6 +217,16 @@ _CAREER_PASSING_TD_RE = re.compile(r"\b(career\s+)?passing\s+(touchdowns?|tds?)\
 # on league/stat the way HEAD_TO_HEAD_DUEL's own routing does.
 _BEST_OF_SEVEN_DUEL_RE = re.compile(r"\bbest\s+of\s+(seven|7)\b", re.IGNORECASE)
 
+# --- PICK_THE_IMPOSTOR (15-Format Expansion pass, Part 2, format #5) -------
+# "impostor"/"doesn't belong"/"which one wasn't" are the distinctive
+# phrase -- a bare "which one is different" alone would be too generic
+# (could mean almost anything), so this requires either the format's own
+# name or a real "doesn't belong to this real group" framing.
+_PICK_THE_IMPOSTOR_RE = re.compile(
+    r"\bimpostor\b|\bimposter\b|\bdoesn'?t\s+belong\b|\bwhich\s+one\s+(wasn'?t|isn'?t|didn'?t)\b",
+    re.IGNORECASE,
+)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -299,5 +309,10 @@ def detect(request_text: str | None) -> dict | None:
             variant = "NFL_SEASON_RUSHING_YARDS_DUEL"
         return {"taxonomy_id": "PAIRWISE_COMPARE", "variant": variant,
                 "format": "HEAD_TO_HEAD_DUEL", "gen_kwargs": {}}
+
+    if _PICK_THE_IMPOSTOR_RE.search(text):
+        variant = "CFB_SCHOOL_ROSTER_IMPOSTOR" if _league_for(text) == "CFB" else "NFL_TEAM_ROSTER_IMPOSTOR"
+        return {"taxonomy_id": "PICK_THE_IMPOSTOR", "variant": variant,
+                "format": "PICK_THE_IMPOSTOR", "gen_kwargs": {}}
 
     return None

@@ -41,6 +41,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #3 -- see
     # tools/director_v04/head_to_head_duel.py's own module docstring.
     "PAIRWISE_COMPARE",
+    # 15-Format Expansion pass (Part 2), format #5 -- see
+    # tools/director_v04/pick_the_impostor.py's own module docstring.
+    "PICK_THE_IMPOSTOR",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -182,6 +185,12 @@ VARIANTS: dict[str, dict[str, dict]] = {
         "NFL_CAREER_PASSING_TD_DUEL": {"competition": "NFL"},
         "CFB_CAREER_RUSHING_YARDS_DUEL": {"competition": "CFB"},
         "NFL_CAREER_QB_BEST_OF_SEVEN": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #5 -- see
+    # tools/director_v04/pick_the_impostor.py's own module docstring.
+    "PICK_THE_IMPOSTOR": {
+        "NFL_TEAM_ROSTER_IMPOSTOR": {"competition": "NFL"},
+        "CFB_SCHOOL_ROSTER_IMPOSTOR": {"competition": "CFB"},
     },
 }
 
@@ -387,6 +396,34 @@ def _pairwise_compare_evaluate(package: dict, index: int, submission: dict) -> d
     if index == len(package["rounds"]) - 1 and package.get("_match_summary"):
         result["match_summary"] = package["_match_summary"]
     return result
+
+
+# --- PICK_THE_IMPOSTOR (15-Format Expansion Part 2) -------------------------
+# Real "3 share a real fact, 1 doesn't" round -- see tools/director_v04/
+# pick_the_impostor.py's own module docstring. current_index-based
+# progress, same shape as GUESS_THE_SEASON/PAIRWISE_COMPARE above.
+
+def generate_pick_the_impostor_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import pick_the_impostor
+    return pick_the_impostor.build_package(seed, variant, round_count=round_count)
+
+
+def _pick_the_impostor_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "prompt": r["prompt"],
+            "items": r["items"]}
+
+
+def _pick_the_impostor_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_impostor_item_id"]
+    choice = str(submission.get("impostor_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["items"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1179,6 +1216,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _guess_the_season_client_view(package, progress["current_index"])
     if taxonomy_id == "PAIRWISE_COMPARE":
         return _pairwise_compare_client_view(package, progress["current_index"])
+    if taxonomy_id == "PICK_THE_IMPOSTOR":
+        return _pick_the_impostor_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1218,6 +1257,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "PAIRWISE_COMPARE":
         result = _pairwise_compare_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "PICK_THE_IMPOSTOR":
+        result = _pick_the_impostor_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

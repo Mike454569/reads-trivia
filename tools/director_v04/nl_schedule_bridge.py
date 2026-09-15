@@ -74,6 +74,14 @@ _STAT_COMPARISON_EXCLUSION_RE = re.compile(
     r"\b(yards?|yardage|rushed|rushing|passing|receiving|sacks?|interceptions?|compare|comparison|stats?)\b",
     re.IGNORECASE,
 )
+# 15-Format Expansion pass (Part 2), format #5: a second real, found
+# over-trigger -- "pick the impostor" contains the bare word "pick",
+# which alone satisfies the has_slate_or_league+picks? fallback below
+# whenever the request also names a league (its own real example: "give
+# me a pick the impostor game with real NFL players"). PICK_THE_IMPOSTOR
+# is a real, distinct mechanic (tools/director_v04/nl_new_taxonomy_bridge.py,
+# checked AFTER this module) -- never this one, regardless of "pick".
+_IMPOSTOR_EXCLUSION_RE = re.compile(r"\bimpostor\b|\bimposter\b", re.IGNORECASE)
 
 # --- LIVE_WEEKLY_FANTASY_DRAFT recognition ----------------------------------
 # Anchored on the word "fantasy" itself, paired with a roster-construction
@@ -98,7 +106,8 @@ def _detect_pickem(text: str) -> bool:
     # paired with a slate/week or league signal -- and never when "draft"
     # is also present ("draft picks" is NFL-Draft-trivia territory, a
     # completely different concept, not a predictive weekly slate).
-    if not _DRAFT_WORD.search(text) and not _STAT_COMPARISON_EXCLUSION_RE.search(text):
+    if (not _DRAFT_WORD.search(text) and not _STAT_COMPARISON_EXCLUSION_RE.search(text)
+            and not _IMPOSTOR_EXCLUSION_RE.search(text)):
         has_slate_or_league = bool(_PICKEM_SLATE_SIGNAL.search(text) or _LEAGUE_SIGNAL.search(text))
         if has_slate_or_league and re.search(r"\bpicks?\b", text, re.IGNORECASE):
             return True

@@ -898,6 +898,38 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # verbatim, introducing zero new CSS or layout.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "PICK_THE_IMPOSTOR": {
+        "format_id": "PICK_THE_IMPOSTOR", "display_name": "Pick the Impostor",
+        "description": "4 real players shown together; 3 really share one real, verifiable membership fact "
+                        "(the same real NFL team roster, or the same real CFB school, in the same real "
+                        "season) and 1 genuinely does not. The player taps the impostor.",
+        "payload_schema": None,
+        "renderer": "renderPickTheImpostorBody (engine-game-ui.js, reuses renderCandidateCardsHtml)",
+        "proven_in": ["pick_the_impostor_nfl", "pick_the_impostor_cfb"],
+        "supported_mechanics": ["pick_the_impostor"], "mechanic_family": "PICK_THE_IMPOSTOR",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["canonical_roster_seasons (NFLVERSE_DATA, SOURCE_BACKED), "
+                                         "cfb_player_season_stats_real (SPORTSDATAVERSE_CFB, "
+                                         "SOURCE_BACKED_DERIVED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Tap 1 of 4 real candidate cards (reuses renderCandidateCardsHtml).",
+        "validation_rules": "The real impostor is always confirmed absent from the 3-member group's own "
+                             "real player-id set before being finalized -- never assumed disjoint just "
+                             "because the two groups came from different teams/schools.",
+        "answer_schema": "{impostor_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/pick_the_impostor.py:build_package()",
+        "qa_requirements": "Every real membership fact traced to a real, resolved row; the real impostor's "
+                            "item_id never sent to the client before evaluate() runs.",
+        "casual_aliases": ["impostor", "imposter", "doesn't belong", "which one wasn't"],
+        # True because renderPickTheImpostorBody introduces zero new CSS --
+        # built entirely from the already-shipped renderCandidateCardsHtml
+        # component (app.js:306, the same one Odd College Out/One School
+        # Missing already use in production).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

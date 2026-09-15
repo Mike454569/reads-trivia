@@ -315,6 +315,20 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "-- most categories won takes the duel.",
         "kind": "pairwise_compare", "gen_kwargs": {"round_count": 7},
     },
+    # 15-Format Expansion pass (Part 2), format #5 -- see
+    # tools/director_v04/pick_the_impostor.py's own module docstring.
+    "pick_the_impostor_nfl": {
+        "competition": "NFL", "taxonomy_id": "PICK_THE_IMPOSTOR", "variant": "NFL_TEAM_ROSTER_IMPOSTOR",
+        "title": "Pick the Impostor",
+        "instructions": "3 of these 4 real players were really on the same real NFL roster -- tap whichever one wasn't.",
+        "kind": "pick_the_impostor", "gen_kwargs": {"round_count": 5},
+    },
+    "pick_the_impostor_cfb": {
+        "competition": "CFB", "taxonomy_id": "PICK_THE_IMPOSTOR", "variant": "CFB_SCHOOL_ROSTER_IMPOSTOR",
+        "title": "Pick the Impostor: College Football",
+        "instructions": "3 of these 4 real players really played for the same real school -- tap whichever one didn't.",
+        "kind": "pick_the_impostor", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -379,6 +393,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_guess_the_season_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "PAIRWISE_COMPARE":
             package = mechanic_engine.generate_pairwise_compare_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "PICK_THE_IMPOSTOR":
+            package = mechanic_engine.generate_pick_the_impostor_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

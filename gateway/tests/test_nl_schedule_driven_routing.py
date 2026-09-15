@@ -23,12 +23,55 @@ pytestmark = pytest.mark.skipif(
     not engine_bootstrap.ENGINE_DIR.is_dir(), reason="READS_ENGINE_DIR not set to a real Engine database"
 )
 
+
+def _resolve_real_future_nfl_week() -> tuple[int, str]:
+    """Same real, dynamic resolver test_weekly_pickem.py's own
+    _resolve_real_future_nfl_week() established -- a hardcoded week number
+    (this file's own previous `2026, "1"`) is real and future when written,
+    but goes stale the moment the real calendar catches up to it (confirmed
+    live this pass: by the time this suite ran again, every week-1 game had
+    already kicked off, so the app's own real "picks close at kickoff"
+    logic correctly rejected it -- the test broke, not the app). Picks the
+    earliest NFL week, in the latest season the Engine has real schedule
+    data for, whose games all start after today's real date."""
+    from datetime import datetime, timezone
+    c = engine_bootstrap.connect()
+    try:
+        season = c.execute("SELECT MAX(season) FROM games WHERE game_type='REG'").fetchone()[0]
+        today = datetime.now(timezone.utc).date().isoformat()
+        row = c.execute(
+            "SELECT week FROM games WHERE season = ? AND game_type = 'REG' "
+            "GROUP BY week HAVING MIN(game_date) > ? ORDER BY CAST(week AS INTEGER) LIMIT 1",
+            (season, today),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(
+                f"No fully-future NFL week found for season {season} as of {today} -- "
+                f"the real Engine schedule may need a refresh."
+            )
+        return season, str(row["week"])
+    finally:
+        c.close()
+
+
 # Real, confirmed-live schedule windows (same fixtures test_weekly_pickem.py
 # and test_live_weekly_fantasy_draft.py already use) -- used only for the
 # full generate->submit playthroughs below, never for the pure routing
 # assertions (those must pass regardless of what real data happens to exist
-# for the auto-resolved current week).
-NFL_SEASON, NFL_WEEK = 2026, "1"           # real future NFL schedule, confirmed live
+# for the auto-resolved current week). NFL_SEASON/NFL_WEEK are resolved
+# dynamically (see above) rather than hardcoded, since the whole point of
+# this fixture is to always name a genuinely still-open real week.
+#
+# Guarded the same way test_weekly_pickem.py's own module-level resolution
+# is: pytest's skipif marker only skips test FUNCTIONS, not module-level
+# code run at collection time -- without this guard, an environment with
+# no READS_ENGINE_DIR would crash collection instead of cleanly skipping
+# every test in this file (the placeholder is never actually used, since
+# every test that depends on it is skipped in that case).
+if engine_bootstrap.ENGINE_DIR.is_dir():
+    NFL_SEASON, NFL_WEEK = _resolve_real_future_nfl_week()
+else:
+    NFL_SEASON, NFL_WEEK = 1900, "1"
 CFB_SEASON, CFB_WEEK = 2025, 1             # real CFB schedule + rosters, confirmed live
 
 

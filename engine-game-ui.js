@@ -1250,6 +1250,24 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #5 -- see
+  // tools/director_v04/pick_the_impostor.py's own module docstring.
+  pickTheImpostorNfl: {
+    publicMode: 'pick_the_impostor_nfl', hash: '#picktheimpostornflpilot',
+    flagOn: function () { return ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01; },
+    title: 'Pick the Impostor', kind: 'pick_the_impostor',
+    desc: '3 of these 4 real players were really on the same real NFL roster -- find the one that wasn\'t.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  pickTheImpostorCfb: {
+    publicMode: 'pick_the_impostor_cfb', hash: '#picktheimpostorcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01; },
+    title: 'Pick the Impostor: College Football', kind: 'pick_the_impostor',
+    desc: '3 of these 4 real players really played for the same real school -- find the one that didn\'t.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1372,6 +1390,7 @@ function finishMechanicPilotSession(cfg, s) {
   // branch_state above already established for a single-boolean result.
   else if (cfg.kind === 'guess_the_season' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'pairwise_compare' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'pick_the_impostor' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1445,6 +1464,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
       pcSummary += '<p class="mode-desc">' + matchLine + '</p>';
     }
     return pcSummary;
+  }
+  if (cfg.kind === 'pick_the_impostor') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real impostor was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1521,6 +1544,9 @@ function renderMechanicPilotFeedback(cfg, s) {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = (r.correct_label && r.value_a != null && r.value_b != null)
       ? esc(r.correct_label) + ' had the real higher value (' + r.value_a + ' vs ' + r.value_b + ').' : '';
+  } else if (cfg.kind === 'pick_the_impostor') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real impostor was ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1630,6 +1656,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'branch_state') return renderBranchStateBody(v, s);
   if (cfg.kind === 'guess_the_season') return renderGuessTheSeasonBody(v, s);
   if (cfg.kind === 'pairwise_compare') return renderPairwiseCompareBody(v, s);
+  if (cfg.kind === 'pick_the_impostor') return renderPickTheImpostorBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1803,6 +1830,19 @@ function renderPairwiseCompareBody(v, s) {
       { code: 'B', label: v.entity_b.label },
       { dataAttr: 'data-mechanic-duel-choice' },
     );
+}
+
+// PICK_THE_IMPOSTOR: reuses renderCandidateCardsHtml (app.js), the same
+// "equal candidate cards" component Odd College Out/One School Missing
+// already use -- the click handler resolves the clicked card's index
+// back to this round's real, already-shuffled item_id via the current
+// view (see app.js's data-mechanic-impostor-pick handler).
+function renderPickTheImpostorBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-impostor-pick',
+    });
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

@@ -227,3 +227,49 @@ def test_best_of_seven_duel_creator_generate_for_review_is_a_real_playable_round
     assert r["round_id"].startswith("GGP18:")
     assert r["view"]["round_count"] >= 3
     assert r["view"]["entity_a"]["label"] and r["view"]["entity_b"]["label"]
+
+
+# --- PICK_THE_IMPOSTOR (15-Format Expansion Part 2, format #5) -----------
+
+def test_detect_pick_the_impostor_real_phrasing_and_league_routing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a pick the impostor game")
+    assert r is not None
+    assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+    assert r["format"] == "PICK_THE_IMPOSTOR"
+    assert r["variant"] == "NFL_TEAM_ROSTER_IMPOSTOR"
+
+    r2 = bridge.detect("which one doesn't belong on this real roster")
+    assert r2["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+
+    r3 = bridge.detect("college football, which one wasn't really on this team")
+    assert r3["variant"] == "CFB_SCHOOL_ROSTER_IMPOSTOR"
+
+
+def test_pick_the_impostor_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="pick the impostor", puzzle_count=None, difficulty=None, seed="pytest-impostor-bridge",
+    )
+    assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
+    assert r["format_id"] == "PICK_THE_IMPOSTOR"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP19:")
+    assert len(r["view"]["items"]) == 4
+
+
+def test_pick_the_impostor_is_never_shadowed_by_weekly_pickem_despite_the_word_pick():
+    """Real regression guard for a real bug caught live this pass:
+    nl_schedule_bridge (checked BEFORE this module in the fixed pipeline
+    order) has a has_slate_or_league + bare 'pick(s)' fallback for
+    WEEKLY_PICKEM -- "pick the impostor" contains "pick", and naming a
+    league (as any real request for this format naturally would) used to
+    satisfy that fallback and misroute here before this bridge ever ran.
+    Fixed with a real _IMPOSTOR_EXCLUSION_RE in nl_schedule_bridge.py."""
+    from gateway.services import creator
+
+    r = creator.assess_feasibility("Give me a pick the impostor game with real NFL players.")
+    assert r["support_status"] == "SUPPORTED"
+    assert r["taxonomy_id"] == "PICK_THE_IMPOSTOR"
