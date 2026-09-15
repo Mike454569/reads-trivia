@@ -116,6 +116,16 @@ _FORMAT_RE = {
         r"\b(rank|order|sort)\b.{0,40}\bby\b.{0,30}\b(yards?|touchdowns?|tds?|sacks|receptions?|interceptions?)\b",
         re.IGNORECASE,
     ),
+    # 15-Format Expansion pass (Part 2), format #9 -- checked before the
+    # generic _SORTING_RE fallback below (same real reason STAT_LADDER is),
+    # so "order the teams this player played for" resolves to the real
+    # career-team-order variant instead of the chronological
+    # NFL_DRAFT_PICK_ORDER default.
+    "MAP_THE_CAREER": re.compile(
+        r"\bmap\s+the\s+career\b|"
+        r"\b(order|sort|put)\b.{0,30}\b(teams?|schools?)\b.{0,40}\bplayed\s+for\b",
+        re.IGNORECASE,
+    ),
 }
 
 # --- STAT_LADDER (real SORTING_TIMELINE variants ordering by a real stat
@@ -182,6 +192,10 @@ def detect(request_text: str | None) -> dict | None:
         else:
             variant = "NFL_SEASON_RUSHING_YARDS_LADDER"
         return {"taxonomy_id": "SORTING_TIMELINE", "variant": variant, "format": "STAT_LADDER"}
+
+    if _FORMAT_RE["MAP_THE_CAREER"].search(text):
+        variant = "CFB_PLAYER_CAREER_SCHOOL_ORDER" if _league_for(text) == "CFB" else "NFL_PLAYER_CAREER_TEAM_ORDER"
+        return {"taxonomy_id": "SORTING_TIMELINE", "variant": variant, "format": "MAP_THE_CAREER"}
 
     for taxonomy_id, pattern in (
         ("MATCHING", _MATCHING_RE),

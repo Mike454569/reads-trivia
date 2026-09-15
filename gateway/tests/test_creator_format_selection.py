@@ -97,6 +97,30 @@ def test_detect_stat_ladder_matches_real_stat_phrasing_not_just_the_format_name(
     assert bridge.detect("Order these Heisman winners by year.") is None
 
 
+def test_detect_map_the_career_real_phrasing_and_league_routing():
+    """15-Format Expansion Part 2, format #9: checked BEFORE the generic
+    _SORTING_RE fallback -- same real reason STAT_LADDER is -- so a
+    career-team-order request resolves to the real MAP_THE_CAREER variant
+    instead of the chronological NFL_DRAFT_PICK_ORDER default."""
+    from tools.director_v04 import nl_mechanic_bridge as bridge
+
+    r = bridge.detect("map the career game")
+    assert r is not None
+    assert r["taxonomy_id"] == "SORTING_TIMELINE"
+    assert r["format"] == "MAP_THE_CAREER"
+    assert r["variant"] == "NFL_PLAYER_CAREER_TEAM_ORDER"
+
+    r2 = bridge.detect("order the teams this player played for")
+    assert r2 is not None and r2["format"] == "MAP_THE_CAREER"
+
+    r3 = bridge.detect("college football, map the career game")
+    assert r3["variant"] == "CFB_PLAYER_CAREER_SCHOOL_ORDER"
+
+    # A plain chronological sorting request must be completely unaffected.
+    plain = bridge.detect("put these NFL draft picks in order")
+    assert plain == {"taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_DRAFT_PICK_ORDER", "format": None}
+
+
 def test_detect_never_matches_an_unrelated_request():
     from tools.director_v04 import nl_mechanic_bridge as bridge
 

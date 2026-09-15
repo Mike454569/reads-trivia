@@ -82,6 +82,7 @@ var ENABLE_ENGINE_NFL_GAME_BOXSCORE_PILOT_V01 = READS_CONFIG.enableEngineNflGame
 // elimination) -- same fail-closed pattern, default OFF.
 var ENABLE_ENGINE_MATCHING_PILOT_V01 = READS_CONFIG.enableEngineMatchingPilot === true;
 var ENABLE_ENGINE_SORTING_PILOT_V01 = READS_CONFIG.enableEngineSortingPilot === true;
+var ENABLE_ENGINE_STAT_LADDER_PILOT_V01 = READS_CONFIG.enableEngineStatLadderPilot === true;
 var ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01 = READS_CONFIG.enableEngineHigherLowerPilot === true;
 var ENABLE_ENGINE_ELIMINATION_PILOT_V01 = READS_CONFIG.enableEngineEliminationPilot === true;
 var ENABLE_ENGINE_GUESS_THE_SEASON_PILOT_V01 = READS_CONFIG.enableEngineGuessTheSeasonPilot === true;
@@ -91,6 +92,7 @@ var ENABLE_ENGINE_PICK_THE_IMPOSTOR_PILOT_V01 = READS_CONFIG.enableEnginePickThe
 var ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01 = READS_CONFIG.enableEngineUniqueOneOutPilot === true;
 var ENABLE_ENGINE_MISSING_PIECE_PILOT_V01 = READS_CONFIG.enableEngineMissingPiecePilot === true;
 var ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01 = READS_CONFIG.enableEngineBeforeAfterPilot === true;
+var ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01 = READS_CONFIG.enableEngineMapTheCareerPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10852,6 +10854,9 @@ if (ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01) HIDDEN_ROUTES['#franchisemaratho
 // single-question enginePilot shell).
 if (ENABLE_ENGINE_MATCHING_PILOT_V01) HIDDEN_ROUTES['#matchingpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_SORTING_PILOT_V01) HIDDEN_ROUTES['#sortingpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_STAT_LADDER_PILOT_V01) HIDDEN_ROUTES['#statladdernflrushingpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_STAT_LADDER_PILOT_V01) HIDDEN_ROUTES['#statladdernflpassingtdpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_STAT_LADDER_PILOT_V01) HIDDEN_ROUTES['#statladdercfbrushingpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01) HIDDEN_ROUTES['#higherlowerenginepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_ELIMINATION_PILOT_V01) HIDDEN_ROUTES['#eliminationpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_COMPARISON_PILOT_V01) HIDDEN_ROUTES['#comparisonpilot'] = 'mechanicPilot';
@@ -10886,6 +10891,8 @@ if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiecenflpilot'
 if (ENABLE_ENGINE_MISSING_PIECE_PILOT_V01) HIDDEN_ROUTES['#missingpiececfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeafternflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeaftercfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01) HIDDEN_ROUTES['#mapthecareernflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01) HIDDEN_ROUTES['#mapthecareercfbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

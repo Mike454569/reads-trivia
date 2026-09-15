@@ -74,6 +74,19 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "SORTING_TIMELINE": {
         "NFL_DRAFT_PICK_ORDER": {"competition": "NFL"},
         "CFB_HEISMAN_YEAR_ORDER": {"competition": "CFB"},
+        # STAT_LADDER (15-Format Expansion Part 2, format #1) and
+        # MAP_THE_CAREER (format #9) variants -- see
+        # tools/director_v04/sorting.py's own module docstring. Listed here
+        # for completeness alongside this taxonomy's 2 original variants
+        # above (this dict is not read at runtime for SORTING_TIMELINE the
+        # way it is for DRIVE_PROGRESSION/ROSTER_BUILD, but is kept
+        # accurate since callers/tests reasonably expect VARIANTS[taxonomy]
+        # to reflect every real registered variant).
+        "NFL_SEASON_RUSHING_YARDS_LADDER": {"competition": "NFL"},
+        "NFL_CAREER_PASSING_TD_LADDER": {"competition": "NFL"},
+        "CFB_CAREER_RUSHING_YARDS_LADDER": {"competition": "CFB"},
+        "NFL_PLAYER_CAREER_TEAM_ORDER": {"competition": "NFL"},
+        "CFB_PLAYER_CAREER_SCHOOL_ORDER": {"competition": "CFB"},
     },
     "HIGHER_LOWER_STREAK": {
         "NFL_TEAM_SEASON_WINS": {"competition": "NFL"},

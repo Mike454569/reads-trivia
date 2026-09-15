@@ -470,6 +470,52 @@ def test_before_after_never_leaks_real_seasons_before_submission():
     assert set(r["view"]["entity_b"].keys()) == {"entity_id", "label"}
 
 
+# --- 18. STAT_LADDER public modes (real gap closed this pass -- these 3
+# modes existed since format #1 but had never been exercised through the
+# real public pipeline in a persisted test) -----------------------------
+
+@pytest.mark.parametrize("mode", ["stat_ladder_nfl_rushing", "stat_ladder_nfl_passing_td", "stat_ladder_cfb_rushing"])
+def test_stat_ladder_public_mode_full_playthrough(mode):
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode=mode)
+    rid = r["round_id"]
+    assert len(r["view"]["items_shuffled"]) == 4
+
+    pkg = packages.load_package(rid)
+    correct_order = pkg["rounds"][0]["_private_correct_order"]
+    sub = pm.submit_public_round(round_id=rid, submission={"order": correct_order})
+    assert sub["result"]["exact_match"] is True
+    assert "values_by_item_id" in sub["result"]
+
+
+# --- 19. MAP_THE_CAREER (15-Format Expansion Part 2, format #9) ------------
+
+@pytest.mark.parametrize("mode", ["map_the_career_nfl", "map_the_career_cfb"])
+def test_map_the_career_public_mode_full_playthrough(mode):
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode=mode)
+    rid = r["round_id"]
+    assert len(r["view"]["items_shuffled"]) == 4
+
+    pkg = packages.load_package(rid)
+    correct_order = pkg["rounds"][0]["_private_correct_order"]
+    sub = pm.submit_public_round(round_id=rid, submission={"order": correct_order})
+    assert sub["result"]["exact_match"] is True
+    assert "values_by_item_id" in sub["result"]
+
+
+def test_map_the_career_never_leaks_real_debut_seasons_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="map_the_career_nfl")
+    for it in r["view"]["items_shuffled"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

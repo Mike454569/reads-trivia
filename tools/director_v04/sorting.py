@@ -23,6 +23,15 @@ Five real, disclosed variants:
     resampled until all sampled totals are genuinely, exactly distinct
     (same real discipline the two pre-existing variants above already use
     for their own tie-free guarantee).
+
+A 7th and 8th variant, NFL_PLAYER_CAREER_TEAM_ORDER / CFB_PLAYER_CAREER_SCHOOL_ORDER
+(MAP_THE_CAREER format, 15-Format Expansion Part 2, format #9): N real
+teams/schools ONE real player's own career genuinely touched
+(canonical_roster_seasons / cfb_player_season_stats_real -- the same real
+tables BEFORE_AFTER already uses for a 2-item version of this same real
+idea), ordered by each real team/school's real earliest season for that
+player. Same tie-avoidance discipline: a round is resampled until all N
+sampled real debut seasons are genuinely distinct.
 """
 from __future__ import annotations
 
@@ -43,10 +52,12 @@ MAX_ITEMS = 6
 VARIANTS = frozenset({
     "NFL_DRAFT_PICK_ORDER", "CFB_HEISMAN_YEAR_ORDER",
     "NFL_SEASON_RUSHING_YARDS_LADDER", "NFL_CAREER_PASSING_TD_LADDER", "CFB_CAREER_RUSHING_YARDS_LADDER",
+    "NFL_PLAYER_CAREER_TEAM_ORDER", "CFB_PLAYER_CAREER_SCHOOL_ORDER",
 })
 _STAT_LADDER_VARIANTS = frozenset(
     {"NFL_SEASON_RUSHING_YARDS_LADDER", "NFL_CAREER_PASSING_TD_LADDER", "CFB_CAREER_RUSHING_YARDS_LADDER"}
 )
+_MAP_THE_CAREER_VARIANTS = frozenset({"NFL_PLAYER_CAREER_TEAM_ORDER", "CFB_PLAYER_CAREER_SCHOOL_ORDER"})
 
 
 def safety_check(c) -> dict:
@@ -60,6 +71,14 @@ def safety_check(c) -> dict:
         "player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA"),
         "cfb_player_season_stats_real": safety.check_verification_status_safety(
             c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED",
+        ),
+        # canonical_roster_seasons carries more than one real source/
+        # provenance (confirmed live, same real fix pick_the_impostor.py's
+        # own safety_check already established) -- scoped to the exact
+        # source_id='NFLVERSE_DATA' subset the real query below uses.
+        "canonical_roster_seasons": safety.check_verification_status_safety(
+            c, "canonical_roster_seasons", "NFLVERSE_DATA", "SOURCE_BACKED",
+            where_extra="source_id = 'NFLVERSE_DATA'",
         ),
     }
 
@@ -231,6 +250,100 @@ def _cfb_career_rushing_yards_ladder_rounds(c, seed: str, round_count: int, item
     return rounds
 
 
+def _nfl_player_career_team_order_rounds(c, seed: str, round_count: int, item_count: int) -> list[dict]:
+    rows = c.execute(
+        "SELECT rs.player_id, p.display_name, rs.season, rs.team_code FROM canonical_roster_seasons rs "
+        "JOIN canonical_players p ON p.player_id = rs.player_id "
+        "WHERE rs.verification_status='SOURCE_BACKED' AND rs.source_id='NFLVERSE_DATA'"
+    ).fetchall()
+    by_player: dict[str, list] = {}
+    for r in rows:
+        by_player.setdefault(r["player_id"], []).append(r)
+
+    rng = engine_bootstrap.seeded(seed)
+    player_ids = [pid for pid, hist in by_player.items() if len({h["team_code"] for h in hist}) >= item_count]
+    rng.shuffle(player_ids)
+
+    rounds = []
+    for pid in player_ids:
+        if len(rounds) >= round_count:
+            break
+        history = by_player[pid]
+        earliest_by_team: dict[str, int] = {}
+        for h in history:
+            if h["team_code"] not in earliest_by_team or h["season"] < earliest_by_team[h["team_code"]]:
+                earliest_by_team[h["team_code"]] = h["season"]
+        if len(earliest_by_team) < item_count:
+            continue
+        team_codes = list(earliest_by_team.keys())
+        sample = None
+        for _ in range(8):
+            candidate = rng.sample(team_codes, item_count)
+            if len({earliest_by_team[t] for t in candidate}) == item_count:
+                sample = candidate
+                break
+        if sample is None:
+            continue  # this real player's sampled real teams tied on debut season -- resample, never invent a tiebreak
+        ordered = sorted(sample, key=lambda t: earliest_by_team[t])
+        display_name = history[0]["display_name"]
+        rounds.append({
+            "variant": "NFL_PLAYER_CAREER_TEAM_ORDER", "season": None,
+            "prompt": f"Put these real teams {display_name} played for in order, earliest first.",
+            "items_in_order": [{"label": t, "value": earliest_by_team[t],
+                                 "_audit": {"team_code": t, "debut_season": earliest_by_team[t]}} for t in ordered],
+            "notes": f"Real career team history for {display_name} (NFLVERSE_DATA, SOURCE_BACKED).",
+        })
+    return rounds
+
+
+def _cfb_player_career_school_order_rounds(c, seed: str, round_count: int, item_count: int) -> list[dict]:
+    rows = c.execute(
+        "SELECT s.cfb_player_id, s.player_name, s.season, s.school_id, sc.school_name "
+        "FROM cfb_player_season_stats_real s JOIN schools sc ON sc.school_id = s.school_id "
+        "WHERE s.verification_status='SOURCE_BACKED_DERIVED'"
+    ).fetchall()
+    by_player: dict[str, list] = {}
+    for r in rows:
+        by_player.setdefault(r["cfb_player_id"], []).append(r)
+
+    rng = engine_bootstrap.seeded(seed)
+    player_ids = [pid for pid, hist in by_player.items() if len({h["school_id"] for h in hist}) >= item_count]
+    rng.shuffle(player_ids)
+
+    rounds = []
+    for pid in player_ids:
+        if len(rounds) >= round_count:
+            break
+        history = by_player[pid]
+        earliest_by_school: dict[str, tuple] = {}
+        for h in history:
+            if h["school_id"] not in earliest_by_school or h["season"] < earliest_by_school[h["school_id"]][0]:
+                earliest_by_school[h["school_id"]] = (h["season"], h["school_name"])
+        if len(earliest_by_school) < item_count:
+            continue
+        school_ids = list(earliest_by_school.keys())
+        sample = None
+        for _ in range(8):
+            candidate = rng.sample(school_ids, item_count)
+            if len({earliest_by_school[s][0] for s in candidate}) == item_count:
+                sample = candidate
+                break
+        if sample is None:
+            continue
+        ordered = sorted(sample, key=lambda s: earliest_by_school[s][0])
+        player_name = history[0]["player_name"]
+        rounds.append({
+            "variant": "CFB_PLAYER_CAREER_SCHOOL_ORDER", "season": None,
+            "prompt": f"Put these real schools {player_name} played for in order, earliest first.",
+            "items_in_order": [{"label": earliest_by_school[s][1], "value": earliest_by_school[s][0],
+                                 "_audit": {"school_id": s, "debut_season": earliest_by_school[s][0]}}
+                                for s in ordered],
+            "notes": f"Real career school history for {player_name} (SPORTSDATAVERSE_CFB, "
+                     f"SOURCE_BACKED_DERIVED).",
+        })
+    return rounds
+
+
 def _finalize_round(round_index: int, raw: dict) -> dict:
     ordered = raw["items_in_order"]
     item_ids_in_order = [f"I{i}" for i in range(len(ordered))]
@@ -271,8 +384,12 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5, item_count: i
             raw_rounds = _nfl_season_rushing_yards_ladder_rounds(c, seed, round_count, item_count)
         elif variant == "NFL_CAREER_PASSING_TD_LADDER":
             raw_rounds = _nfl_career_passing_td_ladder_rounds(c, seed, round_count, item_count)
-        else:  # CFB_CAREER_RUSHING_YARDS_LADDER
+        elif variant == "CFB_CAREER_RUSHING_YARDS_LADDER":
             raw_rounds = _cfb_career_rushing_yards_ladder_rounds(c, seed, round_count, item_count)
+        elif variant == "NFL_PLAYER_CAREER_TEAM_ORDER":
+            raw_rounds = _nfl_player_career_team_order_rounds(c, seed, round_count, item_count)
+        else:  # CFB_PLAYER_CAREER_SCHOOL_ORDER
+            raw_rounds = _cfb_player_career_school_order_rounds(c, seed, round_count, item_count)
     finally:
         c.close()
 
@@ -291,6 +408,7 @@ _GAME_TITLES = {
     "NFL_DRAFT_PICK_ORDER": "NFL Draft Order", "CFB_HEISMAN_YEAR_ORDER": "Heisman Timeline",
     "NFL_SEASON_RUSHING_YARDS_LADDER": "NFL Rushing Ladder", "NFL_CAREER_PASSING_TD_LADDER": "NFL Passing TD Ladder",
     "CFB_CAREER_RUSHING_YARDS_LADDER": "CFB Rushing Ladder",
+    "NFL_PLAYER_CAREER_TEAM_ORDER": "Map the Career", "CFB_PLAYER_CAREER_SCHOOL_ORDER": "Map the Career",
 }
 
 
@@ -300,13 +418,18 @@ def build_package(seed: str, variant: str, round_count: int = 5, item_count: int
         f"SORTING|{variant}|{seed}|{round_count}|{item_count}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
     is_stat_ladder = variant in _STAT_LADDER_VARIANTS
+    is_map_the_career = variant in _MAP_THE_CAREER_VARIANTS
+    if is_stat_ladder:
+        instructions = "Rank these real players from highest to lowest -- your real evidence is revealed once you submit."
+    elif is_map_the_career:
+        instructions = "Put these real teams/schools in the order this real player actually played for them."
+    else:
+        instructions = "Put these real items in the correct order."
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant,
         "game_title": _GAME_TITLES[variant],
-        "game_instructions": ("Rank these real players from highest to lowest -- your real evidence is "
-                               "revealed once you submit." if is_stat_ladder else
-                               "Put these real items in the correct order."),
+        "game_instructions": instructions,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if result["rounds"] else "FAILED",
         "rounds": result["rounds"], "round_count": len(result["rounds"]),

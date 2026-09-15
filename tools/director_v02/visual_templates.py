@@ -247,6 +247,39 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "casual_aliases": ["stat ladder", "put these stats in order", "rank these by"],
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "MAP_THE_CAREER": {
+        "format_id": "MAP_THE_CAREER",
+        "display_name": "Map the Career",
+        "description": "N real teams/schools ONE real player's own career genuinely touched (the same "
+                        "real canonical_roster_seasons / cfb_player_season_stats_real tables BEFORE_AFTER "
+                        "uses for a 2-item version of this same idea); the player reorders them into the "
+                        "real chronological sequence, then sees each real debut season revealed as evidence.",
+        "payload_schema": None,
+        "existing_renderer_note": "Reuses renderMechanicPilotBody's 'sorting' kind verbatim -- identical "
+                                   "shape to STAT_LADDER (a real per-item value revealed post-submit), just "
+                                   "ordered by real debut season instead of a real stat total. Zero new "
+                                   "client code.",
+        "proven_in": ["NFL_PLAYER_CAREER_TEAM_ORDER", "CFB_PLAYER_CAREER_SCHOOL_ORDER"],
+        "supported_mechanics": ["sorting"],
+        "mechanic_family": "sorting",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["canonical_roster_seasons (NFL, SOURCE_BACKED) / "
+                                         "cfb_player_season_stats_real (CFB, SOURCE_BACKED_DERIVED)"],
+        "min_items": 4, "max_items": 6, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"],
+        "timed": False, "multiplayer_compatible": False, "scoring_model": "WEIGHTED",
+        "interaction_model": "Reorder a vertical list of real team/school names (debut seasons hidden), "
+                              "submit, then see each real debut season revealed next to the name.",
+        "validation_rules": "A real player is only sampled if the N real teams/schools drawn for that "
+                             "round have genuinely distinct real debut seasons -- resampled, never given an "
+                             "invented tiebreak.",
+        "answer_schema": "{order: list[item_id]}",
+        "generation_schema": "tools/director_v04/sorting.py:generate_sorting_round()",
+        "qa_requirements": "No duplicate item_ids; every item's real debut season in a round is distinct.",
+        "casual_aliases": ["map the career", "career path", "order the teams they played for"],
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
     "BRACKET_TREE": {
         "format_id": "BRACKET_TREE",
         "display_name": "Bracket Tree",

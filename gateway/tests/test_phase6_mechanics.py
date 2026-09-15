@@ -117,6 +117,44 @@ def test_stat_ladder_career_passing_td_ladder_only_includes_real_quarterbacks():
         c.close()
 
 
+def test_map_the_career_generates_real_tie_free_rounds_for_one_players_own_history():
+    """15-Format Expansion Part 2, format #9: MAP_THE_CAREER reuses
+    SORTING_TIMELINE's own mechanic to order the real teams/schools ONE
+    real player's own career touched -- every round's sampled real debut
+    seasons must be genuinely distinct, and every item in a given round
+    must belong to the SAME real player (unlike every other
+    SORTING_TIMELINE variant, which samples N different real entities)."""
+    from tools.director_v04 import sorting
+
+    for variant in ("NFL_PLAYER_CAREER_TEAM_ORDER", "CFB_PLAYER_CAREER_SCHOOL_ORDER"):
+        pkg = sorting.build_package("t-map-career", variant, round_count=3, item_count=4)
+        assert pkg["qa_status"] == "PASSED", variant
+        for r in pkg["rounds"]:
+            assert len(r["items_shuffled"]) == 4
+            values = r["values_by_item_id"]
+            assert len(values) == 4
+            assert len(set(values.values())) == 4, "a real tie must never be silently broken"
+            correct_order = r["_private_correct_order"]
+            ordered_values = [values[item_id] for item_id in correct_order]
+            assert ordered_values == sorted(ordered_values)  # ascending (earliest first), matches the real prompt
+            labels = [it["label"] for it in r["items_shuffled"]]
+            assert len(set(labels)) == 4, "no duplicate real team/school within one player's own round"
+
+
+def test_map_the_career_reuses_the_generic_sorting_evaluate_contract():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_sorting_round(
+        variant="NFL_PLAYER_CAREER_TEAM_ORDER", round_count=2, item_count=4, seed="t-map-career-eval")
+    assert pkg["qa_status"] == "PASSED"
+    progress = me.initial_progress("SORTING_TIMELINE")
+    correct_order = pkg["rounds"][0]["_private_correct_order"]
+    result, progress = me.evaluate_submission("SORTING_TIMELINE", pkg, progress, {"order": correct_order})
+    assert result["exact_match"] is True
+    assert result["correct_positions"] == result["total_items"] == 4
+    assert "values_by_item_id" in result
+
+
 def test_higher_lower_generates_real_nfl_and_cfb_sequences_tie_free():
     from tools.director_v04 import higher_lower
 

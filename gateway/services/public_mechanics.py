@@ -116,6 +116,21 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Rank these real CFB players by career rushing yards, most first.",
         "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
     },
+    # MAP_THE_CAREER (15-Format Expansion Part 2, format #9) -- same
+    # SORTING_TIMELINE mechanic/taxonomy as STAT_LADDER above, same real
+    # reasoning for a dedicated public mode entry per variant.
+    "map_the_career_nfl": {
+        "competition": "NFL", "taxonomy_id": "SORTING_TIMELINE", "variant": "NFL_PLAYER_CAREER_TEAM_ORDER",
+        "title": "Map the Career",
+        "instructions": "Put these real teams in the order this real NFL player actually played for them.",
+        "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
+    },
+    "map_the_career_cfb": {
+        "competition": "CFB", "taxonomy_id": "SORTING_TIMELINE", "variant": "CFB_PLAYER_CAREER_SCHOOL_ORDER",
+        "title": "Map the Career: College Football",
+        "instructions": "Put these real schools in the order this real CFB player actually played for them.",
+        "kind": "sorting", "gen_kwargs": {"round_count": 1, "item_count": 4},
+    },
     "higher_lower_nfl_wins": {
         "competition": "NFL", "taxonomy_id": "HIGHER_LOWER_STREAK", "variant": "NFL_TEAM_SEASON_WINS",
         "title": "NFL Wins Streak",

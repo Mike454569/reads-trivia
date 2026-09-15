@@ -1023,6 +1023,34 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // STAT_LADDER (15-Format Expansion Part 2, format #1) real gap fix --
+  // these 3 real public modes existed with no client entry point at all
+  // until this pass. Same generic 'sorting' kind as the plain sorting
+  // pilot above -- zero new renderer code.
+  statLadderNflRushing: {
+    publicMode: 'stat_ladder_nfl_rushing', hash: '#statladdernflrushingpilot',
+    flagOn: function () { return ENABLE_ENGINE_STAT_LADDER_PILOT_V01; },
+    title: 'NFL Rushing Ladder', kind: 'sorting',
+    desc: 'Rank these real NFL rushers from a single season, most rushing yards first.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  statLadderNflPassingTd: {
+    publicMode: 'stat_ladder_nfl_passing_td', hash: '#statladdernflpassingtdpilot',
+    flagOn: function () { return ENABLE_ENGINE_STAT_LADDER_PILOT_V01; },
+    title: 'NFL Passing TD Ladder', kind: 'sorting',
+    desc: 'Rank these real NFL quarterbacks by career passing touchdowns, most first.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  statLadderCfbRushing: {
+    publicMode: 'stat_ladder_cfb_rushing', hash: '#statladdercfbrushingpilot',
+    flagOn: function () { return ENABLE_ENGINE_STAT_LADDER_PILOT_V01; },
+    title: 'CFB Rushing Ladder', kind: 'sorting',
+    desc: 'Rank these real CFB players by career rushing yards, most first.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   higherLowerEngine: {
     publicMode: 'higher_lower_nfl_wins', hash: '#higherlowerenginepilot',
     flagOn: function () { return ENABLE_ENGINE_HIGHER_LOWER_PILOT_V01; },
@@ -1313,6 +1341,25 @@ var ENGINE_MECHANIC_MODES = {
     flagOn: function () { return ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01; },
     title: 'Before & After: College Football', kind: 'before_after',
     desc: 'Tap whichever real school you think this real player played for FIRST.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
+  // 15-Format Expansion pass (Part 2), format #9 -- see
+  // tools/director_v04/sorting.py's own module docstring. Same generic
+  // 'sorting' kind as STAT_LADDER above -- zero new renderer code.
+  mapTheCareerNfl: {
+    publicMode: 'map_the_career_nfl', hash: '#mapthecareernflpilot',
+    flagOn: function () { return ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01; },
+    title: 'Map the Career', kind: 'sorting',
+    desc: 'Put these real teams in the order this real NFL player actually played for them.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  mapTheCareerCfb: {
+    publicMode: 'map_the_career_cfb', hash: '#mapthecareercfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01; },
+    title: 'Map the Career: College Football', kind: 'sorting',
+    desc: 'Put these real schools in the order this real CFB player actually played for them.',
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },

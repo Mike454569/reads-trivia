@@ -75,6 +75,11 @@ window.READS_CONFIG = {
   enableEngineNflGameBoxscorePilot: true,
   enableEngineMatchingPilot: false,
   enableEngineSortingPilot: false,
+  // STAT_LADDER (15-Format Expansion Part 2, format #1) shipped with no
+  // client-UI entry point at all -- backend/public-API reachable but not
+  // actually playable in the app. Fixed this pass alongside MAP_THE_CAREER
+  // (format #9, below), which shares the exact same generic 'sorting' kind.
+  enableEngineStatLadderPilot: false,
   enableEngineHigherLowerPilot: false,
   enableEngineEliminationPilot: false,
   // 15-Format Expansion pass (Part 2) -- off by default like its
@@ -99,6 +104,9 @@ window.READS_CONFIG = {
   // 15-Format Expansion pass (Part 2), format #8 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineBeforeAfterPilot: false,
+  // 15-Format Expansion pass (Part 2), format #9 -- same off-by-default
+  // convention as its own sibling pilots above.
+  enableEngineMapTheCareerPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification
