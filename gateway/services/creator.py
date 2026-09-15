@@ -323,6 +323,51 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     return {"round_id": stored["package_id"], "taxonomy_id": taxonomy_id, "format_id": bridged["format"], "view": view}
 
 
+# --- Format Picker pass: direct taxonomy_id generation, no NL text at all --
+# The user's own reported gap ("give me options ... not just strictly
+# having to say the format") is only PARTLY solved by creator-ui.js's
+# CREATOR_FORMAT_CATALOG filling the free-text box with a proven phrase --
+# that still routes through a narrow-anchored regex bridge under the
+# hood, which means every one of the 75 more formats the user asked for
+# next would need its own new regex, each one a fresh chance to collide
+# with an earlier-checked bridge's broader pattern (a real bug class hit
+# repeatedly this session -- PICK_THE_IMPOSTOR vs. the pickem fallback,
+# CONFIDENCE_PICK vs. plain pickem detection, etc.). generate_direct()
+# is the honest fix: the picker (or any future direct caller) names a
+# real taxonomy_id + variant explicitly -- no text, no regex, no
+# collision risk, ever -- and this dispatches straight into the exact
+# same _generate_direct_mechanic()/_generate_new_taxonomy() functions the
+# text bridges already call, so a picker-driven round and an NL-bridge-
+# driven round for the same taxonomy_id produce identical, already-tested
+# results through the same packages/game_state storage. Deliberately
+# does NOT cover the 3 schedule-driven taxonomies (WEEKLY_PICKEM/
+# LIVE_WEEKLY_FANTASY_DRAFT/CONFIDENCE_PICK) -- those need a real
+# (league, season, week) resolution nl_schedule_bridge.py's own detect()
+# already does correctly; the picker keeps using its proven phrase for
+# those 3 rather than duplicating that resolution logic here.
+def generate_direct(*, taxonomy_id: str, variant: str, gen_kwargs: dict | None = None,
+                     format: str | None = None, seed: str | None = None) -> dict:
+    from tools.director_v02 import mechanic_engine
+
+    if taxonomy_id not in mechanic_engine.TAXONOMY_IDS:
+        raise GatewayError("INVALID_REQUEST", f"Unknown taxonomy_id {taxonomy_id!r}.")
+    if variant not in mechanic_engine.VARIANTS.get(taxonomy_id, {}):
+        raise GatewayError(
+            "INVALID_REQUEST",
+            f"variant must be one of {sorted(mechanic_engine.VARIANTS.get(taxonomy_id, {}))} for taxonomy_id={taxonomy_id!r}.",
+        )
+    bridged = {"taxonomy_id": taxonomy_id, "variant": variant, "format": format, "gen_kwargs": gen_kwargs or {}}
+    if taxonomy_id in _DIRECT_MECHANIC_TITLES:
+        return _generate_direct_mechanic(bridged, seed=seed)
+    if taxonomy_id in _NEW_TAXONOMY_TITLES:
+        return _generate_new_taxonomy(bridged, seed=seed)
+    raise GatewayError(
+        "INVALID_REQUEST",
+        f"taxonomy_id={taxonomy_id!r} is schedule-driven and cannot be generated directly -- "
+        f"use a real natural-language request instead (see nl_schedule_bridge.py).",
+    )
+
+
 _SCHEDULE_DRIVEN_TITLES = {
     "WEEKLY_PICKEM": "Weekly Pick'em", "LIVE_WEEKLY_FANTASY_DRAFT": "Weekly Fantasy Draft",
     "CONFIDENCE_PICK": "Confidence Pick",

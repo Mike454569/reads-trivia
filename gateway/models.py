@@ -243,6 +243,29 @@ class CreatorGenerateRequest(BaseModel):
     seed: Optional[str] = Field(default=None, min_length=1, max_length=128)
 
 
+class CreatorFormatGenerateRequest(BaseModel):
+    """POST /v1/creator/format/generate (Format Picker pass) -- generates a
+    round for an EXPLICIT taxonomy_id + variant, no natural-language text
+    at all. taxonomy_id/variant are plain, bounded strings here (never a
+    Literal enum -- that would need a code change for every one of the 75
+    more formats the user asked to add) -- both are validated against the
+    real, live mechanic_engine.TAXONOMY_IDS/VARIANTS registry inside
+    gateway.services.creator.generate_direct() before anything is
+    generated, the same 'never trust a client-supplied identifier without
+    checking it against the real registry' discipline every other Creator
+    route already follows. gen_kwargs is a small, bounded free-form dict
+    (round_count, etc.) -- each taxonomy's own generate_*_round() function
+    reads only the keys it recognizes and ignores the rest, exactly like
+    MechanicRoundRequest's per-taxonomy optional knobs above."""
+    model_config = ConfigDict(extra="forbid")
+
+    taxonomy_id: str = Field(min_length=1, max_length=64)
+    variant: str = Field(min_length=1, max_length=64)
+    gen_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    format: Optional[str] = Field(default=None, max_length=64)
+    seed: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
 class CreatorReviewRequest(BaseModel):
     """POST /v1/creator/review -- the approve/reject step (Part G/H). Only
     the three human-set review statuses are ever accepted here -- GENERATED

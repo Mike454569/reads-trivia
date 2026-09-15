@@ -40,7 +40,7 @@ from . import config  # noqa: E402
 from .auth import require_admin, startup_token_check  # noqa: E402
 from .errors import GatewayError  # noqa: E402
 from .models import (AdminPickemGameStatusRequest, CreatorConceptsRequest, CreatorFeasibilityRequest,  # noqa: E402
-                      CreatorGenerateRequest,
+                      CreatorFormatGenerateRequest, CreatorGenerateRequest,
                       CreatorIdeasRequest, CreatorJobTier2CertificationRequest,
                       CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest,
@@ -1020,6 +1020,20 @@ def creator_generate(body: CreatorGenerateRequest, request: Request,
         result=result, latency_ms=latency_ms, endpoint="/v1/creator/generate",
     )
     return result
+
+
+@app.post("/v1/creator/format/generate")
+def creator_format_generate(body: CreatorFormatGenerateRequest, request: Request,
+                             _rl=Depends(rate_limit_generate), _admin=Depends(require_admin)):
+    """Format Picker pass: generates a round for an explicit taxonomy_id +
+    variant, no natural-language text at all -- see
+    gateway.services.creator.generate_direct()'s own docstring for why
+    this exists alongside /v1/creator/generate's text-based path rather
+    than replacing it."""
+    return creator_service.generate_direct(
+        taxonomy_id=body.taxonomy_id, variant=body.variant, gen_kwargs=body.gen_kwargs,
+        format=body.format, seed=body.seed,
+    )
 
 
 @app.get("/v1/creator/queue")

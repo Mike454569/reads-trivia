@@ -243,65 +243,75 @@ function creatorUseExample(text) {
 }
 
 // Format Picker pass: the user's own real gap report -- "I want it to
-// give me options when you make a game mode, not just strictly to you
-// having to say the format" -- CREATOR_EXAMPLE_PROMPTS above only ever
-// illustrated the flexible old guess/identify_player_from_clues
-// translator (which tolerates loose phrasing), leaving every genuinely
-// NEW format (built via tools/director_v04/nl_new_taxonomy_bridge.py,
-// nl_mechanic_bridge.py, nl_schedule_bridge.py -- all deliberately
-// NARROW-anchored, see those modules' own docstrings) undiscoverable
-// unless the admin already knew its exact trigger phrase. Deliberately
-// the SIMPLE fix agreed with the user (build the picker after finishing
-// the 15 formats; extend incrementally as more formats/modifiers land,
-// never replace) rather than folding this into a bigger Creator
-// NL-parsing overhaul: every entry below is just a real, already-tested
-// phrase (each one live-verified this pass via creator.assess_feasibility
-// to resolve to its named taxonomy_id with SUPPORTED status -- same
-// phrases test_finish_10_formats_public_pipeline.py's own
-// test_creator_example_prompts_reach_the_intended_new_format already
-// exercises for several of these) wired through the exact same
-// creatorUseExample() flow the 5 legacy example chips already use --
-// picking a row fills the textarea and lets Check Feasibility run the
-// real pipeline, never a second, parallel generation path. To add a
-// format landing later, append one object here; nothing else changes.
+// give me options when you make a game mode ... without having to use a
+// keyword or sum bs like that." Every entry with a taxonomyId+variant
+// below calls POST /v1/creator/format/generate directly (see
+// gateway.services.creator.generate_direct()'s own docstring) -- no
+// text, no regex bridge, no collision risk, real and already-tested for
+// every entry (live-verified this pass via generate_direct() and the
+// real HTTP route, matching gateway/tests/test_creator_format_picker.py's
+// own coverage). The 3 schedule-driven entries (Weekly Pick'em/Fantasy
+// Draft/Confidence Pick) have no taxonomyId -- they need a real
+// (league, season, week) resolution generate_direct() deliberately
+// doesn't duplicate (see its own docstring) -- so those 3 alone still
+// fall back to creatorUseExample()'s text-fill flow. To add a format
+// landing later, append one object here; nothing else changes.
 var CREATOR_FORMAT_CATALOG = [
-  { category: 'Matching & Sorting', title: 'Matching', desc: 'Pair up real players/picks.', phrase: 'Give me a matching game with NFL draft picks.' },
-  { category: 'Matching & Sorting', title: 'Timeline Order', desc: 'Put real picks/years in order.', phrase: 'Give me a timeline game with NFL Draft picks.' },
-  { category: 'Matching & Sorting', title: 'Stat Ladder', desc: 'Rank real players by a real career stat.', phrase: 'Give me a stat ladder with quarterbacks.' },
-  { category: 'Matching & Sorting', title: 'Map the Career', desc: 'Order the real teams a player actually played for.', phrase: 'Map the career of a real NFL player.' },
-  { category: 'Compare & Rank', title: 'Head to Head Duel', desc: 'Two real players, one real stat -- who’s higher?', phrase: 'Give me a head to head duel between two real quarterbacks.' },
-  { category: 'Compare & Rank', title: 'Best of Seven Duel', desc: 'A real multi-category showdown between two real QBs.', phrase: 'Give me a best of seven duel between two real quarterbacks.' },
-  { category: 'Compare & Rank', title: 'Leaderboard Climb', desc: 'Climb a real leaderboard one real rung at a time.', phrase: 'Give me a leaderboard climb game with real NFL passers.' },
-  { category: 'Compare & Rank', title: 'Higher or Lower', desc: 'A real streak of higher/lower stat guesses.', phrase: 'Give me a higher or lower game with NFL team win totals.' },
-  { category: 'Compare & Rank', title: 'Comparison Bracket', desc: 'Real teams face off through a real bracket.', phrase: 'Give me a bracket game with NFL teams.' },
-  { category: 'Spot the Odd One', title: 'Pick the Impostor', desc: '3 real players share a fact -- find the 1 that doesn’t.', phrase: 'Give me a pick the impostor game with real NFL players.' },
-  { category: 'Spot the Odd One', title: 'Unique One Out', desc: 'Same shape, real NFL Draft class membership.', phrase: 'Give me a unique one out game with real NFL players.' },
-  { category: 'Spot the Odd One', title: 'Missing Piece', desc: 'Find the real 4th player who also belongs.', phrase: 'Give me a missing piece game with real NFL players.' },
-  { category: 'Spot the Odd One', title: 'Blind Resume', desc: 'A real career stat line, name hidden -- whose is it?', phrase: 'Give me a blind resume game with a real NFL quarterback.' },
-  { category: 'Build a Team', title: 'Lineup Builder', desc: 'Build a real skill-position lineup.', phrase: 'Build me a skill position lineup.' },
-  { category: 'Build a Team', title: 'Auction Draft', desc: 'Draft real players against a fictional budget.', phrase: 'Give me an auction draft.' },
-  { category: 'Build a Team', title: 'Cap Challenge', desc: 'Build a real roster under a real salary cap.', phrase: 'Give me a salary cap challenge.' },
-  { category: 'Build a Team', title: 'Lineup Grid', desc: 'Guess the real team from its real starting lineup.', phrase: 'Guess the team from its starting lineup.' },
-  { category: 'Risk & Wager', title: 'Risk It', desc: 'Pick a real risk tier before you see the question.', phrase: 'Give me a risk it game with real NFL Draft picks.' },
-  { category: 'Risk & Wager', title: 'Wager Mode', desc: 'Wager fictional points on a real category before it’s revealed.', phrase: 'Give me a wager mode game.' },
-  { category: 'Brackets & Tournaments', title: 'Knockout Tournament', desc: 'A real single-elimination bracket.', phrase: 'Give me a 16-team knockout tournament.' },
-  { category: 'Brackets & Tournaments', title: 'Elimination', desc: 'Survive a real sequence of stat guesses -- one miss and you’re out.', phrase: 'Give me an elimination game.' },
-  { category: 'Story & Path', title: 'Choose Your Path', desc: 'Branch through a real topic tree.', phrase: 'Give me a choose-your-path game.' },
-  { category: 'Story & Path', title: 'Career Path', desc: 'Read a real career path, then guess the real player.', phrase: 'Give me a career path game with a real NFL player.' },
-  { category: 'Story & Path', title: 'Before & After', desc: 'Which real team did this real player play for FIRST?', phrase: 'Give me a before and after game with a real NFL player.' },
-  { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', phrase: 'Guess the season this real NFL team won it all.' },
-  { category: 'Story & Path', title: 'Connection Grid', desc: 'A real 3x3 grid of real team/round intersections.', phrase: 'Give me a connection grid game.' },
-  { category: 'Story & Path', title: 'Six Degrees', desc: 'Connect two real players through real teammates.', phrase: 'Connect these two players.' },
-  { category: 'Story & Path', title: 'Chain Reaction', desc: 'A real chain of players and colleges.', phrase: 'Give me a chain reaction game.' },
-  { category: 'Drives', title: 'Perfect Drive', desc: 'Answer real questions to drive down the real field.', phrase: 'Give me a perfect drive game.' },
-  { category: 'Drives', title: 'Goal Line Stand', desc: 'Real 4-down trivia from the real goal line.', phrase: 'Give me a goal line stand game.' },
+  { category: 'Matching & Sorting', title: 'Matching', desc: 'Pair up real players/picks.', taxonomyId: 'MATCHING', variant: 'NFL_DRAFT_CLASS_MATCH' },
+  { category: 'Matching & Sorting', title: 'Timeline Order', desc: 'Put real picks/years in order.', taxonomyId: 'SORTING_TIMELINE', variant: 'NFL_DRAFT_PICK_ORDER' },
+  { category: 'Matching & Sorting', title: 'Stat Ladder', desc: 'Rank real players by a real career stat.', taxonomyId: 'SORTING_TIMELINE', variant: 'NFL_CAREER_PASSING_TD_LADDER' },
+  { category: 'Matching & Sorting', title: 'Map the Career', desc: 'Order the real teams a player actually played for.', taxonomyId: 'SORTING_TIMELINE', variant: 'NFL_PLAYER_CAREER_TEAM_ORDER' },
+  { category: 'Compare & Rank', title: 'Head to Head Duel', desc: 'Two real players, one real stat -- who’s higher?', taxonomyId: 'PAIRWISE_COMPARE', variant: 'NFL_CAREER_PASSING_TD_DUEL' },
+  { category: 'Compare & Rank', title: 'Best of Seven Duel', desc: 'A real multi-category showdown between two real QBs.', taxonomyId: 'PAIRWISE_COMPARE', variant: 'NFL_CAREER_QB_BEST_OF_SEVEN' },
+  { category: 'Compare & Rank', title: 'Leaderboard Climb', desc: 'Climb a real leaderboard one real rung at a time.', taxonomyId: 'LEADERBOARD_CLIMB', variant: 'NFL_CAREER_PASSING_YARDS_CLIMB' },
+  { category: 'Compare & Rank', title: 'Higher or Lower', desc: 'A real streak of higher/lower stat guesses.', taxonomyId: 'HIGHER_LOWER_STREAK', variant: 'NFL_TEAM_SEASON_WINS' },
+  { category: 'Compare & Rank', title: 'Comparison Bracket', desc: 'Real teams face off through a real bracket.', taxonomyId: 'COMPARISON_BRACKET', variant: 'NFL_TEAM_SEASON_WINS_BRACKET' },
+  { category: 'Spot the Odd One', title: 'Pick the Impostor', desc: '3 real players share a fact -- find the 1 that doesn’t.', taxonomyId: 'PICK_THE_IMPOSTOR', variant: 'NFL_TEAM_ROSTER_IMPOSTOR' },
+  { category: 'Spot the Odd One', title: 'Unique One Out', desc: 'Same shape, real NFL Draft class membership.', taxonomyId: 'PICK_THE_IMPOSTOR', variant: 'NFL_DRAFT_CLASS_ONE_OUT' },
+  { category: 'Spot the Odd One', title: 'Missing Piece', desc: 'Find the real 4th player who also belongs.', taxonomyId: 'MISSING_PIECE', variant: 'NFL_TEAM_ROSTER_MISSING_PIECE' },
+  { category: 'Spot the Odd One', title: 'Blind Resume', desc: 'A real career stat line, name hidden -- whose is it?', taxonomyId: 'BLIND_RESUME', variant: 'NFL_QB_CAREER_BLIND_RESUME' },
+  { category: 'Build a Team', title: 'Lineup Builder', desc: 'Build a real skill-position lineup.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_2010S_OFFENSE_BUILDER' },
+  { category: 'Build a Team', title: 'Auction Draft', desc: 'Draft real players against a fictional budget.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_AUCTION_DRAFT' },
+  { category: 'Build a Team', title: 'Cap Challenge', desc: 'Build a real roster under a real salary cap.', taxonomyId: 'ROSTER_BUILD', variant: 'NFL_CAP_CHALLENGE' },
+  { category: 'Build a Team', title: 'Lineup Grid', desc: 'Guess the real team from its real starting lineup.', taxonomyId: 'POSITION_LINEUP_GRID', variant: 'NFL_OFFENSE_LINEUP_COLLEGE_TEAM_ONLY' },
+  { category: 'Risk & Wager', title: 'Risk It', desc: 'Pick a real risk tier before you see the question.', taxonomyId: 'RISK_IT', variant: 'NFL_DRAFT_RISK_IT' },
+  { category: 'Risk & Wager', title: 'Wager Mode', desc: 'Wager fictional points on a real category before it’s revealed.', taxonomyId: 'WAGER_MODE', variant: 'WAGER_MODE_MIXED' },
+  { category: 'Brackets & Tournaments', title: 'Knockout Tournament', desc: 'A real single-elimination bracket.', taxonomyId: 'KNOCKOUT_BRACKET', variant: 'NFL_TEAM_SEASON_WINS_KNOCKOUT_16' },
+  { category: 'Brackets & Tournaments', title: 'Elimination', desc: 'Survive a real sequence of stat guesses -- one miss and you’re out.', taxonomyId: 'ELIMINATION_SURVIVAL', variant: 'NFL_SUPER_BOWL_CHAMPION_SURVIVAL' },
+  { category: 'Story & Path', title: 'Choose Your Path', desc: 'Branch through a real topic tree.', taxonomyId: 'BRANCH_STATE', variant: 'NFL_TOPIC_PATH' },
+  { category: 'Story & Path', title: 'Career Path', desc: 'Read a real career path, then guess the real player.', taxonomyId: 'CAREER_PATH', variant: 'NFL_PLAYER_CAREER_PATH_IDENTIFY' },
+  { category: 'Story & Path', title: 'Before & After', desc: 'Which real team did this real player play for FIRST?', taxonomyId: 'BEFORE_AFTER', variant: 'NFL_TEAM_CHANGE_BEFORE_AFTER' },
+  { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', taxonomyId: 'GUESS_THE_SEASON', variant: 'NFL_SUPER_BOWL_SEASON' },
+  { category: 'Story & Path', title: 'Connection Grid', desc: 'A real 3x3 grid of real team/round intersections.', taxonomyId: 'GRID_CONSTRAINT_BOARD', variant: 'NFL_TEAM_DRAFT_ROUND_GRID' },
+  { category: 'Story & Path', title: 'Six Degrees', desc: 'Connect two real players through real teammates.', taxonomyId: 'RELATIONSHIP_CHAIN', variant: 'CFB_SCHOOL_TO_NFL_TEAM_CHAIN' },
+  { category: 'Story & Path', title: 'Chain Reaction', desc: 'A real chain of players and colleges.', taxonomyId: 'RELATIONSHIP_CHAIN', variant: 'CFB_SCHOOL_TO_NFL_TEAM_CHAIN' },
+  { category: 'Drives', title: 'Perfect Drive', desc: 'Answer real questions to drive down the real field.', taxonomyId: 'DRIVE_PROGRESSION', variant: 'NFL_DRAFT_PERFECT_DRIVE' },
+  { category: 'Drives', title: 'Goal Line Stand', desc: 'Real 4-down trivia from the real goal line.', taxonomyId: 'DRIVE_PROGRESSION', variant: 'NFL_DRAFT_GOAL_LINE_STAND' },
   { category: 'Live & Weekly', title: 'Weekly Pick’em', desc: 'Pick real winners for this week’s real NFL slate.', phrase: 'Give me the NFL weekly pick’em.' },
   { category: 'Live & Weekly', title: 'Fantasy Draft', desc: 'A real live-style fantasy draft.', phrase: 'Give me a fantasy draft with NFL players.' },
   { category: 'Live & Weekly', title: 'Confidence Pick', desc: 'Rank your real picks by confidence for real points.', phrase: 'Give me a confidence pick game for this week’s NFL games.' },
 ];
+function creatorGenerateDirect(taxonomyId, variant) {
+  var s = state.creator; if (!s) return;
+  s.screen = CREATOR_SCREEN.GENERATING;
+  renderAll();
+  creatorFetchJson('/v1/creator/format/generate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ taxonomy_id: taxonomyId, variant: variant }),
+  }).then(function (result) {
+    s.generated = result;
+    s.screen = CREATOR_SCREEN.PREVIEW;
+    renderAll();
+  }).catch(function (err) {
+    s.error = creatorUserFacingError(err);
+    s.screen = CREATOR_SCREEN.ERROR;
+    renderAll();
+  });
+}
 function creatorPickFormat(index) {
   var entry = CREATOR_FORMAT_CATALOG[index];
   if (!entry) return;
+  if (entry.taxonomyId) { creatorGenerateDirect(entry.taxonomyId, entry.variant); return; }
   creatorUseExample(entry.phrase);
 }
 function renderCreatorFormatPickerHtml() {
@@ -416,6 +426,34 @@ function renderCreatorScreen() {
     return '<div class="panel loading-panel" aria-busy="true">' +
       '<div class="loading-spinner"></div>' +
       '<div class="loading-text" aria-live="polite">' + (s.screen === CREATOR_SCREEN.CHECKING ? 'Checking feasibility…' : 'Generating and QA-checking real puzzles…') + '</div></div>';
+  }
+
+  // Format Picker pass: a direct taxonomy_id round (creatorGenerateDirect(),
+  // POST /v1/creator/format/generate) has no feasibility step at all --
+  // it's always SUPPORTED by construction (generate_direct()'s own
+  // docstring) -- and its response shape (round_id/taxonomy_id/view) is
+  // completely different from the legacy package shape (package_id/
+  // questions/puzzles) the block below renders. Handled as its own
+  // branch, entirely separate from the Feasibility panel, rather than
+  // forcing it through logic that assumes a feasibility result exists.
+  if (s.screen === CREATOR_SCREEN.PREVIEW && s.generated && s.generated.round_id) {
+    var rg = s.generated;
+    var html2 = '<div class="panel">' + creatorToolbarHtml(true) +
+      '<h2 class="panel-title">Generated -- ' + esc(rg.taxonomy_id) + '</h2>' +
+      '<p class="mode-desc">Round ID: <code>' + esc(rg.round_id) + '</code>' +
+      (rg.format_id ? ' &middot; format: ' + esc(rg.format_id) : '') + '</p>' +
+      '<p class="mode-desc">This is a real, freshly generated, fully playable round -- generated straight ' +
+      'from an explicit taxonomy_id + variant, no natural-language parsing involved. The raw client-safe ' +
+      'view below is exactly what a real player’s client would receive (server-authoritative; nothing ' +
+      'hidden-until-answered is shown here that wouldn’t also be hidden from a real player).</p>' +
+      '<div class="btn-row">' +
+      '<button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="' + esc(rg.round_id) + '">Approve</button>' +
+      '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="' + esc(rg.round_id) + '">Reject</button>' +
+      '</div>' +
+      '<div class="creator-queue-row"><pre style="white-space:pre-wrap;word-break:break-word;margin:0;">' +
+      esc(JSON.stringify(rg.view, null, 2)) + '</pre></div>' +
+      '</div>';
+    return html2;
   }
 
   if (s.screen === CREATOR_SCREEN.RESULT || s.screen === CREATOR_SCREEN.PREVIEW) {
