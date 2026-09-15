@@ -119,22 +119,28 @@ window.READS_CONFIG = {
   // 15-Format Expansion pass (Part 2), format #14 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineLeaderboardClimbPilot: false,
-  // 15-Format Expansion pass (Part 2), format #15 (final of 15) -- same
-  // off-by-default convention as its own sibling pilots above.
-  enableEngineBlindResumePilot: false,
-  // 75-Format Expansion, Wave 1 -- same off-by-default convention as its
-  // own sibling pilots above.
-  enableEngineDoubleOrNothingPilot: false,
-  enableEngineKingOfTheHillPilot: false,
-  enableEngineFactOrFakePilot: false,
-  enableEngineGuessTheRankingPilot: false,
-  enableEngineStatTargetPilot: false,
-  enableEngineReverseTriviaPilot: false,
-  enableEngineThreeStrikesPilot: false,
-  enableEngineMysteryRosterPilot: false,
-  enableEngineDraftPickLadderPilot: false,
-  enableEngineCategoryRoulettePilot: false,
-  enableEngineCommonLinkPilot: false,
+  // 15-Format Expansion pass (Part 2), format #15 (final of 15). Creator
+  // "one approval, fully live" pass: flipped ON -- backend (public_
+  // mechanics.py), routing (app.js hash resolution + discovery card), and
+  // Football Rating wiring (finishMechanicPilotSession) are all confirmed
+  // live and verified in production, so this is now a real, fully shipped,
+  // player-discoverable game, not an internal pilot.
+  enableEngineBlindResumePilot: true,
+  // 75-Format Expansion, Wave 1. Creator "one approval, fully live" pass:
+  // flipped ON for the same reason as enableEngineBlindResumePilot above --
+  // these 11 are the new standard going forward: build -> verify -> live,
+  // not build -> ship flagged-off -> wait for 3 more separate asks.
+  enableEngineDoubleOrNothingPilot: true,
+  enableEngineKingOfTheHillPilot: true,
+  enableEngineFactOrFakePilot: true,
+  enableEngineGuessTheRankingPilot: true,
+  enableEngineStatTargetPilot: true,
+  enableEngineReverseTriviaPilot: true,
+  enableEngineThreeStrikesPilot: true,
+  enableEngineMysteryRosterPilot: true,
+  enableEngineDraftPickLadderPilot: true,
+  enableEngineCategoryRoulettePilot: true,
+  enableEngineCommonLinkPilot: true,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

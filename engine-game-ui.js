@@ -2635,7 +2635,16 @@ function renderMechanicPilotScreen() {
       '<button class="btn-secondary" data-mechanic-fallback>' + esc(cfg.fallbackLabel) + '</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.COMPLETE) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + '<h2 class="panel-title">Round Complete</h2>' +
+    // Creator "one approval, fully live" pass: a shared completion banner
+    // (reusing styles.css's existing .grid-immaculate-banner/confetti-burst
+    // treatment, already used elsewhere for a round-complete celebration)
+    // applied ONCE here at the shared mechanicPilot shell level, so every
+    // current and future format that routes through this shell gets a real
+    // production-polish completion moment automatically -- no per-format
+    // design pass needed.
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) +
+      '<div class="mechanic-complete-banner"><div class="mechanic-complete-confetti"></div>' +
+      icon('trophy') + ' Round Complete!</div>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +

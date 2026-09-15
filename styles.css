@@ -1474,6 +1474,27 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     0 60px 0 -1px #fff, -42px 42px 0 -1px var(--good), -60px 0 0 -1px #fff, -42px -42px 0 -1px var(--good);
   opacity: 0; animation: confetti-burst 0.9s ease-out;
 }
+/* Creator "one approval, fully live" pass: same celebratory-banner pattern
+   as .grid-immaculate-banner above, reused as the shared completion moment
+   for EVERY mechanicPilot-shell format (engine-game-ui.js's
+   renderMechanicPilotScreen COMPLETE branch) -- one definition here gives
+   every current and future format this baseline polish automatically. */
+.mechanic-complete-banner {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 20px; font-weight: 900; letter-spacing: 0.02em; text-align: center;
+  color: var(--accent-text); background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-radius: var(--radius); padding: 14px; margin: 0 0 var(--space-md);
+  animation: pop-feedback-strong 0.5s ease;
+  overflow: hidden;
+}
+.mechanic-complete-banner .icon { width: 24px; height: 24px; }
+.mechanic-complete-confetti {
+  position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 -60px 0 -1px #fff, 42px -42px 0 -1px var(--good), 60px 0 0 -1px #fff, 42px 42px 0 -1px var(--good),
+    0 60px 0 -1px #fff, -42px 42px 0 -1px var(--good), -60px 0 0 -1px #fff, -42px -42px 0 -1px var(--good);
+  opacity: 0; animation: confetti-burst 0.9s ease-out;
+}
 
 /* blitz mode */
 .blitz-list-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }

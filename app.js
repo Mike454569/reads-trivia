@@ -1462,6 +1462,18 @@ function goToMode(mode) {
     startEnginePilotRound(engineEntry.engineMode);
     return;
   }
+  // Creator "one approval, fully live" pass: same routing pattern as the
+  // engineMode branch just above, for ENGINE_DISCOVERY_ENTRIES entries that
+  // belong to the newer mechanicPilot shell (engine-game-ui.js's
+  // ENGINE_MECHANIC_MODES) instead of the older single-question enginePilot
+  // shell -- these have a `mechanicMode` field instead of `engineMode`.
+  var mechanicEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode && e.mechanicMode; });
+  if (mechanicEntry) {
+    lsSet('nflTriviaLastMode', mode);
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    startMechanicPilotRound(mechanicEntry.mechanicMode);
+    return;
+  }
   // v1.7, Part C8: same unified-discovery routing as the block above, kept
   // as its own small check rather than folded into ENGINE_DISCOVERY_ENTRIES'
   // shape -- Six Degrees' start function takes no modeKey argument (there's
@@ -1867,6 +1879,89 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'franchise_marathon_guess', icon: 'lombardiTrophy', title: ENGINE_PILOT_MODES.franchiseMarathon.title,
       desc: ENGINE_PILOT_MODES.franchiseMarathon.desc, engineMode: 'franchiseMarathon', league: 'nfl', difficulty: 'competitive', featured: true,
+    });
+  }
+}
+// Creator "one approval, fully live" pass: real discovery cards for the 12
+// mechanicPilot-shell formats (15-Format Expansion's Blind Resume + all 11
+// of the 75-Format Expansion's Wave 1) that, until now, had a working
+// backend and a working renderer but were reachable ONLY by typing their
+// exact hidden #hash URL -- zero menu card, so a real player had no way to
+// ever find them. `mechanicMode` (not `engineMode`) tells goToMode() above
+// to route through startMechanicPilotRound() instead of
+// startEnginePilotRound(). Gated the same way every other engine card is:
+// present in this array only when its own flagOn() is true.
+if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
+  if (ENGINE_MECHANIC_MODES.blindResume.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'blind_resume_guess', icon: 'mystery', title: ENGINE_MECHANIC_MODES.blindResume.title,
+      desc: ENGINE_MECHANIC_MODES.blindResume.desc, mechanicMode: 'blindResume', league: 'nfl', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.doubleOrNothing.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'double_or_nothing_guess', icon: 'zap', title: ENGINE_MECHANIC_MODES.doubleOrNothing.title,
+      desc: ENGINE_MECHANIC_MODES.doubleOrNothing.desc, mechanicMode: 'doubleOrNothing', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.kingOfTheHill.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'king_of_the_hill_guess', icon: 'shield', title: ENGINE_MECHANIC_MODES.kingOfTheHill.title,
+      desc: ENGINE_MECHANIC_MODES.kingOfTheHill.desc, mechanicMode: 'kingOfTheHill', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.factOrFake.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'fact_or_fake_guess', icon: 'search', title: ENGINE_MECHANIC_MODES.factOrFake.title,
+      desc: ENGINE_MECHANIC_MODES.factOrFake.desc, mechanicMode: 'factOrFake', league: 'nfl', difficulty: 'casual',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.guessTheRanking.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'guess_the_ranking_guess', icon: 'barChart', title: ENGINE_MECHANIC_MODES.guessTheRanking.title,
+      desc: ENGINE_MECHANIC_MODES.guessTheRanking.desc, mechanicMode: 'guessTheRanking', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.statTarget.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'stat_target_guess', icon: 'target', title: ENGINE_MECHANIC_MODES.statTarget.title,
+      desc: ENGINE_MECHANIC_MODES.statTarget.desc, mechanicMode: 'statTarget', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.reverseTrivia.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'reverse_trivia_guess', icon: 'sync', title: ENGINE_MECHANIC_MODES.reverseTrivia.title,
+      desc: ENGINE_MECHANIC_MODES.reverseTrivia.desc, mechanicMode: 'reverseTrivia', league: 'nfl', difficulty: 'casual',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.threeStrikes.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'three_strikes_guess', icon: 'xMark', title: ENGINE_MECHANIC_MODES.threeStrikes.title,
+      desc: ENGINE_MECHANIC_MODES.threeStrikes.desc, mechanicMode: 'threeStrikes', league: 'nfl', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.mysteryRoster.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'mystery_roster_guess', icon: 'lock', title: ENGINE_MECHANIC_MODES.mysteryRoster.title,
+      desc: ENGINE_MECHANIC_MODES.mysteryRoster.desc, mechanicMode: 'mysteryRoster', league: 'nfl', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.draftPickLadder.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'draft_pick_ladder_guess', icon: 'arrowUp', title: ENGINE_MECHANIC_MODES.draftPickLadder.title,
+      desc: ENGINE_MECHANIC_MODES.draftPickLadder.desc, mechanicMode: 'draftPickLadder', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.categoryRoulette.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'category_roulette_guess', icon: 'grid', title: ENGINE_MECHANIC_MODES.categoryRoulette.title,
+      desc: ENGINE_MECHANIC_MODES.categoryRoulette.desc, mechanicMode: 'categoryRoulette', league: 'nfl', difficulty: 'casual',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.commonLink.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'common_link_guess', icon: 'users', title: ENGINE_MECHANIC_MODES.commonLink.title,
+      desc: ENGINE_MECHANIC_MODES.commonLink.desc, mechanicMode: 'commonLink', league: 'nfl', difficulty: 'competitive',
     });
   }
 }
@@ -11104,6 +11199,27 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_MECHANIC_MODES.chainReaction.hash) mechanicPilotCurrentModeKey = 'chainReaction';
   else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPathNfl.hash) mechanicPilotCurrentModeKey = 'chooseYourPathNfl';
   else if (location.hash === ENGINE_MECHANIC_MODES.chooseYourPathCfb.hash) mechanicPilotCurrentModeKey = 'chooseYourPathCfb';
+  // Bug fix (Creator "one approval, fully live" pass): these 12 formats
+  // (15-Format Expansion's Blind Resume + all 11 of the 75-Format
+  // Expansion's Wave 1) had a real hash route in HIDDEN_ROUTES and a real
+  // `hash` on their ENGINE_MECHANIC_MODES entry, but were never added to
+  // this resolution chain -- visiting their hidden URL directly set
+  // state.screen = 'mechanicPilot' but left mechanicPilotCurrentModeKey at
+  // its 'matching' default, silently launching the wrong game. Found by
+  // actually tracing the route resolution, not assumed correct because the
+  // registry entries existed.
+  else if (location.hash === ENGINE_MECHANIC_MODES.blindResume.hash) mechanicPilotCurrentModeKey = 'blindResume';
+  else if (location.hash === ENGINE_MECHANIC_MODES.doubleOrNothing.hash) mechanicPilotCurrentModeKey = 'doubleOrNothing';
+  else if (location.hash === ENGINE_MECHANIC_MODES.kingOfTheHill.hash) mechanicPilotCurrentModeKey = 'kingOfTheHill';
+  else if (location.hash === ENGINE_MECHANIC_MODES.factOrFake.hash) mechanicPilotCurrentModeKey = 'factOrFake';
+  else if (location.hash === ENGINE_MECHANIC_MODES.guessTheRanking.hash) mechanicPilotCurrentModeKey = 'guessTheRanking';
+  else if (location.hash === ENGINE_MECHANIC_MODES.statTarget.hash) mechanicPilotCurrentModeKey = 'statTarget';
+  else if (location.hash === ENGINE_MECHANIC_MODES.reverseTrivia.hash) mechanicPilotCurrentModeKey = 'reverseTrivia';
+  else if (location.hash === ENGINE_MECHANIC_MODES.threeStrikes.hash) mechanicPilotCurrentModeKey = 'threeStrikes';
+  else if (location.hash === ENGINE_MECHANIC_MODES.mysteryRoster.hash) mechanicPilotCurrentModeKey = 'mysteryRoster';
+  else if (location.hash === ENGINE_MECHANIC_MODES.draftPickLadder.hash) mechanicPilotCurrentModeKey = 'draftPickLadder';
+  else if (location.hash === ENGINE_MECHANIC_MODES.categoryRoulette.hash) mechanicPilotCurrentModeKey = 'categoryRoulette';
+  else if (location.hash === ENGINE_MECHANIC_MODES.commonLink.hash) mechanicPilotCurrentModeKey = 'commonLink';
   if (state.screen === 'creator') {
     state.creator = {
       screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
