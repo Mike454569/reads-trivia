@@ -2332,3 +2332,70 @@ def test_mystery_roster_client_view_never_leaks_the_real_answer():
                                  "max_clues", "options", "score"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- DRAFT_PICK_LADDER (75-Format Expansion, Wave 1) ----------------------
+
+def test_draft_pick_ladder_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "DRAFT_PICK_LADDER" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("DRAFT_PICK_LADDER"), "DRAFT_PICK_LADDER has no registered variants"
+
+
+def test_draft_pick_ladder_generates_real_escalating_tier_rounds():
+    from tools.director_v04 import draft_pick_ladder as dpl
+
+    pkg = dpl.build_package("test-dpl-1", "NFL_DRAFT_PICK_LADDER", round_count=9)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    tiers_seen = [r["tier"] for r in pkg["rounds"]]
+    if len(tiers_seen) >= 9:
+        assert tiers_seen[0] == "LOW"
+        assert tiers_seen[-1] == "HIGH"
+    for r in pkg["rounds"]:
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real pick number"
+        for label in labels:
+            assert label.startswith("Pick #")
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_draft_pick_ladder_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_draft_pick_ladder_round(
+        variant="NFL_DRAFT_PICK_LADDER", round_count=3, seed="test-dpl-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("DRAFT_PICK_LADDER", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["player_name"] == pkg["rounds"][0]["player_name"]
+    assert view0["season"] == pkg["rounds"][0]["season"]
+
+    canonical0 = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission(
+        "DRAFT_PICK_LADDER", pkg, progress, {"choice_item_id": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    wrong1 = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission(
+        "DRAFT_PICK_LADDER", pkg, progress, {"choice_item_id": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_draft_pick_ladder_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_draft_pick_ladder_round(
+        variant="NFL_DRAFT_PICK_LADDER", round_count=2, seed="test-dpl-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("DRAFT_PICK_LADDER", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "tier", "player_name",
+                                 "season", "options"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

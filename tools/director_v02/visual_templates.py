@@ -1485,6 +1485,35 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # shipped clue-list component) plus renderCandidateCardsHtml.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "DRAFT_PICK_LADDER": {
+        "format_id": "DRAFT_PICK_LADDER", "display_name": "Draft Pick Ladder",
+        "description": "Real escalating pick-number identification: a real player and their real draft "
+                        "season are named -- tap the real overall pick number they were drafted with. "
+                        "Difficulty rises with round position.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["draft_pick_ladder_nfl"],
+        "supported_mechanics": ["draft_pick_ladder"], "mechanic_family": "DRAFT_PICK_LADDER",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["LOW", "MEDIUM", "HIGH"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real named player and season, then tap 1 of 4 real candidate pick "
+                              "numbers.",
+        "validation_rules": "The real correct pick and all 3 real decoy picks genuinely belong to other "
+                             "players drafted that same real season -- never a fabricated pick number.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/draft_pick_ladder.py:build_package()",
+        "qa_requirements": "The real correct pick number is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["draft pick ladder"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

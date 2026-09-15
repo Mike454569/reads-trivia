@@ -106,6 +106,7 @@ var ENABLE_ENGINE_STAT_TARGET_PILOT_V01 = READS_CONFIG.enableEngineStatTargetPil
 var ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01 = READS_CONFIG.enableEngineReverseTriviaPilot === true;
 var ENABLE_ENGINE_THREE_STRIKES_PILOT_V01 = READS_CONFIG.enableEngineThreeStrikesPilot === true;
 var ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01 = READS_CONFIG.enableEngineMysteryRosterPilot === true;
+var ENABLE_ENGINE_DRAFT_PICK_LADDER_PILOT_V01 = READS_CONFIG.enableEngineDraftPickLadderPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10134,7 +10135,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-wager-submit], [data-mechanic-wager-answer], [data-mechanic-blind-resume-pick], ' +
     '[data-mechanic-don-answer], [data-mechanic-don-bank], [data-mechanic-guess-the-ranking-pick], ' +
     '[data-mechanic-stat-target-pick], [data-mechanic-reverse-trivia-pick], [data-mechanic-three-strikes-answer], ' +
-    '[data-mechanic-mystery-reveal], [data-mechanic-mystery-guess], ' +
+    '[data-mechanic-mystery-reveal], [data-mechanic-mystery-guess], [data-mechanic-draft-pick-ladder-pick], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10699,6 +10700,14 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ action: 'guess', choice_item_id: mrOption.item_id });
     return;
   }
+  if (t.dataset.mechanicDraftPickLadderPick !== undefined) {
+    var dplIdx = parseInt(t.dataset.mechanicDraftPickLadderPick, 10);
+    var dplView = state.mechanicPilot && state.mechanicPilot.view;
+    var dplOption = dplView && dplView.options && dplView.options[dplIdx];
+    if (!dplOption) return;
+    submitMechanicPilotAction({ choice_item_id: dplOption.item_id });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -11026,6 +11035,7 @@ if (ENABLE_ENGINE_STAT_TARGET_PILOT_V01) HIDDEN_ROUTES['#stattargetpilot'] = 'me
 if (ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01) HIDDEN_ROUTES['#reversetriviapilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_THREE_STRIKES_PILOT_V01) HIDDEN_ROUTES['#threestrikespilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01) HIDDEN_ROUTES['#mysteryrosterpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_DRAFT_PICK_LADDER_PILOT_V01) HIDDEN_ROUTES['#draftpickladderpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

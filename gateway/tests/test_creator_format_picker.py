@@ -75,6 +75,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Reverse Trivia", "REVERSE_TRIVIA", "NFL_DRAFT_REVERSE_TRIVIA"),
     ("Three Strikes", "THREE_STRIKES", "NFL_DRAFT_THREE_STRIKES"),
     ("Mystery Roster", "MYSTERY_ROSTER", "NFL_TEAM_SEASON_MYSTERY_ROSTER"),
+    ("Draft Pick Ladder", "DRAFT_PICK_LADDER", "NFL_DRAFT_PICK_LADDER"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
