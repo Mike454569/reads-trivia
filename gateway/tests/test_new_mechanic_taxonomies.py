@@ -2399,3 +2399,67 @@ def test_draft_pick_ladder_client_view_never_leaks_the_real_answer():
                                  "season", "options"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- CATEGORY_ROULETTE (75-Format Expansion, Wave 1) ----------------------
+
+def test_category_roulette_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "CATEGORY_ROULETTE" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("CATEGORY_ROULETTE"), "CATEGORY_ROULETTE has no registered variants"
+
+
+def test_category_roulette_generates_real_rounds_across_all_3_categories():
+    from tools.director_v04 import category_roulette as cr
+
+    pkg = cr.build_package("test-cr-1", "CATEGORY_ROULETTE_MIXED", round_count=6)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    categories_seen = set()
+    for r in pkg["rounds"]:
+        categories_seen.add(r["category"])
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"{r['category']} round has a duplicate real option"
+        assert r["_answer_item_id"] in item_ids
+    if pkg["round_count"] >= 3:
+        assert categories_seen == {"NFL Draft", "Heisman Winners", "Super Bowl Champions"}
+
+
+def test_category_roulette_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_category_roulette_round(
+        variant="CATEGORY_ROULETTE_MIXED", round_count=3, seed="test-cr-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("CATEGORY_ROULETTE", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["category"] == pkg["rounds"][0]["category"]
+    assert view0["prompt"] == pkg["rounds"][0]["prompt"]
+
+    canonical0 = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission(
+        "CATEGORY_ROULETTE", pkg, progress, {"choice_item_id": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    wrong1 = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission(
+        "CATEGORY_ROULETTE", pkg, progress, {"choice_item_id": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_category_roulette_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_category_roulette_round(
+        variant="CATEGORY_ROULETTE_MIXED", round_count=2, seed="test-cr-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("CATEGORY_ROULETTE", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "category", "prompt", "options"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

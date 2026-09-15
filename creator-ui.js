@@ -289,6 +289,7 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Story & Path', title: 'Career Path', desc: 'Read a real career path, then guess the real player.', taxonomyId: 'CAREER_PATH', variant: 'NFL_PLAYER_CAREER_PATH_IDENTIFY' },
   { category: 'Story & Path', title: 'Mystery Roster', desc: 'Reveal real clues about a mystery real team-season, or guess anytime.', taxonomyId: 'MYSTERY_ROSTER', variant: 'NFL_TEAM_SEASON_MYSTERY_ROSTER' },
   { category: 'Matching & Sorting', title: 'Draft Pick Ladder', desc: 'A real player is named -- guess their real overall draft pick number.', taxonomyId: 'DRAFT_PICK_LADDER', variant: 'NFL_DRAFT_PICK_LADDER' },
+  { category: 'Mixed Trivia', title: 'Category Roulette', desc: 'Each round’s real category is shown immediately -- answer the real question.', taxonomyId: 'CATEGORY_ROULETTE', variant: 'CATEGORY_ROULETTE_MIXED' },
   { category: 'Story & Path', title: 'Before & After', desc: 'Which real team did this real player play for FIRST?', taxonomyId: 'BEFORE_AFTER', variant: 'NFL_TEAM_CHANGE_BEFORE_AFTER' },
   { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', taxonomyId: 'GUESS_THE_SEASON', variant: 'NFL_SUPER_BOWL_SEASON' },
   { category: 'Story & Path', title: 'Connection Grid', desc: 'A real 3x3 grid of real team/round intersections.', taxonomyId: 'GRID_CONSTRAINT_BOARD', variant: 'NFL_TEAM_DRAFT_ROUND_GRID' },

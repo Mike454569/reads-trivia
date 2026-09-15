@@ -1511,6 +1511,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // category_roulette.py's own module docstring.
+  categoryRoulette: {
+    publicMode: 'category_roulette_mixed', hash: '#categoryroulettepilot',
+    flagOn: function () { return ENABLE_ENGINE_CATEGORY_ROULETTE_PILOT_V01; },
+    title: 'Category Roulette', kind: 'category_roulette',
+    desc: 'Each round’s real category is shown immediately -- answer the real question.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1661,6 +1671,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'three_strikes' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
   else if (cfg.kind === 'mystery_roster' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 4));
   else if (cfg.kind === 'draft_pick_ladder' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'category_roulette' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1801,6 +1812,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">Round complete! Final score: ' + v.score + '.</p>';
   }
   if (cfg.kind === 'draft_pick_ladder') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'category_roulette') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
@@ -1946,6 +1961,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'draft_pick_ladder') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'category_roulette') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'The real answer was ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -2072,6 +2090,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'three_strikes') return renderThreeStrikesBody(v, s);
   if (cfg.kind === 'mystery_roster') return renderMysteryRosterBody(v, s);
   if (cfg.kind === 'draft_pick_ladder') return renderDraftPickLadderBody(v, s);
+  if (cfg.kind === 'category_roulette') return renderCategoryRouletteBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2500,6 +2519,17 @@ function renderDraftPickLadderBody(v, s) {
     '<div class="quiz-question">What real overall pick was ' + esc(v.player_name) + ' drafted with in the real ' + v.season + ' NFL Draft?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-draft-pick-ladder-pick',
+    });
+}
+
+// CATEGORY_ROULETTE: reuses renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/DRAFT_PICK_LADDER -- zero new CSS.
+function renderCategoryRouletteBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Category: ' + esc(v.category) + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-category-roulette-pick',
     });
 }
 

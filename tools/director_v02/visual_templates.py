@@ -1514,6 +1514,38 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "CATEGORY_ROULETTE": {
+        "format_id": "CATEGORY_ROULETTE", "display_name": "Category Roulette",
+        "description": "Real random-category trivia: each round's real category (NFL Draft, Heisman "
+                        "Winners, or Super Bowl Champions) is shown immediately, followed by that "
+                        "category's real question -- no wager, no hidden content.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["category_roulette_mixed"],
+        "supported_mechanics": ["category_roulette"], "mechanic_family": "CATEGORY_ROULETTE",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)",
+                                         "cfb_award_facts (READS_CFB_MASTER, SOURCE_BACKED_FROM_CFB_MASTER)",
+                                         "nfl_championship_events (WIKIPEDIA_STRUCTURED, "
+                                         "WIKIPEDIA_STRUCTURED_SECONDARY)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED_WITH_LIMITATIONS",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real category and question, then tap 1 of 4 real candidate cards.",
+        "validation_rules": "Every real category's correct item_id never sent to the client before "
+                             "evaluate() runs -- reuses wager_mode.py's own real decoy-completeness "
+                             "discipline verbatim.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/category_roulette.py:build_package()",
+        "qa_requirements": "The real correct answer is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["category roulette"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility
