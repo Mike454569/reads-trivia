@@ -1,16 +1,19 @@
 """CFB Ranking Comparison domain adapter (Creator/Game Quality Correction
-pass) -- answers the real request directly: "Give me two ranked teams and
-make me choose which one was ranked higher." A true 2-option head-to-head,
-NOT "which team was ranked No. X" (that's cfb_ranking.py/RANKED_IN_POLL, a
-different, single-entity question).
+pass; poll selection added in the Existing-Data Wiring pass) -- answers the
+real request directly: "Give me two ranked teams and make me choose which
+one was ranked higher." A true 2-option head-to-head, NOT "which team was
+ranked No. X" (that's cfb_ranking.py/RANKED_IN_POLL, a different,
+single-entity question).
 
-Built on the same `cfb_rankings` table as cfb_ranking.py (AP Top 25 only,
-same real-data discipline: season_type='regular' only, so the question's
-"that week" framing is always honest). Two real schools are drawn from the
-SAME real (season, week) snapshot with two different real ranks -- "ranked
-higher" means the smaller rank number (No. 3 is ranked higher than No. 12),
-which is unambiguous and needs no tie handling (AP Top 25 has no duplicate
-ranks within one real snapshot).
+Built on the same `cfb_rankings` table as cfb_ranking.py, with the same
+real, closed SUPPORTED_POLLS set (AP Top 25 default, or explicit Coaches
+Poll / Playoff Committee Rankings), same real-data discipline:
+season_type='regular' only, so the question's "that week" framing is
+always honest. Two real schools are drawn from the SAME real (poll,
+season, week) snapshot with two different real ranks -- "ranked higher"
+means the smaller rank number (No. 3 is ranked higher than No. 12), which
+is unambiguous and needs no tie handling (none of the 3 supported polls
+have duplicate ranks within one real snapshot).
 """
 from __future__ import annotations
 
@@ -24,30 +27,37 @@ REQUIRED_SOURCE_ID = "CFBD_API_LIVE"
 REQUIRED_VERIFICATION_STATUS = "SOURCE_BACKED"
 TRACK_ENTITY = True
 POLL = "AP Top 25"
+SUPPORTED_POLLS = frozenset({"AP Top 25", "Coaches Poll", "Playoff Committee Rankings"})
 MIN_SEASON = 2002
 MAX_SEASON = 2026
 MAX_FETCHED_CANDIDATES = 5000
+SUPPORTS_FILTERS = True
 
 # Same real N+1-avoidance discipline as cfb_ranking.py's own _pool_cache --
-# partner rows for a given (season, week) are fetched once, reused across
-# every candidate row from that same snapshot.
+# partner rows for a given (poll, season, week) are fetched once, reused
+# across every candidate row from that same snapshot.
 _snapshot_cache: dict[tuple, list] = {}
 
 
 def safety_check(c) -> dict:
+    polls_clause = " OR ".join(f"poll = '{p}'" for p in sorted(SUPPORTED_POLLS))
     return safety.check_verification_status_safety(
         c, "cfb_rankings", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
-        where_extra=f"poll = '{POLL}' AND season_type = 'regular'",
+        where_extra=f"({polls_clause}) AND season_type = 'regular'",
     )
 
 
-def fetch_ordered_candidates(c, seed: str):
+def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     _snapshot_cache.clear()
+    filters = filters or {}
+    poll = filters.get("poll")
+    if poll not in SUPPORTED_POLLS:
+        poll = POLL
     rows = c.execute(
-        "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status "
+        "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status, poll "
         "FROM cfb_rankings WHERE poll = ? AND season_type = 'regular' AND rank BETWEEN 1 AND 25 "
         "ORDER BY season, week, rank",
-        (POLL,),
+        (poll,),
     ).fetchall()
     rng_order = engine.seeded(seed)
     rows = list(rows)
@@ -61,14 +71,14 @@ def evaluate(c, row, rng, guard):
     if not row["school_name_raw"]:
         return "MISSING_FIELD"
 
-    season, week = row["season"], row["week"]
-    cache_key = (season, week)
+    season, week, poll = row["season"], row["week"], row["poll"]
+    cache_key = (poll, season, week)
     snapshot = _snapshot_cache.get(cache_key)
     if snapshot is None:
         snapshot = c.execute(
             "SELECT record_id, rank, school_name_raw FROM cfb_rankings "
             "WHERE poll = ? AND season_type = 'regular' AND season = ? AND week = ? AND rank BETWEEN 1 AND 25",
-            (POLL, season, week),
+            (poll, season, week),
         ).fetchall()
         _snapshot_cache[cache_key] = snapshot
 
@@ -85,12 +95,12 @@ def evaluate(c, row, rng, guard):
     higher_name = team_a_name if team_a_rank < team_b_rank else team_b_name  # lower number = ranked higher
 
     question = (
-        f"In the AP Top 25 entering Week {week} of the {season} college football season, "
+        f"In the {poll} entering Week {week} of the {season} college football season, "
         f"{team_a_name} and {team_b_name} were both ranked. Which team was ranked higher?"
     )
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
-    entity_key = f"cfb_ranking_cmp:{season}:{week}:{'|'.join(sorted([str(row['record_id']), str(partner['record_id'])]))}"
+    entity_key = f"cfb_ranking_cmp:{poll}:{season}:{week}:{'|'.join(sorted([str(row['record_id']), str(partner['record_id'])]))}"
     if guard.entity_seen(entity_key):
         return "DUPLICATE_PAIR"
 
@@ -112,7 +122,7 @@ def evaluate(c, row, rng, guard):
         "category": CATEGORY, "difficulty": diff_label, "question": question,
         "options": shuffled_options, "correctIndex": correct_index, "notes": notes,
         "_audit": {
-            "season": season, "week": week, "correct_answer_text": higher_name,
+            "season": season, "week": week, "poll": poll, "correct_answer_text": higher_name,
             "difficulty_score": round(diff_score, 4), "difficulty_band": band, "entity_key": entity_key,
             "verification_status": REQUIRED_VERIFICATION_STATUS, "source_id": REQUIRED_SOURCE_ID,
         },
@@ -122,7 +132,7 @@ def evaluate(c, row, rng, guard):
 def shortfall_reason(accepted_count, considered_count, target_count) -> str:
     return (
         f"Only {accepted_count} candidates passed every validation rule across the full "
-        f"{considered_count} real AP Top 25 ranking records on file ({MIN_SEASON}-{MAX_SEASON}); "
+        f"{considered_count} real ranking records considered ({MIN_SEASON}-{MAX_SEASON}); "
         f"exported the maximum available ({accepted_count}) rather than loosen any rule to reach {target_count}."
     )
 
@@ -143,7 +153,7 @@ def header_lines(seed: str) -> list[str]:
 def human_review_context(record: dict) -> list[str]:
     a = record["_audit"]
     return [
-        f"- **Snapshot:** {a['season']} Week {a['week']} (AP Top 25)",
+        f"- **Snapshot:** {a['season']} Week {a['week']} ({a['poll']})",
         f"- **Ranked higher:** \"{record['options'][record['correctIndex']]}\"",
         f"- **Underlying Engine source:** `cfb_rankings`, verification_status "
         f"`{a['verification_status']}`, source_id `{a['source_id']}`",

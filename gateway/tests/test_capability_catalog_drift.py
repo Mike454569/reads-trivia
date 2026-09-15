@@ -167,7 +167,15 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     # promoted via a real, passing Tier-2 probe -- stays at 21).
     result = gen.catalog_readiness_for_structured_description_generation()
     assert result["safe_to_generate"] is False
-    assert result["total_capabilities"] == 69
+    # Existing-Data Wiring pass: 69 -> 70 (CFB_BETTING__COVERED_SPREAD,
+    # registered via register_new_capability() with real scoping fields
+    # populated from the start -- source_tables/identity_resolution_method/
+    # season_coverage/tie_rule/ambiguity_rule/eligible_answer_rule/
+    # distractor_scoping_rule all real, non-null -- and promoted via a real,
+    # passing Tier-2 probe (100/100 generations, zero leakage), so
+    # capabilities_missing_scoping_fields stays at 21, confirmed live: the
+    # new capability_id does not appear in missing_fields_by_capability).
+    assert result["total_capabilities"] == 70
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]

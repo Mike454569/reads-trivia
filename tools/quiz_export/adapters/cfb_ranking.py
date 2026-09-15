@@ -1,13 +1,21 @@
-"""CFB Rankings/Polls domain adapter (Creator Capability Completion pass).
+"""CFB Rankings/Polls domain adapter (Creator Capability Completion pass;
+poll selection added in the Existing-Data Wiring pass).
 
 Built on `cfb_rankings` (31,801 rows, SOURCE_BACKED/CFBD_API_LIVE, seasons
-2002-2026, real AP/Coaches/CFP/FCS/D2/D3/BCS poll snapshots).  Scoped to
-`poll='AP Top 25'` (9,680 rows) -- the one real, single, unambiguous "the
-rankings" concept most requests mean (matching NFL_ALL_PRO's own
-is_ap=1-scoping precedent: this table also carries several other real,
-distinct polls, never silently combined into one implied ranking).
+2002-2026, real AP/Coaches/CFP/FCS/D2/D3/BCS poll snapshots). Default poll
+is `AP Top 25` (9,080 real regular-season rows) -- the one real, single,
+unambiguous "the rankings" concept most requests mean when no poll is
+named (matching NFL_ALL_PRO's own is_ap=1-scoping precedent). A caller may
+also explicitly request `poll` = "Coaches Poll" (9,131 rows) or "Playoff
+Committee Rankings" (1,750 rows) -- both real, regular-season, Top-25-only
+polls confirmed at the same rank range (1-25) as AP. Every question is
+built from ONE poll's own snapshot only -- polls are never silently
+combined into one implied ranking, matching the spec's own "preserve poll
+identity" requirement. FCS/D2/D3/BCS polls are intentionally NOT added
+here (different, non-comparable ranking universes -- a real future
+capability, not this one, if ever wanted).
 
-"Which team was ranked No. [rank] in the AP Top 25 entering Week [week] of
+"Which team was ranked No. [rank] in the [POLL] entering Week [week] of
 the [season] season" -- entity is one real ranking row, answer is the real
 school name as recorded by the source. `school_id` matches
 `cfb_games_canonical.home_school_id`/`away_school_id`'s own format
@@ -26,6 +34,11 @@ REQUIRED_SOURCE_ID = "CFBD_API_LIVE"
 REQUIRED_VERIFICATION_STATUS = "SOURCE_BACKED"
 TRACK_ENTITY = True
 POLL = "AP Top 25"
+# Existing-Data Wiring pass: the real, closed set of polls this capability
+# is willing to serve -- an explicit allowlist, never an arbitrary caller-
+# supplied string passed straight into SQL. Each confirmed live (real rank
+# range 1-25, regular season only) before being added here.
+SUPPORTED_POLLS = frozenset({"AP Top 25", "Coaches Poll", "Playoff Committee Rankings"})
 MIN_SEASON = 2002
 MAX_SEASON = 2026
 
@@ -40,25 +53,35 @@ SUPPORTS_FILTERS = True
 # distractor pool query re-scanned cfb_rankings (31,801 rows, no index on
 # poll/season/week at all -- confirmed via EXPLAIN QUERY PLAN) once per
 # candidate. Measured directly: 5 rounds took ~50s before this fix, well
-# past the real 45s admin generation timeout. Cached per (season, week) for
-# the duration of one generation call only -- reset at the top of
+# past the real 45s admin generation timeout. Cached per (poll, season,
+# week) for the duration of one generation call only (poll added to the
+# cache key in the Existing-Data Wiring pass, now that more than one poll
+# can be requested in the same process lifetime) -- reset at the top of
 # fetch_ordered_candidates(). Also caps total candidates considered, the
 # same real safeguard compiler.py's own RelationshipSpec.max_fetched_candidates
-# uses, since this table's AP-Top-25 subset alone is 9,680 rows.
+# uses, since this table's AP-Top-25 subset alone is 9,080 rows.
 _pool_cache: dict[tuple, list[str]] = {}
 MAX_FETCHED_CANDIDATES = 5000
 
 
 def safety_check(c) -> dict:
+    polls_clause = " OR ".join(f"poll = '{p}'" for p in sorted(SUPPORTED_POLLS))
     return safety.check_verification_status_safety(
         c, "cfb_rankings", REQUIRED_SOURCE_ID, REQUIRED_VERIFICATION_STATUS,
-        where_extra=f"poll = '{POLL}' AND season_type = 'regular'",
+        where_extra=f"({polls_clause}) AND season_type = 'regular'",
     )
 
 
 def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     _pool_cache.clear()
     filters = filters or {}
+    # Existing-Data Wiring pass: an explicit poll request must be one of
+    # SUPPORTED_POLLS -- an unrecognized value falls back to the default
+    # (AP Top 25) rather than silently returning zero real candidates or
+    # reaching an unvalidated string into SQL.
+    poll = filters.get("poll")
+    if poll not in SUPPORTED_POLLS:
+        poll = POLL
     # rank_min/rank_max default to the full real Top 25 -- unchanged
     # behavior when neither filter is supplied. Clamped to [1, 25], the
     # real range this poll ever assigns, and swapped if given backwards
@@ -78,10 +101,10 @@ def fetch_ordered_candidates(c, seed: str, filters: dict | None = None):
     # postseason row can never surface under a misleading "entering Week
     # N" framing.
     rows = c.execute(
-        "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status "
+        "SELECT record_id, season, week, rank, school_id, school_name_raw, source_id, verification_status, poll "
         "FROM cfb_rankings WHERE poll = ? AND season_type = 'regular' AND rank BETWEEN ? AND ? "
         "ORDER BY season, week, rank",
-        (POLL, rank_min, rank_max),
+        (poll, rank_min, rank_max),
     ).fetchall()
     rng_order = engine.seeded(seed)
     rows = list(rows)
@@ -95,16 +118,16 @@ def evaluate(c, row, rng, guard):
     if not row["school_name_raw"]:
         return "MISSING_FIELD"
 
-    season, week, rank = row["season"], row["week"], row["rank"]
+    season, week, rank, poll = row["season"], row["week"], row["rank"], row["poll"]
     correct_school = row["school_name_raw"]
 
-    cache_key = (season, week)
+    cache_key = (poll, season, week)
     cached_pool = _pool_cache.get(cache_key)
     if cached_pool is None:
         pool_rows = c.execute(
             "SELECT DISTINCT school_name_raw FROM cfb_rankings "
             "WHERE poll = ? AND season_type = 'regular' AND season = ? AND week = ? AND rank BETWEEN 1 AND 25",
-            (POLL, season, week),
+            (poll, season, week),
         ).fetchall()
         cached_pool = [r["school_name_raw"] for r in pool_rows]
         _pool_cache[cache_key] = cached_pool
@@ -117,7 +140,7 @@ def evaluate(c, row, rng, guard):
     if len(set(options)) != 4:
         return "DUPLICATE_OPTIONS"
 
-    question = f"Which team was ranked No. {rank} in the AP Top 25 entering Week {week} of the {season} college football season?"
+    question = f"Which team was ranked No. {rank} in the {poll} entering Week {week} of the {season} college football season?"
     if guard.question_seen(question):
         return "DUPLICATE_QUESTION"
     entity_key = f"cfb_ranking:{row['record_id']}"
@@ -137,13 +160,13 @@ def evaluate(c, row, rng, guard):
     band = engine.band(diff_score)
     diff_label = difficulty_mod.map_band(band)
 
-    notes = f"{correct_school} was ranked No. {rank} in the AP Top 25 entering Week {week} of the {season} season."
+    notes = f"{correct_school} was ranked No. {rank} in the {poll} entering Week {week} of the {season} season."
 
     return {
         "category": CATEGORY, "difficulty": diff_label, "question": question,
         "options": shuffled_options, "correctIndex": correct_index, "notes": notes,
         "_audit": {
-            "season": season, "week": week, "rank": rank, "record_id": row["record_id"],
+            "season": season, "week": week, "rank": rank, "poll": poll, "record_id": row["record_id"],
             "school_id": row["school_id"], "correct_answer_text": correct_school,
             "difficulty_score": round(diff_score, 4), "difficulty_band": band, "entity_key": entity_key,
             "verification_status": REQUIRED_VERIFICATION_STATUS, "source_id": REQUIRED_SOURCE_ID,
@@ -154,7 +177,7 @@ def evaluate(c, row, rng, guard):
 def shortfall_reason(accepted_count, considered_count, target_count) -> str:
     return (
         f"Only {accepted_count} candidates passed every validation rule across the full "
-        f"{considered_count} real AP Top 25 ranking records on file ({MIN_SEASON}-{MAX_SEASON}); "
+        f"{considered_count} real ranking records considered ({MIN_SEASON}-{MAX_SEASON}); "
         f"exported the maximum available ({accepted_count}) rather than loosen any rule to reach {target_count}."
     )
 
@@ -180,7 +203,7 @@ def header_lines(seed: str) -> list[str]:
 def human_review_context(record: dict) -> list[str]:
     a = record["_audit"]
     return [
-        f"- **Ranking:** `{a['record_id']}`, {a['season']} Week {a['week']}, rank {a['rank']}",
+        f"- **Ranking:** `{a['record_id']}`, {a['poll']}, {a['season']} Week {a['week']}, rank {a['rank']}",
         f"- **School:** `{a['school_id']}` (\"{record['options'][record['correctIndex']]}\")",
         f"- **Underlying Engine source:** `cfb_rankings`, verification_status "
         f"`{a['verification_status']}`, source_id `{a['source_id']}`",

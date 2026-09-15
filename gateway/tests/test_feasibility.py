@@ -310,7 +310,10 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # (CFB_2026_HEAD_COACH__COACHES_TEAM_2026, PUBLIC_ENABLED via a real,
     # passing Tier-2 probe).
     summary = feasibility.list_capability_support_summary()
-    assert len(summary) == 69
+    # Existing-Data Wiring pass: 69 -> 70, same real reason as
+    # test_creator.py's sibling assertion (CFB_BETTING__COVERED_SPREAD, the
+    # only genuinely new registration this pass).
+    assert len(summary) == 70
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

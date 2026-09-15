@@ -344,6 +344,10 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess",
     "nfl_forced_fumble_guess", "nfl_fumble_recovery_guess", "nfl_drive_result_guess",
     "nfl_game_boxscore_sacks_guess",
+    # Existing-Data Wiring pass (5/5, betting lines): a genuinely new
+    # capability (not a private-to-public flip) -- real candidate survey
+    # recorded in gateway/services/public_game.py's own entry.
+    "cfb_betting_cover_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

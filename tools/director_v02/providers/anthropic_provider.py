@@ -142,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH" | "NFL_SCORING_PLAY" | "NFL_DEFENSIVE_EVENT" | "NFL_DRIVE" | "CFB_BETTING",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026" | "FIRST_TOUCHDOWN_SCORER" | "RECORDED_SACK" | "RECORDED_INTERCEPTION" | "FORCED_FUMBLE" | "RECOVERED_FUMBLE" | "DRIVE_RESULT" | "COVERED_SPREAD",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -366,19 +366,81 @@ coach", "2026 coach") -- never matches a bare "guess the coach" request with no 
 all (that's closer to capability 19's NFL-only career-history shape, or UNDERSTOOD_UNSUPPORTED_MECHANIC \
 if the request is explicitly CFB).
 
+36. mechanic=guess, domain=NFL_SCORING_PLAY, relationship_predicate=FIRST_TOUCHDOWN_SCORER
+    Existing-Data Wiring pass: the player sees a real, specific NFL touchdown play's game context \
+(teams, season) and picks the player who scored it. Built on real play-by-play (nfl_plays) -- only \
+touchdowns with a real resolved receiver or rusher identity are used (91.8%/91.0% resolution), \
+never a defensive/special-teams touchdown (no offensive scorer to ask about). The answer is WHO \
+SCORED, never downgraded to WHO WON (that's capability 6, NFL_GAME_RESULT). "Scoring play(s)" or \
+"who scored the touchdown" means this. NFL only -- cfb_plays has no player-identity columns at all \
+(no passer/rusher/receiver key), a real, disclosed Engine data gap, not an unwritten adapter; a \
+CFB-worded version of this request must get UNDERSTOOD_UNSUPPORTED_MECHANIC, never silently \
+answered with capability 7 (CFB_GAME_RESULT, a different question).
+
+37. mechanic=guess, domain=NFL_DEFENSIVE_EVENT, relationship_predicate=RECORDED_SACK
+    The player sees a real NFL game situation and picks the player who recorded a specific real \
+sack. Built on nfl_plays_defense_ext (a real, separate NFL-only defensive-identity extension \
+table), 89.9% real resolution rate -- unresolved sacks are excluded, never guessed at. "Sack(s)" \
+alone (with no clear team-vs-team framing) means this player-level capability; contrast with \
+capability 13 (NFL_GAME_BOXSCORE/HAD_MORE_SACKS), which is "which TEAM had more sacks in this \
+game" -- a bare "make a game about sacks" with no "who" wording is closer to capability 13. \
+NFL only -- no CFB defensive-identity extension of this kind exists in this Engine.
+
+38. mechanic=guess, domain=NFL_DEFENSIVE_EVENT, relationship_predicate=RECORDED_INTERCEPTION
+    Same real nfl_plays_defense_ext table and shape as capability 37, for interceptions instead of \
+sacks -- 88.6% real resolution rate. "Interception(s)", "picked off", "picked it off" all mean \
+this; unlike "sack", there is no team-level interception capability to disambiguate against, so \
+any real interception-identity request routes here. NFL only.
+
+39. mechanic=guess, domain=NFL_DEFENSIVE_EVENT, relationship_predicate=FORCED_FUMBLE
+    Same real nfl_plays_defense_ext table and shape as capabilities 37/38, for forced fumbles -- \
+uses the primary (first) forced-fumble player field only (a real, rare second-forcer field exists \
+and is not used, to keep one clear answer). "Who forced the fumble" means this. NFL only.
+
+40. mechanic=guess, domain=NFL_DEFENSIVE_EVENT, relationship_predicate=RECOVERED_FUMBLE
+    Same real nfl_plays_defense_ext table and shape as capabilities 37-39, for fumble recoveries -- \
+either team can recover a fumble, so this asks WHO recovered it (a player), never which team's \
+defense did. "Who recovered the fumble" means this; a bare "fumble" mention with neither "forced" \
+nor "recovered" language is genuinely ambiguous between capability 39 and this one -- ask a real \
+clarifying question rather than guessing which. NFL only.
+
+41. mechanic=guess, domain=NFL_DRIVE, relationship_predicate=DRIVE_RESULT
+    The player sees a real NFL offensive drive and picks how it actually ended -- one of 9 real \
+result categories (Punt/Touchdown/Field goal/Turnover/End of half/Turnover on downs/Missed field \
+goal/Opp touchdown/Safety). Built on nfl_drives_real, a real, separate NFL-only drive-level summary \
+table. "Drive outcome"/"drive result" means this. NFL only -- this Engine has no cfb_drives-shaped \
+table at all (cfb_plays has a drive_id column but no separate drive-level result/summary table), a \
+real, disclosed data gap; a CFB-worded version of this request must get \
+UNDERSTOOD_UNSUPPORTED_MECHANIC, never silently answered with an NFL drive.
+
+42. mechanic=guess, domain=CFB_BETTING, relationship_predicate=COVERED_SPREAD
+    Existing-Data Wiring pass: the player sees a real, specific CFB game and its real consensus \
+betting spread (favorite/underdog and point spread stated in the question itself), and picks which \
+team actually covered the spread against that real final score. Built on cfb_betting_lines (37,015 \
+rows) + cfb_games_canonical, scoped to provider="consensus" by default (an explicit "provider" \
+filter can name any of the other 11 real providers on file, but never combine providers in one \
+question). Push results (the real margin exactly equals the spread) are excluded outright -- no \
+fair 2-option answer exists for a push. "Cover(ed/ing) the spread", "who covers the spread" means \
+this -- a real, DIFFERENT question from "which underdog won outright" (a favorite can win the game \
+but still fail to cover, and an underdog can lose but still cover), so never conflate the two even \
+though both are betting-line concepts. CFB only.
+
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
 Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \
 4 (starting lineup), 8 (starting lineup by college), 9 (box score yards), 10 (player's college), \
-12 (NFL awards), 13/14/15 (box score sacks/turnovers/penalties), and 19 (coaching). If a request \
-clearly asks for a CFB/college-football version of one of THESE (an explicit "CFB" mention, \
-"college football" as its own phrase, or unambiguous college-only framing with no NFL signal at \
-all), you MUST NOT silently answer with the NFL capability. Use "UNDERSTOOD_UNSUPPORTED_MECHANIC" \
-instead, and say plainly in translator_notes that this is a real, understandable request but no \
-registered CFB capability covers it yet (name which NFL capability is the closest analog, for \
-context, but do not set spec to it). A bare request with NO league signal at all (neither "NFL" \
-nor "CFB"/"college") still defaults to the NFL capability for every one of 1, 2, 3, 4, 8, 9, 10, \
-12, 13, 14, 15, and 19 -- only an EXPLICIT CFB signal with no contradicting "NFL" token should \
-route away from NFL. (Note: capabilities 8 and 10 are themselves inherently about colleges, but \
+12 (NFL awards), 13/14/15 (box score sacks/turnovers/penalties), 19 (coaching), 36 (scoring play \
+scorer -- cfb_plays has no player-identity columns at all), 37/38/39/40 (defensive events -- no \
+CFB defensive-identity extension exists), and 41 (drive result -- no cfb_drives-shaped table \
+exists). If a request clearly asks for a CFB/college-football version of one of THESE (an explicit \
+"CFB" mention, "college football" as its own phrase, or unambiguous college-only framing with no \
+NFL signal at all), you MUST NOT silently answer with the NFL capability. Use \
+"UNDERSTOOD_UNSUPPORTED_MECHANIC" instead, and say plainly in translator_notes that this is a real, \
+understandable request but no registered CFB capability covers it yet (name which NFL capability \
+is the closest analog, for context, but do not set spec to it). A bare request with NO league \
+signal at all (neither "NFL" nor "CFB"/"college") still defaults to the NFL capability for every \
+one of 1, 2, 3, 4, 8, 9, 10, 12, 13, 14, 15, 19, 36, 37, 38, 39, 40, and 41 -- only an EXPLICIT CFB \
+signal with no contradicting "NFL" token should route away from NFL. (Note: capabilities 8 and 10 \
+are themselves inherently about colleges, but \
 that is NOT the same signal as an explicit CFB/college-FOOTBALL LEAGUE request -- a request for \
 an NFL player's/lineup's college is still an NFL-competition request; only route to \
 UNDERSTOOD_UNSUPPORTED_MECHANIC here if the request explicitly asks about a CFB/college-football \

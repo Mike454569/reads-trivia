@@ -855,6 +855,28 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Existing-Data Wiring pass (5/5, betting lines): a new capability, not
+    # a private one being flipped public -- real candidate survey
+    # (target_count=999999) found 4,906 accepted (Easy 957 / Medium 1,506 /
+    # Hard 2,443), qa_status PASSED, 0 contract_failures. Scoped to
+    # provider='consensus' (same real precedent cfb_upset_guess already
+    # established for this table).
+    "cfb_betting_cover_guess": {
+        "competition": "CFB",
+        "title": "CFB Betting Lines: Guess Who Covered",
+        "instructions": "You'll be shown a real college football game and its real consensus betting spread. "
+                        "Pick the team that actually covered the spread.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_BETTING",
+            "relationship_predicate": "COVERED_SPREAD",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

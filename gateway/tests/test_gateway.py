@@ -55,12 +55,25 @@ def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     # zero leaks each -- CFB Rivalry Trivia, curated NFL offense-by-college
     # (fixes the old sparse capability), Super Bowl champion offense by
     # college, and 8 more Gold Standard "10. New Game Modes" P0 concepts.
+    # Existing-Data Wiring pass added 7 more, 36th-42nd -- see
+    # test_public_game.py::test_capabilities_route_unaffected_by_public_routes's
+    # own comment for the full real reasoning (a genuinely new capability,
+    # CFB_BETTING/COVERED_SPREAD, plus 6 pre-existing NFL PBP capabilities
+    # whose verification_status needed its own HUMAN_APPROVED -> PUBLIC_
+    # ENABLED walk to stop under-reporting an already-public capability).
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 35
+    assert len(caps) == 42
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
+        ("guess", "CFB_BETTING", "COVERED_SPREAD"),
+        ("guess", "NFL_SCORING_PLAY", "FIRST_TOUCHDOWN_SCORER"),
+        ("guess", "NFL_DEFENSIVE_EVENT", "RECORDED_SACK"),
+        ("guess", "NFL_DEFENSIVE_EVENT", "RECORDED_INTERCEPTION"),
+        ("guess", "NFL_DEFENSIVE_EVENT", "FORCED_FUMBLE"),
+        ("guess", "NFL_DEFENSIVE_EVENT", "RECOVERED_FUMBLE"),
+        ("guess", "NFL_DRIVE", "DRIVE_RESULT"),
         # MASTER Workbook + Power4 Coverage Closeout ingestion passes: both
         # new 2026-roster-backed capabilities were walked all the way to
         # PUBLIC_ENABLED via a real, passing Tier-2 certification probe

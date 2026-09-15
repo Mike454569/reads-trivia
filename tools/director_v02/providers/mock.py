@@ -344,6 +344,28 @@ def _rank_filters_from_text(text_lower: str) -> dict:
         if 1 <= n <= 25:
             return {"rank_min": n, "rank_max": n}
     return {}
+
+
+# Existing-Data Wiring pass: explicit poll-name detection -- "coaches poll"/
+# "cfp"/"committee rankings"/"playoff rankings" text should route to that
+# real, specific poll (cfb_ranking.py's own SUPPORTED_POLLS), not silently
+# default to AP Top 25 the way every ranking request used to. Checked in a
+# fixed order (Coaches before CFP before the bare "top 25"/"ap poll" case,
+# which needs no explicit filter since AP is the adapter's own default) so
+# a request naming more than one poll deterministically picks one, never
+# raises or guesses.
+_COACHES_POLL_RE = re.compile(r"coaches? poll")
+_CFP_POLL_RE = re.compile(r"\bcfp\b|playoff committee|committee ranking|playoff ranking")
+
+
+def _poll_filter_from_text(text_lower: str) -> dict:
+    if _COACHES_POLL_RE.search(text_lower):
+        return {"poll": "Coaches Poll"}
+    if _CFP_POLL_RE.search(text_lower):
+        return {"poll": "Playoff Committee Rankings"}
+    return {}
+
+
 _UPSET_WORDS = {"upset", "upsets", "upsetty", "shocked", "underdog", "underdogs"}
 _UPSET_PHRASE_RE = re.compile(
     r"knocked off|unranked beat|beat.{0,20}ranked|"
@@ -442,6 +464,12 @@ _NFL_STAR_RE = re.compile(
 # "recognized but unsupported" to real, registered capabilities this pass.
 _BETTING_UPSET_WORDS = {"betting", "bet", "spread", "odds", "moneyline", "underdog", "underdogs"}
 _BETTING_UPSET_PHRASE_RE = re.compile(r"beat the spread|against the spread|outright")
+# Existing-Data Wiring pass: "cover(ed/ing) the spread" is a real, distinct
+# ATS (against-the-spread) concept from BETTING_UPSET's "won outright" --
+# a favorite can win the game but still fail to cover, and an underdog can
+# lose but still cover, so this must route to its own CFB_BETTING/
+# COVERED_SPREAD capability, never conflated with the outright-win one.
+_COVER_SPREAD_RE = re.compile(r"cover(ed|ing)?\s+the\s+spread|covers?\s+the\s+spread")
 _SACK_PHRASE_RE = re.compile(r"\bsack(ed|s)?\b")
 _INTERCEPTION_PHRASE_RE = re.compile(
     # Creator stress-test pass: "picked it off" (pronoun between "picked"
@@ -657,6 +685,7 @@ class MockDeterministicTranslator(Translator):
         has_great_in_college_phrase = bool(_GREAT_IN_COLLEGE_RE.search(text_lower))
         has_nfl_star_phrase = bool(_NFL_STAR_RE.search(text_lower))
         has_betting_upset_signal = bool(words & _BETTING_UPSET_WORDS) or bool(_BETTING_UPSET_PHRASE_RE.search(text_lower))
+        has_cover_spread_phrase = bool(_COVER_SPREAD_RE.search(text_lower))
         has_sack_phrase = bool(_SACK_PHRASE_RE.search(text_lower))
         has_interception_phrase = bool(_INTERCEPTION_PHRASE_RE.search(text_lower))
         has_forced_fumble_phrase = bool(_FORCED_FUMBLE_PHRASE_RE.search(text_lower))
@@ -889,24 +918,51 @@ class MockDeterministicTranslator(Translator):
             # generic single-entity RANKED_IN_POLL match below, or a
             # comparison request would silently become "guess which team
             # held rank N" instead of the head-to-head it actually asked for.
+            poll_filters = _poll_filter_from_text(text_lower)
             if has_ranking_comparison_phrase:
                 spec = {
                     "mechanic": "guess", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_HIGHER",
                     "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                    "filters": {}, "exclusions": [],
+                    "filters": poll_filters, "exclusions": [],
                 }
                 return _result(request_text, "TRANSLATED", spec,
                                 "Matched a real 2-team ranking-comparison signal -> RANKED_HIGHER guess "
                                 "capability, never downgraded to RANKED_IN_POLL (which team held rank N, "
-                                "not which of two teams ranked higher).")
+                                "not which of two teams ranked higher)." +
+                                (f" Poll narrowed to '{poll_filters['poll']}'." if poll_filters else ""))
             spec = {
                 "mechanic": "guess", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
-                "filters": _rank_filters_from_text(text_lower), "exclusions": [],
+                "filters": {**_rank_filters_from_text(text_lower), **poll_filters}, "exclusions": [],
             }
             return _result(request_text, "TRANSLATED", spec,
-                            "Matched CFB rankings/polls signal -> RANKED_IN_POLL guess capability (AP Top 25), "
-                            "preserving any exact rank/range qualifier found in the request text.")
+                            "Matched CFB rankings/polls signal -> RANKED_IN_POLL guess capability "
+                            f"({poll_filters.get('poll', 'AP Top 25')}), preserving any exact rank/range "
+                            "qualifier found in the request text.")
+
+        # Existing-Data Wiring pass: checked BEFORE has_upset_signal -- "cover
+        # the spread" is a real, distinct ATS concept, never the same
+        # question as BETTING_UPSET's "won outright" (see _COVER_SPREAD_RE's
+        # own comment), so it must not fall into the upset branch below even
+        # though both mention "spread".
+        if has_cover_spread_phrase:
+            if nfl_exclusive:
+                return _result(
+                    request_text, "UNDERSTOOD_UNSUPPORTED_MECHANIC", None,
+                    "Recognized a real spread-cover (ATS) concept worded as NFL-specific -- the only "
+                    "registered CFB_BETTING/COVERED_SPREAD capability is CFB-only (cfb_betting_lines "
+                    "has no NFL equivalent).",
+                    understood={"concept": "NFL spread cover"},
+                )
+            spec = {
+                "mechanic": "guess", "domain": "CFB_BETTING", "relationship_predicate": "COVERED_SPREAD",
+                "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                "filters": {}, "exclusions": [],
+            }
+            return _result(request_text, "TRANSLATED", spec,
+                            "Matched a real spread-cover (ATS) signal -> COVERED_SPREAD guess capability "
+                            "(provider='consensus'), never conflated with BETTING_UPSET's separate "
+                            "'won outright' question.")
 
         if has_upset_signal:
             if nfl_exclusive:

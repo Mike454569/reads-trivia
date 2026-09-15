@@ -54,6 +54,7 @@ from tools.quiz_export.adapters import cfb_ranking_comparison as cfb_ranking_com
 from tools.quiz_export.adapters import cfb_offense_lineup as cfb_offense_lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_upset_ranking as cfb_upset_ranking_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_upset_betting as cfb_upset_betting_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_betting_cover as cfb_betting_cover_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_first_touchdown as nfl_first_touchdown_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_sack as nfl_sack_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_interception as nfl_interception_adapter  # noqa: E402
@@ -1214,9 +1215,12 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
     ("guess", "CFB_RANKING", "RANKED_IN_POLL"): {
         "adapter": cfb_ranking_adapter, "category": cfb_ranking_adapter.CATEGORY, "generate_fn": _generate_guess_package,
         "known_limitations": [
-            "Scoped to poll='AP Top 25' only -- cfb_rankings also carries Coaches/CFP/FCS/D2/D3/BCS polls, "
-            "never silently combined into one implied ranking.",
-            "Distractors are drawn from the same real (season, week) ranking snapshot, not season-wide.",
+            "Existing-Data Wiring pass: poll filter accepts 'AP Top 25' (default), 'Coaches Poll', or "
+            "'Playoff Committee Rankings' -- real, regular-season, Top-25-only polls, each confirmed at "
+            "the same 1-25 rank range. FCS/D2/D3/BCS polls are intentionally not exposed (different, "
+            "non-comparable ranking universes). Every question is built from ONE poll's own snapshot "
+            "only -- polls are never silently combined into one implied ranking.",
+            "Distractors are drawn from the same real (season, week, poll) ranking snapshot, not season-wide.",
             "rank_min/rank_max (Creator/Game Quality Correction pass) scope candidates to an exact "
             "requested rank or range (e.g. 'No. 5' -> 5-5, 'Top Five' -> 1-5); default is the full "
             "real Top 25 when neither is given.",
@@ -1224,7 +1228,7 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "competition_id": "CFB", "entity_type": "cfb_ranking", "object_type": "school", "answer_type": "school",
         "group_size": 4, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset({"rank_min", "rank_max"}), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"rank_min", "rank_max", "poll"}), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-rankings"], "pipeline_id_start": 900000,
     },
     ("guess", "CFB_RANKING", "RANKED_HIGHER"): {
@@ -1232,14 +1236,15 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "generate_fn": _generate_guess_package,
         "known_limitations": [
             "True 2-option head-to-head (Creator/Game Quality Correction pass): both real teams from the "
-            "same real (season, week) AP Top 25 snapshot are the only two options -- never 'which team "
+            "same real (poll, season, week) snapshot are the only two options -- never 'which team "
             "was ranked No. X' (that's RANKED_IN_POLL, a different, single-entity question).",
-            "Scoped to poll='AP Top 25' only, same as RANKED_IN_POLL.",
+            "Existing-Data Wiring pass: same poll filter and SUPPORTED_POLLS as RANKED_IN_POLL ('AP Top "
+            "25' default, or explicit 'Coaches Poll'/'Playoff Committee Rankings').",
         ],
         "competition_id": "CFB", "entity_type": "cfb_ranking_pair", "object_type": "school", "answer_type": "school",
         "group_size": 2, "min_question_count": 1, "max_question_count": 100,
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
-        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "supported_filter_keys": frozenset({"poll"}), "supports_exclusions": False,
         "proven_in": ["creator-game-quality-correction-ranking-comparison"], "pipeline_id_start": 941000,
     },
     ("guess", "CFB_OFFENSE_LINEUP", "TEAM_SEASON_OF_STARTING_OFFENSE"): {
@@ -1301,6 +1306,27 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset({"biggest_only"}), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-upsets"], "pipeline_id_start": 902000,
+    },
+    ("guess", "CFB_BETTING", "COVERED_SPREAD"): {
+        "adapter": cfb_betting_cover_adapter, "category": cfb_betting_cover_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Existing-Data Wiring pass: 'who covered the real spread', kept structurally distinct from "
+            "CFB_UPSET/BETTING_UPSET (that capability asks who won outright as an underdog -- a different "
+            "real question; a favorite can win but still fail to cover, and an underdog can lose but "
+            "still cover, so the two never share a candidate pool).",
+            "Scoped to provider='consensus' by default (8,177 real candidates) -- same real precedent "
+            "CFB_UPSET/BETTING_UPSET already established for this table; an explicit provider filter "
+            "selects any of the other 11 real providers on file. Never silently combines providers.",
+            "'Spread' is the source's own recorded value, never labeled 'closing line' (the source does "
+            "not itself distinguish closing vs. opening beyond spread/spread_open column names).",
+            "Push results (actual margin exactly equals the spread) are excluded outright -- no fair "
+            "2-option 'who covered' answer exists for a push.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_betting_line", "object_type": "school", "answer_type": "school",
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset({"provider"}), "supports_exclusions": False,
+        "proven_in": ["existing-data-wiring-betting"], "pipeline_id_start": 970000,
     },
     ("guess", "NFL_SCORING_PLAY", "FIRST_TOUCHDOWN_SCORER"): {
         "adapter": nfl_first_touchdown_adapter, "category": nfl_first_touchdown_adapter.CATEGORY, "generate_fn": _generate_guess_package,

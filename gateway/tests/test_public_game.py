@@ -96,6 +96,7 @@ def test_public_modes_no_auth_needed(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
+        "cfb_betting_cover_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -277,6 +278,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
+        "cfb_betting_cover_guess",
     })
 
 
@@ -408,7 +410,21 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # Coverage Closeout ingestion passes added a 34th and 35th
     # (CFB_2026_CURRENT_ROSTER, CFB_2026_HEAD_COACH), both walked to
     # PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
-    assert len(r.json()["capabilities"]) == 35
+    # Existing-Data Wiring pass added 7 more, 36th-42nd: CFB_BETTING/
+    # COVERED_SPREAD (a genuinely new registry.py capability, walked
+    # through the full real lifecycle including a fresh Tier-2 probe) plus
+    # 6 of the 7 NFL PBP capabilities from the same pass (NFL_SCORING_PLAY/
+    # FIRST_TOUCHDOWN_SCORER, NFL_DEFENSIVE_EVENT/{RECORDED_SACK,
+    # RECORDED_INTERCEPTION,FORCED_FUMBLE,RECOVERED_FUMBLE}, NFL_DRIVE/
+    # DRIVE_RESULT) -- these were already GENERATION_VERIFIED (with an
+    # existing passing Tier-2 probe on record) and already had their
+    # public_availability corrected to PUBLIC_ENABLED, but this discovery
+    # endpoint filters on verification_status specifically, which needed
+    # its own HUMAN_APPROVED -> PUBLIC_ENABLED walk (no new probe required,
+    # already on record) to stop under-reporting real, already-public
+    # capabilities. The 7th (NFL_GAME_BOXSCORE/HAD_MORE_SACKS) was already
+    # LEGACY_PUBLIC_PENDING_REVALIDATION beforehand, already counted.
+    assert len(r.json()["capabilities"]) == 42
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -640,6 +656,7 @@ def test_all_twenty_certified_guess_modes_registered(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
+        "cfb_betting_cover_guess",
     }
 
 
