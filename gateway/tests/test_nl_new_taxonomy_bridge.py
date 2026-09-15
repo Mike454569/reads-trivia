@@ -479,3 +479,32 @@ def test_risk_it_creator_generate_for_review_is_a_real_playable_round():
     assert r["round_id"].startswith("GGP23:")
     assert r["view"]["awaiting_tier"] is True
     assert r["view"]["lives"] == 3
+
+
+# --- WAGER_MODE (15-Format Expansion Part 2, format #12) -----------------
+
+def test_detect_wager_mode_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a wager mode game")
+    assert r is not None
+    assert r["taxonomy_id"] == "WAGER_MODE"
+    assert r["format"] == "WAGER_MODE"
+    assert r["variant"] == "WAGER_MODE_MIXED"
+
+    r2 = bridge.detect("let me wager on this")
+    assert r2["taxonomy_id"] == "WAGER_MODE"
+
+
+def test_wager_mode_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="wager mode game", puzzle_count=None, difficulty=None, seed="pytest-wager-mode-bridge",
+    )
+    assert r["taxonomy_id"] == "WAGER_MODE"
+    assert r["format_id"] == "WAGER_MODE"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP24:")
+    assert r["view"]["awaiting_wager"] is True
+    assert r["view"]["balance"] == 1000

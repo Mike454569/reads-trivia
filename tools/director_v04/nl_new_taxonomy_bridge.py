@@ -277,6 +277,12 @@ _CAREER_PATH_RE = re.compile(
 # genuine risk-TIER framing.
 _RISK_IT_RE = re.compile(r"\brisk\s+it\b|\brisk\s+tier\b|\bpick\s+a\s+risk\b", re.IGNORECASE)
 
+# --- WAGER_MODE (15-Format Expansion pass, Part 2, format #12) -----------
+# "wager" is the format's own real distinctive word -- no other bridge in
+# this pipeline uses it, so a bare "wager" is safe (unlike "risk", which
+# needed a tighter tier-specific phrase above).
+_WAGER_MODE_RE = re.compile(r"\bwager\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -387,5 +393,9 @@ def detect(request_text: str | None) -> dict | None:
     if _RISK_IT_RE.search(text):
         return {"taxonomy_id": "RISK_IT", "variant": "NFL_DRAFT_RISK_IT",
                 "format": "RISK_IT", "gen_kwargs": {}}
+
+    if _WAGER_MODE_RE.search(text):
+        return {"taxonomy_id": "WAGER_MODE", "variant": "WAGER_MODE_MIXED",
+                "format": "WAGER_MODE", "gen_kwargs": {}}
 
     return None

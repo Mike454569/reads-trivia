@@ -1367,3 +1367,124 @@ def test_risk_it_client_view_never_leaks_the_real_answer_before_the_answer_actio
     assert "_answer_item_id" not in view1
     for it in view1["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- WAGER_MODE (15-Format Expansion Part 2, format #12) -----------------
+
+def test_wager_mode_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "WAGER_MODE" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("WAGER_MODE"), "WAGER_MODE has no registered variants"
+
+
+def test_wager_mode_generates_real_rounds_across_all_3_categories():
+    from tools.director_v04 import wager_mode
+
+    pkg = wager_mode.build_package("test-wager-1", "WAGER_MODE_MIXED", round_count=6)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    assert pkg["starting_balance"] == 1000
+    categories_seen = set()
+    for r in pkg["rounds"]:
+        categories_seen.add(r["category"])
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"{r['category']} round has a duplicate real option"
+        assert r["_answer_item_id"] in item_ids
+    if pkg["round_count"] >= 3:
+        assert categories_seen == {"NFL Draft", "Heisman Winners", "Super Bowl Champions"}
+
+
+def test_wager_mode_full_2_step_playthrough_correct_wager_then_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_wager_mode_round(variant="WAGER_MODE_MIXED", round_count=3, seed="test-wager-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("WAGER_MODE")
+    assert progress["balance"] == 1000
+
+    view0 = me.client_safe_view("WAGER_MODE", pkg, progress)
+    assert view0["awaiting_wager"] is True
+    assert "prompt" not in view0
+
+    result1, progress = me.evaluate_submission(
+        "WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 300})
+    assert result1["action"] == "place_wager"
+    assert progress["current_wager"] == 300
+
+    view1 = me.client_safe_view("WAGER_MODE", pkg, progress)
+    assert view1["awaiting_wager"] is False
+    assert view1["wager"] == 300
+
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result2, progress = me.evaluate_submission(
+        "WAGER_MODE", pkg, progress, {"action": "answer", "choice_item_id": canonical})
+    assert result2["correct"] is True
+    assert result2["balance_delta"] == 300
+    assert progress["balance"] == 1300
+    assert progress["current_wager"] is None
+    assert progress["current_index"] == 1
+
+
+def test_wager_mode_wrong_answer_subtracts_the_real_wager():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_wager_mode_round(variant="WAGER_MODE_MIXED", round_count=2, seed="test-wager-wrong")
+    progress = me.initial_progress("WAGER_MODE")
+    _, progress = me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 250})
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result, progress = me.evaluate_submission(
+        "WAGER_MODE", pkg, progress, {"action": "answer", "choice_item_id": wrong})
+    assert result["correct"] is False
+    assert result["balance_delta"] == -250
+    assert progress["balance"] == 750
+
+
+def test_wager_mode_rejects_a_wager_outside_the_real_valid_range():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_wager_mode_round(variant="WAGER_MODE_MIXED", round_count=1, seed="test-wager-invalid")
+    progress = me.initial_progress("WAGER_MODE")
+    with pytest.raises(Exception):
+        me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 5000})
+    with pytest.raises(Exception):
+        me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": -1})
+    with pytest.raises(Exception):
+        me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": "not a number"})
+
+
+def test_wager_mode_run_ends_when_balance_reaches_zero_and_rejects_further_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_wager_mode_round(variant="WAGER_MODE_MIXED", round_count=5, seed="test-wager-ended")
+    progress = me.initial_progress("WAGER_MODE")
+    _, progress = me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 1000})
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    _, progress = me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "answer", "choice_item_id": wrong})
+    assert progress["balance"] == 0
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 0})
+
+
+def test_wager_mode_client_view_never_leaks_the_real_answer_before_the_answer_action():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_wager_mode_round(variant="WAGER_MODE_MIXED", round_count=2, seed="test-wager-leak")
+    progress = me.initial_progress("WAGER_MODE")
+    view0 = me.client_safe_view("WAGER_MODE", pkg, progress)
+    assert set(view0.keys()) == {"round_index", "round_count", "completed", "awaiting_wager",
+                                  "category", "balance"}
+
+    _, progress = me.evaluate_submission("WAGER_MODE", pkg, progress, {"action": "place_wager", "wager": 100})
+    view1 = me.client_safe_view("WAGER_MODE", pkg, progress)
+    assert "_answer_item_id" not in view1
+    for it in view1["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

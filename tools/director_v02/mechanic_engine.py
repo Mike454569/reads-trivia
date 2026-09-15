@@ -56,6 +56,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #11 -- see
     # tools/director_v04/risk_it.py's own module docstring.
     "RISK_IT",
+    # 15-Format Expansion pass (Part 2), format #12 -- see
+    # tools/director_v04/wager_mode.py's own module docstring.
+    "WAGER_MODE",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -242,6 +245,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/risk_it.py's own module docstring.
     "RISK_IT": {
         "NFL_DRAFT_RISK_IT": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #12 -- see
+    # tools/director_v04/wager_mode.py's own module docstring.
+    "WAGER_MODE": {
+        "WAGER_MODE_MIXED": {"competition": "NFL"},
     },
 }
 
@@ -625,6 +633,64 @@ def _risk_it_evaluate(package: dict, progress: dict, submission: dict) -> dict:
         return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
                 "points_earned": q["points"] if correct else 0, "tier": tier, "notes": q["_notes"]}
     raise MechanicError(f"action must be 'choose_tier' or 'answer', got {action!r}")
+
+
+# --- WAGER_MODE (15-Format Expansion Part 2) --------------------------------
+# Real 2-step "wager before you see the question" round -- see
+# tools/director_v04/wager_mode.py's own module docstring. Same full-
+# progress-dict evaluate pattern RISK_IT already established, with a
+# continuous real wager (0..balance) in place of RISK_IT's 3 discrete tiers.
+_WAGER_MODE_STARTING_BALANCE = 1000
+
+
+def generate_wager_mode_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import wager_mode
+    return wager_mode.build_package(seed, variant, round_count=round_count)
+
+
+def _wager_mode_client_view(package: dict, progress: dict) -> dict:
+    total = len(package["rounds"])
+    idx = progress.get("current_index", 0)
+    balance = progress.get("balance")
+    if balance is None:
+        balance = _WAGER_MODE_STARTING_BALANCE
+    if progress.get("ended") or idx >= total:
+        return {"round_index": idx, "round_count": total, "completed": True,
+                "balance": balance, "ended": bool(progress.get("ended"))}
+    r = package["rounds"][idx]
+    wager = progress.get("current_wager")
+    if wager is None:
+        return {"round_index": idx, "round_count": total, "completed": False, "awaiting_wager": True,
+                "category": r["category"], "balance": balance}
+    return {"round_index": idx, "round_count": total, "completed": False, "awaiting_wager": False,
+            "category": r["category"], "prompt": r["prompt"], "options": r["options"],
+            "wager": wager, "balance": balance}
+
+
+def _wager_mode_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    idx = progress.get("current_index", 0)
+    r = package["rounds"][idx]
+    action = submission.get("action")
+    if action == "place_wager":
+        balance = progress.get("balance")
+        if balance is None:
+            balance = _WAGER_MODE_STARTING_BALANCE
+        wager = submission.get("wager")
+        if not isinstance(wager, int) or isinstance(wager, bool) or not (0 <= wager <= balance):
+            raise MechanicError(f"wager must be a real integer between 0 and your current balance ({balance}), got {wager!r}")
+        return {"action": "place_wager", "wager": wager, "category": r["category"],
+                "prompt": r["prompt"], "options": r["options"]}
+    if action == "answer":
+        wager = progress.get("current_wager")
+        if wager is None:
+            raise MechanicError("no wager has been placed for this round yet")
+        canonical = r["_answer_item_id"]
+        choice = str(submission.get("choice_item_id", "")).strip().upper()
+        correct = bool(choice) and choice == canonical
+        canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+        return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
+                "wager": wager, "balance_delta": wager if correct else -wager, "notes": r["_notes"]}
+    raise MechanicError(f"action must be 'place_wager' or 'answer', got {action!r}")
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1427,6 +1493,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _career_path_client_view(package, progress["current_index"])
     if taxonomy_id == "RISK_IT":
         return _risk_it_client_view(package, progress)
+    if taxonomy_id == "WAGER_MODE":
+        return _wager_mode_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1506,6 +1574,23 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
             progress["current_tier"] = None
             progress["current_index"] = progress.get("current_index", 0) + 1
             progress["ended"] = lives <= 0
+            progress["completed"] = progress["ended"] or progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "WAGER_MODE":
+        if progress.get("ended"):
+            raise MechanicError("this run has already ended")
+        result = _wager_mode_evaluate(package, progress, submission)
+        if result["action"] == "place_wager":
+            progress["current_wager"] = result["wager"]
+        else:  # "answer"
+            balance = progress.get("balance")
+            if balance is None:
+                balance = _WAGER_MODE_STARTING_BALANCE
+            balance += result["balance_delta"]
+            progress["balance"] = balance
+            progress["current_wager"] = None
+            progress["current_index"] = progress.get("current_index", 0) + 1
+            progress["ended"] = balance <= 0
             progress["completed"] = progress["ended"] or progress["current_index"] >= len(package["rounds"])
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
@@ -1679,5 +1764,8 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"current_node": "root", "completed": False}
     if taxonomy_id == "RISK_IT":
         return {"current_index": 0, "current_tier": None, "score": 0, "lives": _RISK_IT_STARTING_LIVES,
+                "ended": False, "completed": False}
+    if taxonomy_id == "WAGER_MODE":
+        return {"current_index": 0, "current_wager": None, "balance": _WAGER_MODE_STARTING_BALANCE,
                 "ended": False, "completed": False}
     return {"current_index": 0, "completed": False}

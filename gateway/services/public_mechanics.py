@@ -403,6 +403,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "HIGH is a real obscure pick worth more. A wrong answer costs a life.",
         "kind": "risk_it", "gen_kwargs": {"round_count": 7},
     },
+    # 15-Format Expansion pass (Part 2), format #12 -- see
+    # tools/director_v04/wager_mode.py's own module docstring.
+    "wager_mode_mixed": {
+        "competition": "NFL", "taxonomy_id": "WAGER_MODE", "variant": "WAGER_MODE_MIXED",
+        "title": "Wager Mode",
+        "instructions": "You'll see only a real category. Wager any amount of your fictional balance, then "
+                         "the real question is revealed -- a correct answer adds your wager, a wrong answer "
+                         "subtracts it.",
+        "kind": "wager_mode", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -477,6 +487,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_career_path_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "RISK_IT":
             package = mechanic_engine.generate_risk_it_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "WAGER_MODE":
+            package = mechanic_engine.generate_wager_mode_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

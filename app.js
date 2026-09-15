@@ -95,6 +95,7 @@ var ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01 = READS_CONFIG.enableEngineBeforeAfterP
 var ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01 = READS_CONFIG.enableEngineMapTheCareerPilot === true;
 var ENABLE_ENGINE_CAREER_PATH_PILOT_V01 = READS_CONFIG.enableEngineCareerPathPilot === true;
 var ENABLE_ENGINE_RISK_IT_PILOT_V01 = READS_CONFIG.enableEngineRiskItPilot === true;
+var ENABLE_ENGINE_WAGER_MODE_PILOT_V01 = READS_CONFIG.enableEngineWagerModePilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10120,6 +10121,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-branch-choice], [data-mechanic-branch-answer], [data-mechanic-season-submit], ' +
     '[data-mechanic-duel-choice], [data-mechanic-impostor-pick], [data-mechanic-missing-piece-pick], ' +
     '[data-mechanic-career-path-pick], [data-mechanic-risk-tier], [data-mechanic-risk-answer], ' +
+    '[data-mechanic-wager-submit], [data-mechanic-wager-answer], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10604,6 +10606,21 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ action: 'answer', choice_item_id: riskOption.item_id });
     return;
   }
+  if (t.dataset.mechanicWagerSubmit !== undefined) {
+    var wagerInputEl = document.getElementById('mechanic-wager-input');
+    var wagerRaw = wagerInputEl ? wagerInputEl.value.trim() : '';
+    if (!wagerRaw || !/^\d+$/.test(wagerRaw)) return;
+    submitMechanicPilotAction({ action: 'place_wager', wager: parseInt(wagerRaw, 10) });
+    return;
+  }
+  if (t.dataset.mechanicWagerAnswer !== undefined) {
+    var wagerAnswerIdx = parseInt(t.dataset.mechanicWagerAnswer, 10);
+    var wagerView = state.mechanicPilot && state.mechanicPilot.view;
+    var wagerOption = wagerView && wagerView.options && wagerView.options[wagerAnswerIdx];
+    if (!wagerOption) return;
+    submitMechanicPilotAction({ action: 'answer', choice_item_id: wagerOption.item_id });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -10919,6 +10936,7 @@ if (ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01) HIDDEN_ROUTES['#mapthecareercfbpilot
 if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathnflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_RISK_IT_PILOT_V01) HIDDEN_ROUTES['#riskitpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_WAGER_MODE_PILOT_V01) HIDDEN_ROUTES['#wagermodepilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

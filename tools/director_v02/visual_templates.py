@@ -1125,6 +1125,45 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped choice-button classes) plus renderCandidateCardsHtml.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "WAGER_MODE": {
+        "format_id": "WAGER_MODE", "display_name": "Wager Mode",
+        "description": "Real Jeopardy-style category wagering: each round shows only a real category name, "
+                        "the player wagers any real fictional-point amount up to their current balance, and "
+                        "only then is the real question revealed. A correct answer adds the wager, a wrong "
+                        "answer subtracts it. 3 real categories (NFL Draft, Heisman Winners, Super Bowl "
+                        "Champions), each drawn from an already-certified real table this Engine's other "
+                        "mechanics already use.",
+        "payload_schema": None,
+        "existing_renderer_note": "Real 2-step interaction per round (place a wager, then answer) -- same "
+                                   "real navigation-then-leaf-question shape RISK_IT/BRANCH_STATE already "
+                                   "established, with a continuous real wager amount in place of RISK_IT's "
+                                   "3 discrete tiers.",
+        "proven_in": ["wager_mode_mixed"],
+        "supported_mechanics": ["wager_mode"], "mechanic_family": "WAGER_MODE",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED), cfb_award_facts "
+                                         "(READS_CFB_MASTER, SOURCE_BACKED_FROM_CFB_MASTER), "
+                                         "nfl_championship_events (WIKIPEDIA_STRUCTURED, "
+                                         "WIKIPEDIA_STRUCTURED_SECONDARY)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED_WITH_LIMITATIONS",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read a real category name, type a real fictional wager amount, then tap 1 of "
+                              "4 real candidate cards for the revealed question.",
+        "validation_rules": "A wager must be a real integer between 0 and the player's current real "
+                             "balance -- rejected outright (never clamped) if out of range.",
+        "answer_schema": "{action: 'place_wager', wager: <int>} then "
+                          "{action: 'answer', choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/wager_mode.py:build_package()",
+        "qa_requirements": "Every real category's correct item_id never sent to the client before "
+                            "evaluate() runs; a round's real question is only revealed after a wager is placed.",
+        "casual_aliases": ["wager"],
+        # True because renderWagerModeBody introduces zero new CSS --
+        # built entirely from .learn-filter-input (GUESS_THE_SEASON's own
+        # already-shipped free-text-input pattern) plus renderCandidateCardsHtml.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

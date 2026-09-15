@@ -226,6 +226,7 @@ _NEW_TAXONOMY_TITLES = {
     "BEFORE_AFTER": "Before & After",
     "CAREER_PATH": "Career Path",
     "RISK_IT": "Risk It",
+    "WAGER_MODE": "Wager Mode",
 }
 
 
@@ -293,9 +294,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "CAREER_PATH":
         package = mechanic_engine.generate_career_path_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
-    else:  # RISK_IT
+    elif taxonomy_id == "RISK_IT":
         package = mechanic_engine.generate_risk_it_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 7), seed=real_seed)
+    else:  # WAGER_MODE
+        package = mechanic_engine.generate_wager_mode_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(

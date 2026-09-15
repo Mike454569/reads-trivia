@@ -1391,6 +1391,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #12 -- see
+  // tools/director_v04/wager_mode.py's own module docstring.
+  wagerMode: {
+    publicMode: 'wager_mode_mixed', hash: '#wagermodepilot',
+    flagOn: function () { return ENABLE_ENGINE_WAGER_MODE_PILOT_V01; },
+    title: 'Wager Mode', kind: 'wager_mode',
+    desc: 'See only a real category, wager part of your balance, then answer the revealed real question.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1455,9 +1465,11 @@ function submitMechanicPilotAction(submission) {
     // RISK_IT's own "choose_tier" step is the same real navigation shape:
     // committing to a real risk tier before seeing the question is not
     // itself a graded answer (see risk_it.py's own module docstring) --
-    // only the subsequent "answer" action is.
+    // only the subsequent "answer" action is. WAGER_MODE's own
+    // "place_wager" step is identical in shape (see wager_mode.py).
     if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
-        data.result.action === 'choose_tier' || data.result.advanced_to !== undefined)) {
+        data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
+        data.result.advanced_to !== undefined)) {
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
       return;
@@ -1523,6 +1535,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'before_after' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'career_path' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'risk_it' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
+  else if (cfg.kind === 'wager_mode' && v.completed) pct = Math.min(100, 100 * (v.balance || 0) / 1000);
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1617,6 +1630,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (v.ended ? 'Run over -- out of real lives! ' : 'Run complete! ') +
       'Final score: ' + v.score + '.</p>';
   }
+  if (cfg.kind === 'wager_mode') {
+    return '<p class="mode-desc">' + (v.ended ? 'Run over -- balance hit 0! ' : 'Run complete! ') +
+      'Final balance: ' + v.balance + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1708,6 +1725,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'risk_it') {
     wasCorrect = r.correct === true;
     headline = wasCorrect ? '+' + r.points_earned + (r.points_earned === 1 ? ' point!' : ' points!') : 'Not quite -- you lost a life.';
+    detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'wager_mode') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? '+' + r.wager + ' to your balance!' : '-' + r.wager + ' from your balance.';
     detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
@@ -1823,6 +1844,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'before_after') return renderBeforeAfterBody(v, s);
   if (cfg.kind === 'career_path') return renderCareerPathBody(v, s);
   if (cfg.kind === 'risk_it') return renderRiskItBody(v, s);
+  if (cfg.kind === 'wager_mode') return renderWagerModeBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2078,6 +2100,30 @@ function renderRiskItBody(v, s) {
     '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-risk-answer',
+    });
+}
+
+// WAGER_MODE: real 2-step round -- awaiting_wager=true shows only the
+// real category name plus a real numeric wager input (reuses
+// .learn-filter-input, same free-text-input pattern GUESS_THE_SEASON's
+// own year-guess input already established); awaiting_wager=false shows
+// the revealed real question via renderCandidateCardsHtml.
+function renderWagerModeStatusHtml(v) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Balance: ' + v.balance + '</div>';
+}
+function renderWagerModeBody(v, s) {
+  if (v.awaiting_wager) {
+    return renderWagerModeStatusHtml(v) +
+      '<div class="quiz-question">Category: ' + esc(v.category) + '</div>' +
+      '<input type="text" class="learn-filter-input" id="mechanic-wager-input" placeholder="Wager amount" ' +
+      'inputmode="numeric" pattern="[0-9]*" autocomplete="off">' +
+      '<div class="btn-row"><button class="btn-primary" data-mechanic-wager-submit>Place Wager</button></div>';
+  }
+  return renderWagerModeStatusHtml(v) +
+    '<div class="quiz-question">' + esc(v.category) + ' (wagered ' + v.wager + '): ' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-wager-answer',
     });
 }
 

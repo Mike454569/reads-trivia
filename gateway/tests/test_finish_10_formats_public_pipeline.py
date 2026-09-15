@@ -601,6 +601,47 @@ def test_risk_it_never_leaks_real_answer_or_other_tiers_before_they_are_chosen()
                                       "tier_points", "score", "lives"}
 
 
+# --- 22. WAGER_MODE (15-Format Expansion Part 2, format #12) --------------
+
+def test_wager_mode_full_public_playthrough_tracks_balance():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="wager_mode_mixed")
+    rid = r["round_id"]
+    assert rid.startswith("GGP24:")
+    assert r["view"]["awaiting_wager"] is True
+    assert r["view"]["balance"] == 1000
+
+    pkg = packages.load_package(rid)
+    sub1 = pm.submit_public_round(round_id=rid, submission={"action": "place_wager", "wager": 200})
+    assert sub1["view"]["awaiting_wager"] is False and sub1["view"]["wager"] == 200
+
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub2 = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": correct})
+    assert sub2["result"]["correct"] is True
+    assert sub2["result"]["balance_delta"] == 200
+    assert sub2["view"]["balance"] == 1200
+    assert sub2["view"]["awaiting_wager"] is True  # back to wager-choice for the next round
+
+
+def test_wager_mode_rejects_out_of_range_wager_through_the_public_pipeline():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="wager_mode_mixed")
+    rid = r["round_id"]
+    with pytest.raises(Exception):
+        pm.submit_public_round(round_id=rid, submission={"action": "place_wager", "wager": 99999})
+
+
+def test_wager_mode_never_leaks_real_answer_or_prompt_before_a_wager_is_placed():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="wager_mode_mixed")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "awaiting_wager",
+                                      "category", "balance"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -623,6 +664,7 @@ def test_risk_it_never_leaks_real_answer_or_other_tiers_before_they_are_chosen()
     ("Give me a before and after game with a real NFL player.", "BEFORE_AFTER"),
     ("Give me a career path game with a real NFL player.", "CAREER_PATH"),
     ("Give me a risk it game with real NFL Draft picks.", "RISK_IT"),
+    ("Give me a wager mode game.", "WAGER_MODE"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator
