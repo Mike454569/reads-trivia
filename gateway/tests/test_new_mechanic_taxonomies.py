@@ -1488,3 +1488,134 @@ def test_wager_mode_client_view_never_leaks_the_real_answer_before_the_answer_ac
     assert "_answer_item_id" not in view1
     for it in view1["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- LEADERBOARD_CLIMB (15-Format Expansion Part 2, format #14) ----------
+
+def test_leaderboard_climb_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "LEADERBOARD_CLIMB" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("LEADERBOARD_CLIMB"), "LEADERBOARD_CLIMB has no registered variants"
+
+
+def test_leaderboard_climb_generates_a_real_distinct_pre_sorted_ladder():
+    from tools.director_v04 import leaderboard_climb
+
+    pkg = leaderboard_climb.build_package("test-climb-1", "NFL_CAREER_PASSING_YARDS_CLIMB")
+    assert pkg["qa_status"] == "PASSED"
+    ladder = pkg["items"]
+    assert len(ladder) == pkg["ladder_size"]
+    assert pkg["ladder_size"] >= 4
+    values = [row["value"] for row in ladder]
+    # Real, pre-sorted, strictly descending -- and the generator itself
+    # already aborted at generation time (RuntimeError) if any real tie
+    # existed, so this is re-confirming that guarantee held.
+    assert values == sorted(values, reverse=True)
+    assert len(set(values)) == len(values), "a real tie slipped through -- generation should have aborted"
+    ranks = [row["rank"] for row in ladder]
+    assert ranks == list(range(1, len(ladder) + 1))
+    labels = [row["label"] for row in ladder]
+    assert len(set(labels)) == len(labels), "duplicate real player on the same real ladder"
+
+
+def test_leaderboard_climb_full_playthrough_climbs_correctly_and_ends_on_a_miss():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_leaderboard_climb_round(variant="NFL_CAREER_PASSING_YARDS_CLIMB", seed="test-climb-play")
+    assert pkg["qa_status"] == "PASSED"
+    ladder = pkg["items"]
+    size = pkg["ladder_size"]
+
+    progress = me.initial_progress("LEADERBOARD_CLIMB")
+    assert progress == {"ended": False, "completed": False}
+
+    view0 = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    assert view0["current_rank"] == size
+    assert view0["completed"] is False
+    assert set(view0.keys()) == {"current_rank", "ladder_size", "completed", "entity_a", "entity_b"}
+    assert set(view0["entity_a"].keys()) == {"entity_id", "label"}
+    labels_shown = {view0["entity_a"]["label"], view0["entity_b"]["label"]}
+    assert labels_shown == {ladder[size - 1]["label"], ladder[size - 2]["label"]}
+
+    # Always answer correctly (whichever real entity truly ranks higher)
+    # until the climb reaches rank 1. current_rank is deliberately absent
+    # from a fresh progress dict (sentinel-fallback pattern) so it must be
+    # read with the same size-fallback client_safe_view/evaluate_submission
+    # themselves use, not assumed present.
+    while progress.get("current_rank", size) > 1 and not progress.get("ended"):
+        current_rank = progress.get("current_rank", size)
+        current_entity = ladder[current_rank - 1]
+        next_entity = ladder[current_rank - 2]
+        view = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+        a_label, b_label = view["entity_a"]["label"], view["entity_b"]["label"]
+        # The real next-rung entity always truly ranks higher (lower rank
+        # number) than the current one -- identify which shown slot it's in.
+        correct_choice = "A" if a_label == next_entity["label"] else "B"
+        assert {a_label, b_label} == {current_entity["label"], next_entity["label"]}
+        result, progress = me.evaluate_submission(
+            "LEADERBOARD_CLIMB", pkg, progress, {"choice": correct_choice})
+        assert result["correct"] is True
+        assert result["new_rank"] == current_rank - 1
+
+    assert progress["current_rank"] == 1
+    assert progress["completed"] is True
+    view_top = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    assert view_top["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("LEADERBOARD_CLIMB", pkg, progress, {"choice": "A"})
+
+
+def test_leaderboard_climb_wrong_answer_ends_the_climb_and_rejects_further_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_leaderboard_climb_round(variant="NFL_CAREER_PASSING_YARDS_CLIMB", seed="test-climb-miss")
+    progress = me.initial_progress("LEADERBOARD_CLIMB")
+    size = pkg["ladder_size"]
+
+    view0 = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    canonical = "A" if view0["entity_a"]["label"] == pkg["items"][size - 2]["label"] else "B"
+    wrong = "B" if canonical == "A" else "A"
+
+    result, progress = me.evaluate_submission("LEADERBOARD_CLIMB", pkg, progress, {"choice": wrong})
+    assert result["correct"] is False
+    assert result["new_rank"] == size
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("LEADERBOARD_CLIMB", pkg, progress, {"choice": canonical})
+
+
+def test_leaderboard_climb_client_view_never_reveals_values_or_ranking_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_leaderboard_climb_round(variant="NFL_CAREER_PASSING_YARDS_CLIMB", seed="test-climb-leak")
+    progress = me.initial_progress("LEADERBOARD_CLIMB")
+    view = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    for key in ("entity_a", "entity_b"):
+        assert set(view[key].keys()) == {"entity_id", "label"}
+        assert "value" not in view[key]
+        assert "rank" not in view[key]
+
+
+def test_leaderboard_climb_shuffle_is_idempotent_across_repeated_client_view_calls():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_leaderboard_climb_round(variant="NFL_CAREER_PASSING_YARDS_CLIMB", seed="test-climb-idem")
+    progress = me.initial_progress("LEADERBOARD_CLIMB")
+    view_a = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    view_b = me.client_safe_view("LEADERBOARD_CLIMB", pkg, progress)
+    assert view_a["entity_a"]["label"] == view_b["entity_a"]["label"]
+    assert view_a["entity_b"]["label"] == view_b["entity_b"]["label"]
+
+
+def test_leaderboard_climb_rejects_malformed_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_leaderboard_climb_round(variant="NFL_CAREER_PASSING_YARDS_CLIMB", seed="test-climb-bad")
+    progress = me.initial_progress("LEADERBOARD_CLIMB")
+    result, progress = me.evaluate_submission("LEADERBOARD_CLIMB", pkg, progress, {"choice": "Z"})
+    assert result["correct"] is False
+    assert progress["ended"] is True

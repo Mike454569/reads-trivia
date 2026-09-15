@@ -96,6 +96,7 @@ var ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01 = READS_CONFIG.enableEngineMapTheCare
 var ENABLE_ENGINE_CAREER_PATH_PILOT_V01 = READS_CONFIG.enableEngineCareerPathPilot === true;
 var ENABLE_ENGINE_RISK_IT_PILOT_V01 = READS_CONFIG.enableEngineRiskItPilot === true;
 var ENABLE_ENGINE_WAGER_MODE_PILOT_V01 = READS_CONFIG.enableEngineWagerModePilot === true;
+var ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01 = READS_CONFIG.enableEngineLeaderboardClimbPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10937,6 +10938,7 @@ if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathnflpilot'] = 
 if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_RISK_IT_PILOT_V01) HIDDEN_ROUTES['#riskitpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_WAGER_MODE_PILOT_V01) HIDDEN_ROUTES['#wagermodepilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01) HIDDEN_ROUTES['#leaderboardclimbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

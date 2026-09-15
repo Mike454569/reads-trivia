@@ -413,6 +413,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "subtracts it.",
         "kind": "wager_mode", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #14 -- see
+    # tools/director_v04/leaderboard_climb.py's own module docstring.
+    "leaderboard_climb_nfl": {
+        "competition": "NFL", "taxonomy_id": "LEADERBOARD_CLIMB", "variant": "NFL_CAREER_PASSING_YARDS_CLIMB",
+        "title": "Leaderboard Climb",
+        "instructions": "Tap whichever real player you think ranks HIGHER on this real leaderboard -- a "
+                         "correct answer climbs you up one real rung; a wrong answer ends your climb.",
+        "kind": "leaderboard_climb", "gen_kwargs": {},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -489,6 +498,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_risk_it_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "WAGER_MODE":
             package = mechanic_engine.generate_wager_mode_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "LEADERBOARD_CLIMB":
+            package = mechanic_engine.generate_leaderboard_climb_round(variant=variant, seed=seed)
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

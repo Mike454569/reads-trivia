@@ -508,3 +508,32 @@ def test_wager_mode_creator_generate_for_review_is_a_real_playable_round():
     assert r["round_id"].startswith("GGP24:")
     assert r["view"]["awaiting_wager"] is True
     assert r["view"]["balance"] == 1000
+
+
+# --- LEADERBOARD_CLIMB (15-Format Expansion Part 2, format #14) ----------
+
+def test_detect_leaderboard_climb_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    for phrase in ["give me a leaderboard climb game", "let's climb the leaderboard"]:
+        r = bridge.detect(phrase)
+        assert r is not None, f"expected a match for {phrase!r}"
+        assert r["taxonomy_id"] == "LEADERBOARD_CLIMB"
+        assert r["format"] == "LEADERBOARD_CLIMB"
+        assert r["variant"] == "NFL_CAREER_PASSING_YARDS_CLIMB"
+
+
+def test_leaderboard_climb_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="leaderboard climb game", puzzle_count=None, difficulty=None,
+        seed="pytest-leaderboard-climb-bridge",
+    )
+    assert r["taxonomy_id"] == "LEADERBOARD_CLIMB"
+    assert r["format_id"] == "LEADERBOARD_CLIMB"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP26:")
+    assert r["view"]["completed"] is False
+    assert r["view"]["ladder_size"] >= 4
+    assert r["view"]["current_rank"] == r["view"]["ladder_size"]

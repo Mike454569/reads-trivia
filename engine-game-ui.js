@@ -1401,6 +1401,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #14 -- see
+  // tools/director_v04/leaderboard_climb.py's own module docstring.
+  leaderboardClimb: {
+    publicMode: 'leaderboard_climb_nfl', hash: '#leaderboardclimbpilot',
+    flagOn: function () { return ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01; },
+    title: 'Leaderboard Climb', kind: 'leaderboard_climb',
+    desc: 'Climb a real leaderboard by tapping whichever real player ranks higher at each rung.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1536,6 +1546,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'career_path' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'risk_it' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
   else if (cfg.kind === 'wager_mode' && v.completed) pct = Math.min(100, 100 * (v.balance || 0) / 1000);
+  else if (cfg.kind === 'leaderboard_climb' && v.completed) pct = Math.min(100, 100 * (v.ladder_size - v.current_rank) / (v.ladder_size - 1 || 1));
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1634,6 +1645,11 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (v.ended ? 'Run over -- balance hit 0! ' : 'Run complete! ') +
       'Final balance: ' + v.balance + '.</p>';
   }
+  if (cfg.kind === 'leaderboard_climb') {
+    var reachedTop = v.current_rank <= 1;
+    return '<p class="mode-desc">' + (reachedTop ? 'You reached the top of the real leaderboard! ' : 'Climb over -- ') +
+      'Final real rank reached: #' + v.current_rank + ' of ' + v.ladder_size + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1730,6 +1746,11 @@ function renderMechanicPilotFeedback(cfg, s) {
     wasCorrect = r.correct === true;
     headline = wasCorrect ? '+' + r.wager + ' to your balance!' : '-' + r.wager + ' from your balance.';
     detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'leaderboard_climb') {
+    wasCorrect = r.correct === true;
+    headline = wasCorrect ? 'Climbed to rank #' + r.new_rank + '!' : 'Climb over.';
+    detail = (r.correct_label && r.value_a != null && r.value_b != null)
+      ? esc(r.correct_label) + ' really ranks higher (' + r.value_a + ' vs ' + r.value_b + ').' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1845,6 +1866,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'career_path') return renderCareerPathBody(v, s);
   if (cfg.kind === 'risk_it') return renderRiskItBody(v, s);
   if (cfg.kind === 'wager_mode') return renderWagerModeBody(v, s);
+  if (cfg.kind === 'leaderboard_climb') return renderLeaderboardClimbBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2125,6 +2147,20 @@ function renderWagerModeBody(v, s) {
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-wager-answer',
     });
+}
+
+// LEADERBOARD_CLIMB: identical {choice: 'A'|'B'} submission shape to
+// PAIRWISE_COMPARE/BEFORE_AFTER, so this reuses renderBinaryChoiceHtml
+// AND the existing data-mechanic-duel-choice click handler verbatim --
+// zero new app.js plumbing needed for this format.
+function renderLeaderboardClimbBody(v, s) {
+  return '<div class="status-line">Rung ' + (v.ladder_size - v.current_rank + 1) + ' of ' + v.ladder_size + '</div>' +
+    '<div class="quiz-question">Which real player ranks HIGHER on this real leaderboard?</div>' +
+    renderBinaryChoiceHtml(
+      { code: 'A', label: v.entity_a.label },
+      { code: 'B', label: v.entity_b.label },
+      { dataAttr: 'data-mechanic-duel-choice' },
+    );
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

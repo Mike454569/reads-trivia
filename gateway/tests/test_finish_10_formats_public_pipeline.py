@@ -642,6 +642,53 @@ def test_wager_mode_never_leaks_real_answer_or_prompt_before_a_wager_is_placed()
                                       "category", "balance"}
 
 
+# --- 23. LEADERBOARD_CLIMB (15-Format Expansion Part 2, format #14) -------
+
+def test_leaderboard_climb_full_public_playthrough_climbs_and_ends_on_a_miss():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="leaderboard_climb_nfl")
+    rid = r["round_id"]
+    assert rid.startswith("GGP26:")
+    assert r["view"]["completed"] is False
+    size = r["view"]["ladder_size"]
+    assert r["view"]["current_rank"] == size
+
+    pkg = packages.load_package(rid)
+    ladder = pkg["items"]
+    next_entity = ladder[size - 2]  # real rank size-1, one rung better than the start
+    canonical = "A" if r["view"]["entity_a"]["label"] == next_entity["label"] else "B"
+
+    sub = pm.submit_public_round(round_id=rid, submission={"choice": canonical})
+    assert sub["result"]["correct"] is True
+    assert sub["view"]["current_rank"] == size - 1
+    assert sub["view"]["completed"] is False
+
+    # The next rung's A/B shuffle is independently seeded -- re-derive the
+    # real correct choice for THIS matchup rather than reusing the first
+    # rung's canonical answer.
+    next_next_entity = ladder[size - 3]
+    canonical2 = "A" if sub["view"]["entity_a"]["label"] == next_next_entity["label"] else "B"
+    wrong = "B" if canonical2 == "A" else "A"
+    sub2 = pm.submit_public_round(round_id=rid, submission={"choice": wrong})
+    assert sub2["result"]["correct"] is False
+    assert sub2["view"]["current_rank"] == size - 1  # unchanged -- climb ended, not demoted
+    assert sub2["view"]["completed"] is True
+
+    with pytest.raises(Exception):
+        pm.submit_public_round(round_id=rid, submission={"choice": canonical})
+
+
+def test_leaderboard_climb_never_leaks_real_values_or_ranks_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="leaderboard_climb_nfl")
+    assert set(r["view"].keys()) == {"current_rank", "ladder_size", "completed", "entity_a", "entity_b"}
+    for key in ("entity_a", "entity_b"):
+        assert set(r["view"][key].keys()) == {"entity_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -665,6 +712,7 @@ def test_wager_mode_never_leaks_real_answer_or_prompt_before_a_wager_is_placed()
     ("Give me a career path game with a real NFL player.", "CAREER_PATH"),
     ("Give me a risk it game with real NFL Draft picks.", "RISK_IT"),
     ("Give me a wager mode game.", "WAGER_MODE"),
+    ("Give me a leaderboard climb game with real NFL passers.", "LEADERBOARD_CLIMB"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

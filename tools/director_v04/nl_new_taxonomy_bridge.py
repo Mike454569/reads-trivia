@@ -283,6 +283,12 @@ _RISK_IT_RE = re.compile(r"\brisk\s+it\b|\brisk\s+tier\b|\bpick\s+a\s+risk\b", r
 # needed a tighter tier-specific phrase above).
 _WAGER_MODE_RE = re.compile(r"\bwager\b", re.IGNORECASE)
 
+# --- LEADERBOARD_CLIMB (15-Format Expansion pass, Part 2, format #14) -----
+# "leaderboard climb"/"climb the leaderboard" are the format's own real
+# distinctive phrase -- a bare "leaderboard" alone would be too generic
+# (this app has real, unrelated mode-popularity leaderboards elsewhere).
+_LEADERBOARD_CLIMB_RE = re.compile(r"\b(leaderboard\s+climb|climb\s+the\s+leaderboard)\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -397,5 +403,9 @@ def detect(request_text: str | None) -> dict | None:
     if _WAGER_MODE_RE.search(text):
         return {"taxonomy_id": "WAGER_MODE", "variant": "WAGER_MODE_MIXED",
                 "format": "WAGER_MODE", "gen_kwargs": {}}
+
+    if _LEADERBOARD_CLIMB_RE.search(text):
+        return {"taxonomy_id": "LEADERBOARD_CLIMB", "variant": "NFL_CAREER_PASSING_YARDS_CLIMB",
+                "format": "LEADERBOARD_CLIMB", "gen_kwargs": {}}
 
     return None

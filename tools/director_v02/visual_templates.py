@@ -1164,6 +1164,43 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped free-text-input pattern) plus renderCandidateCardsHtml.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "LEADERBOARD_CLIMB": {
+        "format_id": "LEADERBOARD_CLIMB", "display_name": "Leaderboard Climb",
+        "description": "Real leaderboard-climbing trivia: start at the bottom rung of a real, fixed, "
+                        "pre-sorted statistical leaderboard (career passing yards) and climb one rung at a "
+                        "time by correctly identifying which of 2 named real players -- the one on the "
+                        "player's current rung, and the real player one rung above -- actually ranks higher. "
+                        "A correct answer climbs to that next rung; a wrong answer ends the climb "
+                        "immediately. Reaching rank 1 completes the climb.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step binary choice per round -- reuses the exact same "
+                                   "renderBinaryChoiceHtml/data-mechanic-duel-choice pattern already shipped "
+                                   "for PAIRWISE_COMPARE/BEFORE_AFTER rather than inventing a new choice "
+                                   "widget.",
+        "proven_in": ["leaderboard_climb_nfl"],
+        "supported_mechanics": ["leaderboard_climb"], "mechanic_family": "LEADERBOARD_CLIMB",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 15, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Tap whichever of 2 named real players you think ranks HIGHER on a real, fixed "
+                              "leaderboard; a correct answer climbs one rung, a wrong answer ends the climb.",
+        "validation_rules": "The real leaderboard's top-N values are checked for genuine distinctness (no "
+                             "tie) at generation time -- a real tie anywhere in the ladder aborts generation "
+                             "rather than inventing a tiebreak.",
+        "answer_schema": "{choice: 'A'|'B'}",
+        "generation_schema": "tools/director_v04/leaderboard_climb.py:build_package()",
+        "qa_requirements": "The real leaderboard's ranks/values are never sent to the client wholesale -- "
+                            "only the 2 entities for the player's current matchup are ever exposed, and the "
+                            "real winning rank/values are only revealed after evaluate() runs.",
+        "casual_aliases": ["leaderboard climb", "climb the leaderboard"],
+        # True because renderLeaderboardClimbBody introduces zero new CSS --
+        # built entirely from renderBinaryChoiceHtml (PAIRWISE_COMPARE's own
+        # already-shipped binary-choice pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

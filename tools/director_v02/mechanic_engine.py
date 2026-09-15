@@ -62,6 +62,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #13 -- see
     # tools/director_v04/confidence_pick.py's own module docstring.
     "CONFIDENCE_PICK",
+    # 15-Format Expansion pass (Part 2), format #14 -- see
+    # tools/director_v04/leaderboard_climb.py's own module docstring.
+    "LEADERBOARD_CLIMB",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -258,6 +261,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/confidence_pick.py's own module docstring.
     "CONFIDENCE_PICK": {
         "NFL_CONFIDENCE_PICK": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #14 -- see
+    # tools/director_v04/leaderboard_climb.py's own module docstring.
+    "LEADERBOARD_CLIMB": {
+        "NFL_CAREER_PASSING_YARDS_CLIMB": {"competition": "NFL"},
     },
 }
 
@@ -808,6 +816,67 @@ def _confidence_pick_evaluate(package: dict, progress: dict, submission: dict) -
 
     return {"game_id": game_id, "predicted_winner": predicted_winner, "confidence": confidence,
             "status": "PENDING", "message": "Pick recorded -- will grade automatically once this game is final."}
+
+
+# --- LEADERBOARD_CLIMB (15-Format Expansion Part 2) -------------------------
+# Real climb-until-miss round over a FIXED, pre-sorted real leaderboard --
+# see tools/director_v04/leaderboard_climb.py's own module docstring for
+# why this is deliberately distinct from HIGHER_LOWER_STREAK. The A/B
+# shuffle for a given rung is derived deterministically from
+# (package_id, current_rank) so repeated client_view calls for the same
+# progress state are always idempotent -- never re-shuffled on every call.
+
+def generate_leaderboard_climb_round(*, variant: str, seed: str) -> dict:
+    from tools.director_v04 import leaderboard_climb
+    return leaderboard_climb.build_package(seed, variant)
+
+
+def _leaderboard_climb_client_view(package: dict, progress: dict) -> dict:
+    from tools.quiz_export import engine as engine_bootstrap
+
+    ladder = package["items"]
+    size = package["ladder_size"]
+    current_rank = progress.get("current_rank", size)
+    if progress.get("ended") or current_rank <= 1:
+        return {"current_rank": current_rank, "ladder_size": size, "completed": True,
+                "ended": bool(progress.get("ended"))}
+
+    current_entity = ladder[current_rank - 1]  # rank N lives at index N-1
+    next_entity = ladder[current_rank - 2]     # rank N-1 -- one real rung better
+    order = [0, 1]
+    engine_bootstrap.seeded(f"{package['package_id']}-climb-{current_rank}").shuffle(order)
+    entities = [current_entity, next_entity]
+    entity_a, entity_b = entities[order[0]], entities[order[1]]
+    return {"current_rank": current_rank, "ladder_size": size, "completed": False,
+            "entity_a": {"entity_id": "A", "label": entity_a["label"]},
+            "entity_b": {"entity_id": "B", "label": entity_b["label"]}}
+
+
+def _leaderboard_climb_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    from tools.quiz_export import engine as engine_bootstrap
+
+    ladder = package["items"]
+    current_rank = progress.get("current_rank", package["ladder_size"])
+    if current_rank <= 1:
+        raise MechanicError("this climb has already reached the top of the real leaderboard")
+
+    current_entity = ladder[current_rank - 1]
+    next_entity = ladder[current_rank - 2]
+    order = [0, 1]
+    engine_bootstrap.seeded(f"{package['package_id']}-climb-{current_rank}").shuffle(order)
+    entities = [current_entity, next_entity]
+    entity_a, entity_b = entities[order[0]], entities[order[1]]
+    # The real correct choice is always whichever shown entity is the
+    # NEXT (numerically lower, i.e. better) real rank -- true by
+    # construction of the real, pre-sorted ladder, never a guess this
+    # function makes itself.
+    canonical = "A" if entity_a["rank"] < entity_b["rank"] else "B"
+    choice = str(submission.get("choice", "")).strip().upper()
+    correct = choice in ("A", "B") and choice == canonical
+    correct_entity = entity_a if canonical == "A" else entity_b
+    return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
+            "value_a": entity_a["value"], "value_b": entity_b["value"],
+            "new_rank": (current_rank - 1) if correct else current_rank}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1614,6 +1683,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _wager_mode_client_view(package, progress)
     if taxonomy_id == "CONFIDENCE_PICK":
         return _confidence_pick_client_view(package, progress)
+    if taxonomy_id == "LEADERBOARD_CLIMB":
+        return _leaderboard_climb_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1720,6 +1791,15 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
             "picked_at": datetime.now(timezone.utc).isoformat(),
         }
         progress["picks"] = picks
+        return result, progress
+    if taxonomy_id == "LEADERBOARD_CLIMB":
+        if progress.get("ended") or progress.get("completed"):
+            raise MechanicError("this climb has already ended")
+        result = _leaderboard_climb_evaluate(package, progress, submission)
+        progress["current_rank"] = result["new_rank"]
+        if not result["correct"]:
+            progress["ended"] = True
+        progress["completed"] = progress.get("ended", False) or progress["current_rank"] <= 1
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
@@ -1874,6 +1954,14 @@ def initial_progress(taxonomy_id: str) -> dict:
         return {"picks": {}}
     if taxonomy_id == "CONFIDENCE_PICK":
         return {"picks": {}}
+    if taxonomy_id == "LEADERBOARD_CLIMB":
+        # current_rank deliberately absent -- _leaderboard_climb_client_view/
+        # _leaderboard_climb_evaluate both fall back to the real package's
+        # own ladder_size (the real bottom rung) when it's missing, the
+        # same sentinel-fallback pattern RISK_IT's lives/WAGER_MODE's
+        # balance already established (this function has no package to
+        # read the real starting value from).
+        return {"ended": False, "completed": False}
     if taxonomy_id == "LIVE_WEEKLY_FANTASY_DRAFT":
         return {"drafted": [], "drafted_player_ids": [], "current_slot_index": 0, "completed": False, "state_version": 0}
     if taxonomy_id == "COMPARISON_BRACKET":

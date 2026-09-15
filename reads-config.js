@@ -116,6 +116,9 @@ window.READS_CONFIG = {
   // 15-Format Expansion pass (Part 2), format #12 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineWagerModePilot: false,
+  // 15-Format Expansion pass (Part 2), format #14 -- same off-by-default
+  // convention as its own sibling pilots above.
+  enableEngineLeaderboardClimbPilot: false,
   // Creator stress test / discovery pass: the first 4 modes promoted
   // straight from Creator-only to public certification -- real candidate
   // surveys (gateway/services/public_game.py) + real canary verification

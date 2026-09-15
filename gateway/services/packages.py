@@ -23,9 +23,9 @@ Expansion pass added `GGP17:` (GUESS_THE_SEASON), `GGP18:`
 (PAIRWISE_COMPARE / HEAD_TO_HEAD_DUEL / BEST_OF_SEVEN_DUEL), `GGP19:`
 (PICK_THE_IMPOSTOR / UNIQUE_ONE_OUT), `GGP20:` (MISSING_PIECE), `GGP21:`
 (BEFORE_AFTER), `GGP22:` (CAREER_PATH), `GGP23:` (RISK_IT), `GGP24:`
-(WAGER_MODE), and `GGP25:` (CONFIDENCE_PICK). MAP_THE_CAREER reuses
-`GGP6:` (SORTING_TIMELINE) since it is a variant of that pre-existing
-taxonomy, not a new one.
+(WAGER_MODE), `GGP25:` (CONFIDENCE_PICK), and `GGP26:`
+(LEADERBOARD_CLIMB). MAP_THE_CAREER reuses `GGP6:` (SORTING_TIMELINE)
+since it is a variant of that pre-existing taxonomy, not a new one.
 Produced by `game_director_v01.
 generate_package_from_spec()` / `player_from_clues.build_package()` /
 `tools/director_v04/{matching,sorting,elimination,higher_lower,weekly_pickem,
@@ -52,7 +52,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.director_v02.package_contract import validate_package_contract  # noqa: E402
 
-PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|1[0-9]|2[0-5])?:[0-9a-f]{24}$")
+PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|1[0-9]|2[0-6])?:[0-9a-f]{24}$")
 
 _write_lock = threading.Lock()
 
@@ -73,7 +73,7 @@ def _safe_filename_for_id(package_id: str) -> Path:
     """The only function in this module allowed to build a filesystem path
     from a package_id. Validates against a strict allowlist regex BEFORE
     any path construction -- `../`, absolute paths, null bytes, or any
-    character outside PACKAGE_ID_RE's fixed GGP(4-9|10-25)?:[0-9a-f]{24}
+    character outside PACKAGE_ID_RE's fixed GGP(4-9|10-26)?:[0-9a-f]{24}
     shape is rejected outright, never sanitized-and-used."""
     if not isinstance(package_id, str) or not PACKAGE_ID_RE.match(package_id):
         raise PackageIdInvalid(f"invalid package_id format: {package_id!r}")
