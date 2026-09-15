@@ -1411,6 +1411,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #15 (final of 15) -- see
+  // tools/director_v04/blind_resume.py's own module docstring.
+  blindResume: {
+    publicMode: 'blind_resume_nfl_qb', hash: '#blindresumepilot',
+    flagOn: function () { return ENABLE_ENGINE_BLIND_RESUME_PILOT_V01; },
+    title: 'Blind Resume', kind: 'blind_resume',
+    desc: 'A real player\'s career passing resume is shown with the name hidden -- guess who it is.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1547,6 +1557,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'risk_it' && v.completed) pct = Math.min(100, 100 * (v.score || 0) / ((v.round_count || 1) * 3));
   else if (cfg.kind === 'wager_mode' && v.completed) pct = Math.min(100, 100 * (v.balance || 0) / 1000);
   else if (cfg.kind === 'leaderboard_climb' && v.completed) pct = Math.min(100, 100 * (v.ladder_size - v.current_rank) / (v.ladder_size - 1 || 1));
+  else if (cfg.kind === 'blind_resume' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1650,6 +1661,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (reachedTop ? 'You reached the top of the real leaderboard! ' : 'Climb over -- ') +
       'Final real rank reached: #' + v.current_rank + ' of ' + v.ladder_size + '.</p>';
   }
+  if (cfg.kind === 'blind_resume') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'That real resume belonged to ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1751,6 +1766,9 @@ function renderMechanicPilotFeedback(cfg, s) {
     headline = wasCorrect ? 'Climbed to rank #' + r.new_rank + '!' : 'Climb over.';
     detail = (r.correct_label && r.value_a != null && r.value_b != null)
       ? esc(r.correct_label) + ' really ranks higher (' + r.value_a + ' vs ' + r.value_b + ').' : '';
+  } else if (cfg.kind === 'blind_resume') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'That real resume belonged to ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1867,6 +1885,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'risk_it') return renderRiskItBody(v, s);
   if (cfg.kind === 'wager_mode') return renderWagerModeBody(v, s);
   if (cfg.kind === 'leaderboard_climb') return renderLeaderboardClimbBody(v, s);
+  if (cfg.kind === 'blind_resume') return renderBlindResumeBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2161,6 +2180,24 @@ function renderLeaderboardClimbBody(v, s) {
       { code: 'B', label: v.entity_b.label },
       { dataAttr: 'data-mechanic-duel-choice' },
     );
+}
+
+// BLIND_RESUME: the real resume (career games/pass yards/pass TDs/
+// interceptions) is shown as a stat block -- reuses .chain-node (the same
+// real component GUESS_THE_SEASON/MISSING_PIECE already use for a fact
+// list, zero new CSS) -- then 4 real named candidates via
+// renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR/CAREER_PATH.
+function renderBlindResumeBody(v, s) {
+  var r = v.resume;
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="chain-node">' + r.games + ' games played</div>' +
+    '<div class="chain-node">' + r.pass_yards + ' career pass yards</div>' +
+    '<div class="chain-node">' + r.pass_td + ' career passing TDs</div>' +
+    '<div class="chain-node">' + r.interceptions + ' career interceptions</div>' +
+    '<div class="quiz-question">Whose real career passing resume is this?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-blind-resume-pick',
+    });
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

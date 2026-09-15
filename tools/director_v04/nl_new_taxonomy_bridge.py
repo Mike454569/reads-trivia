@@ -289,6 +289,11 @@ _WAGER_MODE_RE = re.compile(r"\bwager\b", re.IGNORECASE)
 # (this app has real, unrelated mode-popularity leaderboards elsewhere).
 _LEADERBOARD_CLIMB_RE = re.compile(r"\b(leaderboard\s+climb|climb\s+the\s+leaderboard)\b", re.IGNORECASE)
 
+# --- BLIND_RESUME (15-Format Expansion pass, Part 2, format #15, final) ---
+# "blind resume" is the format's own real distinctive phrase -- no other
+# bridge in this pipeline uses either word.
+_BLIND_RESUME_RE = re.compile(r"\bblind\s+resume\b", re.IGNORECASE)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -407,5 +412,9 @@ def detect(request_text: str | None) -> dict | None:
     if _LEADERBOARD_CLIMB_RE.search(text):
         return {"taxonomy_id": "LEADERBOARD_CLIMB", "variant": "NFL_CAREER_PASSING_YARDS_CLIMB",
                 "format": "LEADERBOARD_CLIMB", "gen_kwargs": {}}
+
+    if _BLIND_RESUME_RE.search(text):
+        return {"taxonomy_id": "BLIND_RESUME", "variant": "NFL_QB_CAREER_BLIND_RESUME",
+                "format": "BLIND_RESUME", "gen_kwargs": {}}
 
     return None

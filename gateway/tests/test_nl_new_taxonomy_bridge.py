@@ -537,3 +537,30 @@ def test_leaderboard_climb_creator_generate_for_review_is_a_real_playable_round(
     assert r["view"]["completed"] is False
     assert r["view"]["ladder_size"] >= 4
     assert r["view"]["current_rank"] == r["view"]["ladder_size"]
+
+
+# --- BLIND_RESUME (15-Format Expansion Part 2, format #15, final) --------
+
+def test_detect_blind_resume_real_phrasing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("give me a blind resume game")
+    assert r is not None
+    assert r["taxonomy_id"] == "BLIND_RESUME"
+    assert r["format"] == "BLIND_RESUME"
+    assert r["variant"] == "NFL_QB_CAREER_BLIND_RESUME"
+
+
+def test_blind_resume_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="blind resume game", puzzle_count=None, difficulty=None, seed="pytest-blind-resume-bridge",
+    )
+    assert r["taxonomy_id"] == "BLIND_RESUME"
+    assert r["format_id"] == "BLIND_RESUME"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP27:")
+    assert r["view"]["completed"] is False
+    assert "resume" in r["view"]
+    assert len(r["view"]["options"]) == 4

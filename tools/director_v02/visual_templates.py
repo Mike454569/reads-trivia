@@ -1201,6 +1201,38 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped binary-choice pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "BLIND_RESUME": {
+        "format_id": "BLIND_RESUME", "display_name": "Blind Resume",
+        "description": "Real 'whose career is this?' trivia: a real player's career passing resume (career "
+                        "games, pass yards, pass TDs, interceptions) is shown with the name redacted, and "
+                        "the player picks which of 4 real named candidates it belongs to.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses the exact same "
+                                   "renderCandidateCardsHtml pattern already shipped for PICK_THE_IMPOSTOR/"
+                                   "MISSING_PIECE/BEFORE_AFTER rather than inventing a new choice widget.",
+        "proven_in": ["blind_resume_nfl_qb"],
+        "supported_mechanics": ["blind_resume"], "mechanic_family": "BLIND_RESUME",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read a real player's blind career resume, then tap 1 of 4 real candidate cards "
+                              "for who you think it belongs to.",
+        "validation_rules": "The correct real candidate and all 3 real decoys are distinct real, qualifying "
+                             "players (career pass yards > 3000 across >= 16 real career games) -- decoys are "
+                             "never shown their own resumes, only their real names.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/blind_resume.py:build_package()",
+        "qa_requirements": "The real correct candidate's identity is never sent to the client before "
+                            "evaluate() runs.",
+        "casual_aliases": ["blind resume"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

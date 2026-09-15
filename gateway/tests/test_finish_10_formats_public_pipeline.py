@@ -689,6 +689,39 @@ def test_leaderboard_climb_never_leaks_real_values_or_ranks_before_submission():
         assert set(r["view"][key].keys()) == {"entity_id", "label"}
 
 
+# --- 24. BLIND_RESUME (15-Format Expansion Part 2, format #15, final) -----
+
+def test_blind_resume_full_public_playthrough_correct_and_incorrect():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="blind_resume_nfl_qb")
+    rid = r["round_id"]
+    assert rid.startswith("GGP27:")
+    assert r["view"]["completed"] is False
+    assert len(r["view"]["options"]) == 4
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub = pm.submit_public_round(round_id=rid, submission={"choice_item_id": correct})
+    assert sub["result"]["correct"] is True
+    assert sub["view"]["round_index"] == 1
+
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    sub2 = pm.submit_public_round(round_id=rid, submission={"choice_item_id": wrong})
+    assert sub2["result"]["correct"] is False
+    assert sub2["view"]["round_index"] == 2
+
+
+def test_blind_resume_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="blind_resume_nfl_qb")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "resume", "options"}
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -713,6 +746,7 @@ def test_leaderboard_climb_never_leaks_real_values_or_ranks_before_submission():
     ("Give me a risk it game with real NFL Draft picks.", "RISK_IT"),
     ("Give me a wager mode game.", "WAGER_MODE"),
     ("Give me a leaderboard climb game with real NFL passers.", "LEADERBOARD_CLIMB"),
+    ("Give me a blind resume game with a real NFL quarterback.", "BLIND_RESUME"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

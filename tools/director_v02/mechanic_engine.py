@@ -65,6 +65,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #14 -- see
     # tools/director_v04/leaderboard_climb.py's own module docstring.
     "LEADERBOARD_CLIMB",
+    # 15-Format Expansion pass (Part 2), format #15 (final of 15) -- see
+    # tools/director_v04/blind_resume.py's own module docstring.
+    "BLIND_RESUME",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -266,6 +269,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/leaderboard_climb.py's own module docstring.
     "LEADERBOARD_CLIMB": {
         "NFL_CAREER_PASSING_YARDS_CLIMB": {"competition": "NFL"},
+    },
+    # 15-Format Expansion pass (Part 2), format #15 (final of 15) -- see
+    # tools/director_v04/blind_resume.py's own module docstring.
+    "BLIND_RESUME": {
+        "NFL_QB_CAREER_BLIND_RESUME": {"competition": "NFL"},
     },
 }
 
@@ -877,6 +885,36 @@ def _leaderboard_climb_evaluate(package: dict, progress: dict, submission: dict)
     return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
             "value_a": entity_a["value"], "value_b": entity_b["value"],
             "new_rank": (current_rank - 1) if correct else current_rank}
+
+
+# --- BLIND_RESUME (15-Format Expansion Part 2, final of 15) ----------------
+# Real "whose career is this" round -- see tools/director_v04/
+# blind_resume.py's own module docstring. current_index-based progress,
+# same shape as PICK_THE_IMPOSTOR/MISSING_PIECE/BEFORE_AFTER above (falls
+# through to initial_progress()'s own generic default, no dedicated branch
+# needed).
+
+def generate_blind_resume_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import blind_resume
+    return blind_resume.build_package(seed, variant, round_count=round_count)
+
+
+def _blind_resume_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "resume": r["resume"],
+            "options": [{"item_id": it["item_id"], "label": it["label"]} for it in r["options"]]}
+
+
+def _blind_resume_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("choice_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1685,6 +1723,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _confidence_pick_client_view(package, progress)
     if taxonomy_id == "LEADERBOARD_CLIMB":
         return _leaderboard_climb_client_view(package, progress)
+    if taxonomy_id == "BLIND_RESUME":
+        return _blind_resume_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1800,6 +1840,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         if not result["correct"]:
             progress["ended"] = True
         progress["completed"] = progress.get("ended", False) or progress["current_rank"] <= 1
+        return result, progress
+    if taxonomy_id == "BLIND_RESUME":
+        result = _blind_resume_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):

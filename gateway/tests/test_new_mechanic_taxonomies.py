@@ -1619,3 +1619,78 @@ def test_leaderboard_climb_rejects_malformed_submissions():
     result, progress = me.evaluate_submission("LEADERBOARD_CLIMB", pkg, progress, {"choice": "Z"})
     assert result["correct"] is False
     assert progress["ended"] is True
+
+
+# --- BLIND_RESUME (15-Format Expansion Part 2, format #15, final) --------
+
+def test_blind_resume_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "BLIND_RESUME" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("BLIND_RESUME"), "BLIND_RESUME has no registered variants"
+
+
+def test_blind_resume_generates_real_rounds_with_distinct_real_candidates():
+    from tools.director_v04 import blind_resume
+
+    pkg = blind_resume.build_package("test-resume-1", "NFL_QB_CAREER_BLIND_RESUME", round_count=7)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        resume = r["resume"]
+        assert resume["games"] >= blind_resume.MIN_CAREER_GAMES
+        assert resume["pass_yards"] > blind_resume.MIN_CAREER_PASS_YARDS
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, "a round has a duplicate real candidate name"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_blind_resume_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_blind_resume_round(variant="NFL_QB_CAREER_BLIND_RESUME", round_count=3, seed="test-resume-play")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("BLIND_RESUME")
+    assert progress == {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("BLIND_RESUME", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["resume"] == pkg["rounds"][0]["resume"]
+
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission(
+        "BLIND_RESUME", pkg, progress, {"choice_item_id": canonical})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+    assert progress["completed"] is False
+
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission(
+        "BLIND_RESUME", pkg, progress, {"choice_item_id": wrong})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_blind_resume_rejects_malformed_submissions():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_blind_resume_round(variant="NFL_QB_CAREER_BLIND_RESUME", round_count=2, seed="test-resume-bad")
+    progress = me.initial_progress("BLIND_RESUME")
+    result, progress = me.evaluate_submission("BLIND_RESUME", pkg, progress, {"choice_item_id": "Z"})
+    assert result["correct"] is False
+    result2, progress = me.evaluate_submission("BLIND_RESUME", pkg, progress, {})
+    assert result2["correct"] is False
+
+
+def test_blind_resume_client_view_never_leaks_the_real_answer_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_blind_resume_round(variant="NFL_QB_CAREER_BLIND_RESUME", round_count=2, seed="test-resume-leak")
+    progress = me.initial_progress("BLIND_RESUME")
+    view0 = me.client_safe_view("BLIND_RESUME", pkg, progress)
+    assert set(view0.keys()) == {"round_index", "round_count", "completed", "resume", "options"}
+    for it in view0["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

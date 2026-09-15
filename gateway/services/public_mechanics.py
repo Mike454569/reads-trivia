@@ -422,6 +422,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "correct answer climbs you up one real rung; a wrong answer ends your climb.",
         "kind": "leaderboard_climb", "gen_kwargs": {},
     },
+    # 15-Format Expansion pass (Part 2), format #15 (final of 15) -- see
+    # tools/director_v04/blind_resume.py's own module docstring.
+    "blind_resume_nfl_qb": {
+        "competition": "NFL", "taxonomy_id": "BLIND_RESUME", "variant": "NFL_QB_CAREER_BLIND_RESUME",
+        "title": "Blind Resume",
+        "instructions": "A real player's career passing resume is shown with the name hidden -- tap "
+                         "whichever real candidate you think it belongs to.",
+        "kind": "blind_resume", "gen_kwargs": {"round_count": 7},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -500,6 +509,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_wager_mode_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "LEADERBOARD_CLIMB":
             package = mechanic_engine.generate_leaderboard_climb_round(variant=variant, seed=seed)
+        elif taxonomy_id == "BLIND_RESUME":
+            package = mechanic_engine.generate_blind_resume_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
