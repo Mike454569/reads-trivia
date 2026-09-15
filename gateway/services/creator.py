@@ -233,6 +233,7 @@ _NEW_TAXONOMY_TITLES = {
     "KING_OF_THE_HILL": "King of the Hill",
     "FACT_OR_FAKE": "Fact or Fake",
     "GUESS_THE_RANKING": "Guess the Ranking",
+    "STAT_TARGET": "Stat Target",
 }
 
 
@@ -319,8 +320,11 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "FACT_OR_FAKE":
         package = mechanic_engine.generate_fact_or_fake_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 10), seed=real_seed)
-    else:  # GUESS_THE_RANKING
+    elif taxonomy_id == "GUESS_THE_RANKING":
         package = mechanic_engine.generate_guess_the_ranking_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
+    else:  # STAT_TARGET
+        package = mechanic_engine.generate_stat_target_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":

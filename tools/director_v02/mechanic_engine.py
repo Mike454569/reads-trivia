@@ -80,6 +80,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # guess_the_ranking.py's own module docstring.
     "GUESS_THE_RANKING",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # stat_target.py's own module docstring.
+    "STAT_TARGET",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -306,6 +309,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # guess_the_ranking.py's own module docstring.
     "GUESS_THE_RANKING": {
         "NFL_CAREER_PASSING_YARDS_RANKING": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # stat_target.py's own module docstring.
+    "STAT_TARGET": {
+        "NFL_SEASON_RUSHING_YARDS_TARGET": {"competition": "NFL"},
     },
 }
 
@@ -1096,6 +1104,34 @@ def _guess_the_ranking_client_view(package: dict, index: int) -> dict:
 
 
 def _guess_the_ranking_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("choice_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
+# --- STAT_TARGET (75-Format Expansion, Wave 1) -------------------------------
+# Real target-proximity round -- see tools/director_v04/stat_target.py's
+# own module docstring. current_index-based progress, same shape as
+# PICK_THE_IMPOSTOR/GUESS_THE_RANKING above.
+
+def generate_stat_target_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import stat_target
+    return stat_target.build_package(seed, variant, round_count=round_count)
+
+
+def _stat_target_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "target": r["target"],
+            "options": [{"item_id": it["item_id"], "label": it["label"]} for it in r["options"]]}
+
+
+def _stat_target_evaluate(package: dict, index: int, submission: dict) -> dict:
     r = package["rounds"][index]
     canonical = r["_answer_item_id"]
     choice = str(submission.get("choice_item_id", "")).strip().upper()
@@ -1920,6 +1956,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _fact_or_fake_client_view(package, progress["current_index"])
     if taxonomy_id == "GUESS_THE_RANKING":
         return _guess_the_ranking_client_view(package, progress["current_index"])
+    if taxonomy_id == "STAT_TARGET":
+        return _stat_target_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -2080,6 +2118,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "GUESS_THE_RANKING":
         result = _guess_the_ranking_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "STAT_TARGET":
+        result = _stat_target_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

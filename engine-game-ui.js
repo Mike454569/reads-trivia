@@ -1461,6 +1461,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // stat_target.py's own module docstring.
+  statTarget: {
+    publicMode: 'stat_target_nfl_rushing', hash: '#stattargetpilot',
+    flagOn: function () { return ENABLE_ENGINE_STAT_TARGET_PILOT_V01; },
+    title: 'Stat Target', kind: 'stat_target',
+    desc: 'Tap whichever real player’s real season total came closest to the target.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1602,6 +1612,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'king_of_the_hill' && v.completed) pct = Math.min(100, (v.consecutive_defenses || 0) * 10);
   else if (cfg.kind === 'fact_or_fake' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'guess_the_ranking' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'stat_target' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1725,6 +1736,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   if (cfg.kind === 'guess_the_ranking') {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'The real rank was ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
+  if (cfg.kind === 'stat_target') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'Closest was really ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   return '';
 }
@@ -1851,6 +1866,9 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'guess_the_ranking') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'The real rank was ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'stat_target') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'Closest was really ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1972,6 +1990,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'king_of_the_hill') return renderKingOfTheHillBody(v, s);
   if (cfg.kind === 'fact_or_fake') return renderFactOrFakeBody(v, s);
   if (cfg.kind === 'guess_the_ranking') return renderGuessTheRankingBody(v, s);
+  if (cfg.kind === 'stat_target') return renderStatTargetBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2341,6 +2360,16 @@ function renderGuessTheRankingBody(v, s) {
     '<div class="quiz-question">What real rank does ' + esc(v.label) + ' hold on this real career leaderboard?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-guess-the-ranking-pick',
+    });
+}
+
+// STAT_TARGET: reuses renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/GUESS_THE_RANKING -- zero new CSS.
+function renderStatTargetBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">Which real player’s real season total came CLOSEST to ' + v.target + ' rushing yards?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-stat-target-pick',
     });
 }
 

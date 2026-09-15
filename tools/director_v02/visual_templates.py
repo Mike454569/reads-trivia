@@ -1365,6 +1365,34 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "STAT_TARGET": {
+        "format_id": "STAT_TARGET", "display_name": "Stat Target",
+        "description": "Real target-proximity trivia: a real target rushing-yards number is shown -- tap "
+                        "whichever real player's real single-season total came closest to it.",
+        "payload_schema": None,
+        "existing_renderer_note": "Single-step 4-option multiple choice per round -- reuses "
+                                   "renderCandidateCardsHtml verbatim.",
+        "proven_in": ["stat_target_nfl_rushing"],
+        "supported_mechanics": ["stat_target"], "mechanic_family": "STAT_TARGET",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["player_season_stats (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Read the real target number, then tap 1 of 4 real candidate player-season cards.",
+        "validation_rules": "The real correct candidate's distance to the target is always strictly closer "
+                             "than all 3 real decoys' -- a genuine distance tie is never resolved with an "
+                             "invented tiebreak, that draw is simply discarded.",
+        "answer_schema": "{choice_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/stat_target.py:build_package()",
+        "qa_requirements": "The real correct candidate is never sent to the client before evaluate() runs.",
+        "casual_aliases": ["stat target"],
+        # True because the renderer introduces zero new CSS -- built
+        # entirely from renderCandidateCardsHtml (PICK_THE_IMPOSTOR's own
+        # already-shipped 4-option card pattern).
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

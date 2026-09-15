@@ -2032,3 +2032,61 @@ def test_guess_the_ranking_client_view_never_leaks_the_real_answer_before_evalua
     assert set(view.keys()) == {"round_index", "round_count", "completed", "label", "options"}
     for it in view["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- STAT_TARGET (75-Format Expansion, Wave 1) ----------------------------
+
+def test_stat_target_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "STAT_TARGET" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("STAT_TARGET"), "STAT_TARGET has no registered variants"
+
+
+def test_stat_target_generates_real_unambiguous_closest_candidate_rounds():
+    from tools.director_v04 import stat_target as st
+
+    pkg = st.build_package("test-st-1", "NFL_SEASON_RUSHING_YARDS_TARGET", round_count=8)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert r["target"] in st._TARGETS
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real candidate"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_stat_target_full_playthrough_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_stat_target_round(
+        variant="NFL_SEASON_RUSHING_YARDS_TARGET", round_count=3, seed="test-st-play")
+    progress = {"current_index": 0, "completed": False}
+
+    view0 = me.client_safe_view("STAT_TARGET", pkg, progress)
+    assert view0["completed"] is False
+    assert view0["target"] == pkg["rounds"][0]["target"]
+
+    canonical0 = pkg["rounds"][0]["_answer_item_id"]
+    result1, progress = me.evaluate_submission("STAT_TARGET", pkg, progress, {"choice_item_id": canonical0})
+    assert result1["correct"] is True
+    assert progress["current_index"] == 1
+
+    wrong1 = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result2, progress = me.evaluate_submission("STAT_TARGET", pkg, progress, {"choice_item_id": wrong1})
+    assert result2["correct"] is False
+    assert progress["current_index"] == 2
+
+
+def test_stat_target_client_view_never_leaks_the_real_answer_before_evaluate():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_stat_target_round(
+        variant="NFL_SEASON_RUSHING_YARDS_TARGET", round_count=2, seed="test-st-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("STAT_TARGET", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "target", "options"}
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
