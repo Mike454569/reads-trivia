@@ -1143,3 +1143,116 @@ def test_before_after_client_view_never_leaks_real_seasons_before_submission():
     assert set(view["entity_a"].keys()) == {"entity_id", "label"}
     assert set(view["entity_b"].keys()) == {"entity_id", "label"}
     assert "season" not in view["entity_a"] and "season" not in view["entity_b"]
+
+
+# --- CAREER_PATH (15-Format Expansion Part 2, format #10) ----------------
+
+def test_career_path_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "CAREER_PATH" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("CAREER_PATH"), "CAREER_PATH has no registered variants"
+
+
+@pytest.mark.parametrize("variant", ["NFL_PLAYER_CAREER_PATH_IDENTIFY", "CFB_PLAYER_CAREER_PATH_IDENTIFY"])
+def test_career_path_generates_real_rounds_with_no_ambiguous_decoy(variant):
+    from tools.director_v04 import career_path
+
+    pkg = career_path.build_package("test-career-path-1", variant, round_count=5)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    for r in pkg["rounds"]:
+        assert len(r["path"]) == 3
+        assert len(r["options"]) == 4
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, "no duplicate real players among the 4 candidates"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_career_path_answer_validation_correct_and_incorrect():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_career_path_round(
+        variant="NFL_PLAYER_CAREER_PATH_IDENTIFY", round_count=3, seed="test-career-path-eval")
+    assert pkg["qa_status"] == "PASSED"
+
+    progress = me.initial_progress("CAREER_PATH")
+    canonical = pkg["rounds"][0]["_answer_item_id"]
+    result, progress = me.evaluate_submission("CAREER_PATH", pkg, progress, {"guess_item_id": canonical})
+    assert result["correct"] is True
+    canonical_label = next(it["label"] for it in pkg["rounds"][0]["options"] if it["item_id"] == canonical)
+    assert result["canonical_answer"] == canonical_label
+
+    progress2 = me.initial_progress("CAREER_PATH")
+    wrong = next(i for i in ("A", "B", "C", "D") if i != canonical)
+    result2, progress2 = me.evaluate_submission("CAREER_PATH", pkg, progress2, {"guess_item_id": wrong})
+    assert result2["correct"] is False
+
+
+def test_career_path_malformed_submission_rejected_not_silently_correct():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_career_path_round(
+        variant="NFL_PLAYER_CAREER_PATH_IDENTIFY", round_count=2, seed="test-career-path-malformed")
+
+    progress = me.initial_progress("CAREER_PATH")
+    result, progress = me.evaluate_submission("CAREER_PATH", pkg, progress, {"guess_item_id": ""})
+    assert result["correct"] is False
+
+    progress2 = me.initial_progress("CAREER_PATH")
+    result2, progress2 = me.evaluate_submission("CAREER_PATH", pkg, progress2, {"guess_item_id": "Z"})
+    assert result2["correct"] is False
+
+    progress3 = me.initial_progress("CAREER_PATH")
+    result3, progress3 = me.evaluate_submission("CAREER_PATH", pkg, progress3, {})
+    assert result3["correct"] is False
+
+
+def test_career_path_client_view_never_leaks_the_real_answer_before_submission():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_career_path_round(
+        variant="CFB_PLAYER_CAREER_PATH_IDENTIFY", round_count=2, seed="test-career-path-leak")
+    progress = me.initial_progress("CAREER_PATH")
+    view = me.client_safe_view("CAREER_PATH", pkg, progress)
+    assert set(view.keys()) >= {"round_index", "round_count", "completed", "path", "options"}
+    assert "_answer_item_id" not in view
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
+def test_career_path_no_decoy_shares_the_correct_answers_own_real_path():
+    """Real regression guard for the generator's own core safety property:
+    a decoy whose real early-career path is identical to the correct
+    player's would itself be a second valid real answer -- verified here
+    by independently recomputing each decoy's own real path from the raw
+    database and confirming none match the shown real path."""
+    from tools.director_v04 import career_path
+    from tools.quiz_export import engine as engine_bootstrap
+
+    pkg = career_path.build_package("test-career-path-nodupe", "NFL_PLAYER_CAREER_PATH_IDENTIFY", round_count=10)
+    c = engine_bootstrap.connect()
+    try:
+        for r in pkg["rounds"]:
+            shown_path = tuple(r["path"])
+            for opt in r["options"]:
+                if opt["item_id"] == r["_answer_item_id"]:
+                    continue
+                rows = c.execute(
+                    "SELECT rs.season, rs.team_code FROM canonical_roster_seasons rs "
+                    "JOIN canonical_players p ON p.player_id = rs.player_id "
+                    "WHERE p.display_name = ? AND rs.verification_status='SOURCE_BACKED' "
+                    "AND rs.source_id='NFLVERSE_DATA'", (opt["label"],),
+                ).fetchall()
+                earliest: dict = {}
+                for row in rows:
+                    if row["team_code"] not in earliest or row["season"] < earliest[row["team_code"]]:
+                        earliest[row["team_code"]] = row["season"]
+                if len(earliest) < 3:
+                    continue
+                decoy_path = tuple(sorted(earliest, key=lambda t: earliest[t])[:3])
+                assert decoy_path != shown_path, f"decoy {opt['label']!r} shares the shown real path {shown_path}"
+    finally:
+        c.close()

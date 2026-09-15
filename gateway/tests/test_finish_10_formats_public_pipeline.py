@@ -516,6 +516,41 @@ def test_map_the_career_never_leaks_real_debut_seasons_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 20. CAREER_PATH (15-Format Expansion Part 2, format #10) -------------
+
+@pytest.mark.parametrize("mode", ["career_path_nfl", "career_path_cfb"])
+def test_career_path_full_public_playthrough_correct_and_incorrect(mode):
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode=mode)
+    rid = r["round_id"]
+    assert rid.startswith("GGP22:")
+    assert len(r["view"]["path"]) == 3
+    assert len(r["view"]["options"]) == 4
+
+    pkg = packages.load_package(rid)
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    sub_correct = pm.submit_public_round(round_id=rid, submission={"guess_item_id": correct})
+    assert sub_correct["result"]["correct"] is True
+
+    r2 = pm.start_public_round(mode=mode)
+    rid2 = r2["round_id"]
+    pkg2 = packages.load_package(rid2)
+    correct2 = pkg2["rounds"][0]["_answer_item_id"]
+    wrong = next(i for i in ("A", "B", "C", "D") if i != correct2)
+    sub_wrong = pm.submit_public_round(round_id=rid2, submission={"guess_item_id": wrong})
+    assert sub_wrong["result"]["correct"] is False
+
+
+def test_career_path_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="career_path_nfl")
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [
@@ -536,6 +571,7 @@ def test_map_the_career_never_leaks_real_debut_seasons_before_submission():
     ("Give me a unique one out game with real NFL players.", "PICK_THE_IMPOSTOR"),
     ("Give me a missing piece game with real NFL players.", "MISSING_PIECE"),
     ("Give me a before and after game with a real NFL player.", "BEFORE_AFTER"),
+    ("Give me a career path game with a real NFL player.", "CAREER_PATH"),
 ])
 def test_creator_example_prompts_reach_the_intended_new_format(phrase, expected_taxonomy):
     from gateway.services import creator

@@ -1056,6 +1056,38 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # relied on) -- zero new CSS or layout.
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "CAREER_PATH": {
+        "format_id": "CAREER_PATH", "display_name": "Career Path",
+        "description": "The inverse of MAP_THE_CAREER: the real, already-ordered first 3 teams/schools of "
+                        "one real player's career are shown, and the player identifies which real player it "
+                        "belongs to from 4 real candidates. Every decoy's own real path is checked against "
+                        "the correct answer's and rejected if it matches, so no decoy could itself be a "
+                        "second valid real answer.",
+        "payload_schema": None,
+        "renderer": "renderCareerPathBody (engine-game-ui.js, reuses .chain-node + renderCandidateCardsHtml)",
+        "proven_in": ["career_path_nfl", "career_path_cfb"],
+        "supported_mechanics": ["career_path"], "mechanic_family": "CAREER_PATH",
+        "supported_entity_types": ["player"],
+        "required_data_relationships": ["canonical_roster_seasons (NFL, SOURCE_BACKED) / "
+                                         "cfb_player_season_stats_real (CFB, SOURCE_BACKED_DERIVED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "SUPPORTED",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "BINARY",
+        "interaction_model": "Read the real career path, then tap 1 of 4 real candidate cards.",
+        "validation_rules": "Every real decoy's own real path is computed and compared against the correct "
+                             "answer's real path; a match is rejected rather than risked as an ambiguous "
+                             "second valid answer.",
+        "answer_schema": "{guess_item_id: 'A'|'B'|'C'|'D'}",
+        "generation_schema": "tools/director_v04/career_path.py:build_package()",
+        "qa_requirements": "Every real path traced to a real, resolved sequence of rows; the real correct "
+                            "item_id never sent to the client before evaluate() runs.",
+        "casual_aliases": ["career path", "which player had this path"],
+        # True because renderCareerPathBody introduces zero new CSS --
+        # built entirely from .chain-node/.chain-connector plus
+        # renderCandidateCardsHtml, both already-shipped components.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

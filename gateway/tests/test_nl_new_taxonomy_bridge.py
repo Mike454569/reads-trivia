@@ -401,3 +401,54 @@ def test_before_after_never_shadowed_by_any_prior_bridge():
 
     r = creator.assess_feasibility("make me a game where I guess which team drafted a player")
     assert r.get("taxonomy_id") is None
+
+
+# --- CAREER_PATH (15-Format Expansion Part 2, format #10) ----------------
+
+def test_detect_career_path_real_phrasing_and_league_routing():
+    from tools.director_v04 import nl_new_taxonomy_bridge as bridge
+
+    r = bridge.detect("career path game")
+    assert r is not None
+    assert r["taxonomy_id"] == "CAREER_PATH"
+    assert r["format"] == "CAREER_PATH"
+    assert r["variant"] == "NFL_PLAYER_CAREER_PATH_IDENTIFY"
+
+    r2 = bridge.detect("which player had this path")
+    assert r2["taxonomy_id"] == "CAREER_PATH"
+
+    r3 = bridge.detect("college football, career path game")
+    assert r3["variant"] == "CFB_PLAYER_CAREER_PATH_IDENTIFY"
+
+
+def test_career_path_never_confused_with_map_the_career():
+    """Real cross-format regression guard: CAREER_PATH (identify the
+    player from an already-ordered path) and MAP_THE_CAREER (order the
+    real teams for a named player) must never resolve to each other --
+    they live in different bridges (nl_new_taxonomy_bridge.py vs.
+    nl_mechanic_bridge.py) and have deliberately non-overlapping trigger
+    phrases."""
+    from tools.director_v04 import nl_new_taxonomy_bridge as new_bridge
+    from tools.director_v04 import nl_mechanic_bridge as mechanic_bridge
+
+    r = new_bridge.detect("career path game")
+    assert r["taxonomy_id"] == "CAREER_PATH"
+    assert mechanic_bridge.detect("career path game") is None
+
+    r2 = mechanic_bridge.detect("map the career game")
+    assert r2["format"] == "MAP_THE_CAREER"
+    assert new_bridge.detect("map the career game") is None
+
+
+def test_career_path_creator_generate_for_review_is_a_real_playable_round():
+    from gateway.services import creator
+
+    r = creator.generate_for_review(
+        request_text="career path game", puzzle_count=None, difficulty=None, seed="pytest-career-path-bridge",
+    )
+    assert r["taxonomy_id"] == "CAREER_PATH"
+    assert r["format_id"] == "CAREER_PATH"
+    assert "round_id" in r and r["round_id"]
+    assert r["round_id"].startswith("GGP22:")
+    assert len(r["view"]["path"]) == 3
+    assert len(r["view"]["options"]) == 4

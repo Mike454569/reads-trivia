@@ -1363,6 +1363,24 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play College Football Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 15-Format Expansion pass (Part 2), format #10 -- see
+  // tools/director_v04/career_path.py's own module docstring.
+  careerPathNfl: {
+    publicMode: 'career_path_nfl', hash: '#careerpathnflpilot',
+    flagOn: function () { return ENABLE_ENGINE_CAREER_PATH_PILOT_V01; },
+    title: 'Career Path', kind: 'career_path',
+    desc: 'Read the real career path, then guess whichever real NFL player it belongs to.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  careerPathCfb: {
+    publicMode: 'career_path_cfb', hash: '#careerpathcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_CAREER_PATH_PILOT_V01; },
+    title: 'Career Path: College Football', kind: 'career_path',
+    desc: 'Read the real career path, then guess whichever real CFB player it belongs to.',
+    fallbackLabel: 'Play College Football Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1488,6 +1506,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'pick_the_impostor' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'missing_piece' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'before_after' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'career_path' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1574,6 +1593,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.correct_label ? esc(r.correct_label) + ' really came first.' : '') + '</p>';
   }
+  if (cfg.kind === 'career_path') {
+    return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
+      (r.canonical_answer ? 'That real career path belonged to ' + esc(r.canonical_answer) + '.' : '') + '</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1659,6 +1682,9 @@ function renderMechanicPilotFeedback(cfg, s) {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = (r.correct_label && r.season_a != null && r.season_b != null)
       ? esc(r.correct_label) + ' really came first (' + r.season_a + ' vs ' + r.season_b + ').' : '';
+  } else if (cfg.kind === 'career_path') {
+    headline = wasCorrect ? 'Correct!' : 'Not quite.';
+    detail = r.canonical_answer ? 'That real career path belonged to ' + esc(r.canonical_answer) + '.' : '';
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1771,6 +1797,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'pick_the_impostor') return renderPickTheImpostorBody(v, s);
   if (cfg.kind === 'missing_piece') return renderMissingPieceBody(v, s);
   if (cfg.kind === 'before_after') return renderBeforeAfterBody(v, s);
+  if (cfg.kind === 'career_path') return renderCareerPathBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -1986,6 +2013,21 @@ function renderBeforeAfterBody(v, s) {
       { code: 'B', label: v.entity_b.label },
       { dataAttr: 'data-mechanic-duel-choice' },
     );
+}
+
+// CAREER_PATH: the inverse of MAP_THE_CAREER -- shows the real, already-
+// ordered path (reuses .chain-node/.chain-connector) then 4 real
+// candidate players (reuses renderCandidateCardsHtml), same as
+// PICK_THE_IMPOSTOR/MISSING_PIECE. Zero new CSS.
+function renderCareerPathBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    v.path.map(function (label) {
+      return '<div class="chain-node">' + esc(label) + '</div>';
+    }).join('<div class="chain-connector">&rarr;</div>') +
+    '<div class="quiz-question">Which real player had this real career path?</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-career-path-pick',
+    });
 }
 
 // CHOOSE_YOUR_PATH: a small, fixed, pre-validated branch tree -- the root

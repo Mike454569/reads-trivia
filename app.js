@@ -93,6 +93,7 @@ var ENABLE_ENGINE_UNIQUE_ONE_OUT_PILOT_V01 = READS_CONFIG.enableEngineUniqueOneO
 var ENABLE_ENGINE_MISSING_PIECE_PILOT_V01 = READS_CONFIG.enableEngineMissingPiecePilot === true;
 var ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01 = READS_CONFIG.enableEngineBeforeAfterPilot === true;
 var ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01 = READS_CONFIG.enableEngineMapTheCareerPilot === true;
+var ENABLE_ENGINE_CAREER_PATH_PILOT_V01 = READS_CONFIG.enableEngineCareerPathPilot === true;
 // Reusable Game Format System pass: the new `comparison` mechanic backing
 // BRACKET_TREE -- same flag-off-by-default pilot convention as the 4
 // mechanics above, until this gets its own real player-experience pass.
@@ -10117,6 +10118,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], ' +
     '[data-mechanic-branch-choice], [data-mechanic-branch-answer], [data-mechanic-season-submit], ' +
     '[data-mechanic-duel-choice], [data-mechanic-impostor-pick], [data-mechanic-missing-piece-pick], ' +
+    '[data-mechanic-career-path-pick], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -10581,6 +10583,14 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ answer_item_id: missingPieceItem.item_id });
     return;
   }
+  if (t.dataset.mechanicCareerPathPick !== undefined) {
+    var careerPathIdx = parseInt(t.dataset.mechanicCareerPathPick, 10);
+    var careerPathView = state.mechanicPilot && state.mechanicPilot.view;
+    var careerPathItem = careerPathView && careerPathView.options && careerPathView.options[careerPathIdx];
+    if (!careerPathItem) return;
+    submitMechanicPilotAction({ guess_item_id: careerPathItem.item_id });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -10893,6 +10903,8 @@ if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeafternflpilot'] 
 if (ENABLE_ENGINE_BEFORE_AFTER_PILOT_V01) HIDDEN_ROUTES['#beforeaftercfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01) HIDDEN_ROUTES['#mapthecareernflpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MAP_THE_CAREER_PILOT_V01) HIDDEN_ROUTES['#mapthecareercfbpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathnflpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_CAREER_PATH_PILOT_V01) HIDDEN_ROUTES['#careerpathcfbpilot'] = 'mechanicPilot';
 if (HIDDEN_ROUTES[location.hash]) {
   state.screen = HIDDEN_ROUTES[location.hash];
   // Both engine-pilot hashes map to the same 'enginePilot' screen (Part 9:

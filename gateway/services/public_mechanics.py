@@ -380,6 +380,20 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "instructions": "Tap whichever real school you think this real player played for FIRST.",
         "kind": "before_after", "gen_kwargs": {"round_count": 5},
     },
+    # 15-Format Expansion pass (Part 2), format #10 -- see
+    # tools/director_v04/career_path.py's own module docstring.
+    "career_path_nfl": {
+        "competition": "NFL", "taxonomy_id": "CAREER_PATH", "variant": "NFL_PLAYER_CAREER_PATH_IDENTIFY",
+        "title": "Career Path",
+        "instructions": "Read the real career path, then tap whichever real NFL player it belongs to.",
+        "kind": "career_path", "gen_kwargs": {"round_count": 5},
+    },
+    "career_path_cfb": {
+        "competition": "CFB", "taxonomy_id": "CAREER_PATH", "variant": "CFB_PLAYER_CAREER_PATH_IDENTIFY",
+        "title": "Career Path: College Football",
+        "instructions": "Read the real career path, then tap whichever real CFB player it belongs to.",
+        "kind": "career_path", "gen_kwargs": {"round_count": 5},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -450,6 +464,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_missing_piece_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "BEFORE_AFTER":
             package = mechanic_engine.generate_before_after_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "CAREER_PATH":
+            package = mechanic_engine.generate_career_path_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

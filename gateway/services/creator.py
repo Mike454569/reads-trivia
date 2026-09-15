@@ -224,6 +224,7 @@ _NEW_TAXONOMY_TITLES = {
     "PICK_THE_IMPOSTOR": "Pick the Impostor",
     "MISSING_PIECE": "Missing Piece",
     "BEFORE_AFTER": "Before & After",
+    "CAREER_PATH": "Career Path",
 }
 
 
@@ -285,8 +286,11 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "MISSING_PIECE":
         package = mechanic_engine.generate_missing_piece_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
-    else:  # BEFORE_AFTER
+    elif taxonomy_id == "BEFORE_AFTER":
         package = mechanic_engine.generate_before_after_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
+    else:  # CAREER_PATH
+        package = mechanic_engine.generate_career_path_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 5), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":

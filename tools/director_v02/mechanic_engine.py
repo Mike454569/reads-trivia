@@ -50,6 +50,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #8 -- see
     # tools/director_v04/before_after.py's own module docstring.
     "BEFORE_AFTER",
+    # 15-Format Expansion pass (Part 2), format #10 -- see
+    # tools/director_v04/career_path.py's own module docstring.
+    "CAREER_PATH",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -225,6 +228,12 @@ VARIANTS: dict[str, dict[str, dict]] = {
     "BEFORE_AFTER": {
         "NFL_TEAM_CHANGE_BEFORE_AFTER": {"competition": "NFL"},
         "CFB_SCHOOL_TRANSFER_BEFORE_AFTER": {"competition": "CFB"},
+    },
+    # 15-Format Expansion pass (Part 2), format #10 -- see
+    # tools/director_v04/career_path.py's own module docstring.
+    "CAREER_PATH": {
+        "NFL_PLAYER_CAREER_PATH_IDENTIFY": {"competition": "NFL"},
+        "CFB_PLAYER_CAREER_PATH_IDENTIFY": {"competition": "CFB"},
     },
 }
 
@@ -516,6 +525,34 @@ def _before_after_evaluate(package: dict, index: int, submission: dict) -> dict:
     correct_entity = r["entity_a"] if canonical == "A" else r["entity_b"]
     return {"correct": correct, "canonical_answer": canonical, "correct_label": correct_entity["label"],
             "season_a": r["_season_a"], "season_b": r["_season_b"], "notes": r["_notes"]}
+
+
+# --- CAREER_PATH (15-Format Expansion Part 2) -------------------------------
+# The inverse of MAP_THE_CAREER -- see tools/director_v04/career_path.py's
+# own module docstring. current_index-based progress, same shape as
+# PICK_THE_IMPOSTOR above.
+
+def generate_career_path_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import career_path
+    return career_path.build_package(seed, variant, round_count=round_count)
+
+
+def _career_path_client_view(package: dict, index: int) -> dict:
+    total = len(package["rounds"])
+    if index >= total:
+        return {"round_index": index, "round_count": total, "completed": True}
+    r = package["rounds"][index]
+    return {"round_index": index, "round_count": total, "completed": False, "path": r["path"],
+            "options": r["options"]}
+
+
+def _career_path_evaluate(package: dict, index: int, submission: dict) -> dict:
+    r = package["rounds"][index]
+    canonical = r["_answer_item_id"]
+    choice = str(submission.get("guess_item_id", "")).strip().upper()
+    correct = bool(choice) and choice == canonical
+    canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+    return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1314,6 +1351,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _missing_piece_client_view(package, progress["current_index"])
     if taxonomy_id == "BEFORE_AFTER":
         return _before_after_client_view(package, progress["current_index"])
+    if taxonomy_id == "CAREER_PATH":
+        return _career_path_client_view(package, progress["current_index"])
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1368,6 +1407,11 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         return result, progress
     if taxonomy_id == "BEFORE_AFTER":
         result = _before_after_evaluate(package, progress["current_index"], submission)
+        progress["current_index"] += 1
+        progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "CAREER_PATH":
+        result = _career_path_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress

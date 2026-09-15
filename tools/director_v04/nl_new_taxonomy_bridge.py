@@ -259,6 +259,17 @@ _BEFORE_AFTER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- CAREER_PATH (15-Format Expansion pass, Part 2, format #10) -----------
+# "career path" is the format's own real distinctive phrase -- never
+# confused with MAP_THE_CAREER's own "map the career"/"order the teams
+# played for" trigger (nl_mechanic_bridge.py, a different bridge checked
+# earlier in the fixed pipeline order, and a structurally different
+# phrase that never overlaps this one).
+_CAREER_PATH_RE = re.compile(
+    r"\bcareer\s+path\b|\bwhich\s+(real\s+)?player\s+had\s+this\s+path\b",
+    re.IGNORECASE,
+)
+
 
 def detect(request_text: str | None) -> dict | None:
     """Returns {"taxonomy_id", "variant", "format", "gen_kwargs"} for a
@@ -360,5 +371,10 @@ def detect(request_text: str | None) -> dict | None:
         variant = "CFB_SCHOOL_TRANSFER_BEFORE_AFTER" if _league_for(text) == "CFB" else "NFL_TEAM_CHANGE_BEFORE_AFTER"
         return {"taxonomy_id": "BEFORE_AFTER", "variant": variant,
                 "format": "BEFORE_AFTER", "gen_kwargs": {}}
+
+    if _CAREER_PATH_RE.search(text):
+        variant = "CFB_PLAYER_CAREER_PATH_IDENTIFY" if _league_for(text) == "CFB" else "NFL_PLAYER_CAREER_PATH_IDENTIFY"
+        return {"taxonomy_id": "CAREER_PATH", "variant": variant,
+                "format": "CAREER_PATH", "gen_kwargs": {}}
 
     return None
