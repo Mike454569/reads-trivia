@@ -68,6 +68,9 @@ TAXONOMY_IDS = frozenset({
     # 15-Format Expansion pass (Part 2), format #15 (final of 15) -- see
     # tools/director_v04/blind_resume.py's own module docstring.
     "BLIND_RESUME",
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # double_or_nothing.py's own module docstring.
+    "DOUBLE_OR_NOTHING",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -274,6 +277,11 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/blind_resume.py's own module docstring.
     "BLIND_RESUME": {
         "NFL_QB_CAREER_BLIND_RESUME": {"competition": "NFL"},
+    },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # double_or_nothing.py's own module docstring.
+    "DOUBLE_OR_NOTHING": {
+        "NFL_DRAFT_DOUBLE_OR_NOTHING": {"competition": "NFL"},
     },
 }
 
@@ -915,6 +923,57 @@ def _blind_resume_evaluate(package: dict, index: int, submission: dict) -> dict:
     correct = bool(choice) and choice == canonical
     canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
     return {"correct": correct, "canonical_answer": canonical_label, "notes": r["_notes"]}
+
+
+# --- DOUBLE_OR_NOTHING (75-Format Expansion, Wave 1) ------------------------
+# Real bank-or-risk escalation -- see tools/director_v04/
+# double_or_nothing.py's own module docstring for why this is deliberately
+# distinct from RISK_IT despite reusing its real draft_facts question data.
+# Same full-progress-dict evaluate pattern RISK_IT/WAGER_MODE already
+# established (real points/ended/banked state doesn't fit a plain
+# current_index-increment).
+_DOUBLE_OR_NOTHING_BASE_POINTS = 100
+
+
+def generate_double_or_nothing_round(*, variant: str, round_count: int, seed: str) -> dict:
+    from tools.director_v04 import double_or_nothing
+    return double_or_nothing.build_package(seed, variant, round_count=round_count)
+
+
+def _double_or_nothing_client_view(package: dict, progress: dict) -> dict:
+    total = len(package["rounds"])
+    idx = progress.get("current_index", 0)
+    points = progress.get("points", 0)
+    if progress.get("ended") or progress.get("banked") or idx >= total:
+        return {"round_index": idx, "round_count": total, "completed": True, "points": points,
+                "ended": bool(progress.get("ended")), "banked": bool(progress.get("banked"))}
+    r = package["rounds"][idx]
+    return {"round_index": idx, "round_count": total, "completed": False, "points": points,
+            "can_bank": points > 0, "tier": r["tier"], "prompt": r["prompt"], "options": r["options"]}
+
+
+def _double_or_nothing_evaluate(package: dict, progress: dict, submission: dict) -> dict:
+    idx = progress.get("current_index", 0)
+    points = progress.get("points", 0)
+    action = submission.get("action")
+    if action == "bank":
+        if points <= 0:
+            raise MechanicError("there are no real points to bank yet")
+        # "correct": True here signals a genuinely successful outcome (not
+        # a graded answer) -- the client's shared sound/styling logic
+        # keys off this same field for every mechanic, and banking is
+        # unambiguously the good outcome, never a wrong-answer sound.
+        return {"action": "bank", "banked": True, "final_points": points, "correct": True}
+    if action == "answer":
+        r = package["rounds"][idx]
+        canonical = r["_answer_item_id"]
+        choice = str(submission.get("choice_item_id", "")).strip().upper()
+        correct = bool(choice) and choice == canonical
+        canonical_label = next(it["label"] for it in r["options"] if it["item_id"] == canonical)
+        new_points = (_DOUBLE_OR_NOTHING_BASE_POINTS if points == 0 else points * 2) if correct else 0
+        return {"action": "answer", "correct": correct, "canonical_answer": canonical_label,
+                "points": new_points, "notes": r["_notes"]}
+    raise MechanicError(f"action must be 'bank' or 'answer', got {action!r}")
 
 
 # --- HIGHER_LOWER_STREAK (sequence-based streak, server-tracked position) ---
@@ -1725,6 +1784,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _leaderboard_climb_client_view(package, progress)
     if taxonomy_id == "BLIND_RESUME":
         return _blind_resume_client_view(package, progress["current_index"])
+    if taxonomy_id == "DOUBLE_OR_NOTHING":
+        return _double_or_nothing_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -1845,6 +1906,26 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         result = _blind_resume_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
+        return result, progress
+    if taxonomy_id == "DOUBLE_OR_NOTHING":
+        if progress.get("ended") or progress.get("banked") or progress.get("completed"):
+            raise MechanicError("this run has already ended")
+        result = _double_or_nothing_evaluate(package, progress, submission)
+        if result["action"] == "bank":
+            progress["banked"] = True
+            progress["completed"] = True
+        else:
+            progress["points"] = result["points"]
+            if result["correct"]:
+                progress["current_index"] += 1
+                if progress["current_index"] >= len(package["rounds"]):
+                    # Ran out of real escalating questions -- auto-bank
+                    # the final real points rather than dead-ending the run.
+                    progress["banked"] = True
+                    progress["completed"] = True
+            else:
+                progress["ended"] = True
+                progress["completed"] = True
         return result, progress
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):

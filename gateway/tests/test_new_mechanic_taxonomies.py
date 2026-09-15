@@ -1694,3 +1694,128 @@ def test_blind_resume_client_view_never_leaks_the_real_answer_before_evaluate():
     assert set(view0.keys()) == {"round_index", "round_count", "completed", "resume", "options"}
     for it in view0["options"]:
         assert set(it.keys()) == {"item_id", "label"}
+
+
+# --- DOUBLE_OR_NOTHING (75-Format Expansion, Wave 1) ----------------------
+
+def test_double_or_nothing_is_registered():
+    from tools.director_v02 import mechanic_engine as me
+
+    assert "DOUBLE_OR_NOTHING" in me.TAXONOMY_IDS
+    assert me.VARIANTS.get("DOUBLE_OR_NOTHING"), "DOUBLE_OR_NOTHING has no registered variants"
+
+
+def test_double_or_nothing_generates_real_escalating_tier_rounds():
+    from tools.director_v04 import double_or_nothing as don
+
+    pkg = don.build_package("test-don-1", "NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=8)
+    assert pkg["qa_status"] == "PASSED"
+    assert pkg["round_count"] >= 1
+    assert pkg["base_points"] == 100
+    tiers_seen = [r["tier"] for r in pkg["rounds"]]
+    assert tiers_seen[0] == "LOW"
+    if len(tiers_seen) >= 2:
+        assert tiers_seen[1] == "MEDIUM"
+    if len(tiers_seen) >= 3:
+        assert all(t == "HIGH" for t in tiers_seen[2:])
+    for r in pkg["rounds"]:
+        item_ids = {it["item_id"] for it in r["options"]}
+        assert item_ids == {"A", "B", "C", "D"}
+        labels = [it["label"] for it in r["options"]]
+        assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real option"
+        assert r["_answer_item_id"] in item_ids
+
+
+def test_double_or_nothing_points_double_on_each_correct_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=4, seed="test-don-double")
+    progress = {"current_index": 0, "completed": False}
+    expected = [100, 200, 400, 800]
+    for i, exp in enumerate(expected):
+        correct = pkg["rounds"][i]["_answer_item_id"]
+        result, progress = me.evaluate_submission(
+            "DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": correct})
+        assert result["correct"] is True
+        assert result["points"] == exp
+        assert progress["points"] == exp
+
+
+def test_double_or_nothing_bank_ends_the_run_and_keeps_points():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=3, seed="test-don-bank")
+    progress = {"current_index": 0, "completed": False}
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    _, progress = me.evaluate_submission(
+        "DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": correct})
+    result, progress = me.evaluate_submission("DOUBLE_OR_NOTHING", pkg, progress, {"action": "bank"})
+    assert result["banked"] is True
+    assert result["final_points"] == 100
+    assert result["correct"] is True
+    assert progress["banked"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": "A"})
+
+
+def test_double_or_nothing_wrong_answer_loses_everything_and_ends_the_run():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=3, seed="test-don-wrong")
+    progress = {"current_index": 0, "completed": False}
+    correct = pkg["rounds"][0]["_answer_item_id"]
+    _, progress = me.evaluate_submission(
+        "DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": correct})
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][1]["_answer_item_id"])
+    result, progress = me.evaluate_submission(
+        "DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": wrong})
+    assert result["correct"] is False
+    assert result["points"] == 0
+    assert progress["ended"] is True
+    assert progress["completed"] is True
+
+    with pytest.raises(Exception):
+        me.evaluate_submission("DOUBLE_OR_NOTHING", pkg, progress, {"action": "bank"})
+
+
+def test_double_or_nothing_rejects_banking_zero_points():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=2, seed="test-don-zero-bank")
+    progress = {"current_index": 0, "completed": False}
+    with pytest.raises(Exception):
+        me.evaluate_submission("DOUBLE_OR_NOTHING", pkg, progress, {"action": "bank"})
+
+
+def test_double_or_nothing_running_out_of_rounds_auto_banks():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=2, seed="test-don-autobank")
+    progress = {"current_index": 0, "completed": False}
+    for i in range(2):
+        correct = pkg["rounds"][i]["_answer_item_id"]
+        result, progress = me.evaluate_submission(
+            "DOUBLE_OR_NOTHING", pkg, progress, {"action": "answer", "choice_item_id": correct})
+    assert progress["completed"] is True
+    assert progress.get("banked") is True
+
+
+def test_double_or_nothing_client_view_never_leaks_the_real_answer():
+    from tools.director_v02 import mechanic_engine as me
+
+    pkg = me.generate_double_or_nothing_round(
+        variant="NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=2, seed="test-don-leak")
+    progress = {"current_index": 0, "completed": False}
+    view = me.client_safe_view("DOUBLE_OR_NOTHING", pkg, progress)
+    assert set(view.keys()) == {"round_index", "round_count", "completed", "points", "can_bank",
+                                 "tier", "prompt", "options"}
+    assert view["can_bank"] is False
+    for it in view["options"]:
+        assert set(it.keys()) == {"item_id", "label"}

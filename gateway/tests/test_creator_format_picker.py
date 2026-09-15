@@ -67,6 +67,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Chain Reaction", "RELATIONSHIP_CHAIN", "CFB_SCHOOL_TO_NFL_TEAM_CHAIN"),
     ("Perfect Drive", "DRIVE_PROGRESSION", "NFL_DRAFT_PERFECT_DRIVE"),
     ("Goal Line Stand", "DRIVE_PROGRESSION", "NFL_DRAFT_GOAL_LINE_STAND"),
+    ("Double or Nothing", "DOUBLE_OR_NOTHING", "NFL_DRAFT_DOUBLE_OR_NOTHING"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.

@@ -722,6 +722,65 @@ def test_blind_resume_never_leaks_the_real_answer_before_submission():
         assert set(it.keys()) == {"item_id", "label"}
 
 
+# --- 25. DOUBLE_OR_NOTHING (75-Format Expansion, Wave 1) -------------------
+# Reachable only through gateway.services.creator.generate_direct() / the
+# Format Picker (no natural-language bridge exists for this or any future
+# 75-Format Expansion format) -- see creator.generate_direct()'s own
+# docstring for why that's the deliberate, scalable design going forward.
+
+def test_double_or_nothing_full_public_playthrough_banks_doubled_points():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="double_or_nothing_nfl_draft")
+    rid = r["round_id"]
+    assert rid.startswith("GGP28:")
+    assert r["view"]["points"] == 0 and r["view"]["can_bank"] is False
+
+    pkg = packages.load_package(rid)
+    correct0 = pkg["rounds"][0]["_answer_item_id"]
+    sub1 = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": correct0})
+    assert sub1["result"]["correct"] is True and sub1["result"]["points"] == 100
+    assert sub1["view"]["can_bank"] is True
+
+    correct1 = pkg["rounds"][1]["_answer_item_id"]
+    sub2 = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": correct1})
+    assert sub2["result"]["points"] == 200
+
+    sub3 = pm.submit_public_round(round_id=rid, submission={"action": "bank"})
+    assert sub3["result"]["banked"] is True
+    assert sub3["result"]["final_points"] == 200
+    assert sub3["view"]["completed"] is True
+
+    with pytest.raises(Exception):
+        pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": "A"})
+
+
+def test_double_or_nothing_wrong_answer_through_the_public_pipeline_loses_everything():
+    from gateway.services import public_mechanics as pm
+    from gateway.services import packages
+
+    r = pm.start_public_round(mode="double_or_nothing_nfl_draft")
+    rid = r["round_id"]
+    pkg = packages.load_package(rid)
+    wrong = next(i for i in ("A", "B", "C", "D") if i != pkg["rounds"][0]["_answer_item_id"])
+    sub = pm.submit_public_round(round_id=rid, submission={"action": "answer", "choice_item_id": wrong})
+    assert sub["result"]["correct"] is False
+    assert sub["result"]["points"] == 0
+    assert sub["view"]["completed"] is True
+    assert sub["view"]["ended"] is True
+
+
+def test_double_or_nothing_never_leaks_the_real_answer_before_submission():
+    from gateway.services import public_mechanics as pm
+
+    r = pm.start_public_round(mode="double_or_nothing_nfl_draft")
+    assert set(r["view"].keys()) == {"round_index", "round_count", "completed", "points", "can_bank",
+                                      "tier", "prompt", "options"}
+    for it in r["view"]["options"]:
+        assert set(it.keys()) == {"item_id", "label"}
+
+
 # --- Creator NL prompt verification (user's own exact example phrases) -----------
 
 @pytest.mark.parametrize("phrase,expected_taxonomy", [

@@ -1233,6 +1233,43 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         # already-shipped 4-option card pattern).
         "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
     },
+    "DOUBLE_OR_NOTHING": {
+        "format_id": "DOUBLE_OR_NOTHING", "display_name": "Double or Nothing",
+        "description": "Real bank-or-risk escalation: answer a sequence of real questions of increasing "
+                        "real difficulty. The first correct answer banks 100 fictional points; every "
+                        "subsequent correct answer DOUBLES the current points. After any correct answer, "
+                        "bank the points (end the run, keep them) or risk them all on the next, harder real "
+                        "question. One wrong answer loses everything -- no lives, unlike RISK_IT.",
+        "payload_schema": None,
+        "existing_renderer_note": "Real 2-step interaction per correct answer (see the real question, "
+                                   "answer it, then bank-or-continue) -- reuses RISK_IT/WAGER_MODE's own "
+                                   "established navigation-then-leaf-question shape and renderCandidateCardsHtml, "
+                                   "with a real bank/continue choice inserted after a correct answer instead "
+                                   "of before the question.",
+        "proven_in": ["double_or_nothing_nfl_draft"],
+        "supported_mechanics": ["double_or_nothing"], "mechanic_family": "DOUBLE_OR_NOTHING",
+        "supported_entity_types": ["player", "team"],
+        "required_data_relationships": ["draft_facts (NFLVERSE_DATA, SOURCE_BACKED)"],
+        "min_items": 4, "max_items": 4, "min_pool_size": 4,
+        "nfl_support": "SUPPORTED", "cfb_support": "MISSING_DATA",
+        "difficulty_support": ["any"], "timed": False, "multiplayer_compatible": False,
+        "scoring_model": "WEIGHTED",
+        "interaction_model": "Answer a real question, then tap Bank (keep your real points) or Continue "
+                              "(risk them on the next, harder real question) after every correct answer.",
+        "validation_rules": "Every real question at every real tier has a genuine 4-option real decoy set, "
+                             "reusing risk_it.py's own real decoy-completeness discipline verbatim. Banking "
+                             "with 0 real points is rejected.",
+        "answer_schema": "{action: 'answer', choice_item_id: 'A'|'B'|'C'|'D'} or {action: 'bank'}",
+        "generation_schema": "tools/director_v04/double_or_nothing.py:build_package()",
+        "qa_requirements": "Every real question's correct item_id never sent to the client before evaluate() "
+                            "runs; points only ever double or reset to 0, never invented.",
+        "casual_aliases": ["double or nothing"],
+        # True because renderDoubleOrNothingBody introduces zero new CSS --
+        # built entirely from renderCandidateCardsHtml (RISK_IT's own
+        # already-shipped card pattern) plus .chip-toggle (RISK_IT's own
+        # already-shipped choice-button class) for the bank/continue choice.
+        "mobile_verified": True, "creator_selectable": True, "production_status": "PRODUCTION_READY",
+    },
 }
 
 # Reusable Game Format System pass, Section 6: the real compatibility

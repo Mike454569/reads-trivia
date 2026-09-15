@@ -431,6 +431,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "whichever real candidate you think it belongs to.",
         "kind": "blind_resume", "gen_kwargs": {"round_count": 7},
     },
+    # 75-Format Expansion, Wave 1 -- see tools/director_v04/
+    # double_or_nothing.py's own module docstring.
+    "double_or_nothing_nfl_draft": {
+        "competition": "NFL", "taxonomy_id": "DOUBLE_OR_NOTHING", "variant": "NFL_DRAFT_DOUBLE_OR_NOTHING",
+        "title": "Double or Nothing",
+        "instructions": "Answer the real question -- a correct answer banks or doubles your real points. "
+                         "After every correct answer, bank your points or risk them on the next, harder "
+                         "real question. One wrong answer loses everything.",
+        "kind": "double_or_nothing", "gen_kwargs": {"round_count": 8},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -511,6 +521,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_leaderboard_climb_round(variant=variant, seed=seed)
         elif taxonomy_id == "BLIND_RESUME":
             package = mechanic_engine.generate_blind_resume_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "DOUBLE_OR_NOTHING":
+            package = mechanic_engine.generate_double_or_nothing_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

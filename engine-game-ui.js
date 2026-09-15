@@ -1421,6 +1421,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // 75-Format Expansion, Wave 1 -- see tools/director_v04/
+  // double_or_nothing.py's own module docstring.
+  doubleOrNothing: {
+    publicMode: 'double_or_nothing_nfl_draft', hash: '#doubleornothingpilot',
+    flagOn: function () { return ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01; },
+    title: 'Double or Nothing', kind: 'double_or_nothing',
+    desc: 'Bank your real points or risk them all on the next, harder real question.',
+    fallbackLabel: 'Play NFL Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -1558,6 +1568,7 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'wager_mode' && v.completed) pct = Math.min(100, 100 * (v.balance || 0) / 1000);
   else if (cfg.kind === 'leaderboard_climb' && v.completed) pct = Math.min(100, 100 * (v.ladder_size - v.current_rank) / (v.ladder_size - 1 || 1));
   else if (cfg.kind === 'blind_resume' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'double_or_nothing' && v.completed) pct = Math.min(100, 100 * (v.points || 0) / 1600);
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -1665,6 +1676,10 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc">' + (r.correct ? 'Correct! ' : 'Not quite -- ') +
       (r.canonical_answer ? 'That real resume belonged to ' + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
+  if (cfg.kind === 'double_or_nothing') {
+    return '<p class="mode-desc">' + (v.banked ? 'You banked ' + v.points + ' real points! ' : 'Run over -- you risked it and lost. ') +
+      'Final points: ' + v.points + '.</p>';
+  }
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
@@ -1769,6 +1784,16 @@ function renderMechanicPilotFeedback(cfg, s) {
   } else if (cfg.kind === 'blind_resume') {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = r.canonical_answer ? 'That real resume belonged to ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'double_or_nothing') {
+    if (r.action === 'bank') {
+      wasCorrect = true;
+      headline = 'Banked ' + r.final_points + ' points!';
+      detail = '';
+    } else {
+      wasCorrect = r.correct === true;
+      headline = wasCorrect ? 'Correct! Now at ' + r.points + ' points.' : 'Wrong -- you lost it all.';
+      detail = r.canonical_answer ? 'Real answer: ' + esc(r.canonical_answer) + '.' : '';
+    }
   } else {
     headline = wasCorrect ? 'Correct!' : 'Not quite.';
     detail = '';
@@ -1886,6 +1911,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'wager_mode') return renderWagerModeBody(v, s);
   if (cfg.kind === 'leaderboard_climb') return renderLeaderboardClimbBody(v, s);
   if (cfg.kind === 'blind_resume') return renderBlindResumeBody(v, s);
+  if (cfg.kind === 'double_or_nothing') return renderDoubleOrNothingBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
@@ -2197,6 +2223,26 @@ function renderBlindResumeBody(v, s) {
     '<div class="quiz-question">Whose real career passing resume is this?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-blind-resume-pick',
+    });
+}
+
+// DOUBLE_OR_NOTHING: the real question is always visible (no blind
+// tier-commit like RISK_IT) -- can_bank=true (only once real points are
+// banked-eligible, i.e. after at least one correct answer) additionally
+// shows a real Bank button above the question, offering the genuine
+// bank-or-risk-it-on-this-harder-question choice RISK_IT/WAGER_MODE
+// don't pose. Reuses .chip-row/.chip-toggle (RISK_IT's own already-
+// shipped choice-button classes) for Bank, renderCandidateCardsHtml for
+// the question -- zero new CSS.
+function renderDoubleOrNothingBody(v, s) {
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
+    ' &middot; Points: ' + v.points + '</div>' +
+    (v.can_bank
+      ? '<div class="chip-row" role="group" aria-label="Bank your points"><button class="chip-toggle" data-mechanic-don-bank>Bank ' + v.points + ' Points</button></div>'
+      : '') +
+    '<div class="quiz-question">' + esc(v.tier) + ' tier: ' + esc(v.prompt) + '</div>' +
+    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-don-answer',
     });
 }
 
