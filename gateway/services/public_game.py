@@ -734,6 +734,127 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Existing-Data Wiring pass: 7 real capabilities (nfl_plays/nfl_plays_
+    # defense_ext/nfl_drives_real) that were already built, registered, and
+    # GENERATION_VERIFIED but had never been added here -- confirmed by
+    # direct capability_catalog audit: all 7 sat at public_availability=
+    # PRIVATE despite passing QA. Real candidate survey run directly against
+    # generate_package_from_spec() (target_count=999999, so every real
+    # accepted candidate is counted, not an estimate) for each:
+    #   FIRST_TOUCHDOWN_SCORER: 3,964 accepted (Easy 1,348 / Medium 805 / Hard 1,811)
+    #   RECORDED_SACK:          3,859 accepted (Easy 1,313 / Medium 786 / Hard 1,760)
+    #   RECORDED_INTERCEPTION:  3,868 accepted (Easy 1,143 / Medium 758 / Hard 1,967)
+    #   FORCED_FUMBLE:          3,899 accepted (Easy 1,163 / Medium 770 / Hard 1,966)
+    #   RECOVERED_FUMBLE:       3,922 accepted (Easy 1,169 / Medium 771 / Hard 1,982)
+    #   DRIVE_RESULT:          13,322 accepted (Easy 4,052 / Medium 2,484 / Hard 6,786)
+    #   HAD_MORE_SACKS:         6,040 accepted (Easy 1,875 / Medium 1,107 / Hard 3,058)
+    # All three difficulty bands genuinely well-represented for all 7 -- no
+    # thin/empty band. qa_status PASSED, 0 contract_failures, for all 7.
+    "nfl_first_touchdown_guess": {
+        "competition": "NFL",
+        "title": "NFL Scoring Plays: Guess Who Scored",
+        "instructions": "You'll be shown a real NFL game situation. Pick the player who scored the touchdown.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_SCORING_PLAY",
+            "relationship_predicate": "FIRST_TOUCHDOWN_SCORER",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_sack_guess": {
+        "competition": "NFL",
+        "title": "NFL Sacks: Guess Who Made It",
+        "instructions": "You'll be shown a real NFL game situation. Pick the player who recorded the sack.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_DEFENSIVE_EVENT",
+            "relationship_predicate": "RECORDED_SACK",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_interception_guess": {
+        "competition": "NFL",
+        "title": "NFL Interceptions: Guess Who Made It",
+        "instructions": "You'll be shown a real NFL game situation. Pick the player who intercepted the pass.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_DEFENSIVE_EVENT",
+            "relationship_predicate": "RECORDED_INTERCEPTION",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_forced_fumble_guess": {
+        "competition": "NFL",
+        "title": "NFL Forced Fumbles: Guess Who Made It",
+        "instructions": "You'll be shown a real NFL game situation. Pick the player who forced the fumble.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_DEFENSIVE_EVENT",
+            "relationship_predicate": "FORCED_FUMBLE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_fumble_recovery_guess": {
+        "competition": "NFL",
+        "title": "NFL Fumble Recoveries: Guess Who Made It",
+        "instructions": "You'll be shown a real NFL game situation. Pick the player who recovered the fumble.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_DEFENSIVE_EVENT",
+            "relationship_predicate": "RECOVERED_FUMBLE",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_drive_result_guess": {
+        "competition": "NFL",
+        "title": "NFL Drives: Guess the Result",
+        "instructions": "You'll be shown a real NFL offensive drive. Pick how it actually ended.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_DRIVE",
+            "relationship_predicate": "DRIVE_RESULT",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
+    "nfl_game_boxscore_sacks_guess": {
+        "competition": "NFL",
+        "title": "NFL Box Scores: Guess Who Had More Sacks",
+        "instructions": "You'll be shown a real NFL matchup. Pick the team that recorded more sacks.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "NFL_GAME_BOXSCORE",
+            "relationship_predicate": "HAD_MORE_SACKS",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

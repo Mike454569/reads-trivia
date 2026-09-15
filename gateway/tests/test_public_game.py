@@ -82,6 +82,11 @@ def test_public_modes_no_auth_needed(client):
     # MASTER Workbook + Power4 Coverage Closeout ingestion passes:
     # cfb_2026_roster_guess and cfb_2026_coach_guess added -- both walked
     # to PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
+    # Existing-Data Wiring pass: 7 real, already-registered, GENERATION_
+    # VERIFIED capabilities (nfl_plays/nfl_plays_defense_ext/nfl_drives_real)
+    # that sat at public_availability=PRIVATE despite passing QA -- real
+    # candidate surveys recorded in gateway/services/public_game.py's own
+    # PUBLIC_MODES entries for each.
     assert set(modes_by_id) == {
         "draft_guess", "championship_guess", "coach_connections", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess", "lineup_college_guess",
@@ -89,6 +94,8 @@ def test_public_modes_no_auth_needed(client):
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
+        "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
+        "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -258,6 +265,8 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
     # MASTER Workbook + Power4 Coverage Closeout ingestion passes:
     # cfb_2026_roster_guess and cfb_2026_coach_guess added -- both walked
     # to PUBLIC_ENABLED via a real, passing Tier-2 certification probe.
+    # Existing-Data Wiring pass: 7 real, already-registered, GENERATION_
+    # VERIFIED capabilities certified public this pass.
     assert config.PUBLIC_MODE_ALLOWLIST == frozenset({
         "draft_guess", "championship_guess", "lineup_guess", "cfb_heisman_guess",
         "nfl_game_result_guess", "cfb_game_result_guess", "nfl_game_boxscore_guess",
@@ -266,6 +275,8 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
+        "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
+        "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
     })
 
 
@@ -611,6 +622,12 @@ def test_all_twenty_certified_guess_modes_registered(client):
     # twenty-second and twenty-third: cfb_2026_roster_guess and
     # cfb_2026_coach_guess, both walked to PUBLIC_ENABLED via a real,
     # passing Tier-2 certification probe.
+    # Existing-Data Wiring pass added the twenty-fourth through thirtieth:
+    # nfl_first_touchdown_guess, nfl_sack_guess, nfl_interception_guess,
+    # nfl_forced_fumble_guess, nfl_fumble_recovery_guess, nfl_drive_result_guess,
+    # nfl_game_boxscore_sacks_guess -- 7 real capabilities (nfl_plays/
+    # nfl_plays_defense_ext/nfl_drives_real) already registered and
+    # GENERATION_VERIFIED but sitting at public_availability=PRIVATE.
     from gateway.services import public_game as public_game_service
     modes = {m["mode"] for m in public_game_service.list_public_modes()}
     assert modes == {
@@ -621,6 +638,8 @@ def test_all_twenty_certified_guess_modes_registered(client):
         "cfb_rivalry_guess", "cfb_rivalry_lookup_guess", "cfb_spot_the_fake_guess", "cfb_three_clues_guess",
         "era_gauntlet_guess", "cfb_odd_college_out_guess", "cfb_one_school_missing_guess", "franchise_marathon_guess",
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
+        "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
+        "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
     }
 
 

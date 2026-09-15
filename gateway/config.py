@@ -336,6 +336,14 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # gateway/services/public_game.py's own cfb_2026_coach_guess entry --
     # 67 real candidates, 100% Medium.
     "cfb_2026_coach_guess",
+    # Existing-Data Wiring pass: 7 real, already-registered, GENERATION_
+    # VERIFIED capabilities (nfl_plays/nfl_plays_defense_ext/nfl_drives_real)
+    # that sat unreachable at public_availability=PRIVATE despite passing
+    # QA -- real candidate surveys recorded in gateway/services/
+    # public_game.py's own entries for each.
+    "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess",
+    "nfl_forced_fumble_guess", "nfl_fumble_recovery_guess", "nfl_drive_result_guess",
+    "nfl_game_boxscore_sacks_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

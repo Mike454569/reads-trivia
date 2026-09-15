@@ -366,7 +366,14 @@ _TOUCHDOWN_WORDS = {"touchdown", "touchdowns", "tuddy", "tuddies", "td"}
 # P0 Accuracy + Reliability Hardening pass: "tuddy" is real, common NFL fan
 # slang for "touchdown" ("who got the first tuddy") -- previously
 # unrecognized, silently fell through to NO_MATCH.
-_SCORED_FIRST_RE = re.compile(r"scored the first|first (touchdown|score|td|tuddy)|touchdown scorer|who scored")
+# Existing-Data Wiring pass: "scoring play(s)" added -- a real, generic
+# phrase for the same NFL_SCORING_PLAY/FIRST_TOUCHDOWN_SCORER capability
+# (the only real "scoring play" type this Engine implements is the
+# touchdown scorer), previously NO_MATCH despite the capability being real
+# and, as of this pass, public.
+_SCORED_FIRST_RE = re.compile(
+    r"scored the first|first (touchdown|score|td|tuddy)|touchdown scorer|who scored|scoring play"
+)
 _DEFENSIVE_EVENT_WORDS = {"sack", "sacks", "interception", "interceptions", "fumble", "fumbles"}
 _WHO_PHRASE_RE = re.compile(r"\bwho (recorded|made|had|got|scored|picked)\b")
 _DRIVE_WORDS = {"drive", "drives"}
@@ -967,8 +974,15 @@ class MockDeterministicTranslator(Translator):
         # mention -- e.g. "guess about a fumble in this game" -- still
         # reaches the real disambiguating branch below instead of being
         # silently dropped before ever being considered.
-        if has_fumble_word or (
-            (has_defensive_event_word or has_sack_phrase or has_interception_phrase)
+        # Existing-Data Wiring pass: has_interception_phrase gets the same
+        # bypass -- unlike "sack", there is no real HAD_MORE_INTERCEPTIONS
+        # team-level capability for a bare "interception game" phrase to be
+        # shadowed by (confirmed: no such capability exists in this
+        # registry), so gating it behind has_who_made_phrase/no-game-word
+        # only ever produced false NO_MATCHes (e.g. "Give me an interception
+        # trivia game.") for zero real collision-avoidance benefit.
+        if has_fumble_word or has_interception_phrase or (
+            (has_defensive_event_word or has_sack_phrase)
             and (has_who_made_phrase or not has_game_word)
         ):
             if has_sack_phrase:
