@@ -403,6 +403,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "HIGH is a real obscure pick worth more. A wrong answer costs a life.",
         "kind": "risk_it", "gen_kwargs": {"round_count": 7},
     },
+    # CFB retrofit pass -- real per-season national passing-yards rank as
+    # the recognizability proxy, see risk_it.py's own module docstring.
+    "risk_it_cfb_passing": {
+        "competition": "CFB", "taxonomy_id": "RISK_IT", "variant": "CFB_SEASON_PASSING_RISK_IT",
+        "title": "Risk It (CFB)",
+        "instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth less, "
+                         "HIGH is a real obscure season worth more. A wrong answer costs a life.",
+        "kind": "risk_it", "gen_kwargs": {"round_count": 7},
+    },
     # 15-Format Expansion pass (Part 2), format #12 -- see
     # tools/director_v04/wager_mode.py's own module docstring.
     "wager_mode_mixed": {
@@ -451,6 +460,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "real question. One wrong answer loses everything.",
         "kind": "double_or_nothing", "gen_kwargs": {"round_count": 8},
     },
+    # CFB retrofit pass -- reuses risk_it.py's own new real CFB tiering,
+    # see double_or_nothing.py's own module docstring.
+    "double_or_nothing_cfb_passing": {
+        "competition": "CFB", "taxonomy_id": "DOUBLE_OR_NOTHING", "variant": "CFB_SEASON_PASSING_DOUBLE_OR_NOTHING",
+        "title": "Double or Nothing (CFB)",
+        "instructions": "Answer the real question -- a correct answer banks or doubles your real points. "
+                         "After every correct answer, bank your points or risk them on the next, harder "
+                         "real question. One wrong answer loses everything.",
+        "kind": "double_or_nothing", "gen_kwargs": {"round_count": 8},
+    },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # king_of_the_hill.py's own module docstring.
     "king_of_the_hill_nfl": {
@@ -477,6 +496,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "competition": "NFL", "taxonomy_id": "FACT_OR_FAKE", "variant": "NFL_DRAFT_FACT_OR_FAKE",
         "title": "Fact or Fake",
         "instructions": "Read the real statement -- tap TRUE if it's a real, verbatim fact, or FAKE if "
+                         "it's been altered.",
+        "kind": "fact_or_fake", "gen_kwargs": {"round_count": 10},
+    },
+    # CFB retrofit pass -- real game-result statement, see fact_or_fake.py's
+    # own module docstring.
+    "fact_or_fake_cfb_game": {
+        "competition": "CFB", "taxonomy_id": "FACT_OR_FAKE", "variant": "CFB_GAME_RESULT_FACT_OR_FAKE",
+        "title": "Fact or Fake (CFB)",
+        "instructions": "Read the real final score -- tap TRUE if it's a real, verbatim result, or FAKE if "
                          "it's been altered.",
         "kind": "fact_or_fake", "gen_kwargs": {"round_count": 10},
     },
@@ -525,11 +553,29 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "about them.",
         "kind": "reverse_trivia", "gen_kwargs": {"round_count": 8},
     },
+    # CFB retrofit pass -- real season passing stat line, see
+    # reverse_trivia.py's own module docstring.
+    "reverse_trivia_cfb_passing": {
+        "competition": "CFB", "taxonomy_id": "REVERSE_TRIVIA", "variant": "CFB_SEASON_PASSING_REVERSE_TRIVIA",
+        "title": "Reverse Trivia (CFB)",
+        "instructions": "A real college player is named -- tap the 1 of 4 real statements that's actually "
+                         "true about them.",
+        "kind": "reverse_trivia", "gen_kwargs": {"round_count": 8},
+    },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # three_strikes.py's own module docstring.
     "three_strikes_nfl_draft": {
         "competition": "NFL", "taxonomy_id": "THREE_STRIKES", "variant": "NFL_DRAFT_THREE_STRIKES",
         "title": "Three Strikes",
+        "instructions": "Answer real questions of rising real difficulty -- a wrong answer costs a strike. "
+                         "Survive 3 strikes and the run ends.",
+        "kind": "three_strikes", "gen_kwargs": {"round_count": 12},
+    },
+    # CFB retrofit pass -- reuses risk_it.py's own new real CFB tiering,
+    # see three_strikes.py's own module docstring.
+    "three_strikes_cfb_passing": {
+        "competition": "CFB", "taxonomy_id": "THREE_STRIKES", "variant": "CFB_SEASON_PASSING_THREE_STRIKES",
+        "title": "Three Strikes (CFB)",
         "instructions": "Answer real questions of rising real difficulty -- a wrong answer costs a strike. "
                          "Survive 3 strikes and the run ends.",
         "kind": "three_strikes", "gen_kwargs": {"round_count": 12},
@@ -541,6 +587,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Mystery Roster",
         "instructions": "Reveal real clues about a mystery real NFL team-season one at a time, or guess at "
                          "any point -- fewer reveals before a correct guess earns more points.",
+        "kind": "mystery_roster", "gen_kwargs": {"round_count": 6},
+    },
+    # CFB retrofit pass -- real leading-passer/leading-rusher+receiver/
+    # class_year substitutes, see mystery_roster.py's own module docstring.
+    "mystery_roster_cfb": {
+        "competition": "CFB", "taxonomy_id": "MYSTERY_ROSTER", "variant": "CFB_TEAM_SEASON_MYSTERY_ROSTER",
+        "title": "Mystery Roster (CFB)",
+        "instructions": "Reveal real clues about a mystery real college team-season one at a time, or guess "
+                         "at any point -- fewer reveals before a correct guess earns more points.",
         "kind": "mystery_roster", "gen_kwargs": {"round_count": 6},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
@@ -567,6 +622,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "competition": "NFL", "taxonomy_id": "COMMON_LINK", "variant": "NFL_DRAFT_COMMON_LINK",
         "title": "Common Link",
         "instructions": "3 real NFL Draft picks are named -- tap the 1 of 4 real statements that correctly "
+                         "explains what connects them.",
+        "kind": "common_link", "gen_kwargs": {"round_count": 8},
+    },
+    # CFB retrofit pass -- real school/season/conference link types, see
+    # common_link.py's own module docstring.
+    "common_link_cfb_season": {
+        "competition": "CFB", "taxonomy_id": "COMMON_LINK", "variant": "CFB_SEASON_COMMON_LINK",
+        "title": "Common Link (CFB)",
+        "instructions": "3 real college players are named -- tap the 1 of 4 real statements that correctly "
                          "explains what connects them.",
         "kind": "common_link", "gen_kwargs": {"round_count": 8},
     },

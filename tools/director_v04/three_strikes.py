@@ -25,7 +25,14 @@ format has NO lives at all (one miss ends the run) and doubles points
 with an explicit bank-or-risk choice; THREE_STRIKES has a real strike
 budget, fixed per-tier points, and no bank choice.
 
-Single variant: NFL_DRAFT_THREE_STRIKES.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also").
+Added CFB_SEASON_PASSING_THREE_STRIKES, reusing risk_it.py's own new real
+CFB tiering (per-season national passing-yards rank, "which real school"
+question) verbatim -- see risk_it.py's own module docstring for why this
+proxy replaces draft_pick_overall for CFB.
+
+Two variants: NFL_DRAFT_THREE_STRIKES, CFB_SEASON_PASSING_THREE_STRIKES.
 """
 from __future__ import annotations
 
@@ -41,7 +48,7 @@ from tools.director_v04 import risk_it  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "THREE_STRIKES"
-VARIANTS = frozenset({"NFL_DRAFT_THREE_STRIKES"})
+VARIANTS = frozenset({"NFL_DRAFT_THREE_STRIKES", "CFB_SEASON_PASSING_THREE_STRIKES"})
 STARTING_STRIKES = 3
 
 # Real difficulty escalates by round position -- LOW for the first third
@@ -64,13 +71,18 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
+    is_cfb = variant == "CFB_SEASON_PASSING_THREE_STRIKES"
+    tier_ranges = risk_it._CFB_TIER_RANGES if is_cfb else risk_it._TIER_RANGES
+    rows_for_tier = risk_it._rows_for_tier_cfb if is_cfb else risk_it._rows_for_tier
+    build_tier_question = risk_it._build_tier_question_cfb if is_cfb else risk_it._build_tier_question
+
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
         rows_by_tier_season: dict[str, dict[int, list]] = {}
-        for tier, (lo, hi) in risk_it._TIER_RANGES.items():
+        for tier, (lo, hi) in tier_ranges.items():
             by_season: dict[int, list] = {}
-            for r in risk_it._rows_for_tier(c, lo, hi):
+            for r in rows_for_tier(c, lo, hi):
                 by_season.setdefault(r["draft_season"], []).append(r)
             rows_by_tier_season[tier] = by_season
     finally:
@@ -79,7 +91,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
     rounds = []
     for i in range(round_count):
         tier = _tier_for_index(i, round_count)
-        q = risk_it._build_tier_question(
+        q = build_tier_question(
             engine_bootstrap.seeded(f"{seed}-ts-r{i}-{tier}"), rows_by_tier_season[tier])
         if q is None:
             break
@@ -96,7 +108,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_DRAFT_THREE_STRIKES": "Three Strikes"}
+_GAME_TITLES = {"NFL_DRAFT_THREE_STRIKES": "Three Strikes", "CFB_SEASON_PASSING_THREE_STRIKES": "Three Strikes (CFB)"}
 
 
 def build_package(seed: str, variant: str, round_count: int = 12) -> dict:

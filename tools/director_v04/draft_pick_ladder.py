@@ -17,6 +17,18 @@ DRAFT_PICK_LADDER is the only one asking the player to identify a real
 NUMBER (the pick slot itself), matching the user's own spec example
 ("easy: No. 1 overall... later: Pick 117").
 
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also")
+reviewed this format and honestly did NOT add a CFB variant: the entire
+mechanic identifies a real NFL DRAFT PICK NUMBER, a concept that has no
+meaning for a college player who was never drafted at all (the NFL Draft
+happens only after a player leaves college). Every other draft_facts-
+based format in this pass (RISK_IT/THREE_STRIKES/DOUBLE_OR_NOTHING/
+FACT_OR_FAKE/REVERSE_TRIVIA/COMMON_LINK) had a genuine non-draft real CFB
+substitute available; this one's whole premise is the pick number itself,
+so no honest substitute exists -- matching risk_it.py's own earlier
+precedent of declining rather than forcing a fabricated analog.
+
 Single variant: NFL_DRAFT_PICK_LADDER.
 """
 from __future__ import annotations

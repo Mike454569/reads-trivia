@@ -23,7 +23,16 @@ NAME which attribute that is, a genuinely different "identify the
 relationship type" challenge (the user's own spec: "emphasizes graph
 relationships rather than a hidden descriptive category").
 
-Single variant: NFL_DRAFT_COMMON_LINK.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also", and
+separately: "can every new format mode not be strictly about the draft").
+Added CFB_SEASON_COMMON_LINK -- deliberately NOT draft-flavored (CFB
+players aren't drafted): 3 real CFB players from a single season who
+genuinely share the same real school, the same real season, or the same
+real conference (cfb_player_season_stats_real + schools), same "identify
+the relationship type" shape as the NFL variant.
+
+Two variants: NFL_DRAFT_COMMON_LINK, CFB_SEASON_COMMON_LINK.
 """
 from __future__ import annotations
 
@@ -38,7 +47,7 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "COMMON_LINK"
-VARIANTS = frozenset({"NFL_DRAFT_COMMON_LINK"})
+VARIANTS = frozenset({"NFL_DRAFT_COMMON_LINK", "CFB_SEASON_COMMON_LINK"})
 
 _LINK_TYPES = ("college", "draft_season", "draft_team")
 _STATEMENT_TEMPLATES = {
@@ -47,10 +56,21 @@ _STATEMENT_TEMPLATES = {
     "draft_team": lambda v: f"They were all drafted by the {v}.",
 }
 
+_CFB_LINK_TYPES = ("school", "season", "conference")
+_CFB_STATEMENT_TEMPLATES = {
+    "school": lambda v: f"They all played for {v}.",
+    "season": lambda v: f"They all played in the {v} season.",
+    "conference": lambda v: f"They all played in the {v}.",
+}
+
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
-    return {"draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA")}
+    return {
+        "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
+        "cfb_player_season_stats_real": safety.check_verification_status_safety(
+            c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+    }
 
 
 def _fetch_rows(c) -> list[dict]:
@@ -95,22 +115,69 @@ def _build_round(rng, rows: list[dict], groups_by_type: dict[str, dict]) -> dict
     return None
 
 
+def _fetch_rows_cfb(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT s.cfb_player_id, s.player_name, s.season, sc.school_name AS school, s.conference "
+        "FROM cfb_player_season_stats_real s JOIN schools sc ON sc.school_id = s.school_id "
+        "WHERE s.verification_status='SOURCE_BACKED_DERIVED' AND s.source_id='SPORTSDATAVERSE_CFB' "
+        "AND s.passing_yards > 1500 AND s.conference IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _build_round_cfb(rng, rows: list[dict], groups_by_type: dict[str, dict]) -> dict | None:
+    link_types = list(_CFB_LINK_TYPES)
+    rng.shuffle(link_types)
+    for link_type in link_types:
+        groups = groups_by_type[link_type]
+        # A season-level table can list the same real player twice (once
+        # per season) -- a trio must be 3 genuinely DISTINCT real players,
+        # never the same real person counted twice.
+        eligible_values = []
+        for v, members in groups.items():
+            distinct = {m["cfb_player_id"]: m for m in members}
+            if len(distinct) >= 3:
+                eligible_values.append(v)
+        if not eligible_values:
+            continue
+        rng.shuffle(eligible_values)
+        value = eligible_values[0]
+        distinct_members = list({m["cfb_player_id"]: m for m in groups[value]}.values())
+        trio = rng.sample(distinct_members, 3)
+        decoy_values = [v for v in groups if v != value and len(groups[v]) >= 1]
+        if len(decoy_values) < 3:
+            continue
+        rng.shuffle(decoy_values)
+        decoys = decoy_values[:3]
+        template = _CFB_STATEMENT_TEMPLATES[link_type]
+        return {
+            "names": [r["player_name"] for r in trio], "correct_statement": template(value),
+            "decoy_statements": [template(d) for d in decoys],
+            "notes": f"These 3 real CFB players really share the same real {link_type}: "
+                     f"{value} (SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED).",
+        }
+    return None
+
+
 def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
+    is_cfb = variant == "CFB_SEASON_COMMON_LINK"
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        rows = _fetch_rows(c)
+        rows = _fetch_rows_cfb(c) if is_cfb else _fetch_rows(c)
     finally:
         c.close()
 
-    groups_by_type = {lt: _group_by(rows, lt) for lt in _LINK_TYPES}
+    link_types = _CFB_LINK_TYPES if is_cfb else _LINK_TYPES
+    groups_by_type = {lt: _group_by(rows, lt) for lt in link_types}
 
     rounds = []
     for i in range(round_count):
-        r = _build_round(engine_bootstrap.seeded(f"{seed}-cl-r{i}"), rows, groups_by_type)
+        rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}")
+        r = _build_round_cfb(rng, rows, groups_by_type) if is_cfb else _build_round(rng, rows, groups_by_type)
         if r is None:
             continue
         rounds.append(r)
@@ -125,7 +192,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_DRAFT_COMMON_LINK": "Common Link"}
+_GAME_TITLES = {"NFL_DRAFT_COMMON_LINK": "Common Link", "CFB_SEASON_COMMON_LINK": "Common Link (CFB)"}
 
 
 def build_package(seed: str, variant: str, round_count: int = 8) -> dict:

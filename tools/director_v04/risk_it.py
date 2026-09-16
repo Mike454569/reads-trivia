@@ -25,10 +25,22 @@ then answer that tier's real question) -- same real navigation-then-
 leaf-question shape BRANCH_STATE already established, reused here rather
 than inventing a second pattern for "commit before you see it."
 
-Single variant for now: NFL_DRAFT_RISK_IT. CFB has no equivalent
-universal recognizability proxy this pass could verify (no real
-draft-style overall-pick ranking exists for CFB players), so it is
-honestly not offered yet.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also"):
+added CFB_SEASON_PASSING_RISK_IT. This pass's own earlier finding still
+stands -- no real draft-style overall-pick ranking exists for CFB
+players -- so a DIFFERENT real, verifiable recognizability proxy is used
+instead: each real player's real rank on that season's real national
+passing-yards leaderboard (rank 1 = that season's real national leader,
+most recognizable; rank 40+ = a genuinely obscure real season, least
+recognizable), computed with a real SQL window function over
+cfb_player_season_stats_real +
+cfb_roster_seasons_real.position='QB', never an invented rating. Domain
+is "which real SCHOOL did this real player play for" (not "drafted by"
+-- CFB players aren't drafted), decoys are 3 other real players' real
+schools from that same real season.
+
+Two variants: NFL_DRAFT_RISK_IT, CFB_SEASON_PASSING_RISK_IT.
 """
 from __future__ import annotations
 
@@ -43,16 +55,25 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "RISK_IT"
-VARIANTS = frozenset({"NFL_DRAFT_RISK_IT"})
+VARIANTS = frozenset({"NFL_DRAFT_RISK_IT", "CFB_SEASON_PASSING_RISK_IT"})
 STARTING_LIVES = 3
 
 _TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 100), "HIGH": (101, 300)}
 _TIER_POINTS = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
 
+# Real per-season national passing-yards RANK among real CFB QBs (1 =
+# that season's real leader) stands in for draft_pick_overall's real
+# recognizability proxy -- CFB has no draft-style pick number at all.
+_CFB_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
+
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
-    return {"draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA")}
+    return {
+        "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
+        "cfb_player_season_stats_real": safety.check_verification_status_safety(
+            c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+    }
 
 
 def _rows_for_tier(c, lo: int, hi: int) -> list:
@@ -60,6 +81,23 @@ def _rows_for_tier(c, lo: int, hi: int) -> list:
         "SELECT player_key, player_name, draft_season, draft_team, draft_pick_overall FROM draft_facts "
         "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
         "AND draft_pick_overall BETWEEN ? AND ? AND draft_team IS NOT NULL",
+        (lo, hi),
+    ).fetchall()
+
+
+def _rows_for_tier_cfb(c, lo: int, hi: int) -> list:
+    return c.execute(
+        "SELECT cfb_player_id AS player_key, player_name, season AS draft_season, school_name AS draft_team, "
+        "rk AS draft_pick_overall FROM ("
+        "  SELECT s.cfb_player_id, s.player_name, s.season, sc.school_name, "
+        "  RANK() OVER (PARTITION BY s.season ORDER BY s.passing_yards DESC) AS rk "
+        "  FROM cfb_player_season_stats_real s "
+        "  JOIN cfb_roster_seasons_real rs ON rs.season=s.season AND rs.school_id=s.school_id "
+        "  AND rs.cfb_player_id=s.cfb_player_id "
+        "  JOIN schools sc ON sc.school_id = s.school_id "
+        "  WHERE s.verification_status='SOURCE_BACKED_DERIVED' AND s.source_id='SPORTSDATAVERSE_CFB' "
+        "  AND rs.position='QB' AND s.passing_yards >= 300"
+        ") WHERE rk BETWEEN ? AND ?",
         (lo, hi),
     ).fetchall()
 
@@ -100,29 +138,67 @@ def _build_tier_question(rng, rows_by_season: dict) -> dict | None:
     return None
 
 
+def _build_tier_question_cfb(rng, rows_by_season: dict) -> dict | None:
+    seasons = list(rows_by_season.keys())
+    if not seasons:
+        return None
+    rng.shuffle(seasons)
+    for season in seasons:
+        pool = rows_by_season[season]
+        if len(pool) < 1:
+            continue
+        correct = rng.choice(pool)
+        other_teams_pool = [r for r in pool if r["draft_team"] != correct["draft_team"]]
+        if len(other_teams_pool) < 3:
+            continue
+        decoy_rows = rng.sample(other_teams_pool, 3)
+        decoy_teams = []
+        seen = {correct["draft_team"]}
+        for r in decoy_rows:
+            if r["draft_team"] in seen:
+                continue
+            seen.add(r["draft_team"])
+            decoy_teams.append(r["draft_team"])
+        if len(decoy_teams) < 3:
+            continue
+        return {
+            "prompt": f"Which real school did {correct['player_name']} play for in the {season} season "
+                      f"(real #{correct['draft_pick_overall']} in national passing yards that season)?",
+            "correct_team": correct["draft_team"], "decoy_teams": decoy_teams[:3],
+            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in national passing yards: "
+                     f"{correct['player_name']} at {correct['draft_team']} "
+                     f"(SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED).",
+        }
+    return None
+
+
 def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
+
+    is_cfb = variant == "CFB_SEASON_PASSING_RISK_IT"
+    tier_ranges = _CFB_TIER_RANGES if is_cfb else _TIER_RANGES
+    rows_for_tier = _rows_for_tier_cfb if is_cfb else _rows_for_tier
+    build_tier_question = _build_tier_question_cfb if is_cfb else _build_tier_question
 
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
         rows_by_tier_season: dict[str, dict[int, list]] = {}
-        for tier, (lo, hi) in _TIER_RANGES.items():
+        for tier, (lo, hi) in tier_ranges.items():
             by_season: dict[int, list] = {}
-            for r in _rows_for_tier(c, lo, hi):
+            for r in rows_for_tier(c, lo, hi):
                 by_season.setdefault(r["draft_season"], []).append(r)
             rows_by_tier_season[tier] = by_season
     finally:
         c.close()
 
-    rng = engine_bootstrap.seeded(seed)
     rounds = []
     for i in range(round_count):
         tiers = {}
         ok = True
         for tier in ("LOW", "MEDIUM", "HIGH"):
-            q = _build_tier_question(engine_bootstrap.seeded(f"{seed}-r{i}-{tier}"), rows_by_tier_season[tier])
+            q = build_tier_question(engine_bootstrap.seeded(f"{seed}-r{i}-{tier}"), rows_by_tier_season[tier])
             if q is None:
                 ok = False
                 break
@@ -141,7 +217,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_DRAFT_RISK_IT": "Risk It"}
+_GAME_TITLES = {"NFL_DRAFT_RISK_IT": "Risk It", "CFB_SEASON_PASSING_RISK_IT": "Risk It (CFB)"}
 
 
 def build_package(seed: str, variant: str, round_count: int = 7) -> dict:
@@ -171,7 +247,8 @@ def build_package(seed: str, variant: str, round_count: int = 7) -> dict:
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "game_title": _GAME_TITLES[variant],
         "game_instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth "
-                              "less, HIGH is a real obscure pick worth more. A wrong answer costs a life.",
+                              "less, HIGH is a real obscure " + ("season" if variant == "CFB_SEASON_PASSING_RISK_IT" else "pick")
+                              + " worth more. A wrong answer costs a life.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if valid else "FAILED",
         "rounds": rounds, "round_count": len(rounds), "starting_lives": STARTING_LIVES,

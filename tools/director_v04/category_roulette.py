@@ -22,6 +22,15 @@ real wager decision and tracks a persistent real fictional balance;
 CATEGORY_ROULETTE has neither -- plain immediate trivia, real per-round
 correct/incorrect only.
 
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also")
+reviewed this format and did NOT add a separate CFB variant: this format
+already mixes leagues WITHIN its one existing variant -- 1 of its 3 real
+rotating categories (Heisman Winners) is already real CFB content
+(cfb_award_facts), alongside NFL Draft and Super Bowl Champions. Splitting
+it into single-league variants would remove the real cross-league mix
+that is this format's whole premise, not add CFB coverage to it.
+
 Single variant: CATEGORY_ROULETTE_MIXED.
 """
 from __future__ import annotations

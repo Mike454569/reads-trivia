@@ -287,6 +287,10 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/risk_it.py's own module docstring.
     "RISK_IT": {
         "NFL_DRAFT_RISK_IT": {"competition": "NFL"},
+        # CFB retrofit pass -- real per-season national passing-yards rank
+        # as the recognizability proxy, see risk_it.py's own module
+        # docstring for why (no draft-style pick number exists for CFB).
+        "CFB_SEASON_PASSING_RISK_IT": {"competition": "CFB"},
     },
     # 15-Format Expansion pass (Part 2), format #12 -- see
     # tools/director_v04/wager_mode.py's own module docstring.
@@ -316,6 +320,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # double_or_nothing.py's own module docstring.
     "DOUBLE_OR_NOTHING": {
         "NFL_DRAFT_DOUBLE_OR_NOTHING": {"competition": "NFL"},
+        # CFB retrofit pass -- reuses risk_it.py's own new real CFB
+        # tiering, see double_or_nothing.py's own module docstring.
+        "CFB_SEASON_PASSING_DOUBLE_OR_NOTHING": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # king_of_the_hill.py's own module docstring.
@@ -329,6 +336,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # fact_or_fake.py's own module docstring.
     "FACT_OR_FAKE": {
         "NFL_DRAFT_FACT_OR_FAKE": {"competition": "NFL"},
+        # CFB retrofit pass -- real game-result statement (not draft-
+        # flavored), see fact_or_fake.py's own module docstring.
+        "CFB_GAME_RESULT_FACT_OR_FAKE": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # guess_the_ranking.py's own module docstring.
@@ -351,16 +361,26 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # reverse_trivia.py's own module docstring.
     "REVERSE_TRIVIA": {
         "NFL_DRAFT_REVERSE_TRIVIA": {"competition": "NFL"},
+        # CFB retrofit pass -- real season passing stat line (not draft-
+        # flavored), see reverse_trivia.py's own module docstring.
+        "CFB_SEASON_PASSING_REVERSE_TRIVIA": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # three_strikes.py's own module docstring.
     "THREE_STRIKES": {
         "NFL_DRAFT_THREE_STRIKES": {"competition": "NFL"},
+        # CFB retrofit pass -- reuses risk_it.py's own new real CFB
+        # tiering, see three_strikes.py's own module docstring.
+        "CFB_SEASON_PASSING_THREE_STRIKES": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # mystery_roster.py's own module docstring.
     "MYSTERY_ROSTER": {
         "NFL_TEAM_SEASON_MYSTERY_ROSTER": {"competition": "NFL"},
+        # CFB retrofit pass -- real leading-passer/leading-rusher+receiver/
+        # class_year substitutes, see mystery_roster.py's own module
+        # docstring for why (no starts/AV columns exist for CFB).
+        "CFB_TEAM_SEASON_MYSTERY_ROSTER": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # draft_pick_ladder.py's own module docstring.
@@ -376,6 +396,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # common_link.py's own module docstring.
     "COMMON_LINK": {
         "NFL_DRAFT_COMMON_LINK": {"competition": "NFL"},
+        # CFB retrofit pass -- real school/season/conference link types
+        # (not draft-flavored), see common_link.py's own module docstring.
+        "CFB_SEASON_COMMON_LINK": {"competition": "CFB"},
     },
 }
 

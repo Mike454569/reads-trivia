@@ -1454,6 +1454,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- real per-season national passing-yards rank as
+  // the recognizability proxy, see risk_it.py's own module docstring.
+  riskItCfb: {
+    publicMode: 'risk_it_cfb_passing', hash: '#riskitcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_RISK_IT_PILOT_V01; },
+    title: 'Risk It (CFB)', kind: 'risk_it',
+    desc: 'Pick a real risk tier before you see the question -- a wrong answer costs a life.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 15-Format Expansion pass (Part 2), format #12 -- see
   // tools/director_v04/wager_mode.py's own module docstring.
   wagerMode: {
@@ -1505,6 +1515,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- reuses risk_it.py's own new real CFB tiering,
+  // see double_or_nothing.py's own module docstring.
+  doubleOrNothingCfb: {
+    publicMode: 'double_or_nothing_cfb_passing', hash: '#doubleornothingcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01; },
+    title: 'Double or Nothing (CFB)', kind: 'double_or_nothing',
+    desc: 'Bank your real points or risk them all on the next, harder real question.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // king_of_the_hill.py's own module docstring.
   kingOfTheHill: {
@@ -1535,6 +1555,16 @@ var ENGINE_MECHANIC_MODES = {
     desc: 'Read a real NFL Draft statement and decide if it’s true or been altered.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  // CFB retrofit pass -- real game-result statement, see
+  // fact_or_fake.py's own module docstring.
+  factOrFakeCfb: {
+    publicMode: 'fact_or_fake_cfb_game', hash: '#factorfakecfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01; },
+    title: 'Fact or Fake (CFB)', kind: 'fact_or_fake',
+    desc: 'Read a real college football final score and decide if it’s true or been altered.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // guess_the_ranking.py's own module docstring.
@@ -1590,6 +1620,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- real season passing stat line, see
+  // reverse_trivia.py's own module docstring.
+  reverseTriviaCfb: {
+    publicMode: 'reverse_trivia_cfb_passing', hash: '#reversetriviacfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01; },
+    title: 'Reverse Trivia (CFB)', kind: 'reverse_trivia',
+    desc: 'A real college player is named -- tap the 1 of 4 real statements that’s actually true about them.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // three_strikes.py's own module docstring.
   threeStrikes: {
@@ -1600,6 +1640,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- reuses risk_it.py's own new real CFB tiering,
+  // see three_strikes.py's own module docstring.
+  threeStrikesCfb: {
+    publicMode: 'three_strikes_cfb_passing', hash: '#threestrikescfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_THREE_STRIKES_PILOT_V01; },
+    title: 'Three Strikes (CFB)', kind: 'three_strikes',
+    desc: 'Answer real questions of rising difficulty -- a wrong answer costs a strike.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // mystery_roster.py's own module docstring.
   mysteryRoster: {
@@ -1609,6 +1659,16 @@ var ENGINE_MECHANIC_MODES = {
     desc: 'Reveal real clues about a mystery real NFL team-season, or guess at any point.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  // CFB retrofit pass -- real leading-passer/leading-rusher+receiver/
+  // class_year substitutes, see mystery_roster.py's own module docstring.
+  mysteryRosterCfb: {
+    publicMode: 'mystery_roster_cfb', hash: '#mysteryrostercfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01; },
+    title: 'Mystery Roster (CFB)', kind: 'mystery_roster',
+    desc: 'Reveal real clues about a mystery real college team-season, or guess at any point.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // draft_pick_ladder.py's own module docstring.
@@ -1639,6 +1699,16 @@ var ENGINE_MECHANIC_MODES = {
     desc: '3 real players are named -- guess what real fact connects them.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  // CFB retrofit pass -- real school/season/conference link types, see
+  // common_link.py's own module docstring.
+  commonLinkCfb: {
+    publicMode: 'common_link_cfb_season', hash: '#commonlinkcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_COMMON_LINK_PILOT_V01; },
+    title: 'Common Link (CFB)', kind: 'common_link',
+    desc: '3 real college players are named -- guess what real fact connects them.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
 };
 var mechanicPilotCurrentModeKey = 'matching';
@@ -2498,7 +2568,7 @@ function renderRiskItBody(v, s) {
   if (v.awaiting_tier) {
     var tierOrder = ['LOW', 'MEDIUM', 'HIGH'];
     return renderRiskItStatusHtml(v) +
-      '<div class="quiz-question">Pick a real risk tier -- higher risk means a more obscure real pick, worth more points.</div>' +
+      '<div class="quiz-question">Pick a real risk tier -- higher risk means a more obscure real result, worth more points.</div>' +
       '<div class="chip-row" role="group" aria-label="Choose a risk tier">' + tierOrder.map(function (tier) {
         return '<button class="chip-toggle" data-mechanic-risk-tier="' + esc(tier) + '">' +
           esc(tier) + ' (' + v.tier_points[tier] + (v.tier_points[tier] === 1 ? ' pt' : ' pts') + ')</button>';

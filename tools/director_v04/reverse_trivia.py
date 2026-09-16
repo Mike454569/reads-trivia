@@ -19,7 +19,17 @@ Henry. Which statement correctly describes him?").
 Reuses draft_facts (NFLVERSE_DATA, SOURCE_BACKED) directly -- same real,
 already-certified table RISK_IT/WAGER_MODE/FACT_OR_FAKE already use.
 
-Single variant: NFL_DRAFT_REVERSE_TRIVIA.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also", and
+separately: "can every new format mode not be strictly about the draft").
+Added CFB_SEASON_PASSING_REVERSE_TRIVIA -- deliberately NOT draft-
+flavored (CFB players aren't drafted): the candidate facts are real
+single-season passing stat lines ("Threw for <yards> yards and <TDs>
+TDs at <School> in <season>.") from cfb_player_season_stats_real +
+schools, the same shape (name shown, pick the 1 of 4 real facts that's
+really theirs) with a genuinely different real domain.
+
+Two variants: NFL_DRAFT_REVERSE_TRIVIA, CFB_SEASON_PASSING_REVERSE_TRIVIA.
 """
 from __future__ import annotations
 
@@ -34,12 +44,16 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "REVERSE_TRIVIA"
-VARIANTS = frozenset({"NFL_DRAFT_REVERSE_TRIVIA"})
+VARIANTS = frozenset({"NFL_DRAFT_REVERSE_TRIVIA", "CFB_SEASON_PASSING_REVERSE_TRIVIA"})
 
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
-    return {"draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA")}
+    return {
+        "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
+        "cfb_player_season_stats_real": safety.check_verification_status_safety(
+            c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+    }
 
 
 def _fetch_pool(c) -> list[dict]:
@@ -72,20 +86,55 @@ def _build_round(rng, pool: list[dict]) -> dict | None:
                      f"real players."}
 
 
+def _fetch_pool_cfb(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT s.cfb_player_id, s.player_name, s.season, sc.school_name, s.passing_yards, s.passing_tds "
+        "FROM cfb_player_season_stats_real s JOIN schools sc ON sc.school_id = s.school_id "
+        "WHERE s.verification_status='SOURCE_BACKED_DERIVED' AND s.source_id='SPORTSDATAVERSE_CFB' "
+        "AND s.passing_yards > 500"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _statement_for_cfb(row: dict) -> str:
+    return (f"Threw for {row['passing_yards']} yards and {row['passing_tds']} TDs at {row['school_name']} "
+            f"in {row['season']}.")
+
+
+def _build_round_cfb(rng, pool: list[dict]) -> dict | None:
+    if len(pool) < 4:
+        return None
+    subject = rng.choice(pool)
+    subject_key = (subject["school_name"], subject["season"], subject["passing_yards"], subject["passing_tds"])
+    decoy_pool = [r for r in pool if r["cfb_player_id"] != subject["cfb_player_id"]
+                  and (r["school_name"], r["season"], r["passing_yards"], r["passing_tds"]) != subject_key]
+    if len(decoy_pool) < 3:
+        return None
+    decoys = rng.sample(decoy_pool, 3)
+    return {"subject_name": subject["player_name"], "correct_statement": _statement_for_cfb(subject),
+            "decoy_statements": [_statement_for_cfb(d) for d in decoys],
+            "notes": f"{subject['player_name']} really threw for {subject['passing_yards']} yards and "
+                     f"{subject['passing_tds']} TDs at {subject['school_name']} in {subject['season']} "
+                     f"(SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED); the other 3 real facts genuinely belong "
+                     f"to other real players."}
+
+
 def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
+    is_cfb = variant == "CFB_SEASON_PASSING_REVERSE_TRIVIA"
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        pool = _fetch_pool(c)
+        pool = _fetch_pool_cfb(c) if is_cfb else _fetch_pool(c)
     finally:
         c.close()
 
     rounds = []
     for i in range(round_count):
-        r = _build_round(engine_bootstrap.seeded(f"{seed}-rt-r{i}"), pool)
+        rng = engine_bootstrap.seeded(f"{seed}-rt-r{i}")
+        r = _build_round_cfb(rng, pool) if is_cfb else _build_round(rng, pool)
         if r is None:
             continue
         rounds.append(r)
@@ -100,7 +149,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_DRAFT_REVERSE_TRIVIA": "Reverse Trivia"}
+_GAME_TITLES = {"NFL_DRAFT_REVERSE_TRIVIA": "Reverse Trivia", "CFB_SEASON_PASSING_REVERSE_TRIVIA": "Reverse Trivia (CFB)"}
 
 
 def build_package(seed: str, variant: str, round_count: int = 8) -> dict:
