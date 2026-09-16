@@ -1936,6 +1936,23 @@ class MockDeterministicTranslator(Translator):
         # see registry.py's own comment on why. NFL-only, same real reason
         # HAD_MORE_YARDS is NFL-only (team_game_stats has no CFB equivalent).
         if has_game_word and has_sacks_word:
+            # Existing-Data Wiring pass: unlike turnovers/penalties just
+            # below (genuinely no CFB equivalent -- no CFB team_game_stats
+            # table exists), a real CFB_GAME_BOXSCORE/HAD_MORE_SACKS
+            # capability now exists (built live on cfb_plays play-by-play,
+            # since no CFB box-score table exists either) -- an explicit
+            # CFB signal with no contradicting "nfl" token now correctly
+            # routes there instead of silently substituting the NFL
+            # capability, matching Rule A's own competition-awareness rule.
+            if has_cfb_signal and not has_nfl:
+                spec = {
+                    "mechanic": "guess", "domain": "CFB_GAME_BOXSCORE", "relationship_predicate": "HAD_MORE_SACKS",
+                    "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),
+                    "filters": {}, "exclusions": [],
+                }
+                return _result(request_text, "TRANSLATED", spec,
+                                "Matched 'game' + sack(s) keywords with an explicit CFB signal -> "
+                                "HAD_MORE_SACKS (CFB, live play-by-play aggregation) guess capability.")
             spec = {
                 "mechanic": "guess", "domain": "NFL_GAME_BOXSCORE", "relationship_predicate": "HAD_MORE_SACKS",
                 "question_count": _question_count_from_text(text), "difficulty": _difficulty_from_words(words),

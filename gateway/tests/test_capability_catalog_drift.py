@@ -179,7 +179,10 @@ def test_catalog_not_yet_ready_for_structured_description_generation():
     # ALL_AMERICAN_TO_NFL_DRAFT_TEAM, registered with real scoping fields
     # from the start, promoted via a real, passing Tier-2 probe --
     # capabilities_missing_scoping_fields stays at 21).
-    assert result["total_capabilities"] == 71
+    # Existing-Data Wiring pass: 71 -> 72 (CFB_GAME_BOXSCORE__
+    # HAD_MORE_SACKS, registered with real scoping fields from the start,
+    # promoted via a real, passing Tier-2 probe -- stays at 21).
+    assert result["total_capabilities"] == 72
     assert result["capabilities_missing_scoping_fields"] == 21
     assert "NFL_PLAYER_SEASON__TEAM_OF_SEASON" not in result["missing_fields_by_capability"]
     assert "CFB_PLAYER_SEASON__SCHOOL_OF_SEASON" not in result["missing_fields_by_capability"]

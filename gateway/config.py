@@ -352,6 +352,10 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # capability -- real candidate survey recorded in gateway/services/
     # public_game.py's own entry.
     "cfb_all_america_draft_team_guess",
+    # Existing-Data Wiring pass (Phase 3, CFB play-by-play): a genuinely
+    # new capability, built live on cfb_plays -- real candidate survey
+    # recorded in gateway/services/public_game.py's own entry.
+    "cfb_game_boxscore_sacks_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

@@ -31,6 +31,7 @@ from tools.quiz_export.adapters import lineup as lineup_adapter  # noqa: E402
 from tools.quiz_export.adapters import lineup_college as lineup_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore as nfl_game_boxscore_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore_sacks as nfl_game_boxscore_sacks_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_game_boxscore_sacks as cfb_game_boxscore_sacks_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore_turnovers as nfl_game_boxscore_turnovers_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_boxscore_penalties as nfl_game_boxscore_penalties_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_game_result as nfl_game_result_adapter  # noqa: E402
@@ -1584,6 +1585,27 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["existing-data-wiring-all-america"], "pipeline_id_start": 971000,
+    },
+    ("guess", "CFB_GAME_BOXSCORE", "HAD_MORE_SACKS"): {
+        "adapter": cfb_game_boxscore_sacks_adapter, "category": cfb_game_boxscore_sacks_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Existing-Data Wiring pass (Phase 3, CFB play-by-play): the CFB mirror of NFL_GAME_BOXSCORE/ "
+            "HAD_MORE_SACKS, but genuinely different underlying data -- this Engine has no CFB "
+            "team_game_stats-style pre-aggregated box-score table, so sack counts are aggregated live "
+            "from cfb_plays (play_type='Sack', grouped by game+defense_school_id) rather than read from "
+            "a precomputed column.",
+            "Team-level only, deliberately: cfb_plays has no player-identity columns at all -- a "
+            "player-level 'who recorded the sack' CFB capability is not buildable here and is not "
+            "attempted.",
+            "Games where both teams recorded the same real sack count (including 0-0) are excluded -- "
+            "no fair winner to ask about. Real measured pool: 14,921 of 19,937 real CFB games with any "
+            "play-by-play on file have a decisive comparison.",
+        ],
+        "competition_id": "CFB", "entity_type": "cfb_game", "object_type": "school", "answer_type": "school",
+        "group_size": 2, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "easy", "medium", "hard"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["existing-data-wiring-cfb-pbp"], "pipeline_id_start": 972000,
     },
     # Rivalry Data + Gold Standard Content Integration operation. A curated,
     # fully pre-authored 1,272-question CFB trivia bank (412 general + 860

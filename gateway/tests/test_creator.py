@@ -228,7 +228,8 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # change this count).
     # Existing-Data Wiring pass: 70 -> 71 (CROSS_LEAGUE_HONORS__
     # ALL_AMERICAN_TO_NFL_DRAFT_TEAM).
-    assert len(caps) == 71
+    # Existing-Data Wiring pass: 71 -> 72 (CFB_GAME_BOXSCORE__HAD_MORE_SACKS).
+    assert len(caps) == 72
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")
@@ -250,9 +251,19 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     assert len(stat_leaders) == 2
     assert {c["domain"] for c in stat_leaders} == {"NFL_SEASON_STATS", "CFB_SEASON_STATS"}
     assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in stat_leaders)
+    # Existing-Data Wiring pass: HAD_MORE_SACKS now has a real CFB sibling
+    # (built live on cfb_plays play-by-play, since no CFB team_game_stats
+    # table exists) -- same NFL_GAME_BOXSCORE/CFB_GAME_BOXSCORE dual-domain
+    # pattern as WON_GAME/WON_CHAMPIONSHIP/LED_LEAGUE_IN_STAT above.
+    # HAD_FEWER_TURNOVERS/HAD_FEWER_PENALTIES remain NFL-only (genuinely no
+    # CFB equivalent -- no CFB team_game_stats table at all).
+    sacks_extras = [c for c in caps if c["relationship_predicate"] == "HAD_MORE_SACKS"]
+    assert len(sacks_extras) == 2
+    assert {c["domain"] for c in sacks_extras} == {"NFL_GAME_BOXSCORE", "CFB_GAME_BOXSCORE"}
+    assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in sacks_extras)
     boxscore_extras = [c for c in caps if c["relationship_predicate"] in
-                        ("HAD_MORE_SACKS", "HAD_FEWER_TURNOVERS", "HAD_FEWER_PENALTIES")]
-    assert len(boxscore_extras) == 3
+                        ("HAD_FEWER_TURNOVERS", "HAD_FEWER_PENALTIES")]
+    assert len(boxscore_extras) == 2
     assert all(c["domain"] == "NFL_GAME_BOXSCORE" for c in boxscore_extras)
     assert all(c["support_status"] == "SUPPORTED_WITH_LIMITATIONS" for c in boxscore_extras)
     coaching = next(c for c in caps if c["relationship_predicate"] == "COACHED_TEAM")

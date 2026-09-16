@@ -900,6 +900,27 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Existing-Data Wiring pass (Phase 3, CFB play-by-play): a new
+    # capability -- real candidate survey found ~5,000 accepted per call
+    # (real total pool 14,921, capped at MAX_FETCHED_CANDIDATES=5000),
+    # difficulty_distribution genuinely spans Easy/Medium/Hard (skewed
+    # toward Hard, matching the real football fact that most sack-count
+    # gaps are small), qa_status PASSED, 0 contract_failures.
+    "cfb_game_boxscore_sacks_guess": {
+        "competition": "CFB",
+        "title": "CFB Box Scores: Guess Who Had More Sacks",
+        "instructions": "You'll be shown a real college football matchup. Pick the team that recorded more sacks.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"easy", "medium", "hard"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CFB_GAME_BOXSCORE",
+            "relationship_predicate": "HAD_MORE_SACKS",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())
