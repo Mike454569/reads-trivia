@@ -26,6 +26,29 @@ def _generate(target_count=10, seed="test-aa-draft-team"):
     )
 
 
+def test_safety_check_does_not_query_the_raw_cfb_all_america_table():
+    # Real production bug caught after deploy: safety_check() originally
+    # copied cfb_odd_college_out.py's pattern and queried the RAW
+    # cfb_all_america table for verification_status/source_id -- a table
+    # this adapter never actually reads from (it only reads
+    # cfb_all_america_certified) and which, it turned out, doesn't even
+    # exist in the real production database (confirmed directly via
+    # `flyctl ssh console` -- local dev has it, production doesn't; a
+    # real, pre-existing environment gap, not something this pass
+    # introduced). cfb_all_america_certified has no verification_status/
+    # source_id columns of its own, so the correct safety_check is a
+    # plain descriptive note, matching every other capability already
+    # built on this same table (see cfb_all_american_to_all_pro.py).
+    from tools.quiz_export import engine
+    c = engine.connect()
+    try:
+        result = adapter.safety_check(c)
+    finally:
+        c.close()
+    assert "note" in result
+    assert result == {"note": "composed via cfb_all_america_certified (HIGH_CONFIDENCE bridge tier) + team_aliases"}
+
+
 def test_generates_real_questions():
     pkg = _generate(target_count=20)
     assert pkg["qa_status"] == "PASSED"

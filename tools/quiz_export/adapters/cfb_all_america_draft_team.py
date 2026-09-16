@@ -37,12 +37,17 @@ CONFIDENCE_TIER = "HIGH_CONFIDENCE_MULTI_SEASON_POSITION_CORROBORATED"
 
 
 def safety_check(c) -> dict:
-    from .. import safety
-    return {
-        "cfb_all_america_certified": safety.check_verification_status_safety(
-            c, "cfb_all_america", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY",
-        ),
-    }
+    # Real bug fixed after a live production 500 (sqlite3.OperationalError:
+    # no such table: cfb_all_america) -- this capability is built on
+    # cfb_all_america_certified (the identity-resolved subset), which has
+    # no verification_status/source_id columns of its own (provenance was
+    # already established when it was resolved from the raw table), so
+    # check_verification_status_safety() doesn't apply here. Matches the
+    # real, established pattern every other cfb_all_america_certified-based
+    # capability already uses (see cfb_all_american_to_all_pro.py's own
+    # safety_check()) -- a plain descriptive note, not a DB query against a
+    # column that doesn't exist on this table.
+    return {"note": "composed via cfb_all_america_certified (HIGH_CONFIDENCE bridge tier) + team_aliases"}
 
 
 def fetch_ordered_candidates(c, seed: str):
