@@ -96,7 +96,7 @@ def test_public_modes_no_auth_needed(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
-        "cfb_betting_cover_guess",
+        "cfb_betting_cover_guess", "cfb_all_america_draft_team_guess",
     }
     draft = modes_by_id["draft_guess"]
     assert draft["competition"] == "NFL"
@@ -278,7 +278,7 @@ def test_grid_and_six_degrees_are_not_public_modes(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
-        "cfb_betting_cover_guess",
+        "cfb_betting_cover_guess", "cfb_all_america_draft_team_guess",
     })
 
 
@@ -424,7 +424,10 @@ def test_capabilities_route_unaffected_by_public_routes(client):
     # already on record) to stop under-reporting real, already-public
     # capabilities. The 7th (NFL_GAME_BOXSCORE/HAD_MORE_SACKS) was already
     # LEGACY_PUBLIC_PENDING_REVALIDATION beforehand, already counted.
-    assert len(r.json()["capabilities"]) == 42
+    # Existing-Data Wiring pass added a 43rd: CROSS_LEAGUE_HONORS__
+    # ALL_AMERICAN_TO_NFL_DRAFT_TEAM, a genuinely new capability walked
+    # through the full real lifecycle to PUBLIC_ENABLED.
+    assert len(r.json()["capabilities"]) == 43
 
 
 # --- performance (Part 23, cheap sanity check) ---------------------------------
@@ -656,7 +659,7 @@ def test_all_twenty_certified_guess_modes_registered(client):
         "nfl_super_bowl_guess", "cfb_2026_roster_guess", "cfb_2026_coach_guess",
         "nfl_first_touchdown_guess", "nfl_sack_guess", "nfl_interception_guess", "nfl_forced_fumble_guess",
         "nfl_fumble_recovery_guess", "nfl_drive_result_guess", "nfl_game_boxscore_sacks_guess",
-        "cfb_betting_cover_guess",
+        "cfb_betting_cover_guess", "cfb_all_america_draft_team_guess",
     }
 
 

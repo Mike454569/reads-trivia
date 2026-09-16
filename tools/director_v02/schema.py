@@ -96,6 +96,7 @@ ALLOWED_DOMAINS = frozenset({
 ALLOWED_PREDICATES = frozenset({
     # BEGIN GENERATED -- see tools/director_v02/generate_schema_and_prompt.py
     "ALL_AMERICAN_TO_ALL_PRO",
+    "ALL_AMERICAN_TO_NFL_DRAFT_TEAM",
     "ALL_AMERICAN_TO_PRO_BOWL",
     "ALTERED_POSITION",
     "ATTENDED_COLLEGE",

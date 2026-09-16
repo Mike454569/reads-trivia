@@ -75,6 +75,7 @@ from tools.quiz_export.adapters import nfl_all_pro_college as nfl_all_pro_colleg
 from tools.quiz_export.adapters import nfl_pro_bowl_college as nfl_pro_bowl_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import nfl_hof_college as nfl_hof_college_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_all_american_to_all_pro as cfb_all_american_to_all_pro_adapter  # noqa: E402
+from tools.quiz_export.adapters import cfb_all_america_draft_team as cfb_all_america_draft_team_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_all_american_to_pro_bowl as cfb_all_american_to_pro_bowl_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_rivalry_trivia as cfb_rivalry_trivia_adapter  # noqa: E402
 from tools.quiz_export.adapters import cfb_2026_current_roster as cfb_2026_current_roster_adapter  # noqa: E402
@@ -1564,6 +1565,25 @@ CAPABILITY_REGISTRY: dict[tuple[str, str, str], dict] = {
         "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
         "supported_filter_keys": frozenset(), "supports_exclusions": False,
         "proven_in": ["creator-capability-completion-cross-league-honors"], "pipeline_id_start": 923000,
+    },
+    ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_NFL_DRAFT_TEAM"): {
+        "adapter": cfb_all_america_draft_team_adapter, "category": cfb_all_america_draft_team_adapter.CATEGORY, "generate_fn": _generate_guess_package,
+        "known_limitations": [
+            "Existing-Data Wiring pass: unlike its ALL_AMERICAN_TO_ALL_PRO/ALL_AMERICAN_TO_PRO_BOWL "
+            "siblings (which use the full, un-tiered cfb_nfl_identity_bridge_certified), this capability "
+            "is deliberately scoped to the bridge's HIGH_CONFIDENCE_MULTI_SEASON_POSITION_CORROBORATED "
+            "tier only (463 real candidate rows measured directly) -- per this pass's own 'accuracy over "
+            "raw count' rule, since two-thirds of that table's rows are a materially weaker name+"
+            "chronology-only match tier.",
+            "Team name resolution reuses draft.py's own resolve_franchise() (franchise relocation/rename "
+            "aware) -- a candidate whose draft-team code cannot resolve to a real franchise is rejected, "
+            "never guessed at.",
+        ],
+        "competition_id": "NFL", "entity_type": "cross_league_player", "object_type": "team", "answer_type": "team",
+        "group_size": 4, "min_question_count": 1, "max_question_count": 100,
+        "supported_difficulties": frozenset({"any", "medium"}), "supports_difficulty_filter": True,
+        "supported_filter_keys": frozenset(), "supports_exclusions": False,
+        "proven_in": ["existing-data-wiring-all-america"], "pipeline_id_start": 971000,
     },
     # Rivalry Data + Gold Standard Content Integration operation. A curated,
     # fully pre-authored 1,272-question CFB trivia bank (412 general + 860

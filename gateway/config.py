@@ -348,6 +348,10 @@ PUBLIC_MODE_ALLOWLIST = frozenset({
     # capability (not a private-to-public flip) -- real candidate survey
     # recorded in gateway/services/public_game.py's own entry.
     "cfb_betting_cover_guess",
+    # Existing-Data Wiring pass (4/5, All-America): a genuinely new
+    # capability -- real candidate survey recorded in gateway/services/
+    # public_game.py's own entry.
+    "cfb_all_america_draft_team_guess",
 })
 
 # --- Production rollout controls (v1.4, Parts 10/11) -----------------------

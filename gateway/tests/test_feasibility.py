@@ -313,7 +313,9 @@ def test_capability_summary_lists_all_twenty_one_registered_capabilities():
     # Existing-Data Wiring pass: 69 -> 70, same real reason as
     # test_creator.py's sibling assertion (CFB_BETTING__COVERED_SPREAD, the
     # only genuinely new registration this pass).
-    assert len(summary) == 70
+    # Existing-Data Wiring pass: 70 -> 71, same reason as test_creator.py's
+    # sibling assertion.
+    assert len(summary) == 71
     for c in summary:
         assert c["support_status"] in ("SUPPORTED", "SUPPORTED_WITH_LIMITATIONS")
     lineup = next(c for c in summary if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")

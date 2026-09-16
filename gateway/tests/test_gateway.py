@@ -61,12 +61,16 @@ def test_capabilities_unauthenticated_and_exactly_twenty_one(client):
     # CFB_BETTING/COVERED_SPREAD, plus 6 pre-existing NFL PBP capabilities
     # whose verification_status needed its own HUMAN_APPROVED -> PUBLIC_
     # ENABLED walk to stop under-reporting an already-public capability).
+    # Existing-Data Wiring pass added a 43rd: CROSS_LEAGUE_HONORS__
+    # ALL_AMERICAN_TO_NFL_DRAFT_TEAM, a genuinely new capability walked
+    # through the full real lifecycle to PUBLIC_ENABLED.
     r = client.get("/v1/capabilities")
     assert r.status_code == 200
     caps = r.json()["capabilities"]
-    assert len(caps) == 42
+    assert len(caps) == 43
     triples = {(c["mechanic"], c["domain"], c["relationship_predicate"]) for c in caps}
     assert triples == {
+        ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_NFL_DRAFT_TEAM"),
         ("guess", "CFB_BETTING", "COVERED_SPREAD"),
         ("guess", "NFL_SCORING_PLAY", "FIRST_TOUCHDOWN_SCORER"),
         ("guess", "NFL_DEFENSIVE_EVENT", "RECORDED_SACK"),

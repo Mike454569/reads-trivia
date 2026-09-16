@@ -142,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH" | "NFL_SCORING_PLAY" | "NFL_DEFENSIVE_EVENT" | "NFL_DRIVE" | "CFB_BETTING",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026" | "FIRST_TOUCHDOWN_SCORER" | "RECORDED_SACK" | "RECORDED_INTERCEPTION" | "FORCED_FUMBLE" | "RECOVERED_FUMBLE" | "DRIVE_RESULT" | "COVERED_SPREAD",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH" | "NFL_SCORING_PLAY" | "NFL_DEFENSIVE_EVENT" | "NFL_DRIVE" | "CFB_BETTING" | "CROSS_LEAGUE_HONORS",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026" | "FIRST_TOUCHDOWN_SCORER" | "RECORDED_SACK" | "RECORDED_INTERCEPTION" | "FORCED_FUMBLE" | "RECOVERED_FUMBLE" | "DRIVE_RESULT" | "COVERED_SPREAD" | "ALL_AMERICAN_TO_NFL_DRAFT_TEAM",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -424,6 +424,18 @@ fair 2-option answer exists for a push. "Cover(ed/ing) the spread", "who covers 
 this -- a real, DIFFERENT question from "which underdog won outright" (a favorite can win the game \
 but still fail to cover, and an underdog can lose but still cover), so never conflate the two even \
 though both are betting-line concepts. CFB only.
+
+43. mechanic=guess, domain=CROSS_LEAGUE_HONORS, relationship_predicate=ALL_AMERICAN_TO_NFL_DRAFT_TEAM
+    Existing-Data Wiring pass: the player sees a real College Football All-American (name, position, \
+year, and whether it was a real consensus selection) and picks the real NFL team that drafted him. \
+Built on cfb_all_america_certified joined through the identity bridge's strictest real tier only \
+(HIGH_CONFIDENCE_MULTI_SEASON_POSITION_CORROBORATED) -- a real, deliberately narrower pool (397 real \
+candidates) than a looser join would give, per this Engine's own accuracy-over-coverage rule. \
+"All-American" + "drafted"/"draft team" together means this -- a bare "All-American" request with no \
+NFL/draft signal at all is closer to a real, DIFFERENT concept (a plain All-America selection fact) \
+this Engine does not yet expose as its own guess capability; do not silently route a bare \
+All-America request here. Only "medium"/"any" difficulty exist for this capability (the underlying \
+cross-league join has no per-row recency/difficulty signal of its own) -- same rule as capability 21.
 
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
 Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \

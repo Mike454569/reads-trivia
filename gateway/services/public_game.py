@@ -877,6 +877,29 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
             "exclusions": [],
         },
     },
+    # Existing-Data Wiring pass (4/5, All-America): a new capability -- real
+    # candidate survey found 397 accepted, qa_status PASSED, 0
+    # contract_failures. Scoped to the identity bridge's HIGH_CONFIDENCE
+    # tier only (never the full, un-tiered bridge its ALL_AMERICAN_TO_
+    # ALL_PRO/ALL_AMERICAN_TO_PRO_BOWL siblings use) -- see the adapter's
+    # own module docstring. Only "medium"/"any" difficulty exist for this
+    # capability (same real reason as its two siblings): the underlying
+    # cross-league join has no per-row recency/difficulty signal of its own.
+    "cfb_all_america_draft_team_guess": {
+        "competition": "NFL",
+        "title": "College Football All-Americans: Guess the NFL Draft Team",
+        "instructions": "You'll be shown a real College Football All-American. Pick the real NFL team that drafted him.",
+        "kind": "multiple_choice",
+        "certified_difficulties": frozenset({"medium"}),
+        "spec": {
+            "mechanic": "guess",
+            "domain": "CROSS_LEAGUE_HONORS",
+            "relationship_predicate": "ALL_AMERICAN_TO_NFL_DRAFT_TEAM",
+            "question_count": 1,
+            "filters": {},
+            "exclusions": [],
+        },
+    },
 }
 
 # Real, registered internal capabilities (generation.list_capabilities())

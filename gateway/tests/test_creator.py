@@ -226,7 +226,9 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     # already counted here before, since this admin view includes
     # GENERATION_VERIFIED-and-above, so their state change alone doesn't
     # change this count).
-    assert len(caps) == 70
+    # Existing-Data Wiring pass: 70 -> 71 (CROSS_LEAGUE_HONORS__
+    # ALL_AMERICAN_TO_NFL_DRAFT_TEAM).
+    assert len(caps) == 71
     lineup = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP")
     assert lineup["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
     lineup_college = next(c for c in caps if c["relationship_predicate"] == "TEAM_OF_STARTING_LINEUP_BY_COLLEGE")
