@@ -431,6 +431,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "whichever real candidate you think it belongs to.",
         "kind": "blind_resume", "gen_kwargs": {"round_count": 7},
     },
+    # CFB retrofit pass -- built on cfb_player_season_stats_real +
+    # cfb_roster_seasons_real.position='QB', see blind_resume.py's own
+    # module docstring for the real games->completions substitution.
+    "blind_resume_cfb_qb": {
+        "competition": "CFB", "taxonomy_id": "BLIND_RESUME", "variant": "CFB_QB_CAREER_BLIND_RESUME",
+        "title": "Blind Resume (CFB)",
+        "instructions": "A real college player's career passing resume is shown with the name hidden -- tap "
+                         "whichever real candidate you think it belongs to.",
+        "kind": "blind_resume", "gen_kwargs": {"round_count": 7},
+    },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # double_or_nothing.py's own module docstring.
     "double_or_nothing_nfl_draft": {
@@ -448,6 +458,16 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "King of the Hill",
         "instructions": "Tap whichever of the champion or the next real challenger you think really had "
                          "more real wins that season -- a correct prediction keeps the gauntlet going; a "
+                         "wrong prediction ends your run.",
+        "kind": "king_of_the_hill", "gen_kwargs": {},
+    },
+    # CFB retrofit pass -- reuses higher_lower.py's own already-certified
+    # cfb_standings.total_wins data (FBS only), zero new data work.
+    "king_of_the_hill_cfb": {
+        "competition": "CFB", "taxonomy_id": "KING_OF_THE_HILL", "variant": "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL",
+        "title": "King of the Hill (CFB)",
+        "instructions": "Tap whichever of the champion or the next real college challenger you think really "
+                         "had more real wins that season -- a correct prediction keeps the gauntlet going; a "
                          "wrong prediction ends your run.",
         "kind": "king_of_the_hill", "gen_kwargs": {},
     },
@@ -469,6 +489,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "career leaderboard.",
         "kind": "guess_the_ranking", "gen_kwargs": {"round_count": 8},
     },
+    # CFB retrofit pass -- self-contained real top-15 CFB career passing
+    # yards query, see guess_the_ranking.py's own module docstring.
+    "guess_the_ranking_cfb": {
+        "competition": "CFB", "taxonomy_id": "GUESS_THE_RANKING", "variant": "CFB_CAREER_PASSING_YARDS_RANKING",
+        "title": "Guess the Ranking (CFB)",
+        "instructions": "A real college player is named -- tap the real rank you think they hold on this "
+                         "real career leaderboard.",
+        "kind": "guess_the_ranking", "gen_kwargs": {"round_count": 8},
+    },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # stat_target.py's own module docstring.
     "stat_target_nfl_rushing": {
@@ -476,6 +505,15 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Stat Target",
         "instructions": "A real target rushing-yards number is shown -- tap whichever real player's real "
                          "single-season total came closest to it.",
+        "kind": "stat_target", "gen_kwargs": {"round_count": 8},
+    },
+    # CFB retrofit pass -- built on cfb_player_season_stats_real, see
+    # stat_target.py's own module docstring for real pool size/coverage.
+    "stat_target_cfb_rushing": {
+        "competition": "CFB", "taxonomy_id": "STAT_TARGET", "variant": "CFB_SEASON_RUSHING_YARDS_TARGET",
+        "title": "Stat Target (CFB)",
+        "instructions": "A real target rushing-yards number is shown -- tap whichever real college player's "
+                         "real single-season total came closest to it.",
         "kind": "stat_target", "gen_kwargs": {"round_count": 8},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/

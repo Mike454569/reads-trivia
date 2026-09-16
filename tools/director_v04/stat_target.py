@@ -10,7 +10,15 @@ specific player's real total); every candidate's real value is genuine,
 and "closest" is always computed as a real, unambiguous distance (no two
 real candidates in a round are ever equidistant from the target).
 
-Single variant: NFL_SEASON_RUSHING_YARDS_TARGET.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also"):
+added CFB_SEASON_RUSHING_YARDS_TARGET, built on cfb_player_season_stats_real
+(78,651 rows, SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED, 2014-2025) --
+6,518 real candidates with rushing_yards > 200, real max 2,599. Same
+target ladder as the NFL variant (a real, plausible round-number range for
+both leagues, not re-derived per league). player_name is already a direct
+column on this table (no join needed, unlike the NFL variant's
+player_season_stats + canonical_players join).
 """
 from __future__ import annotations
 
@@ -25,17 +33,36 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "STAT_TARGET"
-VARIANTS = frozenset({"NFL_SEASON_RUSHING_YARDS_TARGET"})
+VARIANTS = frozenset({"NFL_SEASON_RUSHING_YARDS_TARGET", "CFB_SEASON_RUSHING_YARDS_TARGET"})
 MIN_RUSH_YARDS = 200
 _TARGETS = [800, 1000, 1200, 1500, 1800, 2000]
 
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
-    return {"player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA")}
+    return {
+        "player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA"),
+        # check_table_wide_safety() is hardcoded to require exactly
+        # verification_status='SOURCE_BACKED' -- cfb_player_season_stats_real
+        # genuinely uses 'SOURCE_BACKED_DERIVED' instead (confirmed directly
+        # against the real schema), so check_verification_status_safety()
+        # (which takes the expected status value explicitly) is the correct
+        # function here, not a weaker check.
+        "cfb_player_season_stats_real": safety.check_verification_status_safety(
+            c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+    }
 
 
-def _fetch_pool(c) -> list[dict]:
+def _fetch_pool(c, variant: str) -> list[dict]:
+    if variant == "CFB_SEASON_RUSHING_YARDS_TARGET":
+        rows = c.execute(
+            "SELECT cfb_player_id, player_name, season, rushing_yards FROM cfb_player_season_stats_real "
+            "WHERE verification_status='SOURCE_BACKED_DERIVED' AND source_id='SPORTSDATAVERSE_CFB' "
+            "AND rushing_yards > ?",
+            (MIN_RUSH_YARDS,),
+        ).fetchall()
+        return [{"label": f"{r['player_name']} ({r['season']})", "value": r["rushing_yards"],
+                  "_audit": {"player_key": r["cfb_player_id"], "season": r["season"]}} for r in rows]
     rows = c.execute(
         "SELECT s.player_key, p.display_name, s.season, s.rush_yards FROM player_season_stats s "
         "JOIN canonical_players p ON p.player_id = s.player_key "
@@ -65,7 +92,7 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        pool = _fetch_pool(c)
+        pool = _fetch_pool(c, variant)
     finally:
         c.close()
 
@@ -91,7 +118,14 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_SEASON_RUSHING_YARDS_TARGET": "Stat Target"}
+_GAME_TITLES = {
+    "NFL_SEASON_RUSHING_YARDS_TARGET": "Stat Target",
+    "CFB_SEASON_RUSHING_YARDS_TARGET": "Stat Target (CFB)",
+}
+_SOURCE_NOTE = {
+    "NFL_SEASON_RUSHING_YARDS_TARGET": "NFLVERSE_DATA, SOURCE_BACKED",
+    "CFB_SEASON_RUSHING_YARDS_TARGET": "SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED",
+}
 
 
 def build_package(seed: str, variant: str, round_count: int = 8) -> dict:
@@ -115,7 +149,7 @@ def build_package(seed: str, variant: str, round_count: int = 8) -> dict:
             "_answer_item_id": item_ids[correct_pos],
             "_notes": f"{correct_candidate['label']} really had {correct_candidate['value']} real rushing "
                       f"yards that season -- closest to the {r['target']}-yard target "
-                      f"(NFLVERSE_DATA, SOURCE_BACKED).",
+                      f"({_SOURCE_NOTE[variant]}).",
         })
 
     return {

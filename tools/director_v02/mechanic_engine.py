@@ -307,6 +307,10 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # tools/director_v04/blind_resume.py's own module docstring.
     "BLIND_RESUME": {
         "NFL_QB_CAREER_BLIND_RESUME": {"competition": "NFL"},
+        # CFB retrofit pass -- built on cfb_player_season_stats_real +
+        # cfb_roster_seasons_real.position='QB', see blind_resume.py's own
+        # module docstring for the real games->completions substitution.
+        "CFB_QB_CAREER_BLIND_RESUME": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # double_or_nothing.py's own module docstring.
@@ -317,6 +321,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # king_of_the_hill.py's own module docstring.
     "KING_OF_THE_HILL": {
         "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL": {"competition": "NFL"},
+        # CFB retrofit pass -- reuses higher_lower.py's own already-certified
+        # _cfb_items() (cfb_standings.total_wins, FBS only), zero new data work.
+        "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # fact_or_fake.py's own module docstring.
@@ -327,11 +334,18 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # guess_the_ranking.py's own module docstring.
     "GUESS_THE_RANKING": {
         "NFL_CAREER_PASSING_YARDS_RANKING": {"competition": "NFL"},
+        # CFB retrofit pass -- self-contained real top-15 CFB career
+        # passing yards query, see guess_the_ranking.py's own module
+        # docstring for why LEADERBOARD_CLIMB's fetcher isn't reused.
+        "CFB_CAREER_PASSING_YARDS_RANKING": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # stat_target.py's own module docstring.
     "STAT_TARGET": {
         "NFL_SEASON_RUSHING_YARDS_TARGET": {"competition": "NFL"},
+        # CFB retrofit pass -- built on cfb_player_season_stats_real, see
+        # stat_target.py's own module docstring for real pool size/coverage.
+        "CFB_SEASON_RUSHING_YARDS_TARGET": {"competition": "CFB"},
     },
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # reverse_trivia.py's own module docstring.

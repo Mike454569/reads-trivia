@@ -1898,6 +1898,13 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
       desc: ENGINE_MECHANIC_MODES.blindResume.desc, mechanicMode: 'blindResume', league: 'nfl', difficulty: 'hardcore',
     });
   }
+  // CFB retrofit pass -- built on cfb_player_season_stats_real.
+  if (ENGINE_MECHANIC_MODES.blindResumeCfb.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'blind_resume_cfb_guess', icon: 'mystery', title: ENGINE_MECHANIC_MODES.blindResumeCfb.title,
+      desc: ENGINE_MECHANIC_MODES.blindResumeCfb.desc, mechanicMode: 'blindResumeCfb', league: 'cfb', difficulty: 'hardcore',
+    });
+  }
   if (ENGINE_MECHANIC_MODES.doubleOrNothing.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'double_or_nothing_guess', icon: 'zap', title: ENGINE_MECHANIC_MODES.doubleOrNothing.title,
@@ -1908,6 +1915,14 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'king_of_the_hill_guess', icon: 'shield', title: ENGINE_MECHANIC_MODES.kingOfTheHill.title,
       desc: ENGINE_MECHANIC_MODES.kingOfTheHill.desc, mechanicMode: 'kingOfTheHill', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  // CFB retrofit pass -- reuses higher_lower.py's own already-certified
+  // cfb_standings.total_wins data (FBS only), zero new data work.
+  if (ENGINE_MECHANIC_MODES.kingOfTheHillCfb.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'king_of_the_hill_cfb_guess', icon: 'shield', title: ENGINE_MECHANIC_MODES.kingOfTheHillCfb.title,
+      desc: ENGINE_MECHANIC_MODES.kingOfTheHillCfb.desc, mechanicMode: 'kingOfTheHillCfb', league: 'cfb', difficulty: 'competitive',
     });
   }
   if (ENGINE_MECHANIC_MODES.factOrFake.flagOn()) {
@@ -1922,10 +1937,26 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
       desc: ENGINE_MECHANIC_MODES.guessTheRanking.desc, mechanicMode: 'guessTheRanking', league: 'nfl', difficulty: 'competitive',
     });
   }
+  // CFB retrofit pass -- self-contained real top-15 CFB career passing
+  // yards query, see guess_the_ranking.py's own module docstring.
+  if (ENGINE_MECHANIC_MODES.guessTheRankingCfb.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'guess_the_ranking_cfb_guess', icon: 'barChart', title: ENGINE_MECHANIC_MODES.guessTheRankingCfb.title,
+      desc: ENGINE_MECHANIC_MODES.guessTheRankingCfb.desc, mechanicMode: 'guessTheRankingCfb', league: 'cfb', difficulty: 'competitive',
+    });
+  }
   if (ENGINE_MECHANIC_MODES.statTarget.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'stat_target_guess', icon: 'target', title: ENGINE_MECHANIC_MODES.statTarget.title,
       desc: ENGINE_MECHANIC_MODES.statTarget.desc, mechanicMode: 'statTarget', league: 'nfl', difficulty: 'competitive',
+    });
+  }
+  // CFB retrofit pass -- same real capability, real CFB data source
+  // (cfb_player_season_stats_real) instead of NFL's player_season_stats.
+  if (ENGINE_MECHANIC_MODES.statTargetCfb.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'stat_target_cfb_guess', icon: 'target', title: ENGINE_MECHANIC_MODES.statTargetCfb.title,
+      desc: ENGINE_MECHANIC_MODES.statTargetCfb.desc, mechanicMode: 'statTargetCfb', league: 'cfb', difficulty: 'competitive',
     });
   }
   if (ENGINE_MECHANIC_MODES.reverseTrivia.flagOn()) {
@@ -11141,11 +11172,15 @@ if (ENABLE_ENGINE_RISK_IT_PILOT_V01) HIDDEN_ROUTES['#riskitpilot'] = 'mechanicPi
 if (ENABLE_ENGINE_WAGER_MODE_PILOT_V01) HIDDEN_ROUTES['#wagermodepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_LEADERBOARD_CLIMB_PILOT_V01) HIDDEN_ROUTES['#leaderboardclimbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_BLIND_RESUME_PILOT_V01) HIDDEN_ROUTES['#blindresumepilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_BLIND_RESUME_PILOT_V01) HIDDEN_ROUTES['#blindresumecfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01) HIDDEN_ROUTES['#doubleornothingpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01) HIDDEN_ROUTES['#kingofthehillpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01) HIDDEN_ROUTES['#kingofthehillcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01) HIDDEN_ROUTES['#factorfakepilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01) HIDDEN_ROUTES['#guesstherankingpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01) HIDDEN_ROUTES['#guesstherankingcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_STAT_TARGET_PILOT_V01) HIDDEN_ROUTES['#stattargetpilot'] = 'mechanicPilot';
+if (ENABLE_ENGINE_STAT_TARGET_PILOT_V01) HIDDEN_ROUTES['#stattargetcfbpilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01) HIDDEN_ROUTES['#reversetriviapilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_THREE_STRIKES_PILOT_V01) HIDDEN_ROUTES['#threestrikespilot'] = 'mechanicPilot';
 if (ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01) HIDDEN_ROUTES['#mysteryrosterpilot'] = 'mechanicPilot';
@@ -11209,11 +11244,15 @@ if (HIDDEN_ROUTES[location.hash]) {
   // actually tracing the route resolution, not assumed correct because the
   // registry entries existed.
   else if (location.hash === ENGINE_MECHANIC_MODES.blindResume.hash) mechanicPilotCurrentModeKey = 'blindResume';
+  else if (location.hash === ENGINE_MECHANIC_MODES.blindResumeCfb.hash) mechanicPilotCurrentModeKey = 'blindResumeCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.doubleOrNothing.hash) mechanicPilotCurrentModeKey = 'doubleOrNothing';
   else if (location.hash === ENGINE_MECHANIC_MODES.kingOfTheHill.hash) mechanicPilotCurrentModeKey = 'kingOfTheHill';
+  else if (location.hash === ENGINE_MECHANIC_MODES.kingOfTheHillCfb.hash) mechanicPilotCurrentModeKey = 'kingOfTheHillCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.factOrFake.hash) mechanicPilotCurrentModeKey = 'factOrFake';
   else if (location.hash === ENGINE_MECHANIC_MODES.guessTheRanking.hash) mechanicPilotCurrentModeKey = 'guessTheRanking';
+  else if (location.hash === ENGINE_MECHANIC_MODES.guessTheRankingCfb.hash) mechanicPilotCurrentModeKey = 'guessTheRankingCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.statTarget.hash) mechanicPilotCurrentModeKey = 'statTarget';
+  else if (location.hash === ENGINE_MECHANIC_MODES.statTargetCfb.hash) mechanicPilotCurrentModeKey = 'statTargetCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.reverseTrivia.hash) mechanicPilotCurrentModeKey = 'reverseTrivia';
   else if (location.hash === ENGINE_MECHANIC_MODES.threeStrikes.hash) mechanicPilotCurrentModeKey = 'threeStrikes';
   else if (location.hash === ENGINE_MECHANIC_MODES.mysteryRoster.hash) mechanicPilotCurrentModeKey = 'mysteryRoster';

@@ -28,7 +28,12 @@ top. Also distinct from HIGHER_LOWER_STREAK: that format has no
 persistent "champion" concept at all, just a plain sequential streak
 against the next item in a shuffled real sequence.
 
-Single variant: NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also"):
+added CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL, reusing higher_lower.py's own
+already-certified `_cfb_items()` verbatim (cfb_standings.total_wins, FBS
+programs only, CFBD_API_LIVE/SOURCE_BACKED) -- zero new data work, same
+real tie-exclusion-by-construction discipline as the NFL variant.
 """
 from __future__ import annotations
 
@@ -44,12 +49,13 @@ from tools.director_v04 import higher_lower  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "KING_OF_THE_HILL"
-VARIANTS = frozenset({"NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL"})
+VARIANTS = frozenset({"NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL", "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL"})
 SEQUENCE_LENGTH = 16
 
 
 def safety_check(c) -> dict:
-    return {"season_standings": higher_lower.safety_check(c)["season_standings"]}
+    full = higher_lower.safety_check(c)
+    return {"season_standings": full["season_standings"], "cfb_standings": full["cfb_standings"]}
 
 
 def generate_items(seed: str, variant: str) -> dict:
@@ -59,20 +65,26 @@ def generate_items(seed: str, variant: str) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        items = higher_lower._nfl_items(c, seed, SEQUENCE_LENGTH)
+        items = (higher_lower._cfb_items(c, seed, SEQUENCE_LENGTH)
+                 if variant == "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL"
+                 else higher_lower._nfl_items(c, seed, SEQUENCE_LENGTH))
     finally:
         c.close()
 
+    league_label = "CFB" if variant == "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL" else "NFL"
     shortfall_reason = None
     if len(items) < 4:
         shortfall_reason = (
-            f"Only {len(items)} real, distinct-win-total NFL team-seasons were found -- too few real "
-            f"challengers to honestly support a King of the Hill run."
+            f"Only {len(items)} real, distinct-win-total {league_label} team-seasons were found -- too few "
+            f"real challengers to honestly support a King of the Hill run."
         )
     return {"items": items, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL": "King of the Hill"}
+_GAME_TITLES = {
+    "NFL_TEAM_SEASON_WINS_KING_OF_THE_HILL": "King of the Hill",
+    "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL": "King of the Hill (CFB)",
+}
 
 
 def build_package(seed: str, variant: str) -> dict:
@@ -82,14 +94,15 @@ def build_package(seed: str, variant: str) -> dict:
     ).hexdigest()[:24]
     items = result["items"]
     valid = len(items) >= 4
+    league_label = "CFB" if variant == "CFB_TEAM_SEASON_WINS_KING_OF_THE_HILL" else "NFL"
 
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "game_title": _GAME_TITLES[variant],
-        "game_instructions": "One real NFL team-season is the champion. Predict whether the champion or "
-                              "the next real challenger really had more real wins that season -- a correct "
-                              "prediction keeps the gauntlet going (the real winner becomes/stays champion); "
-                              "a wrong prediction ends your run.",
+        "game_instructions": f"One real {league_label} team-season is the champion. Predict whether the "
+                              "champion or the next real challenger really had more real wins that season -- "
+                              "a correct prediction keeps the gauntlet going (the real winner becomes/stays "
+                              "champion); a wrong prediction ends your run.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if valid else "FAILED",
         "items": [{"label": it["label"], "value": it["_private_value"]} for it in items],

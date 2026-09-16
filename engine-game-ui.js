@@ -1484,6 +1484,17 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- built on cfb_player_season_stats_real, real
+  // career completions used in place of the (nonexistent for CFB) games
+  // stat. Same kind='blind_resume' renderer as the NFL variant.
+  blindResumeCfb: {
+    publicMode: 'blind_resume_cfb_qb', hash: '#blindresumecfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_BLIND_RESUME_PILOT_V01; },
+    title: 'Blind Resume (CFB)', kind: 'blind_resume',
+    desc: 'A real college player\'s career passing resume is shown with the name hidden -- guess who it is.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // double_or_nothing.py's own module docstring.
   doubleOrNothing: {
@@ -1503,6 +1514,17 @@ var ENGINE_MECHANIC_MODES = {
     desc: 'Defend the real champion team-season against a gauntlet of real random challengers.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  // CFB retrofit pass -- reuses higher_lower.py's own already-certified
+  // cfb_standings.total_wins data (FBS only). Same kind='king_of_the_hill'
+  // renderer as the NFL variant.
+  kingOfTheHillCfb: {
+    publicMode: 'king_of_the_hill_cfb', hash: '#kingofthehillcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01; },
+    title: 'King of the Hill (CFB)', kind: 'king_of_the_hill',
+    desc: 'Defend the real champion college team-season against a gauntlet of real random challengers.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // fact_or_fake.py's own module docstring.
@@ -1524,6 +1546,16 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
+  // CFB retrofit pass -- self-contained real top-15 CFB career passing
+  // yards query. Same kind='guess_the_ranking' renderer as the NFL variant.
+  guessTheRankingCfb: {
+    publicMode: 'guess_the_ranking_cfb', hash: '#guesstherankingcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01; },
+    title: 'Guess the Ranking (CFB)', kind: 'guess_the_ranking',
+    desc: 'A real college player is named -- guess their real rank on a real career leaderboard.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
+  },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // stat_target.py's own module docstring.
   statTarget: {
@@ -1533,6 +1565,20 @@ var ENGINE_MECHANIC_MODES = {
     desc: 'Tap whichever real player’s real season total came closest to the target.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
+  },
+  // CFB retrofit pass (user request: "I want all these formats to be NFL
+  // and CFB based not just nfl... for the formats already on the app
+  // also") -- built on cfb_player_season_stats_real, see
+  // tools/director_v04/stat_target.py's own module docstring for real
+  // pool size/coverage. Reuses the exact same kind='stat_target' renderer
+  // as the NFL variant -- only the underlying data source differs.
+  statTargetCfb: {
+    publicMode: 'stat_target_cfb_rushing', hash: '#stattargetcfbpilot',
+    flagOn: function () { return ENABLE_ENGINE_STAT_TARGET_PILOT_V01; },
+    title: 'Stat Target (CFB)', kind: 'stat_target',
+    desc: 'Tap whichever real college player’s real season total came closest to the target.',
+    fallbackLabel: 'Play CFB Quiz Instead',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
   // 75-Format Expansion, Wave 1 -- see tools/director_v04/
   // reverse_trivia.py's own module docstring.
@@ -2510,8 +2556,17 @@ function renderLeaderboardClimbBody(v, s) {
 // renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR/CAREER_PATH.
 function renderBlindResumeBody(v, s) {
   var r = v.resume;
+  // CFB retrofit pass: cfb_player_season_stats_real has no real "games
+  // played" column at all -- the CFB variant's resume carries
+  // r.completions instead of r.games (a real, populated column), never
+  // mislabeled as games. Presence of r.completions (not the mode key) is
+  // the source of truth here so this stays correct even if a future
+  // variant is added.
+  var firstStatHtml = (r.completions != null)
+    ? '<div class="chain-node">' + r.completions + ' career completions</div>'
+    : '<div class="chain-node">' + r.games + ' games played</div>';
   return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="chain-node">' + r.games + ' games played</div>' +
+    firstStatHtml +
     '<div class="chain-node">' + r.pass_yards + ' career pass yards</div>' +
     '<div class="chain-node">' + r.pass_td + ' career passing TDs</div>' +
     '<div class="chain-node">' + r.interceptions + ' career interceptions</div>' +

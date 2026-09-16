@@ -34,7 +34,18 @@ to be a plausible real decoy) and are never shown their own real resumes
 only needs to be a real, distinct, verifiable identity, not a
 value-matched one.
 
-Single variant: NFL_QB_CAREER_BLIND_RESUME.
+CFB retrofit pass (user request: "I want all these formats to be NFL and
+CFB based not just nfl... for the formats already on the app also"):
+added CFB_QB_CAREER_BLIND_RESUME, built on cfb_player_season_stats_real +
+cfb_roster_seasons_real.position='QB' (same real join pattern as the NFL
+variant). Real, disclosed substitution: this table has no "games played"
+column at all (confirmed directly against its schema) -- uses real career
+COMPLETIONS instead as the 4th resume stat (a real, populated column),
+same substitution discipline as MYSTERY_ROSTER's own years_experience-for-
+jersey_number swap this session. Real qualifying pool at the same
+3000-career-pass-yard threshold: 601 real CFB QBs.
+
+Two variants: NFL_QB_CAREER_BLIND_RESUME, CFB_QB_CAREER_BLIND_RESUME.
 """
 from __future__ import annotations
 
@@ -49,17 +60,33 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "BLIND_RESUME"
-VARIANTS = frozenset({"NFL_QB_CAREER_BLIND_RESUME"})
+VARIANTS = frozenset({"NFL_QB_CAREER_BLIND_RESUME", "CFB_QB_CAREER_BLIND_RESUME"})
 MIN_CAREER_PASS_YARDS = 3000
 MIN_CAREER_GAMES = 16
 
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
-    return {"player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA")}
+    return {
+        "player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA"),
+        "cfb_player_season_stats_real": safety.check_verification_status_safety(
+            c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+    }
 
 
-def _fetch_qualifying_qbs(c) -> list[dict]:
+def _fetch_qualifying_qbs(c, variant: str) -> list[dict]:
+    if variant == "CFB_QB_CAREER_BLIND_RESUME":
+        rows = c.execute(
+            "SELECT cfb_player_id AS player_key, player_name AS display_name, "
+            "SUM(completions) AS completions, SUM(passing_yards) AS pass_yards, "
+            "SUM(passing_tds) AS pass_td, SUM(interceptions_thrown) AS interceptions "
+            "FROM cfb_player_season_stats_real s "
+            "WHERE verification_status='SOURCE_BACKED_DERIVED' AND source_id='SPORTSDATAVERSE_CFB' "
+            "AND EXISTS (SELECT 1 FROM cfb_roster_seasons_real rs WHERE rs.cfb_player_id = s.cfb_player_id AND rs.position = 'QB') "
+            "GROUP BY cfb_player_id HAVING pass_yards > ?",
+            (MIN_CAREER_PASS_YARDS,),
+        ).fetchall()
+        return [dict(r) for r in rows]
     rows = c.execute(
         "SELECT s.player_key, p.display_name, SUM(s.games) AS games, SUM(s.pass_yards) AS pass_yards, "
         "SUM(s.pass_td) AS pass_td, SUM(s.pass_interceptions) AS interceptions FROM player_season_stats s "
@@ -72,9 +99,10 @@ def _fetch_qualifying_qbs(c) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def _build_rounds(seed: str, pool: list[dict], round_count: int) -> list[dict]:
+def _build_rounds(seed: str, pool: list[dict], round_count: int, variant: str) -> list[dict]:
     if len(pool) < 4:
         return []
+    is_cfb = variant == "CFB_QB_CAREER_BLIND_RESUME"
     rng = engine_bootstrap.seeded(seed)
     order = list(range(len(pool)))
     rng.shuffle(order)
@@ -88,16 +116,33 @@ def _build_rounds(seed: str, pool: list[dict], round_count: int) -> list[dict]:
         if len(decoy_pool) < 3:
             continue
         decoys = rng.sample(decoy_pool, 3)
-        rounds.append({
-            "resume": {
+        if is_cfb:
+            # Real, disclosed substitution: cfb_player_season_stats_real has
+            # no "games played" column at all -- career COMPLETIONS is used
+            # as the 4th real resume stat instead (a real, populated
+            # column). `resume.completions` (not `resume.games`) is how the
+            # client renderer tells the two variants apart and picks an
+            # honest label -- never mislabels completions as games.
+            first_stat_label = f"{correct['completions']} career completions"
+            resume = {
+                "completions": correct["completions"], "pass_yards": correct["pass_yards"],
+                "pass_td": correct["pass_td"], "interceptions": correct["interceptions"],
+            }
+            source_note = "SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED"
+        else:
+            first_stat_label = f"{correct['games']} games"
+            resume = {
                 "games": correct["games"], "pass_yards": correct["pass_yards"],
                 "pass_td": correct["pass_td"], "interceptions": correct["interceptions"],
-            },
+            }
+            source_note = "NFLVERSE_DATA, SOURCE_BACKED"
+        rounds.append({
+            "resume": resume,
             "correct_name": correct["display_name"],
             "decoy_names": [d["display_name"] for d in decoys],
-            "notes": f"Real career passing resume ({correct['games']} games, {correct['pass_yards']} yards, "
+            "notes": f"Real career passing resume ({first_stat_label}, {correct['pass_yards']} yards, "
                      f"{correct['pass_td']} TD, {correct['interceptions']} INT) belongs to "
-                     f"{correct['display_name']} (NFLVERSE_DATA, SOURCE_BACKED).",
+                     f"{correct['display_name']} ({source_note}).",
         })
     return rounds
 
@@ -109,11 +154,11 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        pool = _fetch_qualifying_qbs(c)
+        pool = _fetch_qualifying_qbs(c, variant)
     finally:
         c.close()
 
-    rounds = _build_rounds(seed, pool, round_count)
+    rounds = _build_rounds(seed, pool, round_count, variant)
     shortfall_reason = None
     if len(rounds) < round_count:
         shortfall_reason = (
@@ -124,7 +169,10 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
 
 
-_GAME_TITLES = {"NFL_QB_CAREER_BLIND_RESUME": "Blind Resume"}
+_GAME_TITLES = {
+    "NFL_QB_CAREER_BLIND_RESUME": "Blind Resume",
+    "CFB_QB_CAREER_BLIND_RESUME": "Blind Resume (CFB)",
+}
 
 
 def build_package(seed: str, variant: str, round_count: int = 7) -> dict:
