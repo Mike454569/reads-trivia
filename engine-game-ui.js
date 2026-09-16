@@ -92,8 +92,24 @@ var ENGINE_GAME_ERROR_COPY = {
   INVALID_GAME_ID: "That question expired — let's get you a new one.",
 };
 var ENGINE_GAME_ERROR_DEFAULT = "Couldn't load that — please try again.";
+// Real gap found: RATE_LIMITED (a real, honest 429 from the server's own
+// per-IP submit/round rate limiter -- 60 submits/min, 20 new rounds/min)
+// had no entry here at all, so it silently fell through to the generic
+// ENGINE_GAME_ERROR_DEFAULT copy with no indication of what actually
+// happened or that mashing "Try Again" immediately won't help. Handled
+// as its own function (not a static string) since the real wait time is
+// server-computed and varies per request -- shown when available, a safe
+// generic phrase otherwise.
+function _rateLimitedCopy(err) {
+  var seconds = err && err.retryAfterSeconds;
+  if (typeof seconds === 'number' && seconds > 0) {
+    return "You're going a little fast — try again in " + Math.ceil(seconds) + "s.";
+  }
+  return "You're going a little fast — give it a few seconds and try again.";
+}
 function enginePilotUserFacingError(err) {
   var code = err && err.code;
+  if (code === 'RATE_LIMITED') return _rateLimitedCopy(err);
   return (code && ENGINE_GAME_ERROR_COPY[code]) || ENGINE_GAME_ERROR_DEFAULT;
 }
 
@@ -450,6 +466,15 @@ function enginePilotFetchJson(path, options) {
         // `err.code`, the stable/safe half of the server's error contract.
         var err = new Error((body.error && body.error.message) || ('HTTP ' + res.status));
         err.code = body.error && body.error.code;
+        // Real gap found ("all the games do this when you get something
+        // wrong" -- players hitting the real per-IP submit rate limit,
+        // 60 req/60s, get a real RATE_LIMITED 429 with no matching entry
+        // in ENGINE_GAME_ERROR_COPY, so it fell through to the generic
+        // "Couldn't load that" message with no indication of what
+        // actually happened or that immediately retrying won't help.
+        // retry_after_seconds is real, server-computed -- carried through
+        // here so the user-facing copy can tell them how long to wait.
+        err.retryAfterSeconds = body.error && body.error.retry_after_seconds;
         throw err;
       });
     }
@@ -481,10 +506,34 @@ function startEnginePilotRound(modeKey, filterValue) {
     // of a plain done/current dot -- harmless, unused array for every
     // other mode.
     stageResults: [],
+    // Real bug fix ("all the games do this when you get something
+    // wrong") -- same real gap as mechanicPilot's own errorContext (see
+    // that shell's startMechanicPilotRound for the full writeup): the
+    // ERROR screen's single "Try Again" button used to always call
+    // loadNextEnginePilotQuestion(), even when the real failure was on
+    // SUBMITTING an already-picked answer -- discarding it and serving an
+    // unrelated new question instead of just resubmitting.
+    errorContext: null,
   };
   state.enginePilotPendingFranchise = null;
   state.screen = 'enginePilot';
   renderAll();
+  loadNextEnginePilotQuestion();
+}
+// Real bug fix ("all the games do this when you get something wrong"):
+// same real reason as mechanicPilot's own mechanicPilotRetry() -- the
+// ERROR screen's single "Try Again" button used to always call
+// loadNextEnginePilotQuestion() regardless of whether the failure was on
+// loading a question (fine to just retry) or on SUBMITTING an
+// already-picked answer (which silently discarded that answer and served
+// an unrelated new question instead of resubmitting it).
+function enginePilotRetry() {
+  var s = state.enginePilot;
+  if (!s) return;
+  if (s.errorContext === 'submit' && s.current && s.pickedOption !== null) {
+    _submitEnginePilotAnswer(s.pickedOption);
+    return;
+  }
   loadNextEnginePilotQuestion();
 }
 function enginePilotFallback() {
@@ -544,6 +593,7 @@ function loadNextEnginePilotQuestion() {
           renderAll();
           return;
         }
+        s.errorContext = 'load';
         s.screen = ENGINE_GAME_SCREEN.ERROR;
         s.error = enginePilotUserFacingError(game.error);
         renderAll();
@@ -558,6 +608,7 @@ function loadNextEnginePilotQuestion() {
     })
     .catch(function (err) {
       if (state.enginePilot !== s) return;
+      s.errorContext = 'load';
       s.screen = ENGINE_GAME_SCREEN.ERROR;
       s.error = enginePilotUserFacingError(err);
       renderAll();
@@ -566,9 +617,20 @@ function loadNextEnginePilotQuestion() {
 function pickEnginePilotAnswer(optionIndex) {
   var s = state.enginePilot;
   if (!s || s.screen !== ENGINE_GAME_SCREEN.QUESTION_READY || s.pickedOption !== null) return;
+  s.pickedOption = optionIndex;
+  _submitEnginePilotAnswer(optionIndex);
+}
+// Real bug fix ("all the games do this when you get something wrong"):
+// factored out of pickEnginePilotAnswer() so a retry after a SUBMIT
+// failure can resubmit the exact same already-picked answer (s.current/
+// s.pickedOption are both still on `s`, untouched by the failure) without
+// re-running pickEnginePilotAnswer()'s own "already picked" guard, which
+// would otherwise block a retry from ever re-firing.
+function _submitEnginePilotAnswer(optionIndex) {
+  var s = state.enginePilot;
+  if (!s) return;
   var game = s.current;
   var chosenLabel = game.payload.options[optionIndex];
-  s.pickedOption = optionIndex;
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
   enginePilotFetchJson('/v1/public/game/answer', {
@@ -588,6 +650,7 @@ function pickEnginePilotAnswer(optionIndex) {
     renderAll();
   }).catch(function (err) {
     if (state.enginePilot !== s) return;
+    s.errorContext = 'submit';
     s.screen = ENGINE_GAME_SCREEN.ERROR;
     s.error = enginePilotUserFacingError(err);
     renderAll();
@@ -1538,7 +1601,20 @@ function mechanicPilotModeConfig(modeKey) {
 }
 function startMechanicPilotRound(modeKey) {
   if (modeKey) mechanicPilotCurrentModeKey = modeKey;
-  state.mechanicPilot = { modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null, result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null };
+  state.mechanicPilot = {
+    modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
+    result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null,
+    // Real bug fix ("all the games do this when you get something wrong"):
+    // the ERROR screen's "Try Again" button always called
+    // loadMechanicPilotRound() unconditionally, even when the failure
+    // happened on SUBMITTING an answer (after the player already invested
+    // real effort -- clue reveals, a chosen answer) -- silently discarding
+    // that in-flight round and starting a brand new one instead of
+    // retrying the submission that actually failed. errorContext/
+    // lastSubmission let the retry handler do the right thing for each
+    // failure instead of always doing the more destructive one.
+    errorContext: null, lastSubmission: null,
+  };
   state.screen = 'mechanicPilot';
   renderAll();
   loadMechanicPilotRound();
@@ -1546,6 +1622,24 @@ function startMechanicPilotRound(modeKey) {
 function mechanicPilotFallback() {
   var modeKey = (state.mechanicPilot && state.mechanicPilot.modeKey) || mechanicPilotCurrentModeKey;
   mechanicPilotModeConfig(modeKey).fallback();
+}
+// Real bug fix ("all the games do this when you get something wrong"):
+// the ERROR screen's single "Try Again" button used to call
+// loadMechanicPilotRound() unconditionally -- correct when the failure
+// was on loading a round in the first place, but WRONG when the failure
+// was on SUBMITTING an answer: it silently discarded the player's
+// already-answered round (which the server still has on record under
+// s.roundId) and handed them an unrelated brand-new one instead of
+// simply resubmitting the same real answer. Branches on the real context
+// recorded at the moment each failure happened.
+function mechanicPilotRetry() {
+  var s = state.mechanicPilot;
+  if (!s) return;
+  if (s.errorContext === 'submit' && s.roundId && s.lastSubmission) {
+    submitMechanicPilotAction(s.lastSubmission);
+    return;
+  }
+  loadMechanicPilotRound();
 }
 function loadMechanicPilotRound() {
   var s = state.mechanicPilot;
@@ -1563,6 +1657,7 @@ function loadMechanicPilotRound() {
     })
     .catch(function (err) {
       if (state.mechanicPilot !== s) return;
+      s.errorContext = 'load';
       s.screen = ENGINE_GAME_SCREEN.ERROR; s.error = enginePilotUserFacingError(err);
       renderAll();
     });
@@ -1570,6 +1665,7 @@ function loadMechanicPilotRound() {
 function submitMechanicPilotAction(submission) {
   var s = state.mechanicPilot;
   if (!s || !s.roundId) return;
+  s.lastSubmission = submission;
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
   enginePilotFetchJson('/v1/public/mechanics/round/' + encodeURIComponent(s.roundId) + '/submit', {
@@ -1614,6 +1710,7 @@ function submitMechanicPilotAction(submission) {
     renderAll();
   }).catch(function (err) {
     if (state.mechanicPilot !== s) return;
+    s.errorContext = 'submit';
     s.screen = ENGINE_GAME_SCREEN.ERROR; s.error = enginePilotUserFacingError(err);
     renderAll();
   });

@@ -10554,11 +10554,11 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.pilotAnswer !== undefined) { pickEnginePilotAnswer(parseInt(t.dataset.pilotAnswer, 10)); return; }
   if (t.dataset.pilotNext !== undefined) { advanceEnginePilot(); return; }
-  if (t.dataset.pilotRetry !== undefined) { loadNextEnginePilotQuestion(); return; }
+  if (t.dataset.pilotRetry !== undefined) { enginePilotRetry(); return; }
   if (t.dataset.pilotFallback !== undefined) { enginePilotFallback(); return; }
 
   if (t.dataset.mechanicStart !== undefined) { startMechanicPilotRound(); return; }
-  if (t.dataset.mechanicRetry !== undefined) { loadMechanicPilotRound(); return; }
+  if (t.dataset.mechanicRetry !== undefined) { mechanicPilotRetry(); return; }
   if (t.dataset.mechanicFallback !== undefined) { mechanicPilotFallback(); return; }
   if (t.dataset.mechanicNext !== undefined) { mechanicPilotAdvance(); return; }
   if (t.dataset.mechanicExit !== undefined) { state.mechanicPilot = null; goToMode('home'); return; }
