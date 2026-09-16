@@ -146,3 +146,16 @@ def test_public_route_real_fetch_and_answer_roundtrip(client):
 def test_public_mode_on_the_allowlist():
     from gateway import config
     assert "cfb_betting_cover_guess" in config.PUBLIC_MODE_ALLOWLIST
+
+
+def test_provider_in_the_global_schema_filter_allowlist():
+    # Same real bug class as CFB_RANKING's "poll" filter (see
+    # test_cfb_ranking_poll_expansion.py's own test for the full
+    # writeup) -- schema.py's ALLOWED_FILTER_KEYS is a separate,
+    # hand-maintained global gate a capability's own supported_filter_keys
+    # does not substitute for. Added preemptively (no current NL phrase
+    # triggers an explicit-provider request yet) so an explicit-provider
+    # request never hits BLOCKED_UNSUPPORTED_FILTER the first time one is
+    # actually made.
+    from tools.director_v02 import schema
+    assert "provider" in schema.ALLOWED_FILTER_KEYS

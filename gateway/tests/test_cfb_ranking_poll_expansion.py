@@ -108,3 +108,28 @@ def test_registry_declares_poll_filter_key():
     ranked_higher = registry.CAPABILITY_REGISTRY[("guess", "CFB_RANKING", "RANKED_HIGHER")]
     assert "poll" in ranked_in_poll["supported_filter_keys"]
     assert "poll" in ranked_higher["supported_filter_keys"]
+
+
+def test_poll_in_the_global_schema_filter_allowlist():
+    # Real production bug found after deploy: schema.py's ALLOWED_FILTER_KEYS
+    # is a SEPARATE, hand-maintained global gate checked BEFORE a
+    # capability's own supported_filter_keys (validator.py checks both) --
+    # unlike ALLOWED_DOMAINS/ALLOWED_PREDICATES it is NOT part of
+    # generate_schema_and_prompt.py's auto-generated block, so adding
+    # "poll" to the capability's registry entry alone was not enough.
+    # Every "Coaches Poll"/"CFP" NL request 500'd with
+    # BLOCKED_UNSUPPORTED_FILTER in production until this was fixed --
+    # caught by actually calling the real end-to-end /v1/creator/generate
+    # route (not just the translator's output spec and the adapter
+    # separately, which is what let this slip through the first time).
+    from tools.director_v02 import schema
+    assert "poll" in schema.ALLOWED_FILTER_KEYS
+
+
+def test_full_http_route_real_generation_for_coaches_poll_request(client, auth_headers):
+    r = client.post("/v1/creator/generate", json={"request_text": "Make a game about the Coaches Poll."}, headers=auth_headers)
+    assert r.status_code == 200, r.json()
+    body = r.json()
+    assert body["qa_status"] == "PASSED"
+    assert body["question_count"] > 0
+    assert "Coaches Poll" in body["questions"][0]["question"]

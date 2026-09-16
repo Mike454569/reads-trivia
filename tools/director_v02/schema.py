@@ -234,6 +234,24 @@ ALLOWED_FILTER_KEYS: frozenset[str] = frozenset({
     # range ("coordinators from the 2000s" -> 2000-2009), same generic
     # min/max convention as rank_min/rank_max above.
     "season_min", "season_max",
+    # Existing-Data Wiring pass: real production bug found and fixed after
+    # this gap made every "Coaches Poll"/"CFP" NL request 500 with
+    # BLOCKED_UNSUPPORTED_FILTER -- this global allowlist is a SEPARATE
+    # gate from a capability's own supported_filter_keys (checked first,
+    # per validator.py's own comment above), and unlike ALLOWED_DOMAINS/
+    # ALLOWED_PREDICATES is NOT part of generate_schema_and_prompt.py's
+    # auto-generated block, so adding a new filter key to a capability's
+    # registry entry alone is not enough -- caught by actually calling the
+    # real end-to-end /v1/creator/generate route in production, not
+    # assumed safe from testing the translator and the adapter separately.
+    # `poll` scopes CFB_RANKING/RANKED_IN_POLL and RANKED_HIGHER to an
+    # explicit real poll (AP Top 25 default; Coaches Poll/Playoff
+    # Committee Rankings also real and selectable). `provider` scopes
+    # CFB_BETTING/COVERED_SPREAD to an explicit real sportsbook (consensus
+    # default) -- added here preemptively for the same real reason, before
+    # it caused the identical failure the first time an explicit-provider
+    # request is ever made.
+    "poll", "provider",
 })
 EXCLUSIONS_SUPPORTED = False  # no adapter supports exclusion lists yet
 
