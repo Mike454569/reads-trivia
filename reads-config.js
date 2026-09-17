@@ -110,9 +110,12 @@ window.READS_CONFIG = {
   // 15-Format Expansion pass (Part 2), format #10 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineCareerPathPilot: false,
-  // 15-Format Expansion pass (Part 2), format #11 -- same off-by-default
-  // convention as its own sibling pilots above.
-  enableEngineRiskItPilot: false,
+  // 15-Format Expansion pass (Part 2), format #11. Flipped ON: backend
+  // (public_mechanics.py, live-verified including its new CFB variant),
+  // routing (app.js hash resolution + discovery card, added when this was
+  // flipped -- it had neither before), and Football Rating wiring
+  // (finishMechanicPilotSession's existing risk_it branch) all confirmed.
+  enableEngineRiskItPilot: true,
   // 15-Format Expansion pass (Part 2), format #12 -- same off-by-default
   // convention as its own sibling pilots above.
   enableEngineWagerModePilot: false,

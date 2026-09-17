@@ -1921,6 +1921,21 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
 // startEnginePilotRound(). Gated the same way every other engine card is:
 // present in this array only when its own flagOn() is true.
 if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
+  // Same real gap as blindResume et al. below, just never swept before now
+  // because the flag was off: no discovery card meant no real player could
+  // ever find RISK_IT even once enabled.
+  if (ENGINE_MECHANIC_MODES.riskIt.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'risk_it_guess', icon: 'flame', title: ENGINE_MECHANIC_MODES.riskIt.title,
+      desc: ENGINE_MECHANIC_MODES.riskIt.desc, mechanicMode: 'riskIt', league: 'nfl', difficulty: 'hardcore',
+    });
+  }
+  if (ENGINE_MECHANIC_MODES.riskItCfb.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'risk_it_cfb_guess', icon: 'flame', title: ENGINE_MECHANIC_MODES.riskItCfb.title,
+      desc: ENGINE_MECHANIC_MODES.riskItCfb.desc, mechanicMode: 'riskItCfb', league: 'cfb', difficulty: 'hardcore',
+    });
+  }
   if (ENGINE_MECHANIC_MODES.blindResume.flagOn()) {
     ENGINE_DISCOVERY_ENTRIES.push({
       id: 'blind_resume_guess', icon: 'mystery', title: ENGINE_MECHANIC_MODES.blindResume.title,
@@ -11327,6 +11342,8 @@ if (HIDDEN_ROUTES[location.hash]) {
   // its 'matching' default, silently launching the wrong game. Found by
   // actually tracing the route resolution, not assumed correct because the
   // registry entries existed.
+  else if (location.hash === ENGINE_MECHANIC_MODES.riskIt.hash) mechanicPilotCurrentModeKey = 'riskIt';
+  else if (location.hash === ENGINE_MECHANIC_MODES.riskItCfb.hash) mechanicPilotCurrentModeKey = 'riskItCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.blindResume.hash) mechanicPilotCurrentModeKey = 'blindResume';
   else if (location.hash === ENGINE_MECHANIC_MODES.blindResumeCfb.hash) mechanicPilotCurrentModeKey = 'blindResumeCfb';
   else if (location.hash === ENGINE_MECHANIC_MODES.doubleOrNothing.hash) mechanicPilotCurrentModeKey = 'doubleOrNothing';

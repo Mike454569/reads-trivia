@@ -2595,6 +2595,18 @@ var _TIER_SELECT_META = {
 };
 function renderRiskItBody(v, s) {
   var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  // Real, found-and-fixed crash: the ANSWERED screen calls this body
+  // renderer with whatever view the just-graded submission returned --
+  // when a wrong answer used the player's last real life, that view is
+  // already the round's own "completed" shape (score/lives/ended only,
+  // no prompt/options), same as _risk_it_client_view's own real
+  // completed branch. Rendering v.options.map(...) against that shape
+  // threw, which the submit handler's catch turned into a generic
+  // "Couldn't load" error on literally every game-ending wrong answer.
+  // Same defensive-on-ended pattern HIGHER_LOWER/ELIMINATION already use.
+  if (v.completed || v.ended) {
+    return roundLine + '<div class="quiz-question">Run over -- no more real questions this round.</div>';
+  }
   if (v.awaiting_tier) {
     var tierOrder = ['LOW', 'MEDIUM', 'HIGH'];
     return roundLine +
@@ -2693,7 +2705,21 @@ function renderBlindResumeBody(v, s) {
 // distinct gold "lock it in" CTA (.btn-bank) rather than a generic chip
 // button. Tier now shown via the shared shell header, not repeated here.
 function renderDoubleOrNothingBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  // Real, found-and-fixed crash: DOUBLE_OR_NOTHING has no lives budget --
+  // a SINGLE wrong answer (or a bank) ends the run, so the ANSWERED
+  // screen's view is the round's own completed shape (points/ended/
+  // banked only, no prompt/options) on literally the most common way a
+  // run ends. Rendering v.options.map(...) against that shape threw,
+  // which the submit handler's catch turned into a generic "Couldn't
+  // load" error. Same defensive-on-ended pattern HIGHER_LOWER/
+  // ELIMINATION already use.
+  if (v.completed) {
+    return roundLine + '<div class="pot-display"><span class="pot-value">' + v.points + '</span>' +
+      '<span class="pot-label">' + (v.banked ? 'points banked' : 'points on the line') + '</span></div>' +
+      '<div class="quiz-question">' + (v.banked ? 'Banked!' : 'Run over') + ' -- no more real questions this round.</div>';
+  }
+  return roundLine +
     '<div class="pot-display"><span class="pot-value">' + v.points + '</span><span class="pot-label">points on the line</span></div>' +
     (v.can_bank
       ? '<div class="btn-row"><button class="btn-primary btn-bank" data-mechanic-don-bank>' + icon('lock') + ' Bank ' + v.points + ' Points</button></div>'
@@ -2768,7 +2794,17 @@ function renderReverseTriviaBody(v, s) {
 // shared shell header, so this only needs the real round-progress line
 // and question.
 function renderThreeStrikesBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  // Real, found-and-fixed crash: same shape as RISK_IT above -- the
+  // ANSWERED screen after a strike-costing wrong answer that used the
+  // last real strike gets the round's own completed shape (score/streak/
+  // strikes/ended only, no prompt/options). Rendering v.options.map(...)
+  // against that shape threw, which the submit handler's catch turned
+  // into a generic "Couldn't load" error.
+  if (v.completed || v.ended) {
+    return roundLine + '<div class="quiz-question">Run over -- no more real questions this round.</div>';
+  }
+  return roundLine +
     '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-three-strikes-answer',
@@ -2918,7 +2954,25 @@ function renderMechanicPilotScreen() {
     return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
       '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
   }
-  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
+  // Real, found-and-fixed crash (systemic across most mechanicPilot
+  // kinds, not just one format): the answer that just got graded can
+  // ITSELF be the one that ends the round (last strike/life spent, one
+  // wrong answer in DOUBLE_OR_NOTHING, or simply the final scheduled
+  // round) -- every real *_client_view's own "completed" branch server-
+  // side drops the question/options fields entirely at that point
+  // (mechanic_engine.py, e.g. _fact_or_fake_client_view/
+  // _risk_it_client_view). Calling renderMechanicPilotBody() against
+  // that shape unconditionally threw (v.options.map on undefined, etc.),
+  // and the submit handler's own catch turned that exception into a
+  // generic "Couldn't load that -- please try again" error on what was
+  // actually a normal, successful (if game-ending) answer. Skip the body
+  // entirely once the round is already over -- renderMechanicPilotFeedback
+  // (which reads s.result, always populated regardless of view shape)
+  // still shows the real correct/wrong outcome, and Continue still
+  // advances to the real completion screen exactly as before.
+  var roundOver = s.view && (s.view.completed || s.view.ended || s.view.sequence_complete);
+  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+    (answered && roundOver ? '' : renderMechanicPilotBody(cfg, s)) +
     (answered ? renderMechanicPilotFeedback(cfg, s) +
       '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
     '</div>';
