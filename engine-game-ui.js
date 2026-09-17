@@ -885,7 +885,12 @@ function renderEnginePilotScreen() {
     // "Gateway" wording (Part 44: the infrastructure should disappear
     // behind the experience), and aria-live so a screen reader announces
     // the transition instead of going silent between questions.
-    return '<div class="panel">' + enginePilotToolbarHtml(cfg) + '<p class="mode-desc" aria-live="polite">Finding your next question&hellip;</p></div>';
+    // Brand revamp: this line previously had zero motion cue (text only)
+    // while every classic-mode loading state got the real spinner --
+    // inverted from what you'd expect (the newer flow actually felt
+    // LESS animated). Same shared .loading-spinner, compact inline size.
+    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
+      '<div class="inline-loading" aria-live="polite"><span class="loading-spinner loading-spinner-sm"></span>Finding your next question&hellip;</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
     // Part 11/43: s.error is always shell-owned, polished copy by this
@@ -942,8 +947,16 @@ function renderEnginePilotScreen() {
         || s.stageResults.map(function (r) { return r.decade; });
       recapHtml = renderEraGauntletTimelineHtml(recapLabels.length, recapLabels, s.stageResults);
     }
+    // Brand revamp: this shell was the one real gap in the completion-
+    // banner treatment (found during the earlier UX audit) -- every
+    // mechanicPilot format already got the confetti banner, this ~21-
+    // format enginePilot shell just showed a plain heading. Same shared
+    // banner now, so every completion screen in the app -- Immaculate
+    // Grid, mechanicPilot, and this shell -- reads as the same real
+    // Reads moment instead of 2 different finishes.
     return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
-      '<h2 class="panel-title">' + esc(completeTitle) + '</h2>' +
+      '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' +
+      icon('trophy') + ' <h2 class="complete-banner-text">' + esc(completeTitle) + '</h2></div>' +
       '<p class="mode-desc">' + completeStat + '</p>' +
       recapHtml +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start>Play Again</button>' +
@@ -2945,7 +2958,8 @@ function renderMechanicPilotScreen() {
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Start</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+      '<div class="inline-loading" aria-live="polite"><span class="loading-spinner loading-spinner-sm"></span>Finding your next round&hellip;</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
     return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
@@ -2962,8 +2976,8 @@ function renderMechanicPilotScreen() {
     // production-polish completion moment automatically -- no per-format
     // design pass needed.
     return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
-      '<div class="mechanic-complete-banner"><div class="mechanic-complete-confetti"></div>' +
-      icon('trophy') + ' Round Complete!</div>' +
+      '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' +
+      icon('trophy') + ' <h2 class="complete-banner-text">Round Complete!</h2></div>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +

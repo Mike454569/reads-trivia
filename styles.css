@@ -58,6 +58,19 @@
   --home-glow-rgb-2: 217, 166, 60;
   --home-accent: var(--accent);
   --home-accent-2: var(--accent);
+  /* Brand revamp: condensed athletic display face (the wordmark's own
+     feel) for headings/titles -- real fallback stack in case the Google
+     Fonts request fails, never left to fall back to a serif. Body text/
+     buttons intentionally stay on the system-font stack (readability for
+     actual gameplay text matters more than brand voice there). */
+  --font-display: 'Oswald', 'Arial Narrow', Impact, sans-serif;
+  /* Chrome/metallic accent gradients -- reused sparingly ("accents only":
+     primary CTAs, featured badges, hairline dividers, the goalpost motif)
+     rather than applied to every surface, which would read as gimmicky.
+     --gradient-gold echoes the logo's gold football/wordmark underglow;
+     --gradient-chrome echoes its silver goalpost. */
+  --gradient-gold: linear-gradient(135deg, #f0c869 0%, #d9a63c 45%, #a97a1f 100%);
+  --gradient-chrome: linear-gradient(135deg, #f4f7f1 0%, #a9b4bd 50%, #6b7680 100%);
 }
 body.home-fav-theme {
   --home-glow-rgb: var(--fav-team-color-rgb);
@@ -691,7 +704,7 @@ footer p { margin: 6px 0 0; }
 /* about page */
 .about-section { margin-bottom: var(--space-lg); }
 .about-section:last-child { margin-bottom: 0; }
-.about-heading { font-size: 15px; font-weight: 800; margin: 0 0 var(--space-xs); color: var(--text); }
+.about-heading { font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: .01em; margin: 0 0 var(--space-xs); color: var(--text); }
 .about-section .mode-desc { line-height: 1.55; }
 .settings-ranked-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .settings-ranked-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; }
@@ -781,7 +794,11 @@ footer p { margin: 6px 0 0; }
   border: 1px solid transparent;
   min-height: 44px;
 }
-.btn-primary { background: var(--accent); color: var(--accent-text); }
+/* Brand revamp: every primary CTA in the app is a real "key moment" --
+   a subtle gold gradient instead of a flat fill, echoing the logo's own
+   metallic football/wordmark treatment ("accents only": most surfaces
+   stay flat, this one is deliberately everywhere-visible). */
+.btn-primary { background: var(--gradient-gold); color: var(--accent-text); }
 .btn-primary:hover { filter: brightness(1.08); }
 .btn-secondary { background: transparent; border-color: var(--border); color: var(--text); }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
@@ -812,7 +829,7 @@ footer p { margin: 6px 0 0; }
   -webkit-mask-image: radial-gradient(ellipse 62% 62% at center, #000 60%, transparent 100%);
   mask-image: radial-gradient(ellipse 62% 62% at center, #000 60%, transparent 100%);
 }
-.hero-tagline { font-size: 19px; font-weight: 800; color: var(--text); margin: 0 0 var(--space-xs); }
+.hero-tagline { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: .01em; text-transform: uppercase; color: var(--text); margin: 0 0 var(--space-xs); }
 .fav-team-greeting { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--fav-team-color-readable, var(--accent)); margin: 0 0 var(--space-xs); }
 .fav-team-badge {
   display: inline-flex; align-items: center; justify-content: center;
@@ -825,7 +842,7 @@ footer p { margin: 6px 0 0; }
    below use for their top-edge accent stripe, so the two leagues read as
    two distinct color families at a glance rather than one undifferentiated
    grid of 13 identical cards. */
-.mode-section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin: 0 0 var(--space-sm); display: flex; align-items: center; gap: 7px; }
+.mode-section-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 0 0 var(--space-sm); display: flex; align-items: center; gap: 7px; }
 .mode-section-title::before { content: ''; width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
 .mode-section-title-nfl::before { background: var(--accent); }
 .mode-section-title-cfb::before { background: var(--accent-2); }
@@ -863,7 +880,7 @@ footer p { margin: 6px 0 0; }
 .mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 .mode-icon { font-size: 28px; margin-bottom: 8px; }
 .mode-icon img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; vertical-align: middle; }
-.mode-title { font-weight: 800; font-size: 17px; margin-bottom: 6px; }
+.mode-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .01em; margin-bottom: 6px; }
 .mode-desc { color: var(--text-dim); font-size: 13.5px; line-height: 1.4; }
 .mode-difficulty {
   position: absolute; top: 10px; right: 10px;
@@ -947,7 +964,7 @@ footer p { margin: 6px 0 0; }
   display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--home-accent); background: rgba(var(--home-glow-rgb), 0.14); border-radius: 999px; padding: 3px 10px; margin-bottom: var(--space-sm);
 }
-.daily-card-title { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 21px; margin-bottom: var(--space-sm); }
+.daily-card-title { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 23px; letter-spacing: .01em; margin-bottom: var(--space-sm); }
 .daily-flame-badge {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--home-accent), var(--home-accent-2)); color: var(--fav-team-text, var(--accent-text));
@@ -1036,11 +1053,20 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 
 /* generic panel */
 .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.panel-title { font-weight: 800; font-size: 19px; margin: 0 0 14px; }
+.panel-title { font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: .01em; margin: 0 0 14px; }
 .loading-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 48px 20px; }
-.loading-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: loading-spin 0.8s linear infinite; }
+/* Brand revamp: a real 2-tone gold+silver spin (the app's own NFL/CFB
+   accent duality) instead of a single flat-gold arc -- every loading
+   screen in the app uses this one rule. */
+.loading-spinner { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); border-right-color: var(--accent-2); animation: loading-spin 0.8s linear infinite; }
 .loading-text { color: var(--text-dim); font-size: 14px; font-weight: 600; }
 @keyframes loading-spin { to { transform: rotate(360deg); } }
+/* Brand revamp: a compact inline variant for mid-screen waits (engine/
+   mechanic-pilot's own "Finding your next round" states) that previously
+   had no spinner at all -- .loading-panel's own big centered block would
+   be too heavy here. */
+.inline-loading { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 14px; font-weight: 600; padding: 10px 0; }
+.loading-spinner-sm { width: 16px; height: 16px; border-width: 2px; flex-shrink: 0; }
 .field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .field-row label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-dim); flex: 1; min-width: 160px; }
 .field-row select, .field-row input {
@@ -1462,12 +1488,22 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   position: relative;
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 22px; font-weight: 900; letter-spacing: 0.02em; text-align: center;
-  color: var(--accent-text); background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--accent-text); background: var(--gradient-gold);
   border-radius: var(--radius); padding: 16px; margin: 4px 0 var(--space-md);
   animation: pop-feedback-strong 0.5s ease;
   overflow: hidden;
 }
-.grid-immaculate-banner .icon { width: 26px; height: 26px; }
+.grid-immaculate-banner .icon { width: 26px; height: 26px; position: relative; z-index: 1; }
+/* Brand revamp: a real semantic heading for the banner's own text (was
+   plain text with no h2 at all on 2 of these 3 shared banners) --
+   neutralizes h2's default block margin/font so it sits inline in the
+   flex row exactly like the plain text it replaces. */
+.complete-banner-text { margin: 0; font: inherit; color: inherit; position: relative; z-index: 1; }
+/* Brand revamp: the app's own goalpost silhouette as a large, quiet
+   watermark behind the banner text -- a recurring signature moment
+   rather than a generic gold rectangle. */
+.brand-watermark { position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: .16; }
+.brand-watermark .icon { width: 85%; height: 85%; color: var(--accent-text); }
 .grid-immaculate-confetti {
   position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
   box-shadow: 0 -60px 0 -1px #fff, 42px -42px 0 -1px var(--good), 60px 0 0 -1px #fff, 42px 42px 0 -1px var(--good),
@@ -1483,12 +1519,12 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   position: relative;
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 20px; font-weight: 900; letter-spacing: 0.02em; text-align: center;
-  color: var(--accent-text); background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--accent-text); background: var(--gradient-gold);
   border-radius: var(--radius); padding: 14px; margin: 0 0 var(--space-md);
   animation: pop-feedback-strong 0.5s ease;
   overflow: hidden;
 }
-.mechanic-complete-banner .icon { width: 24px; height: 24px; }
+.mechanic-complete-banner .icon { width: 24px; height: 24px; position: relative; z-index: 1; }
 .mechanic-complete-confetti {
   position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; pointer-events: none;
   box-shadow: 0 -60px 0 -1px #fff, 42px -42px 0 -1px var(--good), 60px 0 0 -1px #fff, 42px 42px 0 -1px var(--good),
@@ -1504,7 +1540,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 .blitz-list-card:hover { border-color: var(--accent); }
 .blitz-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.blitz-title { font-weight: 800; font-size: 17px; }
+.blitz-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .01em; }
 .blitz-timer { font-weight: 800; font-size: 22px; color: var(--accent); font-variant-numeric: tabular-nums; }
 /* Full Visual + Interactive Redesign pass: real urgency for the final 10
    real seconds of a timed round (Blitz's own countdown, Speed's session
@@ -1717,7 +1753,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .profile-headline-label { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
 .profile-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
 .profile-mode-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
-.profile-mode-title { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+.profile-mode-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: .01em; margin-bottom: 8px; }
 .profile-mode-stat { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); padding: 3px 0; }
 .profile-mode-stat b { color: var(--text); font-variant-numeric: tabular-nums; }
 .rating-sparkline { display: block; width: 100%; height: 28px; margin-top: 6px; color: var(--accent); }
@@ -2045,7 +2081,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .reads-shell-id { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
 .reads-shell-icon { color: var(--home-accent, var(--accent)); flex-shrink: 0; display: flex; }
 .reads-shell-icon .icon { width: 18px; height: 18px; }
-.reads-shell-title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reads-shell-title { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .reads-shell-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .reads-shell-chip {
   font-size: 11px; font-weight: 700; color: var(--text-dim); background: var(--bg-elevated);

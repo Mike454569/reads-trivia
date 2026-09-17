@@ -222,10 +222,22 @@ var ICON_PATHS = {
   // Risk & Wager visual identity pass: a real filled heart for the
   // lives/strikes pip track (RISK_IT/THREE_STRIKES).
   heart: '<path d="M12 20.5S3.5 15.2 3.5 9.1A4.6 4.6 0 0 1 12 6.5a4.6 4.6 0 0 1 8.5 2.6C20.5 15.2 12 20.5 12 20.5Z"/>',
+  // Brand revamp: the app's own signature shape (the wordmark's goalpost
+  // silhouette) -- used as a recurring decorative motif (completion
+  // screens, empty states), never as a generic UI icon.
+  goalpost: '<path d="M5 3v9"/><path d="M19 3v9"/><path d="M5 12h14"/><path d="M12 12v9"/><path d="M9 21l3-3 3 3"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
   return '<svg class="icon' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+}
+// Brand revamp: a large, low-opacity goalpost watermark -- the app's own
+// signature shape, reserved for real "moment" screens (round complete,
+// empty states) rather than sprinkled everywhere. Purely decorative
+// (aria-hidden); callers position it via the wrapping .brand-watermark-
+// host container (position:relative + overflow:hidden).
+function brandWatermarkHtml() {
+  return '<div class="brand-watermark" aria-hidden="true">' + icon('goalpost') + '</div>';
 }
 // Full Visual + Interactive Redesign pass: a shared segmented round-progress
 // bar (matching the redesigned game-screen mockup) -- `current` is the
@@ -3678,7 +3690,7 @@ function gridRarityTagHtml(poolSize) {
 // via .grid-immaculate-confetti), one word.
 function gridImmaculateBannerHtml(correctCells) {
   if (correctCells !== 9) return '';
-  return '<div class="grid-immaculate-banner"><div class="grid-immaculate-confetti"></div>' + icon('trophy') + ' IMMACULATE!</div>';
+  return '<div class="grid-immaculate-banner">' + brandWatermarkHtml() + '<div class="grid-immaculate-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">IMMACULATE!</h2></div>';
 }
 function criteriaHeaderHtml(c) {
   if (c.type === 'team') {
