@@ -1489,7 +1489,7 @@ var ENGINE_MECHANIC_MODES = {
   blindResume: {
     publicMode: 'blind_resume_nfl_qb', hash: '#blindresumepilot',
     flagOn: function () { return ENABLE_ENGINE_BLIND_RESUME_PILOT_V01; },
-    title: 'Blind Resume', kind: 'blind_resume',
+    title: 'Blind Resume', kind: 'blind_resume', icon: 'mystery',
     desc: 'A real player\'s career passing resume is shown with the name hidden -- guess who it is.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1500,7 +1500,7 @@ var ENGINE_MECHANIC_MODES = {
   blindResumeCfb: {
     publicMode: 'blind_resume_cfb_qb', hash: '#blindresumecfbpilot',
     flagOn: function () { return ENABLE_ENGINE_BLIND_RESUME_PILOT_V01; },
-    title: 'Blind Resume (CFB)', kind: 'blind_resume',
+    title: 'Blind Resume (CFB)', kind: 'blind_resume', icon: 'mystery',
     desc: 'A real college player\'s career passing resume is shown with the name hidden -- guess who it is.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1530,7 +1530,7 @@ var ENGINE_MECHANIC_MODES = {
   kingOfTheHill: {
     publicMode: 'king_of_the_hill_nfl', hash: '#kingofthehillpilot',
     flagOn: function () { return ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01; },
-    title: 'King of the Hill', kind: 'king_of_the_hill',
+    title: 'King of the Hill', kind: 'king_of_the_hill', icon: 'shield',
     desc: 'Defend the real champion team-season against a gauntlet of real random challengers.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1541,7 +1541,7 @@ var ENGINE_MECHANIC_MODES = {
   kingOfTheHillCfb: {
     publicMode: 'king_of_the_hill_cfb', hash: '#kingofthehillcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_KING_OF_THE_HILL_PILOT_V01; },
-    title: 'King of the Hill (CFB)', kind: 'king_of_the_hill',
+    title: 'King of the Hill (CFB)', kind: 'king_of_the_hill', icon: 'shield',
     desc: 'Defend the real champion college team-season against a gauntlet of real random challengers.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1551,7 +1551,7 @@ var ENGINE_MECHANIC_MODES = {
   factOrFake: {
     publicMode: 'fact_or_fake_nfl_draft', hash: '#factorfakepilot',
     flagOn: function () { return ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01; },
-    title: 'Fact or Fake', kind: 'fact_or_fake',
+    title: 'Fact or Fake', kind: 'fact_or_fake', icon: 'search',
     desc: 'Read a real NFL Draft statement and decide if it’s true or been altered.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1561,7 +1561,7 @@ var ENGINE_MECHANIC_MODES = {
   factOrFakeCfb: {
     publicMode: 'fact_or_fake_cfb_game', hash: '#factorfakecfbpilot',
     flagOn: function () { return ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01; },
-    title: 'Fact or Fake (CFB)', kind: 'fact_or_fake',
+    title: 'Fact or Fake (CFB)', kind: 'fact_or_fake', icon: 'search',
     desc: 'Read a real college football final score and decide if it’s true or been altered.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1571,7 +1571,7 @@ var ENGINE_MECHANIC_MODES = {
   guessTheRanking: {
     publicMode: 'guess_the_ranking_nfl', hash: '#guesstherankingpilot',
     flagOn: function () { return ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01; },
-    title: 'Guess the Ranking', kind: 'guess_the_ranking',
+    title: 'Guess the Ranking', kind: 'guess_the_ranking', icon: 'barChart',
     desc: 'A real player is named -- guess their real rank on a real career leaderboard.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1581,7 +1581,7 @@ var ENGINE_MECHANIC_MODES = {
   guessTheRankingCfb: {
     publicMode: 'guess_the_ranking_cfb', hash: '#guesstherankingcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_GUESS_THE_RANKING_PILOT_V01; },
-    title: 'Guess the Ranking (CFB)', kind: 'guess_the_ranking',
+    title: 'Guess the Ranking (CFB)', kind: 'guess_the_ranking', icon: 'barChart',
     desc: 'A real college player is named -- guess their real rank on a real career leaderboard.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1591,7 +1591,7 @@ var ENGINE_MECHANIC_MODES = {
   statTarget: {
     publicMode: 'stat_target_nfl_rushing', hash: '#stattargetpilot',
     flagOn: function () { return ENABLE_ENGINE_STAT_TARGET_PILOT_V01; },
-    title: 'Stat Target', kind: 'stat_target',
+    title: 'Stat Target', kind: 'stat_target', icon: 'target',
     desc: 'Tap whichever real player’s real season total came closest to the target.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1605,7 +1605,7 @@ var ENGINE_MECHANIC_MODES = {
   statTargetCfb: {
     publicMode: 'stat_target_cfb_rushing', hash: '#stattargetcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_STAT_TARGET_PILOT_V01; },
-    title: 'Stat Target (CFB)', kind: 'stat_target',
+    title: 'Stat Target (CFB)', kind: 'stat_target', icon: 'target',
     desc: 'Tap whichever real college player’s real season total came closest to the target.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1615,7 +1615,7 @@ var ENGINE_MECHANIC_MODES = {
   reverseTrivia: {
     publicMode: 'reverse_trivia_nfl_draft', hash: '#reversetriviapilot',
     flagOn: function () { return ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01; },
-    title: 'Reverse Trivia', kind: 'reverse_trivia',
+    title: 'Reverse Trivia', kind: 'reverse_trivia', icon: 'sync',
     desc: 'A real player is named -- tap the 1 of 4 real statements that’s actually true about them.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1625,7 +1625,7 @@ var ENGINE_MECHANIC_MODES = {
   reverseTriviaCfb: {
     publicMode: 'reverse_trivia_cfb_passing', hash: '#reversetriviacfbpilot',
     flagOn: function () { return ENABLE_ENGINE_REVERSE_TRIVIA_PILOT_V01; },
-    title: 'Reverse Trivia (CFB)', kind: 'reverse_trivia',
+    title: 'Reverse Trivia (CFB)', kind: 'reverse_trivia', icon: 'sync',
     desc: 'A real college player is named -- tap the 1 of 4 real statements that’s actually true about them.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1655,7 +1655,7 @@ var ENGINE_MECHANIC_MODES = {
   mysteryRoster: {
     publicMode: 'mystery_roster_nfl', hash: '#mysteryrosterpilot',
     flagOn: function () { return ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01; },
-    title: 'Mystery Roster', kind: 'mystery_roster',
+    title: 'Mystery Roster', kind: 'mystery_roster', icon: 'lock',
     desc: 'Reveal real clues about a mystery real NFL team-season, or guess at any point.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1665,7 +1665,7 @@ var ENGINE_MECHANIC_MODES = {
   mysteryRosterCfb: {
     publicMode: 'mystery_roster_cfb', hash: '#mysteryrostercfbpilot',
     flagOn: function () { return ENABLE_ENGINE_MYSTERY_ROSTER_PILOT_V01; },
-    title: 'Mystery Roster (CFB)', kind: 'mystery_roster',
+    title: 'Mystery Roster (CFB)', kind: 'mystery_roster', icon: 'lock',
     desc: 'Reveal real clues about a mystery real college team-season, or guess at any point.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1695,7 +1695,7 @@ var ENGINE_MECHANIC_MODES = {
   commonLink: {
     publicMode: 'common_link_nfl_draft', hash: '#commonlinkpilot',
     flagOn: function () { return ENABLE_ENGINE_COMMON_LINK_PILOT_V01; },
-    title: 'Common Link', kind: 'common_link',
+    title: 'Common Link', kind: 'common_link', icon: 'users',
     desc: '3 real players are named -- guess what real fact connects them.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1705,7 +1705,7 @@ var ENGINE_MECHANIC_MODES = {
   commonLinkCfb: {
     publicMode: 'common_link_cfb_season', hash: '#commonlinkcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_COMMON_LINK_PILOT_V01; },
-    title: 'Common Link (CFB)', kind: 'common_link',
+    title: 'Common Link (CFB)', kind: 'common_link', icon: 'users',
     desc: '3 real college players are named -- guess what real fact connects them.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -2734,8 +2734,12 @@ function renderDoubleOrNothingBody(v, s) {
 // shape to PAIRWISE_COMPARE/LEADERBOARD_CLIMB, so this reuses
 // renderBinaryChoiceHtml AND the same data-mechanic-duel-choice click
 // handler verbatim -- zero new app.js plumbing needed for this format.
+// Compare & Rank visual identity pass: a real champion badge (shield +
+// consecutive real defenses) instead of a plain status-line sentence --
+// reads at a glance like a real title defense streak.
 function renderKingOfTheHillBody(v, s) {
-  return '<div class="status-line">Consecutive defenses: ' + v.consecutive_defenses + '</div>' +
+  return '<div class="champion-badge">' + icon('shield') + ' ' + v.consecutive_defenses +
+    ' consecutive real defense' + (v.consecutive_defenses === 1 ? '' : 's') + '</div>' +
     '<div class="quiz-question">Which real team-season really had MORE real wins that season?</div>' +
     renderBinaryChoiceHtml(
       { code: 'champion', label: v.champion.label },
@@ -2758,21 +2762,31 @@ function renderFactOrFakeBody(v, s) {
     );
 }
 
-// GUESS_THE_RANKING: reuses renderCandidateCardsHtml, same as
-// PICK_THE_IMPOSTOR/CAREER_PATH -- zero new CSS.
+// Compare & Rank visual identity pass: a real vertical rank ladder
+// (one row per real rank option) instead of a generic 2-column card
+// grid -- reinforces "this is a real leaderboard position", not just an
+// arbitrary multiple-choice list. Same data-mechanic-guess-the-ranking-
+// pick="index" attribute renderCandidateCardsHtml used, so app.js's
+// click handler needs zero changes.
 function renderGuessTheRankingBody(v, s) {
   return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
     '<div class="quiz-question">What real rank does ' + esc(v.label) + ' hold on this real career leaderboard?</div>' +
-    renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
-      dataAttr: 'data-mechanic-guess-the-ranking-pick',
-    });
+    '<div class="rank-ladder" role="group" aria-label="Pick a real rank">' + v.options.map(function (it, i) {
+      return '<button class="rank-ladder-row" data-mechanic-guess-the-ranking-pick="' + i + '">' +
+        '<span class="rank-ladder-badge">' + esc(it.label) + '</span>' +
+        '<span class="rank-ladder-label">Guess this real rank</span></button>';
+    }).join('') + '</div>';
 }
 
-// STAT_TARGET: reuses renderCandidateCardsHtml, same as
-// PICK_THE_IMPOSTOR/GUESS_THE_RANKING -- zero new CSS.
+// Compare & Rank visual identity pass: the real target number gets its
+// own prominent badge (same glowing-number language as DOUBLE_OR_
+// NOTHING's points pot) instead of living only inside the question
+// sentence -- candidate cards below are unchanged.
 function renderStatTargetBody(v, s) {
   return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">Which real player’s real season total came CLOSEST to ' + v.target + ' rushing yards?</div>' +
+    '<div class="stat-target-badge"><span class="stat-target-value">' + v.target + '</span>' +
+    '<span class="stat-target-label">rushing yards target</span></div>' +
+    '<div class="quiz-question">Which real player’s real season total came CLOSEST?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-stat-target-pick',
     });
@@ -2850,13 +2864,20 @@ function renderCategoryRouletteBody(v, s) {
     });
 }
 
-// COMMON_LINK: the 3 real named players are shown as real context
-// (reuses .chain-node, the same real component GUESS_THE_SEASON's own
-// clue list already uses) then 4 real candidate statements via
-// renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR/MISSING_PIECE.
+// Story & Path visual identity pass: the 3 real named players are shown
+// as a genuinely LINKED trio (a connector between each name) instead of
+// 3 stacked plain rows shared with MYSTERY_ROSTER's clue list --
+// visually reinforces this format's own name/premise -- then 4 real
+// candidate statements via renderCandidateCardsHtml, same as
+// PICK_THE_IMPOSTOR/MISSING_PIECE.
 function renderCommonLinkBody(v, s) {
+  var trioHtml = '<div class="link-trio" role="group" aria-label="The 3 real linked players">' +
+    v.names.map(function (name, i) {
+      var node = '<div class="link-trio-node">' + esc(name) + '</div>';
+      return i < v.names.length - 1 ? node + '<div class="link-trio-connector" aria-hidden="true"></div>' : node;
+    }).join('') + '</div>';
   return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    v.names.map(function (name) { return '<div class="chain-node">' + esc(name) + '</div>'; }).join('') +
+    trioHtml +
     '<div class="quiz-question">What real connects these 3 real players?</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-common-link-pick',

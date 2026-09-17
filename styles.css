@@ -2324,3 +2324,67 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media (min-width: 1280px) {
   .candidate-cards-grid { max-width: 640px; margin-left: auto; margin-right: auto; }
 }
+
+/* Compare & Rank / Story & Path visual identity pass -- distinct
+   per-format treatments instead of the shared quiz-question+candidate-
+   card shell every mechanicPilot format used, matching the same "give
+   each mechanic its own visual identity" work already done for Risk &
+   Wager. */
+
+/* GUESS_THE_RANKING: a real vertical rank ladder (button per real rank
+   option) instead of a generic 2-column card grid -- reinforces "this is
+   a leaderboard position", not just an arbitrary multiple-choice list. */
+.rank-ladder { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.rank-ladder-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 44px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated);
+  color: var(--text); text-align: left; font: inherit; font-weight: 700; cursor: pointer;
+  transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+}
+.rank-ladder-row:not(:disabled):hover { border-color: var(--home-accent, var(--accent)); }
+.rank-ladder-row:not(:disabled):active { transform: scale(0.99); }
+.rank-ladder-row:disabled { cursor: default; }
+.rank-ladder-badge {
+  flex-shrink: 0; min-width: 40px; padding: 4px 8px; border-radius: 999px; text-align: center;
+  background: var(--bg-card); color: var(--home-accent, var(--accent)); font-size: 13px; font-weight: 800;
+}
+.rank-ladder-label { color: var(--text-dim); font-weight: 600; font-size: 13px; }
+
+/* STAT_TARGET: the real target number gets its own prominent badge
+   (same glowing-number language as DOUBLE_OR_NOTHING's points pot)
+   instead of living only inside the question sentence. */
+.stat-target-badge { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 10px 0 16px; }
+.stat-target-value {
+  font-size: 36px; font-weight: 800; line-height: 1; color: var(--accent);
+  text-shadow: var(--shadow-glow); font-variant-numeric: tabular-nums;
+}
+.stat-target-label { font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+
+/* COMMON_LINK: the 3 real named players shown as a genuinely linked
+   trio (connector between each) instead of 3 stacked plain rows --
+   visually reinforces the format's own name. */
+.link-trio { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; margin: 14px 0; }
+.link-trio-node {
+  padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg-elevated);
+  font-weight: 700; font-size: 13px; text-align: center;
+}
+.link-trio-connector { flex: 0 0 auto; width: 22px; height: 2px; background: var(--border); position: relative; }
+.link-trio-connector::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--home-accent, var(--accent)); transform: translate(-50%, -50%);
+}
+@media (max-width: 360px) {
+  .link-trio { flex-direction: column; gap: 4px; }
+  .link-trio-connector { width: 2px; height: 14px; }
+}
+
+/* KING_OF_THE_HILL: a real champion badge (shield icon + consecutive
+   real defenses) above the champion-vs-challenger duel, instead of a
+   plain "Consecutive defenses: N" text line. */
+.champion-badge {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 14px;
+  padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--home-accent, var(--accent));
+  background: rgba(217,166,60,.1); color: var(--home-accent, var(--accent)); font-weight: 800; font-size: 13px;
+  width: fit-content; margin-left: auto; margin-right: auto;
+}
+.champion-badge .icon { width: 16px; height: 16px; }
