@@ -160,9 +160,17 @@ def generate_rounds(seed: str, variant: str, round_count: int = 10) -> dict:
     finally:
         c.close()
 
+    # User feedback: strict alternation (True, Fake, True, Fake...) made the
+    # answer guessable from round 2 onward without even reading the
+    # statement. Still a real, exactly-balanced 50/50 split (never a coin
+    # flip that could skew a short run) -- just shuffled into a real
+    # unpredictable order instead of a fixed pattern.
+    make_true_flags = [True] * (round_count // 2) + [False] * (round_count - round_count // 2)
+    engine_bootstrap.seeded(f"{seed}-fof-truefake-order").shuffle(make_true_flags)
+
     rounds = []
     for i in range(round_count):
-        make_true = (i % 2 == 0)  # deterministic 50/50 split, never a coin flip that could skew a short run
+        make_true = make_true_flags[i]
         rng = engine_bootstrap.seeded(f"{seed}-fof-r{i}")
         r = _build_round_cfb(rng, by_season, make_true) if is_cfb else _build_round(rng, by_season, make_true)
         if r is None:

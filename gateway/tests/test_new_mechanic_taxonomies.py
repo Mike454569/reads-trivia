@@ -1916,16 +1916,26 @@ def test_fact_or_fake_is_registered():
     assert me.VARIANTS.get("FACT_OR_FAKE"), "FACT_OR_FAKE has no registered variants"
 
 
-def test_fact_or_fake_generates_a_real_deterministic_true_false_split():
+def test_fact_or_fake_generates_a_real_balanced_but_unpredictable_true_false_split():
     from tools.director_v04 import fact_or_fake as fof
 
+    # User feedback: a strict alternating TRUE/FAKE/TRUE/FAKE pattern made
+    # the answer guessable from round 2 onward without reading the
+    # statement at all. Still real and exactly balanced (never a coin flip
+    # that could skew a short run) -- just shuffled into an unpredictable
+    # order instead of a fixed position-based pattern.
     pkg = fof.build_package("test-fof-1", "NFL_DRAFT_FACT_OR_FAKE", round_count=10)
     assert pkg["qa_status"] == "PASSED"
     assert pkg["round_count"] >= 1
     flags = [r["_is_true"] for r in pkg["rounds"]]
-    assert flags[0::2] == [True] * len(flags[0::2]), "even rounds should be real, verbatim TRUE statements"
-    if len(flags) > 1:
-        assert flags[1::2] == [False] * len(flags[1::2]), "odd rounds should be real, substituted FAKE statements"
+    assert sum(flags) == len(flags) // 2, "should be a real, exactly balanced 50/50 split"
+    # Real, deterministic per-seed order (same seed -> same order), but
+    # NOT the old strict alternation -- confirmed by checking at least one
+    # other seed produces a genuinely different order.
+    pkg_other_seed = fof.build_package("test-fof-2-different-order", "NFL_DRAFT_FACT_OR_FAKE", round_count=10)
+    flags_other = [r["_is_true"] for r in pkg_other_seed["rounds"]]
+    assert flags != [True, False] * 5, "must not be the old strict alternating pattern"
+    assert flags != flags_other, "different seeds should really produce different true/fake orders"
     for r in pkg["rounds"]:
         assert r["statement"]
         assert r["_notes"]
