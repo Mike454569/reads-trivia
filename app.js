@@ -219,6 +219,9 @@ var ICON_PATHS = {
   // Public Mode Wiring pass: Era Gauntlet's own symbol -- a real timeline
   // (a line with era markers), not reused from an unrelated concept.
   timeline: '<path d="M3 12h18"/><circle cx="5" cy="12" r="1.6"/><circle cx="10.3" cy="12" r="1.6"/><circle cx="15.7" cy="12" r="1.6"/><circle cx="21" cy="12" r="1.6" fill="currentColor"/>',
+  // Risk & Wager visual identity pass: a real filled heart for the
+  // lives/strikes pip track (RISK_IT/THREE_STRIKES).
+  heart: '<path d="M12 20.5S3.5 15.2 3.5 9.1A4.6 4.6 0 0 1 12 6.5a4.6 4.6 0 0 1 8.5 2.6C20.5 15.2 12 20.5 12 20.5Z"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
@@ -259,6 +262,17 @@ function quizProgressRowHtml(labelHtml, current, total) {
 // Deliberately does NOT replace quizProgressRowHtml()/progressDotsHtml()
 // (used by many other modes this pass doesn't touch) -- callers render
 // this header, then their own progress row, exactly as before.
+// Risk & Wager visual identity pass: a real pip track (filled = still
+// have it, hollow = spent) -- shared by RISK_IT's lives and
+// THREE_STRIKES' strikes, same depleting-left-to-right shape as a
+// player would expect from either real-world concept.
+function readsShellPipTrackHtml(iconName, total, remaining) {
+  var pips = '';
+  for (var i = 0; i < total; i++) {
+    pips += '<span class="reads-shell-pip' + (i < remaining ? ' filled' : '') + '">' + icon(iconName) + '</span>';
+  }
+  return '<span class="reads-shell-pip-track">' + pips + '</span>';
+}
 function renderReadsShellHeader(opts) {
   opts = opts || {};
   var chips = '';
@@ -266,6 +280,21 @@ function renderReadsShellHeader(opts) {
   if (opts.streak != null) chips += '<span class="reads-shell-chip reads-shell-chip-streak">' + icon('flame') + ' ' + esc(String(opts.streak)) + '</span>';
   if (opts.difficulty) chips += '<span class="reads-shell-chip">' + esc(opts.difficulty) + '</span>';
   if (opts.badge) chips += '<span class="reads-shell-chip reads-shell-chip-accent">' + esc(opts.badge) + '</span>';
+  // Risk & Wager visual identity pass: lives (RISK_IT) and strikes
+  // (THREE_STRIKES) are both "N of a real starting budget remaining" --
+  // rendered as a depleting pip track rather than plain "Lives: 2" text.
+  if (opts.lives != null && opts.livesTotal != null) {
+    chips += '<span class="reads-shell-chip reads-shell-chip-lives">' + readsShellPipTrackHtml('heart', opts.livesTotal, opts.lives) + '</span>';
+  }
+  if (opts.strikes != null && opts.strikesTotal != null) {
+    chips += '<span class="reads-shell-chip reads-shell-chip-strikes">' + readsShellPipTrackHtml('xMark', opts.strikesTotal, opts.strikes) + '</span>';
+  }
+  // Real risk tier (LOW/MEDIUM/HIGH), color-coded green/gold/red so the
+  // stakes read at a glance once a tier is committed.
+  if (opts.tier) {
+    chips += '<span class="reads-shell-chip reads-shell-chip-tier reads-shell-chip-tier-' + esc(opts.tier.name.toLowerCase()) + '">' +
+      esc(opts.tier.name) + (opts.tier.points != null ? ' &middot; ' + esc(String(opts.tier.points)) + (opts.tier.points === 1 ? ' pt' : ' pts') : '') + '</span>';
+  }
   return '<div class="reads-shell-header">' +
     '<div class="reads-shell-id">' +
     (opts.icon ? '<span class="reads-shell-icon">' + icon(opts.icon) + '</span>' : '') +
@@ -273,7 +302,7 @@ function renderReadsShellHeader(opts) {
     '</div>' +
     (chips ? '<div class="reads-shell-chips">' + chips + '</div>' : '') +
     (opts.restartAttr ? '<button class="btn-tiny reads-shell-exit" ' + opts.restartAttr + ' aria-label="Restart">' + icon('restart') + '</button>' : '') +
-    (opts.hideExit ? '' : '<button class="btn-tiny reads-shell-exit" data-mode-exit>' + icon('close') + ' Exit</button>') +
+    (opts.hideExit ? '' : '<button class="btn-tiny reads-shell-exit" ' + (opts.exitAttr || 'data-mode-exit') + '>' + icon('close') + ' Exit</button>') +
     '</div>';
 }
 

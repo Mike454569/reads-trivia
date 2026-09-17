@@ -2057,9 +2057,70 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .reads-shell-chip-accent { color: var(--accent-text); background: var(--home-accent, var(--accent)); border-color: var(--home-accent, var(--accent)); }
 .reads-shell-exit { flex-shrink: 0; }
 
+/* Risk & Wager visual identity pass: lives (RISK_IT)/strikes
+   (THREE_STRIKES) depleting pip tracks, and a color-coded real risk-tier
+   badge (LOW=green/MEDIUM=gold/HIGH=red, same traffic-light logic as the
+   rest of the app's --good/--accent/--bad tokens -- no new hues). */
+.reads-shell-chip-lives { color: var(--bad); border-color: var(--bad); }
+.reads-shell-chip-strikes { color: var(--accent); border-color: var(--accent); }
+.reads-shell-pip-track { display: inline-flex; gap: 2px; }
+.reads-shell-pip { display: inline-flex; opacity: .3; }
+.reads-shell-pip .icon { width: 12px; height: 12px; fill: none; }
+.reads-shell-pip.filled { opacity: 1; }
+.reads-shell-chip-lives .reads-shell-pip.filled .icon { fill: var(--bad); }
+.reads-shell-chip-strikes .reads-shell-pip.filled .icon { fill: var(--accent); }
+.reads-shell-chip-tier-low { color: var(--good); border-color: var(--good); }
+.reads-shell-chip-tier-medium { color: var(--accent); border-color: var(--accent); }
+.reads-shell-chip-tier-high { color: var(--bad); border-color: var(--bad); }
+
+/* RISK_IT's blind tier commit -- 3 large tappable cards instead of plain
+   text chips, color-coded to the same LOW/MEDIUM/HIGH traffic-light
+   scale as the shell-header tier badge above. */
+.tier-select-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+.tier-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 18px 8px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elevated); cursor: pointer; font: inherit;
+  transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
+}
+.tier-card:hover { transform: translateY(-1px); }
+.tier-card:active { transform: scale(0.97); }
+.tier-card-icon .icon { width: 22px; height: 22px; }
+.tier-card-name { font-weight: 800; font-size: 13px; letter-spacing: .03em; }
+.tier-card-points { font-size: 11.5px; color: var(--text-dim); font-weight: 700; }
+.tier-card--low { border-color: rgba(34,197,94,.35); }
+.tier-card--low .tier-card-icon { color: var(--good); }
+.tier-card--low:hover { border-color: var(--good); background: rgba(34,197,94,.08); }
+.tier-card--medium { border-color: rgba(217,166,60,.4); }
+.tier-card--medium .tier-card-icon { color: var(--accent); }
+.tier-card--medium:hover { border-color: var(--accent); background: rgba(217,166,60,.1); }
+.tier-card--high { border-color: rgba(239,68,68,.35); }
+.tier-card--high .tier-card-icon { color: var(--bad); }
+.tier-card--high:hover { border-color: var(--bad); background: rgba(239,68,68,.08); }
+@media (max-width: 340px) {
+  .tier-card { padding: 12px 4px; }
+  .tier-card-icon .icon { width: 18px; height: 18px; }
+}
+
+/* DOUBLE_OR_NOTHING's real points pot -- the doubling number is the
+   whole hook of this format, so it gets a big glowing treatment instead
+   of living inside a plain status-line sentence. */
+.pot-display { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 10px 0 16px; }
+.pot-value {
+  font-size: 42px; font-weight: 800; line-height: 1; color: var(--accent);
+  text-shadow: var(--shadow-glow); font-variant-numeric: tabular-nums;
+}
+.pot-label { font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; }
+.btn-bank {
+  background: linear-gradient(135deg, var(--accent), #f0c869); color: var(--accent-text);
+  box-shadow: 0 4px 16px -4px rgba(217,166,60,.6); display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+}
+.btn-bank .icon { width: 16px; height: 16px; }
+.btn-bank:hover { filter: brightness(1.06); }
+
 .binary-choice-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 8px; margin: 14px 0; }
 .binary-choice-card {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   padding: 18px 10px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg-elevated); color: var(--text); text-align: center; cursor: pointer; font: inherit;
   transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
@@ -2069,6 +2130,14 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .binary-choice-card:disabled { cursor: default; }
 .binary-choice-card.selected { border-color: var(--accent); background: rgba(217,166,60,.12); }
 .binary-choice-card.correct { border-color: var(--good); background: rgba(34,197,94,.14); animation: pop-feedback-strong 0.4s ease; }
+/* Same confetti-particle flourish as classic Quiz's .quiz-option.correct
+   (styles.css ~line 1119) -- previously only the original Quiz mode had
+   this on a correct answer; every engine/mechanic-pilot format sharing
+   this component was missing it. */
+.binary-choice-card.correct::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; z-index: 2;
+  box-shadow: 0 -26px 0 -1px var(--good), 18px -18px 0 -1px var(--accent), 26px 0 0 -1px var(--accent-2), 18px 18px 0 -1px var(--good),
+    0 26px 0 -1px var(--accent), -18px 18px 0 -1px var(--accent-2), -26px 0 0 -1px var(--good), -18px -18px 0 -1px var(--accent);
+  opacity: 0; animation: confetti-burst 0.6s ease-out; }
 .binary-choice-card.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); opacity: .85; animation: shake-feedback-strong 0.45s ease; }
 .binary-choice-label { font-weight: 800; font-size: 15px; line-height: 1.25; word-break: break-word; }
 .binary-choice-sublabel { font-size: 11.5px; color: var(--text-dim); }
@@ -2188,7 +2257,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
    Odd College Out / One School Missing: equal candidate cards. */
 .candidate-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0; }
 .candidate-card {
-  padding: 16px 10px; min-height: 44px; border-radius: var(--radius); border: 1px solid var(--border);
+  position: relative; padding: 16px 10px; min-height: 44px; border-radius: var(--radius); border: 1px solid var(--border);
   background: var(--bg-elevated); color: var(--text); text-align: center; font: inherit; font-weight: 700;
   cursor: pointer; transition: border-color .12s ease, background-color .12s ease, transform .12s ease;
 }
@@ -2197,6 +2266,13 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .candidate-card:disabled { cursor: default; }
 .candidate-card.selected { border-color: var(--accent); background: rgba(217,166,60,.12); }
 .candidate-card.correct { border-color: var(--good); background: rgba(34,197,94,.14); animation: pop-feedback-strong 0.4s ease; }
+/* Same confetti-particle flourish as classic Quiz's .quiz-option.correct
+   -- this component is reused by ~20 mechanic/engine-pilot formats, all
+   of which were previously missing it. */
+.candidate-card.correct::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; z-index: 2;
+  box-shadow: 0 -26px 0 -1px var(--good), 18px -18px 0 -1px var(--accent), 26px 0 0 -1px var(--accent-2), 18px 18px 0 -1px var(--good),
+    0 26px 0 -1px var(--accent), -18px 18px 0 -1px var(--accent-2), -26px 0 0 -1px var(--good), -18px -18px 0 -1px var(--accent);
+  opacity: 0; animation: confetti-burst 0.6s ease-out; }
 .candidate-card.wrong { border-color: var(--bad); background: rgba(239,68,68,.14); opacity: .85; animation: shake-feedback-strong 0.45s ease; }
 .candidate-card-label { font-size: 14px; word-break: break-word; }
 

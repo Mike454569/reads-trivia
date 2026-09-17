@@ -1449,7 +1449,7 @@ var ENGINE_MECHANIC_MODES = {
   riskIt: {
     publicMode: 'risk_it_nfl_draft', hash: '#riskitpilot',
     flagOn: function () { return ENABLE_ENGINE_RISK_IT_PILOT_V01; },
-    title: 'Risk It', kind: 'risk_it',
+    title: 'Risk It', kind: 'risk_it', icon: 'flame',
     desc: 'Pick a real risk tier before you see the question -- a wrong answer costs a life.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1459,7 +1459,7 @@ var ENGINE_MECHANIC_MODES = {
   riskItCfb: {
     publicMode: 'risk_it_cfb_passing', hash: '#riskitcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_RISK_IT_PILOT_V01; },
-    title: 'Risk It (CFB)', kind: 'risk_it',
+    title: 'Risk It (CFB)', kind: 'risk_it', icon: 'flame',
     desc: 'Pick a real risk tier before you see the question -- a wrong answer costs a life.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1510,7 +1510,7 @@ var ENGINE_MECHANIC_MODES = {
   doubleOrNothing: {
     publicMode: 'double_or_nothing_nfl_draft', hash: '#doubleornothingpilot',
     flagOn: function () { return ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01; },
-    title: 'Double or Nothing', kind: 'double_or_nothing',
+    title: 'Double or Nothing', kind: 'double_or_nothing', icon: 'zap',
     desc: 'Bank your real points or risk them all on the next, harder real question.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1520,7 +1520,7 @@ var ENGINE_MECHANIC_MODES = {
   doubleOrNothingCfb: {
     publicMode: 'double_or_nothing_cfb_passing', hash: '#doubleornothingcfbpilot',
     flagOn: function () { return ENABLE_ENGINE_DOUBLE_OR_NOTHING_PILOT_V01; },
-    title: 'Double or Nothing (CFB)', kind: 'double_or_nothing',
+    title: 'Double or Nothing (CFB)', kind: 'double_or_nothing', icon: 'zap',
     desc: 'Bank your real points or risk them all on the next, harder real question.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -1635,7 +1635,7 @@ var ENGINE_MECHANIC_MODES = {
   threeStrikes: {
     publicMode: 'three_strikes_nfl_draft', hash: '#threestrikespilot',
     flagOn: function () { return ENABLE_ENGINE_THREE_STRIKES_PILOT_V01; },
-    title: 'Three Strikes', kind: 'three_strikes',
+    title: 'Three Strikes', kind: 'three_strikes', icon: 'xMark',
     desc: 'Answer real questions of rising difficulty -- a wrong answer costs a strike.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
@@ -1645,7 +1645,7 @@ var ENGINE_MECHANIC_MODES = {
   threeStrikesCfb: {
     publicMode: 'three_strikes_cfb_passing', hash: '#threestrikescfbpilot',
     flagOn: function () { return ENABLE_ENGINE_THREE_STRIKES_PILOT_V01; },
-    title: 'Three Strikes (CFB)', kind: 'three_strikes',
+    title: 'Three Strikes (CFB)', kind: 'three_strikes', icon: 'xMark',
     desc: 'Answer real questions of rising difficulty -- a wrong answer costs a strike.',
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
@@ -2050,10 +2050,34 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
   return '';
 }
 /* Section 6/7/21 fix: same persistent-title fix as enginePilotToolbarHtml
-   above, for the Mechanic Pilot shell. */
-function mechanicPilotToolbarHtml(cfg) {
-  return (cfg ? '<div class="quiz-progress">' + esc(cfg.title) + '</div>' : '') +
-    '<div class="mode-toolbar"><button class="btn-tiny" data-mechanic-exit>' + icon('close') + ' Exit to Home</button></div>';
+   above, for the Mechanic Pilot shell.
+   Risk & Wager visual identity pass: upgraded to the same shared
+   renderReadsShellHeader() every enginePilot format + Who Am I already
+   use, instead of a bare title/exit bar -- brings mechanicPilot's 10
+   formats to visual parity with the rest of the app in one place rather
+   than a per-format patch. RISK_IT/THREE_STRIKES/DOUBLE_OR_NOTHING
+   additionally surface their real score/lives/strikes/tier through the
+   header's chip system (cfg.kind-gated since each format's view shape
+   differs); every other kind just gets the plain title+exit header,
+   unchanged in substance from before. */
+function mechanicPilotToolbarHtml(cfg, s) {
+  var v = s && s.view;
+  var opts = { title: cfg ? cfg.title : '', icon: cfg && cfg.icon, exitAttr: 'data-mechanic-exit' };
+  if (v && cfg) {
+    if (cfg.kind === 'risk_it') {
+      opts.score = v.score; opts.lives = v.lives; opts.livesTotal = 3;
+      if (v.tier) opts.tier = { name: v.tier, points: v.points };
+    } else if (cfg.kind === 'three_strikes') {
+      opts.score = v.score; opts.streak = v.streak; opts.strikes = v.strikes; opts.strikesTotal = 3;
+      if (v.tier) opts.tier = { name: v.tier, points: v.points };
+    } else if (cfg.kind === 'double_or_nothing') {
+      opts.score = v.points;
+      if (v.tier) opts.tier = { name: v.tier };
+    } else if (v.score != null) {
+      opts.score = v.score;
+    }
+  }
+  return renderReadsShellHeader(opts);
 }
 /* UI/UX pass: this used to render 'Result: ' + JSON.stringify(s.result) --
    the raw backend response object -- directly as the player's feedback
@@ -2559,23 +2583,34 @@ function renderCareerPathBody(v, s) {
 // tiers (point value only, no question content, matching the format's
 // own "commit before you see it" rule); awaiting_tier=false shows that
 // tier's real question via renderCandidateCardsHtml, same as
-// PICK_THE_IMPOSTOR/CAREER_PATH. Score/lives shown throughout.
-function renderRiskItStatusHtml(v) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Score: ' + v.score + ' &middot; Lives: ' + v.lives + '</div>';
-}
+// PICK_THE_IMPOSTOR/CAREER_PATH.
+// Risk & Wager visual identity pass: score/lives moved into the shared
+// shell header (mechanicPilotToolbarHtml) so this only needs the real
+// round-progress line; the 3 plain .chip-toggle buttons became a real
+// tier-select-grid (color/icon-coded LOW=green target/MEDIUM=gold zap/
+// HIGH=red flame, same real point value, same data-mechanic-risk-tier
+// attribute so app.js's click handler needs zero changes).
+var _TIER_SELECT_META = {
+  LOW: { icon: 'target', cls: 'low' }, MEDIUM: { icon: 'zap', cls: 'medium' }, HIGH: { icon: 'flame', cls: 'high' },
+};
 function renderRiskItBody(v, s) {
+  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
   if (v.awaiting_tier) {
     var tierOrder = ['LOW', 'MEDIUM', 'HIGH'];
-    return renderRiskItStatusHtml(v) +
+    return roundLine +
       '<div class="quiz-question">Pick a real risk tier -- higher risk means a more obscure real result, worth more points.</div>' +
-      '<div class="chip-row" role="group" aria-label="Choose a risk tier">' + tierOrder.map(function (tier) {
-        return '<button class="chip-toggle" data-mechanic-risk-tier="' + esc(tier) + '">' +
-          esc(tier) + ' (' + v.tier_points[tier] + (v.tier_points[tier] === 1 ? ' pt' : ' pts') + ')</button>';
+      '<div class="tier-select-grid" role="group" aria-label="Choose a risk tier">' + tierOrder.map(function (tier) {
+        var meta = _TIER_SELECT_META[tier];
+        var pts = v.tier_points[tier];
+        return '<button class="tier-card tier-card--' + meta.cls + '" data-mechanic-risk-tier="' + esc(tier) + '">' +
+          '<span class="tier-card-icon">' + icon(meta.icon) + '</span>' +
+          '<span class="tier-card-name">' + esc(tier) + '</span>' +
+          '<span class="tier-card-points">' + pts + (pts === 1 ? ' pt' : ' pts') + '</span>' +
+          '</button>';
       }).join('') + '</div>';
   }
-  return renderRiskItStatusHtml(v) +
-    '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
+  return roundLine +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-risk-answer',
     });
@@ -2651,16 +2686,19 @@ function renderBlindResumeBody(v, s) {
 // banked-eligible, i.e. after at least one correct answer) additionally
 // shows a real Bank button above the question, offering the genuine
 // bank-or-risk-it-on-this-harder-question choice RISK_IT/WAGER_MODE
-// don't pose. Reuses .chip-row/.chip-toggle (RISK_IT's own already-
-// shipped choice-button classes) for Bank, renderCandidateCardsHtml for
-// the question -- zero new CSS.
+// don't pose.
+// Risk & Wager visual identity pass: the real points pot -- the whole
+// hook of this format -- gets its own glowing .pot-display treatment
+// instead of being a clause in a plain status line, and Bank becomes a
+// distinct gold "lock it in" CTA (.btn-bank) rather than a generic chip
+// button. Tier now shown via the shared shell header, not repeated here.
 function renderDoubleOrNothingBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Points: ' + v.points + '</div>' +
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="pot-display"><span class="pot-value">' + v.points + '</span><span class="pot-label">points on the line</span></div>' +
     (v.can_bank
-      ? '<div class="chip-row" role="group" aria-label="Bank your points"><button class="chip-toggle" data-mechanic-don-bank>Bank ' + v.points + ' Points</button></div>'
+      ? '<div class="btn-row"><button class="btn-primary btn-bank" data-mechanic-don-bank>' + icon('lock') + ' Bank ' + v.points + ' Points</button></div>'
       : '') +
-    '<div class="quiz-question">' + esc(v.tier) + ' tier: ' + esc(v.prompt) + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-don-answer',
     });
@@ -2726,10 +2764,12 @@ function renderReverseTriviaBody(v, s) {
 
 // THREE_STRIKES: the real question is always shown directly (no blind
 // tier-commit like RISK_IT) -- reuses renderCandidateCardsHtml.
+// Risk & Wager visual identity pass: score/strikes/tier now live in the
+// shared shell header, so this only needs the real round-progress line
+// and question.
 function renderThreeStrikesBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Score: ' + v.score + ' &middot; Strikes left: ' + v.strikes + '</div>' +
-    '<div class="quiz-question">' + esc(v.tier) + ' tier (' + v.points + (v.points === 1 ? ' pt' : ' pts') + '): ' + esc(v.prompt) + '</div>' +
+  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-three-strikes-answer',
     });
@@ -2848,10 +2888,10 @@ function renderMechanicPilotScreen() {
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Start</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + '<p class="mode-desc" aria-live="polite">Finding your next round&hellip;</p></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-retry>Try Again</button>' +
       '<button class="btn-secondary" data-mechanic-fallback>' + esc(cfg.fallbackLabel) + '</button></div></div>';
@@ -2864,7 +2904,7 @@ function renderMechanicPilotScreen() {
     // current and future format that routes through this shell gets a real
     // production-polish completion moment automatically -- no per-format
     // design pass needed.
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
       '<div class="mechanic-complete-banner"><div class="mechanic-complete-confetti"></div>' +
       icon('trophy') + ' Round Complete!</div>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
@@ -2875,10 +2915,10 @@ function renderMechanicPilotScreen() {
   var answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
   if (submitting) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + renderMechanicPilotBody(cfg, s) +
+    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
       '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
   }
-  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg) + renderMechanicPilotBody(cfg, s) +
+  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
     (answered ? renderMechanicPilotFeedback(cfg, s) +
       '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
     '</div>';
