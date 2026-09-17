@@ -32,6 +32,13 @@ CFB tiering (per-season national passing-yards rank, "which real school"
 question) verbatim -- see risk_it.py's own module docstring for why this
 proxy replaces draft_pick_overall for CFB.
 
+Category variety pass (user feedback: "we don't need game modes based on
+draft picks"). NFL_DRAFT_THREE_STRIKES now also draws, per round, from
+risk_it.py's new real SEASON_PASSING category (real per-season national
+passing-yards rank among real NFL QBs, "which real team did this player
+play for" -- see risk_it.py's own module docstring). Which category a
+given round uses is itself seeded/deterministic.
+
 Two variants: NFL_DRAFT_THREE_STRIKES, CFB_SEASON_PASSING_THREE_STRIKES.
 """
 from __future__ import annotations
@@ -72,30 +79,44 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
     is_cfb = variant == "CFB_SEASON_PASSING_THREE_STRIKES"
-    tier_ranges = risk_it._CFB_TIER_RANGES if is_cfb else risk_it._TIER_RANGES
-    rows_for_tier = risk_it._rows_for_tier_cfb if is_cfb else risk_it._rows_for_tier
-    build_tier_question = risk_it._build_tier_question_cfb if is_cfb else risk_it._build_tier_question
-
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        rows_by_tier_season: dict[str, dict[int, list]] = {}
-        for tier, (lo, hi) in tier_ranges.items():
-            by_season: dict[int, list] = {}
-            for r in rows_for_tier(c, lo, hi):
-                by_season.setdefault(r["draft_season"], []).append(r)
-            rows_by_tier_season[tier] = by_season
+        if is_cfb:
+            category_data = {"CFB": (risk_it._build_rows_by_tier_season(c, risk_it._CFB_TIER_RANGES,
+                                                                          risk_it._rows_for_tier_cfb),
+                                      risk_it._build_tier_question_cfb)}
+        else:
+            category_data = {
+                "DRAFT": (risk_it._build_rows_by_tier_season(c, risk_it._TIER_RANGES, risk_it._rows_for_tier),
+                          risk_it._build_tier_question),
+                "SEASON_PASSING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_PASSING_TIER_RANGES,
+                                                                       risk_it._rows_for_tier_nfl_passing),
+                                    risk_it._build_tier_question_nfl_passing),
+            }
     finally:
         c.close()
 
     rounds = []
     for i in range(round_count):
         tier = _tier_for_index(i, round_count)
-        q = build_tier_question(
-            engine_bootstrap.seeded(f"{seed}-ts-r{i}-{tier}"), rows_by_tier_season[tier])
+        if is_cfb:
+            candidates = ["CFB"]
+        else:
+            cat_rng = engine_bootstrap.seeded(f"{seed}-ts-cat-{i}")
+            candidates = list(risk_it._NFL_CATEGORIES)
+            cat_rng.shuffle(candidates)
+        q = None
+        for category in candidates:
+            rows_by_tier_season, build_tier_question = category_data[category]
+            q = build_tier_question(engine_bootstrap.seeded(f"{seed}-ts-r{i}-{tier}-{category}"),
+                                     rows_by_tier_season[tier])
+            if q is not None:
+                break
         if q is None:
             break
-        rounds.append({"tier": tier, "points": risk_it._TIER_POINTS[tier], "prompt": q["prompt"],
+        points = risk_it._TIER_POINTS[tier]
+        rounds.append({"tier": tier, "points": points, "prompt": q["prompt"],
                         "correct_team": q["correct_team"], "decoy_teams": q["decoy_teams"], "notes": q["notes"]})
 
     shortfall_reason = None

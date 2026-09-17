@@ -1287,6 +1287,25 @@ def test_risk_it_generates_real_rounds_with_all_3_tiers_and_real_decoys():
             assert q["_answer_item_id"] in item_ids
 
 
+def test_risk_it_nfl_rotates_across_real_draft_and_season_passing_categories():
+    # Category variety pass (user feedback: "we don't need game modes
+    # based on draft picks") -- must genuinely draw from risk_it's new
+    # real SEASON_PASSING category too, not only draft_facts.
+    from tools.director_v04 import risk_it
+
+    pkg = risk_it.build_package("test-risk-categories", "NFL_DRAFT_RISK_IT", round_count=10)
+    assert pkg["qa_status"] == "PASSED"
+    all_prompts = [q["prompt"] for r in pkg["rounds"] for q in r["tiers"].values()]
+    seen_draft = any("NFL Draft" in p for p in all_prompts)
+    seen_passing = any("national passing yards" in p for p in all_prompts)
+    assert seen_draft and seen_passing, "a 10-round set should really include both real categories"
+    for r in pkg["rounds"]:
+        # All 3 tiers within one round must stay the same category (a
+        # real strategic tier choice shouldn't randomly switch domains).
+        shapes = {"draft" if "NFL Draft" in q["prompt"] else "passing" for q in r["tiers"].values()}
+        assert len(shapes) == 1, "a single round mixed draft and passing categories across its tiers"
+
+
 def test_risk_it_full_2_step_playthrough_correct_choose_then_answer():
     from tools.director_v02 import mechanic_engine as me
 
@@ -1726,6 +1745,16 @@ def test_double_or_nothing_generates_real_escalating_tier_rounds():
         assert r["_answer_item_id"] in item_ids
 
 
+def test_double_or_nothing_nfl_rotates_across_real_draft_and_season_passing_categories():
+    from tools.director_v04 import double_or_nothing as don
+
+    pkg = don.build_package("test-don-categories", "NFL_DRAFT_DOUBLE_OR_NOTHING", round_count=12)
+    assert pkg["qa_status"] == "PASSED"
+    seen_draft = any("NFL Draft" in r["prompt"] for r in pkg["rounds"])
+    seen_passing = any("national passing yards" in r["prompt"] for r in pkg["rounds"])
+    assert seen_draft and seen_passing, "a 12-round set should really include both real categories"
+
+
 def test_double_or_nothing_points_double_on_each_correct_answer():
     from tools.director_v02 import mechanic_engine as me
 
@@ -1941,6 +1970,22 @@ def test_fact_or_fake_generates_a_real_balanced_but_unpredictable_true_false_spl
         assert r["_notes"]
 
 
+def test_fact_or_fake_nfl_rotates_across_real_non_draft_categories():
+    # Category variety pass (user feedback: "we don't need game modes
+    # based on draft picks") -- the NFL variant must genuinely draw from
+    # more than just draft_facts across a real round set, not just once
+    # in a while by chance.
+    from tools.director_v04 import fact_or_fake as fof
+
+    pkg = fof.build_package("test-fof-categories", "NFL_DRAFT_FACT_OR_FAKE", round_count=15)
+    assert pkg["qa_status"] == "PASSED"
+    seen_draft = any("NFL Draft" in r["statement"] for r in pkg["rounds"])
+    seen_championship = any("Super Bowl" in r["statement"] for r in pkg["rounds"])
+    seen_record = any(" went " in r["statement"] and " season" in r["statement"] for r in pkg["rounds"])
+    assert seen_draft and seen_championship and seen_record, (
+        "a 15-round set should really include all 3 categories, not just draft")
+
+
 def test_fact_or_fake_full_playthrough_correct_and_incorrect():
     from tools.director_v02 import mechanic_engine as me
 
@@ -2126,6 +2171,30 @@ def test_reverse_trivia_generates_real_decoy_complete_rounds():
         assert r["_answer_item_id"] in item_ids
 
 
+def test_reverse_trivia_nfl_rotates_across_real_non_draft_categories():
+    # Category variety pass (user feedback: "we don't need game modes
+    # based on draft picks") -- the NFL variant must genuinely draw from
+    # more than just draft_facts across a real round set.
+    from tools.director_v04 import reverse_trivia as rt
+
+    pkg = rt.build_package("test-rt-categories", "NFL_DRAFT_REVERSE_TRIVIA", round_count=15)
+    assert pkg["qa_status"] == "PASSED"
+    all_labels = [o["label"] for r in pkg["rounds"] for o in r["options"]]
+    seen_draft = any("NFL Draft" in lb for lb in all_labels)
+    seen_passing = any("Threw for" in lb for lb in all_labels)
+    seen_record = any("went" in lb and "season" in lb for lb in all_labels)
+    assert seen_draft and seen_passing and seen_record, (
+        "a 15-round set should really include all 3 categories, not just draft")
+    for r in pkg["rounds"]:
+        # Every round's 4 candidates must stay the same category as each
+        # other (never mix a draft fact with a passing-yards fact in one
+        # round) or they wouldn't read as plausible parallel options.
+        labels = [o["label"] for o in r["options"]]
+        shapes = {"draft" if "NFL Draft" in lb else "passing" if "Threw for" in lb else "record"
+                  for lb in labels}
+        assert len(shapes) == 1, f"round {r['round_index']} mixed categories: {labels}"
+
+
 def test_reverse_trivia_full_playthrough_correct_and_incorrect():
     from tools.director_v02 import mechanic_engine as me
 
@@ -2186,6 +2255,16 @@ def test_three_strikes_generates_real_escalating_tier_rounds():
         labels = [it["label"] for it in r["options"]]
         assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real option"
         assert r["_answer_item_id"] in item_ids
+
+
+def test_three_strikes_nfl_rotates_across_real_draft_and_season_passing_categories():
+    from tools.director_v04 import three_strikes as ts
+
+    pkg = ts.build_package("test-ts-categories", "NFL_DRAFT_THREE_STRIKES", round_count=12)
+    assert pkg["qa_status"] == "PASSED"
+    seen_draft = any("NFL Draft" in r["prompt"] for r in pkg["rounds"])
+    seen_passing = any("national passing yards" in r["prompt"] for r in pkg["rounds"])
+    assert seen_draft and seen_passing, "a 12-round set should really include both real categories"
 
 
 def test_three_strikes_wrong_answers_deplete_strikes_and_end_the_run():
@@ -2497,6 +2576,22 @@ def test_common_link_generates_real_decoy_complete_rounds():
         labels = [it["label"] for it in r["options"]]
         assert len(set(labels)) == 4, f"round {r['round_index']} has a duplicate real statement"
         assert r["_answer_item_id"] in item_ids
+
+
+def test_common_link_nfl_rotates_across_real_draft_and_roster_pools():
+    # Category variety pass (user feedback: "we don't need game modes
+    # based on draft picks") -- the original 3 link types (college/
+    # draft_season/draft_team) were all really just draft_facts fields.
+    # Must now also genuinely draw from canonical_roster_seasons
+    # (team/season/position), with no draft concept at all.
+    from tools.director_v04 import common_link as cl
+
+    pkg = cl.build_package("test-cl-categories", "NFL_DRAFT_COMMON_LINK", round_count=15)
+    assert pkg["qa_status"] == "PASSED"
+    all_labels = [o["label"] for r in pkg["rounds"] for o in r["options"]]
+    seen_draft = any("drafted" in lb for lb in all_labels)
+    seen_roster = any("drafted" not in lb for lb in all_labels)
+    assert seen_draft and seen_roster, "a 15-round set should really include both the draft and roster pools"
 
 
 def test_common_link_full_playthrough_correct_and_incorrect():

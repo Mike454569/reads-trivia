@@ -40,6 +40,17 @@ is "which real SCHOOL did this real player play for" (not "drafted by"
 -- CFB players aren't drafted), decoys are 3 other real players' real
 schools from that same real season.
 
+Category variety pass (user feedback: "we don't need game modes based on
+draft picks" -- the NFL variant's every round was a draft question).
+NFL_DRAFT_RISK_IT now also draws, per round (all 3 tiers within a round
+kept the same category for internal consistency), from a genuinely
+non-draft real pool: the same real per-season national passing-yards
+RANK proxy already built for CFB, applied to real NFL QBs instead
+(player_season_stats + canonical_roster_seasons.position='QB'). Domain
+for that category is "which real team did this player play for" (not
+"drafted by"). Which category (DRAFT vs SEASON_PASSING) a round uses is
+itself seeded/deterministic.
+
 Two variants: NFL_DRAFT_RISK_IT, CFB_SEASON_PASSING_RISK_IT.
 """
 from __future__ import annotations
@@ -66,6 +77,11 @@ _TIER_POINTS = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
 # recognizability proxy -- CFB has no draft-style pick number at all.
 _CFB_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
 
+# Same real rank-based proxy, applied to real NFL QBs -- a genuinely
+# non-draft category for the NFL variant (category variety pass).
+_NFL_PASSING_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
+_NFL_CATEGORIES = ("DRAFT", "SEASON_PASSING")
+
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
@@ -73,6 +89,7 @@ def safety_check(c) -> dict:
         "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
         "cfb_player_season_stats_real": safety.check_verification_status_safety(
             c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+        "player_season_stats": safety.check_table_wide_safety(c, "player_season_stats", "NFLVERSE_DATA"),
     }
 
 
@@ -98,6 +115,22 @@ def _rows_for_tier_cfb(c, lo: int, hi: int) -> list:
         "  WHERE s.verification_status='SOURCE_BACKED_DERIVED' AND s.source_id='SPORTSDATAVERSE_CFB' "
         "  AND rs.position='QB' AND s.passing_yards >= 300"
         ") WHERE rk BETWEEN ? AND ?",
+        (lo, hi),
+    ).fetchall()
+
+
+def _rows_for_tier_nfl_passing(c, lo: int, hi: int) -> list:
+    return c.execute(
+        "SELECT player_key, player_name, draft_season, draft_team, draft_pick_overall FROM ("
+        "  SELECT s.player_key, p.display_name AS player_name, s.season AS draft_season, "
+        "  s.team_code AS draft_team, "
+        "  RANK() OVER (PARTITION BY s.season ORDER BY s.pass_yards DESC) AS draft_pick_overall "
+        "  FROM player_season_stats s "
+        "  JOIN canonical_players p ON p.player_id = s.player_key "
+        "  WHERE s.verification_status='SOURCE_BACKED' AND s.source_id='NFLVERSE_DATA' "
+        "  AND EXISTS (SELECT 1 FROM canonical_roster_seasons rs WHERE rs.player_id = s.player_key "
+        "  AND rs.season = s.season AND rs.position = 'QB') AND s.pass_yards >= 300"
+        ") WHERE draft_pick_overall BETWEEN ? AND ?",
         (lo, hi),
     ).fetchall()
 
@@ -172,38 +205,97 @@ def _build_tier_question_cfb(rng, rows_by_season: dict) -> dict | None:
     return None
 
 
+def _build_tier_question_nfl_passing(rng, rows_by_season: dict) -> dict | None:
+    seasons = list(rows_by_season.keys())
+    if not seasons:
+        return None
+    rng.shuffle(seasons)
+    for season in seasons:
+        pool = rows_by_season[season]
+        if len(pool) < 1:
+            continue
+        correct = rng.choice(pool)
+        other_teams_pool = [r for r in pool if r["draft_team"] != correct["draft_team"]]
+        if len(other_teams_pool) < 3:
+            continue
+        decoy_rows = rng.sample(other_teams_pool, 3)
+        decoy_teams = []
+        seen = {correct["draft_team"]}
+        for r in decoy_rows:
+            if r["draft_team"] in seen:
+                continue
+            seen.add(r["draft_team"])
+            decoy_teams.append(r["draft_team"])
+        if len(decoy_teams) < 3:
+            continue
+        return {
+            "prompt": f"Which real team did {correct['player_name']} play for in the {season} season "
+                      f"(real #{correct['draft_pick_overall']} in national passing yards that season)?",
+            "correct_team": correct["draft_team"], "decoy_teams": decoy_teams[:3],
+            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in national passing yards: "
+                     f"{correct['player_name']} for {correct['draft_team']} (NFLVERSE_DATA, SOURCE_BACKED).",
+        }
+    return None
+
+
+def _build_rows_by_tier_season(c, tier_ranges: dict, rows_for_tier) -> dict[str, dict[int, list]]:
+    rows_by_tier_season: dict[str, dict[int, list]] = {}
+    for tier, (lo, hi) in tier_ranges.items():
+        by_season: dict[int, list] = {}
+        for r in rows_for_tier(c, lo, hi):
+            by_season.setdefault(r["draft_season"], []).append(r)
+        rows_by_tier_season[tier] = by_season
+    return rows_by_tier_season
+
+
 def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
     is_cfb = variant == "CFB_SEASON_PASSING_RISK_IT"
-    tier_ranges = _CFB_TIER_RANGES if is_cfb else _TIER_RANGES
-    rows_for_tier = _rows_for_tier_cfb if is_cfb else _rows_for_tier
-    build_tier_question = _build_tier_question_cfb if is_cfb else _build_tier_question
-
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        rows_by_tier_season: dict[str, dict[int, list]] = {}
-        for tier, (lo, hi) in tier_ranges.items():
-            by_season: dict[int, list] = {}
-            for r in rows_for_tier(c, lo, hi):
-                by_season.setdefault(r["draft_season"], []).append(r)
-            rows_by_tier_season[tier] = by_season
+        if is_cfb:
+            category_data = {"CFB": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb),
+                                      _build_tier_question_cfb)}
+        else:
+            # Category variety pass: precompute BOTH real categories
+            # upfront so each round can independently choose which one to
+            # draw from (all 3 tiers within a round stay the same
+            # category, for internal consistency).
+            category_data = {
+                "DRAFT": (_build_rows_by_tier_season(c, _TIER_RANGES, _rows_for_tier), _build_tier_question),
+                "SEASON_PASSING": (_build_rows_by_tier_season(c, _NFL_PASSING_TIER_RANGES, _rows_for_tier_nfl_passing),
+                                    _build_tier_question_nfl_passing),
+            }
     finally:
         c.close()
 
     rounds = []
     for i in range(round_count):
-        tiers = {}
-        ok = True
-        for tier in ("LOW", "MEDIUM", "HIGH"):
-            q = build_tier_question(engine_bootstrap.seeded(f"{seed}-r{i}-{tier}"), rows_by_tier_season[tier])
-            if q is None:
-                ok = False
+        if is_cfb:
+            candidates = ["CFB"]
+        else:
+            cat_rng = engine_bootstrap.seeded(f"{seed}-ri-cat-{i}")
+            candidates = list(_NFL_CATEGORIES)
+            cat_rng.shuffle(candidates)
+        tiers = None
+        for category in candidates:
+            rows_by_tier_season, build_tier_question = category_data[category]
+            candidate_tiers = {}
+            ok = True
+            for tier in ("LOW", "MEDIUM", "HIGH"):
+                q = build_tier_question(engine_bootstrap.seeded(f"{seed}-r{i}-{tier}-{category}"),
+                                         rows_by_tier_season[tier])
+                if q is None:
+                    ok = False
+                    break
+                candidate_tiers[tier] = q
+            if ok:
+                tiers = candidate_tiers
                 break
-            tiers[tier] = q
-        if not ok:
+        if tiers is None:
             continue
         rounds.append({"tiers": tiers})
 

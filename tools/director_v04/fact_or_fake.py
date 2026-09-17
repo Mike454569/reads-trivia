@@ -26,6 +26,20 @@ provable-by-substitution discipline as the NFL variant's team swap, just
 substituting a score instead of a team (never a fabricated or randomly
 altered number).
 
+Category variety pass (user feedback: "we don't need game modes based on
+draft picks" -- every round of the NFL variant used to be a draft
+statement). NFL_DRAFT_FACT_OR_FAKE now rotates, per round, across 3 real
+independent categories instead of only ever drawing from draft_facts:
+  - DRAFT: unchanged, the original draft-pick statement.
+  - CHAMPIONSHIP: a real Super Bowl result (nfl_championship_events,
+    WIKIPEDIA_STRUCTURED_SECONDARY) -- false via real SCORE substitution
+    from a different real Super Bowl.
+  - TEAM_RECORD: a real team-season record (season_standings) -- false
+    via real RECORD substitution from a different real team that same
+    season (resolve_franchise for the real franchise name).
+Which category a given round uses is itself seeded/deterministic (never
+Math.random-equivalent), so replays with the same seed are identical.
+
 Two variants: NFL_DRAFT_FACT_OR_FAKE, CFB_GAME_RESULT_FACT_OR_FAKE.
 """
 from __future__ import annotations
@@ -39,6 +53,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import risk_it  # noqa: E402
+from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
+
+_NFL_CATEGORIES = ("DRAFT", "CHAMPIONSHIP", "TEAM_RECORD")
 
 PACKAGE_SCHEMA_VERSION = "1.0"
 MECHANIC = "FACT_OR_FAKE"
@@ -49,6 +66,9 @@ def safety_check(c) -> dict:
     from tools.quiz_export import safety
     result = dict(risk_it.safety_check(c))
     result["cfb_games_canonical"] = safety.check_table_wide_safety(c, "cfb_games_canonical", "SPORTSDATAVERSE_CFB")
+    result["nfl_championship_events"] = safety.check_verification_status_safety(
+        c, "nfl_championship_events", "WIKIPEDIA_STRUCTURED", "WIKIPEDIA_STRUCTURED_SECONDARY")
+    result["season_standings"] = safety.check_table_wide_safety(c, "season_standings", "NFLVERSE_DATA")
     return result
 
 
@@ -92,6 +112,97 @@ def _build_round(rng, by_season: dict[int, list], make_true: bool) -> dict | Non
                      f"{fake_team_row['draft_team']} really drafted a different real player with that class's "
                      f"real pick #{fake_team_row['draft_pick_overall']} instead (NFLVERSE_DATA, SOURCE_BACKED).",
         }
+
+
+# --- CHAMPIONSHIP category (category variety pass) --------------------------
+def _rows_championships(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT sb_title, season, winner_name_raw, loser_name_raw, winner_score, loser_score "
+        "FROM nfl_championship_events WHERE winner_score IS NOT NULL AND loser_score IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _statement_championship(row, winner_score: int, loser_score: int) -> str:
+    return (f"The {row['winner_name_raw']} beat the {row['loser_name_raw']} {winner_score}-{loser_score} "
+            f"in {row['sb_title']} ({row['season']} season).")
+
+
+def _build_round_championship(rng, rows: list[dict], make_true: bool) -> dict | None:
+    if len(rows) < 2:
+        return None
+    subject = rng.choice(rows)
+    if make_true:
+        return {"statement": _statement_championship(subject, subject["winner_score"], subject["loser_score"]),
+                "is_true": True,
+                "notes": f"Real, verbatim {subject['sb_title']} result (WIKIPEDIA_STRUCTURED, "
+                         f"WIKIPEDIA_STRUCTURED_SECONDARY)."}
+    others = [r for r in rows if r is not subject
+              and (r["winner_score"], r["loser_score"]) != (subject["winner_score"], subject["loser_score"])]
+    if not others:
+        return None
+    fake_score_row = rng.choice(others)
+    return {
+        "statement": _statement_championship(subject, fake_score_row["winner_score"], fake_score_row["loser_score"]),
+        "is_true": False,
+        "notes": f"Provably false by real score substitution: the {subject['winner_name_raw']} really beat the "
+                 f"{subject['loser_name_raw']} {subject['winner_score']}-{subject['loser_score']} in "
+                 f"{subject['sb_title']} -- the {fake_score_row['winner_score']}-{fake_score_row['loser_score']} "
+                 f"score really belongs to a different real Super Bowl instead (WIKIPEDIA_STRUCTURED, "
+                 f"WIKIPEDIA_STRUCTURED_SECONDARY).",
+    }
+
+
+# --- TEAM_RECORD category (category variety pass) ---------------------------
+def _rows_team_records(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT season, team_code, wins, losses, ties FROM season_standings "
+        "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
+        "AND wins IS NOT NULL AND losses IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _record_str_nfl(row: dict) -> str:
+    if row.get("ties"):
+        return f"{row['wins']}-{row['losses']}-{row['ties']}"
+    return f"{row['wins']}-{row['losses']}"
+
+
+def _statement_team_record(full_name: str, season: int, record_row: dict) -> str:
+    return f"The {full_name} went {_record_str_nfl(record_row)} in the {season} season."
+
+
+def _build_round_team_record(c, rng, rows: list[dict]) -> dict | None:
+    pool = list(rows)
+    rng.shuffle(pool)
+    for subject in pool:
+        fr, err = resolve_franchise(c, subject["team_code"], subject["season"])
+        if err or fr is None:
+            continue
+        same_season = [r for r in rows if r["season"] == subject["season"] and r["team_code"] != subject["team_code"]]
+        return fr, subject, same_season
+    return None
+
+
+def _fact_or_fake_team_record_round(c, rng, rows: list[dict], make_true: bool) -> dict | None:
+    built = _build_round_team_record(c, rng, rows)
+    if built is None:
+        return None
+    fr, subject, same_season = built
+    if make_true:
+        return {"statement": _statement_team_record(fr["full_name"], subject["season"], subject), "is_true": True,
+                "notes": f"Real, verbatim {subject['season']} team record (NFLVERSE_DATA, SOURCE_BACKED)."}
+    if not same_season:
+        return None
+    fake_record_row = rng.choice(same_season)
+    return {
+        "statement": _statement_team_record(fr["full_name"], subject["season"], fake_record_row), "is_true": False,
+        "notes": f"Provably false by real record substitution: the {fr['full_name']} really went "
+                 f"{_record_str_nfl(subject)} in the {subject['season']} season -- the "
+                 f"{_record_str_nfl(fake_record_row)} record really belongs to a different real team that "
+                 f"same season instead (NFLVERSE_DATA, SOURCE_BACKED).",
+    }
 
 
 def _rows_by_season_cfb(c) -> dict[int, list]:
@@ -153,12 +264,6 @@ def generate_rounds(seed: str, variant: str, round_count: int = 10) -> dict:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
     is_cfb = variant == "CFB_GAME_RESULT_FACT_OR_FAKE"
-    c = engine_bootstrap.connect()
-    try:
-        safety_result = safety_check(c)
-        by_season = _rows_by_season_cfb(c) if is_cfb else _rows_by_season(c)
-    finally:
-        c.close()
 
     # User feedback: strict alternation (True, Fake, True, Fake...) made the
     # answer guessable from round 2 onward without even reading the
@@ -168,14 +273,48 @@ def generate_rounds(seed: str, variant: str, round_count: int = 10) -> dict:
     make_true_flags = [True] * (round_count // 2) + [False] * (round_count - round_count // 2)
     engine_bootstrap.seeded(f"{seed}-fof-truefake-order").shuffle(make_true_flags)
 
-    rounds = []
-    for i in range(round_count):
-        make_true = make_true_flags[i]
-        rng = engine_bootstrap.seeded(f"{seed}-fof-r{i}")
-        r = _build_round_cfb(rng, by_season, make_true) if is_cfb else _build_round(rng, by_season, make_true)
-        if r is None:
-            continue
-        rounds.append(r)
+    c = engine_bootstrap.connect()
+    try:
+        safety_result = safety_check(c)
+        if is_cfb:
+            by_season = _rows_by_season_cfb(c)
+            rounds = []
+            for i in range(round_count):
+                rng = engine_bootstrap.seeded(f"{seed}-fof-r{i}")
+                r = _build_round_cfb(rng, by_season, make_true_flags[i])
+                if r is not None:
+                    rounds.append(r)
+        else:
+            # Category variety pass: which real, independent category a
+            # round draws from is itself seeded/deterministic (never all
+            # draft, per the user's own feedback), tried in a real,
+            # deterministic fallback order if the chosen category can't
+            # build a round (e.g. a real tie/exhausted pool) rather than
+            # silently dropping the round.
+            by_season = _rows_by_season(c)
+            championship_rows = _rows_championships(c)
+            record_rows = _rows_team_records(c)
+            rounds = []
+            for i in range(round_count):
+                make_true = make_true_flags[i]
+                cat_rng = engine_bootstrap.seeded(f"{seed}-fof-cat-{i}")
+                categories = list(_NFL_CATEGORIES)
+                cat_rng.shuffle(categories)
+                r = None
+                for category in categories:
+                    rng = engine_bootstrap.seeded(f"{seed}-fof-r{i}-{category}")
+                    if category == "DRAFT":
+                        r = _build_round(rng, by_season, make_true)
+                    elif category == "CHAMPIONSHIP":
+                        r = _build_round_championship(rng, championship_rows, make_true)
+                    else:
+                        r = _fact_or_fake_team_record_round(c, rng, record_rows, make_true)
+                    if r is not None:
+                        break
+                if r is not None:
+                    rounds.append(r)
+    finally:
+        c.close()
 
     shortfall_reason = None
     if len(rounds) < round_count:

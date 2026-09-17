@@ -32,6 +32,17 @@ genuinely share the same real school, the same real season, or the same
 real conference (cfb_player_season_stats_real + schools), same "identify
 the relationship type" shape as the NFL variant.
 
+Category variety pass (user feedback: "we don't need game modes based on
+draft picks" -- all 3 of the NFL variant's original link types (college/
+draft_season/draft_team) were really just 3 different fields of the same
+draft_facts table, so every round was still "3 players who were drafted"
+underneath). NFL_DRAFT_COMMON_LINK now also draws from a genuinely
+different, non-draft real pool per round -- canonical_roster_seasons
+(NFLVERSE_DATA, SOURCE_BACKED): 3 real players who shared the same real
+team, the same real season, or the same real position, with no draft
+concept involved at all. Which pool (DRAFT vs ROSTER) a round uses is
+itself seeded/deterministic.
+
 Two variants: NFL_DRAFT_COMMON_LINK, CFB_SEASON_COMMON_LINK.
 """
 from __future__ import annotations
@@ -63,6 +74,13 @@ _CFB_STATEMENT_TEMPLATES = {
     "conference": lambda v: f"They all played in the {v}.",
 }
 
+_ROSTER_LINK_TYPES = ("team", "season", "position")
+_ROSTER_STATEMENT_TEMPLATES = {
+    "team": lambda v: f"They all played for the {v}.",
+    "season": lambda v: f"They all played in the {v} season.",
+    "position": lambda v: f"They all played {v}.",
+}
+
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
@@ -70,6 +88,9 @@ def safety_check(c) -> dict:
         "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
         "cfb_player_season_stats_real": safety.check_verification_status_safety(
             c, "cfb_player_season_stats_real", "SPORTSDATAVERSE_CFB", "SOURCE_BACKED_DERIVED"),
+        "canonical_roster_seasons": safety.check_verification_status_safety(
+            c, "canonical_roster_seasons", "NFLVERSE_DATA", "SOURCE_BACKED",
+            where_extra="source_id = 'NFLVERSE_DATA'"),
     }
 
 
@@ -110,6 +131,49 @@ def _build_round(rng, rows: list[dict], groups_by_type: dict[str, dict]) -> dict
             "names": [r["player_name"] for r in trio], "correct_statement": template(value),
             "decoy_statements": [template(d) for d in decoys],
             "notes": f"These 3 real players really share the same real {link_type.replace('_', ' ')}: "
+                     f"{value} (NFLVERSE_DATA, SOURCE_BACKED).",
+        }
+    return None
+
+
+def _fetch_rows_roster(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT rs.player_id, p.display_name AS player_name, rs.season, rs.team_code AS team, rs.position "
+        "FROM canonical_roster_seasons rs JOIN canonical_players p ON p.player_id = rs.player_id "
+        "WHERE rs.verification_status='SOURCE_BACKED' AND rs.source_id='NFLVERSE_DATA' AND rs.position IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _build_round_roster(rng, rows: list[dict], groups_by_type: dict[str, dict]) -> dict | None:
+    link_types = list(_ROSTER_LINK_TYPES)
+    rng.shuffle(link_types)
+    for link_type in link_types:
+        groups = groups_by_type[link_type]
+        # Same real reason as the CFB dedup below: a player has one row
+        # per season, so "team"/"position" pools can list the same real
+        # person many times -- a trio must be 3 genuinely DISTINCT people.
+        eligible_values = []
+        for v, members in groups.items():
+            distinct = {m["player_id"]: m for m in members}
+            if len(distinct) >= 3:
+                eligible_values.append(v)
+        if not eligible_values:
+            continue
+        rng.shuffle(eligible_values)
+        value = eligible_values[0]
+        distinct_members = list({m["player_id"]: m for m in groups[value]}.values())
+        trio = rng.sample(distinct_members, 3)
+        decoy_values = [v for v in groups if v != value and len(groups[v]) >= 1]
+        if len(decoy_values) < 3:
+            continue
+        rng.shuffle(decoy_values)
+        decoys = decoy_values[:3]
+        template = _ROSTER_STATEMENT_TEMPLATES[link_type]
+        return {
+            "names": [r["player_name"] for r in trio], "correct_statement": template(value),
+            "decoy_statements": [template(d) for d in decoys],
+            "notes": f"These 3 real players really share the same real {link_type}: "
                      f"{value} (NFLVERSE_DATA, SOURCE_BACKED).",
         }
     return None
@@ -167,17 +231,39 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        rows = _fetch_rows_cfb(c) if is_cfb else _fetch_rows(c)
+        if is_cfb:
+            rows = _fetch_rows_cfb(c)
+            groups_by_type = {lt: _group_by(rows, lt) for lt in _CFB_LINK_TYPES}
+        else:
+            draft_rows = _fetch_rows(c)
+            draft_groups = {lt: _group_by(draft_rows, lt) for lt in _LINK_TYPES}
+            roster_rows = _fetch_rows_roster(c)
+            roster_groups = {lt: _group_by(roster_rows, lt) for lt in _ROSTER_LINK_TYPES}
     finally:
         c.close()
 
-    link_types = _CFB_LINK_TYPES if is_cfb else _LINK_TYPES
-    groups_by_type = {lt: _group_by(rows, lt) for lt in link_types}
-
     rounds = []
     for i in range(round_count):
-        rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}")
-        r = _build_round_cfb(rng, rows, groups_by_type) if is_cfb else _build_round(rng, rows, groups_by_type)
+        if is_cfb:
+            rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}")
+            r = _build_round_cfb(rng, rows, groups_by_type)
+        else:
+            # Category variety pass: which real, independent pool a round
+            # draws from (DRAFT vs ROSTER) is itself seeded/deterministic,
+            # tried in a real fallback order if the chosen pool can't
+            # build a round rather than silently dropping it.
+            cat_rng = engine_bootstrap.seeded(f"{seed}-cl-cat-{i}")
+            pools = ["DRAFT", "ROSTER"]
+            cat_rng.shuffle(pools)
+            r = None
+            for pool_name in pools:
+                rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}-{pool_name}")
+                if pool_name == "DRAFT":
+                    r = _build_round(rng, draft_rows, draft_groups)
+                else:
+                    r = _build_round_roster(rng, roster_rows, roster_groups)
+                if r is not None:
+                    break
         if r is None:
             continue
         rounds.append(r)
