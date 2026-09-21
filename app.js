@@ -7742,7 +7742,11 @@ function drawShareCard(ctx, cfg, format) {
 
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  drawIconPath(ctx, 'zap', 60, 64, 42, '#d9a63c');
+  // Brand revamp: the real goalpost silhouette from the actual Reads
+  // wordmark, not a generic lightning bolt -- drawIconPath supports it
+  // (plain <path> elements only, no transform= sub-elements, same real
+  // constraint that ruled out the football icon here originally).
+  drawIconPath(ctx, 'goalpost', 60, 64, 42, '#d9a63c');
   ctx.fillStyle = '#d9a63c';
   ctx.font = '800 44px ' + FONT;
   ctx.fillText('READS', 116, 112);
@@ -8414,7 +8418,14 @@ function renderLeaderboard() {
       // separate/fabricated field.
       var tierChip = mode.id === 'rating' && r.score != null
         ? ' <span class="leaderboard-tier-chip">' + esc(ratingTierFor(r.score).name) + '</span>' : '';
-      html += '<tr class="' + (isMe ? 'leaderboard-row-me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(r.name) + tierChip + (isMe ? ' <span class="leaderboard-you-tag">You</span>' : '') + '</td>' + mode.cols.map(function (c) { return '<td>' + esc(r[c[0]] != null ? r[c[0]] : 0) + '</td>'; }).join('') + '</tr>';
+      // Brand revamp: a real gold/silver/bronze medal badge for the top 3
+      // real ranks instead of a plain number -- the classic leaderboard
+      // "podium" convention, on-brand with the app's own gold/chrome
+      // accent duality.
+      var rankCell = i < 3
+        ? '<span class="leaderboard-medal leaderboard-medal-' + (i + 1) + '">' + (i + 1) + '</span>'
+        : String(i + 1);
+      html += '<tr class="' + (isMe ? 'leaderboard-row-me' : '') + '"><td>' + rankCell + '</td><td>' + esc(r.name) + tierChip + (isMe ? ' <span class="leaderboard-you-tag">You</span>' : '') + '</td>' + mode.cols.map(function (c) { return '<td>' + esc(r[c[0]] != null ? r[c[0]] : 0) + '</td>'; }).join('') + '</tr>';
     });
     html += '</tbody></table></div>';
     if (myFullRank >= 25) {
