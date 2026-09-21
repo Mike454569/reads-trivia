@@ -341,7 +341,9 @@ body.has-fav-team #top-bar {
   min-height: 40px;
   flex-shrink: 0;
 }
-.nav-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+/* Brand revamp: the active top-nav tab picks up the same gold gradient
+   as every other "this is the selected/primary thing" moment. */
+.nav-btn.active { background: var(--gradient-gold); border-color: var(--accent); color: var(--accent-text); }
 .nav-btn .caret { font-size: 10px; opacity: 0.7; }
 .nav-btn[data-league-toggle].sheet-open { background: var(--bg-card); border-color: var(--accent); color: var(--text); }
 #sync-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
@@ -734,7 +736,10 @@ footer p { margin: 6px 0 0; }
     background: transparent; border: none; color: var(--text-dim); cursor: pointer;
     min-height: 52px; border-radius: var(--radius-sm); padding: 4px;
   }
-  .bottom-nav-btn.active, .bottom-nav-btn.sheet-open { color: var(--accent); }
+  /* Brand revamp: a real pill behind the active tab's icon+label instead
+     of just a text-color change -- reads as a selected "chip", not just
+     dimmer/brighter text at a glance. */
+  .bottom-nav-btn.active, .bottom-nav-btn.sheet-open { color: var(--accent); background: rgba(217, 166, 60, 0.12); }
   .bn-icon { display: flex; }
   .bn-icon .icon { width: 21px; height: 21px; }
   .bn-label { font-size: 10px; font-weight: 700; }
@@ -877,7 +882,9 @@ footer p { margin: 6px 0 0; }
 }
 .mode-grid-nfl .mode-card { border-top-width: 3px; border-top-color: var(--accent); }
 .mode-grid-cfb .mode-card { border-top-width: 3px; border-top-color: var(--accent-2); }
-.mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+/* Brand revamp: a real gold-tinted lift shadow on hover, not just the
+   border-color change -- reads as tactile/premium instead of flat. */
+.mode-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(217, 166, 60, 0.28); }
 .mode-icon { font-size: 28px; margin-bottom: 8px; }
 .mode-icon img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; vertical-align: middle; }
 .mode-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .01em; margin-bottom: 6px; }
@@ -1098,7 +1105,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   border-radius: 999px; padding: 10px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
   min-height: 40px;
 }
-.chip-toggle.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.chip-toggle.active { background: var(--gradient-gold); border-color: var(--accent); color: var(--accent-text); }
 
 /* quiz */
 .quiz-progress { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
@@ -2083,9 +2090,18 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
    genuinely 2-option mechanic. Reuses existing tokens only -- no new
    color palette, matches --home-accent the same way the rest of the app
    already does for per-league/per-team accenting. */
+/* Brand revamp: a thin gold-to-chrome gradient hairline instead of a
+   plain gray border -- this shell renders at the top of ~30 game
+   screens (every enginePilot/mechanicPilot format + Who Am I), so it's
+   one of the single highest-reach touches in the app. */
 .reads-shell-header {
+  position: relative;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  margin-bottom: 12px; padding-bottom: 10px; border-bottom: none;
+}
+.reads-shell-header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); opacity: .55;
 }
 .reads-shell-id { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
 .reads-shell-icon { color: var(--home-accent, var(--accent)); flex-shrink: 0; display: flex; }
