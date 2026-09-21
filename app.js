@@ -226,6 +226,10 @@ var ICON_PATHS = {
   // silhouette) -- used as a recurring decorative motif (completion
   // screens, empty states), never as a generic UI icon.
   goalpost: '<path d="M5 3v9"/><path d="M19 3v9"/><path d="M5 12h14"/><path d="M12 12v9"/><path d="M9 21l3-3 3 3"/>',
+  // User feedback: "Film Room" was using the plain book icon, which
+  // "makes zero sense" for a film-study section -- a real clapperboard
+  // instead (board + open diagonal-striped clapper + hinge line).
+  clapperboard: '<rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M3 8 5.5 3h3L6 8Z"/><path d="M9.5 8 12 3h3l-2.5 5Z"/><path d="M16 8 17.5 3h3l-1 5Z"/><path d="M3 12h18"/>',
 };
 function icon(name, cls) {
   var body = ICON_PATHS[name] || '';
@@ -2676,7 +2680,9 @@ function h2hCardHtml() {
   return discoverRowHtml('h2h', 'versus', 'Head-to-Head', 'Challenge a friend · ' + recordBit, 'h2h-card');
 }
 function learnCardHtml() {
-  return discoverRowHtml('learn', 'book', 'The Film Room', "Facts, history, HOF & scheme concepts", 'learn-card');
+  // User feedback: the book icon "makes zero sense" for Film Room --
+  // matches the nav tab's own fix (clapperboard).
+  return discoverRowHtml('learn', 'clapperboard', 'The Film Room', "Facts, history, HOF & scheme concepts", 'learn-card');
 }
 function friendsCardHtml() {
   var count = getFriends().length;
@@ -8661,7 +8667,7 @@ function renderSettings() {
     '<p class="mode-desc">' +
     (nflTeam || cfbTeam ? ('NFL: <b>' + esc(nflTeam ? nflTeam.name : 'Not set') + '</b> &middot; College: <b>' + esc(cfbTeam ? cfbTeam.name : 'Not set') + '</b>') : 'Not set yet — used for a few personal touches around the app and a light nudge in the random mix.') +
     '</p>' +
-    '<button class="btn-secondary" data-team-picker-toggle>' + icon('settings') + ' Change Teams</button>' +
+    '<button class="btn-secondary" data-team-picker-toggle>' + icon('users') + ' Change Teams</button>' +
     '</div>' +
 
     '<div class="about-section">' +
@@ -10446,7 +10452,7 @@ document.addEventListener('click', function (e) {
     '[data-share], #share-close, #share-backdrop, #share-download, #share-x, #share-facebook, #share-copy, [data-share-format], ' +
     '[data-report], #report-close, #report-backdrop, #report-submit, [data-report-category], [data-copy-email], ' +
     '#rating-badge, #rating-close, #rating-backdrop, ' +
-    '#team-picker-toggle, #team-picker-close, #team-picker-backdrop, [data-team-tab], [data-team-pick], [data-team-clear], [data-team-done], [data-team-picker-toggle], [data-team-prompt-dismiss], ' +
+    '#team-picker-close, #team-picker-backdrop, [data-team-tab], [data-team-pick], [data-team-clear], [data-team-done], [data-team-picker-toggle], [data-team-prompt-dismiss], ' +
     '[data-settings-mute-toggle], [data-settings-push-toggle], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
     '[data-h2h-go-create], [data-h2h-go-join], [data-h2h-back-menu], [data-h2h-roundsize], [data-h2h-create], ' +
     '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-exit], ' +
@@ -10501,7 +10507,13 @@ document.addEventListener('click', function (e) {
   if (t.id === 'auth-switch') { authModalSwitch(); return; }
   if (t.dataset.authOpen !== undefined) { openAuthModal(t.dataset.authOpen); return; }
   if (t.dataset.logOut !== undefined) { logOut(); return; }
-  if (t.id === 'team-picker-toggle' || t.dataset.teamPickerToggle !== undefined) { openTeamPicker(); return; }
+  // User feedback: the top-bar gear icon "makes zero sense" opening the
+  // team picker -- it now genuinely goes to Settings (data-go="settings"
+  // on the button itself, handled by the generic data-go branch below).
+  // Every OTHER real entry point to the team picker (onboarding's "Pick
+  // My Teams", the mode-sheet's "Your team" pill, Settings' own "Change
+  // Teams") still uses data-team-picker-toggle and is unaffected.
+  if (t.dataset.teamPickerToggle !== undefined) { openTeamPicker(); return; }
   if (t.dataset.teamPromptDismiss !== undefined) { dismissTeamPrompt(); return; }
   if (t.dataset.settingsMuteToggle !== undefined) { toggleMute(); renderAll(); return; }
   if (t.dataset.settingsPushToggle !== undefined) { togglePushNotifications(); return; }

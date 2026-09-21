@@ -409,9 +409,9 @@ body.has-fav-team #top-bar {
   75% { opacity: 1; transform: translate(-50%, -22px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -30px) scale(0.9); }
 }
-#help-toggle, #mute-toggle, #team-picker-toggle { background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; width: 34px; height: 34px; color: var(--text-dim); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-#help-toggle .icon, #mute-toggle .icon, #team-picker-toggle .icon { width: 17px; height: 17px; }
-#help-toggle:hover, #mute-toggle:hover, #team-picker-toggle:hover { color: var(--text); border-color: var(--accent); }
+#help-toggle, #mute-toggle, #settings-toggle { background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px; width: 34px; height: 34px; color: var(--text-dim); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+#help-toggle .icon, #mute-toggle .icon, #settings-toggle .icon { width: 17px; height: 17px; }
+#help-toggle:hover, #mute-toggle:hover, #settings-toggle:hover { color: var(--text); border-color: var(--accent); }
 
 /* onboarding — a short, centered, dismissible modal (see openOnboarding in
    app.js). Shown once automatically, reopenable any time via #help-toggle. */
@@ -577,8 +577,10 @@ body.has-fav-team #top-bar {
 .rating-modal-tier-name { font-size: 15px; font-weight: 800; color: var(--fav-team-color-readable, var(--accent)); }
 .rating-modal-tier-next { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
 
-/* favorite-team picker — tapping #team-picker-toggle opens this; same dialog
-   pattern as the others above. */
+/* favorite-team picker — opened via any [data-team-picker-toggle] element
+   (Settings' own "Favorite Teams" section, onboarding, the mode-sheet's
+   "Your team" pill -- the top-bar gear icon now goes to Settings
+   instead, see #settings-toggle); same dialog pattern as the others above. */
 #team-picker-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 29;
   opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
