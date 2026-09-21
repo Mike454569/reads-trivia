@@ -7645,6 +7645,34 @@ function shareConfigFor(mode) {
     return { title: epCfg.title, headline: ep.correctCount + '/' + ep.roundSize, sub: 'correct', detail: epRl,
       shareText: 'I got ' + ep.correctCount + '/' + ep.roundSize + ' on ' + epCfg.title + ' in Reads Football.' + (epRl ? ' ' + epRl : '') };
   }
+  // User feedback: "fix the share card for every game mode" -- the ~20
+  // mechanicPilot formats (Risk It, Three Strikes, Double or Nothing,
+  // Blind Resume, Mystery Roster, Common Link, Guess the Ranking, Stat
+  // Target, Fact or Fake, Reverse Trivia, King of the Hill, NFL+CFB)
+  // had NO share config at all -- their Complete screen had no Share
+  // button, and even if one existed shareResultCard would have silently
+  // no-op'd (shareConfigFor returned null). Reuses
+  // renderMechanicPilotCompleteSummary's own real per-kind summary text
+  // (engine-game-ui.js) for the sub-line rather than duplicating that
+  // per-kind logic a second time -- one real source of truth for "what
+  // actually happened this round." Headline prefers a real running
+  // score/points/streak value already on the server view when one
+  // exists for this kind, falling back to a plain correct/complete
+  // readout for single-round kinds that don't track a running number.
+  if (ENGINE_MECHANIC_MODES[mode] && state.mechanicPilot && state.mechanicPilot.modeKey === mode) {
+    var mpCfg = ENGINE_MECHANIC_MODES[mode], mp = state.mechanicPilot;
+    var mpR = mp.result || {}, mpV = mp.view || {};
+    var mpHeadline = 'Complete';
+    if (mpV.score != null) mpHeadline = String(mpV.score);
+    else if (mpV.points != null) mpHeadline = String(mpV.points);
+    else if (mpV.consecutive_defenses != null) mpHeadline = String(mpV.consecutive_defenses);
+    else if (mpR.correct === true) mpHeadline = 'Correct!';
+    var mpSummaryHtml = renderMechanicPilotCompleteSummary(mpCfg, mp);
+    var mpSub = String(mpSummaryHtml).replace(/<[^>]+>/g, '').trim() || mpCfg.title;
+    var mpRl = shareStatusLine();
+    return { title: mpCfg.title, headline: mpHeadline, sub: mpSub, detail: mpRl,
+      shareText: 'I played ' + mpCfg.title + ' in Reads! ' + mpSub + (mpRl ? ' ' + mpRl : '') };
+  }
   return null;
 }
 // Strokes one of the app's own SVG icons (ICON_PATHS) onto a canvas 2D
@@ -7833,6 +7861,16 @@ function drawShareCard(ctx, cfg, format) {
   // would be -- Auburn's navy+orange, e.g., isn't just "one team color"),
   // with the same star glyph the mockup uses added alongside it, not
   // instead of it.
+  // Real bug fix (user report: title text rendered "on top of" this
+  // pill): titleY below was a fixed offset from midY (280 for square
+  // format) with NO awareness of where this pill's own bottom edge
+  // actually landed (260) -- only a 20px gap, nowhere near enough real
+  // clearance for a 42px title font's own ascent (~30px+) above its
+  // baseline. contentTopY tracks the real bottom of whatever was just
+  // drawn (this pill, when present) so titleY can guarantee real
+  // clearance regardless of format/identity-line length, instead of a
+  // fixed number that only happened to work when no pill was drawn.
+  var contentTopY = 192;
   var identityParts = [];
   if (state.name) identityParts.push(state.name);
   if (fav) identityParts.push(fav.name + ' fan');
@@ -7875,6 +7913,7 @@ function drawShareCard(ctx, cfg, format) {
     ctx.font = '700 ' + identityFit0.px + 'px ' + FONT;
     ctx.fillStyle = '#eef2f8';
     ctx.fillText(identityFit0.text, pillX + pillPadX + iconW, pillY + pillH / 2 + 9);
+    contentTopY = pillY + pillH;
   }
 
   // Decorative flanking dashes around the mode title -- matches the
@@ -7883,7 +7922,13 @@ function drawShareCard(ctx, cfg, format) {
   // it regardless of length).
   ctx.textAlign = 'center';
   var titleFit = fitShareText(ctx, cfg.title, FONT, W - 200, 42, 26, '700');
-  var titleY = midY - 220, titleWidth = ctx.measureText(titleFit.text).width;
+  // 56px real clearance from contentTopY to the title's OWN baseline,
+  // plus that baseline still needs to clear a ~42px font's real ascent
+  // (~30px above the baseline) -- the max() only kicks in for square
+  // format (where midY-220 alone wasn't enough room above the identity
+  // pill); story format's own midY-220 already had plenty of clearance
+  // and is unaffected.
+  var titleY = Math.max(midY - 220, contentTopY + 56), titleWidth = ctx.measureText(titleFit.text).width;
   ctx.fillStyle = '#eef2f8';
   ctx.fillText(titleFit.text, W / 2, titleY);
   ctx.strokeStyle = hexToRgbaString(rawAccent, 0.5);

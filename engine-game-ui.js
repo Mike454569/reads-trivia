@@ -2980,6 +2980,7 @@ function renderMechanicPilotScreen() {
       icon('trophy') + ' <h2 class="complete-banner-text">Round Complete!</h2></div>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Play Again</button>' +
+      '<button class="btn-secondary" data-share="' + esc(s.modeKey) + '">' + icon('share') + ' Share</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div>' +
       postGameNextStepsHtml(null) + '</div>';
   }
