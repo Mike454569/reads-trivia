@@ -7757,6 +7757,21 @@ function hexToRgbaString(hex, alpha) {
 // edges or collide with a neighboring element. Returns the actual px size
 // used, since the identity-line swatch dot needs to know it to vertically
 // balance against the (possibly shrunk) text.
+// Real bug fix (user report: "why is the reads logo not on the share
+// card"): the card was never actually drawing the real Reads logo -- it
+// drew a hand-rolled approximation instead (a thin drawIconPath goalpost
+// outline + plain system-font "READS" text), which doesn't read as *the*
+// logo at a glance the way the real chrome/gold wordmark image does
+// everywhere else in the app (splash, loading screen, app icon). Preload
+// the actual asset once at script load so it's essentially guaranteed
+// ready by the time a user reaches any share button several screens deep,
+// and draw it as a real image on the canvas in drawShareCard below.
+var _shareLogoImg = null;
+(function preloadShareLogoImg() {
+  var img = new Image();
+  img.onload = function () { _shareLogoImg = img; };
+  img.src = 'assets/brand/reads-logo.jpg';
+})();
 function fitShareText(ctx, text, font, maxWidth, startPx, minPx, weight) {
   var px = startPx;
   ctx.font = weight + ' ' + px + 'px ' + font;
@@ -7824,17 +7839,25 @@ function drawShareCard(ctx, cfg, format) {
 
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  // Brand revamp: the real goalpost silhouette from the actual Reads
-  // wordmark, not a generic lightning bolt -- drawIconPath supports it
-  // (plain <path> elements only, no transform= sub-elements, same real
-  // constraint that ruled out the football icon here originally).
-  drawIconPath(ctx, 'goalpost', 60, 64, 42, '#d9a63c');
-  ctx.fillStyle = '#d9a63c';
-  ctx.font = '800 44px ' + FONT;
-  ctx.fillText('READS', 116, 112);
-  ctx.fillStyle = '#9aa8c2';
-  ctx.font = '600 26px ' + FONT;
-  ctx.fillText('NFL & CFB Trivia', 116, 150);
+  if (_shareLogoImg) {
+    // The real chrome/gold Reads wordmark image -- same asset used for the
+    // splash/loading screen -- drawn straight onto the card so it actually
+    // reads as *the* logo instead of a hand-drawn approximation of it.
+    var logoW = 250, logoH = logoW * (_shareLogoImg.height / _shareLogoImg.width);
+    ctx.drawImage(_shareLogoImg, 60, 36, logoW, logoH);
+  } else {
+    // Fallback for the rare case the image hasn't finished preloading yet
+    // (drawIconPath supports plain <path>-only icons like this one; no
+    // transform= sub-elements, same constraint that ruled out the football
+    // icon here originally).
+    drawIconPath(ctx, 'goalpost', 60, 64, 42, '#d9a63c');
+    ctx.fillStyle = '#d9a63c';
+    ctx.font = '800 44px ' + FONT;
+    ctx.fillText('READS', 116, 112);
+    ctx.fillStyle = '#9aa8c2';
+    ctx.font = '600 26px ' + FONT;
+    ctx.fillText('NFL & CFB Trivia', 116, 150);
+  }
   ctx.strokeStyle = 'rgba(238,242,248,0.1)';
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, 192); ctx.lineTo(W - 60, 192); ctx.stroke();
