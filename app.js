@@ -239,6 +239,22 @@ function icon(name, cls) {
 function brandWatermarkHtml() {
   return '<div class="brand-watermark" aria-hidden="true">' + icon('goalpost') + '</div>';
 }
+// Brand revamp (user request: "why would it not show the logo with a
+// loading bar" for the mode-switch loading screen): the real Reads
+// square logo (already precached by the service worker -- see sw.js's
+// own CORE_ASSETS list, so this is instant on any return visit) plus an
+// honest INDETERMINATE progress bar. Never a fake percentage -- this
+// fires while real mode-data <script> files are downloading
+// (loadModeDataThenRun), which has no real, trackable progress value to
+// show, so a sliding bar (not a filling-to-100% one) is the honest
+// choice. Reserved for real full-screen "entering a mode" loads, not
+// every small in-flow fetch -- those keep the existing compact spinner.
+function brandLoadingScreenHtml(labelText) {
+  return '<div class="panel loading-panel brand-loading-panel" aria-busy="true">' +
+    '<img src="assets/brand/reads-logo-square.jpg" alt="" aria-hidden="true" class="brand-loading-logo">' +
+    '<div class="brand-loading-bar" aria-hidden="true"><div class="brand-loading-bar-fill"></div></div>' +
+    '<div class="loading-text">Loading ' + esc(labelText) + '&hellip;</div></div>';
+}
 // Full Visual + Interactive Redesign pass: a shared segmented round-progress
 // bar (matching the redesigned game-screen mockup) -- `current` is the
 // real 0-based index already tracked by every caller (t.index/s.roundIndex),
@@ -307,7 +323,16 @@ function renderReadsShellHeader(opts) {
     chips += '<span class="reads-shell-chip reads-shell-chip-tier reads-shell-chip-tier-' + esc(opts.tier.name.toLowerCase()) + '">' +
       esc(opts.tier.name) + (opts.tier.points != null ? ' &middot; ' + esc(String(opts.tier.points)) + (opts.tier.points === 1 ? ' pt' : ' pts') : '') + '</span>';
   }
+  // Brand revamp (user request: "the logo pop up in the Game modes in
+  // the backgrounds"): a large, very quiet goalpost watermark behind
+  // this shared header -- renders at the top of every enginePilot/
+  // mechanicPilot format + Who Am I (~30 formats), so it's a real,
+  // recurring presence throughout an actual play session, not just a
+  // one-off completion moment. Bounded to the header's own box
+  // (.reads-shell-header's own overflow:hidden) rather than the whole
+  // panel, so it can't visually collide with real game content below.
   return '<div class="reads-shell-header">' +
+    '<div class="reads-shell-header-watermark" aria-hidden="true">' + icon('goalpost') + '</div>' +
     '<div class="reads-shell-id">' +
     (opts.icon ? '<span class="reads-shell-icon">' + icon(opts.icon) + '</span>' : '') +
     '<span class="reads-shell-title">' + esc(opts.title || '') + '</span>' +
@@ -1117,7 +1142,7 @@ function loadModeDataThenRun(mode, run, onError) {
   var pending = files && files.filter(function (f) { return !loadedScripts[f]; });
   if (pending && pending.length) {
     var app = document.getElementById('app');
-    if (app) app.innerHTML = '<div class="panel loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading ' + esc(modeLabelFor(mode)) + '…</div></div>';
+    if (app) app.innerHTML = brandLoadingScreenHtml(modeLabelFor(mode));
     Promise.all(pending.map(loadScript)).then(function () {
       refreshDataAliases();
       run();
@@ -1542,7 +1567,7 @@ function goToMode(mode) {
   var pending = files && files.filter(function (f) { return !loadedScripts[f]; });
   if (pending && pending.length) {
     var app = document.getElementById('app');
-    if (app) app.innerHTML = '<div class="panel loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading ' + esc(modeLabelFor(mode)) + '…</div></div>';
+    if (app) app.innerHTML = brandLoadingScreenHtml(modeLabelFor(mode));
     Promise.all(pending.map(loadScript)).then(function () {
       refreshDataAliases();
       enterMode(mode);
@@ -2306,7 +2331,13 @@ var CFB_TEAMS = [
   { id: 'SMU', name: 'SMU', code: "SMU", color: '#C8102E', color2: '#354CA1' },
   { id: 'Virginia', name: 'Virginia', code: "UVA", color: '#232D4B', color2: '#E57200', chant: 'Wahoowa!' },
   { id: 'Virginia Tech', name: 'Virginia Tech', code: "VT", color: '#630031', color2: '#CF4420' },
-  { id: 'Wake Forest', name: 'Wake Forest', code: "WAKE", color: '#9E7E38', color2: '#000000' }
+  { id: 'Wake Forest', name: 'Wake Forest', code: "WAKE", color: '#9E7E38', color2: '#000000' },
+  // Brand revamp: 2 real schools that appear in CFB 12-0's own legends
+  // data (data/cfb-legends.js) but were missing here -- found by
+  // actually diffing the 2 lists, not assumed complete. Real official
+  // school colors.
+  { id: 'Pitt', name: 'Pitt', code: "PITT", color: '#003594', color2: '#FFB81C' },
+  { id: 'Boise State', name: 'Boise State', code: "BSU", color: '#0033A0', color2: '#D64309' }
 ];
 // Most teams are genuinely one-color for this app's purposes (a swatch dot
 // doesn't need a school's full palette), but a few — Auburn's navy+orange
@@ -2316,6 +2347,23 @@ var CFB_TEAMS = [
 function teamSwatchStyle(t) {
   if (t.color2) return 'background: linear-gradient(135deg, ' + t.color + ' 50%, ' + t.color2 + ' 50%)';
   return 'background: ' + t.color;
+}
+// Brand revamp (user request: "team logos" in 17-0/CFB 12-0 -- by which
+// they mean a real abbreviation + real team colors, this app has zero
+// external logo image assets by design): looks a real team-season name
+// up in NFL_TEAMS/CFB_TEAMS by exact name (confirmed live against both
+// legends data files -- every real name in data/legends.js and
+// data/cfb-legends.js has a real match) and renders a small colored
+// badge with the real code/abbreviation, using the same real swatch-
+// gradient + blended-text-color logic the team picker already
+// established. Returns '' (never a fabricated placeholder) if a name
+// somehow doesn't match.
+function teamCodeBadgeHtml(league, teamName) {
+  var list = league === 'cfb' ? CFB_TEAMS : NFL_TEAMS;
+  var t = list.find(function (x) { return x.name === teamName; });
+  if (!t) return '';
+  var code = t.code || t.id;
+  return '<span class="team-code-badge" style="' + teamSwatchStyle(t) + '; color: ' + blendedTeamTextColor(t) + '">' + esc(code) + '</span>';
 }
 function favoriteTeamsKey() { return 'nflTriviaFavoriteTeams'; }
 function getFavoriteTeams() { return lsGet(favoriteTeamsKey(), { nfl: null, cfb: null, lastPicked: null }); }
@@ -6049,7 +6097,7 @@ function renderLegendsDraft() {
   var s = state.legends, entry = s.rolledEntry;
   var html = '<div class="panel">' + modeToolbarHtml('legends', s.ranked) +
     '<h2 class="panel-title">Round ' + s.round + ' of 7</h2>' +
-    '<div class="legends-roll"><b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
+    '<div class="legends-roll">' + teamCodeBadgeHtml('nfl', entry.team) + ' <b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
     '<div class="legends-slots">' +
     LEGENDS_SLOTS.map(function (slot) {
       var filled = s.slots[slot];
@@ -6085,7 +6133,7 @@ function renderLegendsResult() {
     '<div class="legends-roster">' +
     s.picks.map(function (p) {
       return '<div class="legends-roster-row"><span class="legends-roster-slot">' + legendsSlotLabel(p.slot) + '</span>' +
-        '<span class="legends-roster-player">' + esc(p.name) + ' <i>(' + esc(p.team) + ' ' + p.year + ')</i></span>' +
+        '<span class="legends-roster-player">' + teamCodeBadgeHtml('nfl', p.team) + ' ' + esc(p.name) + ' <i>(' + esc(p.team) + ' ' + p.year + ')</i></span>' +
         '<span class="legends-roster-score">' + p.fppg + (p.chemistry ? ' +' + p.chemistry : '') + ' = ' + Math.round(p.finalFppg * 10) / 10 + '</span></div>';
     }).join('') +
     '</div>' +
@@ -6471,7 +6519,7 @@ function renderCfbLegendsDraft() {
   var s = state.cfbLegends, entry = s.rolledEntry;
   var html = '<div class="panel">' + modeToolbarHtml('cfbLegends', s.ranked) +
     '<h2 class="panel-title">Round ' + s.round + ' of 8</h2>' +
-    '<div class="legends-roll"><b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
+    '<div class="legends-roll">' + teamCodeBadgeHtml('cfb', entry.team) + ' <b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
     '<div class="legends-slots">' +
     CFB_LEGENDS_SLOTS.map(function (slot) {
       var filled = s.slots[slot];
@@ -6508,7 +6556,7 @@ function renderCfbLegendsResult() {
     '<div class="legends-roster">' +
     s.picks.map(function (p) {
       return '<div class="legends-roster-row"><span class="legends-roster-slot">' + legendsSlotLabel(p.slot) + '</span>' +
-        '<span class="legends-roster-player">' + esc(p.name) + ' <i>(' + esc(p.team) + ' ' + p.year + ')</i></span>' +
+        '<span class="legends-roster-player">' + teamCodeBadgeHtml('cfb', p.team) + ' ' + esc(p.name) + ' <i>(' + esc(p.team) + ' ' + p.year + ')</i></span>' +
         '<span class="legends-roster-score">' + p.fppg + (p.chemistry ? ' +' + p.chemistry : '') + ' = ' + Math.round(p.finalFppg * 10) / 10 + '</span></div>';
     }).join('') +
     '</div>' +

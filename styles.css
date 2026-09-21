@@ -1074,6 +1074,14 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
    be too heavy here. */
 .inline-loading { display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 14px; font-weight: 600; padding: 10px 0; }
 .loading-spinner-sm { width: 16px; height: 16px; border-width: 2px; flex-shrink: 0; }
+/* Brand revamp: the real Reads logo + an honest indeterminate progress
+   bar for the mode-switch "entering a game mode" loading screen --
+   see brandLoadingScreenHtml() in app.js for why this bar slides rather
+   than fills to a fake percentage. */
+.brand-loading-logo { width: 64px; height: 64px; border-radius: var(--radius); object-fit: cover; box-shadow: 0 8px 24px -8px rgba(217, 166, 60, 0.5); }
+.brand-loading-bar { width: 140px; max-width: 60vw; height: 4px; border-radius: 999px; background: var(--bg-elevated); overflow: hidden; position: relative; }
+.brand-loading-bar-fill { position: absolute; top: 0; bottom: 0; width: 40%; border-radius: 999px; background: var(--gradient-gold); animation: brand-loading-slide 1.1s ease-in-out infinite; }
+@keyframes brand-loading-slide { 0% { left: -40%; } 100% { left: 100%; } }
 .field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .field-row label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-dim); flex: 1; min-width: 160px; }
 .field-row select, .field-row input {
@@ -1644,7 +1652,18 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 
 /* 17-0 legends draft */
-.legends-roll { text-align: center; font-size: 20px; margin-bottom: 14px; }
+.legends-roll { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; font-size: 20px; margin-bottom: 14px; }
+/* Brand revamp (user request: "logos" for 17-0/CFB 12-0 teams -- this
+   app has zero external logo image assets by design, so a real
+   abbreviation on the team's own real colors is the honest equivalent).
+   See teamCodeBadgeHtml() in app.js. */
+.team-code-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; height: 22px; padding: 0 6px; border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 800; letter-spacing: .02em; flex-shrink: 0;
+  box-shadow: 0 2px 6px -1px rgba(0,0,0,.4);
+}
+.legends-roster-player { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .legends-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 16px; }
 .legends-slot { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; text-align: center; }
 .legends-slot.filled { border-color: var(--good); }
@@ -2098,11 +2117,22 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   position: relative;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   margin-bottom: 12px; padding-bottom: 10px; border-bottom: none;
+  overflow: hidden;
 }
 .reads-shell-header::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
   background: linear-gradient(90deg, var(--accent), var(--accent-2)); opacity: .55;
 }
+/* Brand revamp: a large, quiet goalpost watermark bleeding off the
+   header's right edge -- bounded by .reads-shell-header's own
+   overflow:hidden so it never reaches into the real game content below. */
+.reads-shell-header-watermark {
+  position: absolute; top: 50%; right: -10px; transform: translateY(-50%);
+  width: 76px; height: 76px; opacity: .07; color: var(--home-accent, var(--accent));
+  pointer-events: none; z-index: 0;
+}
+.reads-shell-header-watermark .icon { width: 100%; height: 100%; }
+.reads-shell-id, .reads-shell-chips, .reads-shell-exit { position: relative; z-index: 1; }
 .reads-shell-id { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
 .reads-shell-icon { color: var(--home-accent, var(--accent)); flex-shrink: 0; display: flex; }
 .reads-shell-icon .icon { width: 18px; height: 18px; }
