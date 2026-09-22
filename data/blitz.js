@@ -58,7 +58,9 @@ window.BLITZ_LISTS = [
       { answer: "Joe Namath" }, { answer: "Roger Staubach" }, { answer: "Phil Simms" },
       { answer: "Jeff Hostetler" }, { answer: "Mark Rypien" }, { answer: "Doug Williams" },
       { answer: "Brad Johnson" }, { answer: "Trent Dilfer" }, { answer: "Nick Foles" },
-      { answer: "Jalen Hurts" }, { answer: "Joe Flacco" }, { answer: "Sam Darnold" }
+      { answer: "Jalen Hurts" }, { answer: "Joe Flacco" }, { answer: "Sam Darnold" },
+      { answer: "Len Dawson" }, { answer: "Bob Griese" }, { answer: "Ken Stabler" },
+      { answer: "Joe Theismann" }, { answer: "Jim McMahon" }, { answer: "Johnny Unitas" }
     ]
   },
   {
@@ -86,7 +88,8 @@ window.BLITZ_LISTS = [
       { answer: "Peyton Manning" }, { answer: "Shaun Alexander" }, { answer: "LaDainian Tomlinson" },
       { answer: "Tom Brady" }, { answer: "Adrian Peterson" }, { answer: "Aaron Rodgers" },
       { answer: "Cam Newton" }, { answer: "Matt Ryan" }, { answer: "Patrick Mahomes" },
-      { answer: "Lamar Jackson" }, { answer: "Josh Allen" }, { answer: "Steve McNair" }
+      { answer: "Lamar Jackson" }, { answer: "Josh Allen" }, { answer: "Steve McNair" },
+      { answer: "Matthew Stafford" }
     ]
   },
   {
@@ -101,7 +104,9 @@ window.BLITZ_LISTS = [
       { answer: "Sammy Baugh" }, { answer: "Bob Griese" }, { answer: "Roger Staubach" },
       { answer: "Len Dawson" }, { answer: "Dan Fouts" }, { answer: "Jim Kelly" },
       { answer: "Kurt Warner" }, { answer: "Peyton Manning" }, { answer: "Drew Brees" },
-      { answer: "Y.A. Tittle" }, { answer: "Norm Van Brocklin" }, { answer: "George Blanda" }
+      { answer: "Y.A. Tittle" }, { answer: "Norm Van Brocklin" }, { answer: "George Blanda" },
+      { answer: "Joe Namath" }, { answer: "Sonny Jurgensen" }, { answer: "Bobby Layne" },
+      { answer: "Sid Luckman" }
     ]
   },
   {
@@ -135,7 +140,10 @@ window.BLITZ_LISTS = [
       { answer: "Earl Campbell" }, { answer: "Gale Sayers" }, { answer: "John Riggins" },
       { answer: "Thurman Thomas" }, { answer: "Jerome Bettis" }, { answer: "Terrell Davis" },
       { answer: "Floyd Little" }, { answer: "Leroy Kelly" }, { answer: "Bobby Mitchell" },
-      { answer: "Edgerrin James" }, { answer: "Roger Craig" }
+      { answer: "Edgerrin James" }, { answer: "Roger Craig" },
+      { answer: "Steve Van Buren" }, { answer: "Joe Perry" }, { answer: "Marion Motley" },
+      { answer: "Hugh McElhenny" }, { answer: "Ollie Matson" }, { answer: "Lenny Moore" },
+      { answer: "Larry Csonka" }, { answer: "Jim Taylor" }, { answer: "Paul Hornung" }
     ]
   },
   {
@@ -158,9 +166,12 @@ window.BLITZ_LISTS = [
       { answer: "Randy Moss" }, { answer: "Tony Dorsett" },
       { answer: "Vince Young" }, { answer: "Cam Newton" }, { answer: "Robert Griffin III", aliases: ["RG3"] },
       { answer: "Odell Beckham Jr.", aliases: ["OBJ"] },
-      { answer: "Saquon Barkley" }, { answer: "Justin Jefferson" }, { answer: "Ja'Marr Chase" },
+      { answer: "Saquon Barkley" }, { answer: "Justin Herbert" }, { answer: "Ja'Marr Chase" },
       { answer: "C.J. Stroud" }, { answer: "Jayden Daniels" },
-      { answer: "Todd Gurley" }, { answer: "Dak Prescott" }, { answer: "Kyler Murray" }
+      { answer: "Todd Gurley" }, { answer: "Dak Prescott" }, { answer: "Kyler Murray" },
+      { answer: "Alvin Kamara" }, { answer: "Garrett Wilson" }, { answer: "Matt Ryan" },
+      { answer: "Sam Bradford" }, { answer: "Eddie Lacy" }, { answer: "Percy Harvin" },
+      { answer: "Tetairoa McMillan" }
     ]
   },
   {
@@ -195,7 +206,8 @@ window.BLITZ_LISTS = [
       { answer: "Bill Belichick" }, { answer: "Chuck Noll" }, { answer: "Bill Walsh" },
       { answer: "Joe Gibbs" }, { answer: "Jimmy Johnson" }, { answer: "Tom Landry" },
       { answer: "Don Shula" }, { answer: "Vince Lombardi" }, { answer: "Andy Reid" },
-      { answer: "Mike Shanahan" }, { answer: "Bill Parcells" }
+      { answer: "Mike Shanahan" }, { answer: "Bill Parcells" },
+      { answer: "George Seifert" }, { answer: "Tom Coughlin" }
     ]
   },
   {
@@ -205,7 +217,7 @@ window.BLITZ_LISTS = [
     answers: [
       { answer: "Eric Dickerson" }, { answer: "Barry Sanders" }, { answer: "Terrell Davis" },
       { answer: "Jamal Lewis" }, { answer: "Adrian Peterson" }, { answer: "Chris Johnson" },
-      { answer: "O.J. Simpson" }, { answer: "Derrick Henry" }
+      { answer: "O.J. Simpson" }, { answer: "Derrick Henry" }, { answer: "Saquon Barkley" }
     ]
   },
   {
@@ -215,7 +227,7 @@ window.BLITZ_LISTS = [
     answers: [
       { answer: "Tom Brady" }, { answer: "Drew Brees" }, { answer: "Peyton Manning" },
       { answer: "Brett Favre" }, { answer: "Aaron Rodgers" }, { answer: "Philip Rivers" },
-      { answer: "Dan Marino" }, { answer: "Ben Roethlisberger" }
+      { answer: "Dan Marino" }, { answer: "Ben Roethlisberger" }, { answer: "Matthew Stafford" }
     ]
   },
   {
@@ -230,7 +242,7 @@ window.BLITZ_LISTS = [
       { answer: "Indianapolis Colts", aliases: ["Colts"] },
       { answer: "Arizona Cardinals", aliases: ["Cardinals"] },
       { answer: "Washington Commanders", aliases: ["Commanders", "Redskins"] },
-      { answer: "Baltimore Ravens", aliases: ["Ravens"] }
+      { answer: "Detroit Lions", aliases: ["Lions"] }
     ]
   }
 ];
