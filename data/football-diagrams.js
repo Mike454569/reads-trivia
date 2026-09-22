@@ -993,12 +993,12 @@ window.FOOTBALL_DIAGRAMS = {
     },
     {
      "id": "RB2",
-     "label": "RB",
+     "label": "FB",
      "x": 60,
      "y": 60,
      "role": "Fullback",
-     "position_ref": "POSITION_RUNNING_BACK",
-     "assignment": "Primary ball carrier or pass-protection help."
+     "position_ref": "POSITION_FULLBACK",
+     "assignment": "Lead blocker; occasional short-yardage carrier."
     },
     {
      "id": "WR1",
