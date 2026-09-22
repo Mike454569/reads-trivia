@@ -213,7 +213,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Adam Korsak", "schools": ["Rutgers"], "positions": [], "years": [2022], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Adoree' Jackson", "schools": ["Southern California"], "positions": ["DB"], "years": [2016], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "A.J. Hawk", "schools": ["Ohio State"], "positions": [], "years": [2005], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lombardi Award"] },
-  { "name": "A.J. McCarron", "schools": ["Alabama"], "positions": ["QB"], "years": [2013], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Maxwell Award", "Johnny Unitas Golden Arm Award"] },
+  { "name": "A.J. McCarron", "schools": ["Alabama"], "positions": ["QB"], "years": [2011, 2012, 2013], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Maxwell Award", "Johnny Unitas Golden Arm Award"] },
   { "name": "Alexis Serna", "schools": ["Oregon State"], "positions": [], "years": [2005], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lou Groza Award"] },
   { "name": "Alex Karras", "schools": ["Iowa"], "positions": ["OL"], "years": [1957], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "Alex Leatherwood", "schools": ["Alabama"], "positions": ["OL"], "years": [2020], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Outland Trophy"] },
