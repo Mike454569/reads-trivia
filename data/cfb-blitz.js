@@ -683,9 +683,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Allyn McKeen",
+        "answer": "Jackie Sherrill",
         "aliases": [
-          "McKeen"
+          "Sherrill"
         ]
       },
       {
@@ -737,15 +737,15 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Duffy Daugherty",
+        "answer": "Mark Dantonio",
         "aliases": [
-          "Daugherty"
+          "Dantonio"
         ]
       },
       {
-        "answer": "Bernie Bierman",
+        "answer": "Henry L. Williams",
         "aliases": [
-          "Bierman"
+          "Williams"
         ]
       },
       {
@@ -761,9 +761,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Jack Mollenkopf",
+        "answer": "Joe Tiller",
         "aliases": [
-          "Mollenkopf"
+          "Tiller"
         ]
       },
       {
@@ -833,9 +833,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Dan McCarney",
+        "answer": "Matt Campbell",
         "aliases": [
-          "McCarney"
+          "Campbell"
         ]
       },
       {
@@ -911,27 +911,27 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Bobby Petrino",
+        "answer": "Frank Camp",
         "aliases": [
-          "Petrino"
+          "Camp"
         ]
       },
       {
-        "answer": "Andy Smith",
+        "answer": "Jeff Tedford",
         "aliases": [
-          "Smith"
+          "Tedford"
         ]
       },
       {
-        "answer": "Pop Warner",
+        "answer": "David Shaw",
         "aliases": [
-          "Warner"
+          "Shaw"
         ]
       },
       {
-        "answer": "Knute Rockne",
+        "answer": "Brian Kelly",
         "aliases": [
-          "Rockne"
+          "Kelly"
         ]
       },
       {
@@ -995,9 +995,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Mike Price",
+        "answer": "Mack Saxon",
         "aliases": [
-          "Price"
+          "Saxon"
         ]
       },
       {
@@ -1007,9 +1007,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Mike Norvell",
+        "answer": "Billy J. Murphy",
         "aliases": [
-          "Norvell"
+          "Murphy"
         ]
       },
       {
@@ -1025,27 +1025,27 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Frank Solich",
+        "answer": "Don Peden",
         "aliases": [
-          "Solich"
+          "Peden"
         ]
       },
       {
-        "answer": "Joe Novak",
+        "answer": "Howard Fletcher",
         "aliases": [
-          "Novak"
+          "Fletcher"
         ]
       },
       {
-        "answer": "Rocky Long",
+        "answer": "Don Coryell",
         "aliases": [
-          "Long"
+          "Coryell"
         ]
       },
       {
-        "answer": "Pat Hill",
+        "answer": "Jim Sweeney",
         "aliases": [
-          "Hill"
+          "Sweeney"
         ]
       },
       {
@@ -1055,9 +1055,9 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Sonny Lubick",
+        "answer": "Harry Hughes",
         "aliases": [
-          "Lubick"
+          "Hughes"
         ]
       },
       {
@@ -1085,14 +1085,10 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "Jack Harbaugh",
+        "answer": "Jimmy Feix",
         "aliases": [
-          "Harbaugh"
+          "Feix"
         ]
-      },
-      {
-        "answer": "-",
-        "aliases": []
       }
     ]
   },
@@ -1586,6 +1582,18 @@ window.CFB_BLITZ_LISTS = [
         "answer": "Derrick Henry",
         "aliases": [
           "Henry"
+        ]
+      },
+      {
+        "answer": "Doc Blanchard",
+        "aliases": [
+          "Blanchard"
+        ]
+      },
+      {
+        "answer": "Alan Ameche",
+        "aliases": [
+          "Ameche"
         ]
       }
     ]
@@ -2289,6 +2297,12 @@ window.CFB_BLITZ_LISTS = [
         "aliases": [
           "Sims"
         ]
+      },
+      {
+        "answer": "Rob Lytle",
+        "aliases": [
+          "Lytle"
+        ]
       }
     ]
   },
@@ -2608,6 +2622,24 @@ window.CFB_BLITZ_LISTS = [
         "answer": "Jeremiyah Love",
         "aliases": [
           "Love"
+        ]
+      },
+      {
+        "answer": "Rashaad Penny",
+        "aliases": [
+          "Penny"
+        ]
+      },
+      {
+        "answer": "Darrell Henderson",
+        "aliases": [
+          "Henderson"
+        ]
+      },
+      {
+        "answer": "Breece Hall",
+        "aliases": [
+          "Hall"
         ]
       }
     ]
@@ -3483,6 +3515,18 @@ window.CFB_BLITZ_LISTS = [
         "aliases": [
           "Smith"
         ]
+      },
+      {
+        "answer": "Ryan Broyles",
+        "aliases": [
+          "Broyles"
+        ]
+      },
+      {
+        "answer": "Josh Doctson",
+        "aliases": [
+          "Doctson"
+        ]
       }
     ]
   },
@@ -3549,6 +3593,18 @@ window.CFB_BLITZ_LISTS = [
         "answer": "Mike Singletary",
         "aliases": [
           "Singletary"
+        ]
+      },
+      {
+        "answer": "Carl McAdams",
+        "aliases": [
+          "McAdams"
+        ]
+      },
+      {
+        "answer": "Adrian Young",
+        "aliases": [
+          "Young"
         ]
       }
     ]
@@ -3834,6 +3890,30 @@ window.CFB_BLITZ_LISTS = [
         "aliases": [
           "Parsons"
         ]
+      },
+      {
+        "answer": "A.J. Hawk",
+        "aliases": [
+          "Hawk"
+        ]
+      },
+      {
+        "answer": "DeMeco Ryans",
+        "aliases": [
+          "Ryans"
+        ]
+      },
+      {
+        "answer": "Jeremy Leman",
+        "aliases": [
+          "Leman"
+        ]
+      },
+      {
+        "answer": "Rey Maualuga",
+        "aliases": [
+          "Maualuga"
+        ]
       }
     ]
   },
@@ -3982,9 +4062,15 @@ window.CFB_BLITZ_LISTS = [
         ]
       },
       {
-        "answer": "John Lee",
+        "answer": "Billy Bennett",
         "aliases": [
-          "Lee"
+          "Bennett"
+        ]
+      },
+      {
+        "answer": "Lucas Carneiro",
+        "aliases": [
+          "Carneiro"
         ]
       }
     ]
