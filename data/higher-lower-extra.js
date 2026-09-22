@@ -77,7 +77,7 @@ window.HL_RUSHING = [
   { name: 'TreVeyon Henderson', team: 'NE', rushYds: 911, rushAtt: 180, rushTD: 9, rushLng: 69 },
   { name: 'Quinshon Judkins', team: 'CLE', rushYds: 827, rushAtt: 230, rushTD: 7, rushLng: 46 },
   { name: 'Jacory Croskey-Merritt', team: 'WAS', rushYds: 805, rushAtt: 175, rushTD: 8, rushLng: 72 },
-  { name: 'J.K. Dobbins', team: 'DEN', rushYds: 772, rushAtt: 153, rushTD: 4, rushLng: 41 },
+  { name: 'Kyle Monangai', team: 'CHI', rushYds: 783, rushAtt: 169, rushTD: 5, rushLng: 39 },
 ];
 
 window.HL_RECEIVING = [
@@ -229,32 +229,32 @@ window.HL_PUNTING = [
 
 window.HL_RETURNS = [
   { name: 'Mecole Hardman', team: 'BUF', returnType: 'Kickoff', returnAvg: 61, returnYds: 61 },
+  { name: 'Austin Trammell', team: 'ARI', returnType: 'Kickoff', returnAvg: 54, returnYds: 54 },
   { name: 'Kene Nwangwu', team: 'MIN', returnType: 'Kickoff', returnAvg: 33.6, returnYds: 604 },
   { name: 'Deonte Banks', team: 'NYG', returnType: 'Kickoff', returnAvg: 32.7, returnYds: 622 },
   { name: 'Ashton Dulin', team: 'IND', returnType: 'Kickoff', returnAvg: 32.2, returnYds: 516 },
+  { name: 'Dareke Young', team: 'SEA', returnType: 'Kickoff', returnAvg: 32.2, returnYds: 322 },
+  { name: 'Mason Tipton', team: 'NO', returnType: 'Kickoff', returnAvg: 31.5, returnYds: 378 },
   { name: 'Ray Davis', team: 'BUF', returnType: 'Kickoff', returnAvg: 30.4, returnYds: 943 },
   { name: 'Deebo Samuel Sr.', team: 'WAS', returnType: 'Kickoff', returnAvg: 30.1, returnYds: 452 },
   { name: 'Isaiah Williams', team: 'DET', returnType: 'Kickoff', returnAvg: 29.9, returnYds: 837 },
-  { name: 'Rashid Shaheed', team: 'SEA', returnType: 'Kickoff', returnAvg: 29.8, returnYds: 447 },
-  { name: 'Ameer Abdullah', team: 'LV', returnType: 'Kickoff', returnAvg: 29.6, returnYds: 563 },
-  { name: 'Luke McCaffrey', team: 'WAS', returnType: 'Kickoff', returnAvg: 29.6, returnYds: 769 },
   { name: 'Tyreek Hill', team: 'MIA', returnType: 'Punt', returnAvg: 19, returnYds: 19 },
+  { name: 'Scott Miller', team: 'NYG', returnType: 'Punt', returnAvg: 17, returnYds: 34 },
   { name: 'Chimere Dike', team: 'TEN', returnType: 'Punt', returnAvg: 17.3, returnYds: 398 },
   { name: 'Marcus Jones', team: 'NE', returnType: 'Punt', returnAvg: 17.3, returnYds: 363 },
+  { name: 'Tom Kennedy', team: 'DAL', returnType: 'Punt', returnAvg: 16.7, returnYds: 50 },
+  { name: 'Austin Trammell', team: 'ARI', returnType: 'Punt', returnAvg: 15, returnYds: 15 },
   { name: 'Marvin Mims Jr.', team: 'DEN', returnType: 'Punt', returnAvg: 15.6, returnYds: 452 },
-  { name: 'Tory Horton', team: 'SEA', returnType: 'Punt', returnAvg: 14.9, returnYds: 238 },
   { name: 'Rashid Shaheed', team: 'SEA', returnType: 'Punt', returnAvg: 14.7, returnYds: 339 },
   { name: 'Isaiah Williams', team: 'DET', returnType: 'Punt', returnAvg: 14.1, returnYds: 396 },
   { name: 'Jaylin Lane', team: 'WAS', returnType: 'Punt', returnAvg: 13.6, returnYds: 314 },
-  { name: 'Parker Washington', team: 'JAX', returnType: 'Punt', returnAvg: 13.6, returnYds: 341 },
-  { name: 'Malik Washington', team: 'MIA', returnType: 'Punt', returnAvg: 13, returnYds: 260 },
 ];
 
 window.HL_CONTRACTS = [
   { name: 'Patrick Mahomes', pos: 'QB', team: 'Chiefs', totalValue: 448, apy: 64, totalGtd: 95.55, pctGtd: 21.3 },
   { name: 'Dak Prescott', pos: 'QB', team: 'Cowboys', totalValue: 240, apy: 60, totalGtd: 129, pctGtd: 53.8 },
   { name: 'Josh Allen', pos: 'QB', team: 'Bills', totalValue: 330, apy: 55, totalGtd: 147, pctGtd: 44.5 },
-  { name: 'Matt Stafford', pos: 'QB', team: 'Rams', totalValue: 55, apy: 55, totalGtd: 90, pctGtd: 100 },
+  { name: 'Matt Stafford', pos: 'QB', team: 'Rams', totalValue: 55, apy: 55, totalGtd: 55, pctGtd: 100 },
   { name: 'Jordan Love', pos: 'QB', team: 'Packers', totalValue: 220, apy: 55, totalGtd: 100.8, pctGtd: 45.8 },
   { name: 'Trevor Lawrence', pos: 'QB', team: 'Jaguars', totalValue: 275, apy: 55, totalGtd: 142, pctGtd: 51.6 },
   { name: 'Joe Burrow', pos: 'QB', team: 'Bengals', totalValue: 275, apy: 55, totalGtd: 146.51, pctGtd: 53.3 },

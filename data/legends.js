@@ -405,7 +405,7 @@ window.LEGENDS_TEAMS = [
   { team: "Houston Texans", year: 2015, players: [
     { name: "Brian Hoyer", position: "QB", fppg: 15.1 },
     { name: "DeAndre Hopkins", position: "WR", fppg: 20.6 },
-    { name: "Arian Foster", position: "RB", fppg: 19.2 },
+    { name: "Arian Foster", position: "RB", fppg: 5.5 },
     { name: "Alfred Blue", position: "RB", fppg: 8.0 },
     { name: "Cecil Shorts III", position: "WR", fppg: 10.0 },
     { name: "Nate Washington", position: "WR", fppg: 10.5 },
@@ -606,7 +606,7 @@ window.LEGENDS_TEAMS = [
     { name: "Rod Smith", position: "WR", fppg: 13.8 },
     { name: "Ashley Lelie", position: "WR", fppg: 7.3 },
     { name: "Shannon Sharpe", position: "TE", fppg: 6.9 },
-    { name: "Rod Smith", position: "RB", fppg: 3.8 }
+    { name: "Quentin Griffin", position: "RB", fppg: 6.5 }
   ]},
   { team: "Denver Broncos", year: 2000, players: [
     { name: "Brian Griese", position: "QB", fppg: 18.8 },
@@ -1044,7 +1044,7 @@ window.LEGENDS_TEAMS = [
   { team: "Minnesota Vikings", year: 2000, players: [
     { name: "Daunte Culpepper", position: "QB", fppg: 21.2 },
     { name: "Randy Moss", position: "WR", fppg: 19.6 },
-    { name: "Cris Carter", position: "WR", fppg: 13.8 },
+    { name: "Cris Carter", position: "WR", fppg: 17.3 },
     { name: "Robert Smith", position: "RB", fppg: 12.5 },
     { name: "Jake Reed", position: "WR", fppg: 6.3 },
     { name: "Byron Chamberlain", position: "TE", fppg: 4.4 }

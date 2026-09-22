@@ -451,7 +451,7 @@ window.CFB_LEGENDS_TEAMS = [
     { name: "Tommie Frazier", position: "QB", fppg: 25.5 },
     { name: "Lawrence Phillips", position: "RB", fppg: 15.0 },
     { name: "Brendan Holbein", position: "WR", fppg: 13.0 },
-    { name: "Eric Alford", position: "WR", fppg: 13.5 },
+    { name: "Eric Alford", position: "TE", fppg: 13.5 },
     { name: "1994 Nebraska Defense", position: "DEF", fppg: 10.0 }
   ]},
   { team: "Nebraska", year: 1997, players: [
