@@ -580,7 +580,7 @@ window.FOOTBALL_DIAGRAMS = {
    "category": "formation",
    "verified": true,
    "display_name": "Trips (3x1)",
-   "personnel": "11",
+   "personnel": "10",
    "players": [
     {
      "id": "LT",
@@ -693,7 +693,7 @@ window.FOOTBALL_DIAGRAMS = {
    "category": "formation",
    "verified": true,
    "display_name": "Bunch",
-   "personnel": "11",
+   "personnel": "10",
    "players": [
     {
      "id": "LT",
@@ -1077,15 +1077,6 @@ window.FOOTBALL_DIAGRAMS = {
      "assignment": "Protects the edge on the strong/closed side."
     },
     {
-     "id": "TE",
-     "label": "TE",
-     "x": 76,
-     "y": 50,
-     "role": "Tight End",
-     "position_ref": "POSITION_TIGHT_END_Y",
-     "assignment": "In-line blocker or short/intermediate receiving option."
-    },
-    {
      "id": "QB",
      "label": "QB",
      "x": 50,
@@ -1150,7 +1141,7 @@ window.FOOTBALL_DIAGRAMS = {
    "category": "formation",
    "verified": true,
    "display_name": "Flexbone",
-   "personnel": "20",
+   "personnel": "30",
    "players": [
     {
      "id": "LT",
@@ -1262,7 +1253,7 @@ window.FOOTBALL_DIAGRAMS = {
    "category": "formation",
    "verified": true,
    "display_name": "Power I",
-   "personnel": "22",
+   "personnel": "31",
    "players": [
     {
      "id": "LT",
@@ -1338,12 +1329,12 @@ window.FOOTBALL_DIAGRAMS = {
     },
     {
      "id": "FB2",
-     "label": "RB",
+     "label": "FB",
      "x": 58,
      "y": 59,
      "role": "Fullback",
-     "position_ref": "POSITION_RUNNING_BACK",
-     "assignment": "Primary ball carrier or pass-protection help."
+     "position_ref": "POSITION_FULLBACK",
+     "assignment": "Lead blocker; occasional short-yardage carrier."
     },
     {
      "id": "RB",
