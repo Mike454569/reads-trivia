@@ -10314,7 +10314,8 @@ window.CFB_GRID_PLAYERS = [
     "heisman": true,
     "multiAA": false,
     "natChamp": true,
-    "hof": false
+    "hof": false,
+    "awards": ["Maxwell Award", "Davey O'Brien Award"]
   },
   {
     "name": "Jeremiyah Love",
@@ -10360,7 +10361,8 @@ window.CFB_GRID_PLAYERS = [
     "heisman": true,
     "multiAA": false,
     "natChamp": false,
-    "hof": true
+    "hof": true,
+    "awards": ["Maxwell Award"]
   },
   {
     "name": "Caleb Williams",
@@ -10375,7 +10377,8 @@ window.CFB_GRID_PLAYERS = [
     "heisman": true,
     "multiAA": false,
     "natChamp": false,
-    "hof": false
+    "hof": false,
+    "awards": ["Maxwell Award", "Walter Camp Award"]
   }
 ];
 
