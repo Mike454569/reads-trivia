@@ -209,7 +209,7 @@ window.CFB_GRID_SCHOOL_CONFERENCE = {
 window.CFB_GRID_PLAYERS = [
   { "name": "Aaron Curry", "schools": ["Wake Forest"], "positions": ["LB"], "years": [2008], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award"] },
   { "name": "Aaron Hernandez", "schools": ["Florida"], "positions": ["TE"], "years": [2009], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
-  { "name": "Aaron Ross", "schools": ["Texas"], "positions": ["DB"], "years": [2006], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
+  { "name": "Aaron Ross", "schools": ["Texas"], "positions": ["DB"], "years": [2005, 2006], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "Adam Korsak", "schools": ["Rutgers"], "positions": [], "years": [2022], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Adoree' Jackson", "schools": ["Southern California"], "positions": ["DB"], "years": [2016], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "A.J. Hawk", "schools": ["Ohio State"], "positions": [], "years": [2005], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lombardi Award"] },
@@ -230,7 +230,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Bennie Blades", "schools": ["Miami (FL)"], "positions": ["DB"], "years": [1987], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "Rickey Dixon", "schools": ["Oklahoma"], "positions": ["DB"], "years": [1987], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "Bill Dudley", "schools": ["Virginia"], "positions": [], "years": [1941], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Maxwell Award"] },
-  { "name": "Bill Fischer", "schools": ["Notre Dame"], "positions": ["OL"], "years": [1948], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
+  { "name": "Bill Fischer", "schools": ["Notre Dame"], "positions": ["OL"], "years": [1946, 1947, 1948], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "Bill Stanfill", "schools": ["Georgia"], "positions": ["OL"], "years": [1968], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "B.J. Sander", "schools": ["Ohio State"], "positions": [], "years": [2003], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Bobby Engram", "schools": ["Penn State"], "positions": ["WR"], "years": [1994], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Fred Biletnikoff Award"] },
@@ -273,7 +273,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Chris Samuels", "schools": ["Alabama"], "positions": ["OL"], "years": [1999], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "Christopher Dunn", "schools": ["NC State"], "positions": [], "years": [2022], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lou Groza Award"] },
   { "name": "Chris Weinke", "schools": ["Florida State"], "positions": ["QB"], "years": [2000], "heisman": true, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Davey O'Brien Award", "Johnny Unitas Golden Arm Award"] },
-  { "name": "C.J. Mosley", "schools": ["Alabama"], "positions": ["LB"], "years": [2013], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award"] },
+  { "name": "C.J. Mosley", "schools": ["Alabama"], "positions": ["LB"], "years": [2011, 2012, 2013], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Butkus Award"] },
   { "name": "Clelin Ferrell", "schools": ["Clemson"], "positions": ["DL"], "years": [2018], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Ted Hendricks Award"] },
   { "name": "Coby Bryant", "schools": ["Cincinnati"], "positions": ["DB"], "years": [2021], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "Collin Klein", "schools": ["Kansas State"], "positions": ["QB"], "years": [2012], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Johnny Unitas Golden Arm Award"] },
@@ -336,7 +336,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Harrison Bryant", "schools": ["Florida Atlantic"], "positions": ["TE"], "years": [2019], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
   { "name": "Heath Miller", "schools": ["Virginia"], "positions": ["TE"], "years": [2004], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
   { "name": "Hunter Henry", "schools": ["Arkansas"], "positions": ["TE"], "years": [2015], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
-  { "name": "Isaiah Simmons", "schools": ["Clemson"], "positions": ["LB"], "years": [2019], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award"] },
+  { "name": "Isaiah Simmons", "schools": ["Clemson"], "positions": ["LB"], "years": [2018, 2019], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Butkus Award"] },
   { "name": "Jack Campbell", "schools": ["Iowa"], "positions": ["LB"], "years": [2022], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award"] },
   { "name": "Jackson Jeffcoat", "schools": ["Texas"], "positions": ["DL"], "years": [2013], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ted Hendricks Award"] },
   { "name": "Jackson Powers-Johnson", "schools": ["Oregon"], "positions": ["OL"], "years": [2023], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Rimington Trophy"] },
@@ -354,10 +354,10 @@ window.CFB_GRID_PLAYERS = [
   { "name": "James Washington", "schools": ["Oklahoma State"], "positions": ["WR"], "years": [2017], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Fred Biletnikoff Award"] },
   { "name": "Jammal Brown", "schools": ["Oklahoma"], "positions": ["OL"], "years": [2004], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "Jason Buck", "schools": ["BYU"], "positions": ["OL"], "years": [1986], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
-  { "name": "Jay Barker", "schools": ["Alabama"], "positions": ["QB"], "years": [1994], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Johnny Unitas Golden Arm Award"] },
+  { "name": "Jay Barker", "schools": ["Alabama"], "positions": ["QB"], "years": [1992, 1994], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Johnny Unitas Golden Arm Award"] },
   { "name": "Jeremiah Owusu-Koramoah", "schools": ["Notre Dame"], "positions": ["LB"], "years": [2020], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award"] },
   { "name": "Jerry Hughes", "schools": ["TCU"], "positions": ["DL"], "years": [2009], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ted Hendricks Award"] },
-  { "name": "Jerry Jeudy", "schools": ["Alabama"], "positions": ["WR"], "years": [2018], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Fred Biletnikoff Award"] },
+  { "name": "Jerry Jeudy", "schools": ["Alabama"], "positions": ["WR"], "years": [2017, 2018], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Fred Biletnikoff Award"] },
   { "name": "Jim McMahon", "schools": ["BYU"], "positions": ["QB"], "years": [1981], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Davey O'Brien Award"] },
   { "name": "Jim Parker", "schools": ["Ohio State"], "positions": ["OL"], "years": [1956], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Outland Trophy"] },
   { "name": "Jim Ritcher", "schools": ["NC State"], "positions": ["OL"], "years": [1979], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
@@ -396,7 +396,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "LaVar Arrington", "schools": ["Penn State"], "positions": ["LB"], "years": [1999], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Butkus Award", "Chuck Bednarik Award"] },
   { "name": "Lawrence Wright", "schools": ["Florida"], "positions": ["DB"], "years": [1996], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "LeCharles Bentley", "schools": ["Ohio State"], "positions": ["OL"], "years": [2001], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Rimington Trophy"] },
-  { "name": "Lee Roy Selmon", "schools": ["Oklahoma"], "positions": ["OL"], "years": [1975], "heisman": false, "multiAA": false, "natChamp": true, "hof": true, "awards": ["Outland Trophy", "Lombardi Award"] },
+  { "name": "Lee Roy Selmon", "schools": ["Oklahoma"], "positions": ["DL"], "years": [1975], "heisman": false, "multiAA": false, "natChamp": true, "hof": true, "awards": ["Outland Trophy", "Lombardi Award"] },
   { "name": "Logan Jones", "schools": ["Iowa"], "positions": ["OL"], "years": [2025], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Rimington Trophy"] },
   { "name": "Loyd Phillips", "schools": ["Arkansas"], "positions": ["OL"], "years": [1966], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
   { "name": "Luke Joeckel", "schools": ["Texas A&M"], "positions": ["OL"], "years": [2012], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
@@ -450,7 +450,6 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Peyton Manning", "schools": ["Tennessee"], "positions": ["QB"], "years": [1997], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Maxwell Award", "Davey O'Brien Award", "Johnny Unitas Golden Arm Award"] },
   { "name": "Pressley Harvin III", "schools": ["Georgia Tech"], "positions": [], "years": [2020], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Quinnen Williams", "schools": ["Alabama"], "positions": ["OL"], "years": [2018], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Outland Trophy"] },
-  { "name": "Raghib Ismail", "schools": ["Notre Dame"], "positions": [], "years": [1990], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Walter Camp Award"] },
   { "name": "Randy Bullock", "schools": ["Texas A&M"], "positions": [], "years": [2011], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lou Groza Award"] },
   { "name": "Randy Moss", "schools": ["Marshall"], "positions": ["WR"], "years": [1997], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Fred Biletnikoff Award"] },
   { "name": "Randy White", "schools": ["Maryland"], "positions": ["OL"], "years": [1974], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Outland Trophy", "Lombardi Award"] },
@@ -496,7 +495,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Tommy Nobis", "schools": ["Texas"], "positions": ["OL"], "years": [1965], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Maxwell Award", "Outland Trophy"] },
   { "name": "Tony Casillas", "schools": ["Oklahoma"], "positions": [], "years": [1985], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Lombardi Award"] },
   { "name": "Tony Degrate", "schools": ["Texas"], "positions": [], "years": [1984], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Lombardi Award"] },
-  { "name": "Tony Rice", "schools": ["Notre Dame"], "positions": ["QB"], "years": [1989], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Johnny Unitas Golden Arm Award"] },
+  { "name": "Tony Rice", "schools": ["Notre Dame"], "positions": ["QB"], "years": [1988, 1989], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Johnny Unitas Golden Arm Award"] },
   { "name": "Tory Taylor", "schools": ["Iowa"], "positions": [], "years": [2023], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Travis Dorsch", "schools": ["Purdue"], "positions": [], "years": [2001], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Ray Guy Award"] },
   { "name": "Tre'Vius Hodges-Tomlinson", "schools": ["TCU"], "positions": ["DB"], "years": [2022], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
@@ -506,7 +505,7 @@ window.CFB_GRID_PLAYERS = [
   { "name": "Trey Taylor", "schools": ["Air Force"], "positions": ["DB"], "years": [2023], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Jim Thorpe Award"] },
   { "name": "Troy Aikman", "schools": ["UCLA"], "positions": ["QB"], "years": [1988], "heisman": false, "multiAA": false, "natChamp": false, "hof": true, "awards": ["Davey O'Brien Award"] },
   { "name": "Troy Edwards", "schools": ["Louisiana Tech"], "positions": ["WR"], "years": [1998], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Fred Biletnikoff Award"] },
-  { "name": "Tua Tagovailoa", "schools": ["Alabama"], "positions": [], "years": [2018], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Maxwell Award", "Walter Camp Award"] },
+  { "name": "Tua Tagovailoa", "schools": ["Alabama"], "positions": [], "years": [2017, 2018], "heisman": false, "multiAA": false, "natChamp": true, "hof": false, "awards": ["Maxwell Award", "Walter Camp Award"] },
   { "name": "Tyler Eifert", "schools": ["Notre Dame"], "positions": ["TE"], "years": [2012], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
   { "name": "Tyler Matakevich", "schools": ["Temple"], "positions": [], "years": [2015], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["Chuck Bednarik Award", "Bronko Nagurski Trophy"] },
   { "name": "Tyler Warren", "schools": ["Penn State"], "positions": ["TE"], "years": [2024], "heisman": false, "multiAA": false, "natChamp": false, "hof": false, "awards": ["John Mackey Award"] },
@@ -928,22 +927,6 @@ window.CFB_GRID_PLAYERS = [
     "heisman": false,
     "multiAA": false,
     "natChamp": false,
-    "hof": false
-  },
-  {
-    "name": "Johnny Lujack",
-    "schools": [
-      "Notre Dame"
-    ],
-    "positions": [
-      "QB"
-    ],
-    "years": [
-      1947
-    ],
-    "heisman": false,
-    "multiAA": false,
-    "natChamp": true,
     "hof": false
   },
   {
@@ -1499,22 +1482,6 @@ window.CFB_GRID_PLAYERS = [
     "awards": ["Maxwell Award", "Walter Camp Award"]
   },
   {
-    "name": "Leroy Selmon",
-    "schools": [
-      "Oklahoma"
-    ],
-    "positions": [
-      "DL"
-    ],
-    "years": [
-      1975
-    ],
-    "heisman": false,
-    "multiAA": false,
-    "natChamp": true,
-    "hof": false
-  },
-  {
     "name": "Steve Niehaus",
     "schools": [
       "Notre Dame"
@@ -1522,12 +1489,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "DL"
     ],
-    "years": [
-      1975
-    ],
+    "years": [1973, 1975],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false
   },
   {
@@ -2694,21 +2659,39 @@ window.CFB_GRID_PLAYERS = [
   {
     "name": "Aaron Taylor",
     "schools": [
-      "Nebraska",
       "Notre Dame"
     ],
     "positions": [
       "OL"
     ],
     "years": [
-      1993,
+      1992,
+      1993
+    ],
+    "heisman": false,
+    "multiAA": true,
+    "natChamp": false,
+    "hof": false,
+    "awards": ["Lombardi Award"]
+  },
+  {
+    "name": "Aaron Taylor",
+    "schools": [
+      "Nebraska"
+    ],
+    "positions": [
+      "OL"
+    ],
+    "years": [
+      1994,
+      1995,
       1997
     ],
     "heisman": false,
     "multiAA": true,
     "natChamp": true,
     "hof": false,
-    "awards": ["Outland Trophy", "Lombardi Award"]
+    "awards": ["Outland Trophy"]
   },
   {
     "name": "Trev Alberts",
@@ -2735,12 +2718,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "DB"
     ],
-    "years": [
-      1993
-    ],
+    "years": [1992, 1993],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Jim Thorpe Award"]
   },
@@ -2803,12 +2784,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "OL"
     ],
-    "years": [
-      2016
-    ],
+    "years": [2015, 2016],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Outland Trophy"]
   },
@@ -2820,12 +2799,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "DL"
     ],
-    "years": [
-      2016
-    ],
+    "years": [2015, 2016],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Chuck Bednarik Award", "Bronko Nagurski Trophy", "Lombardi Award", "Ted Hendricks Award"]
   },
@@ -2837,12 +2814,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "LB"
     ],
-    "years": [
-      2016
-    ],
+    "years": [2015, 2016],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Butkus Award"]
   },
@@ -6916,12 +6891,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "OL"
     ],
-    "years": [
-      1950
-    ],
+    "years": [1949, 1950],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false
   },
   {
@@ -7646,12 +7619,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "QB"
     ],
-    "years": [
-      1968
-    ],
+    "years": [1966, 1968],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false
   },
   {
@@ -8207,14 +8178,11 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "RB"
     ],
-    "years": [
-      1979,
-      1978
-    ],
+    "years": [1975, 1978, 1979],
     "heisman": true,
     "heismanYear": 1978,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Walter Camp Award", "Davey O'Brien Award"]
   },
@@ -8559,13 +8527,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "DL"
     ],
-    "years": [
-      1989,
-      1990
-    ],
+    "years": [1988, 1989, 1990],
     "heisman": false,
     "multiAA": true,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false,
     "awards": ["Lombardi Award"]
   },
@@ -8610,12 +8575,10 @@ window.CFB_GRID_PLAYERS = [
     "positions": [
       "DB"
     ],
-    "years": [
-      1989
-    ],
+    "years": [1988, 1989],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
+    "natChamp": true,
     "hof": false
   },
   {
@@ -8644,12 +8607,14 @@ window.CFB_GRID_PLAYERS = [
       "WR"
     ],
     "years": [
+      1988,
       1990
     ],
     "heisman": false,
     "multiAA": false,
-    "natChamp": false,
-    "hof": false
+    "natChamp": true,
+    "hof": false,
+    "awards": ["Walter Camp Award"]
   },
   {
     "name": "Ty Detmer",
