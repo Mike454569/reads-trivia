@@ -318,9 +318,20 @@ def run_cfb_player_season_stats_refresh() -> dict:
 
         total_rejected = total_unresolved_school + total_unresolved_identity
         try:
+            # Real bug fix: rows_read here must be the total player-season
+            # records ATTEMPTED (published + rejected), not total_downloaded
+            # -- that variable counts SEASON FILES downloaded (e.g. 13, one
+            # per year 2014-2026), a completely different unit. Passing it as
+            # rows_read made the rejection-rate check divide rejected records
+            # by a season count instead of a record count (e.g. 1107/13 =
+            # 8515%), producing a guaranteed false-positive FAILED_RESTORED
+            # on every real run regardless of actual data quality (the real
+            # rate, 1107/84875 =~ 1.3%, is normal). total_downloaded itself is
+            # left alone -- it's still correctly reported as season-file count
+            # in refresh_runs.rows_downloaded, a genuinely useful number there.
             safety.run_post_refresh_sanity_checks(
                 c, table="cfb_player_season_stats_real", rows_published=total_published,
-                rows_rejected=total_rejected, rows_read=total_downloaded,
+                rows_rejected=total_rejected, rows_read=total_published + total_rejected,
                 min_row_count_floor=baseline_count,
             )
         except safety.SanityCheckFailure as e:
