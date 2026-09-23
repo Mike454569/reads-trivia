@@ -125,7 +125,7 @@ window.GRID_PLAYERS = [
 
   { name: "Tony Gonzalez", teams: ["KC", "ATL"], position: "TE", draft: { round: 1, year: 1997 }, college: "California", hof: true, mvp: false, sbChamp: false, sbMVP: false, proBowls: 14, allPro: 6 },
   { name: "Rob Gronkowski", teams: ["NE", "TB"], position: "TE", draft: { round: 2, year: 2010 }, college: "Arizona", hof: false, mvp: false, sbChamp: true, sbMVP: false, proBowls: 5, allPro: 4 },
-  { name: "Antonio Gates", teams: ["LAC"], position: "TE", draft: { round: 0, year: 2003 }, college: "Kent State", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 8, allPro: 3 },
+  { name: "Antonio Gates", teams: ["LAC"], position: "TE", draft: { round: 0, year: 2003 }, college: "Kent State", hof: true, mvp: false, sbChamp: false, sbMVP: false, proBowls: 8, allPro: 3 },
   { name: "Shannon Sharpe", teams: ["DEN", "BAL"], position: "TE", draft: { round: 7, year: 1990 }, college: "Savannah State", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 8, allPro: 4 },
   { name: "Jason Witten", teams: ["DAL"], position: "TE", draft: { round: 3, year: 2003 }, college: "Tennessee", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 11, allPro: 2 },
   { name: "Travis Kelce", teams: ["KC"], position: "TE", draft: { round: 3, year: 2013 }, college: "Cincinnati", hof: false, mvp: false, sbChamp: true, sbMVP: false, proBowls: 11, allPro: 4 },
@@ -158,7 +158,7 @@ window.GRID_PLAYERS = [
   { name: "Zack Martin", teams: ["DAL"], position: "G", draft: { round: 1, year: 2014 }, college: "Notre Dame", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 9, allPro: 7, roty: false },
   { name: "Tyron Smith", teams: ["DAL", "NYJ"], position: "OT", draft: { round: 1, year: 2011 }, college: "USC", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 8, allPro: 2 },
   { name: "Justin Tucker", teams: ["BAL"], position: "K", draft: { round: 0, year: 2012 }, college: "Texas", hof: false, mvp: false, sbChamp: true, sbMVP: false, proBowls: 5, allPro: 5 },
-  { name: "Adam Vinatieri", teams: ["NE", "IND"], position: "K", draft: { round: 0, year: 1996 }, college: "South Dakota State", hof: false, mvp: false, sbChamp: true, sbMVP: false, proBowls: 3, allPro: 1 },
+  { name: "Adam Vinatieri", teams: ["NE", "IND"], position: "K", draft: { round: 0, year: 1996 }, college: "South Dakota State", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 3, allPro: 1 },
 
   { name: "Michael Vick", teams: ["ATL", "PHI", "NYJ", "PIT"], position: "QB", draft: { round: 1, year: 2001 }, college: "Virginia Tech", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 4, allPro: 0 },
   { name: "Donovan McNabb", teams: ["PHI", "WAS", "MIN"], position: "QB", draft: { round: 1, year: 1999 }, college: "Syracuse", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 6, allPro: 0 },
@@ -336,7 +336,7 @@ window.GRID_PLAYERS = [
   { name: "Stanley Morgan", teams: ["NE", "IND"], position: "WR", draft: { round: 1, year: 1977 }, college: "Tennessee", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 4, allPro: 0, roty: false },
   { name: "John Stallworth", teams: ["PIT"], position: "WR", draft: { round: 4, year: 1974 }, college: "Alabama A&amp;M", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 4, allPro: 0, roty: false },
   { name: "Lynn Swann", teams: ["PIT"], position: "WR", draft: { round: 1, year: 1974 }, college: "USC", hof: true, mvp: false, sbChamp: true, sbMVP: true, proBowls: 3, allPro: 1, roty: false },
-  { name: "Drew Pearson", teams: ["DAL"], position: "WR", draft: { round: 0, year: 1973 }, college: "Tulsa", hof: false, mvp: false, sbChamp: true, sbMVP: false, proBowls: 3, allPro: 0, roty: false },
+  { name: "Drew Pearson", teams: ["DAL"], position: "WR", draft: { round: 0, year: 1973 }, college: "Tulsa", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 3, allPro: 0, roty: false },
   { name: "Cliff Branch", teams: ["LV"], position: "WR", draft: { round: 4, year: 1972 }, college: "Colorado", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 4, allPro: 3, roty: false },
   { name: "Harold Jackson", teams: ["PHI", "LAR", "NE", "MIN", "SEA"], position: "WR", draft: { round: 0, year: 1968 }, college: "Jackson State", hof: false, mvp: false, sbChamp: false, sbMVP: false, proBowls: 5, allPro: 0, roty: false },
   { name: "Paul Warfield", teams: ["CLE", "MIA"], position: "WR", draft: { round: 1, year: 1964 }, college: "Ohio State", hof: true, mvp: false, sbChamp: true, sbMVP: false, proBowls: 8, allPro: 2, roty: false },
