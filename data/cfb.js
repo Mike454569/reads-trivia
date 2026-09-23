@@ -1289,8 +1289,8 @@ window.CFB_DATA = [
       "Oklahoma",
       "Nebraska"
     ],
-    "correctIndex": 3,
-    "notes": "Nebraska (many in Big 8)"
+    "correctIndex": 2,
+    "notes": "Oklahoma, 14 straight Big Six/Seven/Eight titles (1946-1959) under Bud Wilkinson"
   },
   {
     "id": 108,
@@ -1382,13 +1382,13 @@ window.CFB_DATA = [
     "difficulty": "Hard",
     "question": "Which player holds the single-game receiving yards record in FBS?",
     "options": [
-      "Several have 300+",
+      "Troy Edwards",
       "Jordy Nelson",
       "Troy Walters",
       "Ron Sellers"
     ],
-    "correctIndex": 3,
-    "notes": "Ron Sellers (Florida State) among early leaders"
+    "correctIndex": 0,
+    "notes": "Troy Edwards, Louisiana Tech, 405 yards vs. Nebraska in 1998 -- still the record"
   },
   {
     "id": 115,
@@ -3144,15 +3144,15 @@ window.CFB_DATA = [
     "id": 299,
     "category": "National Championships",
     "difficulty": "Very Hard",
-    "question": "Which school won the 1951 national championship under Bud Wilkinson?",
+    "question": "Which school won the 1951 AP national championship, unbeaten in the regular season before a Sugar Bowl upset loss?",
     "options": [
       "Michigan State",
       "Oklahoma",
       "Tennessee",
       "Maryland"
     ],
-    "correctIndex": 1,
-    "notes": "Oklahoma"
+    "correctIndex": 2,
+    "notes": "Tennessee (Robert Neyland) -- Bud Wilkinson's Oklahoma won in 1950, 1955, and 1956, not 1951"
   },
   {
     "id": 300,
@@ -3935,8 +3935,8 @@ window.CFB_DATA = [
       "Iowa",
       "Wisconsin"
     ],
-    "correctIndex": 2,
-    "notes": "Iowa \u2014 Hawkeye Marching Band's postgame concert tradition"
+    "correctIndex": 3,
+    "notes": "Wisconsin -- the Badger Band's postgame concert, started under director Mike Leckrone (~1977)"
   },
   {
     "id": 385,
@@ -3970,15 +3970,15 @@ window.CFB_DATA = [
     "id": 387,
     "category": "Conferences & History",
     "difficulty": "Hard",
-    "question": "Which schools joined the ACC from the Big East in 2014?",
+    "question": "Which school joined the ACC from the Big East in 2014?",
     "options": [
       "Only Syracuse",
       "Louisville Pittsburgh Syracuse",
       "Only Pittsburgh",
       "Only Louisville"
     ],
-    "correctIndex": 1,
-    "notes": "All three"
+    "correctIndex": 3,
+    "notes": "Louisville (replacing Maryland, which left for the Big Ten) -- Pittsburgh and Syracuse actually joined a year earlier, July 2013"
   },
   {
     "id": 389,
@@ -4253,12 +4253,12 @@ window.CFB_DATA = [
     "question": "Who is the winningest coach in Memphis football history?",
     "options": [
       "Kyle Whittingham",
-      "Mike Norvell",
+      "Billy Murphy",
       "Gary Pinkel",
       "Chris Petersen"
     ],
     "correctIndex": 1,
-    "notes": "Mike Norvell, 38-15 (2016-19)"
+    "notes": "Billy Murphy, 91 wins (1958-71) -- Mike Norvell's 38 is well short"
   },
   {
     "id": 501,
@@ -4267,12 +4267,12 @@ window.CFB_DATA = [
     "question": "Who is the winningest coach in UCF football history?",
     "options": [
       "Steve Spurrier",
-      "George O'Leary",
+      "Gene McDowell",
       "Charles McClendon",
       "Dan McGugin"
     ],
     "correctIndex": 1,
-    "notes": "George O'Leary, 2 stints, most wins in school history"
+    "notes": "Gene McDowell, 86 wins (1985-97) -- George O'Leary's 81 is 2nd all-time"
   },
   {
     "id": 502,
@@ -4297,10 +4297,10 @@ window.CFB_DATA = [
       "Pat Fitzgerald",
       "Don James",
       "Andy Smith",
-      "Mike Norvell"
+      "Jeff Tedford"
     ],
-    "correctIndex": 2,
-    "notes": "Andy Smith, 74-16-7 (1916-25)"
+    "correctIndex": 3,
+    "notes": "Jeff Tedford, 82 wins (2002-12) -- Andy Smith's 74-16-7 (1916-25) has the best winning PERCENTAGE, not the most wins"
   },
   {
     "id": 504,
@@ -4324,11 +4324,11 @@ window.CFB_DATA = [
     "options": [
       "Randy Edsall",
       "Pat Fitzgerald",
-      "Rocky Long",
+      "Jim Sweeney",
       "Pat Hill"
     ],
-    "correctIndex": 3,
-    "notes": "Pat Hill, 83-72 (1997-2011)"
+    "correctIndex": 2,
+    "notes": "Jim Sweeney, 143 wins (1976-77, 1980-96) -- Pat Hill's 112 is 2nd all-time"
   },
   {
     "id": 506,
@@ -4392,13 +4392,13 @@ window.CFB_DATA = [
     "difficulty": "Medium",
     "question": "Who is the winningest coach in Louisville football history?",
     "options": [
-      "Bob Zuppke",
+      "Frank Camp",
       "Bobby Petrino",
       "Bill Mallory",
       "Bill Snyder"
     ],
-    "correctIndex": 1,
-    "notes": "Bobby Petrino, 2 stints, most wins in school history"
+    "correctIndex": 0,
+    "notes": "Frank Camp, 118 wins (1946-68) -- Bobby Petrino's 77 (across 2 stints) is 2nd all-time"
   },
   {
     "id": 511,
@@ -4409,10 +4409,10 @@ window.CFB_DATA = [
       "Dan McCarney",
       "Joe Moglia",
       "Bill McCartney",
-      "Duffy Daugherty"
+      "Matt Campbell"
     ],
-    "correctIndex": 0,
-    "notes": "Dan McCarney, 55-85 (1995-2006)"
+    "correctIndex": 3,
+    "notes": "Matt Campbell passed Dan McCarney for the school record in 2024, finishing with 72 wins (McCarney had 55)"
   },
   {
     "id": 512,
@@ -4448,13 +4448,13 @@ window.CFB_DATA = [
     "difficulty": "Medium",
     "question": "Who is the winningest coach in Western Kentucky football history?",
     "options": [
-      "Mike Price",
+      "Jimmy Feix",
       "Jack Harbaugh",
       "LaVell Edwards",
       "Jerry Moore"
     ],
-    "correctIndex": 1,
-    "notes": "Jack Harbaugh, -"
+    "correctIndex": 0,
+    "notes": "Jimmy Feix, 106-56-6 (1968-83)"
   },
   {
     "id": 515,
@@ -4478,11 +4478,11 @@ window.CFB_DATA = [
     "options": [
       "Pat Fitzgerald",
       "Peahead Walker",
-      "Mark Stoops",
+      "Jackie Sherrill",
       "Allyn McKeen"
     ],
-    "correctIndex": 3,
-    "notes": "Allyn McKeen, 65-19-3 (1939-48)"
+    "correctIndex": 2,
+    "notes": "Jackie Sherrill, 75 wins (1991-2003) -- passed McKeen's 65 in 2000"
   },
   {
     "id": 517,
@@ -4548,11 +4548,11 @@ window.CFB_DATA = [
     "options": [
       "Earl Blaik",
       "Jerry Moore",
-      "Duffy Daugherty",
+      "Mark Dantonio",
       "Wallace Wade"
     ],
     "correctIndex": 2,
-    "notes": "Duffy Daugherty, 109-69-5 (1954-72)"
+    "notes": "Mark Dantonio, 114 wins -- passed Duffy Daugherty's 109 on Sept. 21, 2019"
   },
   {
     "id": 522,
@@ -6056,7 +6056,7 @@ window.CFB_DATA = [
     "id": 629,
     "category": "National Championships",
     "difficulty": "Hard",
-    "question": "Which team won the national championship in 1970?",
+    "question": "Which team won the 1970 AP national championship?",
     "options": [
       "Alabama",
       "Texas",
@@ -6064,7 +6064,7 @@ window.CFB_DATA = [
       "Nebraska"
     ],
     "correctIndex": 3,
-    "notes": "Head coach: Bob Devaney (Nebraska)"
+    "notes": "Nebraska won the AP title (voted post-bowl, after Texas and Ohio State both lost their bowl games); Texas won the UPI/Coaches title (voted pre-bowl) -- a real split-championship year."
   },
   {
     "id": 630,
