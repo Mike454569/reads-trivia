@@ -18802,11 +18802,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Greg Schiano",
       "Johnny Vaught",
-      "Bernie Bierman",
+      "Jackie Sherrill",
       "Allyn McKeen"
     ],
-    "correctIndex": 3,
-    "notes": "65-19-3 (1939-48)"
+    "correctIndex": 2,
+    "notes": "Jackie Sherrill, 75 wins (1991-2003) -- passed McKeen's 65 in 2000"
   },
   {
     "id": 1344,
@@ -18927,12 +18927,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Michigan State football history?",
     "options": [
       "Duffy Daugherty",
-      "Bear Bryant",
+      "Mark Dantonio",
       "Peahead Walker",
       "Fisher DeBerry"
     ],
-    "correctIndex": 0,
-    "notes": "109-69-5 (1954-72)"
+    "correctIndex": 1,
+    "notes": "Mark Dantonio, 114 wins -- passed Duffy Daugherty's 109 on Sept. 21, 2019"
   },
   {
     "id": 1353,
@@ -18941,12 +18941,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Minnesota football history?",
     "options": [
       "Bernie Bierman",
-      "Fisher DeBerry",
+      "Henry L. Williams",
       "Pat Hill",
       "Knute Rockne"
     ],
-    "correctIndex": 0,
-    "notes": "93-35-6 (1932-41, 1945-50)"
+    "correctIndex": 1,
+    "notes": "Henry L. Williams, 136-33-11 (1900-21) -- Bierman's 93-35-6 is 2nd all-time"
   },
   {
     "id": 1354,
@@ -18984,11 +18984,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Jack Mollenkopf",
       "Pat Hill",
-      "Mike Norvell",
+      "Joe Tiller",
       "Kirk Ferentz"
     ],
-    "correctIndex": 0,
-    "notes": "84-39-9 (1956-69)"
+    "correctIndex": 2,
+    "notes": "Joe Tiller, 87 wins (1997-2008) -- Mollenkopf's 84-39-9 is 2nd all-time"
   },
   {
     "id": 1357,
@@ -19151,12 +19151,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Iowa State football history?",
     "options": [
       "Frank Solich",
-      "Jack Mollenkopf",
+      "Matt Campbell",
       "R.C. Slocum",
       "Dan McCarney"
     ],
-    "correctIndex": 3,
-    "notes": "55-85 (1995-2006)"
+    "correctIndex": 1,
+    "notes": "Matt Campbell passed Dan McCarney for the school record in 2024, finishing with 72 wins (McCarney had 55)"
   },
   {
     "id": 1369,
@@ -19333,12 +19333,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Louisville football history?",
     "options": [
       "Bobby Petrino",
-      "Gary Patterson",
+      "Frank Camp",
       "Bob Zuppke",
       "Andy Gustafson"
     ],
-    "correctIndex": 0,
-    "notes": "2 stints, most wins in school history"
+    "correctIndex": 1,
+    "notes": "Frank Camp, 118 wins (1946-68) -- Bobby Petrino's 77 (across 2 stints) is 2nd all-time"
   },
   {
     "id": 1382,
@@ -19348,11 +19348,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Grant Teaff",
       "Andy Smith",
-      "Bernie Bierman",
+      "Jeff Tedford",
       "Mike Bellotti"
     ],
-    "correctIndex": 1,
-    "notes": "74-16-7 (1916-25)"
+    "correctIndex": 2,
+    "notes": "Jeff Tedford, 82 wins (2002-12) -- Andy Smith's 74-16-7 (1916-25) has the best winning PERCENTAGE, not the most wins"
   },
   {
     "id": 1383,
@@ -19362,11 +19362,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Bobby Petrino",
       "Pop Warner",
-      "Jack Mollenkopf",
+      "David Shaw",
       "Joe Moglia"
     ],
-    "correctIndex": 1,
-    "notes": "71-17-8 (1924-32)"
+    "correctIndex": 2,
+    "notes": "David Shaw, 96-54 (2011-22) -- Pop Warner's 71-17-8 (1924-32) has the best winning PERCENTAGE, not the most wins"
   },
   {
     "id": 1384,
@@ -19375,12 +19375,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Notre Dame football history?",
     "options": [
       "Knute Rockne",
-      "Robert Neyland",
+      "Brian Kelly",
       "Mark Stoops",
       "Craig Bohl"
     ],
-    "correctIndex": 0,
-    "notes": "105-12-5 (1918-30)"
+    "correctIndex": 1,
+    "notes": "Brian Kelly, 106-39 (2010-21) -- passed Knute Rockne's 105-12-5 (1918-30) in 2021"
   },
   {
     "id": 1385,
@@ -19572,11 +19572,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Allyn McKeen",
       "Bernie Bierman",
-      "Peahead Walker",
+      "Billy J. Murphy",
       "Mike Norvell"
     ],
-    "correctIndex": 3,
-    "notes": "38-15 (2016-19)"
+    "correctIndex": 2,
+    "notes": "Billy J. Murphy, 91-44-1 (1958-71) -- Mike Norvell's 38-15 is well behind"
   },
   {
     "id": 1399,
@@ -19641,12 +19641,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Ohio football history?",
     "options": [
       "Frank Solich",
-      "Pat Hill",
+      "Don Peden",
       "Bobby Bowden",
       "Mike Gundy"
     ],
-    "correctIndex": 0,
-    "notes": "100+ (2005-present at time of records)"
+    "correctIndex": 1,
+    "notes": "Don Peden, 121-46-11 (1924-46)"
   },
   {
     "id": 1404,
@@ -19656,11 +19656,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Bobby Pruett",
       "Bobby Bowden",
-      "Joe Novak",
+      "Howard Fletcher",
       "Bernie Bierman"
     ],
     "correctIndex": 2,
-    "notes": "-"
+    "notes": "Howard Fletcher, 74-48-1 (1956-68)"
   },
   {
     "id": 1405,
@@ -19669,12 +19669,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in San Diego State football history?",
     "options": [
       "Bo Schembechler",
-      "-",
+      "Don Coryell",
       "Rocky Long",
       "Knute Rockne"
     ],
-    "correctIndex": 2,
-    "notes": "82-47 (2011-19)"
+    "correctIndex": 1,
+    "notes": "Don Coryell, 104-19-2 (1961-72) -- Rocky Long's 82-47 is 2nd all-time"
   },
   {
     "id": 1406,
@@ -19685,10 +19685,10 @@ window.CFB_SPEED_DATA = [
       "June Jones",
       "Pat Hill",
       "Mike Gundy",
-      "-"
+      "Jim Sweeney"
     ],
-    "correctIndex": 1,
-    "notes": "83-72 (1997-2011)"
+    "correctIndex": 3,
+    "notes": "Jim Sweeney, 143 wins (1976-77, 1980-96) -- Pat Hill's 112 is 2nd all-time"
   },
   {
     "id": 1407,
@@ -19712,11 +19712,11 @@ window.CFB_SPEED_DATA = [
     "options": [
       "Frank Solich",
       "Vince Dooley",
-      "Darrell Royal",
+      "Harry Hughes",
       "Sonny Lubick"
     ],
-    "correctIndex": 3,
-    "notes": "108-74 (1993-2007)"
+    "correctIndex": 2,
+    "notes": "Harry Hughes, 126-96-18 (1911-41) -- Sonny Lubick's 108-74 is 2nd all-time"
   },
   {
     "id": 1409,
@@ -19795,12 +19795,12 @@ window.CFB_SPEED_DATA = [
     "question": "Who is the winningest coach in Western Kentucky football history?",
     "options": [
       "Peahead Walker",
-      "Jack Harbaugh",
+      "Jimmy Feix",
       "Jack Mollenkopf",
       "Bobby Bowden"
     ],
     "correctIndex": 1,
-    "notes": "-"
+    "notes": "Jimmy Feix, 106-56-6 (1968-83)"
   },
   {
     "id": 1415,
@@ -19808,12 +19808,12 @@ window.CFB_SPEED_DATA = [
     "difficulty": "Medium",
     "question": "Who is the winningest coach in New Mexico State football history?",
     "options": [
-      "-",
+      "Warren Woodson",
       "R.C. Slocum",
       "Dan McCarney",
       "Sonny Lubick"
     ],
     "correctIndex": 0,
-    "notes": "-"
+    "notes": "Warren Woodson, 63-36-3 (1958-67)"
   }
 ];
