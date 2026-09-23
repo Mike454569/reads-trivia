@@ -572,15 +572,15 @@ window.QUIZ_DATA = [
     "id": 46,
     "category": "Franchise & Team Records",
     "difficulty": "Hard",
-    "question": "As of the mid-2020s, which longtime NFL franchises have never appeared in a Super Bowl?",
+    "question": "As of the mid-2020s, which of these teams has NEVER appeared in a Super Bowl (unlike the Vikings and Bills, who have each lost 4)?",
     "options": [
-      "Minnesota Vikings and Houston Texans",
-      "Detroit Lions and Houston Texans",
-      "Detroit Lions and Cleveland Browns",
-      "Cleveland Browns and Buffalo Bills"
+      "Minnesota Vikings",
+      "Detroit Lions",
+      "Buffalo Bills",
+      "Indianapolis Colts"
     ],
-    "correctIndex": 2,
-    "notes": ""
+    "correctIndex": 1,
+    "notes": "Detroit Lions -- also true of the Browns, Texans, and Jaguars, but only the Lions are offered here"
   },
   {
     "id": 47,
@@ -838,14 +838,14 @@ window.QUIZ_DATA = [
     "id": 68,
     "category": "Passing Records & QB Trivia",
     "difficulty": "Hard",
-    "question": "Which quarterback set the single-season passing yards record (5,477) in 2011?",
+    "question": "Which quarterback set the single-season passing yards record (5,477) in 2013?",
     "options": [
       "Drew Brees",
       "Peyton Manning",
       "Dan Marino",
       "Tom Brady"
     ],
-    "correctIndex": 0,
+    "correctIndex": 1,
     "notes": ""
   },
   {
@@ -1055,7 +1055,7 @@ window.QUIZ_DATA = [
       "Warren Moon",
       "Philip Rivers"
     ],
-    "correctIndex": 1,
+    "correctIndex": 3,
     "notes": ""
   },
   {
@@ -2140,7 +2140,7 @@ window.QUIZ_DATA = [
     "id": 172,
     "category": "Awards, MVPs & Hall of Fame",
     "difficulty": "Hard",
-    "question": "Which running back won NFL MVP unanimously in 2012 after his historic 2,097-yard rushing season?",
+    "question": "Which running back won NFL MVP in 2012 after his historic 2,097-yard rushing season?",
     "options": [
       "Marshawn Lynch",
       "Doug Martin",
@@ -2322,7 +2322,7 @@ window.QUIZ_DATA = [
     "id": 185,
     "category": "Awards, MVPs & Hall of Fame",
     "difficulty": "Hard",
-    "question": "Which quarterback won the Heisman Trophy at Oklahoma and later an NFL MVP award with the Cardinals?",
+    "question": "Which quarterback won the Heisman Trophy at Oklahoma and later NFL Offensive Rookie of the Year with the Cardinals?",
     "options": [
       "Baker Mayfield",
       "Jason White",
@@ -2600,9 +2600,9 @@ window.QUIZ_DATA = [
   },
   {
     "id": 206,
-    "category": "Playoffs & Postseason Moments",
+    "category": "Miscellaneous",
     "difficulty": "Hard",
-    "question": "The controversial 'Fail Mary' replacement-referee call happened in a 2012 game involving which two teams?",
+    "question": "The controversial 'Fail Mary' replacement-referee call happened in a 2012 regular-season game involving which two teams?",
     "options": [
       "San Francisco 49ers and Arizona Cardinals",
       "Seattle Seahawks and Green Bay Packers",
@@ -2754,9 +2754,9 @@ window.QUIZ_DATA = [
   },
   {
     "id": 217,
-    "category": "Playoffs & Postseason Moments",
+    "category": "Miscellaneous",
     "difficulty": "Hard",
-    "question": "The 'River City Relay,' a miraculous multi-lateral play, fell just short for the Saints against which team in 2003?",
+    "question": "The 'River City Relay,' a miraculous multi-lateral play, fell just short for the Saints in a 2003 regular-season game against which team?",
     "options": [
       "Jacksonville Jaguars",
       "Carolina Panthers",
@@ -2840,7 +2840,7 @@ window.QUIZ_DATA = [
     "id": 223,
     "category": "Playoffs & Postseason Moments",
     "difficulty": "Hard",
-    "question": "Which team blew a 19-point lead in the 2016 playoffs, one of the biggest collapses in postseason history, losing to the Falcons?",
+    "question": "Which team blew a 20-point lead in the 2012 playoffs (played Jan. 2013), one of the biggest collapses in postseason history, losing to the Falcons?",
     "options": [
       "Detroit Lions",
       "Seattle Seahawks",
@@ -2994,7 +2994,7 @@ window.QUIZ_DATA = [
     "id": 235,
     "category": "Rules, Officiating & Stadiums",
     "difficulty": "Hard",
-    "question": "Instant replay review was permanently reinstated by NFL owners in what year, after an earlier trial run was dropped?",
+    "question": "Instant replay review was reinstated by NFL owners in what year, after an earlier trial run was dropped (it wasn't made a truly permanent rule needing no renewal until 2007)?",
     "options": [
       "2001",
       "1999",
@@ -3106,15 +3106,15 @@ window.QUIZ_DATA = [
     "id": 243,
     "category": "Rules, Officiating & Stadiums",
     "difficulty": "Hard",
-    "question": "The 'Immaculate Reception' controversy centers on whether the ball first touched which player before Franco Harris caught it?",
+    "question": "On the 'Immaculate Reception,' officials officially ruled the deflected pass touched which Raiders defender before Franco Harris caught it -- the ruling that made the catch legal?",
     "options": [
       "Terry Bradshaw",
       "John Fuqua's teammate",
       "Jack Tatum",
       "Frenchy Fuqua"
     ],
-    "correctIndex": 3,
-    "notes": ""
+    "correctIndex": 2,
+    "notes": "Frenchy Fuqua was Pittsburgh's own player, not a Raider -- the real 50-year dispute is whether it hit Tatum (the official ruling) or Fuqua instead, which would have made the catch illegal under 1972 rules."
   },
   {
     "id": 244,
@@ -3512,7 +3512,7 @@ window.QUIZ_DATA = [
     "id": 290,
     "category": "Defense & Special Teams Records",
     "difficulty": "Hard",
-    "question": "Justin Tucker's record-breaking 66-yard field goal as time expired came against which team?",
+    "question": "Justin Tucker's then-record 66-yard field goal as time expired (2021) came against which team?",
     "options": [
       "Cleveland Browns",
       "Green Bay Packers",
@@ -3593,20 +3593,6 @@ window.QUIZ_DATA = [
     "notes": "Louisiana Superdome"
   },
   {
-    "id": 303,
-    "category": "Super Bowl History",
-    "difficulty": "Very Hard",
-    "question": "In Super Bowl III the Jets stopped which Colts fullback on a key 4th-and-1?",
-    "options": [
-      "Tom Matte",
-      "Norm Bulaich",
-      "Don Shinnick",
-      "Jerry Hill"
-    ],
-    "correctIndex": 0,
-    "notes": "Tom Matte"
-  },
-  {
     "id": 304,
     "category": "Super Bowl History",
     "difficulty": "Hard",
@@ -3669,26 +3655,12 @@ window.QUIZ_DATA = [
     "question": "Who holds the record for most Super Bowl appearances by a non-quarterback?",
     "options": [
       "Marv Fleming",
-      "Jerry Rice",
+      "Rob Gronkowski",
       "Mike Webster",
       "Charlie Waters"
     ],
     "correctIndex": 1,
-    "notes": "Four appearances"
-  },
-  {
-    "id": 309,
-    "category": "Super Bowl History",
-    "difficulty": "Hard",
-    "question": "Which defensive player returned an INT for a TD in a Super Bowl and later became a head coach?",
-    "options": [
-      "Mike Ditka",
-      "Tony Dungy",
-      "Mike Singletary",
-      "Herm Edwards"
-    ],
-    "correctIndex": 1,
-    "notes": "Tony Dungy with Steelers"
+    "notes": "Six appearances (2011, 2014, 2016, 2017, 2018, 2020)"
   },
   {
     "id": 310,
@@ -3841,8 +3813,8 @@ window.QUIZ_DATA = [
       "Super Bowl XXXVIII",
       "Super Bowl XXXVI"
     ],
-    "correctIndex": 3,
-    "notes": "Vinatieri in XXXVI"
+    "correctIndex": 0,
+    "notes": "Jim O'Brien, SB V -- Vinatieri's SB XXXVI kick was the second time it happened"
   },
   {
     "id": 321,
@@ -3953,8 +3925,8 @@ window.QUIZ_DATA = [
       "AT&T Stadium",
       "Arrowhead Stadium"
     ],
-    "correctIndex": 2,
-    "notes": "Cowboys stadium"
+    "correctIndex": 1,
+    "notes": "MetLife Stadium, 82,500 seats -- AT&T Stadium's 100k+ figures are standing-room, not seats"
   },
   {
     "id": 329,
@@ -4044,7 +4016,7 @@ window.QUIZ_DATA = [
     "id": 335,
     "category": "Franchise & Team Records",
     "difficulty": "Hard",
-    "question": "Which team has the most Super Bowl appearances without a win?",
+    "question": "Which of these teams is tied for the most Super Bowl appearances without a win (0-4)?",
     "options": [
       "Cincinnati Bengals",
       "Buffalo Bills",
@@ -4052,7 +4024,7 @@ window.QUIZ_DATA = [
       "Atlanta Falcons"
     ],
     "correctIndex": 2,
-    "notes": "0-4"
+    "notes": "Vikings and Bills are tied at 0-4 -- both are correct, only one is offered here"
   },
   {
     "id": 336,
@@ -4142,15 +4114,15 @@ window.QUIZ_DATA = [
     "id": 343,
     "category": "Player Records",
     "difficulty": "Hard",
-    "question": "Who is the only player to lead the NFL in both rushing and receiving yards in the same season?",
+    "question": "Who was the first player to rush for 1,000 yards AND catch passes for 1,000 receiving yards in the same NFL season?",
     "options": [
       "Christian McCaffrey",
       "Billy Cannon",
       "Marshall Faulk",
       "Roger Craig"
     ],
-    "correctIndex": 2,
-    "notes": "1999 Faulk"
+    "correctIndex": 3,
+    "notes": "Roger Craig, 1985 (49ers). Faulk (1999) and McCaffrey (2019) later joined the club."
   },
   {
     "id": 344,
@@ -4163,8 +4135,8 @@ window.QUIZ_DATA = [
       "Barry Sanders",
       "Curtis Martin"
     ],
-    "correctIndex": 2,
-    "notes": "10 seasons"
+    "correctIndex": 1,
+    "notes": "Emmitt Smith, 11 straight seasons (1991-2001)"
   },
   {
     "id": 345,
@@ -4219,8 +4191,8 @@ window.QUIZ_DATA = [
       "Matt Stover",
       "Justin Tucker"
     ],
-    "correctIndex": 1,
-    "notes": "42"
+    "correctIndex": 0,
+    "notes": "Adam Vinatieri, 43 -- broke Vanderjagt's prior 42-kick mark"
   },
   {
     "id": 349,
@@ -4259,10 +4231,10 @@ window.QUIZ_DATA = [
       "Lamar Jackson",
       "Steve Young",
       "Cam Newton",
-      "Randall Cunningham"
+      "Josh Allen"
     ],
-    "correctIndex": 2,
-    "notes": "75"
+    "correctIndex": 3,
+    "notes": "Josh Allen surpassed Cam Newton's 75 in 2025"
   },
   {
     "id": 352,
@@ -4415,8 +4387,8 @@ window.QUIZ_DATA = [
       "Alabama",
       "USC"
     ],
-    "correctIndex": 1,
-    "notes": "Five"
+    "correctIndex": 3,
+    "notes": "USC, six: Caleb Williams 2024, Carson Palmer 2003, Keyshawn Johnson 1996, Ricky Bell 1977, O.J. Simpson 1969, Ron Yary 1968"
   },
   {
     "id": 363,
@@ -4520,15 +4492,15 @@ window.QUIZ_DATA = [
     "id": 370,
     "category": "Draft & College",
     "difficulty": "Hard",
-    "question": "The 2007 first overall pick was which OT?",
+    "question": "Which OT went 3rd overall in the 2007 NFL Draft to the Browns (the 2007 #1 overall pick was actually QB JaMarcus Russell)?",
     "options": [
       "Jake Long",
       "Joe Thomas",
       "Duane Brown",
       "Ryan Clady"
     ],
-    "correctIndex": 0,
-    "notes": "Jake Long (Miami)"
+    "correctIndex": 1,
+    "notes": "Joe Thomas (Cleveland) -- Jake Long was the real #1 overall pick, but in 2008, not 2007"
   },
   {
     "id": 371,
@@ -4688,7 +4660,7 @@ window.QUIZ_DATA = [
     "id": 382,
     "category": "Draft & College",
     "difficulty": "Hard",
-    "question": "Which QB was drafted No. 1 by the Falcons in 1991 and never started for them?",
+    "question": "Which QB was drafted by the Falcons in the 2nd round of the 1991 NFL Draft and never started for them before being traded to Green Bay?",
     "options": [
       "Chris Chandler",
       "Bobby Hebert",
@@ -4884,15 +4856,15 @@ window.QUIZ_DATA = [
     "id": 396,
     "category": "Defense & Special Teams",
     "difficulty": "Hard",
-    "question": "Who holds the record for longest field goal in NFL history (66 yards)?",
+    "question": "Who holds the record for longest field goal in NFL history (68 yards)?",
     "options": [
       "Brandon McManus",
       "Graham Gano",
       "Justin Tucker",
-      "Matt Prater"
+      "Cam Little"
     ],
-    "correctIndex": 2,
-    "notes": "2021 vs Lions"
+    "correctIndex": 3,
+    "notes": "Cam Little, 2025 vs Raiders -- broke Justin Tucker's prior 66-yard record"
   },
   {
     "id": 397,
@@ -5144,7 +5116,7 @@ window.QUIZ_DATA = [
       "George Halas"
     ],
     "correctIndex": 0,
-    "notes": "347"
+    "notes": "328 regular-season wins (347 combined with playoffs)"
   },
   {
     "id": 415,
@@ -5805,20 +5777,6 @@ window.QUIZ_DATA = [
     "notes": "23 in 2007"
   },
   {
-    "id": 463,
-    "category": "Player Records",
-    "difficulty": "Very Hard",
-    "question": "Who is the only player to score a TD on offense, defense and special teams in the same game?",
-    "options": [
-      "Gale Sayers",
-      "William Perry",
-      "Deion Sanders",
-      "Walter Payton"
-    ],
-    "correctIndex": 2,
-    "notes": "Deion Sanders"
-  },
-  {
     "id": 464,
     "category": "Player Records",
     "difficulty": "Hard",
@@ -5871,8 +5829,8 @@ window.QUIZ_DATA = [
       "Frank Gore",
       "Jerry Rice"
     ],
-    "correctIndex": 1,
-    "notes": "Walter Payton"
+    "correctIndex": 3,
+    "notes": "Jerry Rice, 23,540 yards -- passed Payton in 2002"
   },
   {
     "id": 468,
@@ -5899,8 +5857,8 @@ window.QUIZ_DATA = [
       "Ohio State",
       "Alabama"
     ],
-    "correctIndex": 1,
-    "notes": "USC often leads"
+    "correctIndex": 0,
+    "notes": "Notre Dame leads with 538 all-time picks, ahead of USC's 533 and Ohio State's 503"
   },
   {
     "id": 470,
@@ -6193,8 +6151,8 @@ window.QUIZ_DATA = [
       "New England Patriots",
       "San Francisco 49ers"
     ],
-    "correctIndex": 2,
-    "notes": "Various claims; Pats high"
+    "correctIndex": 3,
+    "notes": "49ers, 18 straight road wins (1988-91)"
   },
   {
     "id": 493,
@@ -6207,8 +6165,8 @@ window.QUIZ_DATA = [
       "Green Bay Packers",
       "Dallas Cowboys"
     ],
-    "correctIndex": 3,
-    "notes": "Cowboys"
+    "correctIndex": 0,
+    "notes": "49ers, 113 wins"
   },
   {
     "id": 494,
@@ -6249,8 +6207,8 @@ window.QUIZ_DATA = [
       "Multiple 0-16 or 1-15",
       "Detroit Lions 2008"
     ],
-    "correctIndex": 3,
-    "notes": "Lions 0-16"
+    "correctIndex": 2,
+    "notes": "Tied at 0-16: Lions 2008 and Browns 2017 -- the only two teams to do it"
   },
   {
     "id": 497,
@@ -6277,8 +6235,8 @@ window.QUIZ_DATA = [
       "Chicago Bears",
       "Pittsburgh Steelers"
     ],
-    "correctIndex": 2,
-    "notes": "Bears or Packers close"
+    "correctIndex": 1,
+    "notes": "Packers passed the Bears for the all-time lead in 2022 (819-808)"
   },
   {
     "id": 499,
@@ -6305,8 +6263,8 @@ window.QUIZ_DATA = [
       "Ted Hendricks",
       "Jared Allen"
     ],
-    "correctIndex": 2,
-    "notes": "Ted Hendricks (4)"
+    "correctIndex": 1,
+    "notes": "Tied at 4: Ted Hendricks, Jared Allen, Justin Houston, Doug English"
   },
   {
     "id": 501,
@@ -6358,11 +6316,11 @@ window.QUIZ_DATA = [
     "options": [
       "Bruce Smith",
       "Reggie White",
-      "Deacon Jones",
+      "Chris Jones",
       "Jared Allen"
     ],
-    "correctIndex": 3,
-    "notes": "Jared Allen (11)"
+    "correctIndex": 2,
+    "notes": "Chris Jones, Chiefs (11 straight games, 2018)"
   },
   {
     "id": 505,
@@ -6417,8 +6375,8 @@ window.QUIZ_DATA = [
       "George Allen",
       "Bill Belichick"
     ],
-    "correctIndex": 1,
-    "notes": "Lombardi high"
+    "correctIndex": 0,
+    "notes": "Madden, .759 (103-32-7), edges out Lombardi's .738"
   },
   {
     "id": 510,
@@ -6428,17 +6386,17 @@ window.QUIZ_DATA = [
     "options": [
       "Tom Landry",
       "Don Shula",
-      "Bill Parcells",
+      "Andy Reid",
       "Chuck Noll"
     ],
     "correctIndex": 2,
-    "notes": "Parcells"
+    "notes": "Andy Reid (100+ wins with Eagles, then 100+ with Chiefs)"
   },
   {
     "id": 511,
     "category": "Coaches & Front Office",
     "difficulty": "Hard",
-    "question": "Which coach won Super Bowls with the Redskins in three different decades?",
+    "question": "Which coach won all three of his Super Bowls with the Redskins using three different starting quarterbacks?",
     "options": [
       "Joe Gibbs",
       "George Allen",
