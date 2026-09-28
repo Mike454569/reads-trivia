@@ -1,6 +1,6 @@
 """CATEGORY_ROULETTE -- 75-Format Expansion (Wave 1), format #35 overall.
 
-Real random-category trivia: each round's real category (NFL Draft,
+Real random-category trivia: each round's real category (NFL Team Records,
 Heisman Winners, or Super Bowl Champions) is shown openly, immediately
 followed by that category's real question -- no wager, no hidden
 content, no fictional balance at all. Rounds cycle through all 3 real
@@ -45,7 +45,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import wager_mode  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "CATEGORY_ROULETTE"
 VARIANTS = frozenset({"CATEGORY_ROULETTE_MIXED"})
 
@@ -61,13 +61,14 @@ def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        draft_rows = c.execute(
-            "SELECT player_key, player_name, draft_season, draft_team FROM draft_facts "
-            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' AND draft_team IS NOT NULL"
+        record_rows = c.execute(
+            "SELECT season, team_code, wins, losses, ties FROM season_standings "
+            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
+            "AND wins IS NOT NULL AND losses IS NOT NULL"
         ).fetchall()
-        draft_by_season: dict[int, list] = {}
-        for r in draft_rows:
-            draft_by_season.setdefault(r["draft_season"], []).append(r)
+        records_by_season: dict[int, list] = {}
+        for r in record_rows:
+            records_by_season.setdefault(r["season"], []).append(r)
         heisman_rows = c.execute(
             "SELECT award_year, player_name, school_name FROM cfb_award_facts "
             "WHERE verification_status='SOURCE_BACKED_FROM_CFB_MASTER' AND award_name='Heisman Trophy' "
@@ -83,8 +84,8 @@ def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
     for i in range(round_count):
         cat = wager_mode._CATEGORIES[i % len(wager_mode._CATEGORIES)]
         cat_rng = engine_bootstrap.seeded(f"{seed}-cr-r{i}")
-        if cat == "NFL Draft":
-            q = wager_mode._nfl_draft_question(cat_rng, draft_by_season)
+        if cat == "NFL Team Records":
+            q = wager_mode._nfl_team_record_question(cat_rng, records_by_season)
         elif cat == "Heisman Winners":
             q = wager_mode._heisman_question(cat_rng, heisman_rows)
         else:

@@ -400,7 +400,7 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "competition": "NFL", "taxonomy_id": "RISK_IT", "variant": "NFL_DRAFT_RISK_IT",
         "title": "Risk It",
         "instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth less, "
-                         "HIGH is a real obscure pick worth more. A wrong answer costs a life.",
+                         "HIGH uses a more obscure stat season and is worth more. A wrong answer costs a life.",
         "kind": "risk_it", "gen_kwargs": {"round_count": 7},
     },
     # CFB retrofit pass -- real per-season national passing-yards rank as
@@ -495,7 +495,7 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
     "fact_or_fake_nfl_draft": {
         "competition": "NFL", "taxonomy_id": "FACT_OR_FAKE", "variant": "NFL_DRAFT_FACT_OR_FAKE",
         "title": "Fact or Fake",
-        "instructions": "Read the real statement -- tap TRUE if it's a real, verbatim fact, or FAKE if "
+        "instructions": "Read the NFL history statement -- tap TRUE if it's a real, verbatim fact, or FAKE if "
                          "it's been altered.",
         "kind": "fact_or_fake", "gen_kwargs": {"round_count": 10},
     },
@@ -621,7 +621,7 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
     "common_link_nfl_draft": {
         "competition": "NFL", "taxonomy_id": "COMMON_LINK", "variant": "NFL_DRAFT_COMMON_LINK",
         "title": "Common Link",
-        "instructions": "3 real NFL Draft picks are named -- tap the 1 of 4 real statements that correctly "
+        "instructions": "3 real NFL players are named -- tap the 1 of 4 real statements that correctly "
                          "explains what connects them.",
         "kind": "common_link", "gen_kwargs": {"round_count": 8},
     },

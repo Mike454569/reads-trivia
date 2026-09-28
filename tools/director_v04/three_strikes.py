@@ -32,12 +32,10 @@ CFB tiering (per-season national passing-yards rank, "which real school"
 question) verbatim -- see risk_it.py's own module docstring for why this
 proxy replaces draft_pick_overall for CFB.
 
-Category variety pass (user feedback: "we don't need game modes based on
-draft picks"). NFL_DRAFT_THREE_STRIKES now also draws, per round, from
-risk_it.py's new real SEASON_PASSING category (real per-season national
-passing-yards rank among real NFL QBs, "which real team did this player
-play for" -- see risk_it.py's own module docstring). Which category a
-given round uses is itself seeded/deterministic.
+Content-diversity pass: the legacy public variant id remains stable, but
+the general-purpose NFL game now rotates through passing, rushing, and
+receiving leaderboards. Draft questions are reserved for draft-labeled
+games.
 
 Two variants: NFL_DRAFT_THREE_STRIKES, CFB_SEASON_PASSING_THREE_STRIKES.
 """
@@ -53,7 +51,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import risk_it  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "THREE_STRIKES"
 VARIANTS = frozenset({"NFL_DRAFT_THREE_STRIKES", "CFB_SEASON_PASSING_THREE_STRIKES"})
 STARTING_STRIKES = 3
@@ -88,11 +86,15 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
                                       risk_it._build_tier_question_cfb)}
         else:
             category_data = {
-                "DRAFT": (risk_it._build_rows_by_tier_season(c, risk_it._TIER_RANGES, risk_it._rows_for_tier),
-                          risk_it._build_tier_question),
-                "SEASON_PASSING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_PASSING_TIER_RANGES,
+                "SEASON_PASSING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_STAT_TIER_RANGES,
                                                                        risk_it._rows_for_tier_nfl_passing),
                                     risk_it._build_tier_question_nfl_passing),
+                "SEASON_RUSHING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_STAT_TIER_RANGES,
+                                                                       risk_it._rows_for_tier_nfl_rushing),
+                                    risk_it._build_tier_question_nfl_rushing),
+                "SEASON_RECEIVING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_STAT_TIER_RANGES,
+                                                                         risk_it._rows_for_tier_nfl_receiving),
+                                      risk_it._build_tier_question_nfl_receiving),
             }
     finally:
         c.close()
@@ -103,9 +105,9 @@ def generate_rounds(seed: str, variant: str, round_count: int = 12) -> dict:
         if is_cfb:
             candidates = ["CFB"]
         else:
-            cat_rng = engine_bootstrap.seeded(f"{seed}-ts-cat-{i}")
-            candidates = list(risk_it._NFL_CATEGORIES)
-            cat_rng.shuffle(candidates)
+            offset = engine_bootstrap.seeded(f"{seed}-ts-category-order").randrange(len(risk_it._NFL_CATEGORIES))
+            primary = risk_it._NFL_CATEGORIES[(i + offset) % len(risk_it._NFL_CATEGORIES)]
+            candidates = [primary] + [c for c in risk_it._NFL_CATEGORIES if c != primary]
         q = None
         for category in candidates:
             rows_by_tier_season, build_tier_question = category_data[category]

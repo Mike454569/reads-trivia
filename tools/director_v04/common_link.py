@@ -32,16 +32,10 @@ genuinely share the same real school, the same real season, or the same
 real conference (cfb_player_season_stats_real + schools), same "identify
 the relationship type" shape as the NFL variant.
 
-Category variety pass (user feedback: "we don't need game modes based on
-draft picks" -- all 3 of the NFL variant's original link types (college/
-draft_season/draft_team) were really just 3 different fields of the same
-draft_facts table, so every round was still "3 players who were drafted"
-underneath). NFL_DRAFT_COMMON_LINK now also draws from a genuinely
-different, non-draft real pool per round -- canonical_roster_seasons
-(NFLVERSE_DATA, SOURCE_BACKED): 3 real players who shared the same real
-team, the same real season, or the same real position, with no draft
-concept involved at all. Which pool (DRAFT vs ROSTER) a round uses is
-itself seeded/deterministic.
+Content-diversity pass: the legacy variant id remains stable for deployed
+clients, but the NFL game now uses the non-draft canonical roster pool:
+three real players who shared the same team, season, or position. Draft
+relationships remain in the app's explicitly draft-labeled modes.
 
 Two variants: NFL_DRAFT_COMMON_LINK, CFB_SEASON_COMMON_LINK.
 """
@@ -56,7 +50,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "COMMON_LINK"
 VARIANTS = frozenset({"NFL_DRAFT_COMMON_LINK", "CFB_SEASON_COMMON_LINK"})
 
@@ -235,8 +229,6 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
             rows = _fetch_rows_cfb(c)
             groups_by_type = {lt: _group_by(rows, lt) for lt in _CFB_LINK_TYPES}
         else:
-            draft_rows = _fetch_rows(c)
-            draft_groups = {lt: _group_by(draft_rows, lt) for lt in _LINK_TYPES}
             roster_rows = _fetch_rows_roster(c)
             roster_groups = {lt: _group_by(roster_rows, lt) for lt in _ROSTER_LINK_TYPES}
     finally:
@@ -248,22 +240,8 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
             rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}")
             r = _build_round_cfb(rng, rows, groups_by_type)
         else:
-            # Category variety pass: which real, independent pool a round
-            # draws from (DRAFT vs ROSTER) is itself seeded/deterministic,
-            # tried in a real fallback order if the chosen pool can't
-            # build a round rather than silently dropping it.
-            cat_rng = engine_bootstrap.seeded(f"{seed}-cl-cat-{i}")
-            pools = ["DRAFT", "ROSTER"]
-            cat_rng.shuffle(pools)
-            r = None
-            for pool_name in pools:
-                rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}-{pool_name}")
-                if pool_name == "DRAFT":
-                    r = _build_round(rng, draft_rows, draft_groups)
-                else:
-                    r = _build_round_roster(rng, roster_rows, roster_groups)
-                if r is not None:
-                    break
+            rng = engine_bootstrap.seeded(f"{seed}-cl-r{i}-ROSTER")
+            r = _build_round_roster(rng, roster_rows, roster_groups)
         if r is None:
             continue
         rounds.append(r)
@@ -304,7 +282,7 @@ def build_package(seed: str, variant: str, round_count: int = 8) -> dict:
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "game_title": _GAME_TITLES[variant],
-        "game_instructions": "3 real NFL Draft picks are named -- tap the 1 of 4 real statements that "
+        "game_instructions": "3 real NFL players are named -- tap the 1 of 4 real statements that "
                               "correctly explains what connects them.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if valid else "FAILED",

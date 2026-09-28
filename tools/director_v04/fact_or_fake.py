@@ -26,11 +26,9 @@ provable-by-substitution discipline as the NFL variant's team swap, just
 substituting a score instead of a team (never a fabricated or randomly
 altered number).
 
-Category variety pass (user feedback: "we don't need game modes based on
-draft picks" -- every round of the NFL variant used to be a draft
-statement). NFL_DRAFT_FACT_OR_FAKE now rotates, per round, across 3 real
-independent categories instead of only ever drawing from draft_facts:
-  - DRAFT: unchanged, the original draft-pick statement.
+Content-diversity pass: the legacy variant id remains stable for deployed
+clients, but this general-purpose mode no longer asks draft questions.
+It rotates between two independent real categories:
   - CHAMPIONSHIP: a real Super Bowl result (nfl_championship_events,
     WIKIPEDIA_STRUCTURED_SECONDARY) -- false via real SCORE substitution
     from a different real Super Bowl.
@@ -55,9 +53,9 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import risk_it  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
 
-_NFL_CATEGORIES = ("DRAFT", "CHAMPIONSHIP", "TEAM_RECORD")
+_NFL_CATEGORIES = ("CHAMPIONSHIP", "TEAM_RECORD")
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "FACT_OR_FAKE"
 VARIANTS = frozenset({"NFL_DRAFT_FACT_OR_FAKE", "CFB_GAME_RESULT_FACT_OR_FAKE"})
 
@@ -285,27 +283,20 @@ def generate_rounds(seed: str, variant: str, round_count: int = 10) -> dict:
                 if r is not None:
                     rounds.append(r)
         else:
-            # Category variety pass: which real, independent category a
-            # round draws from is itself seeded/deterministic (never all
-            # draft, per the user's own feedback), tried in a real,
-            # deterministic fallback order if the chosen category can't
-            # build a round (e.g. a real tie/exhausted pool) rather than
-            # silently dropping the round.
-            by_season = _rows_by_season(c)
+            # General formats intentionally avoid draft content. The
+            # legacy variant id is retained only for API compatibility.
             championship_rows = _rows_championships(c)
             record_rows = _rows_team_records(c)
             rounds = []
             for i in range(round_count):
                 make_true = make_true_flags[i]
-                cat_rng = engine_bootstrap.seeded(f"{seed}-fof-cat-{i}")
-                categories = list(_NFL_CATEGORIES)
-                cat_rng.shuffle(categories)
+                offset = engine_bootstrap.seeded(f"{seed}-fof-category-order").randrange(len(_NFL_CATEGORIES))
+                primary = _NFL_CATEGORIES[(i + offset) % len(_NFL_CATEGORIES)]
+                categories = [primary] + [cat for cat in _NFL_CATEGORIES if cat != primary]
                 r = None
                 for category in categories:
                     rng = engine_bootstrap.seeded(f"{seed}-fof-r{i}-{category}")
-                    if category == "DRAFT":
-                        r = _build_round(rng, by_season, make_true)
-                    elif category == "CHAMPIONSHIP":
+                    if category == "CHAMPIONSHIP":
                         r = _build_round_championship(rng, championship_rows, make_true)
                     else:
                         r = _fact_or_fake_team_record_round(c, rng, record_rows, make_true)
