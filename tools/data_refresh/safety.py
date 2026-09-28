@@ -41,7 +41,10 @@ from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 ENGINE_DIR = engine_bootstrap.ENGINE_DIR
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
-import backup_manager  # noqa: E402  Engine's own verified-backup helper, reused as-is, never modified
+import backup_manager  # noqa: E402  Engine's own verified-backup helper -- create() was made atomic
+# (temp file + os.replace) after a real, twice-confirmed production incident where a process kill
+# mid-backup left a corrupt 0-byte file sitting at the real backup path; see backup_manager.py's own
+# create() docstring for the full incident and fix.
 
 import datetime as _dt
 import hashlib
