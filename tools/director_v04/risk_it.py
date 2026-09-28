@@ -40,16 +40,11 @@ is "which real SCHOOL did this real player play for" (not "drafted by"
 -- CFB players aren't drafted), decoys are 3 other real players' real
 schools from that same real season.
 
-Category variety pass (user feedback: "we don't need game modes based on
-draft picks" -- the NFL variant's every round was a draft question).
-NFL_DRAFT_RISK_IT now also draws, per round (all 3 tiers within a round
-kept the same category for internal consistency), from a genuinely
-non-draft real pool: the same real per-season national passing-yards
-RANK proxy already built for CFB, applied to real NFL QBs instead
-(player_season_stats + canonical_roster_seasons.position='QB'). Domain
-for that category is "which real team did this player play for" (not
-"drafted by"). Which category (DRAFT vs SEASON_PASSING) a round uses is
-itself seeded/deterministic.
+Content-diversity pass: the legacy public variant id is retained for API
+compatibility, but this general-purpose mode no longer asks draft questions.
+It rotates through real single-season passing, rushing, and receiving
+leaderboards. Draft trivia remains available in the app's explicitly
+draft-labeled modes instead of leaking into unrelated formats.
 
 Two variants: NFL_DRAFT_RISK_IT, CFB_SEASON_PASSING_RISK_IT.
 """
@@ -64,7 +59,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "RISK_IT"
 VARIANTS = frozenset({"NFL_DRAFT_RISK_IT", "CFB_SEASON_PASSING_RISK_IT"})
 STARTING_LIVES = 3
@@ -79,8 +74,9 @@ _CFB_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
 
 # Same real rank-based proxy, applied to real NFL QBs -- a genuinely
 # non-draft category for the NFL variant (category variety pass).
-_NFL_PASSING_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
-_NFL_CATEGORIES = ("DRAFT", "SEASON_PASSING")
+_NFL_STAT_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
+_NFL_PASSING_TIER_RANGES = _NFL_STAT_TIER_RANGES  # compatibility for existing callers/tests
+_NFL_CATEGORIES = ("SEASON_PASSING", "SEASON_RUSHING", "SEASON_RECEIVING")
 
 
 def safety_check(c) -> dict:
@@ -119,20 +115,34 @@ def _rows_for_tier_cfb(c, lo: int, hi: int) -> list:
     ).fetchall()
 
 
-def _rows_for_tier_nfl_passing(c, lo: int, hi: int) -> list:
+def _rows_for_tier_nfl_stat(c, lo: int, hi: int, stat_column: str) -> list:
+    stat_columns = {"pass_yards": "passing", "rush_yards": "rushing", "rec_yards": "receiving"}
+    if stat_column not in stat_columns:
+        raise ValueError(f"unsupported NFL stat column: {stat_column}")
     return c.execute(
         "SELECT player_key, player_name, draft_season, draft_team, draft_pick_overall FROM ("
         "  SELECT s.player_key, p.display_name AS player_name, s.season AS draft_season, "
         "  s.team_code AS draft_team, "
-        "  RANK() OVER (PARTITION BY s.season ORDER BY s.pass_yards DESC) AS draft_pick_overall "
+        f"  RANK() OVER (PARTITION BY s.season ORDER BY s.{stat_column} DESC) AS draft_pick_overall "
         "  FROM player_season_stats s "
         "  JOIN canonical_players p ON p.player_id = s.player_key "
         "  WHERE s.verification_status='SOURCE_BACKED' AND s.source_id='NFLVERSE_DATA' "
-        "  AND EXISTS (SELECT 1 FROM canonical_roster_seasons rs WHERE rs.player_id = s.player_key "
-        "  AND rs.season = s.season AND rs.position = 'QB') AND s.pass_yards >= 300"
+        f"  AND s.{stat_column} > 0"
         ") WHERE draft_pick_overall BETWEEN ? AND ?",
         (lo, hi),
     ).fetchall()
+
+
+def _rows_for_tier_nfl_passing(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_nfl_stat(c, lo, hi, "pass_yards")
+
+
+def _rows_for_tier_nfl_rushing(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_nfl_stat(c, lo, hi, "rush_yards")
+
+
+def _rows_for_tier_nfl_receiving(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_nfl_stat(c, lo, hi, "rec_yards")
 
 
 def _build_tier_question(rng, rows_by_season: dict) -> dict | None:
@@ -205,7 +215,7 @@ def _build_tier_question_cfb(rng, rows_by_season: dict) -> dict | None:
     return None
 
 
-def _build_tier_question_nfl_passing(rng, rows_by_season: dict) -> dict | None:
+def _build_tier_question_nfl_stat(rng, rows_by_season: dict, stat_label: str) -> dict | None:
     seasons = list(rows_by_season.keys())
     if not seasons:
         return None
@@ -230,12 +240,24 @@ def _build_tier_question_nfl_passing(rng, rows_by_season: dict) -> dict | None:
             continue
         return {
             "prompt": f"Which real team did {correct['player_name']} play for in the {season} season "
-                      f"(real #{correct['draft_pick_overall']} in national passing yards that season)?",
+                      f"(real #{correct['draft_pick_overall']} in NFL {stat_label} yards that season)?",
             "correct_team": correct["draft_team"], "decoy_teams": decoy_teams[:3],
-            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in national passing yards: "
+            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in NFL {stat_label} yards: "
                      f"{correct['player_name']} for {correct['draft_team']} (NFLVERSE_DATA, SOURCE_BACKED).",
         }
     return None
+
+
+def _build_tier_question_nfl_passing(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_nfl_stat(rng, rows_by_season, "passing")
+
+
+def _build_tier_question_nfl_rushing(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_nfl_stat(rng, rows_by_season, "rushing")
+
+
+def _build_tier_question_nfl_receiving(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_nfl_stat(rng, rows_by_season, "receiving")
 
 
 def _build_rows_by_tier_season(c, tier_ranges: dict, rows_for_tier) -> dict[str, dict[int, list]]:
@@ -260,14 +282,16 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
             category_data = {"CFB": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb),
                                       _build_tier_question_cfb)}
         else:
-            # Category variety pass: precompute BOTH real categories
-            # upfront so each round can independently choose which one to
-            # draw from (all 3 tiers within a round stay the same
-            # category, for internal consistency).
+            # General formats intentionally use non-draft stat categories.
+            # The legacy variant id stays stable so deployed clients do not
+            # break, while explicitly draft-labeled games keep draft trivia.
             category_data = {
-                "DRAFT": (_build_rows_by_tier_season(c, _TIER_RANGES, _rows_for_tier), _build_tier_question),
-                "SEASON_PASSING": (_build_rows_by_tier_season(c, _NFL_PASSING_TIER_RANGES, _rows_for_tier_nfl_passing),
+                "SEASON_PASSING": (_build_rows_by_tier_season(c, _NFL_STAT_TIER_RANGES, _rows_for_tier_nfl_passing),
                                     _build_tier_question_nfl_passing),
+                "SEASON_RUSHING": (_build_rows_by_tier_season(c, _NFL_STAT_TIER_RANGES, _rows_for_tier_nfl_rushing),
+                                    _build_tier_question_nfl_rushing),
+                "SEASON_RECEIVING": (_build_rows_by_tier_season(c, _NFL_STAT_TIER_RANGES, _rows_for_tier_nfl_receiving),
+                                      _build_tier_question_nfl_receiving),
             }
     finally:
         c.close()
@@ -277,9 +301,11 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
         if is_cfb:
             candidates = ["CFB"]
         else:
-            cat_rng = engine_bootstrap.seeded(f"{seed}-ri-cat-{i}")
-            candidates = list(_NFL_CATEGORIES)
-            cat_rng.shuffle(candidates)
+            # Balanced rotation guarantees variety in every normal session;
+            # the seed only changes which category starts the rotation.
+            offset = engine_bootstrap.seeded(f"{seed}-ri-category-order").randrange(len(_NFL_CATEGORIES))
+            primary = _NFL_CATEGORIES[(i + offset) % len(_NFL_CATEGORIES)]
+            candidates = [primary] + [c for c in _NFL_CATEGORIES if c != primary]
         tiers = None
         for category in candidates:
             rows_by_tier_season, build_tier_question = category_data[category]

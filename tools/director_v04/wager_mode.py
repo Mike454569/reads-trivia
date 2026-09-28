@@ -17,8 +17,8 @@ established.
 3 real categories, each reusing an already-certified real table from
 elsewhere in this Engine's own mechanics (never a new, unverified query
 pattern):
-  - "NFL Draft": which real team drafted this real player (draft_facts,
-    NFLVERSE_DATA, SOURCE_BACKED -- same table RISK_IT uses).
+  - "NFL Team Records": which real team posted a shown real regular-season
+    record (season_standings, NFLVERSE_DATA, SOURCE_BACKED).
   - "Heisman Winners": which real school did this real Heisman winner
     play for (cfb_award_facts, SOURCE_BACKED_FROM_CFB_MASTER -- same
     table SORTING_TIMELINE's own CFB_HEISMAN_YEAR_ORDER variant uses).
@@ -45,17 +45,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "WAGER_MODE"
 VARIANTS = frozenset({"WAGER_MODE_MIXED"})
 STARTING_BALANCE = 1000
-_CATEGORIES = ("NFL Draft", "Heisman Winners", "Super Bowl Champions")
+_CATEGORIES = ("NFL Team Records", "Heisman Winners", "Super Bowl Champions")
 
 
 def safety_check(c) -> dict:
     from tools.quiz_export import safety
     return {
-        "draft_facts": safety.check_table_wide_safety(c, "draft_facts", "NFLVERSE_DATA"),
+        "season_standings": safety.check_table_wide_safety(c, "season_standings", "NFLVERSE_DATA"),
         "cfb_award_facts": safety.check_verification_status_safety(
             c, "cfb_award_facts", "READS_CFB_MASTER", "SOURCE_BACKED_FROM_CFB_MASTER",
             where_extra="award_name = 'Heisman Trophy'",
@@ -85,6 +85,40 @@ def _nfl_draft_question(rng, rows_by_season: dict) -> dict | None:
             "notes": f"Real {season} NFL Draft: {correct['player_name']} to {correct['draft_team']} "
                      f"(NFLVERSE_DATA, SOURCE_BACKED).",
         }
+    return None
+
+
+def _record_label(row) -> str:
+    ties = row["ties"] or 0
+    return f"{row['wins']}-{row['losses']}-{ties}" if ties else f"{row['wins']}-{row['losses']}"
+
+
+def _nfl_team_record_question(rng, rows_by_season: dict) -> dict | None:
+    seasons = list(rows_by_season.keys())
+    rng.shuffle(seasons)
+    for season in seasons:
+        pool = list(rows_by_season[season])
+        rng.shuffle(pool)
+        for correct in pool:
+            correct_record = _record_label(correct)
+            decoys = []
+            seen = {correct_record}
+            for row in pool:
+                label = _record_label(row)
+                if label in seen:
+                    continue
+                seen.add(label)
+                decoys.append(label)
+                if len(decoys) == 3:
+                    break
+            if len(decoys) < 3:
+                continue
+            return {
+                "prompt": f"What was {correct['team_code']}'s real regular-season record in {season}?",
+                "correct_label": correct_record, "decoy_labels": decoys,
+                "notes": f"Real {season} regular-season record: {correct['team_code']} finished "
+                         f"{correct_record} (NFLVERSE_DATA, SOURCE_BACKED).",
+            }
     return None
 
 
@@ -133,13 +167,14 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        draft_rows = c.execute(
-            "SELECT player_key, player_name, draft_season, draft_team FROM draft_facts "
-            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' AND draft_team IS NOT NULL"
+        record_rows = c.execute(
+            "SELECT season, team_code, wins, losses, ties FROM season_standings "
+            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
+            "AND wins IS NOT NULL AND losses IS NOT NULL"
         ).fetchall()
-        draft_by_season: dict[int, list] = {}
-        for r in draft_rows:
-            draft_by_season.setdefault(r["draft_season"], []).append(r)
+        records_by_season: dict[int, list] = {}
+        for r in record_rows:
+            records_by_season.setdefault(r["season"], []).append(r)
         heisman_rows = c.execute(
             "SELECT award_year, player_name, school_name FROM cfb_award_facts "
             "WHERE verification_status='SOURCE_BACKED_FROM_CFB_MASTER' AND award_name='Heisman Trophy' "
@@ -159,8 +194,8 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
         # every real category at least once, never all-one-category by chance.
         cat = _CATEGORIES[i % len(_CATEGORIES)]
         cat_rng = engine_bootstrap.seeded(f"{seed}-r{i}")
-        if cat == "NFL Draft":
-            q = _nfl_draft_question(cat_rng, draft_by_season)
+        if cat == "NFL Team Records":
+            q = _nfl_team_record_question(cat_rng, records_by_season)
         elif cat == "Heisman Winners":
             q = _heisman_question(cat_rng, heisman_rows)
         else:

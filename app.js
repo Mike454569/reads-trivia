@@ -2627,9 +2627,11 @@ function modeSectionHtml(league) {
   var all = LEAGUE_MODES[league];
   var featured = all.filter(function (m) { return m.featured; });
   var rest = all.filter(function (m) { return !m.featured; });
-  return '<h2 class="mode-section-title mode-section-title-' + league + '">' + esc(LEAGUE_LABELS[league]) + '</h2>' +
+  var subtitle = league === 'nfl' ? 'Pro football challenges' : 'Saturdays, rivalries &amp; tradition';
+  return '<div class="mode-section-header"><div><h2 class="mode-section-title mode-section-title-' + league + '">' + esc(LEAGUE_LABELS[league]) +
+    '<span class="mode-section-count">' + all.length + ' games</span></h2><p>' + subtitle + '</p></div></div>' +
     (featured.length ? '<div class="mode-grid mode-grid-' + league + ' mode-grid-featured">' + featured.map(modeCardHtml).join('') + '</div>' : '') +
-    (rest.length ? '<div class="mode-grid mode-grid-' + league + '">' + rest.map(modeCardHtml).join('') + '</div>' : '');
+    (rest.length ? '<div class="mode-grid mode-grid-' + league + ' mode-grid-secondary" aria-label="More ' + esc(LEAGUE_LABELS[league]) + ' games">' + rest.map(modeCardHtml).join('') + '</div>' : '');
 }
 function continuePlayingCardHtml() {
   var last = lsGet('nflTriviaLastMode', null);
@@ -2759,9 +2761,12 @@ function discoverGridHtml() {
 }
 function renderHome() {
   return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
+    '<div class="hero-kicker">Built for people who actually know ball</div>' +
     '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
     favoriteTeamGreeting() +
-    '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p></div>' +
+    '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p>' +
+    '<div class="hero-actions"><button class="btn-primary" data-go="quiz">Play NFL Quiz ' + icon('arrowRight') + '</button>' +
+    '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
     teamPickerPromptCardHtml() +
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
@@ -3694,11 +3699,14 @@ function finishGridRound() {
 }
 
 function renderGridSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">NFL Grid</h2>' +
-    '<p class="mode-desc">Every round deals a brand-new 3x3 grid. Type a player who satisfies both the row and the column — one guess per square, and you can\'t reuse a player. Rarer correct answers score more.</p>' +
+  return '<div class="panel game-intro game-intro-grid">' +
+    '<div class="game-intro-icon">' + icon('grid') + '</div><div class="game-intro-eyebrow">9 squares. No repeats.</div>' +
+    '<h2 class="game-intro-title">Immaculate Grid</h2>' +
+    '<p class="game-intro-copy">Match a player to both clues. You only get one shot at each square, and the names nobody else thinks of score the most.</p>' +
+    '<div class="game-intro-features"><span>' + icon('target') + '<b>3×3</b> fresh grid</span><span>' + icon('lock') + '<b>One guess</b> per square</span><span>' + icon('trophy') + '<b>Rarity</b> scoring</span></div>' +
+    '<div class="grid-intro-preview" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
     rankedToggleHtml('grid') +
-    '<button class="btn-primary" data-grid-start>Deal a New Grid</button>' +
+    '<button class="btn-primary game-intro-cta" data-grid-start>Deal My Grid ' + icon('arrowRight') + '</button>' +
     '</div>';
 }
 // Team/school badge colors are real per-team colors (32 NFL + 48 CFB), so a
@@ -3761,8 +3769,10 @@ function criteriaHeaderHtml(c) {
 function renderGridBoard() {
   var g = state.grid;
   var html = '<div class="panel">' + modeToolbarHtml('grid', g.ranked) +
-    '<h2 class="panel-title">NFL Grid &middot; ' + g.answeredCount + ' / 9 answered &middot; ' + g.totalScore + ' pts</h2>' +
-    '<div class="grid-table">' +
+    '<div class="game-hud"><div><span class="game-hud-label">Immaculate Grid</span><b>' + g.answeredCount + ' of 9 filled</b></div>' +
+    '<div class="game-hud-score"><span>Score</span><b>' + g.totalScore + '</b></div></div>' +
+    '<div class="game-progress"><span style="width:' + Math.round(g.answeredCount / 9 * 100) + '%"></span></div>' +
+    '<div class="grid-stage"><div class="grid-table">' +
     '<div class="grid-cell grid-corner"></div>';
   g.cols.forEach(function (c) { html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(c) + '</div>'; });
   for (var r = 0; r < 3; r++) {
@@ -3778,7 +3788,7 @@ function renderGridBoard() {
       html += '<button class="' + cls + '" data-grid-cell="' + idx + '" ' + (cell.correct !== null ? 'disabled' : '') + '>' + content + '</button>';
     }
   }
-  html += '</div>';
+  html += '</div></div>';
   if (g.activeIndex !== null) {
     html += '<div class="grid-answer-box">' +
       '<div class="typeahead-wrap">' +
@@ -3956,18 +3966,23 @@ function finishCfbGridRound() {
 }
 
 function renderCfbGridSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">College Football Immaculate Grid</h2>' +
-    '<p class="mode-desc">Every round deals a brand-new 3x3 grid of schools and All-America/Heisman criteria (1889-2025). Type a player who satisfies both the row and the column — one guess per square, and you can\'t reuse a player. Rarer correct answers score more.</p>' +
+  return '<div class="panel game-intro game-intro-grid">' +
+    '<div class="game-intro-icon">' + icon('grid') + '</div><div class="game-intro-eyebrow">Schools. Awards. Legends.</div>' +
+    '<h2 class="game-intro-title">CFB Immaculate Grid</h2>' +
+    '<p class="game-intro-copy">Connect college stars to schools, Heismans, and All-America honors. One guess per square, with bigger points for deeper cuts.</p>' +
+    '<div class="game-intro-features"><span>' + icon('target') + '<b>3×3</b> fresh grid</span><span>' + icon('lock') + '<b>One guess</b> per square</span><span>' + icon('trophy') + '<b>Rarity</b> scoring</span></div>' +
+    '<div class="grid-intro-preview" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
     rankedToggleHtml('cfbGrid') +
-    '<button class="btn-primary" data-cfb-grid-start>Deal a New Grid</button>' +
+    '<button class="btn-primary game-intro-cta" data-cfb-grid-start>Deal My Grid ' + icon('arrowRight') + '</button>' +
     '</div>';
 }
 function renderCfbGridBoard() {
   var g = state.cfbGrid;
   var html = '<div class="panel">' + modeToolbarHtml('cfbGrid', g.ranked) +
-    '<h2 class="panel-title">CFB Immaculate Grid &middot; ' + g.answeredCount + ' / 9 answered &middot; ' + g.totalScore + ' pts</h2>' +
-    '<div class="grid-table">' +
+    '<div class="game-hud"><div><span class="game-hud-label">CFB Immaculate Grid</span><b>' + g.answeredCount + ' of 9 filled</b></div>' +
+    '<div class="game-hud-score"><span>Score</span><b>' + g.totalScore + '</b></div></div>' +
+    '<div class="game-progress"><span style="width:' + Math.round(g.answeredCount / 9 * 100) + '%"></span></div>' +
+    '<div class="grid-stage"><div class="grid-table">' +
     '<div class="grid-cell grid-corner"></div>';
   g.cols.forEach(function (c) { html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(c) + '</div>'; });
   for (var r = 0; r < 3; r++) {
@@ -3983,7 +3998,7 @@ function renderCfbGridBoard() {
       html += '<button class="' + cls + '" data-cfb-grid-cell="' + idx + '" ' + (cell.correct !== null ? 'disabled' : '') + '>' + content + '</button>';
     }
   }
-  html += '</div>';
+  html += '</div></div>';
   if (g.activeIndex !== null) {
     html += '<div class="grid-answer-box">' +
       '<div class="typeahead-wrap">' +
@@ -5965,7 +5980,7 @@ function startLegends() {
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var slots = {};
   LEGENDS_SLOTS.forEach(function (s) { slots[s] = null; });
-  state.legends = { screen: 'draft', round: 1, slots: slots, teamRerollUsed: false, yearRerollUsed: false, rolledEntry: null, ranked: state.rankedPref.legends !== false };
+  state.legends = { screen: 'draft', round: 1, slots: slots, teamRerollUsed: false, yearRerollUsed: false, rolledEntry: null, lastPick: null, ranked: state.rankedPref.legends !== false };
   legendsDoRoll(state.legends);
   state.screen = 'legends';
   renderAll();
@@ -5983,6 +5998,7 @@ function legendsPickPlayer(playerIdx) {
     if (nonFlex.length) slot = nonFlex[0];
   }
   s.slots[slot] = { name: p.name, position: p.position, fppg: p.fppg, team: entry.team, year: entry.year };
+  s.lastPick = p.name + ' added at ' + legendsSlotLabel(slot);
   if (s.round >= 7) {
     s.screen = 'result';
     finishLegends();
@@ -6091,19 +6107,25 @@ function finishLegends() {
 }
 
 function renderLegendsSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">17-0</h2>' +
-    '<p class="mode-desc">Draft a 7-player fantasy team (QB, 2 RB, 2 WR, TE, FLEX) built entirely from real players\' real seasons, 1999-2025. Each round rolls a random notable team-season — pick one player into an open slot. You get 1 team re-roll and 1 year re-roll for the whole draft. After 7 rounds, real PPR points-per-game plus roster chemistry (teammates, same college, same draft class, iconic duos) decide your final grade and projected record.</p>' +
+  return '<div class="panel game-intro game-intro-legends">' +
+    '<div class="game-intro-icon">' + icon('trophy') + '</div><div class="game-intro-eyebrow">Build the perfect roster</div>' +
+    '<h2 class="game-intro-title">Can You Go 17–0?</h2>' +
+    '<p class="game-intro-copy">Seven team-seasons. Seven picks. Stack stars, hunt chemistry, and build a roster good enough to finish perfect.</p>' +
+    '<div class="game-intro-features"><span>' + icon('users') + '<b>7-player</b> roster</span><span>' + icon('sync') + '<b>2 rerolls</b> total</span><span>' + icon('zap') + '<b>Chemistry</b> bonuses</span></div>' +
+    '<div class="legends-intro-record"><span>0–0</span><i>YOUR DYNASTY STARTS HERE</i><span>17–0</span></div>' +
     rankedToggleHtml('legends') +
-    '<button class="btn-primary" data-legends-start>Start Draft</button>' +
+    '<button class="btn-primary game-intro-cta" data-legends-start>Enter the Draft ' + icon('arrowRight') + '</button>' +
     '</div>';
 }
 function legendsSlotLabel(slot) { return slot.replace(/\d/, function (d) { return ' ' + d; }); }
 function renderLegendsDraft() {
   var s = state.legends, entry = s.rolledEntry;
   var html = '<div class="panel">' + modeToolbarHtml('legends', s.ranked) +
-    '<h2 class="panel-title">Round ' + s.round + ' of 7</h2>' +
-    '<div class="legends-roll">' + teamCodeBadgeHtml('nfl', entry.team) + ' <b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
+    '<div class="game-hud"><div><span class="game-hud-label">17–0 Draft</span><b>Pick ' + s.round + ' of 7</b></div>' +
+    '<div class="game-hud-score"><span>Roster</span><b>' + (s.round - 1) + '/7</b></div></div>' +
+    '<div class="game-progress"><span style="width:' + Math.round((s.round - 1) / 7 * 100) + '%"></span></div>' +
+    (s.lastPick ? '<div class="draft-pick-toast">' + icon('check') + esc(s.lastPick) + '</div>' : '') +
+    '<div class="legends-roll-card"><span class="legends-roll-label">ON THE CLOCK</span><div class="legends-roll">' + teamCodeBadgeHtml('nfl', entry.team) + ' <b>' + esc(entry.team) + '</b> <span>' + entry.year + '</span></div></div>' +
     '<div class="legends-slots">' +
     LEGENDS_SLOTS.map(function (slot) {
       var filled = s.slots[slot];
@@ -6116,8 +6138,10 @@ function renderLegendsDraft() {
       var alreadyPicked = legendsPickedNames(s.slots).indexOf(p.name) !== -1;
       var open = !alreadyPicked && legendsOpenSlotCount(s.slots, p.position) > 0;
       return '<button class="legends-option" ' + (open ? 'data-legends-pick="' + i + '"' : 'disabled') + '>' +
-        '<div class="legends-option-name">' + esc(p.name) + (alreadyPicked ? ' (already drafted)' : '') + '</div>' +
-        '<div class="legends-option-meta">' + p.position + ' &middot; ' + p.fppg + ' FPPG</div>' +
+        '<div class="legends-option-top"><div class="legends-option-name">' + esc(p.name) + (alreadyPicked ? ' (already drafted)' : '') + '</div><span class="position-pill">' + p.position + '</span></div>' +
+        '<div class="legends-option-meta"><b>' + p.fppg + '</b> fantasy points per game</div>' +
+        '<div class="legends-value-meter"><span style="width:' + Math.min(100, Math.round(p.fppg / 35 * 100)) + '%"></span></div>' +
+        (open ? '<div class="legends-option-pick">Draft player ' + icon('arrowRight') + '</div>' : '') +
         '</button>';
     }).join('') +
     '</div>' +
@@ -6309,7 +6333,7 @@ function startCfbLegends() {
   CFB_LEGENDS_PERFECT_SCORE = null;
   var slots = {};
   CFB_LEGENDS_SLOTS.forEach(function (s) { slots[s] = null; });
-  state.cfbLegends = { screen: 'draft', round: 1, slots: slots, teamRerollUsed: false, yearRerollUsed: false, rolledEntry: null, rolledEntryId: null, usedEntryIds: [], ranked: state.rankedPref.cfbLegends !== false };
+  state.cfbLegends = { screen: 'draft', round: 1, slots: slots, teamRerollUsed: false, yearRerollUsed: false, rolledEntry: null, rolledEntryId: null, usedEntryIds: [], lastPick: null, ranked: state.rankedPref.cfbLegends !== false };
   cfbLegendsDoRoll(state.cfbLegends);
   state.screen = 'cfbLegends';
   renderAll();
@@ -6327,6 +6351,7 @@ function cfbLegendsPickPlayer(playerIdx) {
     if (nonFlex.length) slot = nonFlex[0];
   }
   s.slots[slot] = { name: p.name, position: p.position, fppg: p.fppg, team: entry.team, year: entry.year };
+  s.lastPick = p.name + ' added at ' + legendsSlotLabel(slot);
   if (s.round >= 8) {
     s.screen = 'result';
     finishCfbLegends();
@@ -6514,18 +6539,24 @@ function finishCfbLegends() {
 }
 
 function renderCfbLegendsSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">CFB 12-0</h2>' +
-    '<p class="mode-desc">Draft an 8-player college football roster (QB, 2 RB, 2 WR, TE, FLEX, and a whole team DEFENSE) built entirely from real players\' and teams\' real seasons, 1990-2025. Each round rolls a random FBS team-season — pick one player (or that team\'s defense) into an open slot. DEF comes from whatever team gets rolled that round, so you can pair any team\'s defense with an offense drafted from completely different teams. You get 1 team re-roll and 1 year re-roll for the whole draft. After 8 rounds, real fantasy points-per-game plus roster chemistry (teammates, same school, same signing class, iconic duos) decide your final grade and a projected 12-game regular-season record — which then determines your postseason: the College Football Playoff, or a bowl game if you fall short of it.</p>' +
+  return '<div class="panel game-intro game-intro-legends">' +
+    '<div class="game-intro-icon">' + icon('trophy') + '</div><div class="game-intro-eyebrow">Build a national champion</div>' +
+    '<h2 class="game-intro-title">Can You Go 12–0?</h2>' +
+    '<p class="game-intro-copy">Eight team-seasons. Eight picks. Build an offense, add a defense, stack chemistry, and chase an undefeated regular season.</p>' +
+    '<div class="game-intro-features"><span>' + icon('users') + '<b>8-player</b> roster</span><span>' + icon('sync') + '<b>2 rerolls</b> total</span><span>' + icon('trophy') + '<b>Playoff</b> finish</span></div>' +
+    '<div class="legends-intro-record"><span>0–0</span><i>YOUR TITLE RUN STARTS HERE</i><span>12–0</span></div>' +
     rankedToggleHtml('cfbLegends') +
-    '<button class="btn-primary" data-cfb-legends-start>Start Draft</button>' +
+    '<button class="btn-primary game-intro-cta" data-cfb-legends-start>Enter the Draft ' + icon('arrowRight') + '</button>' +
     '</div>';
 }
 function renderCfbLegendsDraft() {
   var s = state.cfbLegends, entry = s.rolledEntry;
   var html = '<div class="panel">' + modeToolbarHtml('cfbLegends', s.ranked) +
-    '<h2 class="panel-title">Round ' + s.round + ' of 8</h2>' +
-    '<div class="legends-roll">' + teamCodeBadgeHtml('cfb', entry.team) + ' <b>' + esc(entry.team) + '</b> &middot; ' + entry.year + '</div>' +
+    '<div class="game-hud"><div><span class="game-hud-label">12–0 Draft</span><b>Pick ' + s.round + ' of 8</b></div>' +
+    '<div class="game-hud-score"><span>Roster</span><b>' + (s.round - 1) + '/8</b></div></div>' +
+    '<div class="game-progress"><span style="width:' + Math.round((s.round - 1) / 8 * 100) + '%"></span></div>' +
+    (s.lastPick ? '<div class="draft-pick-toast">' + icon('check') + esc(s.lastPick) + '</div>' : '') +
+    '<div class="legends-roll-card"><span class="legends-roll-label">ON THE CLOCK</span><div class="legends-roll">' + teamCodeBadgeHtml('cfb', entry.team) + ' <b>' + esc(entry.team) + '</b> <span>' + entry.year + '</span></div></div>' +
     '<div class="legends-slots">' +
     CFB_LEGENDS_SLOTS.map(function (slot) {
       var filled = s.slots[slot];
@@ -6538,8 +6569,10 @@ function renderCfbLegendsDraft() {
       var alreadyPicked = cfbLegendsPickedNames(s.slots).indexOf(p.name) !== -1;
       var open = !alreadyPicked && cfbLegendsOpenSlotCount(s.slots, p.position) > 0;
       return '<button class="legends-option" ' + (open ? 'data-cfb-legends-pick="' + i + '"' : 'disabled') + '>' +
-        '<div class="legends-option-name">' + esc(p.name) + (alreadyPicked ? ' (already drafted)' : '') + '</div>' +
-        '<div class="legends-option-meta">' + p.position + ' &middot; ' + p.fppg + ' FPPG</div>' +
+        '<div class="legends-option-top"><div class="legends-option-name">' + esc(p.name) + (alreadyPicked ? ' (already drafted)' : '') + '</div><span class="position-pill">' + p.position + '</span></div>' +
+        '<div class="legends-option-meta"><b>' + p.fppg + '</b> fantasy points per game</div>' +
+        '<div class="legends-value-meter"><span style="width:' + Math.min(100, Math.round(p.fppg / 35 * 100)) + '%"></span></div>' +
+        (open ? '<div class="legends-option-pick">Draft player ' + icon('arrowRight') + '</div>' : '') +
         '</button>';
     }).join('') +
     '</div>' +

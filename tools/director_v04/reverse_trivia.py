@@ -29,13 +29,11 @@ TDs at <School> in <season>.") from cfb_player_season_stats_real +
 schools, the same shape (name shown, pick the 1 of 4 real facts that's
 really theirs) with a genuinely different real domain.
 
-Category variety pass (user feedback: "we don't need game modes based on
-draft picks" -- every round of the NFL variant used to be a draft
-candidate fact). NFL_DRAFT_REVERSE_TRIVIA now picks, per round, one of 3
-real independent categories for BOTH the subject's true fact and all 3
+Content-diversity pass: the legacy variant id remains stable for deployed
+clients, but this general-purpose mode no longer asks draft questions. It
+rotates between two real categories for BOTH the subject's true fact and all 3
 decoys (kept same-category within a round so the 4 candidates stay
 internally consistent/plausible as parallel facts):
-  - DRAFT: unchanged, the original draft-pick fact.
   - SEASON_PASSING: a real single-season passing stat line
     (player_season_stats + canonical_players).
   - TEAM_RECORD_SEASON: a real "played for a team that went W-L that
@@ -55,10 +53,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "REVERSE_TRIVIA"
 VARIANTS = frozenset({"NFL_DRAFT_REVERSE_TRIVIA", "CFB_SEASON_PASSING_REVERSE_TRIVIA"})
-_NFL_CATEGORIES = ("DRAFT", "SEASON_PASSING", "TEAM_RECORD_SEASON")
+_NFL_CATEGORIES = ("SEASON_PASSING", "TEAM_RECORD_SEASON")
 
 
 def safety_check(c) -> dict:
@@ -227,7 +225,6 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
         if is_cfb:
             pool = _fetch_pool_cfb(c)
         else:
-            draft_pool = _fetch_pool(c)
             passing_pool = _fetch_pool_season_passing(c)
             record_pool = _fetch_pool_team_record(c)
     finally:
@@ -239,20 +236,13 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
             rng = engine_bootstrap.seeded(f"{seed}-rt-r{i}")
             r = _build_round_cfb(rng, pool)
         else:
-            # Category variety pass: which real, independent category a
-            # round draws from (subject + all 3 decoys, kept same-category
-            # for internal consistency) is itself seeded/deterministic,
-            # tried in a real fallback order if the chosen category can't
-            # build a round rather than silently dropping it.
-            cat_rng = engine_bootstrap.seeded(f"{seed}-rt-cat-{i}")
-            categories = list(_NFL_CATEGORIES)
-            cat_rng.shuffle(categories)
+            offset = engine_bootstrap.seeded(f"{seed}-rt-category-order").randrange(len(_NFL_CATEGORIES))
+            primary = _NFL_CATEGORIES[(i + offset) % len(_NFL_CATEGORIES)]
+            categories = [primary] + [cat for cat in _NFL_CATEGORIES if cat != primary]
             r = None
             for category in categories:
                 rng = engine_bootstrap.seeded(f"{seed}-rt-r{i}-{category}")
-                if category == "DRAFT":
-                    r = _build_round(rng, draft_pool)
-                elif category == "SEASON_PASSING":
+                if category == "SEASON_PASSING":
                     r = _build_round_season_passing(rng, passing_pool)
                 else:
                     r = _build_round_team_record(rng, record_pool)

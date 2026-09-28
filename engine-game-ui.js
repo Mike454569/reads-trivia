@@ -1565,7 +1565,7 @@ var ENGINE_MECHANIC_MODES = {
     publicMode: 'fact_or_fake_nfl_draft', hash: '#factorfakepilot',
     flagOn: function () { return ENABLE_ENGINE_FACT_OR_FAKE_PILOT_V01; },
     title: 'Fact or Fake', kind: 'fact_or_fake', icon: 'search',
-    desc: 'Read a real NFL Draft statement and decide if it’s true or been altered.',
+    desc: 'Read a real NFL history statement and decide if it’s true or been altered.',
     fallbackLabel: 'Play NFL Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'quiz'; startQuizRound('', '', 10); },
   },
