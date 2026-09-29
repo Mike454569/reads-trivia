@@ -2460,6 +2460,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   --bg-card: #1a231b;
   --border: #354336;
   position: relative; isolation: isolate; overflow: hidden;
+  color: var(--text);
   border-color: rgba(217,166,60,.42); background-color: var(--stadium-ink);
   box-shadow: 0 18px 48px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.035);
 }
@@ -2480,6 +2481,10 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 }
 .stadium-game .reads-shell-header { margin: -2px -2px 14px; padding: 3px 2px 12px; }
 .stadium-game .reads-shell-title { font-size: 17px; letter-spacing: .045em; text-transform: uppercase; }
+.stadium-game .reads-shell-title,
+.stadium-game .reads-shell-exit,
+.stadium-game .stadium-question,
+.stadium-game .tier-card { color: var(--text); }
 .stadium-game .reads-shell-chip { background: rgba(4,7,5,.72); border-color: rgba(169,180,189,.32); }
 .stadium-game .quiz-options,
 .stadium-game .candidate-cards-grid { gap: 10px; }
