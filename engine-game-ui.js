@@ -779,13 +779,19 @@ function renderPositionLineupCollegeBoard(payload, spotFake, projected) {
     return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
       '<div class="lineup-name">' + esc(p.college) + '</div></div>';
   }
+  var boardRows = projected && hasOffensiveLine
+    ? '<div class="lineup-row-label">Offensive Line</div><div class="lineup-row">' +
+      positions.filter(function (p) { return /^(LT|LG|C|RG|RT)$/i.test(p.position || ''); }).map(cell).join('') + '</div>' +
+      '<div class="lineup-row-label">Skill Positions</div><div class="lineup-row lineup-row--six">' +
+      positions.filter(function (p) { return !/^(LT|LG|C|RG|RT)$/i.test(p.position || ''); }).map(cell).join('') + '</div>'
+    : '<div class="lineup-row-label">' + (conferenceMembers ? 'Find the swapped school' : (hasOffensiveLine ? 'Offensive lineup' : 'Skill Positions')) + '</div>' +
+      '<div class="lineup-row">' + positions.map(cell).join('') + '</div>';
   return '<div class="lineup-board' + (spotFake ? ' spotfake-lineup' : '') + '">' +
     '<div class="lineup-board-eyebrow">' + icon('users') + ' ' +
     (conferenceMembers ? 'Conference members' : (spotFake ? 'Lineup by college' :
       (projected ? 'Projected offense by college' : 'Starting offense (by college, names hidden)'))) +
     (season ? ' &middot; ' + esc(String(season)) : '') + '</div>' +
-    '<div class="lineup-row-label">' + (conferenceMembers ? 'Find the swapped school' : (hasOffensiveLine ? 'Offensive lineup' : 'Skill Positions')) + '</div>' +
-    '<div class="lineup-row">' + positions.map(cell).join('') + '</div>' +
+    boardRows +
     '</div>';
 }
 // Full Visual + Interactive Redesign pass: "make ranking numbers visually
@@ -859,8 +865,8 @@ function renderEnginePilotPromptHtml(game, s) {
       var rivalryMatch = /^([^:]{3,90}):\s*(.+)$/.exec(question);
       if (rivalryMatch) { boardTitle = rivalryMatch[1]; question = rivalryMatch[2]; }
     } else if (s.modeKey === 'oneSchoolMissing') {
-      var missingMatch = /^Here are 3 of the colleges from (.+?): (.+)\. Which real college from that group is missing\?$/i.exec(question);
-      if (missingMatch) { boardTitle = missingMatch[1]; boardDetail = 'THREE OF FOUR REVEALED'; question = 'Which real college from that group is missing?'; }
+      var missingMatch = /^Here are (\d+) of the colleges from (.+?): (.+)\. Which real college from that group is missing\?$/i.exec(question);
+      if (missingMatch) { boardTitle = missingMatch[2]; boardDetail = missingMatch[1] + ' REVEALED'; question = 'Which real college from that group is missing?'; }
     } else if (s.modeKey === 'lineup' || s.modeKey === 'offenseCollege') {
       var lineupSeason = game.payload.visual_payload && game.payload.visual_payload.season;
       if (lineupSeason) boardDetail = String(lineupSeason) + (s.modeKey === 'offenseCollege' ? ' PROJECTED OFFENSE' : ' STARTING OFFENSE');
@@ -869,7 +875,7 @@ function renderEnginePilotPromptHtml(game, s) {
       '<span>' + broadcast[0] + '</span><strong>' + esc(boardTitle) + '</strong>' +
       (boardDetail ? '<em>' + esc(boardDetail) + '</em>' : '') +
       '<i aria-hidden="true"></i></div>' +
-      (s.modeKey === 'oneSchoolMissing' && missingMatch ? '<div class="pilot-missing-list">' + missingMatch[2].split(', ').map(function (school) {
+      (s.modeKey === 'oneSchoolMissing' && missingMatch ? '<div class="pilot-missing-list">' + missingMatch[3].split(', ').map(function (school) {
         return '<span>' + esc(school) + '</span>';
       }).join('') + '<span class="is-unknown">?</span></div>' : '') +
       stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' :

@@ -3034,7 +3034,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-board--collegeorigin { border-color: rgba(169,180,189,.48); background: radial-gradient(circle at 78% 44%,rgba(169,180,189,.13),transparent 40%),#101819; }
 .pilot-broadcast-board--collegeorigin::before { background: #a9b4bd; }
 .pilot-broadcast-board--collegeorigin i { top: 6px; right: 26px; width: 99px; height: 99px; border: 1px dashed rgba(169,180,189,.22); border-radius: 50%; transform: none; }
-.pilot-missing-list { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; margin: -1px 0 13px; }
+.pilot-missing-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(125px,1fr)); gap: 7px; margin: -1px 0 13px; }
 .pilot-missing-list span { display: grid; place-items: center; min-height: 57px; padding: 8px; border: 1px solid rgba(169,180,189,.35); background: #101819; text-align: center; font: 700 14px/1.2 var(--font-display); overflow-wrap: anywhere; }
 .pilot-missing-list .is-unknown { border-style: dashed; border-color: var(--accent); color: var(--accent); font-size: 25px; animation: roulette-pop .45s ease-out both; }
 .pilot-broadcast-game--oddcollege .candidate-card, .pilot-broadcast-game--schoolmissing .candidate-card { min-height: 79px; border-radius: 2px; }
@@ -3047,6 +3047,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-game--lineup .lineup-cell, .pilot-broadcast-game--collegeorigin .lineup-cell { min-width: 0; border-radius: 2px; background: #17231a; }
 .pilot-broadcast-game--collegeorigin .lineup-cell { background: #172123; }
 .pilot-broadcast-game--lineup .lineup-name, .pilot-broadcast-game--collegeorigin .lineup-name { overflow-wrap: anywhere; }
+.pilot-broadcast-game--collegeorigin .lineup-row--six { grid-template-columns: repeat(6,minmax(0,1fr)); }
 .pilot-broadcast-game--lineup .quiz-option, .pilot-broadcast-game--collegeorigin .quiz-option { text-align: left; padding-left: 16px; }
 .pilot-broadcast-game--spotfake .spotfake-lineup { margin: 12px 0 16px; border-color: rgba(224,71,90,.42); }
 .pilot-broadcast-game--spotfake .spotfake-lineup .lineup-board-eyebrow { color: #ee8a93; }
