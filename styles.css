@@ -2991,6 +2991,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-board::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--accent); }
 .pilot-broadcast-board span, .pilot-broadcast-call span { color: var(--accent); font: 700 10px var(--font-display); letter-spacing: .17em; }
 .pilot-broadcast-board strong { position: relative; z-index: 1; margin-top: 8px; font: 700 clamp(27px,7vw,40px)/1.07 var(--font-display); letter-spacing: .02em; }
+.pilot-broadcast-board em { position: relative; z-index: 1; margin-top: 8px; color: var(--text-dim); font: 700 11px var(--font-display); font-style: normal; letter-spacing: .13em; }
 .pilot-broadcast-board i { position: absolute; right: 25px; top: -40px; width: 115px; height: 190px; border: 1px solid rgba(217,166,60,.14); transform: rotate(23deg); }
 .pilot-broadcast-board--boxscore { border-color: rgba(169,180,189,.48); background: repeating-linear-gradient(0deg,transparent 0 19px,rgba(169,180,189,.05) 20px 21px),#101719; }
 .pilot-broadcast-board--boxscore::before { background: #a9b4bd; }
@@ -3001,6 +3002,32 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-board--upset::before { background: var(--accent-red); }
 .pilot-broadcast-board--upset span { color: #ee8a93; }
 .pilot-broadcast-board--upset i { border-color: rgba(224,71,90,.2); transform: rotate(45deg); }
+.pilot-broadcast-board--postseason { min-height: 130px; background: linear-gradient(125deg,#141911 0%,#1b1a10 52%,#101710 100%); }
+.pilot-broadcast-board--postseason::after { content: ''; position: absolute; right: 23px; bottom: 17px; width: 61px; height: 61px; border: 3px solid rgba(217,166,60,.15); border-radius: 50%; box-shadow: 0 0 0 11px rgba(217,166,60,.035); }
+.pilot-broadcast-board--postseason strong { padding-right: 45px; }
+.pilot-broadcast-board--heisman { min-height: 142px; border-color: rgba(217,166,60,.62); background: radial-gradient(circle at 82% 48%,rgba(217,166,60,.16),transparent 40%),#15180f; }
+.pilot-broadcast-board--heisman strong { font-size: clamp(29px,8vw,48px); }
+.pilot-broadcast-board--heisman i { top: 18px; right: 26px; width: 66px; height: 75px; border: 2px solid rgba(217,166,60,.26); border-radius: 50% 50% 8px 8px; transform: none; }
+.pilot-broadcast-board--rivalry { min-height: 133px; border-color: rgba(224,71,90,.5); background: linear-gradient(90deg,#1d1614 0%,#171810 49%,#101c17 100%); }
+.pilot-broadcast-board--rivalry::before { background: var(--accent-red); }
+.pilot-broadcast-board--rivalry span { color: #ee8a93; }
+.pilot-broadcast-board--rivalry strong { max-width: 88%; }
+.pilot-broadcast-board--rivalry i { top: -33px; right: 57px; height: 190px; width: 2px; border: 0; background: rgba(217,166,60,.24); transform: rotate(28deg); }
+.pilot-broadcast-board--rivalfile { min-height: 110px; border-color: rgba(169,180,189,.45); background: repeating-linear-gradient(0deg,transparent 0 17px,rgba(169,180,189,.04) 18px 19px),#101719; }
+.pilot-broadcast-board--rivalfile::before { background: #a9b4bd; }
+.pilot-broadcast-board--rivalfile i { top: 12px; right: 23px; width: 77px; height: 77px; border: 2px dashed rgba(169,180,189,.22); border-radius: 50%; transform: none; }
+.pilot-broadcast-board--spotfake { min-height: 109px; border-color: rgba(224,71,90,.52); background: #191415; }
+.pilot-broadcast-board--spotfake::before { background: var(--accent-red); }
+.pilot-broadcast-board--spotfake span { color: #ee8a93; }
+.pilot-broadcast-board--spotfake i { top: -22px; right: 19px; width: 92px; height: 92px; border: 2px solid rgba(224,71,90,.26); border-radius: 50%; transform: none; }
+.pilot-broadcast-board--spotfake i::after { content: ''; position: absolute; top: 50%; left: -12px; width: 114px; height: 2px; background: rgba(224,71,90,.26); }
+.pilot-broadcast-game--spotfake .spotfake-lineup { margin: 12px 0 16px; border-color: rgba(224,71,90,.42); }
+.pilot-broadcast-game--spotfake .spotfake-lineup .lineup-board-eyebrow { color: #ee8a93; }
+.pilot-broadcast-game--spotfake .spotfake-lineup .lineup-cell { border-color: rgba(224,71,90,.25); }
+.pilot-broadcast-game--spotfake .spotfake-lineup .lineup-pos { color: #ee8a93; }
+.pilot-broadcast-game--spotfake .spotfake-lineup .lineup-row { grid-template-columns: repeat(5,minmax(0,1fr)); }
+.pilot-broadcast-game--postseason .quiz-option, .pilot-broadcast-game--heisman .quiz-option, .pilot-broadcast-game--rivalry .quiz-option,
+.pilot-broadcast-game--rivalfile .quiz-option, .pilot-broadcast-game--spotfake .quiz-option { text-align: left; padding-left: 16px; }
 .pilot-broadcast-game .quiz-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
 .pilot-broadcast-game .quiz-option { min-height: 65px; margin: 0; border-radius: 2px; text-align: center; font: 600 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
 .pilot-broadcast-game .binary-choice-card { min-height: 100px; border-radius: 2px; }
@@ -3012,6 +3039,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .pilot-broadcast-game .quiz-options { gap: 7px; }
   .pilot-broadcast-game .quiz-option { min-height: 58px; padding: 10px; font-size: 14px; }
   .pilot-broadcast-board i { opacity: .4; }
+  .pilot-broadcast-game--spotfake .spotfake-lineup .lineup-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 340px) {
   .pilot-broadcast-game .quiz-options { grid-template-columns: 1fr; }

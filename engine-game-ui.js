@@ -770,17 +770,19 @@ function renderPositionLineupBoard(payload) {
    skill positions (no OL row -- see tools/quiz_export/adapters/
    lineup_college.py for why real college data can't honestly cover the
    offensive line) and each cell shows a real COLLEGE instead of a name. */
-function renderPositionLineupCollegeBoard(payload) {
+function renderPositionLineupCollegeBoard(payload, spotFake) {
   var positions = (payload && payload.positions) || [];
   var season = payload && payload.season;
+  var conferenceMembers = spotFake && positions.some(function (p) { return /^Member\s+\d+$/i.test(p.position || ''); });
   function cell(p) {
     return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
       '<div class="lineup-name">' + esc(p.college) + '</div></div>';
   }
-  return '<div class="lineup-board">' +
-    '<div class="lineup-board-eyebrow">' + icon('users') + ' Starting Offense (by college, names hidden)' +
+  return '<div class="lineup-board' + (spotFake ? ' spotfake-lineup' : '') + '">' +
+    '<div class="lineup-board-eyebrow">' + icon('users') + ' ' +
+    (conferenceMembers ? 'Conference members' : (spotFake ? 'Lineup by college' : 'Starting Offense (by college, names hidden)')) +
     (season ? ' &middot; ' + esc(String(season)) : '') + '</div>' +
-    '<div class="lineup-row-label">Skill Positions</div>' +
+    '<div class="lineup-row-label">' + (conferenceMembers ? 'Find the swapped school' : 'Skill Positions') + '</div>' +
     '<div class="lineup-row">' + positions.map(cell).join('') + '</div>' +
     '</div>';
 }
@@ -831,12 +833,31 @@ function renderEnginePilotPromptHtml(game, s) {
     nflGameBoxscore: ['BOX SCORE', 'YARDAGE BATTLE', 'boxscore'],
     cfbRanking: ['AP POLL', 'FILL THE RANK', 'poll'],
     cfbUpset: ['UPSET ALERT', 'WHO WON?', 'upset'],
+    championship: ['POSTSEASON', 'HOW DID THEY FINISH?', 'postseason'],
+    heisman: ['HEISMAN FILE', 'NAME THE SCHOOL', 'heisman'],
+    cfbRivalry: ['RIVALRY WEEK', 'THE MATCHUP', 'rivalry'],
+    cfbRivalryLookup: ['RIVALRY FILE', 'KNOW THE HISTORY', 'rivalfile'],
+    spotTheFake: ['ROSTER AUDIT', 'FIND THE FAKE', 'spotfake'],
   };
   var broadcast = s && broadcastModes[s.modeKey];
   if (broadcast) {
+    var boardTitle = broadcast[1], boardDetail = '', question = game.payload.prompt;
+    if (s.modeKey === 'championship') {
+      var seasonMatch = /^How did the (.+) finish the (\d{4}) NFL season\?$/i.exec(question);
+      if (seasonMatch) { boardTitle = seasonMatch[1]; boardDetail = seasonMatch[2] + ' SEASON'; }
+    } else if (s.modeKey === 'heisman') {
+      var heismanMatch = /^Which school did (\d{4}) Heisman Trophy winner (.+) play for\?$/i.exec(question);
+      if (heismanMatch) { boardTitle = heismanMatch[2]; boardDetail = heismanMatch[1] + ' WINNER'; }
+    } else if (s.modeKey === 'cfbRivalry') {
+      var rivalryMatch = /^([^:]{3,90}):\s*(.+)$/.exec(question);
+      if (rivalryMatch) { boardTitle = rivalryMatch[1]; question = rivalryMatch[2]; }
+    }
     return '<div class="pilot-broadcast-board pilot-broadcast-board--' + broadcast[2] + '">' +
-      '<span>' + broadcast[0] + '</span><strong>' + broadcast[1] + '</strong>' +
-      '<i aria-hidden="true"></i></div>' + stadiumQuestionHtml('MAKE THE CALL', game.payload.prompt);
+      '<span>' + broadcast[0] + '</span><strong>' + esc(boardTitle) + '</strong>' +
+      (boardDetail ? '<em>' + esc(boardDetail) + '</em>' : '') +
+      '<i aria-hidden="true"></i></div>' + stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' : 'MAKE THE CALL', question) +
+      (s.modeKey === 'spotTheFake' && game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
+        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, true) : '');
   }
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
@@ -844,7 +865,7 @@ function renderEnginePilotPromptHtml(game, s) {
   }
   if (game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
-      renderPositionLineupCollegeBoard(game.payload.visual_payload);
+    renderPositionLineupCollegeBoard(game.payload.visual_payload);
   }
   if (s && (s.modeKey === 'threeClues' || s.modeKey === 'eraGauntlet')) {
     return renderThreeCluesProgressiveHtml(game, s.cluesRevealedCount || 1);
@@ -1045,7 +1066,8 @@ function renderEnginePilotScreen() {
   // line/underdog data the actual response doesn't carry) applied only to
   // this one mode via its modeKey, since the shared shell below is
   // otherwise identical across all ~12 Engine Pilot modes.
-  var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset' }[s.modeKey];
+  var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset',
+    championship: 'postseason', heisman: 'heisman', cfbRivalry: 'rivalry', cfbRivalryLookup: 'rivalfile', spotTheFake: 'spotfake' }[s.modeKey];
   var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '') +
     (broadcastVariant ? ' stadium-game pilot-broadcast-game pilot-broadcast-game--' + broadcastVariant : '');
   // Section 7 (progress should match the mechanic): a sequential mode's
