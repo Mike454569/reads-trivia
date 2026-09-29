@@ -2985,3 +2985,34 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .path-options .chip-toggle { gap: 9px; padding: 10px; }
   .path-options .chip-toggle strong { font-size: 14px; }
 }
+
+/* Live public guessing modes: four broadcasts within the shared quiz shell. */
+.pilot-broadcast-board { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 112px; margin: 7px 0 13px; padding: 18px 20px; overflow: hidden; border: 1px solid rgba(217,166,60,.46); background: #111811; }
+.pilot-broadcast-board::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--accent); }
+.pilot-broadcast-board span, .pilot-broadcast-call span { color: var(--accent); font: 700 10px var(--font-display); letter-spacing: .17em; }
+.pilot-broadcast-board strong { position: relative; z-index: 1; margin-top: 8px; font: 700 clamp(27px,7vw,40px)/1.07 var(--font-display); letter-spacing: .02em; }
+.pilot-broadcast-board i { position: absolute; right: 25px; top: -40px; width: 115px; height: 190px; border: 1px solid rgba(217,166,60,.14); transform: rotate(23deg); }
+.pilot-broadcast-board--boxscore { border-color: rgba(169,180,189,.48); background: repeating-linear-gradient(0deg,transparent 0 19px,rgba(169,180,189,.05) 20px 21px),#101719; }
+.pilot-broadcast-board--boxscore::before { background: #a9b4bd; }
+.pilot-broadcast-board--boxscore i { border: 0; border-left: 2px solid rgba(169,180,189,.28); border-right: 2px solid rgba(169,180,189,.28); transform: skewX(-18deg); }
+.pilot-broadcast-board--poll { border-color: rgba(169,180,189,.48); background: #101719; }
+.pilot-broadcast-board--poll i { top: 20px; right: 20px; width: 100px; height: 75px; border: 0; border-bottom: 2px solid rgba(217,166,60,.45); transform: none; background: linear-gradient(135deg,transparent 45%,rgba(217,166,60,.14) 46% 55%,transparent 56%); }
+.pilot-broadcast-board--upset { border-color: rgba(224,71,90,.5); background: #1b1112; }
+.pilot-broadcast-board--upset::before { background: var(--accent-red); }
+.pilot-broadcast-board--upset span { color: #ee8a93; }
+.pilot-broadcast-board--upset i { border-color: rgba(224,71,90,.2); transform: rotate(45deg); }
+.pilot-broadcast-game .quiz-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.pilot-broadcast-game .quiz-option { min-height: 65px; margin: 0; border-radius: 2px; text-align: center; font: 600 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.pilot-broadcast-game .binary-choice-card { min-height: 100px; border-radius: 2px; }
+.pilot-broadcast-game .binary-choice-label { font: 700 clamp(16px,4vw,21px)/1.15 var(--font-display); }
+.pilot-broadcast-call { display: flex; flex-direction: column; gap: 4px; margin: 12px 0 8px; padding: 14px 16px; border-left: 4px solid var(--good); background: rgba(53,132,78,.13); animation: roulette-pop .4s ease-out both; }
+.pilot-broadcast-call--bad { border-color: var(--accent-red); background: rgba(224,71,90,.12); }
+.pilot-broadcast-call strong { font: 700 27px var(--font-display); }
+@media (max-width: 390px) {
+  .pilot-broadcast-game .quiz-options { gap: 7px; }
+  .pilot-broadcast-game .quiz-option { min-height: 58px; padding: 10px; font-size: 14px; }
+  .pilot-broadcast-board i { opacity: .4; }
+}
+@media (max-width: 340px) {
+  .pilot-broadcast-game .quiz-options { grid-template-columns: 1fr; }
+}

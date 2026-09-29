@@ -826,6 +826,18 @@ function renderThreeCluesProgressiveHtml(game, revealedCount) {
 }
 function renderEnginePilotPromptHtml(game, s) {
   var promptHtml = highlightRankNumbers(game.payload.prompt);
+  var broadcastModes = {
+    nflGameResult: ['FINAL SCORE', 'PICK THE WINNER', 'result'],
+    nflGameBoxscore: ['BOX SCORE', 'YARDAGE BATTLE', 'boxscore'],
+    cfbRanking: ['AP POLL', 'FILL THE RANK', 'poll'],
+    cfbUpset: ['UPSET ALERT', 'WHO WON?', 'upset'],
+  };
+  var broadcast = s && broadcastModes[s.modeKey];
+  if (broadcast) {
+    return '<div class="pilot-broadcast-board pilot-broadcast-board--' + broadcast[2] + '">' +
+      '<span>' + broadcast[0] + '</span><strong>' + broadcast[1] + '</strong>' +
+      '<i aria-hidden="true"></i></div>' + stadiumQuestionHtml('MAKE THE CALL', game.payload.prompt);
+  }
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
       renderPositionLineupBoard(game.payload.visual_payload);
@@ -1033,7 +1045,9 @@ function renderEnginePilotScreen() {
   // line/underdog data the actual response doesn't carry) applied only to
   // this one mode via its modeKey, since the shared shell below is
   // otherwise identical across all ~12 Engine Pilot modes.
-  var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '');
+  var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset' }[s.modeKey];
+  var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '') +
+    (broadcastVariant ? ' stadium-game pilot-broadcast-game pilot-broadcast-game--' + broadcastVariant : '');
   // Section 7 (progress should match the mechanic): a sequential mode's
   // real progress is "which real stage," not "question X of a fixed
   // roundSize" -- Era Gauntlet's real domain size (7 represented decades)
@@ -1062,7 +1076,8 @@ function renderEnginePilotScreen() {
     // just silently-disabled buttons) -- aria-live so it's announced.
     (submitting ? '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div>' : '') +
     (answered
-      ? '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (s.answerResult.notes ? ' ' + esc(s.answerResult.notes) : '') + '</div>' +
+      ? (broadcastVariant ? '<div class="pilot-broadcast-call pilot-broadcast-call--' + (s.answerResult.correct ? 'good' : 'bad') + '" aria-hidden="true"><span>OFFICIAL CALL</span><strong>' + (s.answerResult.correct ? 'YOU GOT IT' : 'NO GOOD') + '</strong></div>' : '') +
+        '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (s.answerResult.notes ? ' ' + esc(s.answerResult.notes) : '') + '</div>' +
         '<button class="btn-primary" data-pilot-next>' + (s.roundIndex + 1 >= s.roundSize ? 'See Results' : 'Next Question') + '</button>'
       : '') +
     '</div>';
