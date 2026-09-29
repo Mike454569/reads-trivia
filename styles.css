@@ -2617,6 +2617,84 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .stadium-result { min-height: 128px; padding: 14px 8px; }
 }
 
+/* Stadium Broadcast wave two -------------------------------------------- */
+/* Wager Mode: studio scorebug and physical betting ticket. */
+.wager-scorebug { display: grid; grid-template-columns: 1fr auto; align-items: end; margin: 4px 0 12px; padding: 10px 13px; border-left: 4px solid var(--accent); background: #111711; }
+.wager-scorebug > span { grid-column: 1; color: var(--text-dim); font-family: var(--font-display); font-size: 10px; letter-spacing: .14em; }
+.wager-scorebug > strong { grid-column: 1; color: var(--accent); font-family: var(--font-display); font-size: 39px; line-height: 1; }
+.wager-scorebug > em { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--text); font-family: var(--font-display); font-size: 11px; font-style: normal; letter-spacing: .08em; }
+.wager-ticket { position: relative; display: flex; flex-direction: column; gap: 9px; margin: 12px 0; padding: 19px 17px; color: #151912; background: #e5e0cc; box-shadow: 0 8px 22px rgba(0,0,0,.28); }
+.wager-ticket::before, .wager-ticket::after { content: ''; position: absolute; left: 0; right: 0; height: 7px; background: radial-gradient(circle, var(--stadium-ink) 3px, transparent 3.5px) 0 0 / 14px 7px repeat-x; }
+.wager-ticket::before { top: -1px; } .wager-ticket::after { bottom: -1px; transform: rotate(180deg); }
+.wager-ticket-label { color: #695b31; font-family: var(--font-display); font-size: 9px; letter-spacing: .16em; }
+.wager-ticket > strong { font-family: var(--font-display); font-size: 24px; line-height: 1.05; }
+.wager-ticket > span:not(.wager-ticket-label) { font-size: 12px; font-weight: 700; }
+.wager-ticket .wager-input { width: 100%; color: #151912; background: rgba(255,255,255,.48); border-color: #8e866d; font-size: 20px; font-weight: 800; text-align: center; }
+.wager-ticket .wager-submit { width: 100%; min-height: 48px; }
+
+/* Blind Resume: redacted scouting dossier. */
+.scout-dossier { position: relative; margin: 5px 0 13px; overflow: hidden; border: 1px solid rgba(169,180,189,.3); background: #111712; box-shadow: inset 0 0 36px rgba(0,0,0,.34); }
+.scout-dossier::after { content: 'CONFIDENTIAL'; position: absolute; right: -19px; top: 27px; transform: rotate(35deg); color: rgba(224,71,90,.12); border: 3px solid rgba(224,71,90,.12); padding: 3px 20px; font-family: var(--font-display); font-size: 20px; letter-spacing: .08em; }
+.scout-dossier-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid rgba(169,180,189,.22); }
+.scout-dossier-head span { width: 48px; height: 48px; display: grid; place-items: center; flex-shrink: 0; border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-display); font-size: 10px; }
+.scout-dossier-head strong { font-family: var(--font-display); font-size: 20px; letter-spacing: .04em; }
+.scout-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.scout-stat { position: relative; z-index: 1; padding: 15px 7px; text-align: center; border-right: 1px solid rgba(169,180,189,.18); }
+.scout-stat:last-child { border-right: 0; }
+.scout-stat strong { display: block; color: var(--text); font-family: var(--font-display); font-size: clamp(18px, 4.5vw, 26px); line-height: 1; }
+.scout-stat span { display: block; margin-top: 5px; color: var(--text-dim); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+
+/* King of the Hill: title-defense arena. */
+.hill-arena { position: relative; display: flex; flex-direction: column; align-items: center; margin: 4px 0 13px; padding: 17px 12px; overflow: hidden; border: 1px solid rgba(217,166,60,.4); background: #15150d; }
+.hill-arena::before, .hill-arena::after { content: ''; position: absolute; top: 50%; width: 32%; border-top: 1px solid rgba(217,166,60,.25); }
+.hill-arena::before { left: 0; } .hill-arena::after { right: 0; }
+.hill-crown { position: relative; z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; margin-bottom: 5px; color: #161108; background: var(--accent); border-radius: 50%; box-shadow: 0 0 22px rgba(217,166,60,.25); }
+.hill-crown .icon { width: 18px; height: 18px; }
+.hill-kicker { color: var(--accent); font-family: var(--font-display); font-size: 9px; letter-spacing: .18em; }
+.hill-arena > strong { color: var(--text); font-family: var(--font-display); font-size: 48px; line-height: 1; }
+.hill-arena > span:last-child { color: var(--text-dim); font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.stadium-game--hill .binary-choice-card { min-height: 92px; border-radius: 2px; }
+.stadium-game--hill .binary-choice-label { font-family: var(--font-display); font-size: 17px; }
+
+/* Guess the Ranking: television leaderboard package. */
+.ranking-feature { display: flex; flex-direction: column; margin: 5px 0 11px; padding: 14px 16px; border-left: 5px solid var(--accent); background: #111711; }
+.ranking-feature span { color: var(--text-dim); font-size: 9px; font-weight: 800; letter-spacing: .16em; }
+.ranking-feature strong { font-family: var(--font-display); font-size: clamp(25px, 7vw, 37px); line-height: 1.1; }
+.stadium-game--ranking .rank-ladder { counter-reset: rank-row; gap: 4px; }
+.stadium-game--ranking .rank-ladder-row { position: relative; min-height: 53px; border-radius: 0; border-color: rgba(169,180,189,.22); background: #111711; }
+.stadium-game--ranking .rank-ladder-row:hover { transform: translateX(3px); background: rgba(217,166,60,.08); }
+.rank-ladder-place { width: 24px; color: rgba(169,180,189,.5); font-family: var(--font-display); font-size: 12px; }
+.stadium-game--ranking .rank-ladder-badge { min-width: 62px; border-radius: 0; color: var(--accent); background: #080b08; font-family: var(--font-display); font-size: 18px; }
+.stadium-game--ranking .rank-ladder-label { margin-left: auto; font-size: 9px; letter-spacing: .08em; }
+
+/* Stat Target: broadcast bullseye. */
+.target-lock { position: relative; height: 174px; display: grid; place-items: center; margin: 3px 0 13px; overflow: hidden; border: 1px solid rgba(169,180,189,.24); background: #0d140f; }
+.target-lock::before, .target-lock::after { content: ''; position: absolute; background: rgba(217,166,60,.16); }
+.target-lock::before { left: 0; right: 0; top: 50%; height: 1px; }
+.target-lock::after { top: 0; bottom: 0; left: 50%; width: 1px; }
+.target-ring { position: absolute; border: 1px solid rgba(217,166,60,.26); border-radius: 50%; animation: target-pulse 2.2s ease-in-out infinite; }
+.target-ring-one { width: 142px; height: 142px; }
+.target-ring-two { width: 92px; height: 92px; animation-delay: -.7s; }
+.target-lock .stat-target-badge { position: relative; z-index: 1; width: 72px; height: 72px; justify-content: center; margin: 0; border-radius: 50%; color: #171108; background: var(--accent); box-shadow: 0 0 26px rgba(217,166,60,.26); }
+.target-lock .stat-target-value { color: #171108; font-family: var(--font-display); font-size: 27px; text-shadow: none; }
+.target-lock .stat-target-label { max-width: 58px; color: #332810; font-size: 7px; font-weight: 900; text-align: center; }
+@keyframes target-pulse { 50% { transform: scale(1.05); opacity: .65; } }
+
+@media (max-width: 390px) {
+  .scout-stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .scout-stat:nth-child(2) { border-right: 0; }
+  .scout-stat:nth-child(-n+2) { border-bottom: 1px solid rgba(169,180,189,.18); }
+  .wager-ticket { padding: 17px 13px; }
+  .target-lock { height: 155px; }
+  .stadium-game--ranking .rank-ladder-label { display: none; }
+}
+@media (max-width: 340px) {
+  .wager-scorebug > strong { font-size: 33px; }
+  .scout-dossier-head strong { font-size: 17px; }
+  .stadium-game--hill .binary-choice-label { font-size: 14px; }
+  .rank-ladder-row { padding-left: 9px; padding-right: 9px; }
+}
+
 /* Era Gauntlet: real 7-decade timeline. */
 .era-gauntlet-timeline { display: flex; align-items: center; margin: 10px 0 16px; overflow-x: auto; padding-bottom: 2px; }
 .era-gauntlet-marker { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; min-width: 44px; }

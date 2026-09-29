@@ -2099,6 +2099,11 @@ var _STADIUM_BROADCAST_KINDS = {
   double_or_nothing: 'double',
   fact_or_fake: 'review',
   three_strikes: 'strikes',
+  wager_mode: 'wager',
+  blind_resume: 'scout',
+  king_of_the_hill: 'hill',
+  guess_the_ranking: 'ranking',
+  stat_target: 'target',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2146,6 +2151,26 @@ function renderStadiumResultMoment(cfg, s, wasCorrect) {
     eyebrow = 'BOOTH REVIEW';
     title = wasCorrect ? 'CALL CONFIRMED' : 'CALL OVERTURNED';
     sub = r.canonical_answer ? 'The ruling: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'wager_mode') {
+    eyebrow = 'WAGER RESULT';
+    title = wasCorrect ? 'TICKET CASHED' : 'BET MISSED';
+    sub = (wasCorrect ? '+' : '-') + (r.wager || 0) + ' from the balance';
+  } else if (cfg.kind === 'blind_resume') {
+    eyebrow = 'SCOUTING DEPARTMENT';
+    title = wasCorrect ? 'PLAYER IDENTIFIED' : 'IDENTITY MISSED';
+    sub = r.canonical_answer ? 'The file belonged to ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'king_of_the_hill') {
+    eyebrow = 'TITLE FIGHT';
+    title = wasCorrect ? (r.canonical_answer === 'champion' ? 'CHAMPION DEFENDS' : 'NEW CHAMPION') : 'DETHRONED';
+    sub = r.winner_label ? r.winner_label + ' owns the hill' : '';
+  } else if (cfg.kind === 'guess_the_ranking') {
+    eyebrow = 'LEADERBOARD UPDATE';
+    title = wasCorrect ? 'RANK LOCKED' : 'OFF THE BOARD';
+    sub = r.canonical_answer ? 'Official rank: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'stat_target') {
+    eyebrow = 'TARGET RESULT';
+    title = wasCorrect ? 'BULLSEYE' : 'OFF TARGET';
+    sub = r.canonical_answer ? 'Closest: ' + r.canonical_answer : '';
   }
   return '<div class="stadium-result stadium-result--' + (wasCorrect ? 'good' : 'bad') + '" aria-hidden="true">' +
     '<span class="stadium-result-sweep"></span><span class="stadium-result-eyebrow">' + esc(eyebrow) + '</span>' +
@@ -2710,19 +2735,21 @@ function renderRiskItBody(v, s) {
 // own year-guess input already established); awaiting_wager=false shows
 // the revealed real question via renderCandidateCardsHtml.
 function renderWagerModeStatusHtml(v) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Balance: ' + v.balance + '</div>';
+  return stadiumRoundBar('READS SPORTS DESK', v.round_index + 1, v.round_count) +
+    '<div class="wager-scorebug"><span>BALANCE</span><strong>' + v.balance + '</strong>' +
+    (v.wager ? '<em>' + v.wager + ' AT RISK</em>' : '<em>SET YOUR STAKE</em>') + '</div>';
 }
 function renderWagerModeBody(v, s) {
   if (v.awaiting_wager) {
     return renderWagerModeStatusHtml(v) +
-      '<div class="quiz-question">Category: ' + esc(v.category) + '</div>' +
-      '<input type="text" class="learn-filter-input" id="mechanic-wager-input" placeholder="Wager amount" ' +
+      '<div class="wager-ticket"><span class="wager-ticket-label">CATEGORY REVEAL</span>' +
+      '<strong>' + esc(v.category) + '</strong><span>How confident are you?</span>' +
+      '<input type="text" class="learn-filter-input wager-input" id="mechanic-wager-input" placeholder="Enter wager" ' +
       'inputmode="numeric" pattern="[0-9]*" autocomplete="off">' +
-      '<div class="btn-row"><button class="btn-primary" data-mechanic-wager-submit>Place Wager</button></div>';
+      '<button class="btn-primary wager-submit" data-mechanic-wager-submit>Lock In Wager</button></div>';
   }
   return renderWagerModeStatusHtml(v) +
-    '<div class="quiz-question">' + esc(v.category) + ' (wagered ' + v.wager + '): ' + esc(v.prompt) + '</div>' +
+    stadiumQuestionHtml(v.category + ' · ' + v.wager + ' POINT WAGER', v.prompt) +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-wager-answer',
     });
@@ -2755,15 +2782,14 @@ function renderBlindResumeBody(v, s) {
   // mislabeled as games. Presence of r.completions (not the mode key) is
   // the source of truth here so this stays correct even if a future
   // variant is added.
-  var firstStatHtml = (r.completions != null)
-    ? '<div class="chain-node">' + r.completions + ' career completions</div>'
-    : '<div class="chain-node">' + r.games + ' games played</div>';
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    firstStatHtml +
-    '<div class="chain-node">' + r.pass_yards + ' career pass yards</div>' +
-    '<div class="chain-node">' + r.pass_td + ' career passing TDs</div>' +
-    '<div class="chain-node">' + r.interceptions + ' career interceptions</div>' +
-    '<div class="quiz-question">Whose real career passing resume is this?</div>' +
+  var firstStat = (r.completions != null) ? { value: r.completions, label: 'COMPLETIONS' } : { value: r.games, label: 'GAMES' };
+  var stats = [firstStat, { value: r.pass_yards, label: 'PASS YARDS' }, { value: r.pass_td, label: 'PASS TD' }, { value: r.interceptions, label: 'INT' }];
+  return stadiumRoundBar('CONFIDENTIAL · SCOUT FILE', v.round_index + 1, v.round_count) +
+    '<div class="scout-dossier"><div class="scout-dossier-head"><span>PLAYER 00</span><strong>IDENTITY REDACTED</strong></div>' +
+    '<div class="scout-stat-grid">' + stats.map(function (stat) {
+      return '<div class="scout-stat"><strong>' + esc(String(stat.value)) + '</strong><span>' + stat.label + '</span></div>';
+    }).join('') + '</div></div>' +
+    stadiumQuestionHtml('MAKE THE IDENTIFICATION', 'Whose career passing resume is this?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-blind-resume-pick',
     });
@@ -2814,9 +2840,10 @@ function renderDoubleOrNothingBody(v, s) {
 // consecutive real defenses) instead of a plain status-line sentence --
 // reads at a glance like a real title defense streak.
 function renderKingOfTheHillBody(v, s) {
-  return '<div class="champion-badge">' + icon('shield') + ' ' + v.consecutive_defenses +
-    ' consecutive real defense' + (v.consecutive_defenses === 1 ? '' : 's') + '</div>' +
-    '<div class="quiz-question">Which real team-season really had MORE real wins that season?</div>' +
+  return '<div class="hill-arena"><span class="hill-crown">' + icon('shield') + '</span>' +
+    '<span class="hill-kicker">KING OF THE HILL</span><strong>' + v.consecutive_defenses + '</strong>' +
+    '<span>CONSECUTIVE DEFENSE' + (v.consecutive_defenses === 1 ? '' : 'S') + '</span></div>' +
+    stadiumQuestionHtml('TITLE DEFENSE', 'Which team-season had more wins?') +
     renderBinaryChoiceHtml(
       { code: 'champion', label: v.champion.label },
       { code: 'challenger', label: v.challenger.label },
@@ -2846,12 +2873,12 @@ function renderFactOrFakeBody(v, s) {
 // pick="index" attribute renderCandidateCardsHtml used, so app.js's
 // click handler needs zero changes.
 function renderGuessTheRankingBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">What real rank does ' + esc(v.label) + ' hold on this real career leaderboard?</div>' +
+  return stadiumRoundBar('NATIONAL LEADERBOARD', v.round_index + 1, v.round_count) +
+    '<div class="ranking-feature"><span>WHERE DOES HE RANK?</span><strong>' + esc(v.label) + '</strong></div>' +
     '<div class="rank-ladder" role="group" aria-label="Pick a real rank">' + v.options.map(function (it, i) {
       return '<button class="rank-ladder-row" data-mechanic-guess-the-ranking-pick="' + i + '">' +
-        '<span class="rank-ladder-badge">' + esc(it.label) + '</span>' +
-        '<span class="rank-ladder-label">Guess this real rank</span></button>';
+        '<span class="rank-ladder-place">' + (i + 1) + '</span><span class="rank-ladder-badge">' + esc(it.label) + '</span>' +
+        '<span class="rank-ladder-label">LOCK THIS RANK</span></button>';
     }).join('') + '</div>';
 }
 
@@ -2860,10 +2887,11 @@ function renderGuessTheRankingBody(v, s) {
 // NOTHING's points pot) instead of living only inside the question
 // sentence -- candidate cards below are unchanged.
 function renderStatTargetBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+  return stadiumRoundBar('TARGET CHALLENGE', v.round_index + 1, v.round_count) +
+    '<div class="target-lock"><span class="target-ring target-ring-one"></span><span class="target-ring target-ring-two"></span>' +
     '<div class="stat-target-badge"><span class="stat-target-value">' + v.target + '</span>' +
-    '<span class="stat-target-label">rushing yards target</span></div>' +
-    '<div class="quiz-question">Which real player’s real season total came CLOSEST?</div>' +
+    '<span class="stat-target-label">RUSHING YARDS</span></div></div>' +
+    stadiumQuestionHtml('CLOSEST WINS', 'Which player’s season total came closest?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-stat-target-pick',
     });
