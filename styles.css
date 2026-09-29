@@ -2451,6 +2451,14 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .stadium-game {
   --stadium-ink: #090d0a;
   --stadium-field: #102116;
+  /* The broadcast shell is intentionally dark in both site themes, so it
+     owns accessible foreground/surface tokens instead of inheriting the
+     light theme's dark text values. */
+  --text: #f4f7f1;
+  --text-dim: #a9b4ad;
+  --bg-elevated: #151d16;
+  --bg-card: #1a231b;
+  --border: #354336;
   position: relative; isolation: isolate; overflow: hidden;
   border-color: rgba(217,166,60,.42); background-color: var(--stadium-ink);
   box-shadow: 0 18px 48px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.035);
