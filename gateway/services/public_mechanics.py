@@ -403,13 +403,14 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "HIGH uses a more obscure stat season and is worth more. A wrong answer costs a life.",
         "kind": "risk_it", "gen_kwargs": {"round_count": 7},
     },
-    # CFB retrofit pass -- real per-season national passing-yards rank as
+    # CFB retrofit pass -- real per-season passing/rushing/receiving rank as
     # the recognizability proxy, see risk_it.py's own module docstring.
     "risk_it_cfb_passing": {
         "competition": "CFB", "taxonomy_id": "RISK_IT", "variant": "CFB_SEASON_PASSING_RISK_IT",
         "title": "Risk It (CFB)",
-        "instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth less, "
-                         "HIGH is a real obscure season worth more. A wrong answer costs a life.",
+        "instructions": "Pick a real risk tier before you see the question -- LOW uses a top-ranked season "
+                         "performance, while HIGH goes deeper down a real leaderboard and is worth more. "
+                         "A wrong answer costs a life.",
         "kind": "risk_it", "gen_kwargs": {"round_count": 7},
     },
     # 15-Format Expansion pass (Part 2), format #12 -- see
