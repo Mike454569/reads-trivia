@@ -31,13 +31,17 @@ really theirs) with a genuinely different real domain.
 
 Content-diversity pass: the legacy variant id remains stable for deployed
 clients, but this general-purpose mode no longer asks draft questions. It
-rotates between two real categories for BOTH the subject's true fact and all 3
-decoys (kept same-category within a round so the 4 candidates stay
+rotates between four real categories for BOTH the subject's true fact and all
+3 decoys (kept same-category within a round so the 4 candidates stay
 internally consistent/plausible as parallel facts):
   - SEASON_PASSING: a real single-season passing stat line
     (player_season_stats + canonical_players).
+  - SEASON_RUSHING: a real single-season rushing stat line.
+  - SEASON_RECEIVING: a real single-season receiving stat line.
   - TEAM_RECORD_SEASON: a real "played for a team that went W-L that
-    season" fact (canonical_roster_seasons + season_standings).
+    season" fact (canonical_roster_seasons + season_standings), capped at
+    one round per game so it is occasional context rather than the mode's
+    dominant question type.
 Which category a given round uses is itself seeded/deterministic.
 
 Two variants: NFL_DRAFT_REVERSE_TRIVIA, CFB_SEASON_PASSING_REVERSE_TRIVIA.
@@ -53,10 +57,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.1"
+PACKAGE_SCHEMA_VERSION = "1.2"
 MECHANIC = "REVERSE_TRIVIA"
 VARIANTS = frozenset({"NFL_DRAFT_REVERSE_TRIVIA", "CFB_SEASON_PASSING_REVERSE_TRIVIA"})
-_NFL_CATEGORIES = ("SEASON_PASSING", "TEAM_RECORD_SEASON")
+_NFL_STAT_CATEGORIES = ("SEASON_PASSING", "SEASON_RUSHING", "SEASON_RECEIVING")
+_NFL_CATEGORIES = _NFL_STAT_CATEGORIES + ("TEAM_RECORD_SEASON",)
 
 
 def safety_check(c) -> dict:
@@ -134,6 +139,74 @@ def _build_round_season_passing(rng, pool: list[dict]) -> dict | None:
                      f"real players."}
 
 
+def _fetch_pool_season_rushing(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT s.player_key, p.display_name AS player_name, s.season, s.team_code, "
+        "s.rush_yards, s.rush_td FROM player_season_stats s "
+        "JOIN canonical_players p ON p.player_id = s.player_key "
+        "WHERE s.verification_status='SOURCE_BACKED' AND s.source_id='NFLVERSE_DATA' "
+        "AND s.rush_yards > 300 AND s.rush_td IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _statement_season_rushing(row: dict) -> str:
+    return f"Rushed for {row['rush_yards']} yards and {row['rush_td']} TDs for {row['team_code']} in {row['season']}."
+
+
+def _build_round_season_rushing(rng, pool: list[dict]) -> dict | None:
+    if len(pool) < 4:
+        return None
+    subject = rng.choice(pool)
+    subject_key = (subject["team_code"], subject["season"], subject["rush_yards"], subject["rush_td"])
+    decoy_pool = [r for r in pool if r["player_key"] != subject["player_key"]
+                  and (r["team_code"], r["season"], r["rush_yards"], r["rush_td"]) != subject_key]
+    if len(decoy_pool) < 3:
+        return None
+    decoys = rng.sample(decoy_pool, 3)
+    return {"subject_name": subject["player_name"], "correct_statement": _statement_season_rushing(subject),
+            "decoy_statements": [_statement_season_rushing(d) for d in decoys],
+            "notes": f"{subject['player_name']} really rushed for {subject['rush_yards']} yards and "
+                     f"{subject['rush_td']} TDs for {subject['team_code']} in {subject['season']} "
+                     f"(NFLVERSE_DATA, SOURCE_BACKED); the other 3 real facts genuinely belong to other "
+                     f"real players."}
+
+
+def _fetch_pool_season_receiving(c) -> list[dict]:
+    rows = c.execute(
+        "SELECT s.player_key, p.display_name AS player_name, s.season, s.team_code, "
+        "s.receptions, s.rec_yards, s.rec_td FROM player_season_stats s "
+        "JOIN canonical_players p ON p.player_id = s.player_key "
+        "WHERE s.verification_status='SOURCE_BACKED' AND s.source_id='NFLVERSE_DATA' "
+        "AND s.rec_yards > 300 AND s.receptions IS NOT NULL AND s.rec_td IS NOT NULL"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _statement_season_receiving(row: dict) -> str:
+    return (f"Caught {row['receptions']} passes for {row['rec_yards']} yards and {row['rec_td']} TDs "
+            f"for {row['team_code']} in {row['season']}.")
+
+
+def _build_round_season_receiving(rng, pool: list[dict]) -> dict | None:
+    if len(pool) < 4:
+        return None
+    subject = rng.choice(pool)
+    subject_key = (subject["team_code"], subject["season"], subject["receptions"],
+                   subject["rec_yards"], subject["rec_td"])
+    decoy_pool = [r for r in pool if r["player_key"] != subject["player_key"]
+                  and (r["team_code"], r["season"], r["receptions"], r["rec_yards"], r["rec_td"]) != subject_key]
+    if len(decoy_pool) < 3:
+        return None
+    decoys = rng.sample(decoy_pool, 3)
+    return {"subject_name": subject["player_name"], "correct_statement": _statement_season_receiving(subject),
+            "decoy_statements": [_statement_season_receiving(d) for d in decoys],
+            "notes": f"{subject['player_name']} really caught {subject['receptions']} passes for "
+                     f"{subject['rec_yards']} yards and {subject['rec_td']} TDs for {subject['team_code']} "
+                     f"in {subject['season']} (NFLVERSE_DATA, SOURCE_BACKED); the other 3 real facts "
+                     f"genuinely belong to other real players."}
+
+
 def _fetch_pool_team_record(c) -> list[dict]:
     rows = c.execute(
         "SELECT rs.player_id AS player_key, p.display_name AS player_name, rs.season, rs.team_code, "
@@ -141,7 +214,8 @@ def _fetch_pool_team_record(c) -> list[dict]:
         "JOIN canonical_players p ON p.player_id = rs.player_id "
         "JOIN season_standings ss ON ss.season = rs.season AND ss.team_code = rs.team_code "
         "WHERE rs.verification_status='SOURCE_BACKED' AND rs.source_id='NFLVERSE_DATA' "
-        "AND ss.verification_status='SOURCE_BACKED' AND ss.source_id='NFLVERSE_DATA' AND ss.wins IS NOT NULL"
+        "AND ss.verification_status='SOURCE_BACKED' AND ss.source_id='NFLVERSE_DATA' "
+        "AND ss.wins IS NOT NULL AND (ss.wins + ss.losses + COALESCE(ss.ties, 0)) > 0"
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -226,24 +300,38 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
             pool = _fetch_pool_cfb(c)
         else:
             passing_pool = _fetch_pool_season_passing(c)
+            rushing_pool = _fetch_pool_season_rushing(c)
+            receiving_pool = _fetch_pool_season_receiving(c)
             record_pool = _fetch_pool_team_record(c)
     finally:
         c.close()
 
     rounds = []
+    record_round_index = (engine_bootstrap.seeded(f"{seed}-rt-record-slot").randrange(round_count)
+                          if not is_cfb and round_count else -1)
+    stat_offset = (engine_bootstrap.seeded(f"{seed}-rt-category-order").randrange(len(_NFL_STAT_CATEGORIES))
+                   if not is_cfb else 0)
     for i in range(round_count):
         if is_cfb:
             rng = engine_bootstrap.seeded(f"{seed}-rt-r{i}")
             r = _build_round_cfb(rng, pool)
         else:
-            offset = engine_bootstrap.seeded(f"{seed}-rt-category-order").randrange(len(_NFL_CATEGORIES))
-            primary = _NFL_CATEGORIES[(i + offset) % len(_NFL_CATEGORIES)]
-            categories = [primary] + [cat for cat in _NFL_CATEGORIES if cat != primary]
+            primary = ("TEAM_RECORD_SEASON" if i == record_round_index else
+                       _NFL_STAT_CATEGORIES[(i + stat_offset) % len(_NFL_STAT_CATEGORIES)])
+            # Record facts are intentionally permitted only in their one
+            # seeded slot. Every other round can fall back among the three
+            # real stat families, but never silently become another record
+            # round and rebuild the repetition problem this pass fixes.
+            categories = [primary] + [cat for cat in _NFL_STAT_CATEGORIES if cat != primary]
             r = None
             for category in categories:
                 rng = engine_bootstrap.seeded(f"{seed}-rt-r{i}-{category}")
                 if category == "SEASON_PASSING":
                     r = _build_round_season_passing(rng, passing_pool)
+                elif category == "SEASON_RUSHING":
+                    r = _build_round_season_rushing(rng, rushing_pool)
+                elif category == "SEASON_RECEIVING":
+                    r = _build_round_season_receiving(rng, receiving_pool)
                 else:
                     r = _build_round_team_record(rng, record_pool)
                 if r is not None:

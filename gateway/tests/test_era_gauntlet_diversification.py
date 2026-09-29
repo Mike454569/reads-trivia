@@ -391,3 +391,12 @@ def test_ranking_family_deliberately_not_offered_for_this_nfl_only_domain():
     pkg = _generate("pytest-no-fake-ranking-seed", target_count=800)
     for q in pkg["questions"]:
         assert "ranked" not in q["question"].lower() and "ranking" not in q["question"].lower()
+
+
+def test_unplayed_zero_zero_season_is_not_a_three_clues_record(monkeypatch):
+    """A current/unplayed standings placeholder must never be worded as
+    though the team completed a real 0-0 season."""
+    from tools.quiz_export.adapters import _champion_clue_common as clue_common
+
+    monkeypatch.setattr(clue_common, "_record_cache", {("BUF", 2026): (0, 0, 0, None)})
+    assert clue_common.record_clue(None, "BUF", 2026) is None

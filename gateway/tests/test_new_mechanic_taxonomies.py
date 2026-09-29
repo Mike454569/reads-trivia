@@ -2181,15 +2181,19 @@ def test_reverse_trivia_nfl_rotates_across_real_non_draft_categories():
     all_labels = [o["label"] for r in pkg["rounds"] for o in r["options"]]
     seen_draft = any("NFL Draft" in lb for lb in all_labels)
     seen_passing = any("Threw for" in lb for lb in all_labels)
-    seen_record = any("went" in lb and "season" in lb for lb in all_labels)
+    seen_rushing = any("Rushed for" in lb for lb in all_labels)
+    seen_receiving = any("Caught" in lb and "passes" in lb for lb in all_labels)
+    record_rounds = sum(1 for r in pkg["rounds"] if any("went" in o["label"] and "season" in o["label"] for o in r["options"]))
     assert not seen_draft
-    assert seen_passing and seen_record, "a normal set should include both non-draft categories"
+    assert seen_passing and seen_rushing and seen_receiving
+    assert record_rounds <= 1, "team-record trivia should be occasional, never the dominant pool"
     for r in pkg["rounds"]:
         # Every round's 4 candidates must stay the same category as each
         # other (never mix a draft fact with a passing-yards fact in one
         # round) or they wouldn't read as plausible parallel options.
         labels = [o["label"] for o in r["options"]]
-        shapes = {"draft" if "NFL Draft" in lb else "passing" if "Threw for" in lb else "record"
+        shapes = {"draft" if "NFL Draft" in lb else "passing" if "Threw for" in lb else
+                  "rushing" if "Rushed for" in lb else "receiving" if "Caught" in lb else "record"
                   for lb in labels}
         assert len(shapes) == 1, f"round {r['round_index']} mixed categories: {labels}"
 

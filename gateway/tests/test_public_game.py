@@ -8,6 +8,7 @@ route here is deliberately called WITHOUT auth_headers (the whole point:
 these routes must work with no admin token, unlike every other route in
 this Gateway)."""
 import json
+import re
 import time
 
 from gateway import config
@@ -1109,7 +1110,7 @@ def test_boxscore_payload_never_contains_answer(client):
     assert body["competition"] == "NFL"
     assert set(body.keys()) == {"game_id", "mode", "competition", "difficulty", "title", "instructions", "payload", "metadata"}
     assert set(body["payload"].keys()) == {"prompt", "options", "visual_template", "visual_payload"}
-    assert len(body["payload"]["options"]) == 4
+    assert len(body["payload"]["options"]) == 2
 
 
 def test_boxscore_correct_answer_accepted(client):
@@ -1146,6 +1147,9 @@ def test_boxscore_question_is_a_real_verifiable_fact(client):
     stored = packages.load_package(game["game_id"])
     real_answer = stored["questions"][0]["answer"]
     assert real_answer in game["payload"]["options"]
+    matchup = re.search(r"game between the (.+?) and the (.+?), which team gained", game["payload"]["prompt"])
+    assert matchup
+    assert set(game["payload"]["options"]) == {matchup.group(1), matchup.group(2)}
 
 
 def test_cfb_game_result_question_is_a_real_verifiable_fact(client):

@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.4.0';
+var APP_VERSION = '3.4.1';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 

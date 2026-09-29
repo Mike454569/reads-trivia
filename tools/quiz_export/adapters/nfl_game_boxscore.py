@@ -24,7 +24,7 @@ tools/data_refresh/nfl_team_game_stats_refresh.py's module docstring.
 from __future__ import annotations
 
 from .. import engine, safety, difficulty as difficulty_mod, serializer
-from .draft import resolve_franchise, teams_active_in_season
+from .draft import resolve_franchise
 
 OUT_PATH = None  # served live via the Gateway; no export script has passed
                  # its own out_path yet, so this default is never used
@@ -122,15 +122,13 @@ def evaluate(c, row, rng, guard):
     winner_yards = row["yards_a"] if a_more else row["yards_b"]
     loser_yards = row["yards_b"] if a_more else row["yards_a"]
 
-    active = teams_active_in_season(c, season)
-    pool = {fid: name for fid, name in active.items()
-            if fid not in (winner["franchise_id"], loser["franchise_id"])}
-    if len(pool) < 3:
-        return "INSUFFICIENT_DISTRACTOR_POOL"
-    distractor_names = rng.sample(list(pool.values()), 3)
-
-    options = [winner["full_name"]] + distractor_names
-    if len(set(options)) != 4:
+    # This is a head-to-head box-score question. The only honest choices
+    # are the two teams that actually played the game; unrelated league
+    # teams are not plausible answers and make the screen contradict its
+    # own matchup. Keep both real participants and let finalize_options()
+    # randomize which side appears first.
+    matchup_names = [franchise_a["full_name"], franchise_b["full_name"]]
+    if len(set(matchup_names)) != 2:
         return "DUPLICATE_OPTIONS"
 
     week_label = _week_label(row["season_type"], row["week"])
@@ -144,8 +142,9 @@ def evaluate(c, row, rng, guard):
     if guard.entity_seen(entity_key):
         return "DUPLICATE_GAME"
 
-    shuffled_options, correct_index = serializer.finalize_options(rng, winner["full_name"], distractor_names)
-    if not (0 <= correct_index <= 3) or shuffled_options[correct_index] != winner["full_name"]:
+    shuffled_options, correct_index = serializer.finalize_binary_options(
+        rng, franchise_a["full_name"], franchise_b["full_name"], winner["full_name"])
+    if not (0 <= correct_index <= 1) or shuffled_options[correct_index] != winner["full_name"]:
         return "INVALID_CORRECT_INDEX"
 
     diff_score = (MAX_SEASON - season) / max(MAX_SEASON - MIN_SEASON, 1)

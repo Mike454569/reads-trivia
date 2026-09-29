@@ -129,6 +129,12 @@ def record_clue(c, team_code: str | None, season: int) -> str | None:
     if not entry:
         return None
     wins, losses, ties, playoff_result = entry
+    # An unplayed/current season can exist in season_standings as 0-0.
+    # That is a placeholder, not a meaningful completed-season clue. Do
+    # not tell players a team "finished" 0-0; another verified clue family
+    # must take its place or the candidate is rejected normally.
+    if wins + losses + ties == 0:
+        return None
     record = f"{wins}-{losses}" + (f"-{ties}" if ties else "")
     playoff = _PLAYOFF_RESULT_TEXT.get(playoff_result)
     suffix = f", {playoff}" if playoff else ""

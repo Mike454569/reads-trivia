@@ -489,6 +489,26 @@ function enginePilotFetchJson(path, options) {
     throw err;
   });
 }
+
+// Player-facing quality guardrails for two generator defects that should
+// never survive to the screen, even if an older Gateway release or cached
+// package is briefly served during deployment.
+function normalizeEnginePilotPackageForPlayer(modeKey, game) {
+  if (!game || !game.payload) return game;
+  if (modeKey === 'nflGameBoxscore') {
+    var prompt = game.payload.prompt || '';
+    var matchup = /game between (?:the )?(.+?) and (?:the )?(.+?), which team gained more total yards\?/i.exec(prompt);
+    if (matchup) {
+      var teams = [matchup[1].trim(), matchup[2].trim()];
+      if (teams[0] && teams[1] && teams[0] !== teams[1]) game.payload.options = teams;
+    }
+  }
+  return game;
+}
+function enginePilotPackageNeedsQualityRetry(modeKey, game) {
+  if (!game || !game.payload) return false;
+  return modeKey === 'threeClues' && /finished that real season 0-0(?:[.,;]|$)/i.test(game.payload.prompt || '');
+}
 function startEnginePilotRound(modeKey, filterValue) {
   if (modeKey) enginePilotCurrentModeKey = modeKey;
   state.enginePilot = {
@@ -513,7 +533,7 @@ function startEnginePilotRound(modeKey, filterValue) {
     // loadNextEnginePilotQuestion(), even when the real failure was on
     // SUBMITTING an already-picked answer -- discarding it and serving an
     // unrelated new question instead of just resubmitting.
-    errorContext: null,
+    errorContext: null, qualityRetryCount: 0,
   };
   state.enginePilotPendingFranchise = null;
   state.screen = 'enginePilot';
@@ -599,6 +619,14 @@ function loadNextEnginePilotQuestion() {
         renderAll();
         return;
       }
+      if (enginePilotPackageNeedsQualityRetry(s.modeKey, game) && s.qualityRetryCount < 8) {
+        s.qualityRetryCount++;
+        if (game.game_id) s.seenGameIds.push(game.game_id);
+        loadNextEnginePilotQuestion();
+        return;
+      }
+      normalizeEnginePilotPackageForPlayer(s.modeKey, game);
+      s.qualityRetryCount = 0;
       s.current = game;
       s.pickedOption = null;
       s.answerResult = null;
