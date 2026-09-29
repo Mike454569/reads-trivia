@@ -3104,3 +3104,54 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media (max-width: 340px) {
   .pilot-broadcast-game .quiz-options { grid-template-columns: 1fr; }
 }
+
+/* Timeline, bracket, connection grid and roster room broadcasts. */
+.stadium-mode-intro { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 115px; margin: 6px 0 13px; padding: 17px 19px; overflow: hidden; border: 1px solid rgba(217,166,60,.47); border-left: 5px solid var(--accent); background: linear-gradient(115deg,#111c13,#1d1b0e); }
+.stadium-mode-intro span { position: relative; z-index: 1; color: var(--accent); font: 700 10px var(--font-display); letter-spacing: .17em; }
+.stadium-mode-intro strong { position: relative; z-index: 1; margin-top: 7px; font: 700 clamp(26px,7vw,41px)/1 var(--font-display); letter-spacing: .02em; }
+.stadium-mode-intro em { position: relative; z-index: 1; margin-top: 8px; color: var(--text-dim); font: 700 11px var(--font-display); font-style: normal; letter-spacing: .08em; }
+.stadium-mode-intro i { position: absolute; top: -30px; right: 30px; width: 112px; height: 170px; border: 2px solid rgba(217,166,60,.17); transform: rotate(22deg); }
+.stadium-game--order .stadium-mode-intro { background: repeating-linear-gradient(90deg,rgba(217,166,60,.055) 0 1px,transparent 1px 68px),#121c15; }
+.stadium-game--bracket .stadium-mode-intro, .stadium-game--knockout .stadium-mode-intro { background: radial-gradient(circle at 80% 55%,rgba(217,166,60,.19),transparent 39%),#111a13; }
+.stadium-game--knockout .stadium-mode-intro { border-color: rgba(224,71,90,.51); border-left-color: var(--accent-red); }
+.stadium-game--knockout .stadium-mode-intro span { color: #ee8a93; }
+.stadium-game--connectiongrid .stadium-mode-intro { background: repeating-linear-gradient(0deg,transparent 0 23px,rgba(169,180,189,.07) 24px 25px),repeating-linear-gradient(90deg,transparent 0 48px,rgba(169,180,189,.07) 49px 50px),#111b19; }
+.stadium-game--connectiongrid .stadium-mode-intro i { border-style: dashed; border-radius: 50%; transform: none; }
+.stadium-game--roster .stadium-mode-intro { background: linear-gradient(115deg,#101a12,#222014 65%,#111a12); }
+.stadium-picks-count { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 11px; padding: 10px 13px; border: 1px solid rgba(169,180,189,.27); color: var(--text-dim); background: #101812; font: 700 10px var(--font-display); letter-spacing: .12em; }
+.stadium-picks-count strong { margin-left: auto; color: var(--accent); font: 700 21px var(--font-display); letter-spacing: .02em; }
+.stadium-picks-count span { color: var(--text-dim); letter-spacing: .02em; }
+.stadium-game--order .sort-row { min-height: 62px; padding: 9px 12px; border-radius: 2px; border-left: 4px solid rgba(217,166,60,.5); background: #152017; font: 650 16px/1.2 var(--font-display); animation: roulette-pop .35s ease-out both; }
+.stadium-game--order .sort-row:nth-of-type(2) { animation-delay: .05s; }
+.stadium-game--order .sort-row:nth-of-type(3) { animation-delay: .1s; }
+.stadium-game--order .timeline-card { border-radius: 2px; border-top: 3px solid var(--accent); min-width: 145px; background: #152017; }
+.stadium-game--order .timeline-card-label { font: 700 16px/1.2 var(--font-display); }
+.stadium-game--order .chip-row { margin: 12px 0; }
+.stadium-game--bracket .bracket-round, .stadium-game--knockout .bracket-round { padding: 13px; margin-bottom: 12px; border: 1px solid rgba(169,180,189,.23); background: #111a14; }
+.stadium-game--bracket .bracket-round-active, .stadium-game--knockout .bracket-round-active { border-color: rgba(217,166,60,.55); box-shadow: inset 4px 0 0 var(--accent); }
+.stadium-game--knockout .bracket-round-active { border-color: rgba(224,71,90,.5); box-shadow: inset 4px 0 0 var(--accent-red); }
+.stadium-game--bracket .bracket-matchup .quiz-option, .stadium-game--knockout .bracket-matchup .quiz-option { border-radius: 2px; min-height: 64px; font: 700 16px/1.2 var(--font-display); }
+.stadium-game--bracket .bracket-vs, .stadium-game--knockout .bracket-vs { color: var(--accent); font: 700 13px var(--font-display); }
+.stadium-game--connectiongrid .grid-board { gap: 5px; padding: 7px; border: 1px solid rgba(169,180,189,.3); background: #0d1714; }
+.stadium-game--connectiongrid .grid-board-cell { min-height: 67px; border-radius: 2px; }
+.stadium-game--connectiongrid .grid-board-header { border-color: rgba(217,166,60,.34); background: #1e2519; color: var(--text); font: 700 12px/1.15 var(--font-display); }
+.stadium-game--connectiongrid .grid-board-answer { background: #17221b; border-color: rgba(169,180,189,.3); font: 700 13px/1.15 var(--font-display); }
+.stadium-game--connectiongrid .grid-board-answer.selected { background: rgba(217,166,60,.14); }
+.stadium-game--connectiongrid .grid-answer-row { padding: 13px; border: 1px solid var(--accent); background: #182018; animation: roulette-pop .3s ease-out both; }
+.stadium-game--roster .budget-display { display: flex; justify-content: space-between; align-items: baseline; padding: 14px; border: 1px solid rgba(217,166,60,.5); background: #1d1c12; font: 700 13px var(--font-display); }
+.stadium-game--roster .budget-display strong { color: var(--accent); font-size: 25px; }
+.stadium-game--roster .roster-slots { gap: 8px; margin: 13px 0; }
+.stadium-game--roster .roster-slot { min-height: 76px; border-radius: 2px; border-color: rgba(169,180,189,.29); background: #172019; }
+.stadium-game--roster .roster-slot-filled { border-color: rgba(217,166,60,.5); box-shadow: inset 4px 0 0 var(--accent); animation: roulette-pop .35s ease-out both; }
+.stadium-game--roster .roster-slot-label { color: var(--accent); font-family: var(--font-display); letter-spacing: .1em; }
+.stadium-game--roster .roster-slot-body { font: 700 15px/1.2 var(--font-display); padding-top: 6px; }
+.stadium-game--roster .roster-candidate-list { max-height: 330px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.stadium-game--roster .roster-candidate { min-height: 60px; border-radius: 2px; font: 650 15px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.stadium-game--roster .roster-candidate:hover { border-color: var(--accent); background: rgba(217,166,60,.1); }
+@media (max-width: 480px) {
+  .stadium-mode-intro { padding: 15px; min-height: 103px; }
+  .stadium-game--roster .roster-candidate-list { grid-template-columns: 1fr; }
+  .stadium-game--connectiongrid .grid-board { grid-template-columns: 75px repeat(var(--grid-cols,3),minmax(78px,1fr)); }
+  .stadium-game--connectiongrid .grid-board-cell { min-width: 72px; padding: 5px; font-size: 11px; }
+  .stadium-game--order .sort-row { font-size: 14px; }
+}

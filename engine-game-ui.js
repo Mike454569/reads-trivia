@@ -2181,6 +2181,11 @@ function mechanicPilotToolbarHtml(cfg, s) {
 }
 
 var _STADIUM_BROADCAST_KINDS = {
+  sorting: 'order',
+  comparison: 'bracket',
+  knockout_bracket: 'knockout',
+  grid_constraint: 'connectiongrid',
+  roster_build: 'roster',
   drive_progression: 'drive',
   risk_it: 'risk',
   double_or_nothing: 'double',
@@ -2225,6 +2230,10 @@ function stadiumRoundBar(label, current, total) {
 function stadiumQuestionHtml(kicker, prompt) {
   return '<section class="stadium-question-card"><div class="stadium-question-kicker">' + esc(kicker) + '</div>' +
     '<div class="quiz-question stadium-question">' + esc(prompt || '') + '</div></section>';
+}
+function stadiumModeIntroHtml(kicker, headline, detail) {
+  return '<div class="stadium-mode-intro"><span>' + esc(kicker) + '</span><strong>' + esc(headline) + '</strong>' +
+    (detail ? '<em>' + esc(detail) + '</em>' : '') + '<i aria-hidden="true"></i></div>';
 }
 function renderStadiumResultMoment(cfg, s, wasCorrect) {
   if (!cfg || !_STADIUM_BROADCAST_KINDS[cfg.kind]) return '';
@@ -2524,7 +2533,8 @@ function renderMechanicPilotBody(cfg, s) {
       '<button class="chip-toggle' + (s.sortFormat === 'TIMELINE_RIBBON' ? ' active' : '') + '" data-mechanic-sort-format="TIMELINE_RIBBON">Timeline</button>' +
       '</div>';
     if (s.sortFormat === 'TIMELINE_RIBBON') {
-      return '<div class="quiz-question">' + esc(v.prompt) + '</div>' + formatToggle +
+      return stadiumModeIntroHtml('THE TIMELINE', 'PUT IT IN ORDER', cfg.title) +
+        stadiumQuestionHtml('SEQUENCE CHECK', v.prompt) + formatToggle +
         '<div class="timeline-ribbon">' + s.sortOrder.map(function (id, i) {
           var atStart = i === 0, atEnd = i === s.sortOrder.length - 1;
           return '<div class="timeline-card">' +
@@ -2535,7 +2545,8 @@ function renderMechanicPilotBody(cfg, s) {
         }).join('') + '</div>' +
         '<div class="btn-row"><button class="btn-primary" data-sort-submit>Submit Order</button></div>';
     }
-    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' + formatToggle +
+    return stadiumModeIntroHtml('THE TIMELINE', 'PUT IT IN ORDER', cfg.title) +
+      stadiumQuestionHtml('SEQUENCE CHECK', v.prompt) + formatToggle +
       s.sortOrder.map(function (id, i) {
         // Section 8 polish: the up/down click handler already no-ops safely
         // at the ends (app.js's bounds check), but the buttons themselves
@@ -2574,7 +2585,9 @@ function renderMechanicPilotBody(cfg, s) {
     // _comparison_evaluate functions server-side. Reuses renderBracketTreeBody
     // verbatim; the only difference is the real field size (4/8/16 vs a
     // fixed 8), which that function already renders generically.
-    return '<div class="status-line">Predicted: ' + (v.picks_made || 0) + ' / ' + (v.total_matchups || 0) + '</div>' +
+    return stadiumModeIntroHtml(cfg.kind === 'knockout_bracket' ? 'KNOCKOUT TOURNAMENT' : 'BRACKET DESK',
+      'PICK THE WINNER', cfg.title) +
+      '<div class="stadium-picks-count">PICKS MADE <strong>' + (v.picks_made || 0) + ' / ' + (v.total_matchups || 0) + '</strong></div>' +
       renderBracketTreeBody(v, s);
   }
   if (cfg.kind === 'grid_constraint') return renderConnectionGridBody(v, s);
@@ -2652,8 +2665,9 @@ function renderConnectionGridBody(v, s) {
       '<div class="btn-row"><button class="btn-primary" data-mechanic-grid-submit>Submit</button>' +
       '<button class="btn-secondary" data-mechanic-grid-cancel>Cancel</button></div></div>';
   }
-  return '<div class="status-line">Answered: ' + (v.cells_answered || 0) + ' / ' + (v.total_cells || 9) +
-    ' &middot; Correct: ' + (v.correct_count || 0) + '</div>' + gridHtml + inputHtml;
+  return stadiumModeIntroHtml('CONNECTION BOARD', 'FIND THE LINK', 'One real player for each intersection') +
+    '<div class="stadium-picks-count">CELLS FILLED <strong>' + (v.cells_answered || 0) + ' / ' + (v.total_cells || 9) +
+    '</strong><span>' + (v.correct_count || 0) + ' correct</span></div>' + gridHtml + inputHtml;
 }
 
 // DRIVE_PROGRESSION: PERFECT_DRIVE (YARDAGE) and GOAL_LINE_STAND (DOWNS)
@@ -2694,6 +2708,9 @@ function renderDriveProgressionBody(v, s) {
 // branching on the server-reported real `flow`/`budgeted` fields -- never
 // a client-side guess at which variant is active.
 function renderRosterBuildBody(v, s) {
+  var rosterIntro = stadiumModeIntroHtml(v.budgeted ? 'FRONT OFFICE · BUDGET LIVE' : 'ROSTER ROOM',
+    v.budgeted ? 'BUILD YOUR SQUAD' : 'FILL THE LINEUP',
+    (v.slots_total || v.roster_slots && v.roster_slots.length || 0) + ' roster spots');
   var budgetHtml = v.budgeted
     ? '<div class="budget-display">Budget remaining: <strong>$' + Math.round(v.remaining_budget).toLocaleString() +
       '</strong> / $' + Math.round(v.budget_total).toLocaleString() + '</div>'
@@ -2719,7 +2736,7 @@ function renderRosterBuildBody(v, s) {
       }).join('') + '</div>';
     }
     var allFilled = v.roster.every(function (r) { return r; });
-    return '<div class="status-line">Filled: ' + v.slots_filled + ' / ' + v.slots_total + '</div>' + budgetHtml +
+    return rosterIntro + '<div class="stadium-picks-count">SPOTS FILLED <strong>' + v.slots_filled + ' / ' + v.slots_total + '</strong></div>' + budgetHtml +
       slotsHtml + candidatesHtml +
       (v.submitted ? '' : '<div class="btn-row"><button class="btn-primary" data-mechanic-roster-submit-lineup' +
         (allFilled ? '' : ' disabled') + '>Submit Lineup</button></div>');
@@ -2732,13 +2749,13 @@ function renderRosterBuildBody(v, s) {
       (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(pick.cost).toLocaleString() + '</span>' : '') + '</div></div>';
   }).join('') + '</div>';
   if (v.completed) {
-    return '<div class="status-line">Roster complete: ' + v.picks_made + ' / ' + v.slots_total + '</div>' + budgetHtml + filledHtml;
+    return rosterIntro + '<div class="stadium-picks-count">ROSTER COMPLETE <strong>' + v.picks_made + ' / ' + v.slots_total + '</strong></div>' + budgetHtml + filledHtml;
   }
   var poolHtml = '<div class="roster-candidate-list">' + (v.remaining_pool || []).slice(0, 30).map(function (p) {
     return '<button class="roster-candidate" data-mechanic-roster-pick="' + esc(p.player_id) + '">' + esc(p.display_name) +
       (v.budgeted ? ' <span class="roster-slot-cost">$' + Math.round(p.cost).toLocaleString() + '</span>' : '') + '</button>';
   }).join('') + '</div>';
-  return '<div class="status-line">Current slot: ' + esc(v.current_slot) + ' &middot; ' + v.picks_made + ' / ' + v.slots_total + ' filled</div>' +
+  return rosterIntro + '<div class="stadium-picks-count">ON THE CLOCK <strong>' + esc(v.current_slot) + '</strong><span>' + v.picks_made + ' / ' + v.slots_total + ' filled</span></div>' +
     budgetHtml + filledHtml + poolHtml;
 }
 
