@@ -2104,6 +2104,11 @@ var _STADIUM_BROADCAST_KINDS = {
   king_of_the_hill: 'hill',
   guess_the_ranking: 'ranking',
   stat_target: 'target',
+  pick_the_impostor: 'impostor',
+  missing_piece: 'missing',
+  career_path: 'journey',
+  mystery_roster: 'mystery',
+  common_link: 'link',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2171,6 +2176,26 @@ function renderStadiumResultMoment(cfg, s, wasCorrect) {
     eyebrow = 'TARGET RESULT';
     title = wasCorrect ? 'BULLSEYE' : 'OFF TARGET';
     sub = r.canonical_answer ? 'Closest: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'pick_the_impostor') {
+    eyebrow = 'SECURITY CHECK';
+    title = wasCorrect ? 'IMPOSTOR FOUND' : 'WRONG SUSPECT';
+    sub = r.canonical_answer ? 'The impostor: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'missing_piece') {
+    eyebrow = 'BOARD COMPLETE';
+    title = wasCorrect ? 'PERFECT FIT' : 'PIECE MISSED';
+    sub = r.canonical_answer ? 'Missing piece: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'career_path') {
+    eyebrow = 'TRANSACTION WIRE';
+    title = wasCorrect ? 'PLAYER TRACKED' : 'PATH MISSED';
+    sub = r.canonical_answer ? 'Career belonged to ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'mystery_roster') {
+    eyebrow = 'ROSTER REVEAL';
+    title = wasCorrect ? 'TEAM IDENTIFIED' : 'MYSTERY STANDS';
+    sub = r.canonical_answer ? 'It was ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'common_link') {
+    eyebrow = 'CONNECTION FOUND';
+    title = wasCorrect ? 'LINK LOCKED' : 'LINK BROKEN';
+    sub = r.canonical_answer ? r.canonical_answer : '';
   }
   return '<div class="stadium-result stadium-result--' + (wasCorrect ? 'good' : 'bad') + '" aria-hidden="true">' +
     '<span class="stadium-result-sweep"></span><span class="stadium-result-eyebrow">' + esc(eyebrow) + '</span>' +
@@ -2629,8 +2654,10 @@ function renderPairwiseCompareBody(v, s) {
 // back to this round's real, already-shuffled item_id via the current
 // view (see app.js's data-mechanic-impostor-pick handler).
 function renderPickTheImpostorBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return stadiumRoundBar('IDENTITY CHECK', v.round_index + 1, v.round_count) +
+    '<div class="impostor-scan"><span class="impostor-reticle"></span><strong>ONE DOESN’T BELONG</strong>' +
+    '<span>SCAN THE GROUP. FLAG THE OUTLIER.</span></div>' +
+    stadiumQuestionHtml('FIND THE IMPOSTOR', v.prompt) +
     renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-impostor-pick',
     });
@@ -2641,11 +2668,11 @@ function renderPickTheImpostorBody(v, s) {
 // already uses -- zero new CSS), then the 4 real candidates below via
 // renderCandidateCardsHtml, same as PICK_THE_IMPOSTOR.
 function renderMissingPieceBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    v.group_members.map(function (label) {
-      return '<div class="chain-node">' + esc(label) + '</div>';
-    }).join('<div class="chain-connector">&middot;</div>') +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return stadiumRoundBar('COMPLETE THE BOARD', v.round_index + 1, v.round_count) +
+    '<div class="missing-board">' + v.group_members.map(function (label) {
+      return '<div class="missing-board-piece">' + esc(label) + '</div>';
+    }).join('') + '<div class="missing-board-piece is-empty"><strong>?</strong><span>MISSING</span></div></div>' +
+    stadiumQuestionHtml('FILL THE OPEN SLOT', v.prompt) +
     renderCandidateCardsHtml(v.items.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-missing-piece-pick',
     });
@@ -2670,11 +2697,11 @@ function renderBeforeAfterBody(v, s) {
 // candidate players (reuses renderCandidateCardsHtml), same as
 // PICK_THE_IMPOSTOR/MISSING_PIECE. Zero new CSS.
 function renderCareerPathBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    v.path.map(function (label) {
-      return '<div class="chain-node">' + esc(label) + '</div>';
-    }).join('<div class="chain-connector">&rarr;</div>') +
-    '<div class="quiz-question">Which real player had this real career path?</div>' +
+  return stadiumRoundBar('CAREER TRANSACTION WIRE', v.round_index + 1, v.round_count) +
+    '<div class="career-route">' + v.path.map(function (label, i) {
+      return '<div class="career-stop"><span>' + (i + 1) + '</span><strong>' + esc(label) + '</strong></div>';
+    }).join('<div class="career-route-line"><i></i></div>') + '</div>' +
+    stadiumQuestionHtml('NAME THE TRAVELER', 'Which player had this career path?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-career-path-pick',
     });
@@ -2939,13 +2966,14 @@ function renderThreeStrikesBody(v, s) {
 // real candidate cards for guessing at any point.
 function renderMysteryRosterBody(v, s) {
   var revealBtn = v.clues_revealed < v.max_clues
-    ? '<div class="chip-row" role="group" aria-label="Reveal another clue"><button class="chip-toggle" data-mechanic-mystery-reveal>Reveal Another Clue (' + (v.max_clues - v.clues_revealed) + ' left)</button></div>'
+    ? '<div class="mystery-reveal-row" role="group" aria-label="Reveal another clue"><button class="btn-secondary mystery-reveal-btn" data-mechanic-mystery-reveal>Open Next File <span>' + (v.max_clues - v.clues_revealed) + ' left</span></button></div>'
     : '';
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Score: ' + v.score + '</div>' +
-    v.clues.map(function (c) { return '<div class="chain-node">' + esc(c) + '</div>'; }).join('') +
+  return stadiumRoundBar('MYSTERY WAR ROOM · ' + v.score + ' PTS', v.round_index + 1, v.round_count) +
+    '<div class="mystery-file-stack">' + v.clues.map(function (c, i) {
+      return '<div class="mystery-file"><span>CLUE ' + (i + 1) + '</span><strong>' + esc(c) + '</strong></div>';
+    }).join('') + '</div>' +
     revealBtn +
-    '<div class="quiz-question">Which real team-season is this?</div>' +
+    stadiumQuestionHtml('MAKE YOUR CALL', 'Which team-season is hiding in these files?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-mystery-guess',
     });
@@ -2979,14 +3007,14 @@ function renderCategoryRouletteBody(v, s) {
 // candidate statements via renderCandidateCardsHtml, same as
 // PICK_THE_IMPOSTOR/MISSING_PIECE.
 function renderCommonLinkBody(v, s) {
-  var trioHtml = '<div class="link-trio" role="group" aria-label="The 3 real linked players">' +
+  var trioHtml = '<div class="broadcast-link-map" role="group" aria-label="The 3 linked players">' +
     v.names.map(function (name, i) {
-      var node = '<div class="link-trio-node">' + esc(name) + '</div>';
-      return i < v.names.length - 1 ? node + '<div class="link-trio-connector" aria-hidden="true"></div>' : node;
+      var node = '<div class="broadcast-link-node"><span>0' + (i + 1) + '</span><strong>' + esc(name) + '</strong></div>';
+      return i < v.names.length - 1 ? node + '<div class="broadcast-link-line" aria-hidden="true"><i></i></div>' : node;
     }).join('') + '</div>';
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
+  return stadiumRoundBar('CONNECTION DESK', v.round_index + 1, v.round_count) +
     trioHtml +
-    '<div class="quiz-question">What real connects these 3 real players?</div>' +
+    stadiumQuestionHtml('FIND THE LINK', 'What connects these three players?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-common-link-pick',
     });
