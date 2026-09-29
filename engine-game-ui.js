@@ -2114,6 +2114,11 @@ var _STADIUM_BROADCAST_KINDS = {
   category_roulette: 'roulette',
   leaderboard_climb: 'climb',
   before_after: 'timeline',
+  reverse_trivia: 'verify',
+  relationship_chain: 'chain',
+  guess_the_season: 'archive',
+  pairwise_compare: 'duel',
+  branch_state: 'path',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2221,6 +2226,21 @@ function renderStadiumResultMoment(cfg, s, wasCorrect) {
     eyebrow = 'TIMELINE REVIEW';
     title = wasCorrect ? 'ORDER CONFIRMED' : 'ORDER REVERSED';
     sub = r.correct_label ? r.correct_label + ' came first' : '';
+  } else if (cfg.kind === 'reverse_trivia') {
+    eyebrow = 'FACT CHECK'; title = wasCorrect ? 'VERIFIED' : 'FALSE LEAD';
+    sub = r.canonical_answer ? 'The true statement: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'relationship_chain') {
+    eyebrow = 'CONNECTION CHECK'; title = wasCorrect ? 'CHAIN COMPLETE' : 'LINK MISSING';
+    sub = r.canonical_answer ? 'Destination: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'guess_the_season') {
+    eyebrow = 'ARCHIVE REVEAL'; title = wasCorrect ? 'YEAR FOUND' : 'WRONG SEASON';
+    sub = r.canonical_answer ? 'The season: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'pairwise_compare') {
+    eyebrow = 'DUEL RESULT'; title = wasCorrect ? 'WINNER PICKED' : 'UPSET';
+    sub = r.canonical_answer ? 'Winner: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'branch_state') {
+    eyebrow = 'PATH RESULT'; title = wasCorrect ? 'ROUTE CLEARED' : 'ROADBLOCK';
+    sub = r.canonical_answer ? 'Answer: ' + r.canonical_answer : '';
   }
   return '<div class="stadium-result stadium-result--' + (wasCorrect ? 'good' : 'bad') + '" aria-hidden="true">' +
     '<span class="stadium-result-sweep"></span><span class="stadium-result-eyebrow">' + esc(eyebrow) + '</span>' +
@@ -2639,34 +2659,38 @@ function renderRosterBuildBody(v, s) {
 // node is shown, the player types the real end-node name, never shown the
 // full chain upfront (see relationship_chain.py's own module docstring).
 function renderRelationshipChainBody(v, s) {
-  return '<div class="status-line">Chain ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="chain-node chain-node-start">' + icon('flag') + ' ' + esc(v.start_node.label) + '</div>' +
-    '<div class="chain-connector">&darr;</div>' +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
-    '<input type="text" class="learn-filter-input" id="mechanic-chain-input" placeholder="Type the real answer" autocomplete="off">' +
-    '<div class="btn-row"><button class="btn-primary" data-mechanic-chain-submit>Submit</button></div>';
+  return stadiumRoundBar('CONNECT THE DOTS', v.round_index + 1, v.round_count) +
+    '<div class="connection-board"><span class="connection-kicker">STARTING POINT</span>' +
+    '<strong class="connection-origin">' + esc(v.start_node.label) + '</strong>' +
+    '<div class="connection-route" aria-hidden="true"><i></i><i></i><i></i></div>' +
+    '<span class="connection-destination">YOUR DESTINATION</span></div>' +
+    stadiumQuestionHtml('COMPLETE THE CHAIN', v.prompt) +
+    '<div class="stadium-entry"><input type="text" class="learn-filter-input" id="mechanic-chain-input" placeholder="Type the real answer" autocomplete="off">' +
+    '<button class="btn-primary" data-mechanic-chain-submit>Connect</button></div>';
 }
 
 // GUESS_THE_SEASON: same free-text-guess shape as RELATIONSHIP_CHAIN above
 // (a real typed answer, not multiple choice) -- reuses the identical
 // .learn-filter-input + Submit pattern rather than a third input style.
 function renderGuessTheSeasonBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    v.clues.map(function (cl) {
-      return '<div class="chain-node">' + esc(cl.display_text) + '</div>';
-    }).join('<div class="chain-connector">&middot;</div>') +
-    '<div class="quiz-question">Which real NFL season do these clues describe?</div>' +
-    '<input type="text" class="learn-filter-input" id="mechanic-season-input" placeholder="e.g. 2019" ' +
+  return stadiumRoundBar('ARCHIVE FILE', v.round_index + 1, v.round_count) +
+    '<div class="archive-board"><div class="archive-stamp">SEASON <strong>????</strong></div>' +
+    '<div class="archive-clues">' + v.clues.map(function (cl, i) {
+      return '<div class="archive-clue"><span>CLUE ' + String(i + 1).padStart(2, '0') + '</span><strong>' + esc(cl.display_text) + '</strong></div>';
+    }).join('') + '</div></div>' +
+    stadiumQuestionHtml('NAME THE YEAR', 'Which real NFL season do these clues describe?') +
+    '<div class="stadium-entry"><input type="text" class="learn-filter-input" id="mechanic-season-input" placeholder="e.g. 2019" ' +
     'inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">' +
-    '<div class="btn-row"><button class="btn-primary" data-mechanic-season-submit>Submit</button></div>';
+    '<button class="btn-primary" data-mechanic-season-submit>Lock In</button></div>';
 }
 
 // HEAD_TO_HEAD_DUEL: reuses renderBinaryChoiceHtml (app.js) verbatim, its
 // first real reuse site -- see visual_templates.py's own HEAD_TO_HEAD
 // entry for the disclosed consolidation note this format fulfills.
 function renderPairwiseCompareBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return stadiumRoundBar('HEAD TO HEAD', v.round_index + 1, v.round_count) +
+    '<div class="duel-marquee"><span>PLAYER A</span><b>VS</b><span>PLAYER B</span></div>' +
+    stadiumQuestionHtml('THE MATCHUP', v.prompt) +
     renderBinaryChoiceHtml(
       { code: 'A', label: v.entity_a.label },
       { code: 'B', label: v.entity_b.label },
@@ -2955,8 +2979,9 @@ function renderStatTargetBody(v, s) {
 // REVERSE_TRIVIA: reuses renderCandidateCardsHtml, same as
 // PICK_THE_IMPOSTOR/STAT_TARGET -- zero new CSS.
 function renderReverseTriviaBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">Which real statement is actually true about ' + esc(v.subject_name) + '?</div>' +
+  return stadiumRoundBar('FACT CHECK', v.round_index + 1, v.round_count) +
+    '<div class="verify-subject"><span>PLAYER FILE</span><strong>' + esc(v.subject_name) + '</strong><em>ONE STATEMENT CHECKS OUT</em></div>' +
+    stadiumQuestionHtml('FIND THE FACT', 'Which real statement is actually true?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-reverse-trivia-pick',
     });
@@ -3053,12 +3078,14 @@ function renderCommonLinkBody(v, s) {
 // choice question (same submit contract underneath, different node type).
 function renderBranchStateBody(v, s) {
   if (v.choices) {
-    return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
-      '<div class="chip-row" role="group" aria-label="Choose a path">' + v.choices.map(function (c) {
-        return '<button class="chip-toggle" data-mechanic-branch-choice="' + esc(c.choice_id) + '">' + esc(c.label) + '</button>';
+    return '<div class="path-board"><span>THE DECISION</span><strong>CHOOSE YOUR ROUTE</strong><div class="path-lines" aria-hidden="true"><i></i><i></i><i></i></div></div>' +
+      stadiumQuestionHtml('AT THE FORK', v.prompt) +
+      '<div class="path-options" role="group" aria-label="Choose a path">' + v.choices.map(function (c, i) {
+        return '<button class="chip-toggle" data-mechanic-branch-choice="' + esc(c.choice_id) + '"><span>PATH ' + String.fromCharCode(65 + i) + '</span><strong>' + esc(c.label) + '</strong><b aria-hidden="true">&rarr;</b></button>';
       }).join('') + '</div>';
   }
-  return '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return '<div class="path-board path-board--question"><span>ROUTE SELECTED</span><strong>MAKE THE PLAY</strong></div>' +
+    stadiumQuestionHtml('NEXT DECISION', v.prompt) +
     '<div class="quiz-options">' + (v.options || []).map(function (opt, i) {
       return '<button class="quiz-option" data-mechanic-branch-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
     }).join('') + '</div>';
