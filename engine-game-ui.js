@@ -779,7 +779,7 @@ function renderPositionLineupCollegeBoard(payload, spotFake, projected) {
     return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
       '<div class="lineup-name">' + esc(p.college) + '</div></div>';
   }
-  var boardRows = projected && hasOffensiveLine
+  var boardRows = hasOffensiveLine && !spotFake
     ? '<div class="lineup-row-label">Offensive Line</div><div class="lineup-row">' +
       positions.filter(function (p) { return /^(LT|LG|C|RG|RT)$/i.test(p.position || ''); }).map(cell).join('') + '</div>' +
       '<div class="lineup-row-label">Skill Positions</div><div class="lineup-row lineup-row--six">' +
@@ -851,6 +851,11 @@ function renderEnginePilotPromptHtml(game, s) {
     oneSchoolMissing: ['MISSING SLOT', 'COMPLETE THE GROUP', 'schoolmissing'],
     lineup: ['LINEUP REVEAL', 'NAME THE TEAM', 'lineup'],
     offenseCollege: ['HIDDEN NAMES', 'TRACE THE COLLEGES', 'collegeorigin'],
+    lineupCollege: ['COLLEGE TRAIL', 'NAME THE NFL TEAM', 'lineupcollege'],
+    sbChampionOffenseCollege: ['CHAMPIONSHIP ROSTER', 'NAME THE CHAMPION', 'sbcollege'],
+    threeClues: ['THREE CLUES', 'ONE CHAMPION', 'threeclues'],
+    eraGauntlet: ['THROUGH THE DECADES', 'ERA GAUNTLET', 'eragauntlet'],
+    franchiseMarathon: ['FRANCHISE FILE', 'MARATHON', 'marathon'],
   };
   var broadcast = s && broadcastModes[s.modeKey];
   if (broadcast) {
@@ -867,9 +872,17 @@ function renderEnginePilotPromptHtml(game, s) {
     } else if (s.modeKey === 'oneSchoolMissing') {
       var missingMatch = /^Here are (\d+) of the colleges from (.+?): (.+)\. Which real college from that group is missing\?$/i.exec(question);
       if (missingMatch) { boardTitle = missingMatch[2].replace(/^the /i, '').replace(/' real starting offense$/i, ''); boardDetail = missingMatch[1] + ' REVEALED'; question = 'Which real college from that group is missing?'; }
-    } else if (s.modeKey === 'lineup' || s.modeKey === 'offenseCollege') {
+    } else if (s.modeKey === 'lineup' || s.modeKey === 'offenseCollege' || s.modeKey === 'lineupCollege') {
       var lineupSeason = game.payload.visual_payload && game.payload.visual_payload.season;
       if (lineupSeason) boardDetail = String(lineupSeason) + (s.modeKey === 'offenseCollege' ? ' PROJECTED OFFENSE' : ' STARTING OFFENSE');
+    } else if (s.modeKey === 'sbChampionOffenseCollege') {
+      boardDetail = 'TEAM + SEASON · NAMES HIDDEN';
+    } else if (s.modeKey === 'eraGauntlet') {
+      boardDetail = (game.payload.visual_payload && game.payload.visual_payload.era_decade_label || 'NFL HISTORY') + ' · STAGE ' + (s.stageIndex + 1);
+    } else if (s.modeKey === 'franchiseMarathon') {
+      var selectedFranchise = (enginePilotModeConfig(s.modeKey).franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
+      boardTitle = selectedFranchise || boardTitle;
+      boardDetail = 'STAGE ' + (s.stageIndex + 1);
     }
     return '<div class="pilot-broadcast-board pilot-broadcast-board--' + broadcast[2] + '">' +
       '<span>' + broadcast[0] + '</span><strong>' + esc(boardTitle) + '</strong>' +
@@ -878,14 +891,19 @@ function renderEnginePilotPromptHtml(game, s) {
       (s.modeKey === 'oneSchoolMissing' && missingMatch ? '<div class="pilot-missing-list">' + missingMatch[3].split(', ').map(function (school) {
         return '<span>' + esc(school) + '</span>';
       }).join('') + '<span class="is-unknown">?</span></div>' : '') +
-      stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' :
-        (s.modeKey === 'oddCollegeOut' ? 'FIND THE OUTLIER' : 'MAKE THE CALL'), question) +
+      (s.modeKey === 'threeClues' || s.modeKey === 'eraGauntlet'
+        ? renderThreeCluesProgressiveHtml(game, s.cluesRevealedCount || 1)
+        : stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' :
+          (s.modeKey === 'oddCollegeOut' ? 'FIND THE OUTLIER' : 'MAKE THE CALL'), question)) +
       (s.modeKey === 'spotTheFake' && game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
         ? renderPositionLineupCollegeBoard(game.payload.visual_payload, true) : '') +
       (s.modeKey === 'lineup' && game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload
         ? renderPositionLineupBoard(game.payload.visual_payload) : '') +
       (s.modeKey === 'offenseCollege' && game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
-        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, false, true) : '');
+        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, false, true) : '') +
+      ((s.modeKey === 'lineupCollege' || s.modeKey === 'sbChampionOffenseCollege' || s.modeKey === 'franchiseMarathon') &&
+        game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
+        ? renderPositionLineupCollegeBoard(game.payload.visual_payload) : '');
   }
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
@@ -1096,7 +1114,8 @@ function renderEnginePilotScreen() {
   // otherwise identical across all ~12 Engine Pilot modes.
   var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset',
     championship: 'postseason', heisman: 'heisman', cfbRivalry: 'rivalry', cfbRivalryLookup: 'rivalfile', spotTheFake: 'spotfake',
-    cfbGameResult: 'saturday', oddCollegeOut: 'oddcollege', oneSchoolMissing: 'schoolmissing', lineup: 'lineup', offenseCollege: 'collegeorigin' }[s.modeKey];
+    cfbGameResult: 'saturday', oddCollegeOut: 'oddcollege', oneSchoolMissing: 'schoolmissing', lineup: 'lineup', offenseCollege: 'collegeorigin',
+    lineupCollege: 'lineupcollege', sbChampionOffenseCollege: 'sbcollege', threeClues: 'threeclues', eraGauntlet: 'eragauntlet', franchiseMarathon: 'marathon' }[s.modeKey];
   var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '') +
     (broadcastVariant ? ' stadium-game pilot-broadcast-game pilot-broadcast-game--' + broadcastVariant : '');
   // Section 7 (progress should match the mechanic): a sequential mode's

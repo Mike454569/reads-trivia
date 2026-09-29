@@ -3034,6 +3034,17 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-board--collegeorigin { border-color: rgba(169,180,189,.48); background: radial-gradient(circle at 78% 44%,rgba(169,180,189,.13),transparent 40%),#101819; }
 .pilot-broadcast-board--collegeorigin::before { background: #a9b4bd; }
 .pilot-broadcast-board--collegeorigin i { top: 6px; right: 26px; width: 99px; height: 99px; border: 1px dashed rgba(169,180,189,.22); border-radius: 50%; transform: none; }
+.pilot-broadcast-board--lineupcollege { background: radial-gradient(circle at 88% 50%,rgba(217,166,60,.18),transparent 42%),repeating-linear-gradient(90deg,transparent 0 54px,rgba(217,166,60,.045) 55px 56px),#101b15; }
+.pilot-broadcast-board--lineupcollege i { top: 13px; right: 29px; height: 84px; width: 84px; border: 2px dashed rgba(217,166,60,.24); border-radius: 50%; transform: none; }
+.pilot-broadcast-board--sbcollege { border-color: rgba(217,166,60,.66); background: linear-gradient(125deg,#201a0d,#111a13 64%,#1e190f); }
+.pilot-broadcast-board--sbcollege i { top: -32px; right: 18px; width: 95px; height: 158px; border: 3px solid rgba(217,166,60,.19); border-radius: 0 0 45px 45px; transform: none; }
+.pilot-broadcast-board--threeclues { background: repeating-linear-gradient(90deg,transparent 0 32%,rgba(217,166,60,.12) 32% 33%,transparent 33% 66%,rgba(217,166,60,.12) 66% 67%,transparent 67%),#121b14; }
+.pilot-broadcast-board--threeclues i { display: none; }
+.pilot-broadcast-board--eragauntlet { background: linear-gradient(90deg,#101915,#232013,#101915); }
+.pilot-broadcast-board--eragauntlet i { top: 50%; right: 20px; width: 105px; height: 2px; border: 0; background: rgba(217,166,60,.37); transform: none; }
+.pilot-broadcast-board--marathon { border-color: rgba(169,180,189,.43); background: repeating-linear-gradient(90deg,transparent 0 25px,rgba(169,180,189,.045) 26px 27px),#121b1a; }
+.pilot-broadcast-board--marathon::before { background: #a9b4bd; }
+.pilot-broadcast-board--marathon i { top: 19px; right: 23px; width: 74px; height: 74px; border: 2px solid rgba(169,180,189,.23); border-radius: 50%; transform: none; }
 .pilot-missing-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(125px,1fr)); gap: 7px; margin: -1px 0 13px; }
 .pilot-missing-list span { display: grid; place-items: center; min-height: 57px; padding: 8px; border: 1px solid rgba(169,180,189,.35); background: #101819; text-align: center; font: 700 14px/1.2 var(--font-display); overflow-wrap: anywhere; }
 .pilot-missing-list .is-unknown { border-style: dashed; border-color: var(--accent); color: var(--accent); font-size: 25px; animation: roulette-pop .45s ease-out both; }
@@ -3048,6 +3059,16 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .pilot-broadcast-game--collegeorigin .lineup-cell { background: #172123; }
 .pilot-broadcast-game--lineup .lineup-name, .pilot-broadcast-game--collegeorigin .lineup-name { overflow-wrap: anywhere; }
 .pilot-broadcast-game--collegeorigin .lineup-row--six { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.pilot-broadcast-game--sbcollege .lineup-row--six { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.pilot-broadcast-game--lineupcollege .lineup-board, .pilot-broadcast-game--sbcollege .lineup-board,
+.pilot-broadcast-game--marathon .lineup-board { margin: 13px 0 16px; padding: 15px; border: 1px solid rgba(217,166,60,.31); background: #101a15; }
+.pilot-broadcast-game--sbcollege .lineup-board { border-color: rgba(217,166,60,.55); background: #191b13; }
+.pilot-broadcast-game--lineupcollege .lineup-cell, .pilot-broadcast-game--sbcollege .lineup-cell,
+.pilot-broadcast-game--marathon .lineup-cell { min-width: 0; border-radius: 2px; background: #1b271e; }
+.pilot-broadcast-game--lineupcollege .lineup-name, .pilot-broadcast-game--sbcollege .lineup-name,
+.pilot-broadcast-game--marathon .lineup-name { overflow-wrap: anywhere; }
+.pilot-broadcast-game--threeclues .three-clues-card, .pilot-broadcast-game--eragauntlet .three-clues-card { border-left: 3px solid var(--accent); animation: roulette-pop .42s ease-out both; }
+.pilot-broadcast-game--eragauntlet .era-gauntlet-timeline { margin-bottom: 17px; }
 .pilot-broadcast-game--lineup .quiz-option, .pilot-broadcast-game--collegeorigin .quiz-option { text-align: left; padding-left: 16px; }
 .pilot-broadcast-game--spotfake .spotfake-lineup { margin: 12px 0 16px; border-color: rgba(224,71,90,.42); }
 .pilot-broadcast-game--spotfake .spotfake-lineup .lineup-board-eyebrow { color: #ee8a93; }
@@ -3075,6 +3096,10 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .pilot-missing-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .pilot-broadcast-game--lineup .lineup-row, .pilot-broadcast-game--collegeorigin .lineup-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .pilot-broadcast-game--lineup .lineup-board, .pilot-broadcast-game--collegeorigin .lineup-board { padding: 10px; }
+  .pilot-broadcast-game--lineupcollege .lineup-row, .pilot-broadcast-game--sbcollege .lineup-row,
+  .pilot-broadcast-game--marathon .lineup-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pilot-broadcast-game--lineupcollege .lineup-board, .pilot-broadcast-game--sbcollege .lineup-board,
+  .pilot-broadcast-game--marathon .lineup-board { padding: 10px; }
 }
 @media (max-width: 340px) {
   .pilot-broadcast-game .quiz-options { grid-template-columns: 1fr; }
