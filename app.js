@@ -4144,7 +4144,8 @@ function renderBlitzTimerPicker(listId) {
 }
 function renderBlitzPlaying() {
   var b = state.blitz, total = b.list.answers.length;
-  return '<div class="panel">' + modeToolbarHtml('blitz', b.ranked) +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz">' + modeToolbarHtml('blitz', b.ranked) +
+    '<div class="classic-broadcast-marquee"><span>NFL · LIGHTNING ROUND</span><strong>' + esc(b.list.title) + '</strong><em>' + esc(b.list.prompt) + '</em></div>' +
     '<div class="blitz-header"><div class="blitz-title">' + esc(b.list.title) + '</div><div class="blitz-timer" id="blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
     '<div class="blitz-progress">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="blitz-input-row">' +
@@ -4158,7 +4159,8 @@ function renderBlitzPlaying() {
 function renderBlitzResults() {
   var b = state.blitz, total = b.list.answers.length;
   var missed = b.list.answers.filter(function (a) { return b.matched.indexOf(a.answer) === -1; });
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz">' +
+    '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">TIME!</h2></div>' +
     '<h2 class="panel-title">NFL Blitz Complete — ' + esc(b.list.title) + '</h2>' +
     '<div class="summary-score">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -4272,7 +4274,8 @@ function renderCfbBlitzTimerPicker(listId) {
 }
 function renderCfbBlitzPlaying() {
   var b = state.cfbBlitz, total = b.list.answers.length;
-  return '<div class="panel">' + modeToolbarHtml('cfbBlitz', b.ranked) +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz classic-broadcast--cfb">' + modeToolbarHtml('cfbBlitz', b.ranked) +
+    '<div class="classic-broadcast-marquee"><span>CFB · LIGHTNING ROUND</span><strong>' + esc(b.list.title) + '</strong><em>' + esc(b.list.prompt) + '</em></div>' +
     '<div class="blitz-header"><div class="blitz-title">' + esc(b.list.title) + '</div><div class="blitz-timer" id="cfb-blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
     '<div class="blitz-progress">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="blitz-input-row">' +
@@ -4286,7 +4289,8 @@ function renderCfbBlitzPlaying() {
 function renderCfbBlitzResults() {
   var b = state.cfbBlitz, total = b.list.answers.length;
   var missed = b.list.answers.filter(function (a) { return b.matched.indexOf(a.answer) === -1; });
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz classic-broadcast--cfb">' +
+    '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">TIME!</h2></div>' +
     '<h2 class="panel-title">Blitz Complete — ' + esc(b.list.title) + '</h2>' +
     '<div class="summary-score">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -4414,10 +4418,11 @@ function renderSpeedPlaying() {
   var s = state.speed, q = currentSpeedQuestion();
   var answered = s.answeredIndex !== null;
   var qPct = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen));
-  return '<div class="panel">' + modeToolbarHtml('speed', s.ranked) +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--speed">' + modeToolbarHtml('speed', s.ranked) +
+    '<div class="classic-broadcast-marquee"><span>NFL · LIVE CLOCK</span><strong>MAKE THE CALL</strong><em>Keep the streak alive</em></div>' +
     '<div class="speed-header"><div>Session: <span id="speed-session-timer">' + fmtTime(s.sessionTimeLeft) + '</span></div><div>Score: ' + s.score + '</div><div>Streak: ' + s.streak + '</div></div>' +
     '<div class="speed-qbar"><div class="speed-qbar-fill" id="speed-qbar-fill" style="width:' + qPct + '%"></div></div>' +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<section class="stadium-question-card"><div class="stadium-question-kicker">NEXT SNAP</div><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
       var cls = 'quiz-option';
@@ -4432,7 +4437,8 @@ function renderSpeedPlaying() {
 }
 function renderSpeedSummary() {
   var s = state.speed;
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--speed">' +
+    '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">FINAL WHISTLE</h2></div>' +
     '<h2 class="panel-title">NFL Speed Complete</h2>' +
     '<div class="summary-score">' + s.score + ' pts &middot; ' + s.correctCount + ' / ' + s.totalCount + ' correct &middot; best streak ' + s.bestStreak + '</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -4867,10 +4873,11 @@ function renderCfbSpeedPlaying() {
   var s = state.cfbSpeed, q = currentCfbSpeedQuestion();
   var answered = s.answeredIndex !== null;
   var qPct = Math.max(0, Math.min(100, 100 * s.qTimeLeft / s.qLen));
-  return '<div class="panel">' + modeToolbarHtml('cfbSpeed', s.ranked) +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--speed classic-broadcast--cfb">' + modeToolbarHtml('cfbSpeed', s.ranked) +
+    '<div class="classic-broadcast-marquee"><span>CFB · LIVE CLOCK</span><strong>MAKE THE CALL</strong><em>Keep the streak alive</em></div>' +
     '<div class="speed-header"><div>Session: <span id="cfb-speed-session-timer">' + fmtTime(s.sessionTimeLeft) + '</span></div><div>Score: ' + s.score + '</div><div>Streak: ' + s.streak + '</div></div>' +
     '<div class="speed-qbar"><div class="speed-qbar-fill" id="cfb-speed-qbar-fill" style="width:' + qPct + '%"></div></div>' +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<section class="stadium-question-card"><div class="stadium-question-kicker">NEXT SNAP</div><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
       var cls = 'quiz-option';
@@ -4885,7 +4892,8 @@ function renderCfbSpeedPlaying() {
 }
 function renderCfbSpeedSummary() {
   var s = state.cfbSpeed;
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--speed classic-broadcast--cfb">' +
+    '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">FINAL WHISTLE</h2></div>' +
     '<h2 class="panel-title">CFB Speed Round Complete</h2>' +
     '<div class="summary-score">' + s.score + ' pts &middot; ' + s.correctCount + ' / ' + s.totalCount + ' correct &middot; best streak ' + s.bestStreak + '</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -5041,8 +5049,8 @@ function renderSilhouetteSetup() {
 }
 function renderSilhouetteRound() {
   var s = state.silhouette, p = s.queue[s.index];
-  var html = '<div class="panel">' + modeToolbarHtml('silhouette', s.ranked) +
-    '<h2 class="panel-title">NFL Silhouette &middot; ' + (s.index + 1) + ' / ' + s.queue.length + ' &middot; ' + s.score + ' pts</h2>' +
+  var html = '<div class="panel stadium-game classic-broadcast classic-broadcast--silhouette">' + modeToolbarHtml('silhouette', s.ranked) +
+    '<div class="classic-broadcast-marquee"><span>NFL · MYSTERY PLAYER</span><strong>WHO IS IT?</strong><em>Player ' + (s.index + 1) + ' / ' + s.queue.length + ' · ' + s.score + ' pts</em></div>' +
     renderSilhouetteStage(p, s.itemState === 'revealed' ? '#d9a63c' : '#c9d3e6');
   if (s.itemState === 'revealed') {
     html += '<div class="silhouette-reveal">' + esc(p.name) + (s.lastPoints ? ' — +' + s.lastPoints + ' pts' : ' — no points') + '</div>' +
@@ -5076,7 +5084,8 @@ function renderSilhouetteSummary() {
   // only ever showing up as a lifetime-best stat.
   var quickGuesses = s.results.filter(function (r) { return r.correct && r.points >= 80; });
   var missed = s.results.filter(function (r) { return !r.correct; });
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game classic-broadcast classic-broadcast--silhouette">' +
+    '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' + icon('trophy') + ' <h2 class="complete-banner-text">MYSTERY SOLVED</h2></div>' +
     '<h2 class="panel-title">NFL Silhouette Round Complete</h2>' +
     '<div class="summary-score">' + s.score + ' pts &middot; ' + correctCount + ' / ' + s.queue.length + ' guessed</div>' +
     (quickGuesses.length ? '<div class="iq-insight">' + icon('zap') + ' ' + quickGuesses.length + ' quick guess' + (quickGuesses.length === 1 ? '' : 'es') + ' (1 clue or less): <b>' + quickGuesses.map(function (r) { return esc(r.name); }).join(', ') + '</b></div>' : '') +
@@ -5957,25 +5966,7 @@ function legendsPerfectScore() {
   var maxWR = byPos.WR[2] || byPos.WR[0] || 22;
   var maxTE = byPos.TE[2] || byPos.TE[0] || 18;
   var maxFlex = Math.max(byPos.RB[3] || maxRB, byPos.WR[3] || maxWR, maxTE);
-  var theoretical = maxQB + maxRB * 2 + maxWR * 2 + maxTE + maxFlex + 6;
-  // Real fix #2 (user reported the ceiling was STILL too high even after the
-  // above): the "3rd-best-at-every-slot" theoretical value above still isn't
-  // what a real draft can reach, because the game rolls a random TEAM-SEASON
-  // each round, not an independent random player per position -- you can't
-  // choose to land the 3rd-best QB AND the 3rd-best RB AND the 3rd-best WR
-  // all in the same 7-round draft, since those values almost never come off
-  // the same real roster. Ran a 50,000-draft Monte Carlo of the actual roll
-  // -> legal-pick -> reroll-if-weak -> chemistry pipeline in this file
-  // (using the real 166-team-season pool and a reroll-aware "skilled" bot
-  // strategy) to see what a genuinely well-played draft can score: median
-  // ~135, 95th percentile ~155, 99th percentile ~163, out of this
-  // "theoretical" ~185. 0.876 is that empirical 99th-percentile-skilled
-  // score divided by the theoretical formula's output for the same pool
-  // (163/185), i.e. this formula's shape is kept (so it still scales
-  // sensibly if the team pool changes) but rescaled to what a top-~1%
-  // skilled, lucky run can actually clear, instead of a number only the
-  // single best run in tens of thousands ever touched.
-  LEGENDS_PERFECT_SCORE = theoretical * 0.876;
+  LEGENDS_PERFECT_SCORE = maxQB + maxRB * 2 + maxWR * 2 + maxTE + maxFlex + 6;
   return LEGENDS_PERFECT_SCORE;
 }
 function legendsRollEntry() { return LEGENDS_TEAMS[Math.floor(Math.random() * LEGENDS_TEAMS.length)]; }
@@ -6097,19 +6088,7 @@ function finishLegends() {
     finalTotal += p.finalFppg;
   });
   var perfect = legendsPerfectScore();
-  var rawPct = Math.max(0, Math.min(1, finalTotal / perfect));
-  // Same Monte Carlo run behind the recalibrated perfect score above also
-  // showed WHY a plain linear pct->wins mapping can't work here even with a
-  // realistic perfect score: real draft outcomes cluster in a narrow band
-  // (a 99th-percentile run is only ~20% ahead of a median one), so any
-  // straight line from 0 to 1 either bunches everyone into the same few
-  // records or, if stretched to let great runs reach 17-0, drags the median
-  // run up to 17-0 range right along with it. Raising pct to the 2.6 power
-  // stretches that narrow band out: an average draft (rawPct ~0.83) lands
-  // around 10-11 wins (a real, playoff-caliber but beatable season) while a
-  // top-tier skilled+lucky draft (rawPct ~0.97+) is what actually reaches
-  // 16-17 wins -- verified against the same 50,000-draft simulation.
-  var pct = Math.pow(rawPct, 2.6);
+  var pct = Math.max(0, Math.min(1, finalTotal / perfect));
   var wins = Math.round(17 * pct);
   var losses = 17 - wins;
   var g = legendsGrade(pct);
@@ -6445,17 +6424,6 @@ function cfbLegendsCalcChemistry(picks) {
       if (metaA.signingClass && metaA.signingClass === metaB.signingClass) { pairBonus += 1; reasons.push('Same Signing Class (+1)'); }
       var teamsA = cfbLegendsPlayerTeams(a.name), teamsB = cfbLegendsPlayerTeams(b.name);
       if (teamsA.some(function (t) { return teamsB.indexOf(t) !== -1; })) { pairBonus += 1; reasons.push('Past Teammates (+1)'); }
-      // New (user request): reward two draftees who went on to real NFL
-      // careers with the SAME real franchise (not necessarily overlapping
-      // years -- unlike Same Team above, which is this-pool-only and
-      // requires the identical team-YEAR entry). metaA.nflTeams/metaB.nflTeams
-      // are researched, sourced facts in CFB_PLAYER_META (real regular-season
-      // rosters, per Pro-Football-Reference/Wikipedia) -- left undefined for
-      // any player with no verified NFL career rather than guessed, so this
-      // bonus simply stays dormant for them (same pattern as signingClass above).
-      if (metaA.nflTeams && metaB.nflTeams && metaA.nflTeams.some(function (t) { return metaB.nflTeams.indexOf(t) !== -1; })) {
-        pairBonus += 2; reasons.push('Same NFL Team (+2)');
-      }
       if (legendsDuoMatch(CFB_LEGENDS_DUOS.legendary, a.name, b.name)) { pairBonus += 2; reasons.push('Legendary Connection (+2)'); }
       else if (legendsDuoMatch(CFB_LEGENDS_DUOS.elite, a.name, b.name)) { pairBonus += 1; reasons.push('Elite Connection (+1)'); }
       if (pairBonus > 0) {
@@ -6583,7 +6551,7 @@ function renderCfbLegendsSetup() {
   return '<div class="panel game-intro game-intro-legends">' +
     '<div class="game-intro-icon">' + icon('trophy') + '</div><div class="game-intro-eyebrow">Build a national champion</div>' +
     '<h2 class="game-intro-title">Can You Go 12–0?</h2>' +
-    '<p class="game-intro-copy">Eight team-seasons. Eight picks. Build an offense, add a defense, stack chemistry (including two picks who went on to the same real NFL team), and chase an undefeated regular season.</p>' +
+    '<p class="game-intro-copy">Eight team-seasons. Eight picks. Build an offense, add a defense, stack chemistry, and chase an undefeated regular season.</p>' +
     '<div class="game-intro-features"><span>' + icon('users') + '<b>8-player</b> roster</span><span>' + icon('sync') + '<b>2 rerolls</b> total</span><span>' + icon('trophy') + '<b>Playoff</b> finish</span></div>' +
     '<div class="legends-intro-record"><span>0–0</span><i>YOUR TITLE RUN STARTS HERE</i><span>12–0</span></div>' +
     rankedToggleHtml('cfbLegends') +
