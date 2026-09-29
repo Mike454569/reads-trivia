@@ -866,7 +866,7 @@ function renderEnginePilotPromptHtml(game, s) {
       if (rivalryMatch) { boardTitle = rivalryMatch[1]; question = rivalryMatch[2]; }
     } else if (s.modeKey === 'oneSchoolMissing') {
       var missingMatch = /^Here are (\d+) of the colleges from (.+?): (.+)\. Which real college from that group is missing\?$/i.exec(question);
-      if (missingMatch) { boardTitle = missingMatch[2]; boardDetail = missingMatch[1] + ' REVEALED'; question = 'Which real college from that group is missing?'; }
+      if (missingMatch) { boardTitle = missingMatch[2].replace(/^the /i, '').replace(/' real starting offense$/i, ''); boardDetail = missingMatch[1] + ' REVEALED'; question = 'Which real college from that group is missing?'; }
     } else if (s.modeKey === 'lineup' || s.modeKey === 'offenseCollege') {
       var lineupSeason = game.payload.visual_payload && game.payload.visual_payload.season;
       if (lineupSeason) boardDetail = String(lineupSeason) + (s.modeKey === 'offenseCollege' ? ' PROJECTED OFFENSE' : ' STARTING OFFENSE');
