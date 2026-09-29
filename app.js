@@ -4146,7 +4146,7 @@ function renderBlitzPlaying() {
   var b = state.blitz, total = b.list.answers.length;
   return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz">' + modeToolbarHtml('blitz', b.ranked) +
     '<div class="classic-broadcast-marquee"><span>NFL · LIGHTNING ROUND</span><strong>' + esc(b.list.title) + '</strong><em>' + esc(b.list.prompt) + '</em></div>' +
-    '<div class="blitz-header"><div class="blitz-title">' + esc(b.list.title) + '</div><div class="blitz-timer" id="blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
+    '<div class="blitz-header"><div class="blitz-title">TIME REMAINING</div><div class="blitz-timer" id="blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
     '<div class="blitz-progress">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="blitz-input-row">' +
     '<input id="blitz-input" autocomplete="off" placeholder="Type an answer and hit Enter…" value="' + esc(b.input) + '" autofocus />' +
@@ -4276,7 +4276,7 @@ function renderCfbBlitzPlaying() {
   var b = state.cfbBlitz, total = b.list.answers.length;
   return '<div class="panel stadium-game classic-broadcast classic-broadcast--blitz classic-broadcast--cfb">' + modeToolbarHtml('cfbBlitz', b.ranked) +
     '<div class="classic-broadcast-marquee"><span>CFB · LIGHTNING ROUND</span><strong>' + esc(b.list.title) + '</strong><em>' + esc(b.list.prompt) + '</em></div>' +
-    '<div class="blitz-header"><div class="blitz-title">' + esc(b.list.title) + '</div><div class="blitz-timer" id="cfb-blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
+    '<div class="blitz-header"><div class="blitz-title">TIME REMAINING</div><div class="blitz-timer" id="cfb-blitz-timer-display">' + fmtTime(b.timeLeft) + '</div></div>' +
     '<div class="blitz-progress">' + b.matched.length + ' / ' + total + ' found</div>' +
     '<div class="blitz-input-row">' +
     '<input id="cfb-blitz-input" autocomplete="off" placeholder="Type an answer and hit Enter…" value="' + esc(b.input) + '" autofocus />' +

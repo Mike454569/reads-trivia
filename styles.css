@@ -3179,6 +3179,8 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .classic-broadcast--speed .quiz-option { min-height: 65px; margin: 0; border-radius: 2px; font: 700 16px/1.2 var(--font-display); }
 .classic-broadcast--silhouette .classic-broadcast-marquee { background: radial-gradient(circle at 78% 50%,rgba(169,180,189,.17),transparent 43%),#111a1a; }
 .classic-broadcast--silhouette .silhouette-stage { height: 250px; margin-bottom: 12px; border: 1px solid rgba(217,166,60,.3); background: radial-gradient(circle at center,rgba(217,166,60,.12),transparent 53%),linear-gradient(90deg,transparent 49.8%,rgba(217,166,60,.17) 50%,transparent 50.2%),#101811; }
+.classic-broadcast--silhouette .silhouette-photo { filter: brightness(0) drop-shadow(0 0 2px rgba(255,255,255,.86)) drop-shadow(0 0 12px rgba(217,166,60,.48)); }
+.classic-broadcast--silhouette .silhouette-svg { filter: drop-shadow(0 0 10px rgba(217,166,60,.35)); }
 .classic-broadcast--silhouette .silhouette-clue { border-radius: 2px; border-left: 4px solid var(--accent); background: #172019; animation: roulette-pop .35s ease-out both; }
 .classic-broadcast--silhouette .silhouette-reveal { padding: 13px; border: 1px solid rgba(217,166,60,.55); background: rgba(217,166,60,.13); color: var(--text); font: 700 25px var(--font-display); animation: roulette-pop .45s ease-out both; }
 .classic-broadcast--silhouette .grid-answer-box { padding: 12px; border: 1px solid rgba(169,180,189,.25); background: #121b15; }
