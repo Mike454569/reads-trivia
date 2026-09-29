@@ -816,7 +816,7 @@ function highlightRankNumbers(promptText) {
 // cfb_three_clues_one_champion.py) -- parsed client-side into its real 3
 // clue segments. Falls back to showing the whole prompt unparsed (never
 // broken) if the real format ever doesn't match exactly 3 segments.
-var THREE_CLUES_PROMPT_RE = /^Exactly 3 real clues, 1 champion: (.+)\. Guess the Super Bowl-winning team AND season\.$/;
+var THREE_CLUES_PROMPT_RE = /^Exactly 3 real clues, 1 (?:champion|team): (.+)\. (?:Guess the Super Bowl-winning team AND season|Guess the team AND season)\.$/;
 function parseThreeCluesPrompt(prompt) {
   var m = THREE_CLUES_PROMPT_RE.exec(prompt);
   if (!m) return null;
@@ -853,7 +853,7 @@ function renderEnginePilotPromptHtml(game, s) {
     offenseCollege: ['HIDDEN NAMES', 'TRACE THE COLLEGES', 'collegeorigin'],
     lineupCollege: ['COLLEGE TRAIL', 'NAME THE NFL TEAM', 'lineupcollege'],
     sbChampionOffenseCollege: ['CHAMPIONSHIP ROSTER', 'NAME THE CHAMPION', 'sbcollege'],
-    threeClues: ['THREE CLUES', 'ONE CHAMPION', 'threeclues'],
+    threeClues: ['THREE CLUES', 'NAME THE TEAM', 'threeclues'],
     eraGauntlet: ['THROUGH THE DECADES', 'ERA GAUNTLET', 'eragauntlet'],
     franchiseMarathon: ['FRANCHISE FILE', 'MARATHON', 'marathon'],
   };
