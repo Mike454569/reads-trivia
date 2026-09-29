@@ -770,19 +770,21 @@ function renderPositionLineupBoard(payload) {
    skill positions (no OL row -- see tools/quiz_export/adapters/
    lineup_college.py for why real college data can't honestly cover the
    offensive line) and each cell shows a real COLLEGE instead of a name. */
-function renderPositionLineupCollegeBoard(payload, spotFake) {
+function renderPositionLineupCollegeBoard(payload, spotFake, projected) {
   var positions = (payload && payload.positions) || [];
   var season = payload && payload.season;
   var conferenceMembers = spotFake && positions.some(function (p) { return /^Member\s+\d+$/i.test(p.position || ''); });
+  var hasOffensiveLine = positions.some(function (p) { return /^(LT|LG|C|RG|RT)$/i.test(p.position || ''); });
   function cell(p) {
     return '<div class="lineup-cell"><div class="lineup-pos">' + esc(p.position) + '</div>' +
       '<div class="lineup-name">' + esc(p.college) + '</div></div>';
   }
   return '<div class="lineup-board' + (spotFake ? ' spotfake-lineup' : '') + '">' +
     '<div class="lineup-board-eyebrow">' + icon('users') + ' ' +
-    (conferenceMembers ? 'Conference members' : (spotFake ? 'Lineup by college' : 'Starting Offense (by college, names hidden)')) +
+    (conferenceMembers ? 'Conference members' : (spotFake ? 'Lineup by college' :
+      (projected ? 'Projected offense by college' : 'Starting offense (by college, names hidden)'))) +
     (season ? ' &middot; ' + esc(String(season)) : '') + '</div>' +
-    '<div class="lineup-row-label">' + (conferenceMembers ? 'Find the swapped school' : 'Skill Positions') + '</div>' +
+    '<div class="lineup-row-label">' + (conferenceMembers ? 'Find the swapped school' : (hasOffensiveLine ? 'Offensive lineup' : 'Skill Positions')) + '</div>' +
     '<div class="lineup-row">' + positions.map(cell).join('') + '</div>' +
     '</div>';
 }
@@ -838,6 +840,11 @@ function renderEnginePilotPromptHtml(game, s) {
     cfbRivalry: ['RIVALRY WEEK', 'THE MATCHUP', 'rivalry'],
     cfbRivalryLookup: ['RIVALRY FILE', 'KNOW THE HISTORY', 'rivalfile'],
     spotTheFake: ['ROSTER AUDIT', 'FIND THE FAKE', 'spotfake'],
+    cfbGameResult: ['SATURDAY REPLAY', 'PICK THE WINNER', 'saturday'],
+    oddCollegeOut: ['OUTLIER SCAN', 'ONE DOESN’T BELONG', 'oddcollege'],
+    oneSchoolMissing: ['MISSING SLOT', 'COMPLETE THE GROUP', 'schoolmissing'],
+    lineup: ['LINEUP REVEAL', 'NAME THE TEAM', 'lineup'],
+    offenseCollege: ['HIDDEN NAMES', 'TRACE THE COLLEGES', 'collegeorigin'],
   };
   var broadcast = s && broadcastModes[s.modeKey];
   if (broadcast) {
@@ -851,13 +858,28 @@ function renderEnginePilotPromptHtml(game, s) {
     } else if (s.modeKey === 'cfbRivalry') {
       var rivalryMatch = /^([^:]{3,90}):\s*(.+)$/.exec(question);
       if (rivalryMatch) { boardTitle = rivalryMatch[1]; question = rivalryMatch[2]; }
+    } else if (s.modeKey === 'oneSchoolMissing') {
+      var missingMatch = /^Here are 3 of the colleges from (.+?): (.+)\. Which real college from that group is missing\?$/i.exec(question);
+      if (missingMatch) { boardTitle = missingMatch[1]; boardDetail = 'THREE OF FOUR REVEALED'; question = 'Which real college from that group is missing?'; }
+    } else if (s.modeKey === 'lineup' || s.modeKey === 'offenseCollege') {
+      var lineupSeason = game.payload.visual_payload && game.payload.visual_payload.season;
+      if (lineupSeason) boardDetail = String(lineupSeason) + (s.modeKey === 'offenseCollege' ? ' PROJECTED OFFENSE' : ' STARTING OFFENSE');
     }
     return '<div class="pilot-broadcast-board pilot-broadcast-board--' + broadcast[2] + '">' +
       '<span>' + broadcast[0] + '</span><strong>' + esc(boardTitle) + '</strong>' +
       (boardDetail ? '<em>' + esc(boardDetail) + '</em>' : '') +
-      '<i aria-hidden="true"></i></div>' + stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' : 'MAKE THE CALL', question) +
+      '<i aria-hidden="true"></i></div>' +
+      (s.modeKey === 'oneSchoolMissing' && missingMatch ? '<div class="pilot-missing-list">' + missingMatch[2].split(', ').map(function (school) {
+        return '<span>' + esc(school) + '</span>';
+      }).join('') + '<span class="is-unknown">?</span></div>' : '') +
+      stadiumQuestionHtml(s.modeKey === 'spotTheFake' ? 'ONE SLOT IS WRONG' :
+        (s.modeKey === 'oddCollegeOut' ? 'FIND THE OUTLIER' : 'MAKE THE CALL'), question) +
       (s.modeKey === 'spotTheFake' && game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
-        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, true) : '');
+        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, true) : '') +
+      (s.modeKey === 'lineup' && game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload
+        ? renderPositionLineupBoard(game.payload.visual_payload) : '') +
+      (s.modeKey === 'offenseCollege' && game.payload.visual_template === 'POSITION_LINEUP_COLLEGE' && game.payload.visual_payload
+        ? renderPositionLineupCollegeBoard(game.payload.visual_payload, false, true) : '');
   }
   if (game.payload.visual_template === 'POSITION_LINEUP' && game.payload.visual_payload) {
     return '<div class="quiz-question">' + promptHtml + '</div>' +
@@ -1067,7 +1089,8 @@ function renderEnginePilotScreen() {
   // this one mode via its modeKey, since the shared shell below is
   // otherwise identical across all ~12 Engine Pilot modes.
   var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset',
-    championship: 'postseason', heisman: 'heisman', cfbRivalry: 'rivalry', cfbRivalryLookup: 'rivalfile', spotTheFake: 'spotfake' }[s.modeKey];
+    championship: 'postseason', heisman: 'heisman', cfbRivalry: 'rivalry', cfbRivalryLookup: 'rivalfile', spotTheFake: 'spotfake',
+    cfbGameResult: 'saturday', oddCollegeOut: 'oddcollege', oneSchoolMissing: 'schoolmissing', lineup: 'lineup', offenseCollege: 'collegeorigin' }[s.modeKey];
   var panelCls = 'panel' + (s.modeKey === 'cfbUpset' ? ' upset-panel' : '') +
     (broadcastVariant ? ' stadium-game pilot-broadcast-game pilot-broadcast-game--' + broadcastVariant : '');
   // Section 7 (progress should match the mechanic): a sequential mode's
