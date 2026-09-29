@@ -837,6 +837,7 @@ function renderThreeCluesProgressiveHtml(game, revealedCount) {
 function renderEnginePilotPromptHtml(game, s) {
   var promptHtml = highlightRankNumbers(game.payload.prompt);
   var broadcastModes = {
+    draft: ['NFL DRAFT ARCHIVE', 'NAME THE TEAM', 'draftarchive'],
     nflGameResult: ['FINAL SCORE', 'PICK THE WINNER', 'result'],
     nflGameBoxscore: ['BOX SCORE', 'YARDAGE BATTLE', 'boxscore'],
     cfbRanking: ['AP POLL', 'FILL THE RANK', 'poll'],
@@ -935,6 +936,7 @@ function enginePilotToolbarHtml(cfg, extraOpts) {
 function renderEnginePilotScreen() {
   var s = state.enginePilot;
   var cfg = enginePilotModeConfig(s ? s.modeKey : enginePilotCurrentModeKey);
+  var draftPanelClass = cfg === ENGINE_PILOT_MODES.draft ? 'panel stadium-game broadcast-finish broadcast-finish--draftarchive' : 'panel';
   if (!cfg.flagOn()) return renderHome();
   if (!s) {
     // IDLE -- state.enginePilot hasn't been created yet.
@@ -952,8 +954,8 @@ function renderEnginePilotScreen() {
         }).join('') + '</div>';
     }
     var startDisabled = cfg.needsFilterValue && !state.enginePilotPendingFranchise;
-    return '<div class="panel">' +
-      '<h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
+    return '<div class="' + draftPanelClass + '">' +
+      (cfg === ENGINE_PILOT_MODES.draft ? broadcastMarqueeHtml('NFL · DRAFT ARCHIVE', 'ON THE CLOCK', cfg.desc) : '<h2 class="panel-title">' + esc(cfg.title) + '</h2>') +
       '<p class="mode-desc">' + esc(cfg.desc) + '</p>' +
       franchiseHtml +
       '<div class="btn-row"><button class="btn-primary" data-pilot-start' + (startDisabled ? ' disabled' : '') + '>Start</button></div>' +
@@ -968,7 +970,7 @@ function renderEnginePilotScreen() {
     // while every classic-mode loading state got the real spinner --
     // inverted from what you'd expect (the newer flow actually felt
     // LESS animated). Same shared .loading-spinner, compact inline size.
-    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
+    return '<div class="' + draftPanelClass + '">' + enginePilotToolbarHtml(cfg) +
       '<div class="inline-loading" aria-live="polite"><span class="loading-spinner loading-spinner-sm"></span>Finding your next question&hellip;</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
@@ -977,7 +979,7 @@ function renderEnginePilotScreen() {
     // never an HTTP status code, never an internal error `code` like
     // GENERATION_BUSY shown as-is. aria-live="assertive" here (vs
     // "polite" elsewhere) since an error is worth interrupting for.
-    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
+    return '<div class="' + draftPanelClass + '">' + enginePilotToolbarHtml(cfg) +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row">' +
       '<button class="btn-primary" data-pilot-retry>Try Again</button>' +
@@ -1033,7 +1035,7 @@ function renderEnginePilotScreen() {
     // banner now, so every completion screen in the app -- Immaculate
     // Grid, mechanicPilot, and this shell -- reads as the same real
     // Reads moment instead of 2 different finishes.
-    return '<div class="panel">' + enginePilotToolbarHtml(cfg) +
+    return '<div class="' + draftPanelClass + '">' + enginePilotToolbarHtml(cfg) +
       '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' +
       icon('trophy') + ' <h2 class="complete-banner-text">' + esc(completeTitle) + '</h2></div>' +
       '<p class="mode-desc">' + completeStat + '</p>' +
@@ -1112,7 +1114,7 @@ function renderEnginePilotScreen() {
   // line/underdog data the actual response doesn't carry) applied only to
   // this one mode via its modeKey, since the shared shell below is
   // otherwise identical across all ~12 Engine Pilot modes.
-  var broadcastVariant = { nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset',
+  var broadcastVariant = { draft: 'draftarchive', nflGameResult: 'result', nflGameBoxscore: 'boxscore', cfbRanking: 'poll', cfbUpset: 'upset',
     championship: 'postseason', heisman: 'heisman', cfbRivalry: 'rivalry', cfbRivalryLookup: 'rivalfile', spotTheFake: 'spotfake',
     cfbGameResult: 'saturday', oddCollegeOut: 'oddcollege', oneSchoolMissing: 'schoolmissing', lineup: 'lineup', offenseCollege: 'collegeorigin',
     lineupCollege: 'lineupcollege', sbChampionOffenseCollege: 'sbcollege', threeClues: 'threeclues', eraGauntlet: 'eragauntlet', franchiseMarathon: 'marathon' }[s.modeKey];
@@ -2181,6 +2183,7 @@ function mechanicPilotToolbarHtml(cfg, s) {
 }
 
 var _STADIUM_BROADCAST_KINDS = {
+  draft_pick_ladder: 'draftladder',
   sorting: 'order',
   comparison: 'bracket',
   knockout_bracket: 'knockout',
@@ -3139,8 +3142,9 @@ function renderMysteryRosterBody(v, s) {
 // DRAFT_PICK_LADDER: reuses renderCandidateCardsHtml, same as
 // PICK_THE_IMPOSTOR/THREE_STRIKES -- zero new CSS.
 function renderDraftPickLadderBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">What real overall pick was ' + esc(v.player_name) + ' drafted with in the real ' + v.season + ' NFL Draft?</div>' +
+  return stadiumRoundBar('DRAFT ARCHIVE', v.round_index + 1, v.round_count) +
+    stadiumModeIntroHtml('ON THE CLOCK', v.player_name, v.season + ' NFL DRAFT') +
+    stadiumQuestionHtml('NAME THE PICK', 'What overall pick was ' + v.player_name + ' drafted with?') +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-draft-pick-ladder-pick',
     });

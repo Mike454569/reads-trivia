@@ -189,13 +189,14 @@ function renderPickemScreen() {
   var s = state.pickem;
   if (!s) return '';
   var leagueTitle = s.league === 'NFL' ? "NFL Pick'em" : "CFB Pick'em";
+  var panelClass = 'panel stadium-game broadcast-finish broadcast-finish--pickem' + (s.league === 'CFB' ? ' broadcast-finish--cfb' : '');
   if (s.screen === 'LOADING') {
-    return '<div class="panel loading-panel" aria-busy="true">' +
+    return '<div class="' + panelClass + ' loading-panel" aria-busy="true">' +
       renderReadsShellHeader({ icon: 'versus', title: leagueTitle }) +
       '<div class="status-line">Loading this week\'s slate…</div></div>';
   }
   if (s.screen === 'ERROR') {
-    return '<div class="panel">' + renderReadsShellHeader({ icon: 'versus', title: leagueTitle }) +
+    return '<div class="' + panelClass + '">' + renderReadsShellHeader({ icon: 'versus', title: leagueTitle }) +
       '<div class="quiz-feedback">' + esc(s.error.text) + '</div>' +
       '<div class="btn-row"><button class="btn-primary" data-pickem-retry>Try Again</button>' +
       '<button class="btn-secondary" data-go="home">Home</button></div></div>';
@@ -209,14 +210,16 @@ function renderPickemScreen() {
   };
   if (v.graded_count > 0) headerOpts.badge = v.correct_count + '/' + v.graded_count + ' correct';
   if (s.league === 'CFB') headerOpts.difficulty = PICKEM_SLATE_LABELS[s.slate];
-  var header = '<div class="panel">' + renderReadsShellHeader(headerOpts) +
+  var header = '<div class="' + panelClass + '">' + renderReadsShellHeader(headerOpts) +
+    broadcastMarqueeHtml(s.league + ' · WEEK ' + v.week, 'PICK YOUR WINNERS', v.season + ' SEASON · Picks lock when games start') +
+    broadcastScorebugHtml([['PICKED', v.picks_made + '/' + v.game_count], ['CORRECT', v.correct_count], ['GRADED', v.graded_count]]) +
     renderPickemSeasonRecordHtml(s) +
     (s.league === 'CFB' ? renderPickemSlateChips(s) : '') +
     (s.lastPickError ? '<div class="quiz-feedback">' + esc(s.lastPickError) + '</div>' : '') +
     (allGraded ? renderPickemCompletionSummary(v) : '') +
     '</div>';
   var cards = v.games.map(function (g) { return pickemGameCardHtml(g, s); }).join('');
-  return header + cards + '<div class="btn-row"><button class="btn-secondary" data-go="home">Exit to Home</button></div>';
+  return '<div class="broadcast-pickem-slate">' + header + (cards || '<div class="' + panelClass + '"><p class="mode-desc">No games on this slate yet. Check back for the next matchups.</p></div>') + '<div class="btn-row"><button class="btn-secondary" data-go="home">Exit to Home</button></div></div>';
 }
 
 // Section 8: shown once every game on the current slate view has a real
@@ -249,7 +252,7 @@ function renderPickemSeasonRecordHtml(s) {
   // "correct/graded" rather than a "W-L" record -- graded_count includes
   // real TIE outcomes (mechanic_engine.py), which aren't losses; this
   // stays accurate without needing a 3rd tie-count field from the backend.
-  return '<div class="status-line">' + icon('trophy') + ' Season record: ' + r.total_correct + '/' + r.total_graded +
+  return '<div class="status-line broadcast-season-record">' + icon('trophy') + ' Season record: ' + r.total_correct + '/' + r.total_graded +
     ' correct (' + pct + '%) across ' + r.weeks_played + ' week' + (r.weeks_played === 1 ? '' : 's') + '</div>';
 }
 
@@ -333,13 +336,14 @@ function pickemGameCardHtml(g, s) {
   var outcomeText = g.your_pick && g.outcome ? PICKEM_OUTCOME_COPY[g.outcome] : null;
   var outcome = outcomeText ? '<div class="quiz-feedback">' + esc(outcomeText) + '</div>' : '';
 
-  return '<div class="panel pickem-game-card">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--pickem pickem-game-card' + (s.league === 'CFB' ? ' broadcast-finish--cfb' : '') + (isFinal ? ' pickem-game-final' : '') + '">' +
     '<div class="pickem-game-status-row">' + statusChip + '</div>' +
     renderBinaryChoiceHtml(
       side(g.away_team_code, g.away_team, false),
       side(g.home_team_code, g.home_team, true),
       { dataAttr: 'data-pickem-team', disabled: disabled, extraAttrs: 'data-pickem-game="' + esc(g.game_id) + '"' }
     ) +
+    (g.your_pick ? '<div class="broadcast-pick-confirmation">' + icon('check') + ' YOUR PICK: <b>' + esc(g.your_pick === g.home_team_code ? g.home_team : g.away_team) + '</b></div>' : '') +
     outcome +
     '</div>';
 }

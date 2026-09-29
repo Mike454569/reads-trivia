@@ -3192,3 +3192,220 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .classic-broadcast--speed .speed-header span { font-size: 20px; }
   .classic-broadcast--silhouette .silhouette-stage { height: 210px; }
 }
+
+/* Final home-mode broadcast pass. All selectors stay inside these games. */
+.broadcast-finish {
+  --good: #82dba3; --bad: #ff8c99; --accent: #e6b650; --accent-text: #14190e;
+  --home-accent: #e6b650; --home-accent-2: #b43448;
+  --home-glow-rgb: 230,182,80; --home-glow-rgb-2: 180,52,72;
+  border-radius: 8px; padding: clamp(16px,3vw,25px);
+}
+.broadcast-finish .panel-title { color: var(--text); font-family: var(--font-display); }
+.broadcast-finish .btn-secondary, .broadcast-finish .btn-tiny, .broadcast-finish .chip-toggle {
+  background: #18231b; color: var(--text); border-color: #405043;
+}
+.broadcast-finish .chip-toggle.active { background: #e6b650; color: #14190e; border-color: #e6b650; }
+.broadcast-finish input, .broadcast-finish select { background: #121c15; color: var(--text); border-color: #405043; }
+.broadcast-finish input::placeholder { color: #a9b4ad; }
+.broadcast-finish .btn-primary { color: #14190e; }
+.broadcast-finish :is(button,input,select):focus-visible { outline: 2px solid #f8de9b; outline-offset: 3px; }
+.broadcast-finish .classic-broadcast-marquee { border-radius: 3px; margin-top: 6px; }
+.broadcast-finish--cfb .classic-broadcast-marquee { background: repeating-linear-gradient(90deg,rgba(230,182,80,.04) 0 2px,transparent 2px 42px),linear-gradient(120deg,#292018,#101913); }
+.broadcast-finish--scheme .classic-broadcast-marquee { background: repeating-linear-gradient(0deg,transparent 0 23px,rgba(130,219,163,.06) 24px),linear-gradient(120deg,#193623,#101813); border-color: #82dba3; }
+.broadcast-marquee-compact { min-height: 84px; padding: 13px 16px; }
+.broadcast-marquee-compact strong { font-size: clamp(23px,5.5vw,32px); }
+.broadcast-scorebug { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; margin: 10px 0 16px; overflow: hidden; border: 1px solid #405043; border-radius: 3px; background: #405043; }
+.broadcast-scorebug > div { min-width: 0; padding: 12px 10px; display: flex; flex-direction: column; justify-content: center; gap: 5px; background: #142018; }
+.broadcast-scorebug span { color: #a9b4ad; font: 700 9px/1.2 var(--font-display); letter-spacing: .13em; }
+.broadcast-scorebug strong { color: #f4f7f1; font: 700 clamp(15px,3.5vw,22px)/1.15 var(--font-display); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.broadcast-scorebug > div:first-child { background: #262518; box-shadow: inset 0 -3px #e6b650; }
+.broadcast-scorebug > div:first-child strong { color: #e6b650; }
+.broadcast-finish .game-progress { height: 4px; margin: -11px 0 17px; background: #26372b; border-radius: 0; }
+.broadcast-finish .game-progress > span { background: #e6b650; }
+.broadcast-finish :is(.quiz-progress,.quiz-progress-row) { margin: 9px 0; }
+.broadcast-finish :is(.quiz-options) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.broadcast-finish .quiz-option { display: flex; align-items: center; gap: 11px; min-height: 69px; margin: 0; padding: 12px; border-radius: 3px; font: 600 17px/1.3 var(--font-display); text-align: left; overflow-wrap: anywhere; }
+.broadcast-option-letter { flex: 0 0 29px; height: 29px; display: grid; place-items: center; border: 1px solid #64715e; color: #e6b650; background: #0c140f; font-size: 14px; }
+.broadcast-finish .quiz-option.correct { background: #183626; border-color: #82dba3; box-shadow: inset 4px 0 #82dba3; }
+.broadcast-finish .quiz-option.wrong { background: #392027; border-color: #ff8c99; box-shadow: inset 4px 0 #ff8c99; }
+.broadcast-finish .quiz-option:disabled { opacity: .8; }
+.broadcast-finish .quiz-option:is(.correct,.wrong):disabled { opacity: 1; }
+.broadcast-official-call { position: relative; margin: 17px 0 11px; padding: 16px 19px; border: 1px solid; border-left-width: 5px; overflow: hidden; animation: broadcast-call-in .5s cubic-bezier(.16,1,.3,1) both; }
+.broadcast-official-call span { display: block; font: 700 9px var(--font-display); letter-spacing: .16em; }
+.broadcast-official-call strong { display: block; margin-top: 5px; font: 700 clamp(25px,6vw,39px)/1 var(--font-display); }
+.broadcast-call-good { border-color: #82dba3; background: linear-gradient(110deg,#1b3825,#101c14); color: #b0f2c5; }
+.broadcast-call-bad { border-color: #ff8c99; background: linear-gradient(110deg,#3b1c26,#1c1318); color: #ffc0c8; }
+.broadcast-official-call::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg,transparent 35%,rgba(255,255,255,.13),transparent 65%); transform: translateX(-100%); animation: broadcast-sting-sweep .75s .15s ease-out both; pointer-events: none; }
+.broadcast-result { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 205px; margin: 8px 0 20px; padding: 24px 18px; border: 1px solid #6a5730; border-top: 4px solid #e6b650; border-radius: 3px; background: radial-gradient(ellipse at 50% 100%,rgba(230,182,80,.17),transparent 67%),#101910; overflow: hidden; text-align: center; animation: broadcast-result-in .65s cubic-bezier(.16,1,.3,1) both; }
+.broadcast-result-kicker { z-index: 1; color: #e6b650; font: 700 10px var(--font-display); letter-spacing: .16em; }
+.broadcast-result-score { z-index: 1; margin: 9px 0; color: #f4f7f1; font: 700 clamp(66px,17vw,106px)/1 var(--font-display); letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.broadcast-result-label { z-index: 1; max-width: 34ch; color: #c4cec6; font: 600 17px/1.35 var(--font-display); }
+.broadcast-result-celebrate { border-color: #e6b650; box-shadow: 0 0 32px rgba(230,182,80,.13); }
+.broadcast-result-sparks { position: absolute; inset: 0; pointer-events: none; }
+.broadcast-result-sparks i { position: absolute; top: -12px; left: 14%; width: 6px; height: 13px; background: #e6b650; animation: broadcast-spark-fall 1.5s .1s ease-in both; }
+.broadcast-result-sparks i:nth-child(2) { left: 28%; animation-delay: .3s; background: #82dba3; }
+.broadcast-result-sparks i:nth-child(3) { left: 43%; animation-delay: .15s; }
+.broadcast-result-sparks i:nth-child(4) { left: 58%; animation-delay: .4s; background: #f4f7f1; }
+.broadcast-result-sparks i:nth-child(5) { left: 74%; animation-delay: .2s; }
+.broadcast-result-sparks i:nth-child(6) { left: 87%; animation-delay: .35s; background: #b43448; }
+.broadcast-finish .quiz-missed-row, .broadcast-finish .grid-recap-row { border-color: #405043; background: #142018; border-radius: 3px; }
+.broadcast-finish .game-intro-icon { border-radius: 3px; transform: none; background: #e6b650; color: #14190e; }
+.broadcast-finish.game-intro { background-color: #090d0a; }
+.broadcast-finish.game-intro::after { inset: auto 0 0; height: 3px; background: #e6b650; }
+.broadcast-finish .game-intro-cta { min-width: min(280px,100%); }
+
+/* A complete 3x3 board, with row/column labels and an explicit active match. */
+.broadcast-finish--grid .grid-stage { background: repeating-linear-gradient(0deg,transparent 0 27px,rgba(130,219,163,.025) 28px),#101e15; border-color: #3d5140; border-radius: 3px; }
+.broadcast-finish--grid .grid-table { grid-template-columns: minmax(65px,.85fr) repeat(3,minmax(0,1fr)); gap: 5px; margin: 3px 0; }
+.broadcast-finish--grid .grid-header { background: #16271c; color: #d1dcd3; border-radius: 2px; border-color: #354b3b; font-family: var(--font-display); line-height: 1.2; overflow-wrap: anywhere; }
+.broadcast-finish--grid .grid-corner { background: transparent; border: 0; color: #e6b650; }
+.broadcast-finish--grid .grid-corner .icon { width: 28px; height: 28px; }
+.broadcast-finish--grid .grid-square { min-height: 90px; border-radius: 3px; border-color: #475849; background: #152019; }
+.broadcast-finish--grid .grid-square.active { border-color: #e6b650; background: #2a2918; box-shadow: inset 0 0 0 1px #e6b650,0 0 17px rgba(230,182,80,.12); }
+.broadcast-finish--grid .grid-square.correct { background: #193424; border-color: #82dba3; }
+.broadcast-finish--grid .grid-square.wrong { background: #35202a; border-color: #ff8c99; }
+.broadcast-finish--grid .grid-square .grid-answer { font: 600 14px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.broadcast-finish--grid .grid-hint { color: #b8c7bb; font-size: 10px; }
+.broadcast-grid-selection { margin-top: 12px; padding: 12px 14px; border: 1px solid #6a5730; border-left: 4px solid #e6b650; background: #232619; }
+.broadcast-grid-selection > span { display: block; color: #e6b650; font: 700 9px var(--font-display); letter-spacing: .13em; }
+.broadcast-grid-selection strong { display: block; margin-top: 5px; font: 600 18px/1.25 var(--font-display); }
+.broadcast-grid-selection i { color: #e6b650; font-style: normal; }
+.broadcast-finish--grid .grid-answer-box { padding: 12px; background: #142018; border: 1px solid #405043; }
+.broadcast-finish--grid .grid-intro-preview { transform: rotate(-4deg) scale(1.25); margin: 16px auto 30px; }
+.broadcast-finish--grid .grid-intro-preview span:nth-child(3n+1) { background: #29452d; border-color: #82dba3; }
+
+/* The IQ combine report seals results until the last answer. */
+.broadcast-finish--iq .classic-broadcast-marquee { background: linear-gradient(135deg,#24302d,#0d1715); }
+.broadcast-finish--iq .iq-breakdown-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; padding: 13px; background: #142018; border: 1px solid #354b3b; border-radius: 3px; }
+.broadcast-category-meter { grid-column: 1 / -1; height: 5px; overflow: hidden; background: #29392c; }
+.broadcast-category-meter i { display: block; height: 100%; background: #e6b650; transform-origin: left; animation: broadcast-meter-in .65s ease-out both; }
+.broadcast-finish--iq .iq-insight { padding: 13px; border-left: 3px solid #e6b650; background: #20281c; line-height: 1.6; }
+
+/* Two opposing stat boards. Hidden values are never emitted before reveal. */
+.broadcast-duel { display: grid; grid-template-columns: minmax(0,1fr) 30px minmax(0,1fr); align-items: stretch; margin: 16px 0; }
+.broadcast-finish--duel .hl-card { min-width: 0; margin: 0; padding: 24px 14px; border-radius: 3px; background: #142018; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.broadcast-finish--duel .hl-card-current { border-color: #e6b650; background: radial-gradient(ellipse at bottom,rgba(230,182,80,.12),transparent 80%),#142018; }
+.broadcast-finish--duel .hl-card-next { border-color: #547062; background: #10231c; }
+.broadcast-finish--duel .hl-name { font: 700 clamp(20px,4.5vw,29px)/1.1 var(--font-display); overflow-wrap: anywhere; }
+.broadcast-finish--duel .hl-line { margin: 8px 0; }
+.broadcast-finish--duel .hl-score { font: 700 clamp(30px,7vw,48px)/1.1 var(--font-display); color: #e6b650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.broadcast-finish--duel .hl-score-hidden { font-size: 58px; color: #97ae9e; }
+.broadcast-finish--duel .hl-vs { margin: 0; display: grid; place-items: center; color: #e6b650; font: 700 13px var(--font-display); }
+.broadcast-card-kicker { color: #a9b4ad; margin-bottom: 11px; font: 700 9px var(--font-display); letter-spacing: .13em; }
+.broadcast-finish--duel .hl-guess-btn { min-height: 62px; border-radius: 3px; background: #18291d; color: #f4f7f1; font: 700 23px var(--font-display); }
+.broadcast-finish--duel .hl-guess-btn:hover { border-color: #e6b650; background: #2a2d1c; }
+.broadcast-finish--duel .hl-card-next.correct { background: #193424; border-color: #82dba3; }
+.broadcast-finish--duel .hl-card-next.wrong { background: #35202a; border-color: #ff8c99; }
+
+/* A numbered identity file and a decisive player reveal. */
+.broadcast-finish--clues .classic-broadcast-marquee { background: linear-gradient(135deg,#29271d,#0d1715); }
+.broadcast-clue-meter { margin: 13px 0; padding: 14px; border: 1px solid #405043; background: #142018; }
+.broadcast-clue-meter b { display: block; margin-bottom: 10px; color: #a9b4ad; font: 700 10px var(--font-display); letter-spacing: .12em; }
+.broadcast-clue-meter > div { display: flex; gap: 5px; }
+.broadcast-clue-meter span { display: grid; place-items: center; flex: 1; max-width: 60px; height: 34px; color: #819488; border: 1px dashed #405043; font: 700 15px var(--font-display); }
+.broadcast-clue-meter .is-open { color: #14190e; background: #e6b650; border: 1px solid #e6b650; }
+.broadcast-finish--clues .whoami-clue { border-radius: 3px; background: #16221a; border-color: #405043; }
+.broadcast-finish--clues .whoami-clue-latest { border-color: #e6b650; box-shadow: inset 4px 0 #e6b650; animation: broadcast-clue-in .45s ease-out both; }
+.broadcast-finish--clues .whoami-clue-num { border-radius: 2px; color: #e6b650; background: #263422; font-family: var(--font-display); }
+.broadcast-finish--clues .whoami-reveal { min-height: 195px; display: flex; flex-direction: column; justify-content: center; border-radius: 3px; animation: broadcast-result-in .6s cubic-bezier(.16,1,.3,1) both; }
+.broadcast-finish--clues .whoami-reveal-name { font: 700 clamp(29px,7vw,45px)/1.1 var(--font-display); }
+.broadcast-finish--clues .whoami-reveal-correct { background: #193424; border-color: #82dba3; }
+.broadcast-finish--clues .whoami-reveal-wrong { background: #35202a; border-color: #ff8c99; }
+.broadcast-finish--clues .whoami-answer-box { padding: 12px; border: 1px solid #405043; background: #142018; }
+.broadcast-practice-note { margin: 12px 0 16px; padding: 10px 12px; color: #bcc9bd; background: #17241b; border-left: 3px solid #66784b; font-size: 12px; line-height: 1.4; }
+
+/* Roster war room: field slots, scouting cards and a projected record. */
+.broadcast-finish--roster .legends-roll-card { padding: 22px 15px; border-radius: 3px; border: 1px solid #6a5730; background: linear-gradient(110deg,#272717,#102018); animation: broadcast-clue-in .4s ease-out both; }
+.broadcast-finish--roster .legends-roll { font: 700 28px/1.2 var(--font-display); flex-wrap: wrap; }
+.broadcast-finish--roster .legends-slots { grid-template-columns: repeat(4,minmax(0,1fr)); padding: 12px; gap: 6px; border: 1px solid #38533e; background: repeating-linear-gradient(0deg,transparent 0 30px,rgba(244,247,241,.055) 31px),#102218; }
+.broadcast-finish--roster .legends-slot { min-width: 0; min-height: 72px; border-radius: 2px; border-color: #3f5946; background: #14271a; display: flex; flex-direction: column; justify-content: center; }
+.broadcast-finish--roster .legends-slot.filled { border-color: #e6b650; background: #2a2f1c; }
+.broadcast-finish--roster .legends-slot-player { overflow-wrap: anywhere; line-height: 1.2; }
+.broadcast-finish--roster .legends-slot-name { color: #e6b650; font: 700 11px var(--font-display); }
+.broadcast-section-label { display: flex; justify-content: space-between; margin: 18px 0 10px; color: #e6b650; font: 700 10px var(--font-display); letter-spacing: .12em; }
+.broadcast-section-label > span { color: #a9b4ad; }
+.broadcast-finish--roster .legends-option { border-radius: 3px; background: linear-gradient(135deg,#1c2b1f,#121c15); border-color: #405043; }
+.broadcast-finish--roster .legends-option-name { font-size: 21px; }
+.broadcast-finish--roster .legends-option-meta b { font: 700 24px var(--font-display); color: #e6b650; }
+.broadcast-finish--roster .legends-value-meter { height: 5px; border-radius: 0; }
+.broadcast-finish--roster .draft-pick-toast { padding: 13px; margin: 10px 0; background: #193424; border: 1px solid #82dba3; border-left-width: 4px; color: #b0f2c5; font: 600 17px var(--font-display); animation: broadcast-call-in .45s ease-out both; }
+.broadcast-finish--roster .legends-roster-row { background: #142018; border-color: #405043; }
+.broadcast-finish--roster .legends-roster-score { color: #e6b650; }
+.broadcast-record { margin: -7px 0 15px; padding: 13px; border: 1px solid #405043; background: #142018; }
+.broadcast-record > span { color: #a9b4ad; font: 700 9px var(--font-display); letter-spacing: .12em; }
+.broadcast-record > div { display: flex; gap: 3px; margin-top: 9px; }
+.broadcast-record > div > span { flex: 1; height: 13px; }
+.broadcast-record .record-win { background: #82dba3; }
+.broadcast-record .record-loss { background: #b43448; }
+
+/* Coach career network: the discovered path alone determines its length. */
+.broadcast-network-intro { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 25px 0; }
+.broadcast-network-intro > span, .broadcast-network-intro > b { width: 55px; height: 55px; display: grid; place-items: center; border: 1px solid #e6b650; border-radius: 3px; background: #202a19; color: #e6b650; }
+.broadcast-network-intro > b { border-style: dashed; background: #142018; font: 700 27px var(--font-display); }
+.broadcast-network-intro > i { height: 1px; width: 25px; background: #687a52; }
+.broadcast-finish--connections .sixdeg-path { padding: 15px; gap: 7px; background: #111f17; border: 1px solid #405043; border-radius: 3px; }
+.broadcast-finish--connections .sixdeg-path-node { flex: 1 1 105px; min-width: 0; border-radius: 3px; padding: 10px; background: #1c2e20; border-color: #547062; color: #f4f7f1; font: 600 16px/1.2 var(--font-display); overflow-wrap: anywhere; }
+.broadcast-finish--connections .sixdeg-path-current { border-color: #e6b650; background: #2a2d1c; }
+.broadcast-finish--connections .sixdeg-path-end { border-style: dashed; }
+.broadcast-finish--connections .sixdeg-path-node b { font: 700 9px var(--font-display); color: #a9b4ad; letter-spacing: .13em; }
+.broadcast-finish--connections .sixdeg-edges li { padding: 8px 11px; border-left: 3px solid #82dba3; background: #142018; }
+.broadcast-finish--connections .grid-answer-box { padding: 12px; border: 1px solid #405043; background: #142018; }
+
+/* Weekly matchup board: genuine final/locked status and the selected team. */
+.broadcast-pickem-slate { max-width: 100%; }
+.broadcast-finish--pickem.pickem-game-card { margin-bottom: 12px; padding: 15px; border-top: 3px solid #e6b650; }
+.broadcast-finish--pickem .pickem-game-status-row { justify-content: flex-start; margin-bottom: 13px; }
+.broadcast-finish--pickem .pickem-status-chip { padding: 6px 9px; border-radius: 2px; background: #263023; color: #d3dfd3; font-family: var(--font-display); letter-spacing: .04em; }
+.broadcast-finish--pickem .pickem-status-final { color: #b0f2c5; background: #193424; }
+.broadcast-finish--pickem .pickem-status-locked { color: #f8de9b; background: #2a2d1c; }
+.broadcast-finish--pickem .binary-choice-card { min-height: 114px; border-radius: 3px; background: #142018; border-color: #405043; }
+.broadcast-finish--pickem .binary-choice-card.selected { border-color: #e6b650; background: #2a2d1c; box-shadow: inset 0 -4px #e6b650; }
+.broadcast-finish--pickem .binary-choice-card.correct { background: #193424; border-color: #82dba3; }
+.broadcast-finish--pickem .binary-choice-card.wrong { background: #35202a; border-color: #ff8c99; }
+.broadcast-finish--pickem .binary-choice-label { font: 700 23px/1.15 var(--font-display); }
+.broadcast-finish--pickem .binary-choice-reveal { font: 700 33px var(--font-display); }
+.broadcast-pick-confirmation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; padding: 10px 12px; color: #d9e4d9; background: #243122; border-left: 3px solid #e6b650; font: 600 12px var(--font-display); letter-spacing: .04em; animation: broadcast-clue-in .3s ease-out both; }
+.broadcast-pick-confirmation > b { color: #e6b650; }
+.broadcast-season-record { padding: 12px; background: #222a1c; border: 1px solid #6a5730; }
+.broadcast-finish--pickem .pickem-complete { padding: 15px; background: #183025; border-color: #82dba3; animation: broadcast-result-in .5s ease-out both; }
+.pilot-broadcast-board--draftarchive { background: repeating-linear-gradient(0deg,transparent 0 23px,rgba(230,182,80,.035) 24px),#1e2417; }
+.stadium-game--draftladder .stadium-mode-intro { background: repeating-linear-gradient(0deg,transparent 0 23px,rgba(217,166,60,.04) 24px),#1e2417; }
+.stadium-game--draftladder .candidate-card { min-height: 80px; border-radius: 3px; font: 700 24px var(--font-display); }
+
+@keyframes broadcast-call-in { from { opacity: 0; transform: translateX(-18px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes broadcast-sting-sweep { to { transform: translateX(100%); } }
+@keyframes broadcast-result-in { from { opacity: 0; transform: translateY(16px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes broadcast-spark-fall { 0% { opacity: 0; transform: translateY(0) rotate(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(250px) rotate(250deg); } }
+@keyframes broadcast-meter-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes broadcast-clue-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 560px) {
+  .broadcast-finish .quiz-options { grid-template-columns: 1fr; }
+  .broadcast-finish .quiz-option { min-height: 60px; font-size: 17px; }
+  .broadcast-scorebug > div { padding: 10px 8px; }
+  .broadcast-scorebug span { font-size: 8px; letter-spacing: .08em; }
+  .broadcast-finish--grid .grid-stage { margin-left: -5px; margin-right: -5px; padding: 5px; }
+  .broadcast-finish--grid .grid-table { grid-template-columns: minmax(52px,.75fr) repeat(3,minmax(0,1fr)); gap: 4px; }
+  .broadcast-finish--grid .grid-square { min-height: 85px; padding: 5px 3px; }
+  .broadcast-finish--grid .grid-square .grid-answer { font-size: 12px; }
+  .broadcast-finish--grid .grid-header { font-size: 10px; padding: 5px 3px; }
+  .broadcast-finish--grid .grid-rarity { font-size: 8px; padding: 2px 3px; }
+  .broadcast-duel { grid-template-columns: minmax(0,1fr) 24px minmax(0,1fr); }
+  .broadcast-finish--duel .hl-card { padding: 19px 8px; }
+  .broadcast-finish--duel .hl-score-label { font-size: 11px; }
+  .broadcast-finish--duel .hl-line { font-size: 11px; }
+  .broadcast-finish--roster .legends-slots { padding: 8px; gap: 5px; }
+  .broadcast-finish--roster .legends-slot { min-height: 64px; padding: 6px 3px; }
+  .broadcast-finish--roster .legends-slot-player { font-size: 10px; }
+  .broadcast-finish--roster .legends-option { padding: 12px; }
+  .broadcast-finish--roster .legends-option-name { font-size: 19px; }
+  .broadcast-finish--pickem .binary-choice-label { font-size: 19px; }
+}
+@media (max-width: 380px) {
+  .broadcast-finish--roster .legends-options { grid-template-columns: 1fr; }
+  .broadcast-scorebug strong { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .broadcast-finish *, .broadcast-finish *::before, .broadcast-finish *::after,
+  .pilot-broadcast-board--draftarchive { animation: none !important; transition: none !important; }
+  .broadcast-result-sparks { display: none; }
+}

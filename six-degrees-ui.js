@@ -279,9 +279,7 @@ function sixDegreesFallback() {
   startQuizRound('', '', 10);
 }
 function sixDegreesToolbarHtml() {
-  return '<div class="mode-toolbar">' +
-    '<button class="btn-tiny" data-mode-exit>' + icon('close') + ' Exit to Home</button>' +
-    '</div>';
+  return renderReadsShellHeader({ icon: 'versus', title: 'Coach Connections' });
 }
 
 function sixDegreesEdgeLabel(edge) {
@@ -298,17 +296,18 @@ function renderSixDegreesScreen() {
   if (!ENABLE_ENGINE_SIX_DEGREES_V01) return renderHome();
   var s = state.sixDegrees;
   if (!s) {
-    return '<div class="panel">' +
-      '<h2 class="panel-title">Coach Connections</h2>' +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' +
+      broadcastMarqueeHtml('NFL · CAREER NETWORK', 'COACH CONNECTIONS', 'Find the real career links that bring two people together.') +
+      '<div class="broadcast-network-intro" aria-hidden="true"><span>' + icon('users') + '</span><i></i><b>?</b><i></i><span>' + icon('flag') + '</span></div>' +
       '<p class="mode-desc">Connect two NFL people through real career history — coaches, players, and teams. Search for who links each step.</p>' +
       '<div class="btn-row"><button class="btn-primary" data-sixdegrees-start>Start</button></div>' +
       '</div>';
   }
   if (s.screen === SIX_DEGREES_SCREEN.LOADING) {
-    return '<div class="panel">' + sixDegreesToolbarHtml() + '<p class="mode-desc" aria-live="polite">Finding a connection&hellip;</p></div>';
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' + sixDegreesToolbarHtml() + '<p class="mode-desc" aria-live="polite">Finding a connection&hellip;</p></div>';
   }
   if (s.screen === SIX_DEGREES_SCREEN.ERROR) {
-    return '<div class="panel">' + sixDegreesToolbarHtml() +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' + sixDegreesToolbarHtml() +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row">' +
       '<button class="btn-primary" data-sixdegrees-retry>Try Again</button>' +
@@ -346,8 +345,8 @@ function renderSixDegreesScreen() {
     : '';
 
   if (completed) {
-    return '<div class="panel">' + sixDegreesToolbarHtml() +
-      '<h2 class="panel-title">' + icon('check') + ' Connected!</h2>' +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' + sixDegreesToolbarHtml() +
+      broadcastResultHtml('CAREER NETWORK · CONNECTED', game.moves_made, 'Moves used · Par ' + game.par, true) +
       chainHtml +
       '<p class="summary-note">' + esc(game.start.name) + ' &rarr; ' + esc(game.end.name) + ' in ' + game.moves_made + ' move' + (game.moves_made === 1 ? '' : 's') + ' (par ' + game.par + ', ' + game.difficulty + ').</p>' +
       edgesHtml +
@@ -357,8 +356,8 @@ function renderSixDegreesScreen() {
     var outOfMovesReason = s.gaveUp
       ? ('You gave up before reaching ' + esc(game.end.name) + '.')
       : ('You used all ' + game.max_moves + ' moves without reaching ' + esc(game.end.name) + '.');
-    return '<div class="panel">' + sixDegreesToolbarHtml() +
-      '<h2 class="panel-title">' + icon('xMark') + ' ' + (s.gaveUp ? 'Gave up' : 'Out of moves') + '</h2>' +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' + sixDegreesToolbarHtml() +
+      broadcastResultHtml('CAREER NETWORK · RUN ENDED', game.moves_made, s.gaveUp ? 'You gave up' : 'Out of moves', false) +
       chainHtml +
       '<p class="mode-desc">' + outOfMovesReason + '</p>' +
       (s.reveal
@@ -380,9 +379,10 @@ function renderSixDegreesScreen() {
     feedbackHtml = '<div class="quiz-feedback" aria-live="polite"><span class="feedback-bad">' + icon('xMark') + ' Not directly connected — try another real link from ' + esc(game.discovered[game.discovered.length - 1].name) + '.</span></div>';
   }
 
-  return '<div class="panel">' + sixDegreesToolbarHtml() +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--connections">' + sixDegreesToolbarHtml() +
+    broadcastScorebugHtml([['MOVES LEFT', Math.max(0, game.max_moves - game.moves_made)], ['PAR', game.par], ['DIFFICULTY', game.difficulty]]) +
+    broadcastMarqueeHtml('YOUR DESTINATION', game.end.name, 'Build a path from ' + game.start.name, true) +
     chainHtml +
-    '<div class="quiz-progress">Move ' + game.moves_made + ' of ' + game.max_moves + ' &middot; par ' + game.par + ' &middot; ' + esc(game.difficulty) + '</div>' +
     '<div class="quiz-question">Who or what connects to <b>' + esc(game.discovered[game.discovered.length - 1].name) + '</b>?</div>' +
     '<div class="grid-answer-box">' +
     '<div class="typeahead-wrap">' +

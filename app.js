@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.2.0';
+var APP_VERSION = '3.3.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -284,6 +284,51 @@ function quizProgressRowHtml(labelHtml, current, total) {
   if (!dots) return '<div class="quiz-progress">' + labelHtml + '</div>';
   return '<div class="quiz-progress-row"><div class="quiz-progress">' + labelHtml + '</div>' + dots + '</div>';
 }
+// Stadium broadcast finish: all figures come from the current round.
+// Decorative result motion is separate from the existing live feedback.
+function broadcastMarqueeHtml(kicker, title, detail, compact) {
+  return '<div class="classic-broadcast-marquee' + (compact ? ' broadcast-marquee-compact' : '') + '">' +
+    '<span>' + esc(kicker) + '</span><strong>' + esc(title) + '</strong>' +
+    (detail ? '<em>' + esc(detail) + '</em>' : '') + '</div>';
+}
+function broadcastScorebugHtml(items) {
+  return '<div class="broadcast-scorebug">' + items.map(function (item) {
+    return '<div><span>' + esc(item[0]) + '</span><strong>' + esc(String(item[1])) + '</strong></div>';
+  }).join('') + '</div>';
+}
+function broadcastCallHtml(correct, title) {
+  return '<div class="broadcast-official-call ' + (correct ? 'broadcast-call-good' : 'broadcast-call-bad') + '" aria-hidden="true">' +
+    '<span>OFFICIAL CALL</span><strong>' + esc(title || (correct ? 'THAT’S THE ONE' : 'NO GOOD')) + '</strong></div>';
+}
+function broadcastResultHtml(kicker, score, label, celebrate) {
+  return '<section class="broadcast-result' + (celebrate ? ' broadcast-result-celebrate' : '') + '">' +
+    brandWatermarkHtml() + '<span class="broadcast-result-kicker">' + esc(kicker) + '</span>' +
+    '<strong class="broadcast-result-score">' + esc(String(score)) + '</strong>' +
+    '<span class="broadcast-result-label">' + esc(label) + '</span>' +
+    (celebrate ? '<div class="broadcast-result-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>' : '') + '</section>';
+}
+function broadcastClueMeterHtml(revealed, total) {
+  var slots = '';
+  for (var i = 0; i < total; i++) slots += '<span class="' + (i < revealed ? 'is-open' : '') + '">' + (i + 1) + '</span>';
+  return '<div class="broadcast-clue-meter" aria-label="' + revealed + ' of ' + total + ' clues revealed">' +
+    '<b>IDENTITY FILE</b><div aria-hidden="true">' + slots + '</div></div>';
+}
+function broadcastRecordHtml(wins, losses) {
+  var slots = '';
+  for (var i = 0; i < wins + losses; i++) slots += '<span class="' + (i < wins ? 'record-win' : 'record-loss') + '"></span>';
+  return '<div class="broadcast-record" aria-hidden="true"><span>PROJECTED RECORD</span><div>' + slots + '</div></div>';
+}
+function broadcastGridHudHtml(g, cfb) {
+  var correct = g.cells.filter(function (cell) { return cell.correct === true; }).length;
+  return broadcastMarqueeHtml(cfb ? 'SATURDAY · GRID CHALLENGE' : 'NFL · GRID CHALLENGE', 'IMMACULATE GRID', 'Nine squares. Make every name count.', true) +
+    broadcastScorebugHtml([['FILLED', g.answeredCount + '/9'], ['CORRECT', correct], ['RARITY PTS', g.totalScore]]);
+}
+function broadcastGridSelectionHtml(g) {
+  var cell = g.cells[g.activeIndex];
+  return '<div class="broadcast-grid-selection"><span>YOUR MATCHUP</span><strong>' +
+    esc(g.rows[cell.r].label) + ' <i>×</i> ' + esc(g.cols[cell.c].label) + '</strong></div>';
+}
+
 // ============================== Reads Game Screen Visual Identity ==========
 // One shared, compact header strip reused across every mechanic (Engine
 // Pilot's ~12 modes, Weekly Pick'em, Who Am I) so every game screen carries
@@ -3114,8 +3159,8 @@ function quizBackToSetup() { state.quiz.screen = 'setup'; renderAll(); }
 
 function renderQuizSetup() {
   var t = state.quiz;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">NFL Quiz</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz">' +
+    broadcastMarqueeHtml('NFL · THE KNOWLEDGE DESK', 'MAKE THE CALL', 'Pick your category. Set your difficulty. Own the round.') +
     '<div class="field-row">' +
     '<label>Category<select id="quiz-cat"><option value="">All categories</option>' +
     quizCategories().map(function (c) { return '<option value="' + esc(c) + '"' + (t.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
@@ -3133,11 +3178,12 @@ function renderQuizSetup() {
 }
 function renderQuizQuestion() {
   var t = state.quiz, q = currentQuizQuestion();
-  if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-quiz-setup>Change Filters</button></div>';
+  if (!q) return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz">No questions match those filters. <button class="btn-secondary" data-quiz-setup>Change Filters</button></div>';
   var answered = t.answeredIndex !== null;
-  return '<div class="panel">' + modeToolbarHtml('quiz', t.ranked) +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz">' + modeToolbarHtml('quiz', t.ranked) +
+    broadcastScorebugHtml([['QUESTION', (t.index + 1) + '/' + t.queue.length], ['CORRECT', t.correctCount], ['LEAGUE', 'NFL']]) +
     quizProgressRowHtml('Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty), t.index, t.queue.length) +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<section class="stadium-question-card"><span class="stadium-question-kicker">' + esc(q.category) + '</span><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
       var cls = 'quiz-option';
@@ -3146,11 +3192,11 @@ function renderQuizQuestion() {
         else if (i === t.answeredIndex) cls += ' wrong';
       }
       return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-quiz-answer="' + i + '"') + '>' +
-        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+        '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span>' + '</button>';
     }).join('') +
     '</div>' +
     (answered
-      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
+      ? broadcastCallHtml(t.answeredIndex === q.correctIndex) + '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
         '<button class="btn-primary" data-quiz-next>' + (t.index + 1 >= t.queue.length ? 'See Results' : 'Next Question') + '</button>'
       : '') +
     '</div>';
@@ -3174,9 +3220,8 @@ function quizMissedReviewHtml(missed) {
 }
 function renderQuizSummary() {
   var t = state.quiz, pct = Math.round(100 * t.correctCount / t.queue.length);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Round Complete</h2>' +
-    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz">' +
+    broadcastResultHtml('FINAL · NFL QUIZ', pct + '%', t.correctCount + ' / ' + t.queue.length + ' correct', pct >= 80) +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
@@ -3266,9 +3311,9 @@ function xsoBackToSetup() { state.xso.screen = 'setup'; renderAll(); }
 
 function renderXsoSetup() {
   var t = state.xso;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">X\'s &amp; O\'s</h2>' +
-    '<p class="mode-desc">Formations, coverages, blocking schemes, route concepts — the actual scheme of the game, not history or records. Most of this bank is genuinely Hard, so start on Easy or Medium if you\'re newer to the X\'s and O\'s.</p>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--scheme">' +
+    broadcastMarqueeHtml('THE PLAYBOOK · SCHEME CHALLENGE', 'X’S & O’S', 'Read the formation. Know the coverage. Make the call.') +
+    '<p class="mode-desc">Formations, coverages, blocking, and route concepts. New to the playbook? Start on Easy or Medium.</p>' +
     '<div class="field-row">' +
     '<label>Category<select id="xso-cat"><option value="">All categories</option>' +
     xsoCategories().map(function (c) { return '<option value="' + esc(c) + '"' + (t.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
@@ -3286,11 +3331,12 @@ function renderXsoSetup() {
 }
 function renderXsoQuestion() {
   var t = state.xso, q = currentXsoQuestion();
-  if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-xso-setup>Change Filters</button></div>';
+  if (!q) return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--scheme">No questions match those filters. <button class="btn-secondary" data-xso-setup>Change Filters</button></div>';
   var answered = t.answeredIndex !== null;
-  return '<div class="panel">' + modeToolbarHtml('xso', t.ranked) +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--scheme">' + modeToolbarHtml('xso', t.ranked) +
+    broadcastScorebugHtml([['QUESTION', (t.index + 1) + '/' + t.queue.length], ['CORRECT', t.correctCount], ['DESK', 'THE PLAYBOOK']]) +
     '<div class="quiz-progress">Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty) + '</div>' +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<section class="stadium-question-card"><span class="stadium-question-kicker">' + esc(q.category) + '</span><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
       var cls = 'quiz-option';
@@ -3299,20 +3345,19 @@ function renderXsoQuestion() {
         else if (i === t.answeredIndex) cls += ' wrong';
       }
       return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-xso-answer="' + i + '"') + '>' +
-        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+        '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span>' + '</button>';
     }).join('') +
     '</div>' +
     (answered
-      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
+      ? broadcastCallHtml(t.answeredIndex === q.correctIndex) + '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
         '<button class="btn-primary" data-xso-next>' + (t.index + 1 >= t.queue.length ? 'See Results' : 'Next Question') + '</button>'
       : '') +
     '</div>';
 }
 function renderXsoSummary() {
   var t = state.xso, pct = Math.round(100 * t.correctCount / t.queue.length);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Round Complete</h2>' +
-    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--scheme">' +
+    broadcastResultHtml('FINAL · THE PLAYBOOK', pct + '%', t.correctCount + ' / ' + t.queue.length + ' correct', pct >= 80) +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Enter a name above to save this to the leaderboard.') + '</div>' +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
@@ -3388,8 +3433,8 @@ function cfbBackToSetup() { state.cfbQuiz.screen = 'setup'; renderAll(); }
 
 function renderCfbSetup() {
   var t = state.cfbQuiz;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">College Football Quiz</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--cfb">' +
+    broadcastMarqueeHtml('CFB · THE KNOWLEDGE DESK', 'MAKE THE CALL', 'Pick your category. Set your difficulty. Own the round.') +
     '<div class="field-row">' +
     '<label>Category<select id="cfb-cat"><option value="">All categories</option>' +
     cfbCategories().map(function (c) { return '<option value="' + esc(c) + '"' + (t.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') +
@@ -3407,11 +3452,12 @@ function renderCfbSetup() {
 }
 function renderCfbQuestion() {
   var t = state.cfbQuiz, q = currentCfbQuestion();
-  if (!q) return '<div class="panel">No questions match those filters. <button class="btn-secondary" data-cfb-setup>Change Filters</button></div>';
+  if (!q) return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--cfb">No questions match those filters. <button class="btn-secondary" data-cfb-setup>Change Filters</button></div>';
   var answered = t.answeredIndex !== null;
-  return '<div class="panel">' + modeToolbarHtml('cfbQuiz', t.ranked) +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--cfb">' + modeToolbarHtml('cfbQuiz', t.ranked) +
+    broadcastScorebugHtml([['QUESTION', (t.index + 1) + '/' + t.queue.length], ['CORRECT', t.correctCount], ['LEAGUE', 'CFB']]) +
     quizProgressRowHtml('Question ' + (t.index + 1) + ' of ' + t.queue.length + ' &middot; ' + esc(q.category) + ' &middot; ' + esc(q.difficulty), t.index, t.queue.length) +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+    '<section class="stadium-question-card"><span class="stadium-question-kicker">' + esc(q.category) + '</span><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
       var cls = 'quiz-option';
@@ -3420,20 +3466,19 @@ function renderCfbQuestion() {
         else if (i === t.answeredIndex) cls += ' wrong';
       }
       return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-cfb-answer="' + i + '"') + '>' +
-        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+        '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span>' + '</button>';
     }).join('') +
     '</div>' +
     (answered
-      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
+      ? broadcastCallHtml(t.answeredIndex === q.correctIndex) + '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
         '<button class="btn-primary" data-cfb-next>' + (t.index + 1 >= t.queue.length ? 'See Results' : 'Next Question') + '</button>'
       : '') +
     '</div>';
 }
 function renderCfbSummary() {
   var t = state.cfbQuiz, pct = Math.round(100 * t.correctCount / t.queue.length);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Round Complete</h2>' +
-    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--quiz broadcast-finish--cfb">' +
+    broadcastResultHtml('FINAL · CFB QUIZ', pct + '%', t.correctCount + ' / ' + t.queue.length + ' correct', pct >= 80) +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
@@ -3699,7 +3744,7 @@ function finishGridRound() {
 }
 
 function renderGridSetup() {
-  return '<div class="panel game-intro game-intro-grid">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--grid game-intro game-intro-grid">' +
     '<div class="game-intro-icon">' + icon('grid') + '</div><div class="game-intro-eyebrow">9 squares. No repeats.</div>' +
     '<h2 class="game-intro-title">Immaculate Grid</h2>' +
     '<p class="game-intro-copy">Match a player to both clues. You only get one shot at each square, and the names nobody else thinks of score the most.</p>' +
@@ -3768,12 +3813,11 @@ function criteriaHeaderHtml(c) {
 }
 function renderGridBoard() {
   var g = state.grid;
-  var html = '<div class="panel">' + modeToolbarHtml('grid', g.ranked) +
-    '<div class="game-hud"><div><span class="game-hud-label">Immaculate Grid</span><b>' + g.answeredCount + ' of 9 filled</b></div>' +
-    '<div class="game-hud-score"><span>Score</span><b>' + g.totalScore + '</b></div></div>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--grid">' + modeToolbarHtml('grid', g.ranked) +
+    broadcastGridHudHtml(g, false) +
     '<div class="game-progress"><span style="width:' + Math.round(g.answeredCount / 9 * 100) + '%"></span></div>' +
     '<div class="grid-stage"><div class="grid-table">' +
-    '<div class="grid-cell grid-corner"></div>';
+    '<div class="grid-cell grid-corner" aria-hidden="true">' + icon('goalpost') + '</div>';
   g.cols.forEach(function (c) { html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(c) + '</div>'; });
   for (var r = 0; r < 3; r++) {
     html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(g.rows[r]) + '</div>';
@@ -3790,7 +3834,7 @@ function renderGridBoard() {
   }
   html += '</div></div>';
   if (g.activeIndex !== null) {
-    html += '<div class="grid-answer-box">' +
+    html += broadcastGridSelectionHtml(g) + '<div class="grid-answer-box">' +
       '<div class="typeahead-wrap">' +
       '<input id="grid-input" autocomplete="off" placeholder="Type a player name…" value="' + esc(g.input) + '" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="grid-input-typeahead" />' +
       '<div id="grid-input-typeahead" class="typeahead-list" role="listbox"></div>' +
@@ -3805,8 +3849,8 @@ function renderGridBoard() {
 function renderGridSummary() {
   var g = state.grid;
   var correctCells = g.cells.filter(function (c) { return c.correct; }).length;
-  var html = '<div class="panel">' +
-    '<h2 class="panel-title">Grid Complete</h2>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--grid">' +
+    broadcastResultHtml('FINAL · NFL GRID', correctCells + '/9', g.totalScore + ' rarity points', correctCells === 9) +
     gridImmaculateBannerHtml(correctCells) +
     '<div class="summary-score">' + correctCells + ' / 9 correct &middot; ' + g.totalScore + ' pts</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -3966,7 +4010,7 @@ function finishCfbGridRound() {
 }
 
 function renderCfbGridSetup() {
-  return '<div class="panel game-intro game-intro-grid">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--grid broadcast-finish--cfb game-intro game-intro-grid">' +
     '<div class="game-intro-icon">' + icon('grid') + '</div><div class="game-intro-eyebrow">Schools. Awards. Legends.</div>' +
     '<h2 class="game-intro-title">CFB Immaculate Grid</h2>' +
     '<p class="game-intro-copy">Connect college stars to schools, Heismans, and All-America honors. One guess per square, with bigger points for deeper cuts.</p>' +
@@ -3978,12 +4022,11 @@ function renderCfbGridSetup() {
 }
 function renderCfbGridBoard() {
   var g = state.cfbGrid;
-  var html = '<div class="panel">' + modeToolbarHtml('cfbGrid', g.ranked) +
-    '<div class="game-hud"><div><span class="game-hud-label">CFB Immaculate Grid</span><b>' + g.answeredCount + ' of 9 filled</b></div>' +
-    '<div class="game-hud-score"><span>Score</span><b>' + g.totalScore + '</b></div></div>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--grid broadcast-finish--cfb">' + modeToolbarHtml('cfbGrid', g.ranked) +
+    broadcastGridHudHtml(g, true) +
     '<div class="game-progress"><span style="width:' + Math.round(g.answeredCount / 9 * 100) + '%"></span></div>' +
     '<div class="grid-stage"><div class="grid-table">' +
-    '<div class="grid-cell grid-corner"></div>';
+    '<div class="grid-cell grid-corner" aria-hidden="true">' + icon('goalpost') + '</div>';
   g.cols.forEach(function (c) { html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(c) + '</div>'; });
   for (var r = 0; r < 3; r++) {
     html += '<div class="grid-cell grid-header">' + criteriaHeaderHtml(g.rows[r]) + '</div>';
@@ -4000,7 +4043,7 @@ function renderCfbGridBoard() {
   }
   html += '</div></div>';
   if (g.activeIndex !== null) {
-    html += '<div class="grid-answer-box">' +
+    html += broadcastGridSelectionHtml(g) + '<div class="grid-answer-box">' +
       '<div class="typeahead-wrap">' +
       '<input id="cfb-grid-input" autocomplete="off" placeholder="Type a player name…" value="' + esc(g.input) + '" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="cfb-grid-input-typeahead" />' +
       '<div id="cfb-grid-input-typeahead" class="typeahead-list" role="listbox"></div>' +
@@ -4015,8 +4058,8 @@ function renderCfbGridBoard() {
 function renderCfbGridSummary() {
   var g = state.cfbGrid;
   var correctCells = g.cells.filter(function (c) { return c.correct; }).length;
-  var html = '<div class="panel">' +
-    '<h2 class="panel-title">Grid Complete</h2>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--grid broadcast-finish--cfb">' +
+    broadcastResultHtml('FINAL · CFB GRID', correctCells + '/9', g.totalScore + ' rarity points', correctCells === 9) +
     gridImmaculateBannerHtml(correctCells) +
     '<div class="summary-score">' + correctCells + ' / 9 correct &middot; ' + g.totalScore + ' pts</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -4699,8 +4742,8 @@ function finishHigherLower() {
 function renderHigherLowerSetup() {
   var cat = hlCategoryConfig(higherLowerCategoryPref);
   var statPref = higherLowerStatPrefByCategory[higherLowerCategoryPref] || cat.stats[0].id;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Higher or Lower</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--duel">' +
+    broadcastMarqueeHtml('THE STAT BATTLE', 'HIGHER OR LOWER', 'One number revealed. One number hidden. How long can you last?') +
     '<p class="mode-desc">Two real numbers, one real stat — see one, guess whether the next is higher or lower. Keep going until you miss — how long a streak can you build?</p>' +
     '<div class="chip-row">' +
     HL_CATEGORIES.map(function (c) { return '<button class="chip-toggle' + (higherLowerCategoryPref === c.id ? ' active' : '') + '" data-hl-category="' + c.id + '">' + esc(c.label) + '</button>'; }).join('') +
@@ -4717,16 +4760,16 @@ function renderHigherLowerPlaying() {
   var revealing = s.screen === 'reveal';
   var cat = hlCategoryConfig(s.category);
   var statLabel = hlStatConfig(s.category, s.stat).label;
-  return '<div class="panel">' + modeToolbarHtml('higherLower', s.ranked) +
-    '<div class="hl-header"><h2 class="panel-title">Higher or Lower</h2>' +
-    '<span class="hl-streak-badge">' + icon('flame') + ' ' + s.streak + '</span></div>' +
-    '<div class="hl-card hl-card-current">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--duel">' + modeToolbarHtml('higherLower', s.ranked) +
+    broadcastScorebugHtml([['STREAK', s.streak], ['STAT', statLabel], ['CATEGORY', cat.label]]) +
+    '<div class="broadcast-duel">' +
+    '<div class="hl-card hl-card-current"><span class="broadcast-card-kicker">THE BENCHMARK</span>' +
     '<div class="hl-name">' + esc(s.current.name) + '</div>' +
     '<div class="hl-line">' + cat.lineFn(s.current) + '</div>' +
     '<div class="hl-score">' + higherLowerScoreDisplay(s.current, s.category, s.stat) + '</div>' +
     '<div class="hl-score-label">' + esc(statLabel) + '</div>' +
     '</div>' +
-    '<div class="hl-vs">vs</div>' +
+    '<div class="hl-vs" aria-hidden="true">VS</div>' +
     '<div class="hl-card hl-card-next' + (revealing ? (s.lastCorrect ? ' correct' : ' wrong') : '') + '">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
     '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
@@ -4734,6 +4777,8 @@ function renderHigherLowerPlaying() {
       ? '<div class="hl-score">' + higherLowerScoreDisplay(s.next, s.category, s.stat) + '</div><div class="hl-score-label">' + (s.lastCorrect ? icon('check') + ' Correct!' : icon('xMark') + ' Not quite') + '</div>'
       : '<div class="hl-score hl-score-hidden">?</div><div class="hl-score-label">More or fewer than ' + esc(s.current.name) + '?</div>') +
     '</div>' +
+    '</div>' +
+    (revealing ? broadcastCallHtml(s.lastCorrect, s.lastCorrect ? 'STREAK ALIVE' : 'STREAK OVER') : '') +
     (revealing
       ? '<button class="btn-primary hl-continue" data-hl-continue>Next ' + (cat.entityLabel === 'stadium' ? 'Stadium' : 'Player') + '</button>'
       : '<div class="hl-guess-row">' +
@@ -4745,9 +4790,8 @@ function renderHigherLowerPlaying() {
 function renderHigherLowerOver() {
   var s = state.higherLower;
   var cat = hlCategoryConfig(s.category);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Streak Over</h2>' +
-    '<div class="summary-score">Final streak: ' + s.streak + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--duel">' +
+    broadcastResultHtml('FINAL · STAT BATTLE', s.streak, 'Your final streak', s.streak >= 5) +
     '<div class="hl-card hl-card-next wrong">' +
     '<div class="hl-name">' + esc(s.next.name) + '</div>' +
     '<div class="hl-line">' + cat.lineFn(s.next) + '</div>' +
@@ -5282,19 +5326,19 @@ function playerCluesToolbarHtml(s) {
 }
 function renderPlayerCluesSetup() {
   if (!PLAYER_CLUES_PACKAGE) {
-    return '<div class="panel"><h2 class="panel-title">Player From Clues</h2>' +
-      '<p class="mode-desc">This local prototype package failed validation (' +
-      esc(PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues"><h2 class="panel-title">Player From Clues</h2>' +
+      '<p class="mode-desc">These player clues couldn’t load. Try again in a moment.</p>' +
       '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
   var f = state.playerCluesFilter;
   var decades = playerCluesAvailableDecades();
   var difficulties = ['Easy', 'Medium', 'Hard'];
   var matchCount = playerCluesFilteredPuzzles().length;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">' + esc(PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues">' +
+    broadcastMarqueeHtml('NFL · IDENTITY FILE', 'WHO AM I?', 'Read the clues. Name the player. Fewer hints, bigger bragging rights.') +
     '<p class="mode-desc">' + esc(PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
-    '<p class="mode-desc">' + PLAYER_CLUES_PACKAGE.puzzleCount + ' puzzles in this local prototype pack (' + PLAYER_CLUES_ROUND_SIZE + ' per round). Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<p class="mode-desc">' + PLAYER_CLUES_PACKAGE.puzzleCount + ' players. ' + PLAYER_CLUES_ROUND_SIZE + ' mysteries per round.</p>' +
+    '<div class="broadcast-practice-note">Practice mode · These rounds don’t affect your rating or leaderboard.</div>' +
     '<div class="chip-row" role="group" aria-label="Filter by decade">' +
     '<button class="chip-toggle' + (f.decade === 'any' ? ' active' : '') + '" data-clues-filter-decade="any">Any Decade</button>' +
     decades.map(function (d) {
@@ -5321,7 +5365,8 @@ function renderPlayerCluesSetup() {
 function renderPlayerCluesRound() {
   var s = state.playerClues, p = s.queue[s.index];
   var totalClues = p.clues.length;
-  var html = '<div class="panel whoami-panel">' + playerCluesToolbarHtml(s) +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--clues whoami-panel">' + playerCluesToolbarHtml(s) +
+    broadcastClueMeterHtml(s.revealedCount, totalClues) +
     quizProgressRowHtml('Puzzle ' + (s.index + 1) + ' of ' + s.queue.length, s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
@@ -5362,9 +5407,9 @@ function renderPlayerCluesSummary() {
   var correctCount = s.results.filter(function (r) { return r.correct; }).length;
   var missed = s.results.filter(function (r) { return !r.correct; });
   var avgClues = s.results.length ? (s.results.reduce(function (sum, r) { return sum + r.cluesRevealed; }, 0) / s.results.length) : 0;
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues">' +
     renderReadsShellHeader({ icon: 'mystery', title: 'Who Am I — Complete', hideExit: true }) +
-    '<div class="summary-score">' + correctCount + ' / ' + s.queue.length + ' identified</div>' +
+    broadcastResultHtml('IDENTITY FILES · CLOSED', correctCount + '/' + s.queue.length, 'Players identified · ' + avgClues.toFixed(1) + ' clues used on average', correctCount === s.queue.length) +
     '<div class="whoami-summary-stats">' +
     '<span class="reads-shell-chip">Avg. ' + avgClues.toFixed(1) + ' clues used</span>' +
     '</div>' +
@@ -5372,7 +5417,7 @@ function renderPlayerCluesSummary() {
       var puzzle = PLAYER_CLUES_PACKAGE.puzzles.find(function (pp) { return pp.id === r.id; });
       return esc(puzzle ? puzzle.answer.displayName : String(r.id));
     }).join(', ') + '</div>' : '<div class="blitz-missed">Clean sweep — you identified every player!</div>') +
-    '<div class="summary-note">Local prototype — nothing here is saved to your profile or the leaderboard.</div>' +
+    '<div class="summary-note">Practice round · Your rating and leaderboard are unchanged.</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-clues-start>Play Again</button>' +
     '<button class="btn-secondary" data-share="playerClues">' + icon('share') + ' Share</button>' +
@@ -5532,9 +5577,8 @@ function cfbPlayerCluesToolbarHtml(s) {
 }
 function renderCfbPlayerCluesSetup() {
   if (!CFB_PLAYER_CLUES_PACKAGE) {
-    return '<div class="panel"><h2 class="panel-title">CFB Player From Clues</h2>' +
-      '<p class="mode-desc">This package failed validation (' +
-      esc(CFB_PLAYER_CLUES_VALIDATION_ERROR || 'package not loaded') + ') and can’t be played right now.</p>' +
+    return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues broadcast-finish--cfb"><h2 class="panel-title">CFB Player From Clues</h2>' +
+      '<p class="mode-desc">These college player clues couldn’t load. Try again in a moment.</p>' +
       '<div class="btn-row"><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
   // Reliability pass (Pass 2.7): real Engine-generated pool, replacing the
@@ -5552,10 +5596,11 @@ function renderCfbPlayerCluesSetup() {
   var decades = cfbPlayerCluesAvailableDecades();
   var difficulties = ['Easy', 'Medium', 'Hard', 'Sicko'];
   var matchCount = cfbPlayerCluesFilteredPuzzles().length;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameTitle) + '</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues broadcast-finish--cfb">' +
+    broadcastMarqueeHtml('CFB · IDENTITY FILE', 'WHO AM I?', 'Read the clues. Name the player. Fewer hints, bigger bragging rights.') +
     '<p class="mode-desc">' + esc(CFB_PLAYER_CLUES_PACKAGE.gameInstructions) + '</p>' +
-    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' real college football players across ' + PLAYER_CLUES_ROUND_SIZE + ' per round. Nothing here is saved to your profile, rating, or the leaderboard.</p>' +
+    '<p class="mode-desc">' + CFB_PLAYER_CLUES_PACKAGE.puzzleCount + ' college players. ' + PLAYER_CLUES_ROUND_SIZE + ' mysteries per round.</p>' +
+    '<div class="broadcast-practice-note">Practice mode · These rounds don’t affect your rating or leaderboard.</div>' +
     '<div class="chip-row" role="group" aria-label="Filter by decade">' +
     '<button class="chip-toggle' + (f.decade === 'any' ? ' active' : '') + '" data-cfb-clues-filter-decade="any">Any Decade</button>' +
     decades.map(function (d) {
@@ -5576,7 +5621,8 @@ function renderCfbPlayerCluesSetup() {
 function renderCfbPlayerCluesRound() {
   var s = state.cfbPlayerClues, p = s.queue[s.index];
   var totalClues = p.clues.length;
-  var html = '<div class="panel whoami-panel">' + cfbPlayerCluesToolbarHtml(s) +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--clues broadcast-finish--cfb whoami-panel">' + cfbPlayerCluesToolbarHtml(s) +
+    broadcastClueMeterHtml(s.revealedCount, totalClues) +
     quizProgressRowHtml('Puzzle ' + (s.index + 1) + ' of ' + s.queue.length, s.index, s.queue.length);
   if (s.itemState === 'revealed') {
     var lastResult = s.results[s.results.length - 1];
@@ -5617,15 +5663,15 @@ function renderCfbPlayerCluesSummary() {
   var correctCount = s.results.filter(function (r) { return r.correct; }).length;
   var missed = s.results.filter(function (r) { return !r.correct; });
   var avgClues = s.results.length ? (s.results.reduce(function (sum, r) { return sum + r.cluesRevealed; }, 0) / s.results.length) : 0;
-  return '<div class="panel">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--clues broadcast-finish--cfb">' +
     renderReadsShellHeader({ icon: 'mystery', title: 'Who Am I (CFB) — Complete', hideExit: true }) +
-    '<div class="summary-score">' + correctCount + ' / ' + s.queue.length + ' identified</div>' +
+    broadcastResultHtml('IDENTITY FILES · CLOSED', correctCount + '/' + s.queue.length, 'Players identified · ' + avgClues.toFixed(1) + ' clues used on average', correctCount === s.queue.length) +
     '<div class="whoami-summary-stats"><span class="reads-shell-chip">Avg. ' + avgClues.toFixed(1) + ' clues used</span></div>' +
     (missed.length ? '<div class="blitz-missed"><b>Missed:</b> ' + missed.map(function (r) {
       var puzzle = CFB_PLAYER_CLUES_PACKAGE.puzzles.find(function (pp) { return pp.id === r.id; });
       return esc(puzzle ? puzzle.answer.displayName : String(r.id));
     }).join(', ') + '</div>' : '<div class="blitz-missed">Clean sweep — you identified every player!</div>') +
-    '<div class="summary-note">Local prototype — nothing here is saved to your profile or the leaderboard.</div>' +
+    '<div class="summary-note">Practice round · Your rating and leaderboard are unchanged.</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-clues-start>Play Again</button>' +
     '<button class="btn-secondary" data-share="cfbPlayerClues">' + icon('share') + ' Share</button>' +
@@ -5728,8 +5774,9 @@ function iqCategoryBreakdown(s) {
 }
 
 function renderIQSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">NFL IQ Test</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq">' +
+    broadcastMarqueeHtml('NFL · SCOUTING COMBINE', 'TEST YOUR FOOTBALL IQ', IQ_TEST_SIZE + ' questions. One final scouting report.') +
+    broadcastScorebugHtml([['QUESTIONS', IQ_TEST_SIZE], ['FEEDBACK', 'AT THE END'], ['IQ SCALE', '60–160']]) +
     '<p class="mode-desc">' + IQ_TEST_SIZE + ' questions pulled from every category, mixed difficulty. No right/wrong feedback until the end — just like a real test. Your score maps to a Football IQ from 60-160, plus a category-by-category breakdown.</p>' +
     rankedToggleHtml('iq') +
     '<button class="btn-primary" data-iq-start>Start Test</button>' +
@@ -5737,12 +5784,13 @@ function renderIQSetup() {
 }
 function renderIQTest() {
   var s = state.iq, q = currentIQQuestion();
-  return '<div class="panel">' + modeToolbarHtml('iq', s.ranked) +
-    '<div class="quiz-progress">Question ' + (s.index + 1) + ' of ' + s.queue.length + '</div>' +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq">' + modeToolbarHtml('iq', s.ranked) +
+    broadcastScorebugHtml([['QUESTION', (s.index + 1) + '/' + s.queue.length], ['CATEGORY', q.category], ['REPORT', 'SEALED']]) +
+    '<div class="game-progress"><span style="width:' + Math.round(s.index / s.queue.length * 100) + '%"></span></div>' +
+    '<section class="stadium-question-card"><span class="stadium-question-kicker">COMBINE QUESTION ' + (s.index + 1) + '</span><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
-      return '<button class="quiz-option" data-iq-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+      return '<button class="quiz-option" data-iq-answer="' + i + '">' + '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span>' + '</button>';
     }).join('') +
     '</div></div>';
 }
@@ -5750,15 +5798,13 @@ function renderIQResult() {
   var s = state.iq;
   var breakdown = iqCategoryBreakdown(s);
   var insight = iqStrongestWeakest(breakdown);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Your Football IQ</h2>' +
-    '<div class="iq-score">' + s.iqScore + '</div>' +
-    '<div class="iq-title">' + esc(iqTitle(s.iqScore)) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq">' +
+    broadcastResultHtml('NFL · SCOUTING REPORT', s.iqScore, iqTitle(s.iqScore), s.iqScore >= 130) +
     '<div class="summary-score">' + s.correct + ' / ' + s.total + ' correct</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (insight ? '<div class="iq-insight">Strongest: <b>' + esc(insight.best.category) + '</b> (' + insight.best.correct + '/' + insight.best.total + ') &middot; Weakest: <b>' + esc(insight.worst.category) + '</b> (' + insight.worst.correct + '/' + insight.worst.total + ')</div>' : '') +
     '<div class="iq-breakdown">' +
-    breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span></div>'; }).join('') +
+    breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span><div class="broadcast-category-meter" aria-hidden="true"><i style="width:' + Math.round(b.correct / b.total * 100) + '%"></i></div></div>'; }).join('') +
     '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-iq-start>Retake Test</button>' +
@@ -5874,8 +5920,9 @@ function cfbIqCategoryBreakdown(s) {
 }
 
 function renderCfbIQSetup() {
-  return '<div class="panel">' +
-    '<h2 class="panel-title">College Football IQ Test</h2>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq broadcast-finish--cfb">' +
+    broadcastMarqueeHtml('CFB · SCOUTING COMBINE', 'TEST YOUR FOOTBALL IQ', IQ_TEST_SIZE + ' questions. One final scouting report.') +
+    broadcastScorebugHtml([['QUESTIONS', IQ_TEST_SIZE], ['FEEDBACK', 'AT THE END'], ['IQ SCALE', '60–160']]) +
     '<p class="mode-desc">' + IQ_TEST_SIZE + ' CFB questions pulled from every category, mixed difficulty. No right/wrong feedback until the end. Your score maps to a CFB IQ from 60-160, plus a category-by-category breakdown.</p>' +
     rankedToggleHtml('cfbIq') +
     '<button class="btn-primary" data-cfb-iq-start>Start Test</button>' +
@@ -5883,12 +5930,13 @@ function renderCfbIQSetup() {
 }
 function renderCfbIQTest() {
   var s = state.cfbIq, q = currentCfbIQQuestion();
-  return '<div class="panel">' + modeToolbarHtml('cfbIq', s.ranked) +
-    '<div class="quiz-progress">Question ' + (s.index + 1) + ' of ' + s.queue.length + '</div>' +
-    '<div class="quiz-question">' + esc(q.question) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq broadcast-finish--cfb">' + modeToolbarHtml('cfbIq', s.ranked) +
+    broadcastScorebugHtml([['QUESTION', (s.index + 1) + '/' + s.queue.length], ['CATEGORY', q.category], ['REPORT', 'SEALED']]) +
+    '<div class="game-progress"><span style="width:' + Math.round(s.index / s.queue.length * 100) + '%"></span></div>' +
+    '<section class="stadium-question-card"><span class="stadium-question-kicker">COMBINE QUESTION ' + (s.index + 1) + '</span><div class="quiz-question stadium-question">' + esc(q.question) + '</div></section>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
-      return '<button class="quiz-option" data-cfb-iq-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+      return '<button class="quiz-option" data-cfb-iq-answer="' + i + '">' + '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span>' + '</button>';
     }).join('') +
     '</div></div>';
 }
@@ -5896,15 +5944,13 @@ function renderCfbIQResult() {
   var s = state.cfbIq;
   var breakdown = cfbIqCategoryBreakdown(s);
   var insight = iqStrongestWeakest(breakdown);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Your College Football IQ</h2>' +
-    '<div class="iq-score">' + s.iqScore + '</div>' +
-    '<div class="iq-title">' + esc(cfbIqTitle(s.iqScore)) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--iq broadcast-finish--cfb">' +
+    broadcastResultHtml('CFB · SCOUTING REPORT', s.iqScore, cfbIqTitle(s.iqScore), s.iqScore >= 130) +
     '<div class="summary-score">' + s.correct + ' / ' + s.total + ' correct</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
     (insight ? '<div class="iq-insight">Strongest: <b>' + esc(insight.best.category) + '</b> (' + insight.best.correct + '/' + insight.best.total + ') &middot; Weakest: <b>' + esc(insight.worst.category) + '</b> (' + insight.worst.correct + '/' + insight.worst.total + ')</div>' : '') +
     '<div class="iq-breakdown">' +
-    breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span></div>'; }).join('') +
+    breakdown.map(function (b) { return '<div class="iq-breakdown-row"><span>' + esc(b.category) + '</span><span>' + b.correct + ' / ' + b.total + '</span><div class="broadcast-category-meter" aria-hidden="true"><i style="width:' + Math.round(b.correct / b.total * 100) + '%"></i></div></div>'; }).join('') +
     '</div>' +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-cfb-iq-start>Retake Test</button>' +
@@ -6116,7 +6162,7 @@ function finishLegends() {
 }
 
 function renderLegendsSetup() {
-  return '<div class="panel game-intro game-intro-legends">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--roster game-intro game-intro-legends">' +
     '<div class="game-intro-icon">' + icon('trophy') + '</div><div class="game-intro-eyebrow">Build the perfect roster</div>' +
     '<h2 class="game-intro-title">Can You Go 17–0?</h2>' +
     '<p class="game-intro-copy">Seven team-seasons. Seven picks. Stack stars, hunt chemistry, and build a roster good enough to finish perfect.</p>' +
@@ -6129,9 +6175,8 @@ function renderLegendsSetup() {
 function legendsSlotLabel(slot) { return slot.replace(/\d/, function (d) { return ' ' + d; }); }
 function renderLegendsDraft() {
   var s = state.legends, entry = s.rolledEntry;
-  var html = '<div class="panel">' + modeToolbarHtml('legends', s.ranked) +
-    '<div class="game-hud"><div><span class="game-hud-label">17–0 Draft</span><b>Pick ' + s.round + ' of 7</b></div>' +
-    '<div class="game-hud-score"><span>Roster</span><b>' + (s.round - 1) + '/7</b></div></div>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--roster">' + modeToolbarHtml('legends', s.ranked) +
+    broadcastScorebugHtml([['ON THE CLOCK', s.round + '/7'], ['ROSTER FILLED', (s.round - 1) + '/7'], ['REROLLS LEFT', (s.teamRerollUsed ? 0 : 1) + (s.yearRerollUsed ? 0 : 1)]]) +
     '<div class="game-progress"><span style="width:' + Math.round((s.round - 1) / 7 * 100) + '%"></span></div>' +
     (s.lastPick ? '<div class="draft-pick-toast">' + icon('check') + esc(s.lastPick) + '</div>' : '') +
     '<div class="legends-roll-card"><span class="legends-roll-label">ON THE CLOCK</span><div class="legends-roll">' + teamCodeBadgeHtml('nfl', entry.team) + ' <b>' + esc(entry.team) + '</b> <span>' + entry.year + '</span></div></div>' +
@@ -6142,7 +6187,7 @@ function renderLegendsDraft() {
         (filled ? '<div class="legends-slot-player">' + esc(filled.name) + '</div>' : '<div class="legends-slot-empty">open</div>') + '</div>';
     }).join('') +
     '</div>' +
-    '<div class="legends-options">' +
+    '<div class="broadcast-section-label">THE AVAILABLE TALENT <span>PICK ONE</span></div><div class="legends-options">' +
     entry.players.map(function (p, i) {
       var alreadyPicked = legendsPickedNames(s.slots).indexOf(p.name) !== -1;
       var open = !alreadyPicked && legendsOpenSlotCount(s.slots, p.position) > 0;
@@ -6162,10 +6207,9 @@ function renderLegendsDraft() {
 }
 function renderLegendsResult() {
   var s = state.legends;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Your 17-0 Team</h2>' +
-    '<div class="legends-grade">' + esc(s.grade) + '</div>' +
-    '<div class="iq-title">' + esc(s.gradeLabel) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--roster">' +
+    broadcastResultHtml('NFL · ROSTER REPORT', s.grade, s.gradeLabel, s.wins === 17) +
+    broadcastRecordHtml(s.wins, s.losses) +
     '<div class="summary-score">Projected record: ' + s.wins + '-' + s.losses + '</div>' +
     '<div class="summary-note">Base FPPG ' + s.baseTotal + ' + Chemistry = ' + s.finalTotal + ' (perfect-team ceiling: ' + s.perfectScore + ')</div>' +
     '<div class="summary-note">' + (state.name ? 'Saved to the leaderboard as ' + esc(state.name) + '.' : 'Log in above to save this to the leaderboard.') + '</div>' +
@@ -6548,7 +6592,7 @@ function finishCfbLegends() {
 }
 
 function renderCfbLegendsSetup() {
-  return '<div class="panel game-intro game-intro-legends">' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--roster broadcast-finish--cfb game-intro game-intro-legends">' +
     '<div class="game-intro-icon">' + icon('trophy') + '</div><div class="game-intro-eyebrow">Build a national champion</div>' +
     '<h2 class="game-intro-title">Can You Go 12–0?</h2>' +
     '<p class="game-intro-copy">Eight team-seasons. Eight picks. Build an offense, add a defense, stack chemistry, and chase an undefeated regular season.</p>' +
@@ -6560,9 +6604,8 @@ function renderCfbLegendsSetup() {
 }
 function renderCfbLegendsDraft() {
   var s = state.cfbLegends, entry = s.rolledEntry;
-  var html = '<div class="panel">' + modeToolbarHtml('cfbLegends', s.ranked) +
-    '<div class="game-hud"><div><span class="game-hud-label">12–0 Draft</span><b>Pick ' + s.round + ' of 8</b></div>' +
-    '<div class="game-hud-score"><span>Roster</span><b>' + (s.round - 1) + '/8</b></div></div>' +
+  var html = '<div class="panel stadium-game broadcast-finish broadcast-finish--roster broadcast-finish--cfb">' + modeToolbarHtml('cfbLegends', s.ranked) +
+    broadcastScorebugHtml([['ON THE CLOCK', s.round + '/8'], ['ROSTER FILLED', (s.round - 1) + '/8'], ['REROLLS LEFT', (s.teamRerollUsed ? 0 : 1) + (s.yearRerollUsed ? 0 : 1)]]) +
     '<div class="game-progress"><span style="width:' + Math.round((s.round - 1) / 8 * 100) + '%"></span></div>' +
     (s.lastPick ? '<div class="draft-pick-toast">' + icon('check') + esc(s.lastPick) + '</div>' : '') +
     '<div class="legends-roll-card"><span class="legends-roll-label">ON THE CLOCK</span><div class="legends-roll">' + teamCodeBadgeHtml('cfb', entry.team) + ' <b>' + esc(entry.team) + '</b> <span>' + entry.year + '</span></div></div>' +
@@ -6573,7 +6616,7 @@ function renderCfbLegendsDraft() {
         (filled ? '<div class="legends-slot-player">' + esc(filled.name) + '</div>' : '<div class="legends-slot-empty">open</div>') + '</div>';
     }).join('') +
     '</div>' +
-    '<div class="legends-options">' +
+    '<div class="broadcast-section-label">THE AVAILABLE TALENT <span>PICK ONE</span></div><div class="legends-options">' +
     entry.players.map(function (p, i) {
       var alreadyPicked = cfbLegendsPickedNames(s.slots).indexOf(p.name) !== -1;
       var open = !alreadyPicked && cfbLegendsOpenSlotCount(s.slots, p.position) > 0;
@@ -6593,10 +6636,9 @@ function renderCfbLegendsDraft() {
 }
 function renderCfbLegendsResult() {
   var s = state.cfbLegends;
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Your CFB 12-0 Team</h2>' +
-    '<div class="legends-grade">' + esc(s.grade) + '</div>' +
-    '<div class="iq-title">' + esc(s.verdict) + '</div>' +
+  return '<div class="panel stadium-game broadcast-finish broadcast-finish--roster broadcast-finish--cfb">' +
+    broadcastResultHtml('CFB · ROSTER REPORT', s.grade, s.verdict, s.wins === 12) +
+    broadcastRecordHtml(s.wins, s.losses) +
     '<div class="summary-score">Regular season: ' + s.wins + '-' + s.losses + '</div>' +
     '<div class="summary-note">' + esc(s.postseasonLabel) + '</div>' +
     '<div class="summary-note">Base FPPG ' + s.baseTotal + ' + Chemistry = ' + s.finalTotal + ' (perfect-team ceiling: ' + s.perfectScore + ')</div>' +
