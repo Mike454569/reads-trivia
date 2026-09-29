@@ -2092,6 +2092,66 @@ function mechanicPilotToolbarHtml(cfg, s) {
   }
   return renderReadsShellHeader(opts);
 }
+
+var _STADIUM_BROADCAST_KINDS = {
+  drive_progression: 'drive',
+  risk_it: 'risk',
+  double_or_nothing: 'double',
+  fact_or_fake: 'review',
+  three_strikes: 'strikes',
+};
+function mechanicPilotPanelClass(cfg, s) {
+  var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
+  if (!variant) return 'panel';
+  var stateClass = s && s.screen === ENGINE_GAME_SCREEN.ANSWERED ? ' is-answered' : '';
+  return 'panel stadium-game stadium-game--' + variant + stateClass;
+}
+function stadiumRoundBar(label, current, total) {
+  var safeCurrent = Math.max(1, Number(current) || 1);
+  var safeTotal = Math.max(safeCurrent, Number(total) || safeCurrent);
+  var pct = Math.min(100, Math.round(100 * safeCurrent / safeTotal));
+  return '<div class="stadium-round-bar"><span class="stadium-live-dot"></span>' +
+    '<span class="stadium-round-label">' + esc(label) + '</span>' +
+    '<span class="stadium-round-count">' + safeCurrent + ' / ' + safeTotal + '</span>' +
+    '<span class="stadium-round-track"><span style="width:' + pct + '%"></span></span></div>';
+}
+function stadiumQuestionHtml(kicker, prompt) {
+  return '<section class="stadium-question-card"><div class="stadium-question-kicker">' + esc(kicker) + '</div>' +
+    '<div class="quiz-question stadium-question">' + esc(prompt || '') + '</div></section>';
+}
+function renderStadiumResultMoment(cfg, s, wasCorrect) {
+  if (!cfg || !_STADIUM_BROADCAST_KINDS[cfg.kind]) return '';
+  var r = s.result || {}, v = s.view || {}, eyebrow = 'FINAL CALL', title = wasCorrect ? 'GOOD CALL' : 'NO GOOD', sub = '';
+  if (cfg.kind === 'drive_progression') {
+    eyebrow = 'DRIVE UPDATE';
+    title = v.scored ? 'TOUCHDOWN' : (wasCorrect ? (r.yards_gained ? '+' + r.yards_gained + ' YARDS' : 'CHAINS MOVING') : 'DRIVE STALLED');
+    sub = v.scored ? 'You finished the drive.' : (wasCorrect ? 'Keep marching.' : 'Regroup for the next snap.');
+  } else if (cfg.kind === 'risk_it') {
+    eyebrow = 'RISK RESULT';
+    title = wasCorrect ? 'RISK CASHED' : 'LIFE LOST';
+    sub = wasCorrect ? '+' + (r.points_earned || 0) + ' on the board' : 'That gamble did not hit.';
+  } else if (cfg.kind === 'three_strikes') {
+    eyebrow = 'DRIVE RESULT';
+    title = wasCorrect ? 'CHAIN MOVING' : 'STRIKE';
+    sub = wasCorrect ? '+' + (r.points_earned || 0) + ' points' : 'One light goes dark.';
+  } else if (cfg.kind === 'double_or_nothing') {
+    eyebrow = 'JUMBOTRON';
+    if (r.action === 'bank') {
+      title = 'LOCKED IN'; sub = (r.final_points || 0) + ' points secured';
+    } else {
+      title = wasCorrect ? 'DOUBLE!' : 'BUST';
+      sub = wasCorrect ? (r.points || 0) + ' points now on the line' : 'The pot is gone.';
+    }
+  } else if (cfg.kind === 'fact_or_fake') {
+    eyebrow = 'BOOTH REVIEW';
+    title = wasCorrect ? 'CALL CONFIRMED' : 'CALL OVERTURNED';
+    sub = r.canonical_answer ? 'The ruling: ' + r.canonical_answer : '';
+  }
+  return '<div class="stadium-result stadium-result--' + (wasCorrect ? 'good' : 'bad') + '" aria-hidden="true">' +
+    '<span class="stadium-result-sweep"></span><span class="stadium-result-eyebrow">' + esc(eyebrow) + '</span>' +
+    '<strong class="stadium-result-title">' + esc(title) + '</strong>' +
+    (sub ? '<span class="stadium-result-sub">' + esc(sub) + '</span>' : '') + '</div>';
+}
 /* UI/UX pass: this used to render 'Result: ' + JSON.stringify(s.result) --
    the raw backend response object -- directly as the player's feedback
    text (a real correct/wrong/canonical_mapping/notes payload shown
@@ -2239,7 +2299,7 @@ function renderMechanicPilotFeedback(cfg, s) {
   // Same real .quiz-feedback/.feedback-good/.feedback-bad shell every
   // other mode in app.js already uses (e.g. the Engine Pilot render just
   // above this file's own line ~474) -- no parallel feedback style.
-  return '<div class="quiz-feedback" aria-live="polite">' +
+  return renderStadiumResultMoment(cfg, s, wasCorrect) + '<div class="quiz-feedback" aria-live="polite">' +
     '<span class="' + (wasCorrect ? 'feedback-good' : 'feedback-bad') + '">' +
     (wasCorrect ? icon('check') : icon('xMark')) + ' ' + esc(headline) + '</span>' +
     (detail ? ' ' + esc(detail) : '') + '</div>';
@@ -2422,15 +2482,18 @@ function renderDriveProgressionBody(v, s) {
   if (v.mode === 'YARDAGE') {
     var pos = v.field_position_yards || 0, total = v.field_length_yards || 100;
     var pct = Math.min(100, Math.round(100 * pos / total));
-    statusHtml = '<div class="drive-meter"><div class="drive-meter-fill" style="width:' + pct + '%"></div>' +
-      '<div class="drive-meter-label">' + pos + ' / ' + total + ' yards</div></div>';
+    statusHtml = '<div class="broadcast-field" aria-label="' + pos + ' of ' + total + ' yards">' +
+      '<div class="broadcast-field-endzone">END ZONE</div><div class="broadcast-field-lines"></div>' +
+      '<div class="broadcast-field-drive" style="width:' + pct + '%"></div>' +
+      '<div class="broadcast-field-ball" style="left:' + pct + '%"><span></span></div>' +
+      '<div class="broadcast-field-score"><strong>' + pos + '</strong><span>YARDS</span></div></div>';
   } else {
     var downsLeft = v.downs_remaining != null ? v.downs_remaining : (v.downs_total || 4);
     var downsTotal = v.downs_total || 4;
     var boxes = [];
-    for (var i = 0; i < downsTotal; i++) boxes.push('<span class="down-box' + (i < downsLeft ? ' down-box-active' : '') + '"></span>');
-    statusHtml = '<div class="status-line">Down ' + (downsTotal - downsLeft + 1) + ' of ' + downsTotal + '</div>' +
-      '<div class="down-tracker">' + boxes.join('') + '</div>';
+    for (var i = 0; i < downsTotal; i++) boxes.push('<span class="goal-line-down' + (i < downsLeft ? ' is-live' : '') + '"><b>' + (i + 1) + '</b></span>');
+    statusHtml = '<div class="goal-line-board"><span class="goal-line-kicker">GOAL LINE STAND</span>' +
+      '<strong>DOWN ' + Math.min(downsTotal, downsTotal - downsLeft + 1) + '</strong><div class="goal-line-downs">' + boxes.join('') + '</div></div>';
   }
   if (v.ended) {
     return statusHtml + '<div class="quiz-feedback" aria-live="polite">' +
@@ -2440,7 +2503,7 @@ function renderDriveProgressionBody(v, s) {
   var optionsHtml = '<div class="quiz-options">' + (v.options || []).map(function (opt, i) {
     return '<button class="quiz-option" data-mechanic-drive-answer="' + i + '">' + String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
   }).join('') + '</div>';
-  return statusHtml + '<div class="quiz-question">' + esc(v.prompt || '') + '</div>' + optionsHtml;
+  return statusHtml + stadiumQuestionHtml(v.mode === 'YARDAGE' ? 'NEXT PLAY' : 'MAKE THE STOP', v.prompt) + optionsHtml;
 }
 
 // ROSTER_BUILD: LINEUP_BUILDER (unbudgeted), AUCTION_DRAFT (SEQUENTIAL
@@ -2607,7 +2670,7 @@ var _TIER_SELECT_META = {
   LOW: { icon: 'target', cls: 'low' }, MEDIUM: { icon: 'zap', cls: 'medium' }, HIGH: { icon: 'flame', cls: 'high' },
 };
 function renderRiskItBody(v, s) {
-  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  var roundLine = stadiumRoundBar('LIVE · PICK YOUR PLAY', v.round_index + 1, v.round_count);
   // Real, found-and-fixed crash: the ANSWERED screen calls this body
   // renderer with whatever view the just-graded submission returned --
   // when a wrong answer used the player's last real life, that view is
@@ -2618,24 +2681,24 @@ function renderRiskItBody(v, s) {
   // "Couldn't load" error on literally every game-ending wrong answer.
   // Same defensive-on-ended pattern HIGHER_LOWER/ELIMINATION already use.
   if (v.completed || v.ended) {
-    return roundLine + '<div class="quiz-question">Run over -- no more real questions this round.</div>';
+    return roundLine + stadiumQuestionHtml('FINAL WHISTLE', 'Run over — no more questions this round.');
   }
   if (v.awaiting_tier) {
     var tierOrder = ['LOW', 'MEDIUM', 'HIGH'];
     return roundLine +
-      '<div class="quiz-question">Pick a real risk tier -- higher risk means a more obscure real result, worth more points.</div>' +
+      stadiumQuestionHtml('CHOOSE YOUR CALL', 'How aggressive do you want to be? Commit before the question is revealed.') +
       '<div class="tier-select-grid" role="group" aria-label="Choose a risk tier">' + tierOrder.map(function (tier) {
         var meta = _TIER_SELECT_META[tier];
         var pts = v.tier_points[tier];
         return '<button class="tier-card tier-card--' + meta.cls + '" data-mechanic-risk-tier="' + esc(tier) + '">' +
           '<span class="tier-card-icon">' + icon(meta.icon) + '</span>' +
-          '<span class="tier-card-name">' + esc(tier) + '</span>' +
+          '<span class="tier-card-play">' + (tier === 'LOW' ? 'SAFE PLAY' : tier === 'MEDIUM' ? 'BALANCED' : 'DEEP SHOT') + '</span>' +
+          '<span class="tier-card-name">' + esc(tier) + ' RISK</span>' +
           '<span class="tier-card-points">' + pts + (pts === 1 ? ' pt' : ' pts') + '</span>' +
           '</button>';
       }).join('') + '</div>';
   }
-  return roundLine +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return roundLine + stadiumQuestionHtml((v.tier || 'LIVE') + ' RISK', v.prompt) +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-risk-answer',
     });
@@ -2718,7 +2781,7 @@ function renderBlindResumeBody(v, s) {
 // distinct gold "lock it in" CTA (.btn-bank) rather than a generic chip
 // button. Tier now shown via the shared shell header, not repeated here.
 function renderDoubleOrNothingBody(v, s) {
-  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  var roundLine = stadiumRoundBar('LIVE · THE POT', v.round_index + 1, v.round_count);
   // Real, found-and-fixed crash: DOUBLE_OR_NOTHING has no lives budget --
   // a SINGLE wrong answer (or a bank) ends the run, so the ANSWERED
   // screen's view is the round's own completed shape (points/ended/
@@ -2728,16 +2791,16 @@ function renderDoubleOrNothingBody(v, s) {
   // load" error. Same defensive-on-ended pattern HIGHER_LOWER/
   // ELIMINATION already use.
   if (v.completed) {
-    return roundLine + '<div class="pot-display"><span class="pot-value">' + v.points + '</span>' +
+    return roundLine + '<div class="pot-display"><span class="pot-jumbotron-label">READS STADIUM</span><span class="pot-value">' + v.points + '</span>' +
       '<span class="pot-label">' + (v.banked ? 'points banked' : 'points on the line') + '</span></div>' +
-      '<div class="quiz-question">' + (v.banked ? 'Banked!' : 'Run over') + ' -- no more real questions this round.</div>';
+      stadiumQuestionHtml('FINAL', (v.banked ? 'Banked!' : 'Run over') + ' — no more questions this round.');
   }
   return roundLine +
-    '<div class="pot-display"><span class="pot-value">' + v.points + '</span><span class="pot-label">points on the line</span></div>' +
+    '<div class="pot-display"><span class="pot-jumbotron-label">READS STADIUM</span><span class="pot-value">' + v.points + '</span><span class="pot-label">points on the line</span></div>' +
     (v.can_bank
-      ? '<div class="btn-row"><button class="btn-primary btn-bank" data-mechanic-don-bank>' + icon('lock') + ' Bank ' + v.points + ' Points</button></div>'
+      ? '<div class="btn-row"><button class="btn-primary btn-bank" data-mechanic-don-bank>' + icon('lock') + ' Lock In ' + v.points + ' Points</button></div>'
       : '') +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+    stadiumQuestionHtml('DOUBLE IT OR WALK AWAY', v.prompt) +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-don-answer',
     });
@@ -2766,8 +2829,9 @@ function renderKingOfTheHillBody(v, s) {
 // AND the same data-mechanic-duel-choice click handler verbatim -- zero
 // new app.js plumbing needed for this format.
 function renderFactOrFakeBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">' + esc(v.statement) + '</div>' +
+  return stadiumRoundBar('BOOTH REVIEW', v.round_index + 1, v.round_count) +
+    '<div class="review-monitor"><span class="review-monitor-label">RULING ON THE FIELD</span>' +
+    '<div class="quiz-question stadium-question">' + esc(v.statement) + '</div><span class="review-scanline"></span></div>' +
     renderBinaryChoiceHtml(
       { code: 'TRUE', label: 'TRUE' },
       { code: 'FAKE', label: 'FAKE' },
@@ -2821,7 +2885,11 @@ function renderReverseTriviaBody(v, s) {
 // shared shell header, so this only needs the real round-progress line
 // and question.
 function renderThreeStrikesBody(v, s) {
-  var roundLine = '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>';
+  var strikes = Number(v.strikes || 0), strikeLamps = '';
+  for (var lamp = 0; lamp < 3; lamp++) strikeLamps += '<span class="strike-lamp' + (lamp < strikes ? ' is-hit' : '') + '">X</span>';
+  var roundLine = stadiumRoundBar('LIVE · STAY ALIVE', v.round_index + 1, v.round_count) +
+    '<div class="strike-scoreboard"><div><span>STREAK</span><strong>' + (v.streak || 0) + '</strong></div>' +
+    '<div class="strike-lamps" aria-label="' + strikes + ' of 3 strikes">' + strikeLamps + '</div></div>';
   // Real, found-and-fixed crash: same shape as RISK_IT above -- the
   // ANSWERED screen after a strike-costing wrong answer that used the
   // last real strike gets the round's own completed shape (score/streak/
@@ -2829,10 +2897,9 @@ function renderThreeStrikesBody(v, s) {
   // against that shape threw, which the submit handler's catch turned
   // into a generic "Couldn't load" error.
   if (v.completed || v.ended) {
-    return roundLine + '<div class="quiz-question">Run over -- no more real questions this round.</div>';
+    return roundLine + stadiumQuestionHtml('FINAL WHISTLE', 'Run over — no more questions this round.');
   }
-  return roundLine +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return roundLine + stadiumQuestionHtml('KEEP THE DRIVE ALIVE', v.prompt) +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-three-strikes-answer',
     });
@@ -2951,18 +3018,19 @@ function renderBracketTreeBody(v, s) {
 function renderMechanicPilotScreen() {
   var s = state.mechanicPilot;
   var cfg = mechanicPilotModeConfig(s ? s.modeKey : mechanicPilotCurrentModeKey);
+  var panelClass = mechanicPilotPanelClass(cfg, s);
   if (!cfg.flagOn()) return renderHome();
   if (!s) {
-    return '<div class="panel"><h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
+    return '<div class="' + panelClass + '"><h2 class="panel-title">' + esc(cfg.title) + '</h2>' +
       '<p class="mode-desc">' + esc(cfg.desc) + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-start>Start</button></div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.LOADING) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+    return '<div class="' + panelClass + '">' + mechanicPilotToolbarHtml(cfg, s) +
       '<div class="inline-loading" aria-live="polite"><span class="loading-spinner loading-spinner-sm"></span>Finding your next round&hellip;</div></div>';
   }
   if (s.screen === ENGINE_GAME_SCREEN.ERROR) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+    return '<div class="' + panelClass + '">' + mechanicPilotToolbarHtml(cfg, s) +
       '<p class="mode-desc" aria-live="assertive">' + esc(s.error) + '</p>' +
       '<div class="btn-row"><button class="btn-primary" data-mechanic-retry>Try Again</button>' +
       '<button class="btn-secondary" data-mechanic-fallback>' + esc(cfg.fallbackLabel) + '</button></div></div>';
@@ -2975,7 +3043,7 @@ function renderMechanicPilotScreen() {
     // current and future format that routes through this shell gets a real
     // production-polish completion moment automatically -- no per-format
     // design pass needed.
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+    return '<div class="' + panelClass + '">' + mechanicPilotToolbarHtml(cfg, s) +
       '<div class="mechanic-complete-banner">' + brandWatermarkHtml() + '<div class="mechanic-complete-confetti"></div>' +
       icon('trophy') + ' <h2 class="complete-banner-text">Round Complete!</h2></div>' +
       renderMechanicPilotCompleteSummary(cfg, s) +
@@ -2987,7 +3055,7 @@ function renderMechanicPilotScreen() {
   var answered = s.screen === ENGINE_GAME_SCREEN.ANSWERED;
   var submitting = s.screen === ENGINE_GAME_SCREEN.SUBMITTING;
   if (submitting) {
-    return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
+    return '<div class="' + panelClass + '">' + mechanicPilotToolbarHtml(cfg, s) + renderMechanicPilotBody(cfg, s) +
       '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div></div>';
   }
   // Real, found-and-fixed crash (systemic across most mechanicPilot
@@ -3007,7 +3075,7 @@ function renderMechanicPilotScreen() {
   // still shows the real correct/wrong outcome, and Continue still
   // advances to the real completion screen exactly as before.
   var roundOver = s.view && (s.view.completed || s.view.ended || s.view.sequence_complete);
-  return '<div class="panel">' + mechanicPilotToolbarHtml(cfg, s) +
+  return '<div class="' + panelClass + '">' + mechanicPilotToolbarHtml(cfg, s) +
     (answered && roundOver ? '' : renderMechanicPilotBody(cfg, s)) +
     (answered ? renderMechanicPilotFeedback(cfg, s) +
       '<button class="btn-primary" data-mechanic-next>Continue</button>' : '') +
