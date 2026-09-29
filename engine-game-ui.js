@@ -2109,6 +2109,11 @@ var _STADIUM_BROADCAST_KINDS = {
   career_path: 'journey',
   mystery_roster: 'mystery',
   common_link: 'link',
+  higher_lower: 'momentum',
+  elimination: 'survival',
+  category_roulette: 'roulette',
+  leaderboard_climb: 'climb',
+  before_after: 'timeline',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2196,6 +2201,26 @@ function renderStadiumResultMoment(cfg, s, wasCorrect) {
     eyebrow = 'CONNECTION FOUND';
     title = wasCorrect ? 'LINK LOCKED' : 'LINK BROKEN';
     sub = r.canonical_answer ? r.canonical_answer : '';
+  } else if (cfg.kind === 'higher_lower') {
+    eyebrow = 'STREAK CHECK';
+    title = wasCorrect ? 'STREAK ALIVE' : 'STREAK OVER';
+    sub = r.actual_direction ? 'The next team was ' + r.actual_direction : '';
+  } else if (cfg.kind === 'elimination') {
+    eyebrow = 'SURVIVAL BOARD';
+    title = wasCorrect ? 'ADVANCE' : 'ELIMINATED';
+    sub = r.actual_membership == null ? '' : (r.actual_membership ? 'That team-season was a champion.' : 'That team-season was not a champion.');
+  } else if (cfg.kind === 'category_roulette') {
+    eyebrow = 'CATEGORY CALL';
+    title = wasCorrect ? 'NAILED IT' : 'MISSED IT';
+    sub = r.canonical_answer ? 'Answer: ' + r.canonical_answer : '';
+  } else if (cfg.kind === 'leaderboard_climb') {
+    eyebrow = 'RANKING UPDATE';
+    title = wasCorrect ? 'CLIMB ON' : 'CLIMB OVER';
+    sub = wasCorrect && r.new_rank != null ? 'Now ranked #' + r.new_rank : (r.correct_label ? 'Higher: ' + r.correct_label : '');
+  } else if (cfg.kind === 'before_after') {
+    eyebrow = 'TIMELINE REVIEW';
+    title = wasCorrect ? 'ORDER CONFIRMED' : 'ORDER REVERSED';
+    sub = r.correct_label ? r.correct_label + ' came first' : '';
   }
   return '<div class="stadium-result stadium-result--' + (wasCorrect ? 'good' : 'bad') + '" aria-hidden="true">' +
     '<span class="stadium-result-sweep"></span><span class="stadium-result-eyebrow">' + esc(eyebrow) + '</span>' +
@@ -2417,21 +2442,22 @@ function renderMechanicPilotBody(cfg, s) {
       '<div class="btn-row"><button class="btn-primary" data-sort-submit>Submit Order</button></div>';
   }
   if (cfg.kind === 'higher_lower') {
-    return '<div class="status-line">Streak: ' + (v.streak || 0) + '</div>' +
-      '<div class="hl-compare"><span>' + esc(v.current_item.label) + '</span><span class="hl-value">' + esc(String(v.current_item.value)) + '</span></div>' +
-      '<div class="hl-compare"><span>' + (v.next_item ? esc(v.next_item.label) : '(no more real items)') + '</span>' +
-      '<span class="' + (v.next_item && v.next_item.value !== undefined ? 'hl-value' : 'hl-hidden') + '">' + (v.next_item && v.next_item.value !== undefined ? esc(String(v.next_item.value)) : '?') + '</span></div>' +
+    return '<div class="momentum-scorebug"><span>WIN STREAK</span><strong>' + (v.streak || 0) + '</strong></div>' +
+      '<div class="momentum-matchup"><div class="momentum-team"><span>ON THE BOARD</span><strong>' + esc(v.current_item.label) + '</strong><em>' + esc(String(v.current_item.value)) + ' WINS</em></div>' +
+      '<span class="momentum-vs">VS</span><div class="momentum-team is-unknown"><span>UP NEXT</span><strong>' + (v.next_item ? esc(v.next_item.label) : 'No more teams') + '</strong>' +
+      '<em>' + (v.next_item && v.next_item.value !== undefined ? esc(String(v.next_item.value)) + ' WINS' : '? WINS') + '</em></div></div>' +
+      stadiumQuestionHtml('MAKE THE CALL', 'Will the next team-season have more or fewer wins?') +
       // data-mechanic-hl-guess, deliberately NOT data-hl-guess -- that
       // attribute already belongs to the legacy, client-side higherLower
       // mode's own buttons (app.js), which fire a completely different
       // handler (submitHigherLowerGuess). Reusing it here would silently
       // call the wrong function whenever this screen is showing.
-      (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-mechanic-hl-guess="higher">Higher</button><button class="btn-primary" data-mechanic-hl-guess="lower">Lower</button></div>');
+      (v.ended ? '' : '<div class="btn-row momentum-actions"><button class="btn-primary" data-mechanic-hl-guess="higher">Higher ↑</button><button class="btn-primary" data-mechanic-hl-guess="lower">Lower ↓</button></div>');
   }
   if (cfg.kind === 'elimination') {
-    return '<div class="status-line">Survived: ' + (v.survived_count || 0) + '</div>' +
-      '<div class="quiz-question">' + esc(v.current_prompt || '(no more real items)') + '</div>' +
-      (v.ended ? '' : '<div class="btn-row"><button class="btn-primary" data-elim-guess="true">True</button><button class="btn-primary" data-elim-guess="false">False</button></div>');
+    return '<div class="survival-scoreboard"><span>STILL STANDING</span><strong>' + (v.survived_count || 0) + '</strong><em>ONE MISS ENDS THE RUN</em></div>' +
+      stadiumQuestionHtml('SURVIVE THE NEXT CALL', v.current_prompt || 'No more challenges remain.') +
+      (v.ended ? '' : '<div class="btn-row survival-actions"><button class="btn-primary" data-elim-guess="true">True</button><button class="btn-primary" data-elim-guess="false">False</button></div>');
   }
   if (cfg.kind === 'comparison' || cfg.kind === 'knockout_bracket') {
     // Finish-10-Formats pass: KNOCKOUT_TOURNAMENT's real view shape
@@ -2683,8 +2709,9 @@ function renderMissingPieceBody(v, s) {
 // data-mechanic-duel-choice click handler verbatim -- zero new app.js
 // plumbing needed for this format.
 function renderBeforeAfterBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count + '</div>' +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return stadiumRoundBar('CAREER TIMELINE', v.round_index + 1, v.round_count) +
+    '<div class="timeline-faceoff"><span>THEN</span><i></i><span>NOW</span></div>' +
+    stadiumQuestionHtml('WHICH CAME FIRST?', v.prompt) +
     renderBinaryChoiceHtml(
       { code: 'A', label: v.entity_a.label },
       { code: 'B', label: v.entity_b.label },
@@ -2787,8 +2814,9 @@ function renderWagerModeBody(v, s) {
 // AND the existing data-mechanic-duel-choice click handler verbatim --
 // zero new app.js plumbing needed for this format.
 function renderLeaderboardClimbBody(v, s) {
-  return '<div class="status-line">Rung ' + (v.ladder_size - v.current_rank + 1) + ' of ' + v.ladder_size + '</div>' +
-    '<div class="quiz-question">Which real player ranks HIGHER on this real leaderboard?</div>' +
+  return stadiumRoundBar('CLIMB THE BOARD', v.ladder_size - v.current_rank + 1, v.ladder_size) +
+    '<div class="climb-scoreboard"><span>CURRENT RANK</span><strong>#' + v.current_rank + '</strong><em>OF ' + v.ladder_size + '</em></div>' +
+    stadiumQuestionHtml('PICK THE HIGHER RANKED PLAYER', 'Who ranks higher on this leaderboard?') +
     renderBinaryChoiceHtml(
       { code: 'A', label: v.entity_a.label },
       { code: 'B', label: v.entity_b.label },
@@ -2992,9 +3020,9 @@ function renderDraftPickLadderBody(v, s) {
 // CATEGORY_ROULETTE: reuses renderCandidateCardsHtml, same as
 // PICK_THE_IMPOSTOR/DRAFT_PICK_LADDER -- zero new CSS.
 function renderCategoryRouletteBody(v, s) {
-  return '<div class="status-line">Round ' + (v.round_index + 1) + ' of ' + v.round_count +
-    ' &middot; Category: ' + esc(v.category) + '</div>' +
-    '<div class="quiz-question">' + esc(v.prompt) + '</div>' +
+  return stadiumRoundBar('THE NEXT CATEGORY IS IN', v.round_index + 1, v.round_count) +
+    '<div class="roulette-reveal"><span>CATEGORY DRAWN</span><strong>' + esc(v.category) + '</strong><i aria-hidden="true"></i></div>' +
+    stadiumQuestionHtml('YOUR QUESTION', v.prompt) +
     renderCandidateCardsHtml(v.options.map(function (it) { return it.label; }), {
       dataAttr: 'data-mechanic-category-roulette-pick',
     });
