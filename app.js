@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.3.0';
+var APP_VERSION = '3.4.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -9136,8 +9136,8 @@ function renderLearnTriviaCards(rows) {
       return '<div class="learn-fact-card">' +
         '<span class="learn-pill">' + esc(q.category) + '</span>' +
         '<div class="learn-fact-q">' + esc(q.question) + '</div>' +
-        '<div class="learn-fact-a">' + esc(q.options[q.correctIndex]) + '</div>' +
-        (q.notes ? '<div class="learn-fact-notes">' + esc(q.notes) + '</div>' : '') +
+        '<details class="film-fact-reveal"><summary>Make your read, then reveal the answer</summary><div class="learn-fact-a">' + esc(q.options[q.correctIndex]) + '</div>' +
+        (q.notes ? '<div class="learn-fact-notes">' + esc(q.notes) + '</div>' : '') + '</details>' +
         '</div>';
     }).join('') : learnEmptyCard(state.learn.filter)) +
     '</div>';
@@ -9221,21 +9221,87 @@ function learnSectionCategories(id) {
     id === 'nflTrivia' ? learnTriviaCategories(QUIZ) :
     id === 'xsoAlmanac' ? learnTriviaCategories(XSO) : [];
 }
+
+/* Film Room: local study notebook, daily reps, and coach dashboard. */
+function filmNotebook() { return lsGet('readsFilmNotebook__' + slugify(state.name || 'guest'), { saved: [], viewed: {}, reps: 0, correct: 0, days: {}, last: null }); }
+function filmSaveNotebook(n) { lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); }
+function filmRecordRep(correct) {
+  var n = filmNotebook(); n.reps++; if (correct) n.correct++;
+  n.days[new Date().toLocaleDateString('en-CA')] = true; filmSaveNotebook(n);
+}
+function filmMeter(value, total, label) {
+  return '<div class="film-meter"><div><span>' + esc(label) + '</span><strong>' + value + ' / ' + total + '</strong></div><div class="film-meter-track"><span style="width:' + Math.min(100, total ? 100 * value / total : 0) + '%"></span></div></div>';
+}
+function filmStatsHtml() {
+  var n = filmNotebook(), p = getClassroomProgress(), complete = Object.keys(p).filter(function (id) { return p[id].completed; }).length;
+  return '<div class="film-stats"><div><strong>' + complete + '</strong><span>Lessons complete</span></div><div><strong>' + n.reps + '</strong><span>Study reps</span></div><div><strong>' + (n.reps ? Math.round(n.correct / n.reps * 100) + '%' : '—') + '</strong><span>Rep accuracy</span></div><div><strong>' + Object.keys(n.days).length + '</strong><span>Days studied</span></div></div>';
+}
+function filmDashboard() {
+  var n = filmNotebook();
+  var groups = [
+    { title: 'The playbook', note: 'Learn the game. See the assignments. Make the read.', ids: ['footballEncyclopedia', 'coverageClassroom', 'xsoAlmanac'] },
+    { title: 'Pro football archive', note: 'Legends, accolades, and the moments that built the league.', ids: ['nflHof', 'nflDecorated', 'nflTrivia'] },
+    { title: 'College football archive', note: 'Champions, award winners, and Saturday history.', ids: ['cfbHeisman', 'cfbMultiAA', 'cfbNatChamp', 'cfbAwards', 'cfbTrivia'] }
+  ];
+  var filter = state.learn.filmFilter || '';
+  var cards = groups.map(function (g, groupIndex) {
+    var sections = g.ids.map(learnSectionById).filter(function (v) { return learnMatchesFilter(filter, v.title + ' ' + v.desc + ' ' + g.title); });
+    return sections.length ? '<section class="film-group" id="film-group-' + groupIndex + '"><div class="film-group-head"><h3>' + g.title + '</h3><p>' + g.note + '</p></div><div class="mode-grid">' + sections.map(learnSectionCardHtml).join('') + '</div></section>' : '';
+  }).join('');
+  var last = n.last;
+  var resume = last ? '<button class="btn-secondary" data-film-resume>Continue: ' + esc(last.label) + ' →</button>' : '<button class="btn-secondary" data-learn-open="coverageClassroom">Start with defensive coverages →</button>';
+  return '<div class="panel film-dashboard"><div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Home</button></div>' +
+    '<div class="film-hero"><span class="film-eyebrow">READS / COACH’S NOTEBOOK</span><h2>The Film Room</h2><p>See the field.<br>Understand the game.</p><div class="film-chalk-art" aria-hidden="true">X &nbsp; X &nbsp; X<br>↗ &nbsp; ↑ &nbsp; ↖<br>O &nbsp; O &nbsp; O</div></div>' +
+    filmStatsHtml() + '<div class="film-session"><div><span class="film-eyebrow">TODAY’S STUDY SESSION</span><h3>Five reps. Sharper football IQ.</h3><p>A daily mix of scheme, NFL, and college questions. Study at your pace.</p></div><button class="btn-primary" data-film-study>Take the reps ' + icon('arrowRight') + '</button></div>' +
+    '<div class="film-resume">' + resume + '<button class="btn-tiny" data-film-saved>Saved concepts (' + n.saved.length + ')</button></div>' +
+    '<label class="film-search-label" for="film-search-input">Find your next session</label><input id="film-search-input" class="learn-filter-input" placeholder="Search sections: coverages, history, awards…" value="' + esc(filter) + '">' +
+    '<div class="chip-row film-jump-nav" aria-label="Film Room sections">' + groups.map(function(g,i) { return '<button class="chip-toggle" data-film-jump="' + i + '">' + esc(['Playbook', 'NFL archive', 'College archive'][i]) + '</button>'; }).join('') + '</div>' + (cards || '<p class="mode-desc">No sections match. Try “coverage” or “NFL”.</p>') + '<p class="film-local-note">Your notebook is saved on this device for this profile.</p></div>';
+}
+function startFilmStudy() {
+  state.learn.screen = 'study'; state.learn.loadingSection = 'xsoAlmanac'; state.learn.loadError = null; renderAll();
+  var ready = loadedScripts['data/xso.js'] ? Promise.resolve() : loadScript('data/xso.js');
+  ready.then(function () {
+    refreshDataAliases();
+    if (state.learn.screen !== 'study') return;
+    // Keep the daily mix broad; draft questions are not the theme of this study session.
+    var day = new Date().toLocaleDateString('en-CA');
+    var seed = day.split('').reduce(function (v, c) { return (v * 31 + c.charCodeAt(0)) >>> 0; }, 0);
+    function pick(pool, count) { return pool.filter(function (q) { return !/\bdraft\b/i.test(q.question + ' ' + q.category); }).map(function(q, i) { return { q:q, rank: ((i + 1) * 2654435761 + seed) >>> 0 }; }).sort(function(a,b) { return a.rank - b.rank; }).slice(0,count).map(function(v) { return v.q; }); }
+    state.filmStudy = { questions: pick(XSO, 2).concat(pick(QUIZ, 2), pick(CFB, 1)), index: 0, answered: null, correct: 0, review: [] };
+    state.learn.loadingSection = null; renderAll();
+  }).catch(function() { if (state.learn.screen === 'study') { state.learn.loadingSection = null; state.learn.loadError = 'xsoAlmanac'; renderAll(); } });
+}
+function renderFilmStudy() {
+  var s = state.filmStudy;
+  if (!s || !s.questions.length) return '<div class="panel"><button class="btn-secondary" data-film-study>Start study session</button></div>';
+  var head = '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">DAILY REPS</span></div>';
+  if (s.index >= s.questions.length) return '<div class="panel">' + head + '<div class="film-milestone" role="status"><span class="film-eyebrow">SESSION COMPLETE</span><strong>' + s.correct + '<small> / ' + s.questions.length + '</small></strong><h2>' + (s.correct === s.questions.length ? 'You made every read.' : 'Put the tape to work.') + '</h2><p>Review the coaching notes, then come back for tomorrow’s reps.</p></div><div class="film-review">' + s.review.map(function(r) { return '<div><span class="learn-pill">' + (r.correct ? 'Good read' : 'Review this') + '</span><h3>' + esc(r.q.question) + '</h3><p><strong>' + esc(r.q.options[r.q.correctIndex]) + '</strong></p>' + (r.q.notes ? '<p>' + esc(r.q.notes) + '</p>' : '') + '</div>'; }).join('') + '</div><button class="btn-primary" data-learn-back>Back to the Film Room</button></div>';
+  var q = s.questions[s.index], answered = s.answered !== null;
+  return '<div class="panel">' + head + filmMeter(s.index, s.questions.length, 'Session progress') + '<span class="learn-pill">' + esc(q.category) + '</span><h2 class="quiz-question">' + esc(q.question) + '</h2><div class="quiz-options">' + q.options.map(function(opt,i) { return '<button class="quiz-option' + (answered && i === q.correctIndex ? ' correct' : answered && i === s.answered ? ' wrong' : '') + '" data-film-answer="' + i + '"' + (answered ? ' disabled' : '') + '><span class="film-option-letter">' + String.fromCharCode(65+i) + '</span>' + esc(opt) + '</button>'; }).join('') + '</div>' + (answered ? '<div class="quiz-feedback" role="status"><span class="film-eyebrow">' + (s.answered === q.correctIndex ? 'GOOD READ' : 'COACH’S CORRECTION') + '</span><h3>' + esc(q.options[q.correctIndex]) + '</h3>' + (q.notes ? '<p>' + esc(q.notes) + '</p>' : '<p>Lock in that answer before moving to your next rep.</p>') + '</div><button class="btn-primary" data-film-next>' + (s.index + 1 === s.questions.length ? 'Review session' : 'Next rep →') + '</button>' : '') + '</div>';
+}
+function renderFilmSaved() {
+  var n = filmNotebook();
+  return '<div class="panel"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">YOUR PLAYBOOK</span><h2 class="panel-title">Saved concepts</h2><p class="mode-desc">Keep the reads you want to revisit close at hand.</p><div class="encyc-row-list">' + (n.saved.map(function(v) { return '<button class="encyc-row" data-film-concept="' + esc(v.kind + ':' + v.id) + '"><span class="encyc-row-label">' + esc(v.label) + '</span><span class="encyc-row-meta">Open notes →</span></button>'; }).join('') || '<p class="mode-desc">Open a concept in the Football Encyclopedia and tap Save to playbook.</p>') + '</div></div>';
+}
+function filmOpenConcept(kind, id) {
+  var targetState = state.learn;
+  targetState.screen = 'encyclopedia'; targetState.loadingSection = 'footballEncyclopedia'; targetState.loadError = null; renderAll();
+  var pending = learnSectionById('footballEncyclopedia').dataFiles.filter(function(f) { return !loadedScripts[f]; });
+  Promise.all(pending.map(loadScript)).then(function() {
+    refreshDataAliases();
+    if (state.learn !== targetState || state.screen !== 'learn') return;
+    targetState.loadingSection = null; openEncyclopediaConcept(kind, id);
+  }).catch(function() { if (state.learn === targetState) { targetState.loadingSection = null; targetState.loadError = 'footballEncyclopedia'; renderAll(); } });
+}
 function learnSectionCardHtml(s) {
+  var shortDesc = { footballEncyclopedia: 'An interactive playbook for positions, formations, coverages, routes, and schemes.', coverageClassroom: 'Read the defense, break down assignments, and test yourself with guided reps.', xsoAlmanac: '700 scheme and strategy facts. Make your read, then reveal the answer.' };
   return '<button class="mode-card" data-learn-open="' + s.id + '">' +
     '<div class="mode-icon">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" />' : icon(s.icon)) + '</div>' +
     '<div class="mode-title">' + esc(s.title) + '</div>' +
-    '<div class="mode-desc">' + esc(s.desc) + '</div>' +
+    '<div class="mode-desc">' + esc(shortDesc[s.id] || s.desc) + '</div>' + '<span class="film-card-action">Open session →</span>' +
     '</button>';
 }
-function renderLearnMenu() {
-  return '<div class="panel">' +
-    '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-    '<h2 class="panel-title">The Film Room</h2>' +
-    '<p class="mode-desc">Browse real NFL and College Football facts pulled straight from this app\'s own verified player data — Hall of Famers, Heisman winners, national champions, scheme concepts, and more.</p>' +
-    '<div class="mode-grid">' + LEARN_SECTIONS.map(learnSectionCardHtml).join('') + '</div>' +
-    '</div>';
-}
+function renderLearnMenu() { return filmDashboard(); }
 function renderLearnSectionDetail() {
   var s = learnSectionById(state.learn.sectionId);
   if (!s) return renderLearnMenu();
@@ -9257,7 +9323,8 @@ function renderLearnSectionDetail() {
     body +
     '</div>';
 }
-function renderLearnScreen() {
+function renderLearnScreen() { return '<div class="film-room">' + renderLearnScreenBody() + '</div>'; }
+function renderLearnScreenBody() {
   if (!state.learn) state.learn = { screen: 'menu', sectionId: null, filter: '', category: '', loadingSection: null, loadError: null };
   var s = state.learn;
   if (s.loadingSection) {
@@ -9266,8 +9333,10 @@ function renderLearnScreen() {
   }
   if (s.loadError) {
     return '<div class="panel"><div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Back</button></div>' +
-      '<p class="mode-desc">Couldn’t load this section. Check your connection and try again.</p></div>';
+      '<p class="mode-desc">Couldn’t load this section. Check your connection and try again.</p><button class="btn-primary" data-film-retry>Try again</button></div>';
   }
+  if (s.screen === 'study') return renderFilmStudy();
+  if (s.screen === 'saved') return renderFilmSaved();
   if (s.screen === 'classroom') return renderClassroomScreen();
   if (s.screen === 'encyclopedia') return renderEncyclopediaScreen();
   return s.screen === 'section' ? renderLearnSectionDetail() : renderLearnMenu();
@@ -9281,6 +9350,7 @@ function learnBackToMenu() {
 function openLearnSection(id) {
   var s = state.learn, section = learnSectionById(id);
   if (!section) return;
+  var notebook = filmNotebook(); notebook.last = { section: id, label: section.title }; filmSaveNotebook(notebook);
   var isClassroom = id === 'coverageClassroom';
   var isEncyclopedia = id === 'footballEncyclopedia';
   var pending = section.dataFiles.filter(function (f) { return !loadedScripts[f]; });
@@ -9368,6 +9438,7 @@ function markClassroomLessonCompleted(lessonId) {
   p[lessonId] = p[lessonId] || {};
   p[lessonId].started = true;
   p[lessonId].completed = true;
+  p[lessonId].stepIndex = 0;
   lsSet(classroomProgressKey(), p);
 }
 function classroomLessons() { return (LEARN_COVERAGES && LEARN_COVERAGES.lessons) || []; }
@@ -9384,7 +9455,7 @@ function startClassroomLesson(lessonId) {
   if (!lesson || !classroomLessonUnlocked(lesson)) return;
   markClassroomLessonStarted(lessonId);
   state.classroom = {
-    screen: 'lesson', lessonId: lessonId, stepIndex: 0,
+    screen: 'lesson', lessonId: lessonId, stepIndex: Math.min((getClassroomProgress()[lessonId] || {}).stepIndex || 0, lesson.steps.length - 1),
     exerciseQueue: [], exerciseIndex: 0, answeredIndex: null,
     practiceMode: false, practiceResults: { correct: 0, total: 0 },
   };
@@ -9404,10 +9475,12 @@ function classroomNextStep() {
   if (s.stepIndex + 1 >= lesson.steps.length) {
     markClassroomLessonCompleted(s.lessonId);
     s.screen = 'path';
+    s.justCompleted = s.lessonId;
     renderAll();
     return;
   }
   s.stepIndex++;
+  if (state.name) { var p = getClassroomProgress(); p[s.lessonId] = p[s.lessonId] || {}; p[s.lessonId].stepIndex = s.stepIndex; lsSet(classroomProgressKey(), p); }
   classroomEnterStep();
   renderAll();
 }
@@ -9437,6 +9510,7 @@ function classroomAnswerExercise(idx) {
   var correct = idx === ex.correctIndex;
   s.answeredIndex = idx;
   recordClassroomAttempt(ex.concept, correct);
+  filmRecordRep(correct);
   if (s.practiceMode) {
     s.practiceResults.total++;
     if (correct) s.practiceResults.correct++;
@@ -9484,10 +9558,10 @@ function renderCoverageDiagram(spec) {
     var pos = CLASSROOM_ALIGN_POS[d.align] || { x: 50, y: 30 };
     var depthCls = (d.depth === 'deep' || d.depth === 'deep_late') ? 'diagram-depth-deep' :
       (d.depth === 'line' ? 'diagram-depth-line' : 'diagram-depth-underneath');
-    return '<div class="diagram-defender ' + depthCls + '" style="left:' + pos.x + '%; top:' + pos.y + '%;" ' +
-      'title="' + esc(d.assignment || '') + '">' + esc(d.role) + '</div>';
+    return '<button type="button" class="diagram-defender ' + depthCls + '" style="left:' + pos.x + '%; top:' + pos.y + '%;" ' +
+      'data-film-assignment="' + esc(d.assignment || '') + '" title="' + esc(d.assignment || '') + '">' + esc(d.role) + '</button>';
   }).join('');
-  return '<div class="coverage-diagram"><div class="diagram-los"><span>Line of scrimmage</span></div>' + dots + '</div>';
+  return '<div class="coverage-diagram"><div class="diagram-los"><span>Line of scrimmage</span></div>' + dots + '</div><p class="mode-desc">Tap a defender to see the assignment.</p><div class="film-assignment-note" role="status" hidden></div>';
 }
 
 function classroomMasteryBadgeHtml(conceptId) {
@@ -9521,10 +9595,11 @@ function renderClassroomPath() {
     weak.map(function (id) { var c = classroomConcept(id); return c ? esc(c.label) : id; }).join(', ') +
     '. Practice a completed lesson above to reinforce it.</p>' : '';
   return '<div class="panel">' +
-    '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-exit>' + icon('close') + ' Exit to Learn</button></div>' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-exit>' + icon('close') + ' ← Film Room</button></div>' +
     '<h2 class="panel-title">Defensive Coverages</h2>' +
     '<p class="mode-desc">Learn to read a defense, one coverage at a time. Each lesson teaches a real concept, shows you what it looks like, and checks your understanding with real reps.</p>' +
-    weakNote +
+    (state.classroom && state.classroom.justCompleted ? '<div class="film-milestone film-milestone-small" role="status"><span class="film-eyebrow">LESSON COMPLETE</span><h3>' + esc(classroomLessonById(state.classroom.justCompleted).title) + '</h3><p>Keep going, or put this coverage to the test with practice reps.</p></div>' : '') +
+    filmMeter(Object.keys(progress).filter(function(id) { return progress[id].completed; }).length, lessons.length, 'Your coverage path') + weakNote +
     '<div class="classroom-lesson-list">' + rows + '</div>' +
     '</div>';
 }
@@ -9548,7 +9623,7 @@ function renderClassroomExercise(ex, answeredIndex) {
     '</div>' +
     (answered ?
       '<div class="quiz-feedback" aria-live="polite">' +
-        (answeredIndex === ex.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct.</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Not quite.</span>') +
+        (answeredIndex === ex.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Good read.</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Coach’s correction: ' + esc(ex.options[ex.correctIndex]) + '.</span>') +
         ' ' + esc(ex.explanation) +
       '</div>' +
       '<button class="btn-primary" data-classroom-exercise-next>Next</button>'
@@ -9581,7 +9656,7 @@ function renderClassroomLesson() {
   return '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-path>' + icon('close') + ' Back to Path</button></div>' +
     '<h2 class="panel-title">' + esc(lesson.title) + '</h2>' +
-    '<div class="classroom-step-pill">' + classroomStepLabel(step.step_type) + ' · Step ' + (s.stepIndex + 1) + ' of ' + lesson.steps.length + '</div>' +
+    filmMeter(s.stepIndex + 1, lesson.steps.length, 'Lesson progress') + '<div class="classroom-step-pill">' + classroomStepLabel(step.step_type) + ' · Step ' + (s.stepIndex + 1) + ' of ' + lesson.steps.length + '</div>' +
     body +
     '</div>';
 }
@@ -9591,7 +9666,7 @@ function renderClassroomPractice() {
     var r = s.practiceResults, pct = r.total ? Math.round(100 * r.correct / r.total) : 0;
     return '<div class="panel">' +
       '<div class="mode-toolbar"><button class="btn-tiny" data-classroom-path>' + icon('close') + ' Back to Path</button></div>' +
-      '<h2 class="panel-title">Practice Complete</h2>' +
+      '<div class="film-milestone"><span class="film-eyebrow">PRACTICE COMPLETE</span><strong>' + pct + '<small>%</small></strong><h2>Trust your reads.</h2></div>' +
       '<p class="mode-desc">' + r.correct + ' / ' + r.total + ' correct (' + pct + '%).</p>' +
       '<button class="btn-primary" data-classroom-path>Back to Path</button>' +
       '</div>';
@@ -9765,6 +9840,9 @@ function openEncyclopediaConcept(kind, id) {
   state.encyclopedia.screen = 'concept';
   state.encyclopedia.conceptKind = kind;
   state.encyclopedia.conceptId = id;
+  var n = filmNotebook(), key = kind + ':' + id;
+  var node = kind === 'concept' ? encyclopediaConceptByCanonicalId(id) : kind === 'team' ? (LEARN_ENCYCLOPEDIA.team_scheme_profiles || {})[id] : (LEARN_ENCYCLOPEDIA.historical_records || {})[id];
+  n.viewed[key] = Date.now(); n.last = { section: 'footballEncyclopedia', kind: kind, id: id, label: node ? node.label : id }; filmSaveNotebook(n);
   state.encyclopedia.diagramView = f101DefaultDiagramView();
   state.encyclopedia.readMode = 'quick';
   state.f101Quiz = { active: false };
@@ -9819,7 +9897,7 @@ function renderEncyclopediaDomains() {
         '</button>';
     }).join('');
     return '<div class="panel">' +
-      '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Exit to Learn</button></div>' +
+      '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' ← Film Room</button></div>' +
       '<h2 class="panel-title">Football Encyclopedia</h2>' +
       renderEncyclopediaSearchBox() +
       '<div class="encyc-results">' + (rows || '<p class="mode-desc">No matches. Try a different term.</p>') + '</div>' +
@@ -9847,7 +9925,7 @@ function renderEncyclopediaDomains() {
       '</div>';
   }).join('');
   return '<div class="panel">' +
-    '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' Exit to Learn</button></div>' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>' + icon('close') + ' ← Film Room</button></div>' +
     '<h2 class="panel-title">Football 101</h2>' +
     '<p class="mode-desc">Learn any concept: what it is, see it on the field, how it works, and test yourself -- browse by topic or search for anything by name.</p>' +
     renderEncyclopediaSearchBox() +
@@ -9965,7 +10043,7 @@ function renderF101DiagramBlock(diagram, category, variantNote) {
   var accessibleDesc = '<p class="f101-svg-alt-text">' + esc(diagram.description || '') + '</p>';
 
   return '<div class="f101-see-it">' +
-    '<div class="f101-see-it-label">See It</div>' +
+    '<div class="f101-see-it-label">On the chalkboard</div><p class="mode-desc">Tap a player to inspect the assignment. Toggle routes, coverage, and responsibilities to break down the play.</p>' +
     '<div class="chip-row">' + chipsHtml + '</div>' +
     '<div class="f101-field-wrap">' + svg + '</div>' +
     accessibleDesc +
@@ -10000,7 +10078,7 @@ function renderF101TestMe(canonicalId, diagram, category, bucketKey) {
   var feedback = (q.answeredIndex !== -1 && q.answeredIndex !== undefined)
     ? '<div class="quiz-feedback">' + (q.answeredIndex === q.correctIndex
         ? '<span class="feedback-good">' + icon('check') + ' Correct.</span>'
-        : '<span class="feedback-bad">' + icon('xMark') + ' Not quite -- the right answer is highlighted above.</span>') + '</div>'
+        : '<span class="feedback-bad">' + icon('xMark') + ' Coach’s correction: ' + esc(q.options[q.correctIndex]) + '.</span>') + (q.explanation ? '<p>' + esc(q.explanation) + '</p>' : '') + '<p>Trace the assignments on the chalkboard above to check the read.</p></div>'
     : '';
   return '<div class="f101-test-me">' +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
@@ -10141,8 +10219,8 @@ function renderEncyclopediaConceptDetail() {
     '<div class="mode-toolbar"><button class="btn-tiny" data-encyc-back-domain>' + icon('close') + ' Back</button></div>' +
     '<h2 class="panel-title">' + esc(title) + '</h2>' +
     '<span class="encyc-badge ' + badgeClass + '">' + esc(badgeText) + '</span>' +
-    (node.subcategory ? '<div class="encyc-subcategory-label">' + esc(node.subcategory) + '</div>' : '') +
-    readToggleHtml +
+    (node.subcategory ? '<div class="encyc-subcategory-label">' + esc(encyclopediaPrettyLabel(node.subcategory)) + '</div>' : '') +
+    '<div class="film-concept-tools"><button class="btn-secondary btn-tiny" data-film-save>' + (filmNotebook().saved.some(function(v) { return v.kind === kind && v.id === id; }) ? 'Saved to playbook ✓' : 'Save to playbook +') + '</button><span class="film-eyebrow">COACH’S NOTES</span></div>' + readToggleHtml +
     quickSummaryHtml +
     seeItHtml +
     authoredDiveHtml +
@@ -10423,6 +10501,8 @@ function renderAll() {
   // The Learn filter box re-renders the whole table on every keystroke
   // (see the 'input' listener above) — without this, the innerHTML replace
   // would steal focus after the very first character typed.
+  var filmSearchInput = document.getElementById('film-search-input');
+  if (filmSearchInput && state.learn.filmFilter) { filmSearchInput.focus(); filmSearchInput.setSelectionRange(filmSearchInput.value.length, filmSearchInput.value.length); specificFocusHandled = true; }
   var learnFilterInput = document.getElementById('learn-filter-input');
   if (learnFilterInput) { learnFilterInput.focus(); learnFilterInput.setSelectionRange(learnFilterInput.value.length, learnFilterInput.value.length); specificFocusHandled = true; }
   var encyclopediaSearchInput = document.getElementById('encyclopedia-search-input');
@@ -10610,7 +10690,7 @@ document.addEventListener('click', function (e) {
     '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-exit], ' +
     '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
     '[data-h2h-live-join], [data-h2h-live-ready], [data-h2h-live-share-link], [data-h2h-live-answer], [data-h2h-live-exit], ' +
-    '[data-learn-open], [data-learn-back], [data-learn-cat], ' +
+    '[data-film-assignment], [data-film-jump], [data-film-study], [data-film-answer], [data-film-next], [data-film-saved], [data-film-save], [data-film-concept], [data-film-resume], [data-film-retry], [data-learn-open], [data-learn-back], [data-learn-cat], ' +
     '[data-classroom-exit], [data-classroom-lesson], [data-classroom-practice], [data-classroom-path], ' +
     '[data-classroom-step-next], [data-classroom-step-back], [data-classroom-answer], [data-classroom-exercise-next], ' +
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
@@ -10710,6 +10790,28 @@ document.addEventListener('click', function (e) {
   if (t.dataset.h2hLiveShareLink !== undefined) { h2hLiveShareLink(t.dataset.h2hLiveShareLink, t); return; }
   if (t.dataset.h2hLiveAnswer !== undefined) { h2hLivePickAnswer(parseInt(t.dataset.h2hLiveAnswer, 10)); return; }
   if (t.dataset.h2hLiveExit !== undefined) { h2hLiveStopWatch(); goToMode('home'); return; }
+
+  if (t.dataset.filmAssignment !== undefined) { var note = t.closest('.coverage-diagram').nextElementSibling.nextElementSibling; note.hidden = false; note.textContent = t.textContent + ': ' + (t.dataset.filmAssignment || 'Assignment not listed for this diagram.'); return; }
+  if (t.dataset.filmJump !== undefined) { var group = document.getElementById('film-group-' + t.dataset.filmJump); if (group) group.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
+  if (t.dataset.filmStudy !== undefined) { startFilmStudy(); return; }
+  if (t.dataset.filmRetry !== undefined) { var retry = state.learn.loadError; state.learn.loadError = null; if (state.learn.screen === 'study') startFilmStudy(); else openLearnSection(retry); return; }
+  if (t.dataset.filmAnswer !== undefined) {
+    var fs = state.filmStudy; if (!fs || fs.answered !== null) return;
+    var fq = fs.questions[fs.index]; fs.answered = Number(t.dataset.filmAnswer);
+    var good = fs.answered === fq.correctIndex; if (good) fs.correct++;
+    fs.review.push({ q: fq, correct: good }); filmRecordRep(good); playSound(good ? 'correct' : 'wrong'); renderAll(); return;
+  }
+  if (t.dataset.filmNext !== undefined) { if (state.filmStudy && state.filmStudy.answered !== null) { state.filmStudy.index++; state.filmStudy.answered = null; renderAll(); } return; }
+  if (t.dataset.filmSaved !== undefined) { state.learn.screen = 'saved'; renderAll(); return; }
+  if (t.dataset.filmResume !== undefined) { var last = filmNotebook().last; if (last) { if (last.id) filmOpenConcept(last.kind, last.id); else openLearnSection(last.section); } return; }
+  if (t.dataset.filmConcept !== undefined) { var parts = t.dataset.filmConcept.split(':'); filmOpenConcept(parts[0], parts.slice(1).join(':')); return; }
+  if (t.dataset.filmSave !== undefined) {
+    var n = filmNotebook(), e = state.encyclopedia, kind = e.conceptKind || 'concept', id = e.conceptId;
+    var index = n.saved.findIndex(function(v) { return v.kind === kind && v.id === id; });
+    if (index >= 0) n.saved.splice(index, 1); else n.saved.push({ kind: kind, id: id, label: document.querySelector('.film-room .panel-title').textContent });
+    filmSaveNotebook(n); renderAll(); return;
+  }
+
   if (t.dataset.learnOpen !== undefined) { openLearnSection(t.dataset.learnOpen); return; }
   if (t.dataset.learnBack !== undefined) { learnBackToMenu(); return; }
   if (t.dataset.learnCat !== undefined) { state.learn.category = t.dataset.learnCat; renderAll(); return; }
@@ -10774,7 +10876,7 @@ document.addEventListener('click', function (e) {
     if (tmDiagram && FootballField) {
       var tmSiblings = Object.keys(tmBucketData).map(function (k) { return tmBucketData[k]; });
       var tmQ = FootballField.generateTestMeQuestion(tmDiagram, tmCategory, tmSiblings, Math.floor(Math.random() * 1000));
-      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, answeredIndex: -1 };
+      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, explanation: tmDiagram.notes || tmDiagram.description || '', answeredIndex: -1 };
     }
     renderAll();
     return;
@@ -10782,6 +10884,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.f101QuizAnswer !== undefined) {
     if (state.f101Quiz && state.f101Quiz.active && state.f101Quiz.answeredIndex === -1) {
       state.f101Quiz.answeredIndex = parseInt(t.dataset.f101QuizAnswer, 10);
+      filmRecordRep(state.f101Quiz.answeredIndex === state.f101Quiz.correctIndex);
       playSound(state.f101Quiz.answeredIndex === state.f101Quiz.correctIndex ? 'correct' : 'wrong');
     }
     renderAll();
@@ -11311,6 +11414,7 @@ document.addEventListener('input', function (e) {
   // re-render per keystroke), the Learn filter box needs to narrow the
   // table live as you type — see renderAll()'s focus-preservation block
   // for the matching refocus step this requires.
+  if (e.target.id === 'film-search-input') { state.learn.filmFilter = e.target.value; renderAll(); return; }
   if (e.target.id === 'learn-filter-input') { state.learn.filter = e.target.value; renderAll(); return; }
   if (e.target.id === 'encyclopedia-search-input') { state.encyclopedia.filter = e.target.value; renderAll(); return; }
   if (e.target.id === 'team-picker-search') { teamPickerSetFilter(e.target.value); return; }
@@ -11340,6 +11444,7 @@ function trapTabKey(e, container) {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 document.addEventListener('keydown', function (e) {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-f101-player]')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
   var modeSheetEl = document.getElementById('mode-sheet');
   var onboardingModalEl = document.getElementById('onboarding-modal');
   var shareModalEl = document.getElementById('share-modal');
