@@ -1090,6 +1090,8 @@ function renderEnginePilotScreen() {
   }
   var headerOpts = { score: s.correctCount + ' correct', difficulty: game.difficulty };
   if (franchiseLabel) headerOpts.badge = franchiseLabel;
+  var feedbackNotes = s.answerResult && s.answerResult.notes;
+  if (feedbackNotes && /^From the curated Reads Football /i.test(feedbackNotes)) feedbackNotes = '';
   return '<div class="' + panelCls + '">' + enginePilotToolbarHtml(cfg, headerOpts) +
     progressHtml +
     renderEnginePilotPromptHtml(game, s) +
@@ -1099,7 +1101,7 @@ function renderEnginePilotScreen() {
     (submitting ? '<div class="quiz-progress" aria-live="polite">Checking your answer&hellip;</div>' : '') +
     (answered
       ? (broadcastVariant ? '<div class="pilot-broadcast-call pilot-broadcast-call--' + (s.answerResult.correct ? 'good' : 'bad') + '" aria-hidden="true"><span>OFFICIAL CALL</span><strong>' + (s.answerResult.correct ? 'YOU GOT IT' : 'NO GOOD') + '</strong></div>' : '') +
-        '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (s.answerResult.notes ? ' ' + esc(s.answerResult.notes) : '') + '</div>' +
+        '<div class="quiz-feedback" aria-live="polite">' + (s.answerResult.correct ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (feedbackNotes ? ' ' + esc(feedbackNotes) : '') + '</div>' +
         '<button class="btn-primary" data-pilot-next>' + (s.roundIndex + 1 >= s.roundSize ? 'See Results' : 'Next Question') + '</button>'
       : '') +
     '</div>';
