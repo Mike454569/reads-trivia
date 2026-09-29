@@ -328,7 +328,7 @@ var ENGINE_PILOT_MODES = {
     hash: '#threecluespilot',
     flagOn: function () { return ENABLE_ENGINE_CFB_THREE_CLUES_PILOT_V01; },
     title: "Three Clues, One Champion",
-    desc: "A real Super Bowl champion's clues, revealed one at a time. Guess the team and season.",
+    desc: "Three real clues, revealed one at a time. Guess the NFL team and season.",
     fallbackLabel: 'Play NFL Trivia Instead',
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
   },
@@ -338,7 +338,7 @@ var ENGINE_PILOT_MODES = {
     hash: '#eragauntletpilot',
     flagOn: function () { return ENABLE_ENGINE_ERA_GAUNTLET_PILOT_V01; },
     title: 'Era Gauntlet',
-    desc: "Progress through real NFL history -- one real Super Bowl champion from each represented decade, oldest era first.",
+    desc: "Play through seven real NFL history stages, with clues from the actual decade shown at each stop.",
     fallbackLabel: 'Play NFL Trivia Instead',
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
     sequential: true,
@@ -369,7 +369,7 @@ var ENGINE_PILOT_MODES = {
     hash: '#franchisemarathonpilot',
     flagOn: function () { return ENABLE_ENGINE_FRANCHISE_MARATHON_PILOT_V01; },
     title: 'Franchise Marathon',
-    desc: "Pick a real NFL franchise and play through its real Super Bowl-winning offenses in chronological order, by college and position.",
+    desc: "Pick an NFL franchise and play through its real history, from team identity and records to players and postseason runs.",
     fallbackLabel: 'Play NFL Trivia Instead',
     fallback: function () { state.enginePilot = null; state.screen = 'quiz'; startQuizRound('Super Bowl History', '', 10); },
     sequential: true,
@@ -1007,7 +1007,7 @@ function renderEnginePilotScreen() {
         var franchiseLabel = (cfg.franchiseChoices.find(function (f) { return f.value === s.filterValue; }) || {}).label || s.filterValue;
         completeTitle = 'Marathon Complete';
         completeStat = 'You played through all ' + stageCount + ' real ' + esc(franchiseLabel) +
-          ' Super Bowl-winning stage' + (stageCount === 1 ? '' : 's') + ' -- ' + s.correctCount + ' / ' + stageCount + ' correct.';
+          ' history stage' + (stageCount === 1 ? '' : 's') + ' -- ' + s.correctCount + ' / ' + stageCount + ' correct.';
       } else if (s.modeKey === 'eraGauntlet') {
         completeTitle = 'Gauntlet Complete';
         completeStat = 'You reached the end of the gauntlet -- ' + stageCount + ' real historical eras, ' +
