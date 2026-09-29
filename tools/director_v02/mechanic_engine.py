@@ -193,13 +193,31 @@ VARIANTS: dict[str, dict[str, dict]] = {
     # capability's question pool rather than a new adapter/data source.
     "DRIVE_PROGRESSION": {
         "NFL_DRAFT_PERFECT_DRIVE": {"competition": "NFL", "mode": "YARDAGE",
-            "domain": "NFL_DRAFT", "relationship_predicate": "DRAFTED_BY"},
+            "question_pools": [
+                {"key": "CHAMPIONSHIPS", "label": "NFL Championships", "domain": "NFL_CHAMPIONSHIP", "relationship_predicate": "TEAM_POSTSEASON_RESULT"},
+                {"key": "COACHING", "label": "NFL Coaching", "domain": "NFL_COACHING", "relationship_predicate": "COACHED_TEAM"},
+                {"key": "DRAFT", "label": "NFL Draft", "domain": "NFL_DRAFT", "relationship_predicate": "DRAFTED_BY"},
+            ]},
         "CFB_HEISMAN_PERFECT_DRIVE": {"competition": "CFB", "mode": "YARDAGE",
-            "domain": "CFB_HEISMAN", "relationship_predicate": "WON_HEISMAN"},
+            "question_pools": [
+                {"key": "HEISMAN", "label": "Heisman Trophy", "domain": "CFB_HEISMAN", "relationship_predicate": "WON_HEISMAN"},
+                {"key": "CHAMPIONSHIPS", "label": "National Championships", "domain": "CFB_CHAMPIONSHIP", "relationship_predicate": "WON_CHAMPIONSHIP"},
+                {"key": "RIVALRIES", "label": "CFB Rivalries", "domain": "CFB_RIVALRY", "relationship_predicate": "RIVAL_OF"},
+                {"key": "RANKINGS", "label": "AP Rankings", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL"},
+            ]},
         "NFL_DRAFT_GOAL_LINE_STAND": {"competition": "NFL", "mode": "DOWNS",
-            "domain": "NFL_DRAFT", "relationship_predicate": "DRAFTED_BY"},
+            "question_pools": [
+                {"key": "CHAMPIONSHIPS", "label": "NFL Championships", "domain": "NFL_CHAMPIONSHIP", "relationship_predicate": "TEAM_POSTSEASON_RESULT"},
+                {"key": "COACHING", "label": "NFL Coaching", "domain": "NFL_COACHING", "relationship_predicate": "COACHED_TEAM"},
+                {"key": "DRAFT", "label": "NFL Draft", "domain": "NFL_DRAFT", "relationship_predicate": "DRAFTED_BY"},
+            ]},
         "CFB_HEISMAN_GOAL_LINE_STAND": {"competition": "CFB", "mode": "DOWNS",
-            "domain": "CFB_HEISMAN", "relationship_predicate": "WON_HEISMAN"},
+            "question_pools": [
+                {"key": "HEISMAN", "label": "Heisman Trophy", "domain": "CFB_HEISMAN", "relationship_predicate": "WON_HEISMAN"},
+                {"key": "CHAMPIONSHIPS", "label": "National Championships", "domain": "CFB_CHAMPIONSHIP", "relationship_predicate": "WON_CHAMPIONSHIP"},
+                {"key": "RIVALRIES", "label": "CFB Rivalries", "domain": "CFB_RIVALRY", "relationship_predicate": "RIVAL_OF"},
+                {"key": "RANKINGS", "label": "AP Rankings", "domain": "CFB_RANKING", "relationship_predicate": "RANKED_IN_POLL"},
+            ]},
     },
     # 40-Format Expansion pass -- see tools/director_v04/roster_build.py's
     # own module docstring for why this generalizes LIVE_WEEKLY_FANTASY_
@@ -1967,8 +1985,9 @@ def generate_drive_progression_round(*, variant: str, question_count: int, seed:
     from tools.director_v04 import drive_progression
     cfg = VARIANTS["DRIVE_PROGRESSION"][variant]
     return drive_progression.build_package(
-        seed, variant, mode=cfg["mode"], domain=cfg["domain"],
-        relationship_predicate=cfg["relationship_predicate"], question_count=question_count,
+        seed, variant, mode=cfg["mode"], question_pools=cfg.get("question_pools"),
+        domain=cfg.get("domain"), relationship_predicate=cfg.get("relationship_predicate"),
+        question_count=question_count,
     )
 
 

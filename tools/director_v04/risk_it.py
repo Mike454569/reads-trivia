@@ -59,7 +59,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.1"
+PACKAGE_SCHEMA_VERSION = "1.2"
 MECHANIC = "RISK_IT"
 VARIANTS = frozenset({"NFL_DRAFT_RISK_IT", "CFB_SEASON_PASSING_RISK_IT"})
 STARTING_LIVES = 3
@@ -77,6 +77,7 @@ _CFB_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
 _NFL_STAT_TIER_RANGES = {"LOW": (1, 10), "MEDIUM": (11, 40), "HIGH": (41, 999)}
 _NFL_PASSING_TIER_RANGES = _NFL_STAT_TIER_RANGES  # compatibility for existing callers/tests
 _NFL_CATEGORIES = ("SEASON_PASSING", "SEASON_RUSHING", "SEASON_RECEIVING")
+_CFB_CATEGORIES = ("SEASON_PASSING", "SEASON_RUSHING", "SEASON_RECEIVING")
 
 
 def safety_check(c) -> dict:
@@ -99,20 +100,41 @@ def _rows_for_tier(c, lo: int, hi: int) -> list:
 
 
 def _rows_for_tier_cfb(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_cfb_stat(c, lo, hi, "passing_yards")
+
+
+def _rows_for_tier_cfb_stat(c, lo: int, hi: int, stat_column: str) -> list:
+    stat_columns = {
+        "passing_yards": "passing",
+        "rushing_yards": "rushing",
+        "receiving_yards": "receiving",
+    }
+    if stat_column not in stat_columns:
+        raise ValueError(f"unsupported CFB stat column: {stat_column}")
     return c.execute(
         "SELECT cfb_player_id AS player_key, player_name, season AS draft_season, school_name AS draft_team, "
         "rk AS draft_pick_overall FROM ("
         "  SELECT s.cfb_player_id, s.player_name, s.season, sc.school_name, "
-        "  RANK() OVER (PARTITION BY s.season ORDER BY s.passing_yards DESC) AS rk "
+        f"  RANK() OVER (PARTITION BY s.season ORDER BY s.{stat_column} DESC) AS rk "
         "  FROM cfb_player_season_stats_real s "
-        "  JOIN cfb_roster_seasons_real rs ON rs.season=s.season AND rs.school_id=s.school_id "
-        "  AND rs.cfb_player_id=s.cfb_player_id "
         "  JOIN schools sc ON sc.school_id = s.school_id "
         "  WHERE s.verification_status='SOURCE_BACKED_DERIVED' AND s.source_id='SPORTSDATAVERSE_CFB' "
-        "  AND rs.position='QB' AND s.passing_yards >= 300"
+        f"  AND s.{stat_column} > 0"
         ") WHERE rk BETWEEN ? AND ?",
         (lo, hi),
     ).fetchall()
+
+
+def _rows_for_tier_cfb_passing(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_cfb_stat(c, lo, hi, "passing_yards")
+
+
+def _rows_for_tier_cfb_rushing(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_cfb_stat(c, lo, hi, "rushing_yards")
+
+
+def _rows_for_tier_cfb_receiving(c, lo: int, hi: int) -> list:
+    return _rows_for_tier_cfb_stat(c, lo, hi, "receiving_yards")
 
 
 def _rows_for_tier_nfl_stat(c, lo: int, hi: int, stat_column: str) -> list:
@@ -182,6 +204,10 @@ def _build_tier_question(rng, rows_by_season: dict) -> dict | None:
 
 
 def _build_tier_question_cfb(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_cfb_stat(rng, rows_by_season, "passing")
+
+
+def _build_tier_question_cfb_stat(rng, rows_by_season: dict, stat_label: str) -> dict | None:
     seasons = list(rows_by_season.keys())
     if not seasons:
         return None
@@ -206,13 +232,25 @@ def _build_tier_question_cfb(rng, rows_by_season: dict) -> dict | None:
             continue
         return {
             "prompt": f"Which real school did {correct['player_name']} play for in the {season} season "
-                      f"(real #{correct['draft_pick_overall']} in national passing yards that season)?",
+                      f"(real #{correct['draft_pick_overall']} in national {stat_label} yards that season)?",
             "correct_team": correct["draft_team"], "decoy_teams": decoy_teams[:3],
-            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in national passing yards: "
+            "notes": f"Real {season} season, #{correct['draft_pick_overall']} in national {stat_label} yards: "
                      f"{correct['player_name']} at {correct['draft_team']} "
                      f"(SPORTSDATAVERSE_CFB, SOURCE_BACKED_DERIVED).",
         }
     return None
+
+
+def _build_tier_question_cfb_passing(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_cfb_stat(rng, rows_by_season, "passing")
+
+
+def _build_tier_question_cfb_rushing(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_cfb_stat(rng, rows_by_season, "rushing")
+
+
+def _build_tier_question_cfb_receiving(rng, rows_by_season: dict) -> dict | None:
+    return _build_tier_question_cfb_stat(rng, rows_by_season, "receiving")
 
 
 def _build_tier_question_nfl_stat(rng, rows_by_season: dict, stat_label: str) -> dict | None:
@@ -279,8 +317,14 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
     try:
         safety_result = safety_check(c)
         if is_cfb:
-            category_data = {"CFB": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb),
-                                      _build_tier_question_cfb)}
+            category_data = {
+                "SEASON_PASSING": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb_passing),
+                                    _build_tier_question_cfb_passing),
+                "SEASON_RUSHING": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb_rushing),
+                                    _build_tier_question_cfb_rushing),
+                "SEASON_RECEIVING": (_build_rows_by_tier_season(c, _CFB_TIER_RANGES, _rows_for_tier_cfb_receiving),
+                                      _build_tier_question_cfb_receiving),
+            }
         else:
             # General formats intentionally use non-draft stat categories.
             # The legacy variant id stays stable so deployed clients do not
@@ -298,14 +342,12 @@ def generate_rounds(seed: str, variant: str, round_count: int = 7) -> dict:
 
     rounds = []
     for i in range(round_count):
-        if is_cfb:
-            candidates = ["CFB"]
-        else:
-            # Balanced rotation guarantees variety in every normal session;
-            # the seed only changes which category starts the rotation.
-            offset = engine_bootstrap.seeded(f"{seed}-ri-category-order").randrange(len(_NFL_CATEGORIES))
-            primary = _NFL_CATEGORIES[(i + offset) % len(_NFL_CATEGORIES)]
-            candidates = [primary] + [c for c in _NFL_CATEGORIES if c != primary]
+        categories = _CFB_CATEGORIES if is_cfb else _NFL_CATEGORIES
+        # Balanced rotation guarantees variety in every normal session;
+        # the seed only changes which category starts the rotation.
+        offset = engine_bootstrap.seeded(f"{seed}-ri-category-order").randrange(len(categories))
+        primary = categories[(i + offset) % len(categories)]
+        candidates = [primary] + [c for c in categories if c != primary]
         tiers = None
         for category in candidates:
             rows_by_tier_season, build_tier_question = category_data[category]
@@ -364,9 +406,9 @@ def build_package(seed: str, variant: str, round_count: int = 7) -> dict:
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "game_title": _GAME_TITLES[variant],
-        "game_instructions": "Pick a real risk tier before you see the question -- LOW is easier and worth "
-                              "less, HIGH is a real obscure " + ("season" if variant == "CFB_SEASON_PASSING_RISK_IT" else "pick")
-                              + " worth more. A wrong answer costs a life.",
+        "game_instructions": "Pick a real risk tier before you see the question -- LOW uses a top-ranked "
+                              "season performance, while HIGH goes deeper down a real season leaderboard "
+                              "and is worth more. A wrong answer costs a life.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if valid else "FAILED",
         "rounds": rounds, "round_count": len(rounds), "starting_lives": STARTING_LIVES,

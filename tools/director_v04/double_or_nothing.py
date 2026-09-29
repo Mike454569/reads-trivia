@@ -77,9 +77,17 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     try:
         safety_result = safety_check(c)
         if is_cfb:
-            category_data = {"CFB": (risk_it._build_rows_by_tier_season(c, risk_it._CFB_TIER_RANGES,
-                                                                          risk_it._rows_for_tier_cfb),
-                                      risk_it._build_tier_question_cfb)}
+            category_data = {
+                "SEASON_PASSING": (risk_it._build_rows_by_tier_season(c, risk_it._CFB_TIER_RANGES,
+                                                                        risk_it._rows_for_tier_cfb_passing),
+                                    risk_it._build_tier_question_cfb_passing),
+                "SEASON_RUSHING": (risk_it._build_rows_by_tier_season(c, risk_it._CFB_TIER_RANGES,
+                                                                        risk_it._rows_for_tier_cfb_rushing),
+                                    risk_it._build_tier_question_cfb_rushing),
+                "SEASON_RECEIVING": (risk_it._build_rows_by_tier_season(c, risk_it._CFB_TIER_RANGES,
+                                                                          risk_it._rows_for_tier_cfb_receiving),
+                                      risk_it._build_tier_question_cfb_receiving),
+            }
         else:
             category_data = {
                 "SEASON_PASSING": (risk_it._build_rows_by_tier_season(c, risk_it._NFL_STAT_TIER_RANGES,
@@ -98,12 +106,10 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     rounds = []
     for i in range(round_count):
         tier = _tier_for_index(i)
-        if is_cfb:
-            candidates = ["CFB"]
-        else:
-            offset = engine_bootstrap.seeded(f"{seed}-don-category-order").randrange(len(risk_it._NFL_CATEGORIES))
-            primary = risk_it._NFL_CATEGORIES[(i + offset) % len(risk_it._NFL_CATEGORIES)]
-            candidates = [primary] + [c for c in risk_it._NFL_CATEGORIES if c != primary]
+        categories = risk_it._CFB_CATEGORIES if is_cfb else risk_it._NFL_CATEGORIES
+        offset = engine_bootstrap.seeded(f"{seed}-don-category-order").randrange(len(categories))
+        primary = categories[(i + offset) % len(categories)]
+        candidates = [primary] + [c for c in categories if c != primary]
         q = None
         for category in candidates:
             rows_by_tier_season, build_tier_question = category_data[category]
