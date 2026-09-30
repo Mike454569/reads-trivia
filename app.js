@@ -9395,10 +9395,13 @@ function awardProgressForCompletion(mode, fields) {
     window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
       if (!result || !result.duplicate) {
         applyProgressAwardLocally(xp, seasonId);
-        pushSeasonLeaderboardSnapshot();
         syncAchievementUnlocks();
-        if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
       }
+      // Always republish the season snapshot after a confirmed transaction.
+      // If the XP event was already recorded but a prior leaderboard write
+      // failed, this repairs the standings without paying the event twice.
+      pushSeasonLeaderboardSnapshot();
+      if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
     }).catch(function () {
       // Gameplay must never fail because progression sync is unavailable.
       awardedProgressSessions[mode] = null;
@@ -9487,7 +9490,7 @@ window.__triviaSync = {
     state.leaderboardData = normalizeLeaderboardRows(list);
     reconcileRating(state.leaderboardData);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
-    if (state.screen === 'leaderboard' || state.screen === 'community') renderAll();
+    if (state.screen === 'leaderboard' || state.screen === 'community' || state.screen === 'home') renderAll();
   },
   // Fires from firebase-sync.js's onAuthStateChanged every time the signed-
   // in Firebase user changes — including a plain anonymous session, which
