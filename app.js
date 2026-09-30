@@ -3542,6 +3542,97 @@ function communityLeaderboardRows(league, team) {
   });
   return rows.slice(0, 10);
 }
+
+function communitySeasonRowsForTeam(league, team) {
+  if (!team) return [];
+  var seasonId=footballSeasonIdForDate(), field=league==='cfb'?'favoriteCfbTeam':'favoriteNflTeam';
+  return (state.leaderboardData||[]).filter(function(r){
+    return r.mode==='season'&&String(r.seasonId||'')===seasonId&&r[field]===team.id&&typeof r.seasonXp==='number';
+  });
+}
+function communityTeamSeasonXp(league, team) {
+  return communitySeasonRowsForTeam(league,team).reduce(function(sum,r){return sum+(Number(r.seasonXp)||0);},0);
+}
+function communityTeamSeasonRank(league, team) {
+  if(!team)return null;
+  var field=league==='cfb'?'favoriteCfbTeam':'favoriteNflTeam', seasonId=footballSeasonIdForDate(), totals={};
+  (state.leaderboardData||[]).forEach(function(r){
+    if(r.mode!=='season'||String(r.seasonId||'')!==seasonId||!r[field]||typeof r.seasonXp!=='number')return;
+    totals[r[field]]=(totals[r[field]]||0)+(Number(r.seasonXp)||0);
+  });
+  var ids=Object.keys(totals).sort(function(x,y){return totals[y]-totals[x];});
+  var idx=ids.indexOf(team.id);
+  return idx===-1?null:{rank:idx+1,total:ids.length,xp:totals[team.id]||0};
+}
+function communityCurrentWeekKey() {
+  var d=new Date(), jan1=new Date(d.getFullYear(),0,1), days=Math.floor((d-jan1)/86400000);
+  return d.getFullYear()+'-W'+String(Math.ceil((days+jan1.getDay()+1)/7)).padStart(2,'0');
+}
+function communityWeeklyTeamPoints(league, team) {
+  if(!team)return 0;
+  var field=league==='cfb'?'favoriteCfbTeam':'favoriteNflTeam', wk=communityCurrentWeekKey();
+  return (state.leaderboardData||[]).filter(function(r){
+    return r.mode==='daily'&&r[field]===team.id&&r.weekKey===wk;
+  }).reduce(function(sum,r){return sum+(Number(r.weeklyRivalPoints)||0);},0);
+}
+function communityKnownRival(league, team) {
+  if(!team)return null;
+  var nfl={DAL:'PHI',PHI:'DAL',GB:'CHI',CHI:'GB',PIT:'BAL',BAL:'PIT',KC:'LV',LV:'KC',SF:'SEA',SEA:'SF',NYJ:'BUF',BUF:'NYJ',NO:'ATL',ATL:'NO',CLE:'CIN',CIN:'CLE',DEN:'KC',MIN:'GB'};
+  var cfb={
+    'Alabama':'Auburn','Auburn':'Alabama','Ohio State':'Michigan','Michigan':'Ohio State',
+    'Oklahoma':'Texas','Texas':'Oklahoma','Notre Dame':'Southern California','Southern California':'Notre Dame',
+    'Florida':'Florida State','Florida State':'Florida','Georgia':'Florida','Clemson':'South Carolina',
+    'South Carolina':'Clemson','Ole Miss':'Mississippi State','Mississippi State':'Ole Miss',
+    'Iowa':'Iowa State','Iowa State':'Iowa','Oregon':'Oregon State','Oregon State':'Oregon',
+    'Washington':'Washington State','Washington State':'Washington'
+  };
+  var id=league==='cfb'?cfb[team.id]:nfl[team.id];
+  return id?favoriteTeamById(league,id):null;
+}
+function communityFallbackBattleTeam(league, team) {
+  var list=league==='cfb'?CFB_TEAMS:NFL_TEAMS;
+  if(!team||!list.length)return null;
+  var idx=list.findIndex(function(t){return t.id===team.id;});
+  return list[(Math.max(0,idx)+1)%list.length]||null;
+}
+function communityBattleTeam(league, team) {
+  return communityKnownRival(league,team)||communityFallbackBattleTeam(league,team);
+}
+function communityContributionPct(league, team) {
+  var rows=communitySeasonRowsForTeam(league,team), mine=getProgression().seasons&&getProgression().seasons[footballSeasonIdForDate()];
+  var xp=mine?Number(mine.xp)||0:0;
+  if(!rows.length||!xp)return {xp:xp,pct:null};
+  var below=rows.filter(function(r){return (Number(r.seasonXp)||0)<=xp;}).length;
+  return {xp:xp,pct:Math.max(1,Math.round(100*below/rows.length))};
+}
+function communityTeamPulseHtml(league, team) {
+  var rank=communityTeamSeasonRank(league,team), fans=communitySeasonRowsForTeam(league,team).length, contribution=communityContributionPct(league,team);
+  return '<section class="community-team-pulse">'+
+    '<div class="community-feed-head"><h3>'+esc(team.name)+' Pulse</h3><span>'+esc(footballSeasonIdForDate())+' season</span></div>'+
+    '<div class="community-pulse-grid">'+
+      '<div><b>'+Number(rank?rank.xp:0).toLocaleString()+'</b><span>Team XP</span></div>'+
+      '<div><b>'+(rank?'#'+rank.rank:'—')+'</b><span>Reads Team Rank</span></div>'+
+      '<div><b>'+fans+'</b><span>Ranked Fans</span></div>'+
+      '<div><b>'+Number(contribution.xp||0).toLocaleString()+'</b><span>Your XP</span></div>'+
+    '</div>'+
+    (contribution.pct?'<div class="community-contribution"><span>YOUR CONTRIBUTION</span><b>Top '+Math.max(1,100-contribution.pct+1)+'% of '+esc(team.name)+' fans</b><div><i style="width:'+contribution.pct+'%"></i></div></div>':'')+
+    '</section>';
+}
+function communityBattleHtml(league, team) {
+  var opponent=communityBattleTeam(league,team);
+  if(!opponent)return '';
+  var us=communityWeeklyTeamPoints(league,team), them=communityWeeklyTeamPoints(league,opponent), total=Math.max(1,us+them);
+  var usPct=Math.round(100*us/total), known=!!communityKnownRival(league,team);
+  var lead=us===them?'Tied up':us>them?team.name+' leads':opponent.name+' leads';
+  return '<section class="community-battle-card">'+
+    '<div class="community-battle-head"><div><span class="dashboard-eyebrow">'+(known?'RIVALRY BATTLE':'WEEKLY TEAM BATTLE')+'</span><h3>'+esc(team.name)+' vs. '+esc(opponent.name)+'</h3></div><b>'+esc(lead)+'</b></div>'+
+    '<div class="community-battle-score"><div><span>'+esc(team.code||team.id)+'</span><b>'+us.toLocaleString()+'</b><small>Rival Points</small></div>'+
+    '<div class="community-battle-vs">VS</div><div><span>'+esc(opponent.code||opponent.id)+'</span><b>'+them.toLocaleString()+'</b><small>Rival Points</small></div></div>'+
+    '<div class="community-battle-meter"><i style="width:'+usPct+'%"></i></div>'+
+    '<div class="community-battle-foot"><span>Every Daily Reads run adds to your team’s weekly total.</span><button class="btn-primary" data-go="daily">'+(us<them?'Help '+esc(team.code||team.id)+' take the lead':'Run up the score')+'</button></div>'+
+    '</section>';
+}
+
 function communityDailyRivalsHtml(league, team) {
   if (!team) return '';
   var field = league === 'cfb' ? 'favoriteCfbTeam' : 'favoriteNflTeam';
@@ -3624,6 +3715,8 @@ function renderCommunityScreen() {
       (rating ? '<span>' + rating.score + ' rating</span>' : '') +
       (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
     '</div>' +
+    communityTeamPulseHtml(league, team) +
+    communityBattleHtml(league, team) +
     communityChallengeHtml(league, team) +
     communityDailyRivalsHtml(league, team) +
     communityLeaderboardHtml(league, team) +
