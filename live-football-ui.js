@@ -97,7 +97,7 @@ function liveFootballAcknowledgeFinals() {
 function liveFootballFreshnessText() {
   if (!LIVE_FOOTBALL.fetchedAt) return 'Not checked yet';
   var mins = Math.max(0, Math.round((Date.now() - LIVE_FOOTBALL.fetchedAt) / 60000));
-  return mins < 1 ? 'Checked just now' : 'Checked ' + mins + 'm ago';
+  return mins < 1 ? 'Feed checked just now' : 'Feed checked ' + mins + 'm ago';
 }
 function liveFootballResultLine(g) {
   return g.away_team + ' ' + g.away_score + ' · ' + g.home_team + ' ' + g.home_score;
