@@ -201,7 +201,7 @@ function finishEndless(){
   st.bestScore=Math.max(st.bestScore||0,ENDLESS.score);st.bestStreak=Math.max(st.bestStreak||0,ENDLESS.bestStreak);st.bestQuestions=Math.max(st.bestQuestions||0,ENDLESS.total);st.runs=(st.runs||0)+1;
   lsSet('nflTriviaStats',state.stats);
   if(ENDLESS.total)updateRatingDrift(pct);
-  pushLeaderboard('endless',{bestScore:st.bestScore,bestStreak:st.bestStreak,bestQuestions:st.bestQuestions,runs:st.runs,lastPct:pct});
+  pushLeaderboard('endless',{bestScore:st.bestScore,bestStreak:st.bestStreak,bestQuestions:st.bestQuestions,runs:st.runs,lastPct:pct,lastScore:ENDLESS.score,lastQuestions:ENDLESS.total,lastStreak:ENDLESS.bestStreak});
   playSound('complete');renderAll();
 }
 function endlessHomeCardHtml(){
