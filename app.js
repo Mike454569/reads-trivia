@@ -12272,8 +12272,17 @@ function encyclopediaGraphHtml(id,node){
 }
 function encyclopediaStudyFamily(node){
   if(!node)return 'footballIQ';
-  var hay=[node.domain,node.subcategory,node.label].filter(Boolean).join(' ');
-  return filmFamilyForQuestion({category:hay,question:hay});
+  var map={
+    COVERAGES:'coverage',DEFENSIVE_PHILOSOPHY:'coverage',DEFENSIVE_PERSONNEL:'fronts',
+    PRESSURES:'pressure',PASS_PROTECTION:'pressure',
+    PASSING_CONCEPTS:'routes',ROUTE_TREE:'routes',QB_PLAY:'routes',OFFENSIVE_SYSTEMS:'routes',
+    RUN_GAME:'run',BLOCKING:'run',RUN_FITS:'run',
+    DEFENSIVE_FRONTS:'fronts',FORMATIONS:'fronts',PERSONNEL:'fronts',POSITIONS:'fronts',
+    SITUATIONAL:'situational',SPECIAL_TEAMS:'situational',COACHING:'situational',PLAY_CALLING:'situational',
+    HISTORY:'history',GREAT_UNITS:'history',NFL_SCHEMES:'footballIQ',CFB_SCHEMES:'footballIQ',
+    FOOTBALL_101:'footballIQ',RULES:'footballIQ',GEOMETRY:'footballIQ',FILM_STUDY:'footballIQ',SCOUTING:'footballIQ'
+  };
+  return map[node.domain]||filmFamilyForQuestion({category:[node.domain,node.subcategory,node.label].filter(Boolean).join(' '),question:node.label||''});
 }
 function encyclopediaStudyCtaHtml(node){
   if(!node)return '';
