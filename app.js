@@ -1148,8 +1148,8 @@ function finishIntroTest() {
   pushRatingHistory(t.score);
   renderAll();
 }
-function skipIntroTest() { state.introTest = null; state.screen = 'home'; if (!consumePendingLiveJoin()) renderAll(); }
-function introTestDone() { state.introTest = null; state.screen = 'home'; if (!consumePendingLiveJoin()) renderAll(); }
+function skipIntroTest() { state.introTest = null; state.screen = 'home'; if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) renderAll(); }
+function introTestDone() { state.introTest = null; state.screen = 'home'; if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) renderAll(); }
 function retakeIntroTest() { startIntroTest(); }
 // Unlike quiz options/grid squares (fresh DOM nodes every render, so a CSS
 // animation on their class just replays automatically), #rating-badge is a
@@ -2112,9 +2112,7 @@ function refreshDataAliases() {
   // validation (validatePlayerCluesPackage) -- re-run on every call (cheap,
   // idempotent) so a lazy-loaded player-from-clues file is actually picked
   // up the first time this mode is entered, not just at initial page load.
-  if (typeof initPlayerCluesPackage === 'function') if (state.name && pendingSocialChallengeCode) consumePendingSocialChallenge();
-
-initPlayerCluesPackage();
+  if (typeof initPlayerCluesPackage === 'function') initPlayerCluesPackage();
   if (typeof initCfbPlayerCluesPackage === 'function') initCfbPlayerCluesPackage();
 }
 function enterMode(mode) {
@@ -2333,7 +2331,7 @@ function saveName(name) {
   didInitialProfilePull = true;
   pullProfileSnapshot();
   if (!getRating()) { startIntroTest(); return; }
-  if (!consumePendingLiveJoin()) renderAll();
+  if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) renderAll();
 }
 function logOut() {
   if (window.__fbSync && window.__fbSync.logOut) window.__fbSync.logOut();
@@ -14258,8 +14256,8 @@ if (HIDDEN_ROUTES[location.hash]) {
     };
   }
   renderAll();
-} else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingLiveJoin()) { renderAll(); }
-if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode) { openOnboarding(); }
+} else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) { renderAll(); }
+if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode && !pendingSocialChallengeCode) { openOnboarding(); }
 
 // Splash screen: shown by default in index.html, fades out shortly after load
 // regardless of Firebase connection state (so a slow/broken connection never
