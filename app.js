@@ -1892,7 +1892,7 @@ function dailyChallengeCardHtml() {
     '<p class="daily-difficulty-note">' + icon('target') + ' Today’s target: <b>' + esc(dailyDifficultyLabel(adaptiveDailyDifficulty())) + '</b></p>' +
     (streakBit ? '<p class="daily-card-streak">' + streakBit + '</p>' : '') +
     '<button class="btn-primary" data-daily-start>Start My Daily 5' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
-    '</div>';
+    '</div>' + dailyFormatRotationHtml(true);
 }
 function dailyMechanicInstructions(q) {
   var id = q._dailyMechanic || 'quick';
@@ -1958,6 +1958,7 @@ function renderDailySummary() {
     dailyStreakRewardsHtml() +
     weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
+    dailyFormatRotationHtml(false) +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
     '<button class="btn-primary" data-go="home">Back to Dashboard</button>' +
@@ -1977,7 +1978,8 @@ function renderDailyScreen() {
     return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
       '<p class="mode-desc">Five personalized mini-games. About five minutes total. Difficulty adapts to you.</p>' +
       '<div class="daily-v2-mechanics">' + dailyMechanicPreviewHtml() + '</div>' +
-      '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>';
+      '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>' +
+      dailyFormatRotationHtml(false);
   }
   if (state.daily.screen === 'summary') return renderDailySummary();
   return renderDailyQuestion();
@@ -2160,6 +2162,7 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
+  trackFormatEvent('launch', mode, {from:state.screen||'unknown'});
   if (state.screen === 'community' && mode !== 'community') stopCommunityWatch();
   if (state.name) {
     var recNow = scoredModeRecommendations(3).some(function (r) { return r.mode.id === mode; });
@@ -2225,7 +2228,7 @@ function goToMode(mode) {
     beginProgressSession(mode);
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
-    startMechanicPilotRound(mechanicEntry.mechanicMode);
+    startMechanicPilotRound(mechanicEntry.mechanicMode, mode);
     return;
   }
   // v1.7, Part C8: same unified-discovery routing as the block above, kept
@@ -2967,6 +2970,68 @@ var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
 var READS_DISTINCT_FORMAT_COUNT = 100;
 var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
 
+/* Product analytics: local, bounded and intentionally non-PII. This gives the
+   closeout pass real signals for discovery -> launch -> completion -> share
+   without making gameplay depend on an analytics backend. Signed-in play
+   still uses the existing Firebase play/progression paths separately. */
+function formatAnalyticsKey() { return 'readsFormatAnalyticsV1'; }
+function getFormatAnalyticsEvents() { return lsGet(formatAnalyticsKey(), []); }
+function trackFormatEvent(type, mode, meta) {
+  var rows=getFormatAnalyticsEvents();
+  rows.push({type:String(type||''),mode:mode||null,at:Date.now(),meta:Object.assign({},meta||{})});
+  lsSet(formatAnalyticsKey(), rows.slice(-500));
+}
+function formatAnalyticsSummary() {
+  var out={impression:0,search:0,filter:0,launch:0,complete:0,share:0,byMode:{}};
+  getFormatAnalyticsEvents().forEach(function(e){
+    if(out[e.type]!==undefined) out[e.type]++;
+    if(e.mode){
+      out.byMode[e.mode]=out.byMode[e.mode]||{launch:0,complete:0,share:0};
+      if(out.byMode[e.mode][e.type]!==undefined) out.byMode[e.mode][e.type]++;
+    }
+  });
+  return out;
+}
+
+function dailyFormatRotationKey() { return 'readsDailyFormatFive__' + slugify(state.name || 'guest') + '__' + todayStr(); }
+function dailyFormatRotation() {
+  var saved=lsGet(dailyFormatRotationKey(),null);
+  if(saved&&Array.isArray(saved.modeIds)&&saved.modeIds.length===5) return saved;
+  var pool=formatHubRecommendationRows(40).map(function(r){return r.mode;});
+  var chosen=[], seenFamilies={}, seenLeagues={}, seed=hashStr(todayStr()+'|formatFive|'+(state.name||'guest'));
+  pool.sort(function(a,b){return (hashStr(a.id+'|'+seed)%100000)-(hashStr(b.id+'|'+seed)%100000);});
+  function take(m){
+    if(!m||chosen.some(function(x){return x.id===m.id;}))return false;
+    chosen.push(m);seenFamilies[formatHubFamily(m)]=true;seenLeagues[m.league||modeLeague(m.id)]=true;return true;
+  }
+  pool.forEach(function(m){
+    if(chosen.length>=5)return;
+    var fam=formatHubFamily(m), lg=m.league||modeLeague(m.id);
+    if(!seenFamilies[fam] || !seenLeagues[lg]) take(m);
+  });
+  pool.forEach(function(m){if(chosen.length<5)take(m);});
+  saved={date:todayStr(),modeIds:chosen.slice(0,5).map(function(m){return m.id;}),completedIds:[],createdAt:Date.now()};
+  lsSet(dailyFormatRotationKey(),saved);
+  return saved;
+}
+function markDailyFormatCompleted(mode) {
+  if(!mode)return;
+  var d=dailyFormatRotation();
+  if(d.modeIds.indexOf(mode)===-1||d.completedIds.indexOf(mode)!==-1)return;
+  d.completedIds.push(mode);lsSet(dailyFormatRotationKey(),d);
+}
+function dailyFormatRotationHtml(compact) {
+  var d=dailyFormatRotation(), map={};
+  allPlayableModesUnique().forEach(function(m){map[m.id]=m;});
+  var rows=d.modeIds.map(function(id){return map[id];}).filter(Boolean);
+  if(!rows.length)return '';
+  return '<section class="daily-format-five'+(compact?' compact':'')+'">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s 100-format rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
+    '<p class="mode-desc">Five personalized full game formats, rotated daily from the complete Reads catalog. Your Daily Reads streak still comes from the five-minute Daily 5 above.</p>'+
+    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;return '<button class="'+(done?'complete':'')+'" data-go="'+esc(m.id)+'"><span>'+(done?icon('check'):icon(m.icon||'football'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
+    '</section>';
+}
+
 function allPlayableModesUnique() {
   var seen = {}, out = [];
   LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).forEach(function (m) {
@@ -3029,6 +3094,7 @@ function formatHubCardHtml(m) {
 }
 function formatDiscoveryHubHtml() {
   var modes=formatHubFilteredModes(), quick=formatHubQuickPlayMode(), recs=formatHubRecommendationRows(6);
+  trackFormatEvent('impression', null, {results:modes.length});
   var totalPlayable=allPlayableModesUnique().length;
   return '<section class="format-hub" aria-label="Game format discovery">'+
     '<div class="format-hub-hero"><div><span class="dashboard-eyebrow">THE PLAYBOOK</span><h2>100 Ways to Play Football</h2>'+
@@ -4122,7 +4188,10 @@ function completionPctForPersonalization(mode, fields) {
   return null;
 }
 function recordPersonalizationCompletion(mode, fields) {
-  if (!state.name || !mode) return;
+  if (!mode) return;
+  trackFormatEvent('complete', mode, {pct:completionPctForPersonalization(mode, fields)});
+  markDailyFormatCompleted(mode);
+  if (!state.name) return;
   checkRetentionMissionCompletion(mode);
   var p = getPersonalizationState();
   p.playEvents.push({ mode:mode, league:modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
@@ -13836,10 +13905,10 @@ document.addEventListener('click', function (e) {
   // already does via its own stopSfx() call.
   stopSfx();
 
-  if (t.dataset.formatHubLeague !== undefined) { formatHubState.league=t.dataset.formatHubLeague; renderAll(); return; }
-  if (t.dataset.formatHubFamily !== undefined) { formatHubState.family=t.dataset.formatHubFamily; renderAll(); return; }
-  if (t.dataset.formatHubDifficulty !== undefined) { formatHubState.difficulty=t.dataset.formatHubDifficulty; renderAll(); return; }
-  if (t.dataset.formatHubNew !== undefined) { formatHubState.newOnly=!formatHubState.newOnly; renderAll(); return; }
+  if (t.dataset.formatHubLeague !== undefined) { formatHubState.league=t.dataset.formatHubLeague; trackFormatEvent('filter',null,{kind:'league',value:formatHubState.league}); renderAll(); return; }
+  if (t.dataset.formatHubFamily !== undefined) { formatHubState.family=t.dataset.formatHubFamily; trackFormatEvent('filter',null,{kind:'family',value:formatHubState.family}); renderAll(); return; }
+  if (t.dataset.formatHubDifficulty !== undefined) { formatHubState.difficulty=t.dataset.formatHubDifficulty; trackFormatEvent('filter',null,{kind:'difficulty',value:formatHubState.difficulty}); renderAll(); return; }
+  if (t.dataset.formatHubNew !== undefined) { formatHubState.newOnly=!formatHubState.newOnly; trackFormatEvent('filter',null,{kind:'newOnly',value:formatHubState.newOnly}); renderAll(); return; }
   if (t.dataset.formatHubReset !== undefined) { formatHubState={query:'',league:'all',difficulty:'all',family:'all',newOnly:false}; renderAll(); return; }
 
   if (t.id === 'help-toggle') {
@@ -13850,7 +13919,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.onboardingSampleAnswer !== undefined) { onboardingPickSample(parseInt(t.dataset.onboardingSampleAnswer, 10)); return; }
   if (t.id === 'onboarding-next') { onboardingNext(); return; }
   if (t.id === 'onboarding-skip' || t.id === 'onboarding-backdrop') { closeOnboarding(); return; }
-  if (t.dataset.share !== undefined) { shareResultCard(t.dataset.share); return; }
+  if (t.dataset.share !== undefined) { trackFormatEvent('share', t.dataset.share, {}); shareResultCard(t.dataset.share); return; }
   if (t.id === 'share-close' || t.id === 'share-backdrop') { closeShareModal(); return; }
   if (t.id === 'share-download') { shareDownloadImage(); return; }
   if (t.id === 'share-x') { shareToX(); return; }
@@ -14571,7 +14640,7 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 document.addEventListener('input', function (e) {
-  if (e.target.id === 'format-hub-search') { formatHubState.query=e.target.value; renderAll(); return; }
+  if (e.target.id === 'format-hub-search') { formatHubState.query=e.target.value; if(formatHubState.query.length===1||formatHubState.query.length%4===0)trackFormatEvent('search',null,{length:formatHubState.query.length}); renderAll(); return; }
   if (e.target.id === 'grid-input') { state.grid.input = e.target.value; renderTypeahead('grid-input'); return; }
   if (e.target.id === 'cfb-grid-input') { state.cfbGrid.input = e.target.value; renderTypeahead('cfb-grid-input'); return; }
   if (e.target.id === 'blitz-input') { state.blitz.input = e.target.value; return; }
