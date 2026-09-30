@@ -107,6 +107,21 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Two-Minute Drill", "STRATEGY_ARCADE", "TWO_MINUTE_DRILL"),
     ("Category Streak", "STRATEGY_ARCADE", "CATEGORY_STREAK"),
     ("Perfect Quarter", "STRATEGY_ARCADE", "PERFECT_QUARTER"),
+    ("Red Zone Ladder", "STRATEGY_ARCADE", "RED_ZONE_LADDER"),
+    ("Drive Builder", "STRATEGY_ARCADE", "DRIVE_BUILDER"),
+    ("Hot Hand Switch", "STRATEGY_ARCADE", "HOT_HAND_SWITCH"),
+    ("Overtime Shootout", "STRATEGY_ARCADE", "OVERTIME_SHOOTOUT"),
+    ("First Down Chain", "STRATEGY_ARCADE", "FIRST_DOWN_CHAIN"),
+    ("Blitz Package", "STRATEGY_ARCADE", "BLITZ_PACKAGE"),
+    ("Zone Control", "STRATEGY_ARCADE", "ZONE_CONTROL"),
+    ("Play Caller", "STRATEGY_ARCADE", "PLAY_CALLER"),
+    ("Possession Arrow", "STRATEGY_ARCADE", "POSSESSION_ARROW"),
+    ("Sudden Death", "STRATEGY_ARCADE", "SUDDEN_DEATH"),
+    ("Score Bank", "STRATEGY_ARCADE", "SCORE_BANK"),
+    ("Audible", "STRATEGY_ARCADE", "AUDIBLE"),
+    ("Fourth Down Decision", "STRATEGY_ARCADE", "FOURTH_DOWN_DECISION"),
+    ("Series Sweep", "STRATEGY_ARCADE", "SERIES_SWEEP"),
+    ("Road to 100", "STRATEGY_ARCADE", "ROAD_TO_100"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
