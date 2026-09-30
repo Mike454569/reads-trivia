@@ -9219,8 +9219,12 @@ function applyProgressAwardLocally(xp, seasonId) {
   p.seasons[seasonId].xp += xp;
   setProgression(p);
 }
+var recordedSeasonSessions = {};
 function recordSeasonGame(mode) {
   if (!state.name || !mode) return;
+  var eventId = mode === 'daily' ? ('daily_' + todayStr()) : progressEventIdFor(mode);
+  if (recordedSeasonSessions[mode] === eventId) return;
+  recordedSeasonSessions[mode] = eventId;
   var seasonId = footballSeasonIdForDate();
   var p = getProgression();
   p.seasons = p.seasons || {};
@@ -9253,7 +9257,36 @@ function closePreviousSeasonsIfNeeded() {
   });
   if (changed) setProgression(p);
 }
-function seasonRankFor(xp) { return progressionRankFor(xp); }
+var SEASON_RANKS = [
+  { name: 'Rookie', min: 0 },
+  { name: 'Prospect', min: 300 },
+  { name: 'Starter', min: 900 },
+  { name: 'Playmaker', min: 1800 },
+  { name: 'All-Pro', min: 3500 },
+  { name: 'MVP', min: 6000 }
+];
+function seasonRankFor(xp) {
+  xp = Math.max(0, Number(xp) || 0);
+  var current = SEASON_RANKS[0], next = null;
+  for (var i = 0; i < SEASON_RANKS.length; i++) {
+    if (xp >= SEASON_RANKS[i].min) current = SEASON_RANKS[i];
+    else { next = SEASON_RANKS[i]; break; }
+  }
+  var pct = 1;
+  if (next) pct = Math.max(0, Math.min(1, (xp - current.min) / (next.min - current.min)));
+  return { name: current.name, next: next && next.name, xp: xp, pct: pct, toNext: next ? next.min - xp : 0 };
+}
+function seasonMilestonesFor(data) {
+  data = normalizeSeasonProgress(data);
+  return [
+    { label:'Season Opener', current:data.gamesPlayed, target:10 },
+    { label:'Daily Regular', current:data.dailyCompletions, target:10 },
+    { label:'Hot Streak', current:data.bestStreak, target:7 },
+    { label:'1K Club', current:data.xp, target:1000 }
+  ].map(function (m) {
+    return Object.assign({}, m, { complete:m.current >= m.target, pct:Math.max(0, Math.min(100, Math.round((m.current / m.target) * 100))) });
+  });
+}
 function seasonHistoryList() {
   closePreviousSeasonsIfNeeded();
   var p = getProgression();
@@ -9327,10 +9360,16 @@ function currentSeasonRecapHtml() {
   var id = footballSeasonIdForDate();
   var d = normalizeSeasonProgress(p.seasons && p.seasons[id]);
   var rank = seasonRankFor(d.xp);
+  var milestones = seasonMilestonesFor(d);
   return '<section class="season-recap-card"><div><span class="dashboard-eyebrow">' + esc(id) + ' SEASON RECAP</span><h3>' + esc(rank.name) + '</h3><p>' + d.xp + ' season XP · ' + d.gamesPlayed + ' games · ' + d.dailyCompletions + ' Daily Reads</p></div>' +
+    '<div class="season-rank-progress"><div><b>' + esc(rank.name) + '</b><span>' + (rank.next ? rank.toNext + ' XP to ' + esc(rank.next) : 'Top seasonal tier') + '</span></div>' +
+    '<span class="dashboard-xp-track"><span style="width:' + Math.round(rank.pct * 100) + '%"></span></span></div>' +
     '<div class="season-recap-metrics"><span><b>' + d.bestStreak + '</b><small>Best streak</small></span>' +
     '<span><b>' + (d.finalRating == null ? '—' : d.finalRating) + '</b><small>Rating</small></span>' +
-    '<span><b>' + (d.topMode ? esc(modeLabelFor(d.topMode)) : '—') + '</b><small>Top mode</small></span></div></section>';
+    '<span><b>' + (d.topMode ? esc(modeLabelFor(d.topMode)) : '—') + '</b><small>Top mode</small></span></div>' +
+    '<div class="season-milestones">' + milestones.map(function (m) {
+      return '<div class="' + (m.complete ? 'complete' : '') + '"><span>' + (m.complete ? icon('check') : icon('trophy')) + '</span><b>' + esc(m.label) + '</b><small>' + Math.min(m.current,m.target) + ' / ' + m.target + '</small></div>';
+    }).join('') + '</div></section>';
 }
 
 function progressionEventForCompletion(mode, fields) {
@@ -9356,6 +9395,7 @@ function awardProgressForCompletion(mode, fields) {
     window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
       if (!result || !result.duplicate) {
         applyProgressAwardLocally(xp, seasonId);
+        pushSeasonLeaderboardSnapshot();
         syncAchievementUnlocks();
         if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
       }
@@ -9365,6 +9405,7 @@ function awardProgressForCompletion(mode, fields) {
     });
   } else {
     applyProgressAwardLocally(xp, seasonId);
+    pushSeasonLeaderboardSnapshot();
     syncAchievementUnlocks();
   }
 }
@@ -9401,7 +9442,6 @@ function pushLeaderboard(mode, fields) {
   recordSeasonGame(mode);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
-  pushSeasonLeaderboardSnapshot();
   checkCommunityChallengeFromCompletion(mode);
   postCommunityGameActivity(mode, fields);
   syncAchievementUnlocks();
