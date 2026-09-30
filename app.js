@@ -10112,7 +10112,11 @@ function progressionLocalKey() {
   return 'nflTriviaProgression__' + who;
 }
 function emptySeasonProgress() {
-  return { xp: 0, gamesPlayed: 0, dailyCompletions: 0, bestStreak: 0, finalRating: null, topMode: null, topModePlays: 0, completedAt: null };
+  return {
+    xp:0,gamesPlayed:0,dailyCompletions:0,bestStreak:0,finalRating:null,topMode:null,topModePlays:0,
+    modePlays:{},questionsAnswered:0,h2hWins:0,h2hLosses:0,h2hTies:0,endlessBestScore:0,endlessBestQuestions:0,
+    completedAt:null
+  };
 }
 function emptyProgression() { return { careerXp: 0, seasons: {} }; }
 function normalizeSeasonProgress(v) {
@@ -10123,6 +10127,13 @@ function normalizeSeasonProgress(v) {
   out.dailyCompletions = Number(out.dailyCompletions) || 0;
   out.bestStreak = Number(out.bestStreak) || 0;
   out.topModePlays = Number(out.topModePlays) || 0;
+  out.modePlays = out.modePlays && typeof out.modePlays === 'object' ? out.modePlays : {};
+  out.questionsAnswered = Number(out.questionsAnswered) || 0;
+  out.h2hWins = Number(out.h2hWins) || 0;
+  out.h2hLosses = Number(out.h2hLosses) || 0;
+  out.h2hTies = Number(out.h2hTies) || 0;
+  out.endlessBestScore = Number(out.endlessBestScore) || 0;
+  out.endlessBestQuestions = Number(out.endlessBestQuestions) || 0;
   return out;
 }
 function getProgression() { return lsGet(progressionLocalKey(), emptyProgression()); }
@@ -10137,14 +10148,27 @@ function mergeProgression(local, cloud) {
   Object.keys(keys).forEach(function (k) {
     var l = normalizeSeasonProgress(local.seasons && local.seasons[k]);
     var c = normalizeSeasonProgress(cloud.seasons && cloud.seasons[k]);
+    var modeKeys={}, mergedModes={};
+    Object.keys(l.modePlays||{}).forEach(function(m){modeKeys[m]=true;});
+    Object.keys(c.modePlays||{}).forEach(function(m){modeKeys[m]=true;});
+    Object.keys(modeKeys).forEach(function(m){mergedModes[m]=Math.max(Number(l.modePlays[m])||0,Number(c.modePlays[m])||0);});
+    var topMode=null, topModePlays=0;
+    Object.keys(mergedModes).forEach(function(m){if(mergedModes[m]>topModePlays){topMode=m;topModePlays=mergedModes[m];}});
     out.seasons[k] = {
       xp: Math.max(l.xp, c.xp),
       gamesPlayed: Math.max(l.gamesPlayed, c.gamesPlayed),
       dailyCompletions: Math.max(l.dailyCompletions, c.dailyCompletions),
       bestStreak: Math.max(l.bestStreak, c.bestStreak),
       finalRating: c.finalRating != null ? c.finalRating : l.finalRating,
-      topMode: c.topMode || l.topMode || null,
-      topModePlays: Math.max(l.topModePlays, c.topModePlays),
+      topMode: topMode || c.topMode || l.topMode || null,
+      topModePlays: Math.max(topModePlays,l.topModePlays,c.topModePlays),
+      modePlays: mergedModes,
+      questionsAnswered: Math.max(l.questionsAnswered,c.questionsAnswered),
+      h2hWins: Math.max(l.h2hWins,c.h2hWins),
+      h2hLosses: Math.max(l.h2hLosses,c.h2hLosses),
+      h2hTies: Math.max(l.h2hTies,c.h2hTies),
+      endlessBestScore: Math.max(l.endlessBestScore,c.endlessBestScore),
+      endlessBestQuestions: Math.max(l.endlessBestQuestions,c.endlessBestQuestions),
       completedAt: Math.max(Number(l.completedAt) || 0, Number(c.completedAt) || 0) || null
     };
   });
@@ -10159,6 +10183,29 @@ function applyProgressAwardLocally(xp, seasonId) {
   setProgression(p);
 }
 var recordedSeasonSessions = {};
+
+function seasonQuestionCountForCompletion(mode) {
+  var s=state[mode];
+  if(mode==='daily'&&state.daily&&state.daily.queue)return state.daily.queue.length||0;
+  if(mode==='h2h'&&state.h2h){
+    if(state.h2h.queue&&state.h2h.queue.length)return state.h2h.queue.length;
+    var me=state.h2h.match&&state.h2h.match.players&&state.h2h.match.players[state.h2h.mySlug];
+    return me&&Number(me.total)||0;
+  }
+  if(mode==='endless')return state.stats.endless&&Number(state.stats.endless.bestQuestions)||0;
+  if(s&&s.queue&&Array.isArray(s.queue))return s.queue.length||0;
+  if(s&&typeof s.totalCount==='number')return s.totalCount||0;
+  return 0;
+}
+function refreshSeasonCompetitiveSnapshots(season) {
+  var h=state.stats.h2h||{}, en=state.stats.endless||{};
+  season.h2hWins=Math.max(season.h2hWins,Number(h.wins)||0);
+  season.h2hLosses=Math.max(season.h2hLosses,Number(h.losses)||0);
+  season.h2hTies=Math.max(season.h2hTies,Number(h.ties)||0);
+  season.endlessBestScore=Math.max(season.endlessBestScore,Number(en.bestScore)||0);
+  season.endlessBestQuestions=Math.max(season.endlessBestQuestions,Number(en.bestQuestions)||0);
+}
+
 function recordSeasonGame(mode) {
   if (!state.name || !mode) return;
   var eventId = mode === 'daily' ? ('daily_' + todayStr()) : progressEventIdFor(mode);
@@ -10171,13 +10218,16 @@ function recordSeasonGame(mode) {
   season.gamesPlayed += 1;
   if (mode === 'daily') season.dailyCompletions += 1;
   season.bestStreak = Math.max(season.bestStreak, getStreak().count || 0);
+  season.questionsAnswered += seasonQuestionCountForCompletion(mode);
+  season.modePlays = season.modePlays || {};
+  season.modePlays[mode] = (Number(season.modePlays[mode]) || 0) + 1;
+  if (season.modePlays[mode] >= season.topModePlays) {
+    season.topMode = mode;
+    season.topModePlays = season.modePlays[mode];
+  }
+  refreshSeasonCompetitiveSnapshots(season);
   var rating = getRating();
   season.finalRating = rating ? rating.score : season.finalRating;
-  var plays = modeTimesPlayed(mode);
-  if (plays >= season.topModePlays) {
-    season.topMode = mode;
-    season.topModePlays = plays;
-  }
   p.seasons[seasonId] = season;
   setProgression(p);
 }
@@ -10261,6 +10311,12 @@ function pushSeasonLeaderboardSnapshot() {
     dailyCompletions: season.dailyCompletions,
     bestStreak: season.bestStreak,
     finalRating: season.finalRating,
+    questionsAnswered: season.questionsAnswered,
+    h2hWins: season.h2hWins,
+    h2hLosses: season.h2hLosses,
+    h2hTies: season.h2hTies,
+    endlessBestScore: season.endlessBestScore,
+    endlessBestQuestions: season.endlessBestQuestions,
     accountUid: activeAuthUid || null,
     playerKey: canonicalPlayerKey(),
     favoriteNflTeam: fav.nfl || null,
