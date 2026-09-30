@@ -2593,7 +2593,8 @@ function renderStrategyArcadeBody(v, s) {
   var status = (v.status_items || []).map(function (it) {
     return '<div class="strategy-stat"><span>' + esc(String(it.label)) + '</span><strong>' + esc(String(it.value)) + '</strong></div>';
   }).join('');
-  var board = (v.board || []).length ? '<div class="strategy-board">' + v.board.map(function (cell) {
+  var boardCols = Math.max(1, Number(v.board_columns || 3));
+  var board = (v.board || []).length ? '<div class="strategy-board" style="grid-template-columns:repeat(' + boardCols + ',minmax(0,1fr))">' + v.board.map(function (cell) {
     var value = String(cell.value || 'OPEN');
     var cls = value === 'CLAIMED' || value === 'CAPTURED' || value === 'OPEN' ? ' is-good' :
       (value === 'BURNT' || value === 'MISSED' || value === 'THEM' ? ' is-bad' : '');
