@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.11.0';
+var APP_VERSION = '3.12.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -845,7 +845,8 @@ function pushProfileSnapshot() {
     streak: getStreak(),
     favoriteTeams: getFavoriteTeams(),
     dailyReads: dailyReadsProfileState(),
-    rewards: rewardsProfileState()
+    rewards: rewardsProfileState(),
+    progression: getProgression()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -3509,6 +3510,8 @@ function personalDashboardHtml() {
     '<div><span>' + icon('trophy') + '</span><b>' + (state.stats.daily.completions || 0) + '</b><small>Daily Wins</small></div>' +
     '</div>' +
     dashboardActionStripHtml() +
+    currentSeasonRecapHtml() +
+    seasonLeaderboardHtml() +
     '</section>';
 }
 
@@ -9169,7 +9172,20 @@ function progressionLocalKey() {
   var who = activeAuthUid ? ('uid_' + activeAuthUid) : slugify(state.name || 'guest');
   return 'nflTriviaProgression__' + who;
 }
+function emptySeasonProgress() {
+  return { xp: 0, gamesPlayed: 0, dailyCompletions: 0, bestStreak: 0, finalRating: null, topMode: null, topModePlays: 0, completedAt: null };
+}
 function emptyProgression() { return { careerXp: 0, seasons: {} }; }
+function normalizeSeasonProgress(v) {
+  v = v || {};
+  var out = Object.assign(emptySeasonProgress(), v);
+  out.xp = Number(out.xp) || 0;
+  out.gamesPlayed = Number(out.gamesPlayed) || 0;
+  out.dailyCompletions = Number(out.dailyCompletions) || 0;
+  out.bestStreak = Number(out.bestStreak) || 0;
+  out.topModePlays = Number(out.topModePlays) || 0;
+  return out;
+}
 function getProgression() { return lsGet(progressionLocalKey(), emptyProgression()); }
 function setProgression(v) { lsSet(progressionLocalKey(), v || emptyProgression()); }
 function mergeProgression(local, cloud) {
@@ -9180,9 +9196,18 @@ function mergeProgression(local, cloud) {
   Object.keys(local.seasons || {}).forEach(function (k) { keys[k] = true; });
   Object.keys(cloud.seasons || {}).forEach(function (k) { keys[k] = true; });
   Object.keys(keys).forEach(function (k) {
-    var l = local.seasons && local.seasons[k] || {};
-    var c = cloud.seasons && cloud.seasons[k] || {};
-    out.seasons[k] = { xp: Math.max(Number(l.xp) || 0, Number(c.xp) || 0) };
+    var l = normalizeSeasonProgress(local.seasons && local.seasons[k]);
+    var c = normalizeSeasonProgress(cloud.seasons && cloud.seasons[k]);
+    out.seasons[k] = {
+      xp: Math.max(l.xp, c.xp),
+      gamesPlayed: Math.max(l.gamesPlayed, c.gamesPlayed),
+      dailyCompletions: Math.max(l.dailyCompletions, c.dailyCompletions),
+      bestStreak: Math.max(l.bestStreak, c.bestStreak),
+      finalRating: c.finalRating != null ? c.finalRating : l.finalRating,
+      topMode: c.topMode || l.topMode || null,
+      topModePlays: Math.max(l.topModePlays, c.topModePlays),
+      completedAt: Math.max(Number(l.completedAt) || 0, Number(c.completedAt) || 0) || null
+    };
   });
   return out;
 }
@@ -9190,10 +9215,124 @@ function applyProgressAwardLocally(xp, seasonId) {
   var p = getProgression();
   p.careerXp = (Number(p.careerXp) || 0) + xp;
   p.seasons = p.seasons || {};
-  p.seasons[seasonId] = p.seasons[seasonId] || { xp: 0 };
-  p.seasons[seasonId].xp = (Number(p.seasons[seasonId].xp) || 0) + xp;
+  p.seasons[seasonId] = normalizeSeasonProgress(p.seasons[seasonId]);
+  p.seasons[seasonId].xp += xp;
   setProgression(p);
 }
+function recordSeasonGame(mode) {
+  if (!state.name || !mode) return;
+  var seasonId = footballSeasonIdForDate();
+  var p = getProgression();
+  p.seasons = p.seasons || {};
+  var season = normalizeSeasonProgress(p.seasons[seasonId]);
+  season.gamesPlayed += 1;
+  if (mode === 'daily') season.dailyCompletions += 1;
+  season.bestStreak = Math.max(season.bestStreak, getStreak().count || 0);
+  var rating = getRating();
+  season.finalRating = rating ? rating.score : season.finalRating;
+  var plays = modeTimesPlayed(mode);
+  if (plays >= season.topModePlays) {
+    season.topMode = mode;
+    season.topModePlays = plays;
+  }
+  p.seasons[seasonId] = season;
+  setProgression(p);
+}
+function closePreviousSeasonsIfNeeded() {
+  var p = getProgression();
+  var current = footballSeasonIdForDate();
+  var changed = false;
+  Object.keys(p.seasons || {}).forEach(function (id) {
+    if (id === current) return;
+    var season = normalizeSeasonProgress(p.seasons[id]);
+    if (!season.completedAt && season.xp > 0) {
+      season.completedAt = Date.now();
+      p.seasons[id] = season;
+      changed = true;
+    }
+  });
+  if (changed) setProgression(p);
+}
+function seasonRankFor(xp) { return progressionRankFor(xp); }
+function seasonHistoryList() {
+  closePreviousSeasonsIfNeeded();
+  var p = getProgression();
+  return Object.keys(p.seasons || {}).sort(function (a,b) { return Number(b) - Number(a); }).map(function (id) {
+    return { id:id, data:normalizeSeasonProgress(p.seasons[id]) };
+  });
+}
+function seasonLeaderboardRows() {
+  var seasonId = footballSeasonIdForDate();
+  var rows = (state.leaderboardData || []).filter(function (r) {
+    return r.mode === 'season' && String(r.seasonId || '') === seasonId && typeof r.seasonXp === 'number';
+  });
+  rows.sort(function (a,b) {
+    if ((b.seasonXp || 0) !== (a.seasonXp || 0)) return (b.seasonXp || 0) - (a.seasonXp || 0);
+    return leaderboardRowTimestamp(b) - leaderboardRowTimestamp(a);
+  });
+  return rows;
+}
+function pushSeasonLeaderboardSnapshot() {
+  if (!state.name || !window.__fbSync || !window.__fbSync.pushScore) return;
+  var seasonId = footballSeasonIdForDate();
+  var p = getProgression();
+  var season = normalizeSeasonProgress(p.seasons && p.seasons[seasonId]);
+  var fav = getFavoriteTeams();
+  var docId = activeAuthUid ? ('account_' + activeAuthUid + '__season_' + seasonId)
+    : (slugify(state.name) + '_' + getClientId() + '__season_' + seasonId);
+  window.__fbSync.pushScore(docId, {
+    name: state.name,
+    mode: 'season',
+    seasonId: seasonId,
+    seasonXp: season.xp,
+    gamesPlayed: season.gamesPlayed,
+    dailyCompletions: season.dailyCompletions,
+    bestStreak: season.bestStreak,
+    finalRating: season.finalRating,
+    accountUid: activeAuthUid || null,
+    playerKey: canonicalPlayerKey(),
+    favoriteNflTeam: fav.nfl || null,
+    favoriteCfbTeam: fav.cfb || null
+  });
+}
+function seasonLeaderboardHtml() {
+  var rows = seasonLeaderboardRows().slice(0,10);
+  var seasonId = footballSeasonIdForDate();
+  return '<section class="season-leaderboard-card"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">' + esc(seasonId) + ' SEASON</span><h3>Season Leaderboard</h3></div><span>Season XP</span></div>' +
+    (rows.length ? '<div class="community-rank-list">' + rows.map(function (r,i) {
+      return '<div class="community-rank-row"><span class="community-rank-pos">' + (i+1) + '</span><b>' + esc(r.name || 'Reads fan') + '</b><span>' + (r.seasonXp || 0) + ' XP</span></div>';
+    }).join('') + '</div>' : '<div class="community-empty"><b>No season standings yet.</b><span>Finish a ranked game to enter the ' + esc(seasonId) + ' race.</span></div>') +
+    '</section>';
+}
+function seasonHistoryHtml() {
+  var list = seasonHistoryList();
+  if (!list.length) return '';
+  var current = footballSeasonIdForDate();
+  return '<section class="profile-season-history"><div class="profile-section-head"><div><span class="dashboard-eyebrow">CAREER HISTORY</span><h3>Seasons</h3></div><span>' + list.length + ' season' + (list.length === 1 ? '' : 's') + '</span></div>' +
+    '<div class="season-history-grid">' +
+    list.map(function (item) {
+      var d = item.data, rank = seasonRankFor(d.xp);
+      return '<article class="season-history-card' + (item.id === current ? ' current' : '') + '">' +
+        '<div class="season-history-head"><b>' + esc(item.id) + '</b><span>' + (item.id === current ? 'Current' : 'Final') + '</span></div>' +
+        '<div class="season-history-rank">' + esc(rank.name) + '</div>' +
+        '<div class="season-history-xp">' + d.xp + ' XP</div>' +
+        '<div class="season-history-stats"><span>' + d.gamesPlayed + ' games</span><span>' + d.dailyCompletions + ' Daily Reads</span><span>' + d.bestStreak + '-day best streak</span>' +
+        (d.finalRating != null ? '<span>' + d.finalRating + ' final rating</span>' : '') +
+        (d.topMode ? '<span>Top mode: ' + esc(modeLabelFor(d.topMode)) + '</span>' : '') +
+        '</div></article>';
+    }).join('') + '</div></section>';
+}
+function currentSeasonRecapHtml() {
+  var p = getProgression();
+  var id = footballSeasonIdForDate();
+  var d = normalizeSeasonProgress(p.seasons && p.seasons[id]);
+  var rank = seasonRankFor(d.xp);
+  return '<section class="season-recap-card"><div><span class="dashboard-eyebrow">' + esc(id) + ' SEASON RECAP</span><h3>' + esc(rank.name) + '</h3><p>' + d.xp + ' season XP · ' + d.gamesPlayed + ' games · ' + d.dailyCompletions + ' Daily Reads</p></div>' +
+    '<div class="season-recap-metrics"><span><b>' + d.bestStreak + '</b><small>Best streak</small></span>' +
+    '<span><b>' + (d.finalRating == null ? '—' : d.finalRating) + '</b><small>Rating</small></span>' +
+    '<span><b>' + (d.topMode ? esc(modeLabelFor(d.topMode)) : '—') + '</b><small>Top mode</small></span></div></section>';
+}
+
 function progressionEventForCompletion(mode, fields) {
   var eventType = mode === 'daily' ? 'DAILY_READS_COMPLETED' : (mode === 'h2h' ? 'CHALLENGE_COMPLETED' : 'GAME_COMPLETED');
   return {
@@ -9259,8 +9398,10 @@ function pushLeaderboard(mode, fields) {
     favoriteCfbTeam: favTeamsForScore.cfb || null
   }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
+  recordSeasonGame(mode);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
+  pushSeasonLeaderboardSnapshot();
   checkCommunityChallengeFromCompletion(mode);
   postCommunityGameActivity(mode, fields);
   syncAchievementUnlocks();
@@ -9346,6 +9487,7 @@ window.__triviaSync = {
 
 var LEADERBOARD_MODES = [
   { id: 'rating', label: 'Football Rating', sortKey: 'score', cols: [['score', 'Rating'], ['games', 'Games Played']] },
+  { id: 'season', label: footballSeasonIdForDate() + ' Season', sortKey: 'seasonXp', cols: [['seasonXp', 'Season XP'], ['gamesPlayed', 'Games'], ['bestStreak', 'Best Streak']] },
   { id: 'daily', label: 'Daily Reads', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
   { id: 'quiz', label: 'NFL Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'xso', label: "X's & O's", sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
@@ -11480,6 +11622,7 @@ function renderProfile() {
     }).join('') +
     '</div>' +
     '</div>';
+  html += seasonHistoryHtml();
   html += '<div class="profile-mode-grid">' + profileModeCardsHtml() + '</div>';
   return html;
 }
