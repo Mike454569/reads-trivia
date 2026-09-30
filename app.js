@@ -10741,8 +10741,8 @@ function awardAchievementXp(badgeId) {
   if (!activeAuthUid || !window.__fbSync || !window.__fbSync.awardProgress) return;
   var seasonId = footballSeasonIdForDate();
   var eventId = 'achievement_' + badgeId;
-  window.__fbSync.awardProgress(profileDocId(), eventId, { type: 'ACHIEVEMENT_UNLOCKED', badgeId: badgeId, source: 'rewards' }, 100, seasonId)
-    .then(function (result) { if (!result || !result.duplicate) applyProgressAwardLocally(100, seasonId); })
+  window.__fbSync.awardProgress(profileDocId(), eventId, { type: 'ACHIEVEMENT_UNLOCKED', badgeId: badgeId, source: 'rewards' }, 50, seasonId)
+    .then(function (result) { if (!result || !result.duplicate) applyProgressAwardLocally(50, seasonId); })
     .catch(function () {});
 }
 function syncAchievementUnlocks() {
@@ -10800,12 +10800,26 @@ function ratingSparklineSvg(history) {
 }
 
 function renderProfile() {
+  syncAchievementUnlocks();
   var r = getRating();
   var streak = getStreak();
-  var html = '<div class="panel">' +
+  var progression = getProgression();
+  var career = progressionRankFor(progression.careerXp || 0);
+  var earned = earnedBadges();
+  var rewards = getRewards();
+  var selected = selectedBadge();
+  var cosmetic = selectedProfileCosmetic();
+  var cosmeticClass = ' profile-cosmetic-' + cosmetic.id;
+  var html = '<div class="panel profile-rewards-shell' + cosmeticClass + '">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="settings">' + icon('settings') + ' Settings</button><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-    '<h2 class="panel-title">Your Profile</h2>' +
-    (state.name ? '<p class="mode-desc">Playing as <b>' + esc(state.name) + '</b></p>' : '<p class="mode-desc">Log in above to start tracking a profile.</p>');
+    '<div class="profile-identity-card">' +
+      '<div class="profile-identity-main">' +
+        '<div class="profile-avatar-mark">' + (selected ? selected.icon : icon('football')) + '</div>' +
+        '<div><span class="dashboard-eyebrow">READS PROFILE</span><h2 class="panel-title">' + (state.name ? esc(state.name) : 'Your Profile') + '</h2>' +
+        '<div class="profile-equipped-line">' + (selected ? esc(selected.title) + ' badge' : 'No badge equipped yet') + ' &middot; ' + esc(cosmetic.title) + ' frame</div></div>' +
+      '</div>' +
+      '<div class="profile-rank-chip"><b>' + esc(career.name) + '</b><span>' + (progression.careerXp || 0) + ' career XP</span></div>' +
+    '</div>';
   if (r) {
     var sparkline = ratingSparklineSvg(getRatingHistory());
     html += '<div class="profile-headline-row">' +
@@ -10813,18 +10827,37 @@ function renderProfile() {
       '<div class="profile-headline"><div class="profile-headline-value">' + icon('flame') + ' ' + streak.count + '</div><div class="profile-headline-label">Day' + (streak.count === 1 ? '' : 's') + ' streak</div></div>' +
       '</div>';
   }
-  var earned = earnedBadges();
-  html += '<div class="profile-badges-title">Badges (' + earned.length + ' / ' + BADGES.length + ')</div>' +
-    '<div class="profile-badges-grid">' +
+
+  html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">TROPHY CASE</span><h3>Achievements</h3></div><span>' + earned.length + ' / ' + BADGES.length + ' unlocked</span></div>' +
+    '<p class="mode-desc">Achievements are permanent. Tap any earned badge to equip it on your profile. New achievements award bonus XP once.</p>' +
+    '<div class="profile-badges-grid profile-trophy-grid">' +
     BADGES.map(function (b) {
-      var got = earned.indexOf(b) !== -1;
-      return '<div class="profile-badge' + (got ? ' earned' : '') + '" title="' + esc(b.desc) + '">' +
+      var got = earned.some(function (e) { return e.id === b.id; });
+      var active = selected && selected.id === b.id;
+      return '<button class="profile-badge' + (got ? ' earned' : '') + (active ? ' selected' : '') + '"' +
+        (got ? ' data-profile-badge="' + esc(b.id) + '"' : ' disabled') + ' title="' + esc(b.desc) + '">' +
         '<div class="profile-badge-icon">' + (got ? b.icon : '🔒') + '</div>' +
         '<div class="profile-badge-title">' + esc(b.title) + '</div>' +
-        '</div>';
+        '<div class="profile-badge-desc">' + esc(b.desc) + '</div>' +
+        (active ? '<span class="profile-equipped">Equipped</span>' : '') +
+        '</button>';
     }).join('') +
     '</div>';
-  html += '</div>';
+
+  html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">PROFILE COSMETICS</span><h3>Frames</h3></div><span>Career rewards</span></div>' +
+    '<div class="profile-cosmetic-grid">' +
+    PROFILE_COSMETICS.map(function (c) {
+      var unlocked = (progression.careerXp || 0) >= c.minXp;
+      var active = cosmetic.id === c.id;
+      return '<button class="profile-cosmetic-card' + (unlocked ? ' unlocked' : '') + (active ? ' selected' : '') + '"' +
+        (unlocked ? ' data-profile-cosmetic="' + esc(c.id) + '"' : ' disabled') + '>' +
+        '<span class="profile-cosmetic-preview profile-cosmetic-preview-' + esc(c.id) + '">' + favoriteTeamBadgeHtml() + '</span>' +
+        '<b>' + esc(c.title) + '</b><small>' + esc(c.desc) + '</small>' +
+        '<span class="profile-cosmetic-unlock">' + (unlocked ? (active ? 'Equipped' : 'Tap to equip') : c.minXp + ' career XP') + '</span>' +
+        '</button>';
+    }).join('') +
+    '</div>' +
+    '</div>';
   html += '<div class="profile-mode-grid">' + profileModeCardsHtml() + '</div>';
   return html;
 }
@@ -11151,7 +11184,7 @@ document.addEventListener('click', function (e) {
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
-    '[data-friend-add], [data-friend-remove], ' +
+    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -11348,6 +11381,8 @@ document.addEventListener('click', function (e) {
   if (t.dataset.f101TestMeClose !== undefined) { state.f101Quiz = { active: false }; renderAll(); return; }
   if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
+  if (t.dataset.profileBadge !== undefined) { selectProfileBadge(t.dataset.profileBadge); return; }
+  if (t.dataset.profileCosmetic !== undefined) { selectProfileCosmetic(t.dataset.profileCosmetic); return; }
   if (t.dataset.typeaheadPick !== undefined) {
     var taListEl = t.closest('.typeahead-list');
     var taInputId = taListEl ? taListEl.id.replace(/-typeahead$/, '') : null;
