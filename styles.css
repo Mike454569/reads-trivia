@@ -3540,3 +3540,30 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .dashboard-quick-stats small { margin:0 0 0 4px; }
 }
 @media(prefers-reduced-motion:reduce) { .dashboard-xp-track > span { transition:none; } }
+
+
+/* Daily Reads — five personalized quick games, designed to finish in ~5 minutes. */
+.daily-reads-card { position:relative; overflow:hidden; border-color:rgba(230,182,80,.36); background:linear-gradient(135deg,rgba(230,182,80,.08),rgba(255,255,255,.02) 45%),var(--bg-card); }
+.daily-reads-preview { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin:14px 0 16px; }
+.daily-reads-preview span { min-width:0; display:flex; flex-direction:column; gap:6px; padding:10px 8px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.025); color:var(--text-dim); font:700 8px/1.2 var(--font-display); letter-spacing:.08em; text-transform:uppercase; text-align:center; }
+.daily-reads-preview b { width:24px; height:24px; margin:auto; display:grid; place-items:center; border-radius:50%; background:var(--accent); color:var(--accent-text); font:800 11px/1 var(--font-display); }
+.daily-reads-game { position:relative; overflow:hidden; }
+.daily-reads-kicker { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 4px; padding:10px 12px; border-left:3px solid var(--accent); background:rgba(255,255,255,.025); }
+.daily-reads-kicker > span { color:var(--accent); font:800 11px/1.2 var(--font-display); letter-spacing:.11em; }
+.daily-reads-kicker > small { color:var(--text-dim); font-size:10px; text-align:right; }
+.daily-reads-summary .summary-score { margin-bottom:14px; }
+.daily-reads-reward { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0; padding:14px 16px; border:1px solid rgba(230,182,80,.34); border-radius:12px; background:rgba(230,182,80,.07); }
+.daily-reads-reward b { color:var(--accent); font:800 24px/1 var(--font-display); }
+.daily-reads-reward span { color:var(--text-dim); font-size:11px; text-align:right; }
+.daily-reads-launch { overflow:hidden; }
+@media(max-width:700px) {
+  .daily-reads-preview { grid-template-columns:repeat(5,minmax(56px,1fr)); overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+  .daily-reads-preview::-webkit-scrollbar { display:none; }
+  .daily-reads-preview span { min-width:68px; }
+}
+@media(max-width:480px) {
+  .daily-reads-kicker { align-items:flex-start; flex-direction:column; gap:4px; }
+  .daily-reads-kicker > small { text-align:left; }
+  .daily-reads-reward { align-items:flex-start; flex-direction:column; }
+  .daily-reads-reward span { text-align:left; }
+}
