@@ -871,15 +871,19 @@ function pullProfileSnapshot() {
     var beforeStats = JSON.stringify(state.stats);
     var beforeStreak = JSON.stringify(getStreak());
     var beforeFavorites = JSON.stringify(getFavoriteTeams());
+    var beforeProgression = JSON.stringify(getProgression());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
+    var mergedProgression = mergeProgression(getProgression(), cloud.progression);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
+    setProgression(mergedProgression);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
-      JSON.stringify(mergedFavorites) !== beforeFavorites;
+      JSON.stringify(mergedFavorites) !== beforeFavorites ||
+      JSON.stringify(mergedProgression) !== beforeProgression;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -1410,6 +1414,7 @@ function stopTimers() {
 
 /* ============================== nav ============================== */
 function resetModeState(mode) {
+  beginProgressSession(mode);
   // Restarting or navigating back into a mode (the only two ways this gets
   // called for a mode other than the daily/h2h routing helpers, which call
   // that mode's own start function directly instead) means any in-progress
@@ -1598,6 +1603,7 @@ function goToMode(mode) {
   // the entries that actually belong to engine-game-ui.js's shell.
   var engineEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode && e.engineMode; });
   if (engineEntry) {
+    beginProgressSession(mode);
     // Same bookkeeping enterMode() does for every other LEAGUE_MODES entry
     // (line ~1017 above) -- so "Continue where you left off" (Part C14) and
     // Firebase's play-log both work for engine modes exactly like every
@@ -1628,6 +1634,7 @@ function goToMode(mode) {
   // shell -- these have a `mechanicMode` field instead of `engineMode`.
   var mechanicEntry = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === mode && e.mechanicMode; });
   if (mechanicEntry) {
+    beginProgressSession(mode);
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
     startMechanicPilotRound(mechanicEntry.mechanicMode);
@@ -8434,6 +8441,93 @@ function shareCopyTextFallback(text, btn) {
   } catch (e) {}
 }
 
+/* ============================== progression foundation ============================== */
+// Permanent career XP + football-season XP. Values live in Firestore for
+// signed-in accounts and are cached locally only for fast rendering/offline
+// continuity. Reward values are intentionally centralized so tuning never
+// requires hunting through individual game modes.
+var PROGRESSION_XP = {
+  GAME_COMPLETED: 25,
+  DAILY_COMPLETED: 50,
+  H2H_COMPLETED: 40
+};
+var progressSessionIds = {};
+var awardedProgressSessions = {};
+function beginProgressSession(mode) {
+  if (!mode) return;
+  progressSessionIds[mode] = mode + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+  awardedProgressSessions[mode] = null;
+}
+function progressEventIdFor(mode) {
+  if (!progressSessionIds[mode]) beginProgressSession(mode);
+  return progressSessionIds[mode];
+}
+function footballSeasonIdForDate(date) {
+  date = date || new Date();
+  // A football season remains the previous calendar year's season through
+  // the winter/spring offseason; July starts the new season identity.
+  return date.getMonth() >= 6 ? String(date.getFullYear()) : String(date.getFullYear() - 1);
+}
+function progressionLocalKey() {
+  var who = activeAuthUid ? ('uid_' + activeAuthUid) : slugify(state.name || 'guest');
+  return 'nflTriviaProgression__' + who;
+}
+function emptyProgression() { return { careerXp: 0, seasons: {} }; }
+function getProgression() { return lsGet(progressionLocalKey(), emptyProgression()); }
+function setProgression(v) { lsSet(progressionLocalKey(), v || emptyProgression()); }
+function mergeProgression(local, cloud) {
+  local = local || emptyProgression();
+  cloud = cloud || emptyProgression();
+  var out = { careerXp: Math.max(Number(local.careerXp) || 0, Number(cloud.careerXp) || 0), seasons: {} };
+  var keys = {};
+  Object.keys(local.seasons || {}).forEach(function (k) { keys[k] = true; });
+  Object.keys(cloud.seasons || {}).forEach(function (k) { keys[k] = true; });
+  Object.keys(keys).forEach(function (k) {
+    var l = local.seasons && local.seasons[k] || {};
+    var c = cloud.seasons && cloud.seasons[k] || {};
+    out.seasons[k] = { xp: Math.max(Number(l.xp) || 0, Number(c.xp) || 0) };
+  });
+  return out;
+}
+function applyProgressAwardLocally(xp, seasonId) {
+  var p = getProgression();
+  p.careerXp = (Number(p.careerXp) || 0) + xp;
+  p.seasons = p.seasons || {};
+  p.seasons[seasonId] = p.seasons[seasonId] || { xp: 0 };
+  p.seasons[seasonId].xp = (Number(p.seasons[seasonId].xp) || 0) + xp;
+  setProgression(p);
+}
+function progressionEventForCompletion(mode, fields) {
+  var eventType = mode === 'daily' ? 'DAILY_READS_COMPLETED' : (mode === 'h2h' ? 'CHALLENGE_COMPLETED' : 'GAME_COMPLETED');
+  return {
+    type: eventType,
+    mode: mode,
+    league: mode && mode.indexOf('cfb') === 0 ? 'CFB' : 'NFL',
+    source: 'leaderboard_completion',
+    fields: fields || {}
+  };
+}
+function awardProgressForCompletion(mode, fields) {
+  if (!state.name || !mode) return;
+  var eventId = progressEventIdFor(mode);
+  if (awardedProgressSessions[mode] === eventId) return;
+  awardedProgressSessions[mode] = eventId;
+  var seasonId = footballSeasonIdForDate();
+  var xp = mode === 'daily' ? PROGRESSION_XP.DAILY_COMPLETED :
+    (mode === 'h2h' ? PROGRESSION_XP.H2H_COMPLETED : PROGRESSION_XP.GAME_COMPLETED);
+  var eventData = progressionEventForCompletion(mode, fields);
+  if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
+    window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
+      if (!result || !result.duplicate) applyProgressAwardLocally(xp, seasonId);
+    }).catch(function () {
+      // Gameplay must never fail because progression sync is unavailable.
+      awardedProgressSessions[mode] = null;
+    });
+  } else {
+    applyProgressAwardLocally(xp, seasonId);
+  }
+}
+
 /* ============================== leaderboard ============================== */
 // Two different people typing the same display name (very likely with common
 // first names in a friend group) would otherwise write to the exact same
@@ -8461,6 +8555,7 @@ function pushLeaderboard(mode, fields) {
   }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
   pushProfileSnapshot();
+  awardProgressForCompletion(mode, fields);
 }
 function leaderboardRowTimestamp(row) {
   if (!row || !row.updatedAt) return 0;
