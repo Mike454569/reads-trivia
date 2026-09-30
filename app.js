@@ -723,6 +723,7 @@ var state = {
   // favorite-team selections live in localStorage via getFavoriteTeams(),
   // not here, so they survive a refresh independent of this.
   teamPicker: null,
+  friendCompare: null,
   settingsConfirmClear: false
 };
 // One-time migration: CFB 12-0 used to be "CFB 16-0" (a 16-game season —
@@ -4070,8 +4071,10 @@ function dailyCompletionBannerHtml(dailyTypeId) {
 function postGameNextStepsHtml(dailyTypeId) {
   var rec = scoredModeRecommendations(1)[0];
   var mastery = personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(x,y){return x.pct-y.pct;})[0];
+  var mode=state.screen;
   return dailyCompletionBannerHtml(dailyTypeId) +
     (mastery ? '<div class="one-more-game-context"><b>Reads learned something:</b> '+esc(mastery.category)+' is currently your biggest tracked weak spot at '+mastery.pct+'%.</div>' : '') +
+    socialChallengeButtonHtml(mode) +
     (rec ? '<div class="one-more-game-label">ONE MORE GAME · '+esc(rec.reason)+'</div>' : '') +
     recommendedModeHtml();
 }
@@ -4207,6 +4210,8 @@ function renderHome() {
     '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
     teamPickerPromptCardHtml() +
     personalDashboardHtml() +
+    friendRivalAlertHtml() +
+    teamBattleHtml() +
     retentionMissionHtml() +
     unfinishedBusinessHtml() +
     communityCardHtml() +
@@ -8474,6 +8479,7 @@ function renderH2HMenu() {
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
     '<p class="mode-desc">Challenge a specific friend to the same question set and see who scores higher. Your record: ' + (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : '') + '.</p>' +
+    (state.h2h && state.h2h.intendedOpponent ? '<div class="h2h-target-friend">Challenge for <b>'+esc(state.h2h.intendedOpponent)+'</b>. Pick the mode, create the match, then send them the code.</div>' : '') +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-h2h-go-create>Create Match</button>' +
     '<button class="btn-secondary" data-h2h-go-join>Join Match</button>' +
@@ -8593,7 +8599,7 @@ function renderH2HSummary() {
         '<div class="h2h-player-row"><span>' + esc(opp.name) + '</span><span>' + opp.correctCount + ' / ' + opp.total + ' ' + m.resultSuffix + '</span></div>' +
         '</div>') +
     '<div class="btn-row">' +
-    '<button class="btn-primary" data-h2h-back-menu>New Match</button>' +
+    (oppDone ? '<button class="btn-primary" data-h2h-rematch>Run It Back</button>' : '<button class="btn-primary" data-h2h-back-menu>New Match</button>') +
     '<button class="btn-secondary" data-share="h2h">' + icon('share') + ' Share</button>' +
     '<button class="btn-secondary" data-go="home">Home</button>' +
     '</div></div>';
@@ -12034,12 +12040,93 @@ function renderEncyclopediaScreen() {
    tracking, matched against the same shared leaderboard/profile data every
    other cross-device feature this session already built (see
    pushProfileSnapshot()/pullProfileSnapshot() above). */
+function weeklyFriendStandings() {
+  var names = getFriends().map(slugify);
+  names.push(slugify(state.name || ''));
+  var week = dailyRivalWeekKey(todayStr());
+  var daily = (state.leaderboardData || []).filter(function(r){
+    return r.mode === 'daily' && r.weekKey === week && names.indexOf(slugify(r.name || '')) !== -1;
+  });
+  var season = (state.leaderboardData || []).filter(function(r){
+    return r.mode === 'season' && String(r.seasonId || '') === footballSeasonIdForDate() && names.indexOf(slugify(r.name || '')) !== -1;
+  });
+  var map = {};
+  names.forEach(function(sl){ map[sl]={name:sl===slugify(state.name||'')?state.name:((getFriends().find(function(n){return slugify(n)===sl;})||sl)),dailyPoints:0,seasonXp:0}; });
+  daily.forEach(function(r){var sl=slugify(r.name||''); if(map[sl]) map[sl].dailyPoints=Math.max(map[sl].dailyPoints,Number(r.weeklyRivalPoints)||0);});
+  season.forEach(function(r){var sl=slugify(r.name||''); if(map[sl]) map[sl].seasonXp=Math.max(map[sl].seasonXp,Number(r.seasonXp)||0);});
+  return Object.keys(map).map(function(k){var x=map[k];x.total=x.dailyPoints+x.seasonXp;return x;}).sort(function(x,y){return y.total-x.total;});
+}
+function weeklyFriendStandingsHtml() {
+  var rows=weeklyFriendStandings();
+  if(rows.length<2) return '';
+  var me=rows.findIndex(function(r){return slugify(r.name)===slugify(state.name||'');});
+  return '<section class="social-weekly"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FRIEND GROUP</span><h3>Weekly Standings</h3></div><span>'+(me>=0?'You’re #'+(me+1):'This week')+'</span></div><div class="social-standings">'+rows.slice(0,8).map(function(r,i){return '<div class="'+(slugify(r.name)===slugify(state.name||'')?'is-you':'')+'"><span>'+(i===0?'👑':(i+1))+'</span><b>'+esc(r.name)+'</b><small>'+r.dailyPoints+' Daily pts · '+r.seasonXp+' Season XP</small><strong>'+r.total+'</strong></div>';}).join('')+'</div></section>';
+}
+function friendRivalAlertHtml() {
+  var rows=weeklyFriendStandings();
+  var meIndex=rows.findIndex(function(r){return slugify(r.name)===slugify(state.name||'');});
+  if(meIndex<0 || rows.length<2) return '';
+  var me=rows[meIndex], ahead=rows.filter(function(r){return r.total>me.total && slugify(r.name)!==slugify(state.name||'');}).slice(-1)[0];
+  if(!ahead) {
+    var next=rows.filter(function(r){return r.total<me.total;})[0];
+    if(!next) return '';
+    return '<div class="social-rival-alert"><span>👑</span><div><b>You’re leading your friend group.</b><small>'+esc(next.name)+' is '+(me.total-next.total)+' points back this week.</small></div></div>';
+  }
+  return '<div class="social-rival-alert"><span>⚔️</span><div><b>'+esc(ahead.name)+' is ahead of you.</b><small>'+ (ahead.total-me.total) +' points separate you this week.</small></div><button class="btn-tiny" data-friend-challenge="'+esc(ahead.name)+'">Challenge</button></div>';
+}
+function teamBattleRows() {
+  var rows=(state.leaderboardData||[]).filter(function(r){return r.mode==='daily' && r.weekKey===dailyRivalWeekKey(todayStr());});
+  var grouped={};
+  rows.forEach(function(r){
+    [['nfl',r.favoriteNflTeam],['cfb',r.favoriteCfbTeam]].forEach(function(pair){
+      var league=pair[0],id=pair[1]; if(!id)return;
+      var key=league+'|'+id; grouped[key]=grouped[key]||{league:league,id:id,points:0,players:{}};
+      grouped[key].points+=Number(r.weeklyRivalPoints)||0; grouped[key].players[slugify(r.name||'')]=true;
+    });
+  });
+  return Object.keys(grouped).map(function(k){var g=grouped[k];var t=favoriteTeamById(g.league,g.id);g.name=t?t.name:g.id;g.count=Object.keys(g.players).length;return g;}).sort(function(x,y){return y.points-x.points;});
+}
+function teamBattleHtml() {
+  var fav=getFavoriteTeams(), rows=teamBattleRows();
+  var mine=rows.filter(function(r){return (r.league==='nfl'&&r.id===fav.nfl)||(r.league==='cfb'&&r.id===fav.cfb);});
+  if(!mine.length || rows.length<2) return '';
+  var primary=mine[0];
+  var opponent=rows.find(function(r){return !(r.league===primary.league&&r.id===primary.id);});
+  if(!opponent) return '';
+  return '<section class="social-team-battle"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">COMMUNITY BATTLE</span><h3>'+esc(primary.name)+' vs. '+esc(opponent.name)+'</h3></div><span>This week</span></div><div class="team-battle-score"><div><b>'+esc(primary.name)+'</b><strong>'+primary.points+'</strong><small>'+primary.count+' active</small></div><span>VS</span><div><b>'+esc(opponent.name)+'</b><strong>'+opponent.points+'</strong><small>'+opponent.count+' active</small></div></div><p>Every Daily Reads Rival Point adds to your team total.</p></section>';
+}
+function friendProfileComparisonHtml(name) {
+  if(!name) return '';
+  var slug=slugify(name), profile=friendsProfileCache[slug], friendRating=friendRatingFromLeaderboard(name), myRating=getRating();
+  if(!profile && !friendRating) return '<section class="friend-compare-card"><button class="btn-tiny" data-friend-compare-close>'+icon('close')+' Close</button><h3>'+esc(name)+'</h3><p class="mode-desc">No synced profile data available yet.</p></section>';
+  var myMastery=personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(x,y){return y.pct-x.pct;})[0];
+  var fp=profile&&profile.personalization, fRows=[];
+  if(fp&&fp.categoryStats){['nfl','cfb'].forEach(function(l){Object.keys(fp.categoryStats[l]||{}).forEach(function(cat){var x=fp.categoryStats[l][cat];if(x&&x.total>=3)fRows.push({category:cat,pct:Math.round(100*(x.correct||0)/x.total)});});});}
+  fRows.sort(function(x,y){return y.pct-x.pct;});
+  var fProg=profile&&profile.progression?profile.progression:{careerXp:0};
+  return '<section class="friend-compare-card"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">PROFILE COMPARISON</span><h3>'+esc(state.name)+' vs. '+esc(name)+'</h3></div><button class="btn-tiny" data-friend-compare-close>'+icon('close')+' Close</button></div><div class="friend-compare-grid"><div><small>Football Rating</small><b>'+(myRating?myRating.score:'—')+'</b><span>vs</span><b>'+(friendRating?friendRating.score:'—')+'</b></div><div><small>Career XP</small><b>'+((getProgression().careerXp)||0)+'</b><span>vs</span><b>'+((fProg&&fProg.careerXp)||0)+'</b></div><div><small>Top mastery</small><b>'+esc(myMastery?myMastery.category:'—')+'</b><span>vs</span><b>'+esc(fRows[0]?fRows[0].category:'—')+'</b></div></div></section>';
+}
+function challengeFriendToMode(name, mode) {
+  if(!state.name) return;
+  mode=mode||'quiz';
+  if(!H2H_MODES.some(function(m){return m.id===mode;})) mode='quiz';
+  state.h2h={screen:'create',mode:mode,roundSize:10,listId:null,error:null,intendedOpponent:name||null};
+  state.screen='h2h';
+  renderAll();
+}
+function socialChallengeButtonHtml(mode) {
+  if(!state.name || !H2H_MODES.some(function(m){return m.id===mode;})) return '';
+  return '<button class="btn-secondary social-beat-score" data-social-challenge-mode="'+esc(mode)+'">'+icon('versus')+' Challenge a Friend</button>';
+}
 function renderFriendsScreen() {
   var friends = getFriends();
   var html = '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">' + icon('users') + ' Friends</h2>' +
-    '<p class="mode-desc">Add friends by their exact username to see their Football Rating and streak.</p>' +
+    '<p class="mode-desc">Add friends by their exact username, compare profiles, challenge them, and race for the weekly crown.</p>' +
+    friendRivalAlertHtml() +
+    weeklyFriendStandingsHtml() +
+    friendProfileComparisonHtml(state.friendCompare) +
     '<div class="field-row"><input id="friend-name-input" placeholder="Friend’s name" autocomplete="off" maxlength="40" />' +
     '<button class="btn-primary" data-friend-add>Add</button></div>';
   if (!friends.length) {
@@ -12068,7 +12155,7 @@ function friendRowHtml(name) {
   return '<div class="friend-row">' +
     '<div class="friend-info"><div class="friend-name">' + esc(name) + '</div>' +
     '<div class="friend-stats">' + statsBits.join(' &middot; ') + '</div></div>' +
-    '<button class="btn-tiny" data-friend-remove="' + esc(name) + '">' + icon('close') + ' Remove</button>' +
+    '<div class="friend-actions"><button class="btn-tiny" data-friend-compare="' + esc(name) + '">Compare</button><button class="btn-tiny" data-friend-challenge="' + esc(name) + '">'+icon('versus')+' Challenge</button><button class="btn-tiny" data-friend-remove="' + esc(name) + '">' + icon('close') + ' Remove</button></div>' +
     '</div>';
 }
 
