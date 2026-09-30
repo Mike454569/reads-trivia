@@ -207,3 +207,15 @@
 # current-season-only default as its five CFBD siblings above.
 [functions."trigger-refresh-cfb-weather"]
   schedule = "40 18 * * 0"
+
+
+# Live Football Layer v1: late-window settlement passes. These reuse the
+# existing heavy games refresh, so keep them to ONE extra run per league
+# after the late game window rather than aggressive polling. They complement
+# the earlier gameday refreshes above and reduce the chance that SNF / late
+# Saturday finals sit stale until the next daily run.
+[functions."trigger-refresh-nfl-games-live-late"]
+  schedule = "0 5 * * 1"
+
+[functions."trigger-refresh-cfb-games-live-late"]
+  schedule = "30 5 * * 0"
