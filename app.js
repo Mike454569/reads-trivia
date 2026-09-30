@@ -11638,8 +11638,8 @@ function startFilmReview(){
 function renderFilmStudy() {
   var s = state.filmStudy;
   if (!s || !s.questions.length) return '<div class="panel"><button class="btn-secondary" data-film-study>Start study session</button></div>';
-  var head = '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">DAILY REPS</span></div>';
-  if (s.index >= s.questions.length) return '<div class="panel">' + head + '<div class="film-milestone" role="status"><span class="film-eyebrow">SESSION COMPLETE</span><strong>' + s.correct + '<small> / ' + s.questions.length + '</small></strong><h2>' + (s.correct === s.questions.length ? 'You made every read.' : 'Put the tape to work.') + '</h2><p>Review the coaching notes, then come back for tomorrow’s reps.</p></div><div class="film-review">' + s.review.map(function(r) { return '<div><span class="learn-pill">' + (r.correct ? 'Good read' : 'Review this') + '</span><h3>' + esc(r.q.question) + '</h3><p><strong>' + esc(r.q.options[r.q.correctIndex]) + '</strong></p>' + (r.q.notes ? '<p>' + esc(r.q.notes) + '</p>' : '') + '</div>'; }).join('') + '</div><button class="btn-primary" data-learn-back>Back to the Film Room</button></div>';
+  var head = '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">'+(s.type==='boss'?'COORDINATOR TEST':s.type==='review'?'TAPE REVIEW':'ADAPTIVE REPS')+'</span></div>';
+  if (s.index >= s.questions.length) { completeFilmStudySession(); var fpct=s.questions.length?Math.round(100*s.correct/s.questions.length):0; return '<div class="panel">' + head + '<div class="film-milestone" role="status"><span class="film-eyebrow">'+(s.type==='boss'?(fpct>=80?'COORDINATOR TEST PASSED':'COORDINATOR TEST COMPLETE'):'SESSION COMPLETE')+'</span><strong>' + s.correct + '<small> / ' + s.questions.length + '</small></strong><h2>' + (s.type==='boss'?(fpct>=80?'You passed the headset test.':'Run the tape and come back sharper.'):(s.correct === s.questions.length ? 'You made every read.' : 'Put the tape to work.')) + '</h2><p>'+(s.type==='boss'?(fpct>=80?'Boss win logged. Your Film Room résumé just got stronger.':'Score 80% next time to earn the Coordinator Test win.'):'Review the coaching notes, then attack your next assignment.')+'</p></div>'+progressionResultHookHtml()+<div class="film-review">' + s.review.map(function(r) { return '<div><span class="learn-pill">' + (r.correct ? 'Good read' : 'Review this') + '</span><h3>' + esc(r.q.question) + '</h3><p><strong>' + esc(r.q.options[r.q.correctIndex]) + '</strong></p>' + (r.q.notes ? '<p>' + esc(r.q.notes) + '</p>' : '') + '</div>'; }).join('') + '</div><button class="btn-primary" data-learn-back>Back to the Film Room</button></div>';
   var q = s.questions[s.index], answered = s.answered !== null;
   return '<div class="panel">' + head + filmMeter(s.index, s.questions.length, 'Session progress') + '<span class="learn-pill">' + esc(q.category) + '</span><h2 class="quiz-question">' + esc(q.question) + '</h2><div class="quiz-options">' + q.options.map(function(opt,i) { return '<button class="quiz-option' + (answered && i === q.correctIndex ? ' correct' : answered && i === s.answered ? ' wrong' : '') + '" data-film-answer="' + i + '"' + (answered ? ' disabled' : '') + '><span class="film-option-letter">' + String.fromCharCode(65+i) + '</span>' + esc(opt) + '</button>'; }).join('') + '</div>' + (answered ? '<div class="quiz-feedback" role="status"><span class="film-eyebrow">' + (s.answered === q.correctIndex ? 'GOOD READ' : 'COACH’S CORRECTION') + '</span><h3>' + esc(q.options[q.correctIndex]) + '</h3>' + (q.notes ? '<p>' + esc(q.notes) + '</p>' : '<p>Lock in that answer before moving to your next rep.</p>') + '</div><button class="btn-primary" data-film-next>' + (s.index + 1 === s.questions.length ? 'Review session' : 'Next rep →') + '</button>' : '') + '</div>';
 }
@@ -11874,7 +11874,7 @@ function classroomAnswerExercise(idx) {
   var correct = idx === ex.correctIndex;
   s.answeredIndex = idx;
   recordClassroomAttempt(ex.concept, correct);
-  filmRecordRep(correct);
+  filmRecordRep(correct,{category:(classroomConcept(ex.concept)&&classroomConcept(ex.concept).label)||'Coverage',question:ex.prompt,options:ex.options,correctIndex:ex.correctIndex,notes:ex.explanation});
   if (s.practiceMode) {
     s.practiceResults.total++;
     if (correct) s.practiceResults.correct++;
@@ -12857,6 +12857,13 @@ var BADGES = [
   { id: 'rivalry', icon: '⚔️', title: 'Got Next', desc: 'Won a Head-to-Head match against a friend.', check: function (st) { return (st.h2h.wins || 0) >= 1; } },
   { id: 'higherLowerStreak', icon: '📈', title: 'On a Heater', desc: 'Built a 15+ player streak in Higher or Lower.', check: function (st) { return (st.higherLower.bestStreak || 0) >= 15; } }
 ];
+var FILM_BADGES = [
+  { id:'filmStarter', icon:'🎬', title:'Film Grinder', desc:'Logged 25 Film Room reps.', check:function(){return filmNotebook().reps>=25;} },
+  { id:'filmCoordinator', icon:'🎧', title:'Coordinator', desc:'Passed the Coordinator Test.', check:function(){return filmNotebook().bossWins>=1;} },
+  { id:'filmGuru', icon:'🧠', title:'Scheme Guru', desc:'Reached Guru mastery in any Film Room concept family.', check:function(){var n=filmNotebook();return Object.keys(n.mastery||{}).some(function(k){return filmMasteryLevel(n.mastery[k]).name==='Guru';});} }
+];
+BADGES = BADGES.concat(FILM_BADGES);
+
 var REWARD_BADGES = [
   { id: 'firstRead', icon: '📖', title: 'First Read', desc: 'Completed your first Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 1; } },
   { id: 'daily25', icon: '🗓️', title: 'Daily Habit', desc: 'Completed 25 Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 25; } },
@@ -13451,7 +13458,7 @@ document.addEventListener('click', function (e) {
     '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-rematch], [data-h2h-exit], ' +
     '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
     '[data-h2h-live-join], [data-h2h-live-ready], [data-h2h-live-share-link], [data-h2h-live-answer], [data-h2h-live-exit], ' +
-    '[data-film-assignment], [data-film-jump], [data-film-study], [data-film-answer], [data-film-next], [data-film-saved], [data-film-save], [data-film-concept], [data-film-resume], [data-film-retry], [data-learn-open], [data-learn-back], [data-learn-cat], ' +
+    '[data-film-assignment], [data-film-jump], [data-film-study], [data-film-study-family], [data-film-boss], [data-film-review], [data-film-answer], [data-film-next], [data-film-saved], [data-film-save], [data-film-concept], [data-film-resume], [data-film-retry], [data-learn-open], [data-learn-back], [data-learn-cat], ' +
     '[data-classroom-exit], [data-classroom-lesson], [data-classroom-practice], [data-classroom-path], ' +
     '[data-classroom-step-next], [data-classroom-step-back], [data-classroom-answer], [data-classroom-exercise-next], ' +
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
@@ -13559,14 +13566,17 @@ document.addEventListener('click', function (e) {
   if (t.dataset.filmAssignment !== undefined) { var note = t.closest('.coverage-diagram').nextElementSibling.nextElementSibling; note.hidden = false; note.textContent = t.textContent + ': ' + (t.dataset.filmAssignment || 'Assignment not listed for this diagram.'); return; }
   if (t.dataset.filmJump !== undefined) { var group = document.getElementById('film-group-' + t.dataset.filmJump); if (group) group.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
   if (t.dataset.filmStudy !== undefined) { startFilmStudy(); return; }
+  if (t.dataset.filmStudyFamily !== undefined) { startFilmStudy(t.dataset.filmStudyFamily,false); return; }
+  if (t.dataset.filmBoss !== undefined) { startFilmBoss(); return; }
+  if (t.dataset.filmReview !== undefined) { startFilmReview(); return; }
   if (t.dataset.filmRetry !== undefined) { var retry = state.learn.loadError; state.learn.loadError = null; if (state.learn.screen === 'study') startFilmStudy(); else openLearnSection(retry); return; }
   if (t.dataset.filmAnswer !== undefined) {
     var fs = state.filmStudy; if (!fs || fs.answered !== null) return;
     var fq = fs.questions[fs.index]; fs.answered = Number(t.dataset.filmAnswer);
     var good = fs.answered === fq.correctIndex; if (good) fs.correct++;
-    fs.review.push({ q: fq, correct: good }); filmRecordRep(good); playSound(good ? 'correct' : 'wrong'); renderAll(); return;
+    fs.review.push({ q: fq, correct: good }); filmRecordRep(good,fq); playSound(good ? 'correct' : 'wrong'); renderAll(); return;
   }
-  if (t.dataset.filmNext !== undefined) { if (state.filmStudy && state.filmStudy.answered !== null) { state.filmStudy.index++; state.filmStudy.answered = null; renderAll(); } return; }
+  if (t.dataset.filmNext !== undefined) { if (state.filmStudy && state.filmStudy.answered !== null) { state.filmStudy.index++; state.filmStudy.answered = null; completeFilmStudySession(); renderAll(); } return; }
   if (t.dataset.filmSaved !== undefined) { state.learn.screen = 'saved'; renderAll(); return; }
   if (t.dataset.filmResume !== undefined) { var last = filmNotebook().last; if (last) { if (last.id) filmOpenConcept(last.kind, last.id); else openLearnSection(last.section); } return; }
   if (t.dataset.filmConcept !== undefined) { var parts = t.dataset.filmConcept.split(':'); filmOpenConcept(parts[0], parts.slice(1).join(':')); return; }
