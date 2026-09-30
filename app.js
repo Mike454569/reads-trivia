@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.10.0';
+var APP_VERSION = '3.11.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -1674,6 +1674,10 @@ function modeLabelFor(id) {
 }
 function goToMode(mode) {
   if (state.screen === 'community' && mode !== 'community') stopCommunityWatch();
+  if (state.name) {
+    var recNow = scoredModeRecommendations(3).some(function (r) { return r.mode.id === mode; });
+    if (recNow) noteRecommendedModePlayed(mode);
+  }
   // UI polish pass: real bug found by actually scrolling down on one
   // screen (e.g. a long quiz result review list) and then navigating to a
   // DIFFERENT mode -- the browser keeps the old scroll offset, so the new
@@ -3279,28 +3283,97 @@ function friendsCardHtml() {
   var label = count ? (count + ' friend' + (count === 1 ? '' : 's') + ' added') : 'See how they stack up';
   return discoverRowHtml('friends', 'users', 'Friends', label, 'friends-card');
 }
+function recommendationHistoryKey() { return 'readsRecommendationHistory__' + slugify(state.name || 'guest'); }
+function getRecommendationHistory() { return lsGet(recommendationHistoryKey(), []); }
+function noteRecommendedModePlayed(mode) {
+  if (!state.name || !mode) return;
+  var h = getRecommendationHistory().filter(function (x) { return x && x.mode !== mode; });
+  h.push({ mode: mode, at: Date.now() });
+  lsSet(recommendationHistoryKey(), h.slice(-20));
+}
+function modeLeague(id) { return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl'; }
+function modeMasteryScore(id) {
+  var st = state.stats[id] || {};
+  if (typeof st.bestPct === 'number') return st.bestPct;
+  if (typeof st.bestIQ === 'number') return Math.min(100, Math.round(st.bestIQ / 1.6));
+  if (typeof st.bestScore === 'number') return Math.min(100, st.bestScore);
+  if (typeof st.bestStreak === 'number') return Math.min(100, st.bestStreak * 5);
+  return null;
+}
+function recommendationReasonFor(mode, scoreBits) {
+  if (scoreBits.unplayed) return 'New to you';
+  if (scoreBits.weakLeague) return 'Build your weak side';
+  if (scoreBits.favoriteLeague) return 'Fits your teams';
+  if (scoreBits.lowMastery) return 'Room to improve';
+  if (scoreBits.fresh) return 'Keep it fresh';
+  return 'Picked for you';
+}
+function scoredModeRecommendations(limit) {
+  if (!state.name) return [];
+  var all = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb);
+  var fav = getFavoriteTeams();
+  var last = lsGet('nflTriviaLastMode', null);
+  var hist = getRecommendationHistory();
+  var recentModes = {};
+  hist.slice(-5).forEach(function (x) { if (x && x.mode) recentModes[x.mode] = true; });
+  if (last) recentModes[last] = true;
+
+  var nflPlays = LEAGUE_MODES.nfl.reduce(function (n,m) { return n + modeTimesPlayed(m.id); }, 0);
+  var cfbPlays = LEAGUE_MODES.cfb.reduce(function (n,m) { return n + modeTimesPlayed(m.id); }, 0);
+  var weakerLeague = nflPlays === cfbPlays ? null : (nflPlays < cfbPlays ? 'nfl' : 'cfb');
+  var daySeed = hashStr(todayStr() + '_smartReco_' + state.name);
+
+  return all.map(function (m, idx) {
+    var plays = modeTimesPlayed(m.id);
+    var mastery = modeMasteryScore(m.id);
+    var league = modeLeague(m.id);
+    var bits = {
+      unplayed: plays === 0,
+      weakLeague: weakerLeague === league,
+      favoriteLeague: !!fav[league],
+      lowMastery: mastery != null && mastery < 70,
+      fresh: !recentModes[m.id]
+    };
+    var score = 0;
+    if (bits.unplayed) score += 42;
+    if (bits.favoriteLeague) score += 18;
+    if (bits.weakLeague) score += 12;
+    if (bits.lowMastery) score += 18;
+    if (bits.fresh) score += 20;
+    score += Math.max(0, 12 - Math.min(12, plays * 2));
+    if (m.featured) score += 5;
+    if (recentModes[m.id]) score -= 45;
+    // Stable daily tie-breaker keeps recommendations consistent through rerenders.
+    score += ((hashStr(m.id + '_' + daySeed + '_' + idx) % 100) / 100);
+    return { mode: m, score: score, reason: recommendationReasonFor(m, bits), bits: bits };
+  }).sort(function (a,b) { return b.score - a.score; }).slice(0, limit || 3);
+}
 function recommendedModeHtml() {
   if (!state.name) return '';
-  var all = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb);
-  var last = lsGet('nflTriviaLastMode', null);
-  var rng = mulberry32(hashStr(todayStr() + '_reco_' + state.name));
-  var unplayed = seededShuffle(all.filter(function (m) { return modeTimesPlayed(m.id) === 0; }), rng);
-  var pick, eyebrow;
-  if (unplayed.length) {
-    pick = unplayed[0];
-    eyebrow = 'New to you';
-  } else {
-    var minPlays = Math.min.apply(null, all.map(function (m) { return modeTimesPlayed(m.id); }));
-    var leastPlayed = seededShuffle(all.filter(function (m) { return modeTimesPlayed(m.id) === minPlays; }), rng);
-    pick = leastPlayed[0];
-    eyebrow = 'Keep it fresh';
-  }
-  if (!pick || pick.id === last) return '';
-  return '<button class="recommend-card" data-go="' + pick.id + '">' +
-    '<span class="recommend-card-icon">' + icon(pick.icon) + '</span>' +
-    '<span class="recommend-card-text"><span class="recommend-card-label">' + esc(eyebrow) + ' &middot; Recommended</span>' +
-    '<span class="recommend-card-mode">' + esc(pick.title) + '</span></span>' +
+  var recs = scoredModeRecommendations(1);
+  if (!recs.length) return '';
+  var pick = recs[0];
+  return '<button class="recommend-card" data-go="' + pick.mode.id + '" data-recommended-mode="' + pick.mode.id + '">' +
+    '<span class="recommend-card-icon">' + icon(pick.mode.icon) + '</span>' +
+    '<span class="recommend-card-text"><span class="recommend-card-label">' + esc(pick.reason) + ' &middot; Recommended</span>' +
+    '<span class="recommend-card-mode">' + esc(pick.mode.title) + '</span></span>' +
+    icon('arrowRight', 'continue-card-chevron') +
     '</button>';
+}
+function recommendationShelfHtml() {
+  if (!state.name) return '';
+  var recs = scoredModeRecommendations(3);
+  if (!recs.length) return '';
+  return '<section class="smart-recommendations"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOR YOU</span><h3>Recommended Next</h3></div><span>Based on your play</span></div>' +
+    '<div class="smart-recommendation-grid">' +
+    recs.map(function (r) {
+      return '<button class="smart-recommendation-card" data-go="' + r.mode.id + '" data-recommended-mode="' + r.mode.id + '">' +
+        '<span class="smart-recommendation-icon">' + icon(r.mode.icon) + '</span>' +
+        '<span class="smart-recommendation-reason">' + esc(r.reason) + '</span>' +
+        '<strong>' + esc(r.mode.title) + '</strong>' +
+        '<small>' + (modeTimesPlayed(r.mode.id) ? modeTimesPlayed(r.mode.id) + ' played' : 'Never played') + '</small>' +
+        '</button>';
+    }).join('') + '</div></section>';
 }
 // UI/UX upgrade pass: a completion screen shouldn't be a dead end past its
 // own "Play Again" button. Two real pieces, shown only when they apply —
@@ -3366,6 +3439,39 @@ function progressionRankFor(xp) {
   if (next) pct = Math.max(0, Math.min(1, (xp - current.min) / (next.min - current.min)));
   return { name: current.name, next: next && next.name, xp: xp, pct: pct, toNext: next ? next.min - xp : 0 };
 }
+function nextAchievementProgress() {
+  var earned = {};
+  getRewards().unlockedBadgeIds.forEach(function (id) { earned[id] = true; });
+  var candidates = [
+    { id:'firstRead', label:'First Read', current:state.stats.daily.completions || 0, target:1 },
+    { id:'dailyGrinder', label:'Daily Grinder', current:state.stats.daily.completions || 0, target:10 },
+    { id:'daily25', label:'Daily Habit', current:state.stats.daily.completions || 0, target:25 },
+    { id:'onFire', label:'On Fire', current:getStreak().count || 0, target:7 },
+    { id:'streak30', label:'Iron Streak', current:getStreak().count || 0, target:30 }
+  ].filter(function (x) { return !earned[x.id] && x.current < x.target; });
+  if (!candidates.length) return null;
+  candidates.sort(function (a,b) {
+    return (b.current / b.target) - (a.current / a.target);
+  });
+  var c = candidates[0];
+  c.pct = Math.max(0, Math.min(100, Math.round((c.current / c.target) * 100)));
+  return c;
+}
+function dashboardActionStripHtml() {
+  if (!state.name) return '';
+  var dailyDone = playedToday();
+  var achievement = nextAchievementProgress();
+  var favLeague = defaultCommunityLeague();
+  var favTeam = communityTeamForLeague(favLeague);
+  var challenge = favTeam ? communityChallengeFor(favLeague, favTeam) : null;
+  var challengeDone = favTeam && challenge ? communityChallengeStatus(favLeague, favTeam).completed : false;
+  return '<div class="dashboard-action-strip">' +
+    '<button data-go="daily" class="' + (dailyDone ? 'done' : '') + '"><span>' + icon(dailyDone ? 'check' : 'flame') + '</span><b>' + (dailyDone ? 'Daily Reads done' : 'Do Daily Reads') + '</b><small>' + (dailyDone ? 'Come back tomorrow' : 'Keep your streak alive') + '</small></button>' +
+    (challenge ? '<button data-go="community" class="' + (challengeDone ? 'done' : '') + '"><span>' + icon(challengeDone ? 'check' : 'users') + '</span><b>' + (challengeDone ? 'Team challenge done' : 'Team challenge') + '</b><small>' + esc(favTeam.name) + '</small></button>' : '') +
+    (achievement ? '<button data-go="profile"><span>' + icon('trophy') + '</span><b>' + esc(achievement.label) + '</b><small>' + achievement.current + ' / ' + achievement.target + '</small></button>' : '') +
+    '</div>';
+}
+
 function personalDashboardHtml() {
   if (!state.name) return '';
   var p = getProgression();
@@ -3402,6 +3508,7 @@ function personalDashboardHtml() {
     '<div><span>' + icon('shield') + '</span><b>' + (rating ? rating.score : '—') + '</b><small>Football Rating</small></div>' +
     '<div><span>' + icon('trophy') + '</span><b>' + (state.stats.daily.completions || 0) + '</b><small>Daily Wins</small></div>' +
     '</div>' +
+    dashboardActionStripHtml() +
     '</section>';
 }
 
@@ -3418,7 +3525,7 @@ function renderHome() {
     communityCardHtml() +
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
-    recommendedModeHtml() +
+    recommendationShelfHtml() +
     modeSectionHtml('nfl') +
     modeSectionHtml('cfb') +
     discoverGridHtml() +
