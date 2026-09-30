@@ -2112,7 +2112,9 @@ function refreshDataAliases() {
   // validation (validatePlayerCluesPackage) -- re-run on every call (cheap,
   // idempotent) so a lazy-loaded player-from-clues file is actually picked
   // up the first time this mode is entered, not just at initial page load.
-  if (typeof initPlayerCluesPackage === 'function') initPlayerCluesPackage();
+  if (typeof initPlayerCluesPackage === 'function') if (state.name && pendingSocialChallengeCode) consumePendingSocialChallenge();
+
+initPlayerCluesPackage();
   if (typeof initCfbPlayerCluesPackage === 'function') initCfbPlayerCluesPackage();
 }
 function enterMode(mode) {
@@ -13188,7 +13190,7 @@ document.addEventListener('click', function (e) {
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
-    '[data-friend-add], [data-friend-remove], [data-friend-compare], [data-friend-compare-close], [data-friend-challenge], [data-social-challenge-mode], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
+    '[data-friend-add], [data-friend-remove], [data-friend-compare], [data-friend-compare-close], [data-friend-challenge], [data-social-challenge-mode], [data-social-accept], [data-social-decline], [data-social-copy], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -13393,6 +13395,9 @@ document.addEventListener('click', function (e) {
   if (t.dataset.friendCompareClose !== undefined) { state.friendCompare=null; renderAll(); return; }
   if (t.dataset.friendChallenge !== undefined) { challengeFriendToMode(t.dataset.friendChallenge, 'quiz'); return; }
   if (t.dataset.socialChallengeMode !== undefined) { challengeFriendToMode(null, t.dataset.socialChallengeMode); return; }
+  if (t.dataset.socialAccept !== undefined) { acceptSocialChallenge(t.dataset.socialAccept); return; }
+  if (t.dataset.socialDecline !== undefined) { dismissSocialChallenge(t.dataset.socialDecline); return; }
+  if (t.dataset.socialCopy !== undefined) { copySocialChallengeLink(t.dataset.socialCopy); return; }
   if (t.dataset.communityLeague !== undefined) { switchCommunityLeague(t.dataset.communityLeague); return; }
   if (t.dataset.communityPost !== undefined) { submitCommunityPost(); return; }
   if (t.dataset.communityPreset !== undefined) { setCommunityPreset(t.dataset.communityPreset); return; }
@@ -14030,6 +14035,21 @@ if (footerVersionEl) footerVersionEl.textContent = 'Reads v' + APP_VERSION + ' Â
 // friend's link), or later via consumePendingLiveJoin() from saveName()/
 // introTestDone()/skipIntroTest() if this is a brand-new visitor who still
 // has to pick a name and take the intro test first.
+var pendingSocialChallengeCode = null;
+var socialChallengeHashMatch = /^#challenge=([A-Za-z0-9]{4})$/.exec(location.hash);
+if (socialChallengeHashMatch) {
+  pendingSocialChallengeCode = socialChallengeHashMatch[1].toUpperCase();
+  history.replaceState(null, '', location.pathname + location.search);
+}
+function consumePendingSocialChallenge() {
+  if (!pendingSocialChallengeCode || !state.name) return false;
+  var code = pendingSocialChallengeCode;
+  pendingSocialChallengeCode = null;
+  state.h2h = { screen:'join', mode:'quiz', roundSize:10, listId:null, error:null };
+  state.screen = 'h2h';
+  h2hJoinMatch(code);
+  return true;
+}
 var pendingLiveJoinCode = null;
 var liveHashMatch = /^#live=([A-Za-z0-9]{4})$/.exec(location.hash);
 if (liveHashMatch) {
