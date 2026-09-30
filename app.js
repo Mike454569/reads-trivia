@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.19.0';
+var APP_VERSION = '3.20.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -2149,7 +2149,7 @@ function enterMode(mode) {
 // not part of either league's mode grid/dropdown) but still need a real
 // label wherever modeLabelFor() is read — Report modal context text, the
 // reports screen listing, etc.
-var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues', endless: 'Endless Reads' };
+var EXTRA_MODE_LABELS = { learn: 'Film Room', study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues', endless: 'Endless Reads' };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
@@ -10152,7 +10152,9 @@ function shareCopyTextFallback(text, btn) {
 var PROGRESSION_XP = {
   GAME_COMPLETED: 25,
   DAILY_COMPLETED: 50,
-  H2H_COMPLETED: 40
+  H2H_COMPLETED: 40,
+  FILM_SESSION: 30,
+  FILM_BOSS: 50
 };
 var progressSessionIds = {};
 var awardedProgressSessions = {};
@@ -10257,6 +10259,7 @@ function seasonQuestionCountForCompletion(mode, fields) {
     return me&&Number(me.total)||0;
   }
   if(mode==='endless')return fields&&Number(fields.lastQuestions)||0;
+  if(mode==='learn'&&state.filmStudy)return state.filmStudy.questions.length||0;
   if(s&&s.queue&&Array.isArray(s.queue))return s.queue.length||0;
   if(s&&typeof s.totalCount==='number')return s.totalCount||0;
   return 0;
@@ -10455,7 +10458,7 @@ function currentSeasonRecapHtml() {
 }
 
 function progressionEventForCompletion(mode, fields) {
-  var eventType = mode === 'daily' ? 'DAILY_READS_COMPLETED' : (mode === 'h2h' ? 'CHALLENGE_COMPLETED' : 'GAME_COMPLETED');
+  var eventType = mode === 'daily' ? 'DAILY_READS_COMPLETED' : (mode === 'h2h' ? 'CHALLENGE_COMPLETED' : (mode === 'learn' ? 'FILM_SESSION_COMPLETED' : 'GAME_COMPLETED'));
   return {
     type: eventType,
     mode: mode,
@@ -10471,7 +10474,7 @@ function awardProgressForCompletion(mode, fields) {
   awardedProgressSessions[mode] = eventId;
   var seasonId = footballSeasonIdForDate();
   var xp = mode === 'daily' ? PROGRESSION_XP.DAILY_COMPLETED :
-    (mode === 'h2h' ? PROGRESSION_XP.H2H_COMPLETED : PROGRESSION_XP.GAME_COMPLETED);
+    (mode === 'h2h' ? PROGRESSION_XP.H2H_COMPLETED : (mode === 'learn' ? ((fields&&fields.boss)?PROGRESSION_XP.FILM_BOSS:PROGRESSION_XP.FILM_SESSION) : PROGRESSION_XP.GAME_COMPLETED));
   var eventData = progressionEventForCompletion(mode, fields);
   progressionAwardPreview(mode, xp, seasonId);
   if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
@@ -11522,6 +11525,63 @@ function filmWeakFamily(){
 function filmMeter(value, total, label) {
   return '<div class="film-meter"><div><span>' + esc(label) + '</span><strong>' + value + ' / ' + total + '</strong></div><div class="film-meter-track"><span style="width:' + Math.min(100, total ? 100 * value / total : 0) + '%"></span></div></div>';
 }
+function filmMasteryTreeHtml(){
+  var n=filmNotebook(), families=FILM_FAMILIES.concat([{id:'footballIQ',label:'Football IQ',icon:'🏈'}]);
+  return '<section class="film-mastery-tree"><div class="dashboard-section-head"><div><span class="film-eyebrow">SKILL TREE</span><h3>Concept Mastery</h3></div><span>'+n.reps+' total reps</span></div>'+
+    '<div class="film-mastery-grid">'+families.map(function(f){
+      var rec=n.mastery[f.id]||{attempts:0,correct:0}, level=filmMasteryLevel(rec);
+      return '<article class="film-mastery-card mastery-'+slugify(level.name)+'"><span class="film-mastery-icon">'+f.icon+'</span><div><b>'+esc(f.label)+'</b><small>'+level.name+' · '+rec.attempts+' reps'+(rec.attempts?' · '+level.pct+'%':'')+'</small></div><span class="film-mastery-bar"><i style="width:'+Math.min(100,rec.attempts?level.pct:4)+'%"></i></span></article>';
+    }).join('')+'</div></section>';
+}
+function filmCoachAssignmentHtml(){
+  var id=filmWeakFamily(), meta=filmFamilyMeta(id), rec=filmNotebook().mastery[id]||{attempts:0,correct:0}, level=filmMasteryLevel(rec);
+  var why=!rec.attempts?'You have not logged reps here yet.':level.pct<70?'This is your lowest-accuracy area.':'This area has the most room for more reps.';
+  return '<section class="film-coach-assignment"><div><span class="film-eyebrow">COACH’S ASSIGNMENT</span><h3>'+meta.icon+' '+esc(meta.label)+'</h3><p>'+esc(why)+' Today’s adaptive session will lean into it.</p></div><button class="btn-primary" data-film-study-family="'+esc(id)+'">Work on '+esc(meta.label)+'</button></section>';
+}
+function filmReviewQueueHtml(){
+  var rows=filmNotebook().review.slice(0,3);
+  if(!rows.length)return '';
+  return '<section class="film-review-queue"><div class="dashboard-section-head"><div><span class="film-eyebrow">TAPE REVIEW</span><h3>Missed Reads</h3></div><button class="btn-tiny" data-film-review>Review all</button></div>'+
+    '<div>'+rows.map(function(r){return '<article><span>'+filmFamilyMeta(r.family).icon+'</span><div><b>'+esc(r.question)+'</b><small>'+esc(r.answer||'Review the coaching note')+'</small></div></article>';}).join('')+'</div></section>';
+}
+function filmPoolForFamily(pool,family){
+  if(!family)return pool.slice();
+  var filtered=pool.filter(function(q){return filmFamilyForQuestion(q)===family;});
+  return filtered.length?filtered:pool.slice();
+}
+function filmSeededPick(pool,count,seed){
+  return pool.filter(function(q){return !/\bdraft\b/i.test(String(q.question||'')+' '+String(q.category||''));})
+    .map(function(q,i){return {q:q,rank:hashStr(String(seed)+'|'+String(q.id||q.question)+'|'+i)};})
+    .sort(function(x,y){return x.rank-y.rank;}).slice(0,count).map(function(v){return v.q;});
+}
+function filmBuildSessionQuestions(family,count,boss){
+  var day=new Date().toLocaleDateString('en-CA'), seed=hashStr(day+'|'+family+'|'+(boss?'boss':'daily')+'|'+state.name);
+  var pools=[XSO,QUIZ,CFB], broad=[];
+  pools.forEach(function(p){broad=broad.concat(filmPoolForFamily(p,family));});
+  var target=filmSeededPick(broad,Math.max(count,4),seed);
+  if(target.length<count){
+    var fallback=filmSeededPick(XSO.concat(QUIZ,CFB),count*2,seed+17);
+    fallback.forEach(function(q){if(target.indexOf(q)===-1&&target.length<count)target.push(q);});
+  }
+  if(boss){
+    target.sort(function(x,y){
+      var xd=String(x.difficulty||'').toLowerCase(),yd=String(y.difficulty||'').toLowerCase();
+      var xs=xd==='expert'?3:xd==='hard'?2:xd==='medium'?1:0,ys=yd==='expert'?3:yd==='hard'?2:yd==='medium'?1:0;
+      return ys-xs;
+    });
+  }
+  return target.slice(0,count);
+}
+function completeFilmStudySession(){
+  var s=state.filmStudy;if(!s||s.completed||s.index<s.questions.length)return;
+  s.completed=true;
+  var n=filmNotebook(), pct=s.questions.length?Math.round(100*s.correct/s.questions.length):0;
+  n.sessions=(n.sessions||0)+1;
+  if(s.type==='boss'&&pct>=80)n.bossWins=(n.bossWins||0)+1;
+  filmSaveNotebook(n);
+  awardProgressForCompletion('learn',{boss:s.type==='boss',correct:s.correct,total:s.questions.length,pct:pct,targetFamily:s.targetFamily});
+}
+
 function filmStatsHtml() {
   var n = filmNotebook(), p = getClassroomProgress(), complete = Object.keys(p).filter(function (id) { return p[id].completed; }).length;
   return '<div class="film-stats"><div><strong>' + complete + '</strong><span>Lessons complete</span></div><div><strong>' + n.reps + '</strong><span>Study reps</span></div><div><strong>' + (n.reps ? Math.round(n.correct / n.reps * 100) + '%' : '—') + '</strong><span>Rep accuracy</span></div><div><strong>' + Object.keys(n.days).length + '</strong><span>Days studied</span></div></div>';
@@ -11542,24 +11602,38 @@ function filmDashboard() {
   var resume = last ? '<button class="btn-secondary" data-film-resume>Continue: ' + esc(last.label) + ' →</button>' : '<button class="btn-secondary" data-learn-open="coverageClassroom">Start with defensive coverages →</button>';
   return '<div class="panel film-dashboard"><div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Home</button></div>' +
     '<div class="film-hero"><span class="film-eyebrow">READS / COACH’S NOTEBOOK</span><h2>The Film Room</h2><p>See the field.<br>Understand the game.</p><div class="film-chalk-art" aria-hidden="true">X &nbsp; X &nbsp; X<br>↗ &nbsp; ↑ &nbsp; ↖<br>O &nbsp; O &nbsp; O</div></div>' +
-    filmStatsHtml() + '<div class="film-session"><div><span class="film-eyebrow">TODAY’S STUDY SESSION</span><h3>Five reps. Sharper football IQ.</h3><p>A daily mix of scheme, NFL, and college questions. Study at your pace.</p></div><button class="btn-primary" data-film-study>Take the reps ' + icon('arrowRight') + '</button></div>' +
+    filmStatsHtml() + filmCoachAssignmentHtml() + filmMasteryTreeHtml() + '<div class="film-session"><div><span class="film-eyebrow">TODAY’S STUDY SESSION</span><h3>Five adaptive reps. Sharper football IQ.</h3><p>Reads leans into the areas you need most, then raises the bar as you improve.</p></div><button class="btn-primary" data-film-study>Take the reps ' + icon('arrowRight') + '</button></div>' + '<div class="film-boss-card"><div><span class="film-eyebrow">COORDINATOR TEST</span><h3>Ten reps. No hiding.</h3><p>A tougher boss session weighted toward your weakest concept family. Score 80% to earn the win.</p></div><button class="btn-secondary" data-film-boss>Take the Test</button></div>' + filmReviewQueueHtml() +
     '<div class="film-resume">' + resume + '<button class="btn-tiny" data-film-saved>Saved concepts (' + n.saved.length + ')</button></div>' +
     '<label class="film-search-label" for="film-search-input">Find your next session</label><input id="film-search-input" class="learn-filter-input" placeholder="Search sections: coverages, history, awards…" value="' + esc(filter) + '">' +
     '<div class="chip-row film-jump-nav" aria-label="Film Room sections">' + groups.map(function(g,i) { return '<button class="chip-toggle" data-film-jump="' + i + '">' + esc(['Playbook', 'NFL archive', 'College archive'][i]) + '</button>'; }).join('') + '</div>' + (cards || '<p class="mode-desc">No sections match. Try “coverage” or “NFL”.</p>') + '<p class="film-local-note">Your notebook is saved on this device for this profile.</p></div>';
 }
-function startFilmStudy() {
-  state.learn.screen = 'study'; state.learn.loadingSection = 'xsoAlmanac'; state.learn.loadError = null; renderAll();
-  var ready = loadedScripts['data/xso.js'] ? Promise.resolve() : loadScript('data/xso.js');
-  ready.then(function () {
+function startFilmStudy(family,boss) {
+  family=family||filmWeakFamily(); boss=!!boss;
+  beginProgressSession('learn');
+  state.learn.screen='study';state.learn.loadingSection='xsoAlmanac';state.learn.loadError=null;renderAll();
+  var ready=loadedScripts['data/xso.js']?Promise.resolve():loadScript('data/xso.js');
+  ready.then(function(){
     refreshDataAliases();
-    if (state.learn.screen !== 'study') return;
-    // Keep the daily mix broad; draft questions are not the theme of this study session.
-    var day = new Date().toLocaleDateString('en-CA');
-    var seed = day.split('').reduce(function (v, c) { return (v * 31 + c.charCodeAt(0)) >>> 0; }, 0);
-    function pick(pool, count) { return pool.filter(function (q) { return !/\bdraft\b/i.test(q.question + ' ' + q.category); }).map(function(q, i) { return { q:q, rank: ((i + 1) * 2654435761 + seed) >>> 0 }; }).sort(function(a,b) { return a.rank - b.rank; }).slice(0,count).map(function(v) { return v.q; }); }
-    state.filmStudy = { questions: pick(XSO, 2).concat(pick(QUIZ, 2), pick(CFB, 1)), index: 0, answered: null, correct: 0, review: [] };
-    state.learn.loadingSection = null; renderAll();
-  }).catch(function() { if (state.learn.screen === 'study') { state.learn.loadingSection = null; state.learn.loadError = 'xsoAlmanac'; renderAll(); } });
+    if(state.learn.screen!=='study')return;
+    var count=boss?10:5, questions=filmBuildSessionQuestions(family,count,boss);
+    state.filmStudy={questions:questions,index:0,answered:null,correct:0,review:[],type:boss?'boss':'daily',targetFamily:family,completed:false};
+    state.learn.loadingSection=null;renderAll();
+  }).catch(function(){if(state.learn.screen==='study'){state.learn.loadingSection=null;state.learn.loadError='xsoAlmanac';renderAll();}});
+}
+function startFilmBoss(){startFilmStudy(filmWeakFamily(),true);}
+function startFilmReview(){
+  var n=filmNotebook(), rows=n.review.slice(0,10);
+  if(!rows.length){startFilmStudy();return;}
+  beginProgressSession('learn');
+  state.learn.screen='study';
+  state.filmStudy={
+    questions:rows.map(function(r,i){
+      var opts=[r.answer||'Review the correct read','Not this read','Different assignment','Check the coaching note'];
+      return {id:'review_'+i,category:filmFamilyMeta(r.family).label,question:r.question,options:opts,correctIndex:0,notes:r.notes||''};
+    }),
+    index:0,answered:null,correct:0,review:[],type:'review',targetFamily:'review',completed:false
+  };
+  renderAll();
 }
 function renderFilmStudy() {
   var s = state.filmStudy;
