@@ -148,7 +148,7 @@ function liveFootballChallengePool(singleKey) {
       key:g.league + ':' + g.game_id,
       league:g.league,
       question:'Who won this ' + g.league + ' game?',
-      context:liveFootballResultLine(g),
+      context:g.away_team + ' at ' + g.home_team + ' · Week ' + g.week,
       options:options,
       correctCode:g.winner,
       notes:liveFootballResultLine(g)
