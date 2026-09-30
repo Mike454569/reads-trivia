@@ -132,6 +132,9 @@ def test_creator_format_catalog_has_no_duplicate_direct_backend_routes():
 
 @pytest.mark.parametrize("title,taxonomy_id,variant", CREATOR_FORMAT_CATALOG_DIRECT)
 def test_creator_format_picker_direct_entry_generates_a_real_playable_round(title, taxonomy_id, variant):
+    import os
+    if os.environ.get("CI_SKIP_DB_TESTS") == "1":
+        pytest.skip("direct Creator generation requires the real Football Warehouse DB")
     from gateway.services import creator
 
     result = creator.generate_direct(taxonomy_id=taxonomy_id, variant=variant, seed=f"pytest-picker-{title}")
