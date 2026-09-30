@@ -2155,7 +2155,6 @@ function goToMode(mode) {
   // dedicated branch and start function (startPickemRound(league)) instead
   // of an ENGINE_DISCOVERY_ENTRIES `engineMode` key.
   if (mode === 'endless') {
-    beginProgressSession('endless');
     startEndlessMode();
     return;
   }
@@ -3795,7 +3794,8 @@ function personalizationLeagueProfile() {
   var events = getPersonalizationState().playEvents || [];
   var out = { nfl:{plays:0,pcts:[]}, cfb:{plays:0,pcts:[]} };
   events.forEach(function (e) {
-    var l = e.league === 'cfb' ? 'cfb' : 'nfl'; out[l].plays++;
+    if (e.league !== 'nfl' && e.league !== 'cfb') return;
+    var l = e.league; out[l].plays++;
     if (typeof e.pct === 'number') out[l].pcts.push(e.pct);
   });
   ['nfl','cfb'].forEach(function (l) {
@@ -3810,8 +3810,8 @@ function weeklyPersonalGoals() {
     var d = new Date(Number(e.at)||0), ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     return dailyRivalWeekKey(ds) === week;
   });
-  var nfl = events.filter(function(e){return e.league!=='cfb';}).length;
-  var cfb = events.filter(function(e){return e.league==='cfb';}).length;
+  var nfl = events.filter(function(e){return e.league==='nfl'||e.league==='mixed';}).length;
+  var cfb = events.filter(function(e){return e.league==='cfb'||e.league==='mixed';}).length;
   var daily = getDailyRecords().filter(function(r){return dailyRivalWeekKey(r.date)===week;}).length;
   var mastery = personalizationMasteryRows();
   var weak = mastery.filter(function(r){return r.total>=3;}).sort(function(x,y){return x.pct-y.pct;})[0];
