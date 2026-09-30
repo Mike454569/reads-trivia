@@ -72,9 +72,30 @@ def audit_format_registry(registry: Mapping[str, Mapping[str, Any]] | None = Non
             creator_hidden.append(format_id)
         statuses[str(entry.get("production_status", "MISSING"))] += 1
 
+    declared_aliases = {
+        format_id: str(entry["presentation_alias_of"])
+        for format_id, entry in registry.items()
+        if entry.get("presentation_alias_of")
+    }
+    alias_metadata_errors: list[str] = []
+    for alias, canonical in declared_aliases.items():
+        if canonical not in registry:
+            alias_metadata_errors.append(f"{alias}: canonical format {canonical!r} does not exist")
+        if canonical == alias:
+            alias_metadata_errors.append(f"{alias}: format cannot alias itself")
+        if registry[alias].get("creator_selectable") is True:
+            alias_metadata_errors.append(f"{alias}: presentation alias cannot be Creator-selectable")
+        if canonical in declared_aliases:
+            alias_metadata_errors.append(f"{alias}: alias chains are not allowed ({canonical} is also an alias)")
+
+    if declared_aliases != FORMAT_PRESENTATION_ALIASES:
+        alias_metadata_errors.append(
+            "FORMAT_PRESENTATION_ALIASES does not exactly match registry presentation_alias_of metadata"
+        )
+
     aliases_present = {
         alias: canonical
-        for alias, canonical in FORMAT_PRESENTATION_ALIASES.items()
+        for alias, canonical in declared_aliases.items()
         if alias in registry and canonical in registry
     }
     distinct_ids = [format_id for format_id in ids if format_id not in aliases_present]
@@ -98,6 +119,7 @@ def audit_format_registry(registry: Mapping[str, Mapping[str, Any]] | None = Non
         "missing_required_fields": missing_fields,
         "bad_format_identity": bad_identity,
         "duplicate_display_names": duplicate_display_names,
+        "alias_metadata_errors": alias_metadata_errors,
     }
 
 
@@ -129,6 +151,25 @@ def audit_public_modes(modes: Mapping[str, Mapping[str, Any]] | None = None) -> 
     }
 
     unclassified_duplicate_modes: dict[str, list[str]] = {}
+    public_alias_errors: list[str] = []
+    for alias, canonical in PUBLIC_MODE_ALIASES.items():
+        if alias not in modes:
+            public_alias_errors.append(f"{alias}: alias mode does not exist")
+            continue
+        if canonical not in modes:
+            public_alias_errors.append(f"{alias}: canonical mode {canonical!r} does not exist")
+            continue
+        if alias == canonical:
+            public_alias_errors.append(f"{alias}: public mode cannot alias itself")
+        if modes[alias].get("discoverable", True) is True:
+            public_alias_errors.append(f"{alias}: public alias must be hidden from discovery")
+        alias_backend = (modes[alias].get("taxonomy_id"), modes[alias].get("variant"))
+        canonical_backend = (modes[canonical].get("taxonomy_id"), modes[canonical].get("variant"))
+        if alias_backend != canonical_backend:
+            public_alias_errors.append(
+                f"{alias}: alias backend {alias_backend!r} differs from canonical {canonical_backend!r}"
+            )
+
     for backend_key, ids in duplicate_backends.items():
         canonicals = {PUBLIC_MODE_ALIASES.get(mode_id, mode_id) for mode_id in ids}
         if len(canonicals) != 1:
@@ -143,6 +184,7 @@ def audit_public_modes(modes: Mapping[str, Mapping[str, Any]] | None = None) -> 
         "undiscoverable_modes": sorted(undiscoverable),
         "missing_required_fields": missing_contract,
         "unclassified_duplicate_backends": unclassified_duplicate_modes,
+        "public_alias_errors": public_alias_errors,
     }
 
 
@@ -156,8 +198,10 @@ def audit_snapshot() -> dict[str, Any]:
         "passes_integrity_gate": (
             not formats["missing_required_fields"]
             and not formats["bad_format_identity"]
+            and not formats["alias_metadata_errors"]
             and not public_modes["missing_required_fields"]
             and not public_modes["unclassified_duplicate_backends"]
+            and not public_modes["public_alias_errors"]
         ),
         # This is deliberately separate from integrity. Reads can be internally
         # honest/clean while still having work left before the 100-format goal.
