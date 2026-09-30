@@ -1304,6 +1304,7 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   function eligible(q, ignoreRecent, ignoreDifficulty) {
     var key = dailyQuestionKey(q);
     if (used[key]) return false;
+    if (typeof contentMemoryAllows === 'function' && !ignoreRecent && !contentMemoryAllows(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl')) return false;
     if (!ignoreRecent && recent[key]) return false;
     if (predicate && !predicate(q)) return false;
     if (!ignoreDifficulty && preferredDifficulty != null && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) > 0) return false;
@@ -1562,6 +1563,7 @@ function finalizeDailyQuestion(q, pickedIndex, firstTryCorrect) {
     t.confidenceResults.push({ confidence: t.confidenceByIndex[t.index] || 1, correct: !!firstTryCorrect });
   }
   recordKnowledgeAnswer(league === 'CFB' ? 'cfb' : 'nfl', q.category || 'General', !!firstTryCorrect);
+  if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, league === 'CFB' ? 'cfb' : 'nfl', 'daily');
 }
 function pickDailyAnswer(i) {
   var t = state.daily;
@@ -2061,7 +2063,7 @@ function enterMode(mode) {
 // not part of either league's mode grid/dropdown) but still need a real
 // label wherever modeLabelFor() is read — Report modal context text, the
 // reports screen listing, etc.
-var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues' };
+var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues', endless: 'Endless Reads' };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
@@ -2152,6 +2154,11 @@ function goToMode(mode) {
   // engine-game-ui.js's one-question-at-a-time shell, so it gets its own
   // dedicated branch and start function (startPickemRound(league)) instead
   // of an ENGINE_DISCOVERY_ENTRIES `engineMode` key.
+  if (mode === 'endless') {
+    beginProgressSession('endless');
+    startEndlessMode();
+    return;
+  }
   if ((mode === 'pickem_nfl' || mode === 'pickem_cfb') && ENABLE_PICKEM_V01) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
@@ -4223,6 +4230,7 @@ function renderHome() {
     friendRivalAlertHtml() +
     teamBattleHtml() +
     liveFootballHomeHtml() +
+    endlessHomeCardHtml() +
     reengagementCenterHtml() +
     retentionMissionHtml() +
     unfinishedBusinessHtml() +
@@ -4535,6 +4543,7 @@ function currentQuizQuestion() {
 function startQuizRound(category, difficulty, roundSize) {
   beginProgressSession('quiz');
   var pool = quizPool(category, difficulty);
+  if (typeof filterFreshQuestions === 'function') pool = filterFreshQuestions(pool, 'nfl', 70);
   var ids = drawNoRepeat('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.quiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.quiz !== false };
   renderAll();
@@ -4546,7 +4555,10 @@ function pickQuizAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.quiz.correctCount++; if (q) removeFromMissedPool('nfl', q.id); }
   else if (q) { state.quiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('nfl', q.id); }
-  if (q) recordKnowledgeAnswer('nfl', q.category || 'General', !!isCorrect);
+  if (q) {
+    recordKnowledgeAnswer('nfl', q.category || 'General', !!isCorrect);
+    if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, 'nfl', 'quiz');
+  }
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -4813,6 +4825,7 @@ function currentCfbQuestion() {
 function startCfbQuizRound(category, difficulty, roundSize) {
   beginProgressSession('cfbQuiz');
   var pool = cfbPool(category, difficulty);
+  if (typeof filterFreshQuestions === 'function') pool = filterFreshQuestions(pool, 'cfb', 70);
   var ids = drawNoRepeat('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.cfbQuiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.cfbQuiz !== false };
   renderAll();
@@ -4824,7 +4837,10 @@ function pickCfbAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.cfbQuiz.correctCount++; if (q) removeFromMissedPool('cfb', q.id); }
   else if (q) { state.cfbQuiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('cfb', q.id); }
-  if (q) recordKnowledgeAnswer('cfb', q.category || 'General', !!isCorrect);
+  if (q) {
+    recordKnowledgeAnswer('cfb', q.category || 'General', !!isCorrect);
+    if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, 'cfb', 'cfbQuiz');
+  }
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -12665,6 +12681,7 @@ function renderAll() {
   else if (state.screen === 'creator') html += renderCreatorScreen();
   else if (state.screen === 'pickem') html += renderPickemScreen();
   else if (state.screen === 'liveFootball') html += renderLiveFootballScreen();
+  else if (state.screen === 'endless') html += renderEndlessScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
@@ -12890,7 +12907,8 @@ document.addEventListener('click', function (e) {
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], ' +
     '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
-    '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close]');
+    '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
+    '[data-endless-start], [data-endless-answer], [data-endless-next]');
   if (!t) return;
 
   // User request: the correct-answer crowd-cheer (and wrong-answer whistle)
@@ -13516,6 +13534,9 @@ document.addEventListener('click', function (e) {
   if (t.dataset.liveChallengeAnswer !== undefined) { answerLiveFootballChallenge(t.dataset.liveChallengeAnswer); return; }
   if (t.dataset.liveChallengeNext !== undefined) { nextLiveFootballChallenge(); return; }
   if (t.dataset.liveChallengeClose !== undefined) { LIVE_FOOTBALL.challenge = null; renderAll(); return; }
+  if (t.dataset.endlessStart !== undefined) { startEndlessMode(); return; }
+  if (t.dataset.endlessAnswer !== undefined) { answerEndless(Number(t.dataset.endlessAnswer)); return; }
+  if (t.dataset.endlessNext !== undefined) { nextEndless(); return; }
   if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
     var tokenInput = document.getElementById('creator-token-input');
     creatorSubmitToken(tokenInput ? tokenInput.value : '');
