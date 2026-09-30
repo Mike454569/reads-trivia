@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.18.0';
+var APP_VERSION = '3.19.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -305,7 +305,7 @@ function broadcastResultHtml(kicker, score, label, celebrate) {
     brandWatermarkHtml() + '<span class="broadcast-result-kicker">' + esc(kicker) + '</span>' +
     '<strong class="broadcast-result-score">' + esc(String(score)) + '</strong>' +
     '<span class="broadcast-result-label">' + esc(label) + '</span>' +
-    (celebrate ? '<div class="broadcast-result-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>' : '') + '</section>';
+    (celebrate ? '<div class="broadcast-result-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>' : '') + '</section>' + progressionResultHookHtml();
 }
 function broadcastClueMeterHtml(revealed, total) {
   var slots = '';
@@ -4322,6 +4322,62 @@ function progressionRankFor(xp) {
   if (next) pct = Math.max(0, Math.min(1, (xp - current.min) / (next.min - current.min)));
   return { name: current.name, next: next && next.name, xp: xp, pct: pct, toNext: next ? next.min - xp : 0 };
 }
+
+var lastProgressAward = null;
+function progressionAwardPreview(mode, xp, seasonId) {
+  var p=getProgression(), beforeCareer=progressionRankFor(p.careerXp||0);
+  var season=normalizeSeasonProgress(p.seasons&&p.seasons[seasonId]);
+  var beforeSeason=seasonRankFor(season.xp||0);
+  var afterCareer=progressionRankFor((p.careerXp||0)+xp);
+  var afterSeason=seasonRankFor((season.xp||0)+xp);
+  lastProgressAward={
+    mode:mode,xp:xp,seasonId:seasonId,
+    careerBefore:beforeCareer,careerAfter:afterCareer,
+    seasonBefore:beforeSeason,seasonAfter:afterSeason,
+    createdAt:Date.now()
+  };
+}
+function progressionResultHookHtml() {
+  var x=lastProgressAward;
+  if(!x||Date.now()-x.createdAt>120000)return '';
+  if(state.screen!==x.mode&&!(x.mode==='daily'&&state.screen==='daily'))return '';
+  var careerUp=x.careerBefore.name!==x.careerAfter.name;
+  var seasonUp=x.seasonBefore.name!==x.seasonAfter.name;
+  return '<div class="progression-result-hook'+((careerUp||seasonUp)?' rank-up':'')+'">'+
+    '<div class="progression-result-main"><span>'+((careerUp||seasonUp)?'RANK UP':'PROGRESSION')+'</span><b>+'+x.xp+' XP</b></div>'+
+    '<div class="progression-result-lines">'+
+      '<span><b>Career:</b> '+esc(x.careerAfter.name)+(x.careerAfter.next?' · '+x.careerAfter.toNext+' XP to '+esc(x.careerAfter.next):' · Max rank')+'</span>'+
+      '<span><b>'+esc(x.seasonId)+' Season:</b> '+esc(x.seasonAfter.name)+(x.seasonAfter.next?' · '+x.seasonAfter.toNext+' XP to '+esc(x.seasonAfter.next):' · Top tier')+'</span>'+
+    '</div>'+
+  '</div>';
+}
+function careerLadderHtml() {
+  var xp=Number(getProgression().careerXp)||0, rank=progressionRankFor(xp);
+  return '<section class="career-ladder"><div class="profile-section-head"><div><span class="dashboard-eyebrow">CAREER PATH</span><h3>Reads Career</h3></div><span>'+xp.toLocaleString()+' XP</span></div>'+
+    '<div class="career-ladder-track">'+PROGRESSION_RANKS.map(function(r,i){
+      var unlocked=xp>=r.min, current=r.name===rank.name;
+      return '<div class="career-ladder-step'+(unlocked?' unlocked':'')+(current?' current':'')+'">'+
+        '<span class="career-ladder-icon">'+(unlocked?(i===PROGRESSION_RANKS.length-1?'👑':'🏈'):'🔒')+'</span>'+
+        '<b>'+esc(r.name)+'</b><small>'+r.min.toLocaleString()+' XP</small>'+
+      '</div>';
+    }).join('')+'</div>'+
+    '<div class="career-ladder-next"><span class="dashboard-xp-track"><span style="width:'+Math.round(rank.pct*100)+'%"></span></span>'+
+      '<b>'+(rank.next?rank.toNext+' XP until '+esc(rank.next):'Career maxed — Legend status')+'</b></div></section>';
+}
+function seasonTrophyFor(item) {
+  var rank=seasonRankFor(item.data.xp), icons={Rookie:'🎟️',Prospect:'🏈',Starter:'⭐',Playmaker:'⚡','All-Pro':'💎',MVP:'🏆'};
+  return {icon:icons[rank.name]||'🏈',name:rank.name};
+}
+function seasonTrophyCaseHtml() {
+  var list=seasonHistoryList();
+  if(!list.length)return '';
+  return '<section class="season-trophy-case"><div class="profile-section-head"><div><span class="dashboard-eyebrow">SEASON TROPHIES</span><h3>Your Football Years</h3></div><span>'+list.length+' earned</span></div>'+
+    '<div class="season-trophy-grid">'+list.map(function(item){
+      var trophy=seasonTrophyFor(item), d=item.data;
+      return '<article class="season-trophy"><span>'+trophy.icon+'</span><div><b>'+esc(item.id)+' '+esc(trophy.name)+'</b><small>'+d.xp.toLocaleString()+' XP · '+d.gamesPlayed+' games'+(d.topMode?' · '+esc(modeLabelFor(d.topMode)):'')+'</small></div></article>';
+    }).join('')+'</div></section>';
+}
+
 function nextAchievementProgress() {
   var earned = {};
   getRewards().unlockedBadgeIds.forEach(function (id) { earned[id] = true; });
@@ -10386,6 +10442,7 @@ function awardProgressForCompletion(mode, fields) {
   var xp = mode === 'daily' ? PROGRESSION_XP.DAILY_COMPLETED :
     (mode === 'h2h' ? PROGRESSION_XP.H2H_COMPLETED : PROGRESSION_XP.GAME_COMPLETED);
   var eventData = progressionEventForCompletion(mode, fields);
+  progressionAwardPreview(mode, xp, seasonId);
   if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
     window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
       if (!result || !result.duplicate) {
@@ -12873,6 +12930,8 @@ function renderProfile() {
       '</div>';
   }
 
+  html += careerLadderHtml();
+  html += seasonTrophyCaseHtml();
   html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">TROPHY CASE</span><h3>Achievements</h3></div><span>' + earned.length + ' / ' + BADGES.length + ' unlocked</span></div>' +
     '<p class="mode-desc">Achievements are permanent. Tap any earned badge to equip it on your profile. New achievements award bonus XP once.</p>' +
     '<div class="profile-badges-grid profile-trophy-grid">' +
