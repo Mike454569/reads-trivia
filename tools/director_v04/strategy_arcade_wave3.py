@@ -105,7 +105,7 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
     source = category_roulette.build_package(
-        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(30, round_count)
+        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(42, round_count)
     )
     rounds = source.get("rounds") or []
     package_id = "GGP39:" + hashlib.sha256(
@@ -534,8 +534,13 @@ def evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dic
         result=core._grade(package,s,submission)
         if result["correct"]: s["yards"]=min(80,s.get("yards",0)+10)
         _advance(s,result["correct"]); s["decision_pending"]=True
-        if s["cursor"]>=8 and s.get("yards",0)<20:
-            s["completed"]=True; s["result_label"]="Never reached field goal range"
+        if s["cursor"]>=8:
+            if s.get("yards",0)>=20:
+                s["kick_question"]=True
+                s["decision_pending"]=False
+                s["kick_value"]=1+s.get("yards",0)//20
+            else:
+                s["completed"]=True; s["result_label"]="Never reached field goal range"
         return result,s
 
     if variant == "TWO_MINUTE_DRILL":
@@ -562,7 +567,10 @@ def evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dic
         streaks[cat]=min(2,streaks.get(cat,0)+1) if result["correct"] else 0; s["category_streaks"]=streaks
         used=list(s.get("used_question_indexes",[])); used.append(idx); s["used_question_indexes"]=used
         _advance(s,result["correct"])
-        if all(streaks.get(c,0)>=2 for c in _CATEGORIES): s["completed"]=True; s["result_label"]="All category streaks complete"
+        if all(streaks.get(c,0)>=2 for c in _CATEGORIES):
+            s["completed"]=True; s["result_label"]="All category streaks complete"
+        elif s["cursor"]>=18:
+            s["completed"]=True; s["result_label"]="Streak window expired"
         return result,s
 
     if variant == "PERFECT_QUARTER":
