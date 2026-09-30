@@ -1652,6 +1652,8 @@ function enterMode(mode) {
   } else if (mode === 'friends') {
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay('friends');
     loadFriendsData();
+  } else if (mode === 'community' && window.__fbSync && window.__fbSync.logPlay) {
+    window.__fbSync.logPlay('community');
   } else if (mode === 'study' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('study');
   } else if (mode === 'xso' && window.__fbSync && window.__fbSync.logPlay) {
@@ -1662,7 +1664,7 @@ function enterMode(mode) {
 // not part of either league's mode grid/dropdown) but still need a real
 // label wherever modeLabelFor() is read — Report modal context text, the
 // reports screen listing, etc.
-var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues' };
+var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues' };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
