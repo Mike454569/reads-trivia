@@ -76,7 +76,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 var FIREBASE_CONFIG = {
   apiKey: "AIzaSyCYqKRGm2LSeTjxx1tpApm37TqBhOf2rIw",
@@ -114,6 +114,7 @@ window.__fbSync = {
   watchMatch: function () { return function () {}; },
   pushProfile: function () { /* no-op until Firebase finishes initializing below */ },
   getProfile: function () { return Promise.reject(new Error('Not connected')); },
+  awardProgress: function () { return Promise.reject(new Error('Not connected')); },
   signUp: function () { return Promise.reject(new Error('Not connected')); },
   logIn: function () { return Promise.reject(new Error('Not connected')); },
   logOut: function () { /* no-op until Firebase finishes initializing below */ }
@@ -157,15 +158,51 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       return signOut(auth).then(function () { return signInAnonymously(auth); });
     };
 
-    window.__fbSync.pushProfile = function (nameSlug, data) {
+    window.__fbSync.pushProfile = function (profileId, data) {
       var payload = Object.assign({}, data, { updatedAt: serverTimestamp() });
-      setDoc(doc(profilesCol, nameSlug), payload).catch(function (err) {
+      // Merge instead of replacing the whole profile. Progression is updated
+      // independently through awardProgress(); a normal stats/favorite-team
+      // sync must never erase career XP, seasonal XP, or future profile fields.
+      setDoc(doc(profilesCol, profileId), payload, { merge: true }).catch(function (err) {
         console.error('Profile push failed', err);
       });
     };
     window.__fbSync.getProfile = function (nameSlug) {
       return getDoc(doc(profilesCol, nameSlug)).then(function (snap) {
         return snap.exists() ? snap.data() : null;
+      });
+    };
+
+    // Idempotent progression write. The event document and aggregate XP
+    // increments happen in one Firestore transaction: retrying the same event
+    // ID cannot award XP twice, and two devices can safely add XP concurrently.
+    window.__fbSync.awardProgress = function (profileId, eventId, eventData, xp, seasonId) {
+      if (!profileId || !eventId || !xp || !seasonId) return Promise.resolve({ duplicate: false, skipped: true });
+      var profileRef = doc(profilesCol, profileId);
+      var eventRef = doc(db, 'games', GAME_ID, 'profiles', profileId, 'progressEvents', eventId);
+      return runTransaction(db, function (tx) {
+        return tx.get(eventRef).then(function (snap) {
+          if (snap.exists()) return { duplicate: true };
+          tx.set(eventRef, Object.assign({}, eventData || {}, {
+            eventId: eventId,
+            xp: xp,
+            seasonId: String(seasonId),
+            createdAt: serverTimestamp()
+          }));
+          var seasonPatch = {};
+          seasonPatch[String(seasonId)] = { xp: increment(xp), updatedAt: serverTimestamp() };
+          tx.set(profileRef, {
+            progression: {
+              careerXp: increment(xp),
+              seasons: seasonPatch,
+              updatedAt: serverTimestamp()
+            }
+          }, { merge: true });
+          return { duplicate: false };
+        });
+      }).catch(function (err) {
+        console.error('Progress award failed', err);
+        throw err;
       });
     };
 
