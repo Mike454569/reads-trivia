@@ -8,7 +8,7 @@ var ENDLESS_MECHANICS=[
   {id:'double',label:'Double Down',desc:'Two choices. Double points.'},
   {id:'survival',label:'Survival',desc:'A miss costs two lives.'}
 ];
-var ENDLESS={active:false,screen:'idle',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null};
+var ENDLESS={active:false,screen:'idle',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null,currentEvent:null,runSeed:0};
 
 function endlessDifficultyLevel(){
   var base=0, rating=getRating(), rs=rating?Number(rating.score)||100:100;
@@ -35,6 +35,36 @@ function endlessMomentumPct(){
   return Math.min(100,Math.max(8,ENDLESS.streak*12+ENDLESS.multiplier*8));
 }
 function endlessQuestionNumber(){return ENDLESS.index+1;}
+function endlessFavoriteTeamForLeague(league){
+  if(typeof getFavoriteTeams!=='function'||typeof favoriteTeamById!=='function')return null;
+  var fav=getFavoriteTeams(), id=league==='cfb'?fav.cfb:fav.nfl;
+  return id?favoriteTeamById(league,id):null;
+}
+function endlessQuestionLooksRivalry(q){
+  var hay=(String(q&&q.category||'')+' '+String(q&&q.question||'')).toLowerCase();
+  return /rival|rivalry|iron bowl|red river|the game|egg bowl|bedlam|palmetto|cocktail party|civil war|backyard brawl|holy war|apple cup/.test(hay);
+}
+function endlessRecentHotCategory(){
+  var recent=ENDLESS.history.slice(-4).filter(function(x){return x.good&&x.category;});
+  if(recent.length<3)return null;
+  var counts={}; recent.forEach(function(x){counts[x.category]=(counts[x.category]||0)+1;});
+  var best=null,n=0;Object.keys(counts).forEach(function(k){if(counts[k]>n){best=k;n=counts[k];}});
+  return n>=3?best:null;
+}
+function endlessPlanEvent(){
+  var n=endlessQuestionNumber(), hot=endlessRecentHotCategory();
+  if(n>=30)return {id:'sudden',label:'SUDDEN DEATH',desc:'Triple points. One miss ends it.',scoreMult:3,restore:false};
+  if(n%15===0)return {id:'boss',label:'BOSS ROUND',desc:'Expert pressure. Triple points.',scoreMult:3,restore:false,forceHard:true};
+  if(n%10===0)return {id:'checkpoint',label:'CHECKPOINT',desc:ENDLESS.lives<3?'Get it right to win back a life.':'Protect the perfect stack.',scoreMult:2,restore:ENDLESS.lives<3};
+  if(n%5===0)return {id:'clutch',label:'CLUTCH QUESTION',desc:'Double points. Make it count.',scoreMult:2,restore:false};
+  if(ENDLESS.lives===1&&(n===7||n===17||n===27))return {id:'rescue',label:'TEAM RESCUE',desc:'Your team can save the run. Earn a life back.',scoreMult:2,restore:true,forceFavorite:true};
+  if(hot)return {id:'hot',label:'HOT HAND',desc:'Stay in '+hot+'. Double points.',scoreMult:2,restore:false,forceCategory:hot};
+  var roll=Math.abs(hashStr(String(ENDLESS.runSeed)+'|event|'+n))%100;
+  if(roll<7)return {id:'rivalry',label:'RIVALRY AMBUSH',desc:'A rivalry question just crashed the run.',scoreMult:2,restore:false,forceRivalry:true};
+  if(roll<14)return {id:'chaos',label:'CHAOS BALL',desc:'Bonus points. No warning.',scoreMult:2,restore:false};
+  return null;
+}
+
 function endlessStage(){
   var n=endlessQuestionNumber();
   if(n>=30)return {id:'sudden',label:'SUDDEN DEATH',desc:'One miss ends the run.',multiplier:3};
@@ -43,11 +73,7 @@ function endlessStage(){
   return {id:'drive',label:'OPENING DRIVE',desc:'Build the run.',multiplier:1};
 }
 function endlessSpecialEvent(){
-  var n=endlessQuestionNumber();
-  if(n>=30)return {id:'sudden',label:'SUDDEN DEATH',desc:'Triple points. One miss ends it.',scoreMult:3,restore:false};
-  if(n%10===0)return {id:'checkpoint',label:'CHECKPOINT',desc:ENDLESS.lives<3?'Get it right to win back a life.':'Protect the perfect stack.',scoreMult:2,restore:ENDLESS.lives<3};
-  if(n%5===0)return {id:'clutch',label:'CLUTCH QUESTION',desc:'Double points. Make it count.',scoreMult:2,restore:false};
-  return null;
+  return ENDLESS.currentEvent || null;
 }
 function endlessBestChase(){
   var best=lsGet(endlessBestKey(),null), bestScore=best?Number(best.score)||0:0, gap=Math.max(0,bestScore-ENDLESS.score);
@@ -74,11 +100,31 @@ function endlessRunStatusHtml(){
 }
 function endlessQuestionKey(q,league){return league+':'+String(q&&q.id);}
 function endlessPickQuestion(){
-  var league=endlessChooseLeague(), source=league==='cfb'?CFB:QUIZ, level=endlessDifficultyLevel(), names=endlessDifficultyNames(level);
+  var event=endlessPlanEvent(), league=endlessChooseLeague(), source=league==='cfb'?CFB:QUIZ, level=endlessDifficultyLevel(), names=endlessDifficultyNames(level);
+  if(event&&event.forceFavorite){
+    var nflFav=endlessFavoriteTeamForLeague('nfl'), cfbFav=endlessFavoriteTeamForLeague('cfb');
+    var nflHas=nflFav&&QUIZ.some(function(q){return questionMentionsTeam(q,nflFav);});
+    var cfbHas=cfbFav&&CFB.some(function(q){return questionMentionsTeam(q,cfbFav);});
+    if(nflHas||cfbHas){league=cfbHas&&!nflHas?'cfb':nflHas&&!cfbHas?'nfl':(ENDLESS.index%2?'cfb':'nfl');source=league==='cfb'?CFB:QUIZ;}
+    else event=null;
+  }
+  if(event&&event.forceHard)names=['Hard','Expert'];
   var pool=source.filter(function(q){return names.indexOf(q.difficulty)!==-1;});
   if(pool.length<20)pool=source.slice();
   pool=qualityFilteredQuestions(pool,league,names[0]).filter(function(q){return contentRepeatPenalty(q,league)<60;});
   if(!pool.length)pool=qualityFilteredQuestions(source,league,names[0]);
+  if(event&&event.forceFavorite){
+    var favTeam=endlessFavoriteTeamForLeague(league), favPool=favTeam?pool.filter(function(q){return questionMentionsTeam(q,favTeam);}):[];
+    if(favPool.length)pool=favPool; else event=null;
+  }
+  if(event&&event.forceCategory){
+    var hotPool=pool.filter(function(q){return q.category===event.forceCategory;});
+    if(hotPool.length)pool=hotPool; else event=null;
+  }
+  if(event&&event.forceRivalry){
+    var rivalryPool=pool.filter(endlessQuestionLooksRivalry);
+    if(rivalryPool.length)pool=rivalryPool; else event={id:'chaos',label:'CHAOS BALL',desc:'Bonus points. No warning.',scoreMult:2,restore:false};
+  }
   var recent={};ENDLESS.history.slice(-30).forEach(function(x){recent[x.key]=true;});
   var candidates=pool.filter(function(q){return !recent[endlessQuestionKey(q,league)];});
   if(!candidates.length)candidates=pool;
@@ -92,13 +138,13 @@ function endlessPickQuestion(){
     visible=[q.correctIndex,wrong[Math.abs(seed>>3)%wrong.length]];
     visible=seededShuffle(visible,mulberry32(seed));
   }
-  ENDLESS.league=league;ENDLESS.current=q;ENDLESS.visible=visible;ENDLESS.answered=null;
+  ENDLESS.league=league;ENDLESS.current=q;ENDLESS.visible=visible;ENDLESS.answered=null;ENDLESS.currentEvent=event;
   rememberContentQuestion(q,league);
   return q;
 }
 function startEndlessMode(){
   if(typeof beginProgressSession==='function')beginProgressSession('endless');
-  ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null};
+  ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null,currentEvent:null,runSeed:hashStr((state.name||'guest')+'|'+Date.now())};
   state.screen='endless';lsSet('nflTriviaLastMode','endless');
   if(window.__fbSync&&window.__fbSync.logPlay)window.__fbSync.logPlay('endless');
   endlessPickQuestion();renderAll();
@@ -122,13 +168,13 @@ function answerEndless(i){
     addToMissedPool(ENDLESS.league,q.id);
   }
   ENDLESS.lastEvent=event?{id:event.id,label:event.label,good:good,restored:restored,scoreMult:eventMult}:null;
-  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),good:good,mechanic:mech.id,event:event&&event.id});
+  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),good:good,mechanic:mech.id,event:event&&event.id,category:q.category||'General'});
   playSound(good?'correct':'wrong');renderAll();
 }
 function nextEndless(){
   if(ENDLESS.answered===null)return;
   if(ENDLESS.lives<=0){finishEndless();return;}
-  ENDLESS.index++;ENDLESS.lastEvent=null;
+  ENDLESS.index++;ENDLESS.lastEvent=null;ENDLESS.currentEvent=null;
   if(!endlessPickQuestion()){finishEndless();return;}
   renderAll();
 }
