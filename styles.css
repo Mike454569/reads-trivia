@@ -3996,3 +3996,135 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     grid-column: 1 / -1;
   }
 }
+
+
+/* Personalization Brain v2: mastery map, adaptive missions, one-more-game context. */
+.personalization-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+}
+.mastery-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.mastery-columns h4 {
+  margin: 0 0 10px;
+  font-size: .78rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mastery-columns > div {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.mastery-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 5px 10px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel-2, rgba(255,255,255,.035));
+}
+.mastery-chip > span {
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+.mastery-chip > b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mastery-chip > strong {
+  font-size: 1.05rem;
+}
+.mastery-chip > small {
+  grid-column: 2 / -1;
+  color: var(--muted);
+  font-size: .72rem;
+}
+.mastery-chip.strong { box-shadow: inset 3px 0 0 rgba(255,255,255,.28); }
+.mastery-chip.weak { box-shadow: inset 3px 0 0 rgba(255,255,255,.12); }
+
+.personal-goal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.personal-goal {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-2, rgba(255,255,255,.035));
+}
+.personal-goal > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.personal-goal > div:first-child span {
+  white-space: nowrap;
+  font-size: .72rem;
+  font-weight: 900;
+}
+.personal-goal p {
+  min-height: 42px;
+  margin: 8px 0 12px;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.35;
+}
+.personal-goal-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+}
+.personal-goal-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+.personal-goal > small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: .72rem;
+}
+.personal-goal.complete {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.one-more-game-context {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255,255,255,.035);
+  font-size: .82rem;
+  line-height: 1.4;
+}
+.one-more-game-label {
+  margin: 14px 0 7px;
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+@media (max-width: 700px) {
+  .personalization-panel { padding: 14px; }
+  .mastery-columns,
+  .personal-goal-grid { grid-template-columns: 1fr; }
+  .personal-goal p { min-height: 0; }
+}
