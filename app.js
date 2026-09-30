@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.15.0';
+var APP_VERSION = '3.16.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -510,6 +510,81 @@ function drawNoRepeat(deckKey, ids, count) {
   return drawn;
 }
 
+/* ============================== Engine vNext content memory + QA ============================== */
+function contentMemoryKey() { return 'readsContentMemory__' + slugify(state.name || 'guest'); }
+function getContentMemory() {
+  var m=lsGet(contentMemoryKey(),{questions:[],entities:[]});
+  // Migration from the interrupted/older Endless draft, which stored an
+  // array of {key,entity,...} rows under the same key. Convert once into
+  // the compact vNext shape so old local data cannot break new selection.
+  if (Array.isArray(m)) {
+    var q=[], e=[];
+    m.forEach(function(x){ if(x&&x.key)q.push(String(x.key)); if(x&&x.entity)e.push(String(x.entity)); });
+    return { questions:q.slice(-180), entities:e.slice(-120) };
+  }
+  m=m&&typeof m==='object'?m:{};
+  m.questions=Array.isArray(m.questions)?m.questions:[];
+  m.entities=Array.isArray(m.entities)?m.entities:[];
+  return m;
+}
+function contentFingerprint(q, league) { return (league||'nfl')+'|'+hashStr(normName(q&&q.question||'')); }
+function questionEntityTokens(q) {
+  if(!q)return [];
+  var correct=(q.options&&typeof q.correctIndex==='number')?q.options[q.correctIndex]:'';
+  var text=String(q.question||'')+' '+String(correct||'');
+  var stop={who:1,which:1,what:1,when:1,where:1,how:1,nfl:1,cfb:1,team:1,player:1,season:1,game:1,'which team':1,'which player':1,'what team':1,'what player':1};
+  var tokens=(text.match(/\b[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}\b/g)||[])
+    .map(normName).filter(function(x){return x.length>=3&&!stop[x]&&!/^(who|which|what|when|where|how)\b/.test(x);});
+  var c=normName(correct);
+  if(c&&c.length>=3&&!stop[c])tokens.push(c);
+  var seen={}; return tokens.filter(function(x){if(seen[x])return false;seen[x]=true;return true;}).slice(0,6);
+}
+function rememberContentQuestion(q, league) {
+  if(!q)return;
+  var m=getContentMemory(), fp=contentFingerprint(q,league);
+  m.questions=m.questions.filter(function(x){return x!==fp;}); m.questions.push(fp);
+  questionEntityTokens(q).forEach(function(e){m.entities=m.entities.filter(function(x){return x!==e;});m.entities.push(e);});
+  m.questions=m.questions.slice(-180); m.entities=m.entities.slice(-120); lsSet(contentMemoryKey(),m);
+}
+function contentRepeatPenalty(q, league) {
+  var m=getContentMemory(), penalty=0, fp=contentFingerprint(q,league);
+  if(m.questions.slice(-90).indexOf(fp)!==-1) penalty+=100;
+  var recent={};m.entities.slice(-50).forEach(function(e){recent[e]=(recent[e]||0)+1;});
+  questionEntityTokens(q).forEach(function(e){if(recent[e])penalty+=12*recent[e];});
+  return penalty;
+}
+function mergeContentMemory(local, cloud) {
+  local=local||{questions:[],entities:[]}; cloud=cloud||{questions:[],entities:[]};
+  function mergeRecent(a,b,limit){var seen={},out=[];(a||[]).concat(b||[]).forEach(function(x){if(!x||seen[x])return;seen[x]=true;out.push(x);});return out.slice(-limit);}
+  return {questions:mergeRecent(local.questions,cloud.questions,180),entities:mergeRecent(local.entities,cloud.entities,120)};
+}
+function questionQualityScore(q, league, targetDifficulty) {
+  if(!q||typeof q.question!=='string'||!Array.isArray(q.options)||q.options.length<2)return 0;
+  if(typeof q.correctIndex!=='number'||q.correctIndex<0||q.correctIndex>=q.options.length)return 0;
+  var normalized=q.options.map(normName), unique={}; normalized.forEach(function(x){unique[x]=true;});
+  if(Object.keys(unique).length!==q.options.length)return 0;
+  var score=100;
+  if(q.question.length<12)score-=25;
+  if(q.question.length>220)score-=10;
+  if(!normName(q.options[q.correctIndex]))score-=50;
+  score-=Math.min(60,contentRepeatPenalty(q,league));
+  if(targetDifficulty && String(q.difficulty||'').toLowerCase()!==String(targetDifficulty).toLowerCase())score-=8;
+  return Math.max(0,score);
+}
+function qualityFilteredQuestions(pool, league, targetDifficulty) {
+  var scored=(pool||[]).map(function(q){return {q:q,score:questionQualityScore(q,league,targetDifficulty)};})
+    .filter(function(x){return x.score>=55;}).sort(function(x,y){return y.score-x.score;});
+  return scored.length?scored.map(function(x){return x.q;}):(pool||[]).slice();
+}
+function drawGlobalNoRepeatQuestions(deckKey, pool, count, league, targetDifficulty) {
+  var quality=qualityFilteredQuestions(pool,league,targetDifficulty);
+  var fresh=quality.filter(function(q){return contentRepeatPenalty(q,league)<60;});
+  var source=fresh.length>=Math.min(count,quality.length)?fresh:quality;
+  var ids=drawNoRepeat(deckKey,source.map(function(q){return q.id;}),count);
+  ids.forEach(function(id){var q=source.find(function(x){return x.id===id;});if(q)rememberContentQuestion(q,league);});
+  return ids;
+}
+
 /* ============================== data + state ============================== */
 /* ---- Engine content integration, Engine ID namespace 500000+ ----
    Kill switch: set to false to make the app behave exactly as it did before this
@@ -668,7 +743,8 @@ var DEFAULT_STATS = {
   cfbGrid: { bestScore: 0, gamesPlayed: 0, cleanSweeps: 0 },
   daily: { completions: 0, correctTotal: 0, questionsTotal: 0, bestPct: 0 },
   cfbLegends: { bestWins: 0, bestScore: 0, bestGrade: '', gamesPlayed: 0 },
-  h2h: { wins: 0, losses: 0, ties: 0, matchesPlayed: 0 }
+  h2h: { wins: 0, losses: 0, ties: 0, matchesPlayed: 0 },
+  endless: { bestScore: 0, bestStreak: 0, bestQuestions: 0, runs: 0 }
 };
 
 var lastFocusedScreen = null; // tracks screen changes for renderAll()'s focus management
@@ -848,7 +924,8 @@ function pushProfileSnapshot() {
     dailyReads: dailyReadsProfileState(),
     rewards: rewardsProfileState(),
     progression: getProgression(),
-    personalization: getPersonalizationState()
+    personalization: getPersonalizationState(),
+    contentMemory: getContentMemory()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -873,6 +950,7 @@ function pullProfileSnapshot() {
     var beforeDailyReads = JSON.stringify(dailyReadsProfileState());
     var beforeRewards = JSON.stringify(getRewards());
     var beforePersonalization = JSON.stringify(getPersonalizationState());
+    var beforeContentMemory = JSON.stringify(getContentMemory());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
@@ -880,6 +958,7 @@ function pullProfileSnapshot() {
     var mergedDailyReads = mergeDailyReads(dailyReadsProfileState(), cloud.dailyReads);
     var mergedRewards = mergeRewards(getRewards(), cloud.rewards);
     var mergedPersonalization = mergePersonalization(getPersonalizationState(), cloud.personalization);
+    var mergedContentMemory = mergeContentMemory(getContentMemory(), cloud.contentMemory);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
@@ -890,13 +969,15 @@ function pullProfileSnapshot() {
     setDailyStreakClaims(mergedDailyReads.streakClaims);
     setRewards(mergedRewards, true);
     setPersonalizationState(mergedPersonalization, true);
+    lsSet(contentMemoryKey(), mergedContentMemory);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
       JSON.stringify(mergedProgression) !== beforeProgression ||
       JSON.stringify(mergedDailyReads) !== beforeDailyReads ||
       JSON.stringify(mergedRewards) !== beforeRewards ||
-      JSON.stringify(mergedPersonalization) !== beforePersonalization;
+      JSON.stringify(mergedPersonalization) !== beforePersonalization ||
+      JSON.stringify(mergedContentMemory) !== beforeContentMemory;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -1304,6 +1385,7 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   function eligible(q, ignoreRecent, ignoreDifficulty) {
     var key = dailyQuestionKey(q);
     if (used[key]) return false;
+    if (typeof contentMemoryAllows === 'function' && !ignoreRecent && !contentMemoryAllows(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl')) return false;
     if (!ignoreRecent && recent[key]) return false;
     if (predicate && !predicate(q)) return false;
     if (!ignoreDifficulty && preferredDifficulty != null && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) > 0) return false;
@@ -1317,8 +1399,11 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   if (!candidates.length && predicate) return pickDailyCandidate(pool, rng, used, recent, null, preferredDifficulty);
   if (!candidates.length) candidates = pool.filter(function (q) { return !used[dailyQuestionKey(q)]; });
   if (!candidates.length) return null;
-  var q = candidates[Math.floor(rng() * candidates.length)];
+  candidates.sort(function(a,b){return questionQualityScore(b,(b._dailyLeague||'NFL')==='CFB'?'cfb':'nfl',dailyDifficultyLabel(preferredDifficulty))-questionQualityScore(a,(a._dailyLeague||'NFL')==='CFB'?'cfb':'nfl',dailyDifficultyLabel(preferredDifficulty));});
+  var top=candidates.slice(0,Math.max(1,Math.min(8,candidates.length)));
+  var q = top[Math.floor(rng() * top.length)];
   used[dailyQuestionKey(q)] = true;
+  rememberContentQuestion(q,(q._dailyLeague||'NFL')==='CFB'?'cfb':'nfl');
   return q;
 }
 function dailyWeakSpot() {
@@ -1562,6 +1647,7 @@ function finalizeDailyQuestion(q, pickedIndex, firstTryCorrect) {
     t.confidenceResults.push({ confidence: t.confidenceByIndex[t.index] || 1, correct: !!firstTryCorrect });
   }
   recordKnowledgeAnswer(league === 'CFB' ? 'cfb' : 'nfl', q.category || 'General', !!firstTryCorrect);
+  if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, league === 'CFB' ? 'cfb' : 'nfl', 'daily');
 }
 function pickDailyAnswer(i) {
   var t = state.daily;
@@ -2061,7 +2147,7 @@ function enterMode(mode) {
 // not part of either league's mode grid/dropdown) but still need a real
 // label wherever modeLabelFor() is read — Report modal context text, the
 // reports screen listing, etc.
-var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues' };
+var EXTRA_MODE_LABELS = { study: 'Study Mode', xso: "X's & O's", community: 'Team Community', daily: 'Daily Reads', h2h: 'Head-to-Head', playerClues: 'Player From Clues', cfbPlayerClues: 'CFB Player From Clues', endless: 'Endless Reads' };
 function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
@@ -2152,6 +2238,10 @@ function goToMode(mode) {
   // engine-game-ui.js's one-question-at-a-time shell, so it gets its own
   // dedicated branch and start function (startPickemRound(league)) instead
   // of an ENGINE_DISCOVERY_ENTRIES `engineMode` key.
+  if (mode === 'endless') {
+    startEndlessMode();
+    return;
+  }
   if ((mode === 'pickem_nfl' || mode === 'pickem_cfb') && ENABLE_PICKEM_V01) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
@@ -3788,7 +3878,8 @@ function personalizationLeagueProfile() {
   var events = getPersonalizationState().playEvents || [];
   var out = { nfl:{plays:0,pcts:[]}, cfb:{plays:0,pcts:[]} };
   events.forEach(function (e) {
-    var l = e.league === 'cfb' ? 'cfb' : 'nfl'; out[l].plays++;
+    if (e.league !== 'nfl' && e.league !== 'cfb') return;
+    var l = e.league; out[l].plays++;
     if (typeof e.pct === 'number') out[l].pcts.push(e.pct);
   });
   ['nfl','cfb'].forEach(function (l) {
@@ -3803,8 +3894,8 @@ function weeklyPersonalGoals() {
     var d = new Date(Number(e.at)||0), ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     return dailyRivalWeekKey(ds) === week;
   });
-  var nfl = events.filter(function(e){return e.league!=='cfb';}).length;
-  var cfb = events.filter(function(e){return e.league==='cfb';}).length;
+  var nfl = events.filter(function(e){return e.league==='nfl'||e.league==='mixed';}).length;
+  var cfb = events.filter(function(e){return e.league==='cfb'||e.league==='mixed';}).length;
   var daily = getDailyRecords().filter(function(r){return dailyRivalWeekKey(r.date)===week;}).length;
   var mastery = personalizationMasteryRows();
   var weak = mastery.filter(function(r){return r.total>=3;}).sort(function(x,y){return x.pct-y.pct;})[0];
@@ -3949,7 +4040,10 @@ function noteRecommendedModePlayed(mode) {
   h.push({ mode: mode, at: Date.now() });
   lsSet(recommendationHistoryKey(), h.slice(-20));
 }
-function modeLeague(id) { return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl'; }
+function modeLeague(id) {
+  if (id === 'endless' && typeof ENDLESS !== 'undefined' && ENDLESS && ENDLESS.league) return ENDLESS.league;
+  return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl';
+}
 function modeMasteryScore(id) {
   var st = state.stats[id] || {};
   if (typeof st.bestPct === 'number') return st.bestPct;
@@ -4222,6 +4316,8 @@ function renderHome() {
     personalDashboardHtml() +
     friendRivalAlertHtml() +
     teamBattleHtml() +
+    liveFootballHomeHtml() +
+    endlessHomeCardHtml() +
     reengagementCenterHtml() +
     retentionMissionHtml() +
     unfinishedBusinessHtml() +
@@ -4534,7 +4630,11 @@ function currentQuizQuestion() {
 function startQuizRound(category, difficulty, roundSize) {
   beginProgressSession('quiz');
   var pool = quizPool(category, difficulty);
-  var ids = drawNoRepeat('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
+  if (typeof filterFreshQuestions === 'function') {
+    var freshPool = filterFreshQuestions(pool, 'nfl', 70);
+    if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
+  }
+  var ids = drawGlobalNoRepeatQuestions('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool, roundSize, 'nfl', difficulty);
   state.quiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.quiz !== false };
   renderAll();
 }
@@ -4545,7 +4645,10 @@ function pickQuizAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.quiz.correctCount++; if (q) removeFromMissedPool('nfl', q.id); }
   else if (q) { state.quiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('nfl', q.id); }
-  if (q) recordKnowledgeAnswer('nfl', q.category || 'General', !!isCorrect);
+  if (q) {
+    recordKnowledgeAnswer('nfl', q.category || 'General', !!isCorrect);
+    if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, 'nfl', 'quiz');
+  }
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -4812,7 +4915,11 @@ function currentCfbQuestion() {
 function startCfbQuizRound(category, difficulty, roundSize) {
   beginProgressSession('cfbQuiz');
   var pool = cfbPool(category, difficulty);
-  var ids = drawNoRepeat('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
+  if (typeof filterFreshQuestions === 'function') {
+    var freshPool = filterFreshQuestions(pool, 'cfb', 70);
+    if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
+  }
+  var ids = drawGlobalNoRepeatQuestions('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool, roundSize, 'cfb', difficulty);
   state.cfbQuiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.cfbQuiz !== false };
   renderAll();
 }
@@ -4823,7 +4930,10 @@ function pickCfbAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.cfbQuiz.correctCount++; if (q) removeFromMissedPool('cfb', q.id); }
   else if (q) { state.cfbQuiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('cfb', q.id); }
-  if (q) recordKnowledgeAnswer('cfb', q.category || 'General', !!isCorrect);
+  if (q) {
+    recordKnowledgeAnswer('cfb', q.category || 'General', !!isCorrect);
+    if (typeof rememberContentQuestion === 'function') rememberContentQuestion(q, 'cfb', 'cfbQuiz');
+  }
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -10108,7 +10218,7 @@ function progressionEventForCompletion(mode, fields) {
   return {
     type: eventType,
     mode: mode,
-    league: mode && mode.indexOf('cfb') === 0 ? 'CFB' : 'NFL',
+    league: mode === 'endless' ? 'MIXED' : (mode && mode.indexOf('cfb') === 0 ? 'CFB' : 'NFL'),
     source: 'leaderboard_completion',
     fields: fields || {}
   };
@@ -10266,6 +10376,7 @@ var LEADERBOARD_MODES = [
   { id: 'rating', label: 'Football Rating', sortKey: 'score', cols: [['score', 'Rating'], ['games', 'Games Played']] },
   { id: 'season', label: footballSeasonIdForDate() + ' Season', sortKey: 'seasonXp', cols: [['seasonXp', 'Season XP'], ['gamesPlayed', 'Games'], ['bestStreak', 'Best Streak']] },
   { id: 'daily', label: 'Daily Reads', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
+  { id: 'endless', label: 'Endless Reads', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['bestQuestions', 'Best Questions'], ['bestStreak', 'Best Streak'], ['runs', 'Runs']] },
   { id: 'quiz', label: 'NFL Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'xso', label: "X's & O's", sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'grid', label: 'NFL Grid', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['cleanSweeps', 'Clean Sweeps'], ['gamesPlayed', 'Games']] },
@@ -10741,7 +10852,7 @@ function clearAllUserData() {
   var keys = [];
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && k.indexOf('nflTrivia') === 0) keys.push(k);
+    if (k && (k.indexOf('nflTrivia') === 0 || k.indexOf('reads') === 0)) keys.push(k);
   }
   keys.forEach(function (k) { localStorage.removeItem(k); });
   location.reload();
@@ -12663,9 +12774,12 @@ function renderAll() {
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
   else if (state.screen === 'creator') html += renderCreatorScreen();
   else if (state.screen === 'pickem') html += renderPickemScreen();
+  else if (state.screen === 'liveFootball') html += renderLiveFootballScreen();
+  else if (state.screen === 'endless') html += renderEndlessScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
+  if (typeof liveFootballMaybeRefresh === 'function' && (state.screen === 'home' || state.screen === 'liveFootball')) liveFootballMaybeRefresh(false);
   if (typeof syncBgMusic === 'function') syncBgMusic();
 
   var specificFocusHandled = false;
@@ -12886,7 +13000,9 @@ document.addEventListener('click', function (e) {
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], ' +
-    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry]');
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
+    '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
+    '[data-endless-start], [data-endless-answer], [data-endless-next]');
   if (!t) return;
 
   // User request: the correct-answer crowd-cheer (and wrong-answer whistle)
@@ -13505,6 +13621,16 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
   if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }
   if (t.dataset.pickemRetry !== undefined) { loadPickemView(); return; }
+  if (t.dataset.liveFootballOpen !== undefined) { openLiveFootballHub(); return; }
+  if (t.dataset.liveFootballRefresh !== undefined) { liveFootballMaybeRefresh(true); renderAll(); return; }
+  if (t.dataset.liveGameChallenge !== undefined) { startLiveFootballChallenge(t.dataset.liveGameChallenge); return; }
+  if (t.dataset.liveChallengeStart !== undefined) { startLiveFootballChallenge(null); return; }
+  if (t.dataset.liveChallengeAnswer !== undefined) { answerLiveFootballChallenge(t.dataset.liveChallengeAnswer); return; }
+  if (t.dataset.liveChallengeNext !== undefined) { nextLiveFootballChallenge(); return; }
+  if (t.dataset.liveChallengeClose !== undefined) { LIVE_FOOTBALL.challenge = null; renderAll(); return; }
+  if (t.dataset.endlessStart !== undefined) { startEndlessMode(); return; }
+  if (t.dataset.endlessAnswer !== undefined) { answerEndless(Number(t.dataset.endlessAnswer)); return; }
+  if (t.dataset.endlessNext !== undefined) { nextEndless(); return; }
   if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
     var tokenInput = document.getElementById('creator-token-input');
     creatorSubmitToken(tokenInput ? tokenInput.value : '');
@@ -13560,7 +13686,10 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cfbBlitzSubmit !== undefined) { submitCfbBlitzGuess(); return; }
   if (t.dataset.cfbBlitzSetup !== undefined) { state.cfbBlitz = null; renderAll(); return; }
 
-  if (t.dataset.modeRestart !== undefined) { stopTimers(); resetModeState(t.dataset.modeRestart); renderAll(); return; }
+  if (t.dataset.modeRestart !== undefined) {
+    if (t.dataset.modeRestart === 'endless') { startEndlessMode(); return; }
+    stopTimers(); resetModeState(t.dataset.modeRestart); renderAll(); return;
+  }
   if (t.dataset.modeExit !== undefined) { goToMode('home'); return; }
 });
 

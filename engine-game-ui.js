@@ -505,9 +505,27 @@ function normalizeEnginePilotPackageForPlayer(modeKey, game) {
   }
   return game;
 }
+function enginePilotQualityScore(modeKey, game) {
+  if (!game || !game.payload) return { score: 0, reasons: ['missing payload'] };
+  var p = game.payload, score = 100, reasons = [];
+  var prompt = String(p.prompt || p.question || '');
+  if (!prompt) { score -= 55; reasons.push('missing prompt'); }
+  else if (prompt.length < 12) { score -= 20; reasons.push('thin prompt'); }
+  else if (prompt.length > 500) { score -= 10; reasons.push('overlong prompt'); }
+  if (Array.isArray(p.options)) {
+    if (p.options.length < 2) { score -= 55; reasons.push('too few options'); }
+    var seen = {}, dup = false;
+    p.options.forEach(function (opt) { var k = String(opt || '').trim().toLowerCase(); if (!k || seen[k]) dup = true; seen[k] = true; });
+    if (dup) { score -= 45; reasons.push('duplicate/blank options'); }
+  }
+  if (modeKey === 'threeClues' && /finished that real season 0-0(?:[.,;]|$)/i.test(prompt)) {
+    score -= 80; reasons.push('known bogus 0-0 season clue');
+  }
+  if (/\b(undefined|null|nan)\b/i.test(prompt)) { score -= 60; reasons.push('invalid rendered value'); }
+  return { score: Math.max(0, score), reasons: reasons };
+}
 function enginePilotPackageNeedsQualityRetry(modeKey, game) {
-  if (!game || !game.payload) return false;
-  return modeKey === 'threeClues' && /finished that real season 0-0(?:[.,;]|$)/i.test(game.payload.prompt || '');
+  return enginePilotQualityScore(modeKey, game).score < 70;
 }
 function startEnginePilotRound(modeKey, filterValue) {
   if (modeKey) enginePilotCurrentModeKey = modeKey;
