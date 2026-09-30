@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.6.0';
+var APP_VERSION = '3.7.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -841,7 +841,8 @@ function pushProfileSnapshot() {
     stats: state.stats,
     streak: getStreak(),
     favoriteTeams: getFavoriteTeams(),
-    dailyReads: dailyReadsProfileState()
+    dailyReads: dailyReadsProfileState(),
+    rewards: rewardsProfileState()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -864,22 +865,26 @@ function pullProfileSnapshot() {
     var beforeFavorites = JSON.stringify(getFavoriteTeams());
     var beforeProgression = JSON.stringify(getProgression());
     var beforeDailyReads = JSON.stringify(dailyReadsProfileState());
+    var beforeRewards = JSON.stringify(getRewards());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
     var mergedProgression = mergeProgression(getProgression(), cloud.progression);
     var mergedDailyReads = mergeDailyReads(dailyReadsProfileState(), cloud.dailyReads);
+    var mergedRewards = mergeRewards(getRewards(), cloud.rewards);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
     setProgression(mergedProgression);
     if (mergedDailyReads.result) lsSet(dailyKey(), mergedDailyReads.result);
     setDailyHistory(mergedDailyReads.history);
+    setRewards(mergedRewards, true);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
       JSON.stringify(mergedProgression) !== beforeProgression ||
-      JSON.stringify(mergedDailyReads) !== beforeDailyReads;
+      JSON.stringify(mergedDailyReads) !== beforeDailyReads ||
+      JSON.stringify(mergedRewards) !== beforeRewards;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -2573,6 +2578,7 @@ function setFavoriteTeams(v) {
   v = Object.assign({}, v, { updatedAt: Date.now() });
   lsSet(favoriteTeamsKey(), v);
   pushProfileSnapshot();
+  syncAchievementUnlocks();
 }
 function favoriteTeamById(league, id) {
   var list = league === 'nfl' ? NFL_TEAMS : CFB_TEAMS;
@@ -8714,6 +8720,7 @@ function pushLeaderboard(mode, fields) {
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
+  syncAchievementUnlocks();
 }
 function leaderboardRowTimestamp(row) {
   if (!row || !row.updatedAt) return 0;
@@ -10659,13 +10666,108 @@ var BADGES = [
   { id: 'perfect12', icon: '🏆', title: 'Perfect 12-0', desc: 'Drafted a CFB 12-0 team that actually went undefeated and won the National Championship.', check: function (st) { return (st.cfbLegends.bestWins || 0) >= 12; } },
   { id: 'sharpEye', icon: '🕵️', title: 'Sharp Eye', desc: '5+ quick guesses (few clues used) in one Silhouette round.', check: function (st) { return (st.silhouette.bestQuick || 0) >= 5; } },
   { id: 'onFire', icon: '🔥', title: 'On Fire', desc: 'Hit a 7-day Daily Reads streak.', check: function (st, streak) { return streak.count >= 7; } },
-  { id: 'dailyGrinder', icon: '📅', title: 'Daily Grinder', desc: 'Completed 10+ Daily Readss.', check: function (st) { return (st.daily.completions || 0) >= 10; } },
+  { id: 'dailyGrinder', icon: '📅', title: 'Daily Grinder', desc: 'Completed 10+ Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 10; } },
   { id: 'rivalry', icon: '⚔️', title: 'Got Next', desc: 'Won a Head-to-Head match against a friend.', check: function (st) { return (st.h2h.wins || 0) >= 1; } },
   { id: 'higherLowerStreak', icon: '📈', title: 'On a Heater', desc: 'Built a 15+ player streak in Higher or Lower.', check: function (st) { return (st.higherLower.bestStreak || 0) >= 15; } }
 ];
+var REWARD_BADGES = [
+  { id: 'firstRead', icon: '📖', title: 'First Read', desc: 'Completed your first Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 1; } },
+  { id: 'daily25', icon: '🗓️', title: 'Daily Habit', desc: 'Completed 25 Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 25; } },
+  { id: 'streak30', icon: '🔥', title: 'Iron Streak', desc: 'Reached a 30-day Daily Reads streak.', check: function (st, streak) { return streak.count >= 30; } },
+  { id: 'starterRank', icon: '🏈', title: 'Starter', desc: 'Reached Starter career rank.', check: function () { return (getProgression().careerXp || 0) >= 250; } },
+  { id: 'playmakerRank', icon: '⭐', title: 'Playmaker', desc: 'Reached Playmaker career rank.', check: function () { return (getProgression().careerXp || 0) >= 750; } },
+  { id: 'veteranRank', icon: '🛡️', title: 'Veteran', desc: 'Reached Veteran career rank.', check: function () { return (getProgression().careerXp || 0) >= 1500; } },
+  { id: 'allProRank', icon: '💎', title: 'All-Pro', desc: 'Reached All-Pro career rank.', check: function () { return (getProgression().careerXp || 0) >= 3000; } },
+  { id: 'legendRank', icon: '👑', title: 'Reads Legend', desc: 'Reached Legend career rank.', check: function () { return (getProgression().careerXp || 0) >= 6000; } },
+  { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } }
+];
+BADGES = BADGES.concat(REWARD_BADGES);
+
+var PROFILE_COSMETICS = [
+  { id: 'classic', title: 'Classic', minXp: 0, desc: 'Clean Reads profile frame.' },
+  { id: 'team', title: 'Team Colors', minXp: 250, desc: 'Profile frame styled around your favorite team.' },
+  { id: 'spotlight', title: 'Spotlight', minXp: 750, desc: 'Broadcast-style profile spotlight.' },
+  { id: 'allpro', title: 'All-Pro', minXp: 3000, desc: 'Premium All-Pro profile treatment.' },
+  { id: 'legend', title: 'Legend', minXp: 6000, desc: 'Top-tier Reads Legend profile frame.' }
+];
+function rewardsKey() { return 'nflTriviaRewards__' + slugify(state.name || 'guest'); }
+function defaultRewards() { return { unlockedBadgeIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', updatedAt: 0 }; }
+function getRewards() {
+  var r = lsGet(rewardsKey(), defaultRewards());
+  r.unlockedBadgeIds = Array.isArray(r.unlockedBadgeIds) ? r.unlockedBadgeIds : [];
+  r.selectedCosmeticId = r.selectedCosmeticId || 'classic';
+  return r;
+}
+function setRewards(r, skipSync) {
+  r = Object.assign(defaultRewards(), r || {}, { updatedAt: Date.now() });
+  lsSet(rewardsKey(), r);
+  if (!skipSync) pushProfileSnapshot();
+}
+function mergeRewards(local, cloud) {
+  local = local || defaultRewards(); cloud = cloud || defaultRewards();
+  var seen = {}, unlocked = [];
+  (local.unlockedBadgeIds || []).concat(cloud.unlockedBadgeIds || []).forEach(function (id) {
+    if (!seen[id]) { seen[id] = true; unlocked.push(id); }
+  });
+  var newer = (Number(cloud.updatedAt) || 0) > (Number(local.updatedAt) || 0) ? cloud : local;
+  return {
+    unlockedBadgeIds: unlocked,
+    selectedBadgeId: newer.selectedBadgeId || null,
+    selectedCosmeticId: newer.selectedCosmeticId || 'classic',
+    updatedAt: Math.max(Number(local.updatedAt) || 0, Number(cloud.updatedAt) || 0)
+  };
+}
 function earnedBadges() {
   var st = state.stats, streak = getStreak();
-  return BADGES.filter(function (b) { return b.check(st, streak); });
+  return BADGES.filter(function (b) {
+    try { return b.check(st, streak); } catch (e) { return false; }
+  });
+}
+function unlockedCosmetics() {
+  var xp = Number(getProgression().careerXp) || 0;
+  return PROFILE_COSMETICS.filter(function (c) { return xp >= c.minXp; });
+}
+function selectedBadge() {
+  var r = getRewards();
+  var earned = earnedBadges();
+  return earned.find(function (b) { return b.id === r.selectedBadgeId; }) || earned[0] || null;
+}
+function selectedProfileCosmetic() {
+  var r = getRewards();
+  return unlockedCosmetics().find(function (c) { return c.id === r.selectedCosmeticId; }) || PROFILE_COSMETICS[0];
+}
+function rewardsProfileState() { return getRewards(); }
+function awardAchievementXp(badgeId) {
+  if (!activeAuthUid || !window.__fbSync || !window.__fbSync.awardProgress) return;
+  var seasonId = footballSeasonIdForDate();
+  var eventId = 'achievement_' + badgeId;
+  window.__fbSync.awardProgress(profileDocId(), eventId, { type: 'ACHIEVEMENT_UNLOCKED', badgeId: badgeId, source: 'rewards' }, 100, seasonId)
+    .then(function (result) { if (!result || !result.duplicate) applyProgressAwardLocally(100, seasonId); })
+    .catch(function () {});
+}
+function syncAchievementUnlocks() {
+  if (!state.name) return [];
+  var r = getRewards();
+  var earned = earnedBadges();
+  var known = {};
+  r.unlockedBadgeIds.forEach(function (id) { known[id] = true; });
+  var newly = earned.filter(function (b) { return !known[b.id]; });
+  if (!newly.length) return [];
+  newly.forEach(function (b) {
+    r.unlockedBadgeIds.push(b.id);
+    awardAchievementXp(b.id);
+  });
+  setRewards(r);
+  return newly;
+}
+function selectProfileBadge(id) {
+  var badge = earnedBadges().find(function (b) { return b.id === id; });
+  if (!badge) return;
+  var r = getRewards(); r.selectedBadgeId = id; setRewards(r); renderAll();
+}
+function selectProfileCosmetic(id) {
+  if (!unlockedCosmetics().some(function (c) { return c.id === id; })) return;
+  var r = getRewards(); r.selectedCosmeticId = id; setRewards(r); renderAll();
 }
 
 /* ============================== rating history (sparkline) ==============================
