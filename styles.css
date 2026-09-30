@@ -5398,3 +5398,82 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     justify-content:center;
   }
 }
+
+
+/* Social Challenges v2 */
+.social-inbox {
+  margin:16px 0 18px;
+  padding:15px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.025);
+}
+.social-inbox-group {
+  display:grid;
+  gap:9px;
+  margin-top:12px;
+}
+.social-inbox-group h4 {
+  margin:0;
+  color:var(--muted);
+  font-size:.7rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.social-challenge-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+.social-challenge-card.incoming {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.34);
+  background:linear-gradient(105deg,rgba(var(--fav-team-rgb,255,255,255),.11),rgba(255,255,255,.02));
+}
+.social-challenge-card > div:first-child {
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.social-challenge-card > div:first-child > span {
+  color:var(--fav-team-color-readable,var(--accent));
+  font-size:.58rem;
+  font-weight:950;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.social-challenge-card > div:first-child > b {
+  font-size:.88rem;
+}
+.social-challenge-card small {
+  color:var(--muted);
+  font-size:.66rem;
+}
+.social-challenge-actions {
+  display:flex;
+  gap:7px;
+  flex:0 0 auto;
+}
+.friend-row .friend-stats svg.icon {
+  width:13px;
+  height:13px;
+  vertical-align:-2px;
+}
+@media (max-width:700px) {
+  .social-challenge-card {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .social-challenge-actions {
+    width:100%;
+  }
+  .social-challenge-actions .btn-primary,
+  .social-challenge-actions .btn-tiny {
+    flex:1;
+    justify-content:center;
+  }
+}
