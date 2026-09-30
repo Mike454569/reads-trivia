@@ -3567,3 +3567,49 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .daily-reads-reward { align-items:flex-start; flex-direction:column; }
   .daily-reads-reward span { text-align:left; }
 }
+
+
+/* Rewards layer: trophy case, equipped badge, and career-unlocked profile frames. */
+.profile-rewards-shell { position:relative; overflow:hidden; }
+.profile-identity-card { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:12px 0 18px; padding:16px; border:1px solid var(--border); border-radius:16px; background:rgba(255,255,255,.025); }
+.profile-identity-main { display:flex; align-items:center; gap:13px; min-width:0; }
+.profile-avatar-mark { width:54px; height:54px; display:grid; place-items:center; flex:0 0 auto; border-radius:16px; background:rgba(255,255,255,.06); font-size:28px; }
+.profile-identity-main .panel-title { margin:3px 0 4px; }
+.profile-equipped-line { color:var(--text-dim); font-size:11px; }
+.profile-rank-chip { display:flex; flex-direction:column; align-items:flex-end; gap:2px; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.025); }
+.profile-rank-chip b { color:var(--accent); font:800 14px var(--font-display); }
+.profile-rank-chip span { color:var(--text-dim); font-size:10px; }
+.profile-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:26px 0 10px; }
+.profile-section-head h3 { margin:3px 0 0; font:800 22px/1.1 var(--font-display); }
+.profile-section-head > span { color:var(--text-dim); font-size:11px; }
+.profile-trophy-grid { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+.profile-badge { position:relative; width:100%; text-align:left; }
+.profile-badge.earned { cursor:pointer; }
+.profile-badge.selected { outline:2px solid var(--accent); outline-offset:2px; }
+.profile-badge-desc { margin-top:6px; color:var(--text-dim); font-size:10px; line-height:1.35; }
+.profile-equipped { position:absolute; top:8px; right:8px; padding:3px 6px; border-radius:999px; background:var(--accent); color:var(--accent-text); font:800 8px var(--font-display); letter-spacing:.06em; text-transform:uppercase; }
+.profile-cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+.profile-cosmetic-card { display:flex; flex-direction:column; gap:6px; align-items:flex-start; padding:14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.02); color:var(--text); text-align:left; opacity:.55; }
+.profile-cosmetic-card.unlocked { opacity:1; cursor:pointer; }
+.profile-cosmetic-card.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.profile-cosmetic-card b { font:800 14px var(--font-display); }
+.profile-cosmetic-card small { color:var(--text-dim); line-height:1.35; }
+.profile-cosmetic-unlock { color:var(--accent); font:700 9px var(--font-display); letter-spacing:.06em; text-transform:uppercase; }
+.profile-cosmetic-preview { width:100%; height:46px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:11px; background:rgba(255,255,255,.025); }
+.profile-cosmetic-preview-team { background:linear-gradient(135deg,rgba(var(--fav-team-color-rgb,255,255,255),.22),rgba(var(--fav-team-color-2-rgb,255,255,255),.06)); }
+.profile-cosmetic-preview-spotlight { box-shadow:inset 0 0 24px rgba(255,255,255,.08); }
+.profile-cosmetic-preview-allpro { border-color:rgba(230,182,80,.6); box-shadow:inset 0 0 18px rgba(230,182,80,.12); }
+.profile-cosmetic-preview-legend { border-color:var(--accent); box-shadow:0 0 22px rgba(230,182,80,.16), inset 0 0 20px rgba(230,182,80,.08); }
+.profile-cosmetic-team .profile-identity-card { border-color:rgba(var(--fav-team-color-rgb,230,182,80),.55); background:linear-gradient(135deg,rgba(var(--fav-team-color-rgb,230,182,80),.14),rgba(var(--fav-team-color-2-rgb,230,182,80),.04)); }
+.profile-cosmetic-spotlight .profile-identity-card { box-shadow:inset 0 0 40px rgba(255,255,255,.06),0 14px 35px rgba(0,0,0,.16); }
+.profile-cosmetic-allpro .profile-identity-card { border-color:rgba(230,182,80,.62); box-shadow:0 0 0 1px rgba(230,182,80,.16) inset; }
+.profile-cosmetic-legend .profile-identity-card { border-color:var(--accent); box-shadow:0 0 26px rgba(230,182,80,.16),0 14px 35px rgba(0,0,0,.18); }
+.dashboard-identity-tools { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.dashboard-equipped-badge { display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:999px; background:rgba(255,255,255,.03); color:var(--text); font:700 10px var(--font-display); }
+.dashboard-cosmetic-label { margin:-6px 0 12px; color:var(--text-dim); font-size:10px; }
+@media(max-width:600px) {
+  .profile-identity-card { align-items:flex-start; flex-direction:column; }
+  .profile-rank-chip { align-items:flex-start; }
+  .profile-section-head { align-items:flex-start; flex-direction:column; }
+  .dashboard-identity-tools { justify-content:flex-start; }
+}
