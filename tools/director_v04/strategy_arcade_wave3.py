@@ -399,7 +399,9 @@ def evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dic
     if variant == "EXTRA_POINT":
         if s.get("conversion_pending"):
             if action=="kick":
-                s["score"]=s.get("score",0)+1; s["conversion_pending"]=False; _advance(s,True,0)
+                s["score"]=s.get("score",0)+1; s["conversion_pending"]=False
+                if s.get("touchdowns",0)>=4 or s["cursor"]>=8:
+                    s["completed"]=True; s["result_label"]=f"{s['score']} points"
                 return {"action":"select","conversion":"kick"},s
             if action=="two":
                 s["conversion_pending"]=False; s["two_point_question"]=True
@@ -413,9 +415,14 @@ def evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dic
             return result,s
         result=core._grade(package,s,submission)
         if result["correct"]:
-            s["score"]=s.get("score",0)+6; s["touchdowns"]=s.get("touchdowns",0)+1; s["conversion_pending"]=True
-        else: _advance(s,False)
-        if result["correct"] is False and s["cursor"]>=8: s["completed"]=True; s["result_label"]=f"{s.get('score',0)} points"
+            s["score"]=s.get("score",0)+6
+            s["touchdowns"]=s.get("touchdowns",0)+1
+            s["conversion_pending"]=True
+            _advance(s,True)
+        else:
+            _advance(s,False)
+        if s["cursor"]>=8 and not s.get("conversion_pending"):
+            s["completed"]=True; s["result_label"]=f"{s.get('score',0)} points"
         return result,s
 
     if variant == "COMEBACK_MODE":
