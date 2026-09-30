@@ -115,6 +115,8 @@ window.__fbSync = {
   pushProfile: function () { /* no-op until Firebase finishes initializing below */ },
   getProfile: function () { return Promise.reject(new Error('Not connected')); },
   awardProgress: function () { return Promise.reject(new Error('Not connected')); },
+  watchCommunity: function () { return function () {}; },
+  postCommunity: function () { return Promise.reject(new Error('Not connected')); },
   signUp: function () { return Promise.reject(new Error('Not connected')); },
   logIn: function () { return Promise.reject(new Error('Not connected')); },
   logOut: function () { /* no-op until Firebase finishes initializing below */ }
@@ -245,6 +247,38 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       addDoc(reportsCol, data).catch(function (err) {
         console.error('Report submit failed', err);
       });
+    };
+
+    // Favorite-team communities. Each team gets its own lightweight live feed
+    // under games/nflTrivia/communities/{teamKey}/posts. Reads are public to
+    // any authenticated Firebase session (including anonymous viewers); app.js
+    // only exposes posting to real Reads accounts.
+    window.__fbSync.watchCommunity = function (teamKey, cb) {
+      if (!teamKey || typeof cb !== 'function') return function () {};
+      var postsCol = collection(db, 'games', GAME_ID, 'communities', teamKey, 'posts');
+      return onSnapshot(postsCol, function (snap) {
+        var rows = [];
+        snap.forEach(function (d) {
+          rows.push(Object.assign({ id: d.id }, d.data()));
+        });
+        rows.sort(function (a, b) {
+          var ta = a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : (a.createdAt && a.createdAt.seconds ? a.createdAt.seconds * 1000 : 0);
+          var tb = b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : (b.createdAt && b.createdAt.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tb - ta;
+        });
+        cb(rows.slice(0, 50));
+      }, function (err) {
+        console.error('Community watch failed', err);
+        cb([]);
+      });
+    };
+    window.__fbSync.postCommunity = function (teamKey, payload) {
+      if (!teamKey || !payload) return Promise.reject(new Error('Invalid community post'));
+      var postsCol = collection(db, 'games', GAME_ID, 'communities', teamKey, 'posts');
+      return addDoc(postsCol, Object.assign({}, payload, {
+        authorUid: auth.currentUser && !auth.currentUser.isAnonymous ? auth.currentUser.uid : null,
+        createdAt: serverTimestamp()
+      }));
     };
 
     // onAuthStateChanged now fires more than once per page load (logging in/
