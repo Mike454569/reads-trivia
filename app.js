@@ -13107,6 +13107,22 @@ function ratingSparklineSvg(history) {
     '<polyline points="' + points + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>';
 }
 
+function filmProfileResumeHtml(){
+  var n=filmNotebook(), families=FILM_FAMILIES.concat([{id:'footballIQ',label:'Football IQ',icon:'🏈'}]);
+  var ranked=families.map(function(f){var rec=n.mastery[f.id]||{attempts:0,correct:0};return {meta:f,rec:rec,level:filmMasteryLevel(rec)};})
+    .filter(function(x){return x.rec.attempts>0;})
+    .sort(function(x,y){var score={Rookie:1,Starter:2,Coordinator:3,Guru:4};return (score[y.level.name]-score[x.level.name])||(y.level.pct-x.level.pct);});
+  var best=ranked[0], weak=filmWeakFamily(), weakMeta=filmFamilyMeta(weak);
+  return '<section class="profile-film-resume"><div class="profile-section-head"><div><span class="dashboard-eyebrow">FILM ROOM RÉSUMÉ</span><h3>Football IQ Development</h3></div><button class="btn-tiny" data-go="learn">Open Film Room</button></div>'+
+    '<div class="profile-film-stats"><div><b>'+n.reps+'</b><span>Study reps</span></div><div><b>'+n.sessions+'</b><span>Sessions</span></div><div><b>'+n.bossWins+'</b><span>Coordinator wins</span></div><div><b>'+(n.reps?Math.round(100*n.correct/n.reps)+'%':'—')+'</b><span>Accuracy</span></div></div>'+
+    '<div class="profile-film-readout">'+
+      '<div><span>BEST MASTERY</span><b>'+(best?best.meta.icon+' '+esc(best.meta.label)+' · '+esc(best.level.name):'No reps yet')+'</b></div>'+
+      '<div><span>NEXT ASSIGNMENT</span><b>'+weakMeta.icon+' '+esc(weakMeta.label)+'</b></div>'+
+    '</div>'+
+    (ranked.length?'<div class="profile-film-mastery">'+ranked.slice(0,4).map(function(x){return '<span><b>'+x.meta.icon+' '+esc(x.meta.label)+'</b><small>'+esc(x.level.name)+' · '+x.level.pct+'%</small></span>';}).join('')+'</div>':'')+
+  '</section>';
+}
+
 function renderProfile() {
   syncAchievementUnlocks();
   var r = getRating();
@@ -13137,6 +13153,7 @@ function renderProfile() {
   }
 
   html += careerLadderHtml();
+  html += filmProfileResumeHtml();
   html += seasonTrophyCaseHtml();
   html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">TROPHY CASE</span><h3>Achievements</h3></div><span>' + earned.length + ' / ' + BADGES.length + ' unlocked</span></div>' +
     '<p class="mode-desc">Achievements are permanent. Tap any earned badge to equip it on your profile. New achievements award bonus XP once.</p>' +
