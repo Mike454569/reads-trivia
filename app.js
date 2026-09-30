@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.17.0';
+var APP_VERSION = '3.18.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -2134,6 +2134,7 @@ function enterMode(mode) {
     window.__fbSync.logPlay('learn');
   } else if (mode === 'friends') {
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay('friends');
+    startSocialChallengeWatch();
     loadFriendsData();
   } else if (mode === 'community' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('community');
@@ -8406,6 +8407,7 @@ function h2hOnMatchUpdate(match) {
   if (!s || !match) return;
   s.match = match;
   h2hMaybeCountRecord();
+  if(s.code) socialSyncChallengeResult(match,s.code);
   if (s.screen === 'lobby') {
     var slugs = Object.keys(match.players || {});
     var me = match.players[s.mySlug];
@@ -8512,6 +8514,7 @@ function h2hCreateMatch(mode) {
     s.screen = 'lobby';
     s.error = null;
     h2hWatch(code);
+    if(s.intendedOpponent) createSocialChallengeInvite(s.intendedOpponent,code,mode);
     renderAll();
   }).catch(function (err) {
     console.error('Create match failed', err);
@@ -12334,6 +12337,101 @@ function renderEncyclopediaScreen() {
   return renderEncyclopediaDomains();
 }
 
+/* ============================== social challenges v2 ============================== */
+var socialChallengeRows = [];
+var socialChallengeUnsub = null;
+function stopSocialChallengeWatch(){if(socialChallengeUnsub){socialChallengeUnsub();socialChallengeUnsub=null;}}
+function startSocialChallengeWatch(){
+  stopSocialChallengeWatch();
+  if(!state.name||!window.__fbSync||!window.__fbSync.watchSocialChallenges)return;
+  socialChallengeUnsub=window.__fbSync.watchSocialChallenges(state.name,function(rows){
+    socialChallengeRows=Array.isArray(rows)?rows:[];
+    if(state.screen==='friends'||state.screen==='h2h')renderAll();
+  });
+}
+function socialChallengeMs(row){
+  var v=row&&(row.updatedAt||row.createdAt);
+  if(!v)return 0;
+  if(typeof v.toMillis==='function')return v.toMillis();
+  if(v.seconds)return v.seconds*1000;
+  return Number(v)||0;
+}
+function socialChallengeRelative(row){
+  var ms=socialChallengeMs(row);if(!ms)return 'just now';
+  var mins=Math.floor(Math.max(0,Date.now()-ms)/60000);
+  if(mins<1)return 'just now';if(mins<60)return mins+'m ago';
+  var hrs=Math.floor(mins/60);if(hrs<24)return hrs+'h ago';
+  return Math.floor(hrs/24)+'d ago';
+}
+function socialIncomingChallenges(){
+  var me=slugify(state.name||'');
+  return socialChallengeRows.filter(function(r){return r.recipientSlug===me&&r.status==='pending';});
+}
+function socialOutgoingChallenges(){
+  var me=slugify(state.name||'');
+  return socialChallengeRows.filter(function(r){return r.senderSlug===me&&r.status==='pending';});
+}
+function socialCompletedChallengesWith(name){
+  var me=slugify(state.name||''), other=slugify(name||'');
+  return socialChallengeRows.filter(function(r){
+    return r.status==='complete'&&((r.senderSlug===me&&r.recipientSlug===other)||(r.senderSlug===other&&r.recipientSlug===me));
+  });
+}
+function socialRivalryRecord(name){
+  var rows=socialCompletedChallengesWith(name), me=slugify(state.name||''), w=0,l=0,t=0;
+  rows.forEach(function(r){
+    if(!r.winnerSlug)t++;
+    else if(r.winnerSlug===me)w++;
+    else l++;
+  });
+  return {wins:w,losses:l,ties:t,total:rows.length};
+}
+function socialChallengeLink(code){
+  return SITE_URL+'?challenge='+encodeURIComponent(code||'');
+}
+function copySocialChallengeLink(code){
+  var text='I challenged you on Reads. Beat me: '+socialChallengeLink(code);
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).catch(function(){});
+}
+function createSocialChallengeInvite(name, code, mode){
+  if(!activeAuthUid||!name||!code||!window.__fbSync||!window.__fbSync.createSocialChallenge)return;
+  window.__fbSync.createSocialChallenge({
+    recipientName:name,matchCode:code,mode:mode||'quiz',modeLabel:h2hModeLabel(mode||'quiz'),status:'pending'
+  }).catch(function(err){console.error('Challenge invite failed',err);});
+}
+function acceptSocialChallenge(id){
+  var row=socialChallengeRows.find(function(r){return r.id===id;});
+  if(!row||!row.matchCode)return;
+  if(window.__fbSync&&window.__fbSync.updateSocialChallenge)window.__fbSync.updateSocialChallenge(id,{status:'accepted'}).catch(function(){});
+  state.h2h={screen:'join',mode:row.mode||'quiz',roundSize:10,listId:null,error:null,intendedOpponent:row.senderName||null};
+  state.screen='h2h';
+  h2hJoinMatch(row.matchCode);
+}
+function dismissSocialChallenge(id){
+  if(window.__fbSync&&window.__fbSync.updateSocialChallenge)window.__fbSync.updateSocialChallenge(id,{status:'declined'}).catch(function(){});
+}
+function socialSyncChallengeResult(match,code){
+  if(!match||!code||!window.__fbSync||!window.__fbSync.updateSocialChallenge)return;
+  var row=socialChallengeRows.find(function(r){return r.matchCode===code&&r.status!=='complete';});
+  if(!row)return;
+  var players=match.players||{}, slugs=Object.keys(players);
+  if(slugs.length!==2)return;
+  var p1=players[slugs[0]],p2=players[slugs[1]];
+  if(!p1||!p2||!p1.finishedAt||!p2.finishedAt)return;
+  var diff=h2hCompareRecords(p1,p2), winnerSlug=diff===0?null:(diff>0?slugs[0]:slugs[1]);
+  window.__fbSync.updateSocialChallenge(row.id,{status:'complete',winnerSlug:winnerSlug,completedAt:Date.now()}).catch(function(){});
+}
+function socialChallengeInboxHtml(){
+  if(!activeAuthUid)return '<section class="social-inbox"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CHALLENGE INBOX</span><h3>Your matchups</h3></div></div><div class="community-login-note"><b>Log in for cross-device challenges.</b><span>Friend invites and rematches will show here.</span><button class="btn-secondary" data-auth-open="login">Log In</button></div></section>';
+  var incoming=socialIncomingChallenges(), outgoing=socialOutgoingChallenges();
+  return '<section class="social-inbox"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CHALLENGE INBOX</span><h3>Your matchups</h3></div><span>'+incoming.length+' waiting</span></div>'+
+    (!incoming.length&&!outgoing.length?'<div class="community-empty"><b>No open challenges.</b><span>Challenge a friend below and start a rivalry.</span></div>':'')+
+    (incoming.length?'<div class="social-inbox-group"><h4>Incoming</h4>'+incoming.map(function(r){return '<article class="social-challenge-card incoming"><div><span>'+esc(r.modeLabel||h2hModeLabel(r.mode))+'</span><b>'+esc(r.senderName||'Reads fan')+' challenged you</b><small>'+esc(socialChallengeRelative(r))+'</small></div><div class="social-challenge-actions"><button class="btn-primary" data-social-accept="'+esc(r.id)+'">Play Now</button><button class="btn-tiny" data-social-decline="'+esc(r.id)+'">Dismiss</button></div></article>';}).join('')+'</div>':'')+
+    (outgoing.length?'<div class="social-inbox-group"><h4>Sent</h4>'+outgoing.map(function(r){return '<article class="social-challenge-card"><div><span>'+esc(r.modeLabel||h2hModeLabel(r.mode))+'</span><b>Waiting on '+esc(r.recipientName||'friend')+'</b><small>'+esc(socialChallengeRelative(r))+'</small></div><button class="btn-tiny" data-social-copy="'+esc(r.matchCode)+'">Copy Invite</button></article>';}).join('')+'</div>':'')+
+    '</section>';
+}
+
+
 /* ============================== friends ==============================
    No accounts, no requests to accept — just a local list of names you're
    tracking, matched against the same shared leaderboard/profile data every
@@ -12423,6 +12521,7 @@ function renderFriendsScreen() {
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">' + icon('users') + ' Friends</h2>' +
     '<p class="mode-desc">Add friends by their exact username, compare profiles, challenge them, and race for the weekly crown.</p>' +
+    socialChallengeInboxHtml() +
     friendRivalAlertHtml() +
     weeklyFriendStandingsHtml() +
     friendProfileComparisonHtml(state.friendCompare) +
@@ -12451,6 +12550,8 @@ function friendRowHtml(name) {
   else statsBits.push('No rating yet');
   if (streakCount > 0) statsBits.push(icon('flame') + ' ' + streakCount + '-day streak');
   if (rival) statsBits.push(icon('target') + ' Daily #' + (rivalIndex + 1) + ' · ' + (Number(rival.todayRivalPoints) || 0) + ' pts');
+  var record=socialRivalryRecord(name);
+  if(record.total) statsBits.push(icon('versus')+' '+record.wins+'-'+record.losses+(record.ties?'-'+record.ties:'')+' vs you');
   return '<div class="friend-row">' +
     '<div class="friend-info"><div class="friend-name">' + esc(name) + '</div>' +
     '<div class="friend-stats">' + statsBits.join(' &middot; ') + '</div></div>' +
