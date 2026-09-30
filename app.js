@@ -749,13 +749,16 @@ function ratingDocId() {
   return activeAuthUid ? ('account_' + activeAuthUid + '__rating') : ('rating__' + slugify(state.name));
 }
 function ratingPayload(r) {
+  var fav = getFavoriteTeams();
   return {
     name: state.name,
     mode: 'rating',
     score: r.score,
     games: r.games || 0,
     playerKey: canonicalPlayerKey(),
-    accountUid: activeAuthUid || null
+    accountUid: activeAuthUid || null,
+    favoriteNflTeam: fav.nfl || null,
+    favoriteCfbTeam: fav.cfb || null
   };
 }
 function getRating() { return state.name ? lsGet(ratingKey(), null) : null; }
@@ -2921,8 +2924,19 @@ function currentCompletionPercent(mode) {
   return Math.round(100 * (Number(t.correctCount) || 0) / t.queue.length);
 }
 function communityChallengeStatus(league, team) {
-  var key = communityChallengeStorageKey(communityTeamKey(league, team), todayStr());
-  return lsGet(key, { completed: false, pct: null, completedAt: null });
+  var teamKey = communityTeamKey(league, team);
+  var key = communityChallengeStorageKey(teamKey, todayStr());
+  var local = lsGet(key, { completed: false, pct: null, completedAt: null });
+  if (local.completed) return local;
+  if (activeAuthUid) {
+    var remote = communityRows.find(function (row) {
+      return row.id === ('challenge_' + todayStr() + '_' + activeAuthUid) &&
+        row.authorUid === activeAuthUid &&
+        row.teamId === team.id;
+    });
+    if (remote) return { completed: true, pct: remote.scoreValue == null ? null : remote.scoreValue, completedAt: communityCreatedAtMs(remote) };
+  }
+  return local;
 }
 function markCommunityChallengeComplete(league, team, challenge, pct) {
   var teamKey = communityTeamKey(league, team);
