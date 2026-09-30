@@ -882,6 +882,7 @@ function pullProfileSnapshot() {
     setProgression(mergedProgression);
     if (mergedDailyReads.result) lsSet(dailyKey(), mergedDailyReads.result);
     setDailyHistory(mergedDailyReads.history);
+    setDailyRecords(mergedDailyReads.records);
     setRewards(mergedRewards, true);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
@@ -1183,23 +1184,45 @@ function seededShuffle(arr, rng) {
 }
 var DAILY_SIZE = 5;
 var DAILY_READS_SLOT_LABELS = ['YOUR TEAM', 'WEAK SPOT', 'NFL QUICK HIT', 'CFB QUICK HIT', 'THE FINISHER'];
+var DAILY_MECHANICS = {
+  quick: { label: 'Quick Pick', short: '4-choice' },
+  fifty: { label: '50 / 50', short: '2-choice' },
+  elimination: { label: 'Eliminator', short: 'survive the board' },
+  confidence: { label: 'Confidence Play', short: 'call your shot' },
+  double: { label: 'Double Down', short: 'bonus point' }
+};
 function dailyQuestionKey(q) { return (q._dailyLeague || 'NFL') + ':' + q.id; }
 function dailyHistoryKey() { return 'nflTriviaDailyReadsHistory__' + slugify(state.name || 'guest'); }
 function getDailyHistory() { return lsGet(dailyHistoryKey(), []); }
 function setDailyHistory(v) { lsSet(dailyHistoryKey(), (v || []).slice(-35)); }
+function dailyRecordsKey() { return 'nflTriviaDailyReadsRecords__' + slugify(state.name || 'guest'); }
+function getDailyRecords() { return lsGet(dailyRecordsKey(), []); }
+function setDailyRecords(v) {
+  var byDate = {};
+  (v || []).forEach(function (r) { if (r && r.date) byDate[r.date] = r; });
+  var out = Object.keys(byDate).sort().map(function (d) { return byDate[d]; }).slice(-35);
+  lsSet(dailyRecordsKey(), out);
+}
 function dailyReadsProfileState() {
-  return { result: getDailyResult(), history: getDailyHistory() };
+  return { result: getDailyResult(), history: getDailyHistory(), records: getDailyRecords() };
 }
 function mergeDailyReads(local, cloud) {
-  local = local || { result: null, history: [] };
-  cloud = cloud || { result: null, history: [] };
+  local = local || { result: null, history: [], records: [] };
+  cloud = cloud || { result: null, history: [], records: [] };
   var lr = local.result, cr = cloud.result;
   var result = (!lr || (cr && String(cr.date || '') > String(lr.date || ''))) ? cr : lr;
   var seen = {}, history = [];
   (local.history || []).concat(cloud.history || []).forEach(function (k) {
     if (!seen[k]) { seen[k] = true; history.push(k); }
   });
-  return { result: result || null, history: history.slice(-35) };
+  var recordMap = {};
+  (local.records || []).concat(cloud.records || []).forEach(function (r) {
+    if (!r || !r.date) return;
+    var prev = recordMap[r.date];
+    if (!prev || (Number(r.savedAt) || 0) >= (Number(prev.savedAt) || 0)) recordMap[r.date] = r;
+  });
+  var records = Object.keys(recordMap).sort().map(function (d) { return recordMap[d]; }).slice(-35);
+  return { result: result || null, history: history.slice(-35), records: records };
 }
 function questionMentionsTeam(q, team) {
   if (!q || !team) return false;
@@ -1212,18 +1235,49 @@ function dailyCandidatePool(source, league) {
     return Object.assign({}, q, { _dailyLeague: league });
   });
 }
-function pickDailyCandidate(pool, rng, used, recent, predicate) {
-  var candidates = pool.filter(function (q) {
-    var key = dailyQuestionKey(q);
-    return !used[key] && !recent[key] && (!predicate || predicate(q));
-  });
-  if (!candidates.length) {
-    candidates = pool.filter(function (q) {
-      var key = dailyQuestionKey(q);
-      return !used[key] && (!predicate || predicate(q));
-    });
+function dailyDifficultyLevel(q) {
+  var d = String(q && q.difficulty || '').toLowerCase();
+  if (/expert|sicko|very hard/.test(d)) return 3;
+  if (/hard|difficult/.test(d)) return 2;
+  if (/medium|normal|moderate/.test(d)) return 1;
+  if (/easy|rookie|beginner/.test(d)) return 0;
+  return 1;
+}
+function recentDailyAverage() {
+  var rows = getDailyRecords().slice(-7);
+  if (!rows.length) return null;
+  return Math.round(rows.reduce(function (sum, r) { return sum + (Number(r.pct) || 0); }, 0) / rows.length);
+}
+function adaptiveDailyDifficulty() {
+  var rating = getRating();
+  var score = rating ? Number(rating.score) || 100 : 100;
+  var avg = recentDailyAverage();
+  var level = score >= 128 ? 3 : score >= 108 ? 2 : score >= 88 ? 1 : 0;
+  if (avg != null) {
+    if (avg >= 85) level++;
+    else if (avg < 50) level--;
   }
-  if (!candidates.length && predicate) return pickDailyCandidate(pool, rng, used, recent, null);
+  return Math.max(0, Math.min(3, level));
+}
+function dailyDifficultyLabel(level) {
+  return ['Easy', 'Medium', 'Hard', 'Expert'][Math.max(0, Math.min(3, level))];
+}
+function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficulty) {
+  function eligible(q, ignoreRecent, ignoreDifficulty) {
+    var key = dailyQuestionKey(q);
+    if (used[key]) return false;
+    if (!ignoreRecent && recent[key]) return false;
+    if (predicate && !predicate(q)) return false;
+    if (!ignoreDifficulty && preferredDifficulty != null && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) > 0) return false;
+    return true;
+  }
+  var candidates = pool.filter(function (q) { return eligible(q, false, false); });
+  if (!candidates.length) candidates = pool.filter(function (q) { return eligible(q, true, false); });
+  if (!candidates.length && preferredDifficulty != null) {
+    candidates = pool.filter(function (q) { return eligible(q, false, true) && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) <= 1; });
+  }
+  if (!candidates.length && predicate) return pickDailyCandidate(pool, rng, used, recent, null, preferredDifficulty);
+  if (!candidates.length) candidates = pool.filter(function (q) { return !used[dailyQuestionKey(q)]; });
   if (!candidates.length) return null;
   var q = candidates[Math.floor(rng() * candidates.length)];
   used[dailyQuestionKey(q)] = true;
@@ -1237,8 +1291,42 @@ function dailyWeakSpot() {
   if (!cfb) return { league: 'NFL', category: nfl.category };
   return nfl.count >= cfb.count ? { league: 'NFL', category: nfl.category } : { league: 'CFB', category: cfb.category };
 }
+function dailyLeaguePerformance() {
+  var rows = getDailyRecords().slice(-7);
+  var acc = { NFL:{c:0,t:0}, CFB:{c:0,t:0} };
+  rows.forEach(function (r) {
+    ['NFL','CFB'].forEach(function (league) {
+      var x = r.leagueStats && r.leagueStats[league];
+      if (!x) return;
+      acc[league].c += Number(x.correct) || 0;
+      acc[league].t += Number(x.total) || 0;
+    });
+  });
+  function pct(x) { return x.t ? Math.round(100 * x.c / x.t) : null; }
+  return { NFL:pct(acc.NFL), CFB:pct(acc.CFB) };
+}
+function dailyMechanicOrder(rng) {
+  var middle = seededShuffle(['fifty','elimination','confidence'], rng);
+  return ['quick'].concat(middle).concat(['double']);
+}
+function dailyVisibleIndexes(q, rng, mechanic) {
+  var all = (q.options || []).map(function (_, i) { return i; });
+  if (mechanic !== 'fifty' && mechanic !== 'double') return all;
+  var wrong = all.filter(function (i) { return i !== q.correctIndex; });
+  var other = wrong[Math.floor(rng() * wrong.length)];
+  return seededShuffle([q.correctIndex, other], rng);
+}
+function decorateDailyQueue(out, rng, targetDifficulty) {
+  var mechanics = dailyMechanicOrder(rng);
+  out.forEach(function (q, i) {
+    q._dailyMechanic = mechanics[i] || 'quick';
+    q._dailyDifficultyTarget = Math.max(0, Math.min(3, targetDifficulty + (i === 0 ? -1 : i === 4 ? 1 : 0)));
+    q._dailyVisibleIndexes = dailyVisibleIndexes(q, rng, q._dailyMechanic);
+  });
+  return out;
+}
 function dailyQuestionPool() {
-  var seed = todayStr() + '__dailyReads__' + (state.name || 'guest');
+  var seed = todayStr() + '__dailyReadsV2__' + (state.name || 'guest');
   var rng = mulberry32(hashStr(seed));
   var nflPool = dailyCandidatePool(QUIZ, 'NFL');
   var cfbPool = dailyCandidatePool(CFB, 'CFB');
@@ -1247,21 +1335,21 @@ function dailyQuestionPool() {
   getDailyHistory().slice(-20).forEach(function (k) { recent[k] = true; });
   var used = {};
   var out = [];
+  var target = adaptiveDailyDifficulty();
   var favs = getFavoriteTeams();
   var preferredTeams = [];
   if (favs.nfl) preferredTeams.push({ league: 'NFL', team: favoriteTeamById('nfl', favs.nfl) });
   if (favs.cfb) preferredTeams.push({ league: 'CFB', team: favoriteTeamById('cfb', favs.cfb) });
-  var primary = primaryFavoriteTeam();
-  if (primary && favs.lastPicked) {
+  if (favs.lastPicked) {
     preferredTeams.sort(function (a) { return a.league === favs.lastPicked.toUpperCase() ? -1 : 1; });
   }
   var teamPick = null;
   for (var i = 0; i < preferredTeams.length && !teamPick; i++) {
     var tp = preferredTeams[i];
     var source = tp.league === 'NFL' ? nflPool : cfbPool;
-    teamPick = pickDailyCandidate(source, rng, used, recent, function (q) { return questionMentionsTeam(q, tp.team); });
+    teamPick = pickDailyCandidate(source, rng, used, recent, function (q) { return questionMentionsTeam(q, tp.team); }, Math.max(0, target - 1));
   }
-  if (!teamPick) teamPick = pickDailyCandidate(all, rng, used, recent, null);
+  if (!teamPick) teamPick = pickDailyCandidate(all, rng, used, recent, null, Math.max(0, target - 1));
   if (teamPick) {
     teamPick._dailySlot = DAILY_READS_SLOT_LABELS[0];
     teamPick._dailyReason = preferredTeams.length && questionMentionsTeam(teamPick, preferredTeams[0].team) ? 'Picked around one of your teams' : 'Personalized opener';
@@ -1271,33 +1359,50 @@ function dailyQuestionPool() {
   var weak = dailyWeakSpot(), weakPick = null;
   if (weak) {
     var weakPool = weak.league === 'NFL' ? nflPool : cfbPool;
-    weakPick = pickDailyCandidate(weakPool, rng, used, recent, function (q) { return q.category === weak.category; });
+    weakPick = pickDailyCandidate(weakPool, rng, used, recent, function (q) { return q.category === weak.category; }, target);
   }
-  if (!weakPick) weakPick = pickDailyCandidate(all, rng, used, recent, null);
+  if (!weakPick) weakPick = pickDailyCandidate(all, rng, used, recent, null, target);
   if (weakPick) {
     weakPick._dailySlot = DAILY_READS_SLOT_LABELS[1];
     weakPick._dailyReason = weak ? ('Based on your misses · ' + weak.category) : 'Build your range';
     out.push(weakPick);
   }
 
-  var nflPick = pickDailyCandidate(nflPool, rng, used, recent, null);
-  if (nflPick) { nflPick._dailySlot = DAILY_READS_SLOT_LABELS[2]; nflPick._dailyReason = 'NFL'; out.push(nflPick); }
-  var cfbPick = pickDailyCandidate(cfbPool, rng, used, recent, null);
-  if (cfbPick) { cfbPick._dailySlot = DAILY_READS_SLOT_LABELS[3]; cfbPick._dailyReason = 'College Football'; out.push(cfbPick); }
+  var nflPick = pickDailyCandidate(nflPool, rng, used, recent, null, target);
+  if (nflPick) { nflPick._dailySlot = DAILY_READS_SLOT_LABELS[2]; nflPick._dailyReason = 'NFL · ' + dailyDifficultyLabel(target); out.push(nflPick); }
+  var cfbPick = pickDailyCandidate(cfbPool, rng, used, recent, null, target);
+  if (cfbPick) { cfbPick._dailySlot = DAILY_READS_SLOT_LABELS[3]; cfbPick._dailyReason = 'College Football · ' + dailyDifficultyLabel(target); out.push(cfbPick); }
 
-  var rating = getRating();
-  var hardWords = ['hard', 'expert', 'sicko'];
-  var finisher = pickDailyCandidate(all, rng, used, recent, function (q) {
-    var d = String(q.difficulty || '').toLowerCase();
-    return rating && rating.score >= 115 ? hardWords.some(function (w) { return d.indexOf(w) !== -1; }) : true;
-  });
-  if (!finisher) finisher = pickDailyCandidate(all, rng, used, recent, null);
-  if (finisher) { finisher._dailySlot = DAILY_READS_SLOT_LABELS[4]; finisher._dailyReason = 'Finish strong'; out.push(finisher); }
-  return out.slice(0, DAILY_SIZE);
+  var perf = dailyLeaguePerformance();
+  var weakerLeague = perf.NFL != null && perf.CFB != null ? (perf.NFL <= perf.CFB ? 'NFL' : 'CFB') : null;
+  var finishPool = weakerLeague === 'NFL' ? nflPool : weakerLeague === 'CFB' ? cfbPool : all;
+  var finisher = pickDailyCandidate(finishPool, rng, used, recent, null, Math.min(3, target + 1));
+  if (!finisher) finisher = pickDailyCandidate(all, rng, used, recent, null, Math.min(3, target + 1));
+  if (finisher) {
+    finisher._dailySlot = DAILY_READS_SLOT_LABELS[4];
+    finisher._dailyReason = weakerLeague ? ('Challenge your ' + weakerLeague + ' side') : 'Finish strong';
+    out.push(finisher);
+  }
+  return decorateDailyQueue(out.slice(0, DAILY_SIZE), rng, target);
 }
 function dailyKey() { return 'nflTriviaDaily__' + slugify(state.name); }
 function getDailyResult() { return state.name ? lsGet(dailyKey(), null) : null; }
 function playedToday() { var r = getDailyResult(); return !!(r && r.date === todayStr()); }
+function dailyRecordFromState(pct) {
+  var t = state.daily || {};
+  return {
+    date: todayStr(),
+    savedAt: Date.now(),
+    correct: t.correctCount || 0,
+    total: t.queue ? t.queue.length : DAILY_SIZE,
+    pct: pct,
+    bonusPoints: t.bonusPoints || 0,
+    leagueStats: t.leagueStats || { NFL:{correct:0,total:0}, CFB:{correct:0,total:0} },
+    confidence: t.confidenceResults || [],
+    mechanics: (t.queue || []).map(function (q) { return q._dailyMechanic || 'quick'; }),
+    difficultyTarget: t.difficultyTarget == null ? adaptiveDailyDifficulty() : t.difficultyTarget
+  };
+}
 function completeDailyReads(label, pct) {
   if (playedToday()) return;
   var st = state.stats.daily;
@@ -1305,26 +1410,29 @@ function completeDailyReads(label, pct) {
   if (typeof pct === 'number' && Math.round(pct) > st.bestPct) st.bestPct = Math.round(pct);
   lsSet('nflTriviaStats', state.stats);
   bumpStreak();
+  var record = dailyRecordFromState(pct);
   var result = {
     date: todayStr(),
     type: 'dailyReads',
     label: label,
-    correct: state.daily ? state.daily.correctCount : null,
-    total: state.daily ? state.daily.queue.length : DAILY_SIZE,
+    correct: record.correct,
+    total: record.total,
+    pct: pct,
+    bonusPoints: record.bonusPoints,
     graceUsed: lastStreakGraceUsed
   };
   if (state.name) lsSet(dailyKey(), result);
   var hist = getDailyHistory();
   (state.daily && state.daily.queue || []).forEach(function (q) { hist.push(dailyQuestionKey(q)); });
   setDailyHistory(hist);
-  pushLeaderboard('daily', { completions: st.completions, bestPct: st.bestPct });
+  var records = getDailyRecords();
+  records.push(record);
+  setDailyRecords(records);
+  pushLeaderboard('daily', { completions: st.completions, bestPct: st.bestPct, lastPct: pct, bonusPoints: record.bonusPoints });
   pushProfileSnapshot();
   state.justCompletedDaily = { typeId: 'dailyReads' };
 }
 function completeDailyChallengeFrom(typeId, label, pct) {
-  // Compatibility shim for any older cached mode that finishes a legacy
-  // Daily Reads after this release. New Daily Reads never routes out to
-  // a full mode, but we still honor an already-started legacy session once.
   if (!state.dailyChallengeActive || state.dailyChallengeActive.id !== typeId) return;
   state.dailyChallengeActive = null;
   completeDailyReads(label, pct);
@@ -1360,26 +1468,66 @@ function startDailyChallenge() {
   beginProgressSession('daily');
   if (playedToday()) return;
   state.dailyChallengeActive = null;
+  var queue = dailyQuestionPool();
   state.daily = {
-    queue: dailyQuestionPool(),
+    queue: queue,
     index: 0,
     correctCount: 0,
+    bonusPoints: 0,
     answeredIndex: null,
+    eliminated: {},
+    attempts: {},
+    confidenceByIndex: {},
+    confidenceResults: [],
     missed: [],
+    leagueStats: { NFL:{correct:0,total:0}, CFB:{correct:0,total:0} },
+    difficultyTarget: adaptiveDailyDifficulty(),
     screen: 'question'
   };
   state.screen = 'daily';
   renderAll();
 }
 function currentDailyQuestion() { return state.daily.queue[state.daily.index]; }
+function setDailyConfidence(n) {
+  var t = state.daily, q = currentDailyQuestion();
+  if (!t || !q || q._dailyMechanic !== 'confidence' || t.answeredIndex !== null) return;
+  t.confidenceByIndex[t.index] = Math.max(1, Math.min(3, Number(n) || 1));
+  renderAll();
+}
+function finalizeDailyQuestion(q, pickedIndex, firstTryCorrect) {
+  var t = state.daily;
+  t.answeredIndex = pickedIndex;
+  if (firstTryCorrect) t.correctCount++;
+  else t.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: pickedIndex });
+  var league = q._dailyLeague === 'CFB' ? 'CFB' : 'NFL';
+  t.leagueStats[league].total++;
+  if (firstTryCorrect) t.leagueStats[league].correct++;
+  if (q._dailyMechanic === 'double' && firstTryCorrect) t.bonusPoints++;
+  if (q._dailyMechanic === 'confidence') {
+    t.confidenceResults.push({ confidence: t.confidenceByIndex[t.index] || 1, correct: !!firstTryCorrect });
+  }
+}
 function pickDailyAnswer(i) {
   var t = state.daily;
-  if (t.answeredIndex !== null) return;
-  t.answeredIndex = i;
+  if (!t || t.answeredIndex !== null) return;
   var q = currentDailyQuestion();
-  var isCorrect = q && i === q.correctIndex;
-  if (isCorrect) t.correctCount++;
-  else if (q) t.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i });
+  if (!q) return;
+  if (q._dailyMechanic === 'confidence' && !t.confidenceByIndex[t.index]) return;
+  var isCorrect = i === q.correctIndex;
+  var attempts = Number(t.attempts[t.index]) || 0;
+  if (q._dailyMechanic === 'elimination' && !isCorrect) {
+    t.attempts[t.index] = attempts + 1;
+    t.eliminated[t.index] = t.eliminated[t.index] || {};
+    t.eliminated[t.index][i] = true;
+    if (!t.missed.some(function (m) { return m._dailyIndex === t.index; })) {
+      t.missed.push({ _dailyIndex:t.index, question:q.question, options:q.options, correctIndex:q.correctIndex, pickedIndex:i });
+    }
+    playSound('wrong');
+    renderAll();
+    return;
+  }
+  var firstTryCorrect = isCorrect && attempts === 0;
+  finalizeDailyQuestion(q, i, firstTryCorrect);
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -1404,18 +1552,52 @@ function finishDailyChallenge() {
   t.screen = 'summary';
   renderAll();
 }
+function dailyMechanicPreviewHtml() {
+  return ['quick','fifty','elimination','confidence','double'].map(function (id) {
+    return '<span><b>' + esc(DAILY_MECHANICS[id].label) + '</b><small>' + esc(DAILY_MECHANICS[id].short) + '</small></span>';
+  }).join('');
+}
+function weeklyDailyRecapData() {
+  var rows = getDailyRecords().slice(-7);
+  if (!rows.length) return null;
+  var avg = Math.round(rows.reduce(function (s,r) { return s + (Number(r.pct) || 0); }, 0) / rows.length);
+  var best = Math.max.apply(null, rows.map(function (r) { return Number(r.pct) || 0; }));
+  var perfects = rows.filter(function (r) { return Number(r.pct) === 100; }).length;
+  var bonus = rows.reduce(function (s,r) { return s + (Number(r.bonusPoints) || 0); }, 0);
+  var high = [], allConfidence = [];
+  rows.forEach(function (r) { (r.confidence || []).forEach(function (x) { allConfidence.push(x); if (Number(x.confidence) === 3) high.push(x); }); });
+  var highHit = high.length ? Math.round(100 * high.filter(function (x) { return x.correct; }).length / high.length) : null;
+  return { rows:rows, days:rows.length, avg:avg, best:best, perfects:perfects, bonus:bonus, highHit:highHit };
+}
+function weeklyDailyRecapHtml(compact) {
+  var w = weeklyDailyRecapData();
+  if (!w || w.days < 2) return '';
+  return '<section class="weekly-daily-recap' + (compact ? ' compact' : '') + '">' +
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">LAST 7 DAILY READS</span><h3>Weekly Recap</h3></div><span>' + w.days + ' played</span></div>' +
+    '<div class="weekly-daily-metrics">' +
+      '<span><b>' + w.avg + '%</b><small>Average</small></span>' +
+      '<span><b>' + w.best + '%</b><small>Best</small></span>' +
+      '<span><b>' + w.perfects + '</b><small>Perfects</small></span>' +
+      '<span><b>' + w.bonus + '</b><small>Double Down bonus</small></span>' +
+      (w.highHit == null ? '' : '<span><b>' + w.highHit + '%</b><small>High-confidence hit rate</small></span>') +
+    '</div>' +
+    '<div class="weekly-daily-bars">' + w.rows.map(function (r) {
+      return '<span title="' + esc(r.date) + ': ' + (Number(r.pct) || 0) + '%"><i style="height:' + Math.max(8, Number(r.pct) || 0) + '%"></i><small>' + esc(String(r.date).slice(5)) + '</small></span>';
+    }).join('') + '</div>' +
+    '</section>';
+}
 function dailyChallengeCardHtml() {
   var already = playedToday();
   var streak = getStreak();
   var streakBit = streak.count > 0 ? icon('flame', 'streak-flame') + ' ' + streak.count + '-day streak' : '';
   var badge = '<span class="daily-flame-badge">' + icon('flame') + '</span>';
-  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5</div>';
+  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5 · V2</div>';
   if (already) {
     var r = getDailyResult();
     var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
     return '<div class="panel daily-card daily-reads-card">' + eyebrow +
       '<div class="daily-card-title">' + badge + ' Daily Reads Complete</div>' +
-      '<p class="mode-desc">' + icon('check') + ' ' + esc(label) + (streakBit ? ' &middot; ' + streakBit : '') + '. You’re done for today.</p>' +
+      '<p class="mode-desc">' + icon('check') + ' ' + esc(label) + (r.bonusPoints ? ' + ' + r.bonusPoints + ' bonus' : '') + (streakBit ? ' &middot; ' + streakBit : '') + '. You’re done for today.</p>' +
       (r.graceUsed ? '<p class="mode-desc streak-saved-note">🛡️ Streak grace saved your run.</p>' : '') +
       '<button class="btn-secondary" data-go="daily">View Today’s Result</button>' +
       '</div>';
@@ -1426,40 +1608,57 @@ function dailyChallengeCardHtml() {
     '<div class="daily-card-deco" aria-hidden="true">' + icon('football') + '</div>' +
     eyebrow +
     '<div class="daily-card-title">' + badge + ' Daily Reads</div>' +
-    '<p class="mode-desc">Five quick football reads. About five minutes. ' +
-      (personalized ? 'Built around your teams, weak spots, and a fresh NFL/CFB mix.' : 'Your mix gets smarter as you play.') +
+    '<p class="mode-desc">Five quick games. About five minutes. ' +
+      (personalized ? 'Built around your teams, weak spots, recent performance, and Football Rating.' : 'Your mix adapts as you play.') +
       '</p>' +
-    '<div class="daily-reads-preview">' +
-      DAILY_READS_SLOT_LABELS.map(function (label, i) {
-        return '<span><b>' + (i + 1) + '</b>' + esc(label) + '</span>';
-      }).join('') +
-    '</div>' +
+    '<div class="daily-v2-mechanics">' + dailyMechanicPreviewHtml() + '</div>' +
+    '<p class="daily-difficulty-note">' + icon('target') + ' Today’s target: <b>' + esc(dailyDifficultyLabel(adaptiveDailyDifficulty())) + '</b></p>' +
     (streakBit ? '<p class="daily-card-streak">' + streakBit + '</p>' : '') +
     '<button class="btn-primary" data-daily-start>Start My Daily 5' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
     '</div>';
+}
+function dailyMechanicInstructions(q) {
+  var id = q._dailyMechanic || 'quick';
+  if (id === 'fifty') return 'Two choices. One read.';
+  if (id === 'elimination') return 'Wrong picks disappear. First-try correct earns the point.';
+  if (id === 'confidence') return 'Call your confidence before you lock the answer.';
+  if (id === 'double') return 'Get it right for the Daily point + one bonus point.';
+  return 'Read it and make the call.';
 }
 function renderDailyQuestion() {
   var t = state.daily, q = currentDailyQuestion();
   if (!q) return '<div class="panel"><h2 class="panel-title">Daily Reads</h2><p class="mode-desc">Couldn’t build today’s five. Head home and try again.</p><button class="btn-secondary" data-go="home">Home</button></div>';
   var answered = t.answeredIndex !== null;
-  return '<div class="panel daily-reads-game">' + modeToolbarHtml('daily') +
+  var mechanic = q._dailyMechanic || 'quick';
+  var visible = q._dailyVisibleIndexes && q._dailyVisibleIndexes.length ? q._dailyVisibleIndexes : q.options.map(function (_,i) { return i; });
+  var eliminated = t.eliminated[t.index] || {};
+  var confidence = t.confidenceByIndex[t.index] || 0;
+  return '<div class="panel daily-reads-game daily-mechanic-' + esc(mechanic) + '">' + modeToolbarHtml('daily') +
     '<div class="daily-reads-kicker"><span>' + esc(q._dailySlot || ('READ ' + (t.index + 1))) + '</span><small>' + esc(q._dailyReason || q._dailyLeague || '') + '</small></div>' +
     quizProgressRowHtml('Daily Reads &middot; Game ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
+    '<div class="daily-mechanic-banner"><b>' + esc(DAILY_MECHANICS[mechanic].label) + '</b><span>' + esc(dailyMechanicInstructions(q)) + '</span></div>' +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
-    '<div class="quiz-options">' +
-    q.options.map(function (opt, i) {
+    (mechanic === 'confidence' && !answered ? '<div class="daily-confidence"><span>Confidence</span>' +
+      [1,2,3].map(function (n) { return '<button class="' + (confidence === n ? 'active' : '') + '" data-daily-confidence="' + n + '">' + n + (n === 1 ? ' · Lean' : n === 2 ? ' · Like it' : ' · Lock') + '</button>'; }).join('') +
+      '</div>' : '') +
+    '<div class="quiz-options daily-options">' +
+    visible.map(function (i) {
+      var opt = q.options[i];
       var cls = 'quiz-option';
+      if (eliminated[i]) cls += ' daily-eliminated';
       if (answered) {
         if (i === q.correctIndex) cls += ' correct';
         else if (i === t.answeredIndex) cls += ' wrong';
       }
-      return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-daily-answer="' + i + '"') + '>' +
+      var disabled = answered || eliminated[i] || (mechanic === 'confidence' && !confidence);
+      return '<button class="' + cls + '" ' + (disabled ? 'disabled' : 'data-daily-answer="' + i + '"') + '>' +
         '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span></button>';
     }).join('') +
     '</div>' +
+    (mechanic === 'elimination' && !answered && (Number(t.attempts[t.index]) || 0) ? '<div class="quiz-feedback feedback-bad">One down. Keep reading — the Daily point is gone, but finish the board.</div>' : '') +
     (answered
-      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
-        '<button class="btn-primary" data-daily-next>' + (t.index + 1 >= t.queue.length ? 'Finish Daily Reads' : 'Next Read') + '</button>'
+      ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex && (Number(t.attempts[t.index]) || 0) === 0 ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Board cleared.</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
+        '<button class="btn-primary" data-daily-next>' + (t.index + 1 >= t.queue.length ? 'Finish Daily Reads' : 'Next Game') + '</button>'
       : '') +
     '</div>';
 }
@@ -1470,10 +1669,15 @@ function renderDailySummary() {
   var seasonXp = p.seasons && p.seasons[seasonId] ? Number(p.seasons[seasonId].xp) || 0 : 0;
   return '<div class="panel daily-reads-summary">' +
     '<h2 class="panel-title">' + icon('flame') + ' Daily Reads Complete</h2>' +
-    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
+    '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)' + (t.bonusPoints ? ' · +' + t.bonusPoints + ' bonus' : '') + '</div>' +
     '<div class="daily-reads-reward"><b>+50 XP</b><span>Career + ' + esc(seasonId) + ' Season</span></div>' +
     '<div class="summary-note">' + icon('flame') + ' ' + getStreak().count + '-day streak. Career XP: ' + (p.careerXp || 0) + ' &middot; Season XP: ' + seasonXp + '.</div>' +
     (lastStreakGraceUsed ? '<div class="summary-note streak-saved-note">🛡️ You missed a day, but your streak survived — one grace day free every 7 days.</div>' : '') +
+    '<div class="daily-summary-mechanics">' + t.queue.map(function (q, i) {
+      var missed = t.missed.some(function (m) { return m._dailyIndex === i || m.question === q.question; });
+      return '<span class="' + (missed ? 'missed' : 'hit') + '"><b>' + esc(DAILY_MECHANICS[q._dailyMechanic || 'quick'].label) + '</b><small>' + (missed ? 'Miss' : 'Hit') + '</small></span>';
+    }).join('') + '</div>' +
+    weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
@@ -1486,13 +1690,14 @@ function renderDailyScreen() {
     if (r && r.date === todayStr()) {
       var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
       return '<div class="panel daily-reads-summary"><h2 class="panel-title">' + icon('flame') + ' Daily Reads &middot; Complete</h2>' +
-        '<div class="summary-score">' + esc(label) + '</div>' +
+        '<div class="summary-score">' + esc(label) + (r.bonusPoints ? ' · +' + r.bonusPoints + ' bonus' : '') + '</div>' +
         '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
+        weeklyDailyRecapHtml(true) +
         '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
-    return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads</h2>' +
-      '<p class="mode-desc">Five fast personalized football reads. About five minutes total.</p>' +
-      '<div class="daily-reads-preview">' + DAILY_READS_SLOT_LABELS.map(function (label, i) { return '<span><b>' + (i + 1) + '</b>' + esc(label) + '</span>'; }).join('') + '</div>' +
+    return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
+      '<p class="mode-desc">Five personalized mini-games. About five minutes total. Difficulty adapts to you.</p>' +
+      '<div class="daily-v2-mechanics">' + dailyMechanicPreviewHtml() + '</div>' +
       '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>';
   }
   if (state.daily.screen === 'summary') return renderDailySummary();
@@ -3527,6 +3732,7 @@ function renderHome() {
     personalDashboardHtml() +
     communityCardHtml() +
     dailyChallengeCardHtml() +
+    weeklyDailyRecapHtml(false) +
     continuePlayingCardHtml() +
     recommendationShelfHtml() +
     modeSectionHtml('nfl') +
@@ -11976,7 +12182,7 @@ document.addEventListener('click', function (e) {
     '[data-cfb-blitz-list], [data-cfb-blitz-start], [data-cfb-blitz-submit], [data-cfb-blitz-setup], ' +
     '[data-cfb-grid-start], [data-cfb-grid-cell], [data-cfb-grid-submit], [data-cfb-grid-again], ' +
     '[data-intro-begin], [data-intro-answer], [data-intro-skip], [data-intro-continue], [data-retake-intro], ' +
-    '[data-daily-start], [data-daily-answer], [data-daily-next], ' +
+    '[data-daily-start], [data-daily-answer], [data-daily-confidence], [data-daily-next], ' +
     '[data-ranked-toggle], ' +
     '[data-share], #share-close, #share-backdrop, #share-download, #share-x, #share-facebook, #share-copy, [data-share-format], ' +
     '[data-report], #report-close, #report-backdrop, #report-submit, [data-report-category], [data-copy-email], ' +
@@ -12214,6 +12420,7 @@ document.addEventListener('click', function (e) {
 
   if (t.dataset.dailyStart !== undefined) { startDailyChallenge(); return; }
   if (t.dataset.dailyAnswer !== undefined) { pickDailyAnswer(parseInt(t.dataset.dailyAnswer, 10)); return; }
+  if (t.dataset.dailyConfidence !== undefined) { setDailyConfidence(parseInt(t.dataset.dailyConfidence, 10)); return; }
   if (t.dataset.dailyNext !== undefined) { nextDailyQuestion(); return; }
 
   if (t.dataset.rankedToggle !== undefined) {
