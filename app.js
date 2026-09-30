@@ -1265,6 +1265,7 @@ function startDailyIntoMode(mode, startFn) {
   loadModeDataThenRun(mode, function () { startModeRanked(mode, startFn); }, function () { state.dailyChallengeActive = null; });
 }
 function startDailyChallenge() {
+  beginProgressSession('daily');
   if (playedToday()) return;
   var today = dailyChallengeTypeForToday();
   state.dailyChallengeActive = today;
@@ -3184,6 +3185,7 @@ function currentQuizQuestion() {
   return QUIZ.find(function (q) { return q.id === id; });
 }
 function startQuizRound(category, difficulty, roundSize) {
+  beginProgressSession('quiz');
   var pool = quizPool(category, difficulty);
   var ids = drawNoRepeat('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.quiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.quiz !== false };
@@ -3336,6 +3338,7 @@ function currentXsoQuestion() {
   return XSO.find(function (q) { return q.id === id; });
 }
 function startXsoRound(category, difficulty, roundSize) {
+  beginProgressSession('xso');
   var pool = xsoPool(category, difficulty);
   var ids = drawNoRepeat('xso_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.xso = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.xso !== false };
@@ -3458,6 +3461,7 @@ function currentCfbQuestion() {
   return CFB.find(function (q) { return q.id === id; });
 }
 function startCfbQuizRound(category, difficulty, roundSize) {
+  beginProgressSession('cfbQuiz');
   var pool = cfbPool(category, difficulty);
   var ids = drawNoRepeat('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.cfbQuiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.cfbQuiz !== false };
@@ -3744,6 +3748,7 @@ function buildGrid() {
   return best;
 }
 function startGridRound() {
+  beginProgressSession('grid');
   // UI/UX upgrade pass: a fresh round is never "today's Daily Challenge"
   // unless completeDailyChallengeFrom() sets this again -- clears any
   // stale flag from an earlier, unrelated daily completion this session so
@@ -4014,6 +4019,7 @@ function buildCfbGrid() {
   return best;
 }
 function startCfbGridRound() {
+  beginProgressSession('cfbGrid');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var g = buildCfbGrid();
   state.cfbGrid = { rows: g.rows, cols: g.cols, cells: g.cells, usedPlayers: [], activeIndex: null, input: '', screen: 'board', answeredCount: 0, totalScore: 0, lastError: '', ranked: state.rankedPref.cfbGrid !== false };
@@ -4159,6 +4165,7 @@ function renderCfbGridScreen() {
 /* ============================== blitz ============================== */
 function normalizeBlitzText(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim(); }
 function startBlitz(listId, timerLen) {
+  beginProgressSession('blitz');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var list = BLITZ_LISTS.find(function (l) { return l.id === listId; });
   state.blitz = { listId: listId, list: list, timerLen: timerLen, screen: 'playing', endsAt: Date.now() + timerLen * 1000, timeLeft: timerLen, matched: [], input: '', lastFeedback: '', ranked: state.rankedPref.blitz !== false };
@@ -4296,6 +4303,7 @@ function renderBlitzScreen() {
 
 /* ============================== college football blitz ============================== */
 function startCfbBlitz(listId, timerLen) {
+  beginProgressSession('cfbBlitz');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var list = CFB_BLITZ_LISTS.find(function (l) { return l.id === listId; });
   state.cfbBlitz = { listId: listId, list: list, timerLen: timerLen, screen: 'playing', endsAt: Date.now() + timerLen * 1000, timeLeft: timerLen, matched: [], input: '', lastFeedback: '', ranked: state.rankedPref.cfbBlitz !== false };
@@ -4432,6 +4440,7 @@ function currentSpeedQuestion() {
   return QUIZ.find(function (q) { return q.id === id; });
 }
 function startSpeedRound(sessionLen) {
+  beginProgressSession('speed');
   state.speed = {
     sessionLen: sessionLen, qLen: 6, screen: 'playing',
     sessionEndsAt: Date.now() + sessionLen * 1000, qEndsAt: Date.now() + 6 * 1000,
@@ -4759,6 +4768,7 @@ function setHigherLowerCategory(catId) {
 }
 function setHigherLowerStat(statId) { higherLowerStatPrefByCategory[higherLowerCategoryPref] = statId; renderAll(); }
 function startHigherLower() {
+  beginProgressSession('higherLower');
   var catId = higherLowerCategoryPref;
   var statId = higherLowerStatPrefByCategory[catId] || hlCategoryConfig(catId).stats[0].id;
   var first = higherLowerDrawPlayer(catId, statId, []);
@@ -4890,6 +4900,7 @@ function currentCfbSpeedQuestion() {
   return CFB_SPEED.find(function (q) { return q.id === id; });
 }
 function startCfbSpeedRound(sessionLen) {
+  beginProgressSession('cfbSpeed');
   state.cfbSpeed = {
     sessionLen: sessionLen, qLen: 6, screen: 'playing',
     sessionEndsAt: Date.now() + sessionLen * 1000, qEndsAt: Date.now() + 6 * 1000,
@@ -5078,6 +5089,7 @@ function loadSilhouetteItem() {
   s.lastPoints = 0;
 }
 function startSilhouetteRound(roundSize) {
+  beginProgressSession('silhouette');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var size = Math.min(roundSize, SILHOUETTE_PLAYERS.length);
   var allNames = SILHOUETTE_PLAYERS.map(function (p) { return p.name; });
@@ -5773,6 +5785,7 @@ function currentIQQuestion() {
   return QUIZ.find(function (q) { return q.id === id; });
 }
 function startIQTest() {
+  beginProgressSession('iq');
   var size = Math.min(IQ_TEST_SIZE, QUIZ.length);
   var queue = drawNoRepeat('iq', QUIZ.map(function (q) { return q.id; }), size);
   state.iq = { queue: queue, index: 0, answers: [], screen: 'test', ranked: state.rankedPref.iq !== false };
@@ -5933,6 +5946,7 @@ function currentCfbIQQuestion() {
   return CFB.find(function (q) { return q.id === id; });
 }
 function startCfbIQTest() {
+  beginProgressSession('cfbIq');
   var size = Math.min(IQ_TEST_SIZE, CFB.length);
   var queue = drawNoRepeat('cfbiq', CFB.map(function (q) { return q.id; }), size);
   state.cfbIq = { queue: queue, index: 0, answers: [], screen: 'test', ranked: state.rankedPref.cfbIq !== false };
@@ -6103,6 +6117,7 @@ function legendsDoRoll(state_) {
   state_.rolledEntry = entry;
 }
 function startLegends() {
+  beginProgressSession('legends');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   var slots = {};
   LEGENDS_SLOTS.forEach(function (s) { slots[s] = null; });
@@ -6453,6 +6468,7 @@ function cfbLegendsDoRoll(state_) {
   if (state_.usedEntryIds.indexOf(picked.id) === -1) state_.usedEntryIds.push(picked.id);
 }
 function startCfbLegends() {
+  beginProgressSession('cfbLegends');
   state.justCompletedDaily = null; // see startGridRound()'s comment
   CFB_LEGENDS_PERFECT_SCORE = null;
   var slots = {};
@@ -6991,6 +7007,7 @@ function h2hOpenExistingCode(code) {
   });
 }
 function h2hStartPlaying() {
+  beginProgressSession('h2h');
   var s = state.h2h, m = h2hModeConfig(s.mode);
   h2hStopWatch();
   if (!m || m.kind === 'quiz') {
