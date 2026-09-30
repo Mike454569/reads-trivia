@@ -3616,6 +3616,12 @@ function modeSectionHtml(league) {
   var all = LEAGUE_MODES[league];
   var featured = all.filter(function (m) { return m.featured; });
   var rest = all.filter(function (m) { return !m.featured; });
+  if (state.name) {
+    var scoreMap = {};
+    scoredModeRecommendations(999).forEach(function(r){ scoreMap[r.mode.id]=r.score; });
+    featured.sort(function(x,y){ return (scoreMap[y.id]||0)-(scoreMap[x.id]||0); });
+    rest.sort(function(x,y){ return (scoreMap[y.id]||0)-(scoreMap[x.id]||0); });
+  }
   var subtitle = league === 'nfl' ? 'Pro football challenges' : 'Saturdays, rivalries &amp; tradition';
   return '<div class="mode-section-header"><div><h2 class="mode-section-title mode-section-title-' + league + '">' + esc(LEAGUE_LABELS[league]) +
     '<span class="mode-section-count">' + all.length + ' games</span></h2><p>' + subtitle + '</p></div></div>' +
@@ -3841,6 +3847,21 @@ function modeMasteryScore(id) {
   if (typeof st.bestStreak === 'number') return Math.min(100, st.bestStreak * 5);
   return null;
 }
+function personalizedDifficultyTarget(league) {
+  league = league === 'cfb' ? 'cfb' : 'nfl';
+  var r = getRating();
+  var mastery = personalizationMasteryRows().filter(function(x){return x.league===league && x.total>=3;});
+  var avg = mastery.length ? Math.round(mastery.reduce(function(s,x){return s+x.pct;},0)/mastery.length) : null;
+  var score = r ? Number(r.score)||100 : 100;
+  if (avg != null) score = Math.round((score + (60 + avg)) / 2);
+  if (score >= 135) return 'Hard';
+  if (score >= 105) return 'Medium';
+  return 'Easy';
+}
+function adaptiveDifficultyNoteHtml(league) {
+  if (!state.name) return '';
+  return '<div class="adaptive-difficulty-note">'+icon('target')+' Reads recommends <b>'+esc(personalizedDifficultyTarget(league))+'</b> difficulty from your Football Rating and tracked mastery.</div>';
+}
 function recommendationReasonFor(mode, scoreBits) {
   if (scoreBits.unplayed) return 'New to you';
   if (scoreBits.masteryFit) return 'Attack a weak spot';
@@ -3927,7 +3948,7 @@ function recommendationShelfHtml() {
         '<span class="smart-recommendation-icon">' + icon(r.mode.icon) + '</span>' +
         '<span class="smart-recommendation-reason">' + esc(r.reason) + '</span>' +
         '<strong>' + esc(r.mode.title) + '</strong>' +
-        '<small>' + (modeTimesPlayed(r.mode.id) ? modeTimesPlayed(r.mode.id) + ' played' : 'Never played') + '</small>' +
+        '<small>' + (modeTimesPlayed(r.mode.id) ? modeTimesPlayed(r.mode.id) + ' played' : 'Never played') + ' · ' + esc(personalizedDifficultyTarget(modeLeague(r.mode.id))) + ' target</small>' +
         '</button>';
     }).join('') + '</div></section>';
 }
@@ -4452,6 +4473,7 @@ function renderQuizSetup() {
     '<div class="chip-row">' +
     [5, 10, 20, 30].map(function (n) { return '<button class="chip-toggle' + (t.roundSize === n ? ' active' : '') + '" data-quiz-roundsize="' + n + '">' + n + ' questions</button>'; }).join('') +
     '</div>' +
+    adaptiveDifficultyNoteHtml('nfl') +
     rankedToggleHtml('quiz') +
     '<button class="btn-primary" data-quiz-start>Start Round</button>' +
     '</div>';
@@ -4729,6 +4751,7 @@ function renderCfbSetup() {
     '<div class="chip-row">' +
     [5, 10, 20, 30].map(function (n) { return '<button class="chip-toggle' + (t.roundSize === n ? ' active' : '') + '" data-cfb-roundsize="' + n + '">' + n + ' questions</button>'; }).join('') +
     '</div>' +
+    adaptiveDifficultyNoteHtml('cfb') +
     rankedToggleHtml('cfbQuiz') +
     '<button class="btn-primary" data-cfb-start>Start Round</button>' +
     '</div>';
