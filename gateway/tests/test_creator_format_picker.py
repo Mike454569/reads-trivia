@@ -77,6 +77,21 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Draft Pick Ladder", "DRAFT_PICK_LADDER", "NFL_DRAFT_PICK_LADDER"),
     ("Category Roulette", "CATEGORY_ROULETTE", "CATEGORY_ROULETTE_MIXED"),
     ("Common Link", "COMMON_LINK", "NFL_DRAFT_COMMON_LINK"),
+    ("Bingo Blitz", "STRATEGY_ARCADE", "BINGO_BLITZ"),
+    ("Territory Takeover", "STRATEGY_ARCADE", "TERRITORY_TAKEOVER"),
+    ("Exact Ten", "STRATEGY_ARCADE", "EXACT_TEN"),
+    ("Pyramid Climb", "STRATEGY_ARCADE", "PYRAMID_CLIMB"),
+    ("Lockbox", "STRATEGY_ARCADE", "LOCKBOX"),
+    ("Combo Meter", "STRATEGY_ARCADE", "COMBO_METER"),
+    ("Checkpoint Rally", "STRATEGY_ARCADE", "CHECKPOINT_RALLY"),
+    ("Escalator", "STRATEGY_ARCADE", "ESCALATOR"),
+    ("Power Up", "STRATEGY_ARCADE", "POWER_UP"),
+    ("Category Conquest", "STRATEGY_ARCADE", "CATEGORY_CONQUEST"),
+    ("Scoreboard Swing", "STRATEGY_ARCADE", "SCOREBOARD_SWING"),
+    ("Momentum Bar", "STRATEGY_ARCADE", "MOMENTUM_BAR"),
+    ("Timeout Tokens", "STRATEGY_ARCADE", "TIMEOUT_TOKENS"),
+    ("Perfect Set", "STRATEGY_ARCADE", "PERFECT_SET"),
+    ("Triple or Take", "STRATEGY_ARCADE", "TRIPLE_OR_TAKE"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
