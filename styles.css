@@ -4424,3 +4424,58 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .social-rival-alert { align-items:flex-start; }
   .friend-actions { justify-content:flex-start; }
 }
+
+
+/* Notifications + Re-engagement: in-app nudge center and push preferences. */
+.reengagement-center {
+  margin-top:18px;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--panel);
+}
+.reengagement-grid {
+  display:grid;
+  gap:9px;
+}
+.reengagement-grid > button {
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  width:100%;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:var(--panel-2,rgba(255,255,255,.035));
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.reengagement-icon {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+}
+.reengagement-grid b,
+.reengagement-grid small {
+  display:block;
+}
+.reengagement-grid small {
+  margin-top:3px;
+  color:var(--muted);
+  line-height:1.35;
+}
+.notification-pref-grid {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+@media (max-width:700px) {
+  .reengagement-center { padding:14px; }
+  .reengagement-grid > button { grid-template-columns:34px minmax(0,1fr) auto; }
+}
