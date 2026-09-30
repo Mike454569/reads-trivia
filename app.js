@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.5.0';
+var APP_VERSION = '3.6.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -710,7 +710,7 @@ var state = {
   study: null,
   learn: null,
   introTest: null,
-  // Legacy compatibility flags for a Daily Challenge that may have been
+  // Legacy compatibility flags for a Daily Reads that may have been
   // started from an older cached client before Daily Reads shipped.
   dailyChallengeActive: null,
   justCompletedDaily: null,
@@ -1097,7 +1097,7 @@ function renderRatingBadge() {
 }
 
 /* ============================== streak ==============================
-   A daily-play streak, deliberately tied to the Daily Challenge specifically
+   A daily-play streak, deliberately tied to the Daily Reads specifically
    (bumpStreak() is called from finishDailyChallenge(), not from every mode's
    finish function) — same pairing every real streak+daily-challenge feature
    uses elsewhere, and it means this needs zero changes to the 12 existing
@@ -1314,7 +1314,7 @@ function completeDailyReads(label, pct) {
 }
 function completeDailyChallengeFrom(typeId, label, pct) {
   // Compatibility shim for any older cached mode that finishes a legacy
-  // Daily Challenge after this release. New Daily Reads never routes out to
+  // Daily Reads after this release. New Daily Reads never routes out to
   // a full mode, but we still honor an already-started legacy session once.
   if (!state.dailyChallengeActive || state.dailyChallengeActive.id !== typeId) return;
   state.dailyChallengeActive = null;
@@ -1504,7 +1504,7 @@ function resetModeState(mode) {
   // Restarting or navigating back into a mode (the only two ways this gets
   // called for a mode other than the daily/h2h routing helpers, which call
   // that mode's own start function directly instead) means any in-progress
-  // Daily Challenge or Head-to-Head round that was being played AS that mode
+  // Daily Reads or Head-to-Head round that was being played AS that mode
   // just got abandoned — clear the flag so a later, unrelated solo round in
   // this same mode can't get silently credited as finishing it.
   if (state.dailyChallengeActive && state.dailyChallengeActive.mode === mode) state.dailyChallengeActive = null;
@@ -1780,7 +1780,7 @@ function modeToolbarHtml(mode, ranked) {
 // modes instead of a bespoke toggle per mode. state.rankedPref remembers
 // each mode's last choice independently; absent/undefined defaults to
 // Ranked (true) so existing users' behavior is unchanged until they opt in
-// to Practice somewhere. Daily Challenge is deliberately exempt — it always
+// to Practice somewhere. Daily Reads is deliberately exempt — it always
 // counts, no toggle is rendered for it.
 function rankedToggleHtml(mode) {
   var ranked = state.rankedPref[mode] !== false;
@@ -2765,7 +2765,7 @@ function applyFavoriteTeamAccent() {
 }
 // A few interchangeable templates rather than one fixed line, picked
 // deterministically per day+name (same mulberry32/hashStr pattern as the
-// Daily Challenge and recommendedModeHtml) so it's stable through a session
+// Daily Reads and recommendedModeHtml) so it's stable through a session
 // but not the exact same sentence every single day.
 var FAVORITE_TEAM_GREETINGS = ['What’s up, {team} fan?', 'Ready to roll, {team} fan?', 'Let’s go, {team}!', 'Hey there, {team} faithful.'];
 // NFL_TEAMS' own id IS a real abbreviation already ('KC', 'SF', ...) so it
@@ -2860,7 +2860,7 @@ function modeTimesPlayed(id) {
   return st.roundsPlayed || st.gamesPlayed || st.attempts || st.testsTaken || st.sessionsPlayed || st.completions || 0;
 }
 // "Recommended for you" — deliberately deterministic per day+name (same
-// seeded-PRNG pattern as the Daily Challenge) rather than Math.random(),
+// seeded-PRNG pattern as the Daily Reads) rather than Math.random(),
 // so the suggestion doesn't change on every re-render/click and instead
 // reads as a considered daily pick. Prioritizes modes never played at all
 // (exploration); once everything's been tried at least once, falls back to
@@ -2918,7 +2918,7 @@ function recommendedModeHtml() {
 }
 // UI/UX upgrade pass: a completion screen shouldn't be a dead end past its
 // own "Play Again" button. Two real pieces, shown only when they apply —
-// never fabricated: (1) if this round WAS today's Daily Challenge (grid/
+// never fabricated: (1) if this round WAS today's Daily Reads (grid/
 // blitz/silhouette/legends all route through their own normal result
 // screen, not a separate daily one, so without this they finished with zero
 // acknowledgment that their streak just moved), say so with the real streak
@@ -2928,7 +2928,7 @@ function recommendedModeHtml() {
 function dailyCompletionBannerHtml(dailyTypeId) {
   if (!state.justCompletedDaily || state.justCompletedDaily.typeId !== dailyTypeId) return '';
   var streak = getStreak();
-  return '<div class="daily-complete-banner">' + icon('flame') + ' Today’s Daily Challenge complete' +
+  return '<div class="daily-complete-banner">' + icon('flame') + ' Today’s Daily Reads complete' +
     (streak.count > 0 ? ' — ' + streak.count + '-day streak' : '') + '. Come back tomorrow for a new one.</div>';
 }
 function postGameNextStepsHtml(dailyTypeId) {
@@ -2943,13 +2943,13 @@ function postGameNextStepsHtml(dailyTypeId) {
 function totalModeCount() {
   return LEAGUE_MODES.nfl.length + LEAGUE_MODES.cfb.length;
 }
-// UI/UX upgrade pass: the home screen used to stack the Daily Challenge,
+// UI/UX upgrade pass: the home screen used to stack the Daily Reads,
 // Continue Playing, Recommended, Head-to-Head, Live Match, X's & O's, Film
 // Room, Friends, and Study cards full-width, one after another, ALL before
 // a visitor ever reached the actual NFL/CFB mode grids — up to 8 identical-
 // looking `.continue-card` rows of scrolling before "what can I actually
 // play" appeared. The three that are genuinely time-sensitive/personal
-// (Daily Challenge, Continue Playing, Recommended) stay full-width and
+// (Daily Reads, Continue Playing, Recommended) stay full-width and
 // prominent right under the hero. Everything else — real features, but not
 // urgent — moves into one compact "More Ways to Play" grid, the same
 // pattern the NFL/CFB mode grids already use, so the page reaches real
@@ -3105,7 +3105,7 @@ function toggleModeSheet(league) {
    walkthrough's final step's button is a real call-to-action (not just a
    "close" button) — worded and wired differently depending on where this
    person already is: straight into the intro test for a brand-new visitor,
-   or into today's Daily Challenge for someone who already has a rating. A
+   or into today's Daily Reads for someone who already has a rating. A
    contextual mode tip's button always just says "Got it" and closes. */
 var ONBOARD_KEY = 'nflTriviaOnboarded';
 // A real, answerable question (id 15 in data/quiz.js — the '72 Dolphins'
@@ -3138,7 +3138,7 @@ var ONBOARDING_STEPS = [
   },
   {
     title: 'Come back every day',
-    body: 'A <b>Daily Challenge</b> drops every day — the same one for everyone, so it doubles as its own mini leaderboard. Complete it to build your streak, and don’t stress about one bad day: a grace day every week keeps your streak alive even if you miss.'
+    body: 'A <b>Daily Reads</b> drops every day — the same one for everyone, so it doubles as its own mini leaderboard. Complete it to build your streak, and don’t stress about one bad day: a grace day every week keeps your streak alive even if you miss.'
   },
   {
     title: 'Your rating goes with you',
@@ -3243,7 +3243,7 @@ function closeOnboarding() {
   onboardingTriggerEl = null;
 }
 // The CTA itself: for a returning visitor who already has a rating, jump
-// straight into today's Daily Challenge. For a brand-new visitor, either
+// straight into today's Daily Reads. For a brand-new visitor, either
 // start the intro test directly (if they already typed a name on a prior
 // visit but never took it) or just land back on Home with the name field
 // focused — saveName() already auto-starts the intro test the moment a name
@@ -3887,7 +3887,7 @@ function buildGrid() {
 }
 function startGridRound() {
   beginProgressSession('grid');
-  // UI/UX upgrade pass: a fresh round is never "today's Daily Challenge"
+  // UI/UX upgrade pass: a fresh round is never "today's Daily Reads"
   // unless completeDailyChallengeFrom() sets this again -- clears any
   // stale flag from an earlier, unrelated daily completion this session so
   // dailyCompletionBannerHtml() can't show on a later non-daily round.
@@ -6905,12 +6905,12 @@ function renderCfbLegendsScreen() {
    Every game mode is available (H2H_MODES below). Two kinds:
    - kind: 'quiz' (Quiz/CFB Quiz) — the original design: both players get the
      IDENTICAL seeded question set (seeded from the match code itself, same
-     mulberry32/seededShuffle pattern as the Daily Challenge), answered in
+     mulberry32/seededShuffle pattern as the Daily Reads), answered in
      this file's own quiz-style flow (h2hCurrentQuestion/h2hPickAnswer/etc).
    - kind: 'mode' or 'blitz' (everything else — Grid, Blitz, Silhouette,
      Speed, 17-0/12-0) — routes into that mode's own real engine instead of
      a bespoke H2H flow (startH2hIntoMode, mirroring startDailyIntoMode for
-     the Daily Challenge), then that mode's own finish function reports back
+     the Daily Reads), then that mode's own finish function reports back
      via h2hSubmitModeResult. These do NOT get an identical seeded challenge
      the way Quiz does — each player gets that mode's own normal randomness
      (Blitz is the one exception: the match creator picks a specific list,
@@ -7158,7 +7158,7 @@ function h2hStartPlaying() {
     return;
   }
   // Non-quiz mode: hand off to that mode's own real screen/engine (same
-  // pattern as the Daily Challenge's startDailyIntoMode) — h2hSubmitModeResult
+  // pattern as the Daily Reads's startDailyIntoMode) — h2hSubmitModeResult
   // (below) is what brings control back to the 'h2h' screen once that mode's
   // own finish function runs.
   state.h2hActive = { code: s.code, mode: s.mode };
@@ -7859,8 +7859,8 @@ function shareConfigFor(mode) {
     // the real streak into every mode's line universally, so keeping this
     // as a second, separate streak mention would just duplicate it.
     var rlD = shareStatusLine(d.ratingDelta);
-    return { title: 'Daily Challenge', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct', detail: rlD,
-      shareText: 'I scored ' + pct2 + '% on today’s Daily Challenge in Reads!' + (rlD ? ' ' + rlD : '') };
+    return { title: 'Daily Reads', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct', detail: rlD,
+      shareText: 'I scored ' + pct2 + '% on today’s Daily Reads in Reads!' + (rlD ? ' ' + rlD : '') };
   }
   if (mode === 'grid' || mode === 'cfbGrid') {
     var g = state[mode];
@@ -8673,7 +8673,10 @@ function awardProgressForCompletion(mode, fields) {
   var eventData = progressionEventForCompletion(mode, fields);
   if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
     window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
-      if (!result || !result.duplicate) applyProgressAwardLocally(xp, seasonId);
+      if (!result || !result.duplicate) {
+        applyProgressAwardLocally(xp, seasonId);
+        if (state.screen === 'daily' || state.screen === 'home') renderAll();
+      }
     }).catch(function () {
       // Gameplay must never fail because progression sync is unavailable.
       awardedProgressSessions[mode] = null;
@@ -8793,7 +8796,7 @@ window.__triviaSync = {
 
 var LEADERBOARD_MODES = [
   { id: 'rating', label: 'Football Rating', sortKey: 'score', cols: [['score', 'Rating'], ['games', 'Games Played']] },
-  { id: 'daily', label: 'Daily Challenge', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
+  { id: 'daily', label: 'Daily Reads', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
   { id: 'quiz', label: 'NFL Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'xso', label: "X's & O's", sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'grid', label: 'NFL Grid', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['cleanSweeps', 'Clean Sweeps'], ['gamesPlayed', 'Games']] },
@@ -9160,7 +9163,7 @@ function renderSettings() {
 
     '<div class="about-section">' +
     '<h3 class="about-heading">Notifications</h3>' +
-    '<p class="mode-desc">' + (pushSupported() ? "A daily nudge when today's Daily Challenge is live — nothing else, and you can turn it off any time." : "Your browser doesn't support push notifications.") + '</p>' +
+    '<p class="mode-desc">' + (pushSupported() ? "A daily nudge when today's Daily Reads is live — nothing else, and you can turn it off any time." : "Your browser doesn't support push notifications.") + '</p>' +
     (pushSupported() ? '<button class="btn-secondary" data-settings-push-toggle>' + (pushEnabledLocally() ? icon('volumeOff') + ' Notifications On — Turn Off' : icon('volumeOn') + ' Turn On Notifications') + '</button>' : '') +
     '</div>' +
 
@@ -10655,8 +10658,8 @@ var BADGES = [
   { id: 'perfectSeason', icon: '🏆', title: 'Perfect Season', desc: 'Drafted a 17-0 team that actually went 17-0.', check: function (st) { return (st.legends.bestWins || 0) >= 17; } },
   { id: 'perfect12', icon: '🏆', title: 'Perfect 12-0', desc: 'Drafted a CFB 12-0 team that actually went undefeated and won the National Championship.', check: function (st) { return (st.cfbLegends.bestWins || 0) >= 12; } },
   { id: 'sharpEye', icon: '🕵️', title: 'Sharp Eye', desc: '5+ quick guesses (few clues used) in one Silhouette round.', check: function (st) { return (st.silhouette.bestQuick || 0) >= 5; } },
-  { id: 'onFire', icon: '🔥', title: 'On Fire', desc: 'Hit a 7-day Daily Challenge streak.', check: function (st, streak) { return streak.count >= 7; } },
-  { id: 'dailyGrinder', icon: '📅', title: 'Daily Grinder', desc: 'Completed 10+ Daily Challenges.', check: function (st) { return (st.daily.completions || 0) >= 10; } },
+  { id: 'onFire', icon: '🔥', title: 'On Fire', desc: 'Hit a 7-day Daily Reads streak.', check: function (st, streak) { return streak.count >= 7; } },
+  { id: 'dailyGrinder', icon: '📅', title: 'Daily Grinder', desc: 'Completed 10+ Daily Readss.', check: function (st) { return (st.daily.completions || 0) >= 10; } },
   { id: 'rivalry', icon: '⚔️', title: 'Got Next', desc: 'Won a Head-to-Head match against a friend.', check: function (st) { return (st.h2h.wins || 0) >= 1; } },
   { id: 'higherLowerStreak', icon: '📈', title: 'On a Heater', desc: 'Built a 15+ player streak in Higher or Lower.', check: function (st) { return (st.higherLower.bestStreak || 0) >= 15; } }
 ];
