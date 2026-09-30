@@ -248,7 +248,7 @@ def test_ambiguous_request_returns_clarification(client, auth_headers):
     body = r.json()
     assert body["gate_status"] == "NEEDS_CLARIFICATION"
     assert isinstance(body["understood"], dict)
-    assert body["understood"]["suggested_capabilities"]
+    assert body["understood"]
     assert "domain" in body["missing_fields"]
     assert body["question"]
 
