@@ -108,7 +108,8 @@ function liveFootballFinalCardHtml(g, compact) {
     '<div class="live-final-top"><span>' + esc(g.league) + ' · WEEK ' + esc(String(g.week)) + '</span><b>FINAL</b></div>' +
     '<div class="live-final-matchup"><div><span>' + esc(g.away_team) + '</span><strong>' + esc(String(g.away_score)) + '</strong></div>' +
     '<div><span>' + esc(g.home_team) + '</span><strong>' + esc(String(g.home_score)) + '</strong></div></div>' +
-    '<small>' + esc(winnerName) + ' won' + (liveFootballFavoriteMatch(g) ? ' · Your team' : '') + '</small>' +
+    '<small>' + esc(winnerName) + ' won' + (liveFootballFavoriteMatch(g) ? ' · Your team' : '') +
+      (g.your_pick && g.outcome ? ' · Pick’em: ' + esc(PICKEM_OUTCOME_COPY[g.outcome] || g.outcome) : '') + '</small>' +
     (!compact ? '<button class="btn-tiny" data-live-game-challenge="' + esc(g.league + ':' + g.game_id) + '">Quiz me on this final</button>' : '') +
     '</article>';
 }
@@ -126,6 +127,7 @@ function liveFootballHomeHtml() {
     (finals.length ? '<button class="btn-secondary" data-live-challenge-start>Play Postgame 5</button>' : '') + '</div></section>';
 }
 function openLiveFootballHub() {
+  LIVE_FOOTBALL.challenge = null;
   state.screen = 'liveFootball';
   liveFootballAcknowledgeFinals();
   liveFootballMaybeRefresh(false);
