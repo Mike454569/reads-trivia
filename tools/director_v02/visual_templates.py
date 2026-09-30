@@ -797,9 +797,12 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/relationship_chain.py:build_package()",
         "qa_requirements": "Identical to SIX_DEGREES.",
         "casual_aliases": ["chain reaction"],
-        # Same real, disclosed bounded-chain limitation as SIX_DEGREES -- see
-        # that entry's own comment.
-        "mobile_verified": True, "creator_selectable": True, "production_status": "SUPPORTED_WITH_LIMITATIONS",
+        # Final 100-format audit: this is the exact same real backend/variant
+        # as SIX_DEGREES. Keep it for backward compatibility, but classify it
+        # as a presentation alias so it can never inflate the distinct-format
+        # count or appear as a second Creator choice.
+        "presentation_alias_of": "SIX_DEGREES", "counts_as_distinct_format": False,
+        "mobile_verified": True, "creator_selectable": False, "production_status": "SUPPORTED_WITH_LIMITATIONS",
     },
     "CHOOSE_YOUR_PATH": {
         "format_id": "CHOOSE_YOUR_PATH", "display_name": "Choose Your Path",
