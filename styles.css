@@ -6038,3 +6038,37 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     justify-content:center;
   }
 }
+
+
+/* Encyclopedia connected navigation */
+.encyc-entity-links {
+  margin:16px 0;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.022);
+}
+.encyc-domain-quicknav {
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:2px 0 10px;
+  margin-bottom:10px;
+  scrollbar-width:none;
+}
+.encyc-domain-quicknav::-webkit-scrollbar { display:none; }
+.encyc-domain-quicknav button {
+  flex:0 0 auto;
+  padding:7px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:rgba(255,255,255,.02);
+  color:var(--muted);
+  font-size:.63rem;
+  white-space:nowrap;
+}
+.encyc-domain-quicknav button.active {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.42);
+  background:rgba(var(--fav-team-rgb,255,255,255),.10);
+  color:var(--text);
+}
