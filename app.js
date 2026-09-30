@@ -4011,8 +4011,14 @@ function continuePlayingCardHtml() {
 // across all of them for the one thing recommendedModeHtml() needs to know.
 function modeTimesPlayed(id) {
   var st = state.stats[id];
-  if (!st) return 0;
-  return st.roundsPlayed || st.gamesPlayed || st.attempts || st.testsTaken || st.sessionsPlayed || st.completions || 0;
+  var statCount = st ? (st.roundsPlayed || st.gamesPlayed || st.attempts || st.testsTaken || st.sessionsPlayed || st.completions || 0) : 0;
+  // Dynamic engine/strategy formats do not each own a permanent DEFAULT_STATS
+  // bucket. Their real play history lives in the personalization event stream,
+  // so use that as the fallback instead of incorrectly showing "New to you"
+  // forever after somebody has already played one.
+  if (statCount) return statCount;
+  if (!state.name || typeof getPersonalizationState !== 'function') return 0;
+  return (getPersonalizationState().playEvents || []).filter(function (e) { return e && e.mode === id; }).length;
 }
 // "Recommended for you" — deliberately deterministic per day+name (same
 // seeded-PRNG pattern as the Daily Reads) rather than Math.random(),
