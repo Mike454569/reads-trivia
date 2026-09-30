@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.8.0';
+var APP_VERSION = '3.9.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -1668,6 +1668,7 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
+  if (state.screen === 'community' && mode !== 'community') stopCommunityWatch();
   // UI polish pass: real bug found by actually scrolling down on one
   // screen (e.g. a long quiz result review list) and then navigating to a
   // DIFFERENT mode -- the browser keeps the old scroll offset, so the new
@@ -2805,6 +2806,193 @@ function teamPickerPromptCardHtml() {
 }
 function dismissTeamPrompt() { lsSet(TEAM_PROMPT_DISMISS_KEY, true); renderAll(); }
 
+/* ============================== favorite-team communities ============================== */
+var communityRows = [];
+var communityLoading = false;
+var communityError = '';
+var communityUnsubscribe = null;
+var communityActiveLeague = null;
+var COMMUNITY_POST_LIMIT = 180;
+function communityTeamForLeague(league) {
+  var fav = getFavoriteTeams();
+  return league && fav[league] ? favoriteTeamById(league, fav[league]) : null;
+}
+function defaultCommunityLeague() {
+  var fav = getFavoriteTeams();
+  if (fav.lastPicked && fav[fav.lastPicked]) return fav.lastPicked;
+  if (fav.nfl) return 'nfl';
+  if (fav.cfb) return 'cfb';
+  return null;
+}
+function communityTeamKey(league, team) {
+  if (!league || !team) return '';
+  return league + '__' + slugify(team.id || team.name);
+}
+function communityCreatedAtMs(row) {
+  if (!row || !row.createdAt) return 0;
+  if (typeof row.createdAt.toMillis === 'function') return row.createdAt.toMillis();
+  if (typeof row.createdAt.seconds === 'number') return row.createdAt.seconds * 1000;
+  return Number(row.createdAt) || 0;
+}
+function communityRelativeTime(row) {
+  var ms = communityCreatedAtMs(row);
+  if (!ms) return 'just now';
+  var diff = Math.max(0, Date.now() - ms);
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h';
+  var days = Math.floor(hrs / 24);
+  return days + 'd';
+}
+function stopCommunityWatch() {
+  if (communityUnsubscribe) { communityUnsubscribe(); communityUnsubscribe = null; }
+}
+function startCommunityWatch(league) {
+  var team = communityTeamForLeague(league);
+  stopCommunityWatch();
+  communityActiveLeague = league;
+  communityRows = [];
+  communityLoading = true;
+  communityError = '';
+  if (!team || !window.__fbSync || !window.__fbSync.watchCommunity) {
+    communityLoading = false;
+    renderAll();
+    return;
+  }
+  communityUnsubscribe = window.__fbSync.watchCommunity(communityTeamKey(league, team), function (rows) {
+    communityRows = Array.isArray(rows) ? rows : [];
+    communityLoading = false;
+    if (state.screen === 'community') renderAll();
+  });
+}
+function communityCardHtml() {
+  if (!state.name) return '';
+  var league = defaultCommunityLeague();
+  var team = communityTeamForLeague(league);
+  if (!team) return '';
+  return '<button class="community-home-card" data-go="community">' +
+    '<span class="community-home-icon">' + favoriteTeamBadgeHtml() + '</span>' +
+    '<span class="community-home-copy"><span class="community-home-kicker">YOUR TEAM COMMUNITY</span>' +
+    '<strong>' + esc(team.name) + ' Fans</strong><small>Talk ball with people repping your team.</small></span>' +
+    icon('arrowRight', 'continue-card-chevron') +
+    '</button>';
+}
+function renderCommunityPost(row) {
+  var badge = row.badgeTitle ? ((row.badgeIcon || '🏈') + ' ' + esc(row.badgeTitle)) : '';
+  return '<article class="community-post">' +
+    '<div class="community-post-head"><div><b>' + esc(row.authorName || 'Reads fan') + '</b>' +
+    (badge ? '<span class="community-post-badge">' + badge + '</span>' : '') +
+    '</div><time>' + esc(communityRelativeTime(row)) + '</time></div>' +
+    '<p>' + esc(row.text || '') + '</p>' +
+    '<div class="community-post-meta">' +
+      (row.careerRank ? '<span>' + esc(row.careerRank) + '</span>' : '') +
+      (row.rating ? '<span>' + row.rating + ' rating</span>' : '') +
+      (row.streak ? '<span>' + row.streak + '-day streak</span>' : '') +
+    '</div>' +
+    '</article>';
+}
+function renderCommunityScreen() {
+  var fav = getFavoriteTeams();
+  var hasNfl = !!fav.nfl, hasCfb = !!fav.cfb;
+  if (!hasNfl && !hasCfb) {
+    return '<div class="panel"><div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+      '<h2 class="panel-title">' + icon('users') + ' Team Communities</h2>' +
+      '<p class="mode-desc">Pick a favorite NFL or College team first. That team becomes your community.</p>' +
+      '<button class="btn-primary" data-team-picker-toggle>Pick My Teams</button></div>';
+  }
+  var league = communityActiveLeague && fav[communityActiveLeague] ? communityActiveLeague : defaultCommunityLeague();
+  var team = communityTeamForLeague(league);
+  if (!communityUnsubscribe && window.__fbSync && window.__fbSync.watchCommunity) {
+    setTimeout(function () { if (state.screen === 'community') startCommunityWatch(league); }, 0);
+  }
+  var selected = selectedBadge();
+  var career = progressionRankFor(getProgression().careerXp || 0);
+  var rating = getRating();
+  var streak = getStreak();
+  var tabs = (hasNfl && hasCfb) ? '<div class="community-tabs">' +
+    '<button class="' + (league === 'nfl' ? 'active' : '') + '" data-community-league="nfl">NFL</button>' +
+    '<button class="' + (league === 'cfb' ? 'active' : '') + '" data-community-league="cfb">College</button>' +
+    '</div>' : '';
+  var composer = activeAuthUid
+    ? '<div class="community-composer"><textarea id="community-post-input" maxlength="' + COMMUNITY_POST_LIMIT + '" rows="3" placeholder="What’s on your mind, ' + esc(team.name) + ' fans?"></textarea>' +
+      '<div class="community-composer-foot"><span>' + COMMUNITY_POST_LIMIT + ' max</span><button class="btn-primary" data-community-post>Post</button></div>' +
+      '<div class="community-quick-posts"><button data-community-preset="Daily Reads done. Who’s beating my score?">Daily Reads done</button>' +
+      '<button data-community-preset="Who actually knows ball in here?">Who knows ball?</button>' +
+      '<button data-community-preset="Challenge me in Head-to-Head.">Challenge me</button></div></div>'
+    : '<div class="community-login-note"><b>Want to post?</b><span>Log in to join the conversation. You can still read the room.</span><button class="btn-secondary" data-auth-open="login">Log In</button></div>';
+  return '<div class="panel community-screen">' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+    tabs +
+    '<div class="community-hero" style="' + teamSwatchStyle(team) + '">' +
+      '<div class="community-hero-badge">' + esc(team.code || team.id) + '</div>' +
+      '<div><span class="dashboard-eyebrow">TEAM COMMUNITY</span><h2>' + esc(team.name) + ' Fans</h2><p>Game reactions, trash talk, trivia flexes, and challenges.</p></div>' +
+    '</div>' +
+    '<div class="community-you"><span>You’re posting as</span><b>' + esc(state.name || 'Guest') + '</b>' +
+      (selected ? '<span>' + selected.icon + ' ' + esc(selected.title) + '</span>' : '') +
+      '<span>' + esc(career.name) + '</span>' +
+      (rating ? '<span>' + rating.score + ' rating</span>' : '') +
+      (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
+    '</div>' +
+    composer +
+    (communityError ? '<div class="community-error">' + esc(communityError) + '</div>' : '') +
+    '<div class="community-feed-head"><h3>Latest</h3><span>' + communityRows.length + ' post' + (communityRows.length === 1 ? '' : 's') + '</span></div>' +
+    (communityLoading ? '<div class="loading-panel" aria-busy="true"><div class="loading-spinner"></div><div class="loading-text">Loading the room…</div></div>' :
+      communityRows.length ? '<div class="community-feed">' + communityRows.map(renderCommunityPost).join('') + '</div>' :
+      '<div class="community-empty"><b>Be the first one in.</b><span>No posts yet for this team.</span></div>') +
+    '</div>';
+}
+function switchCommunityLeague(league) {
+  if (!communityTeamForLeague(league)) return;
+  startCommunityWatch(league);
+  renderAll();
+}
+function setCommunityPreset(text) {
+  var input = document.getElementById('community-post-input');
+  if (!input) return;
+  input.value = text || '';
+  input.focus();
+}
+function submitCommunityPost() {
+  if (!activeAuthUid || !state.name) { openAuthModal('login'); return; }
+  var league = communityActiveLeague && communityTeamForLeague(communityActiveLeague) ? communityActiveLeague : defaultCommunityLeague();
+  var team = communityTeamForLeague(league);
+  var input = document.getElementById('community-post-input');
+  var text = input ? input.value.trim() : '';
+  if (!team || !text) return;
+  if (text.length > COMMUNITY_POST_LIMIT) text = text.slice(0, COMMUNITY_POST_LIMIT);
+  var lastPostAt = Number(lsGet('readsCommunityLastPostAt', 0)) || 0;
+  if (Date.now() - lastPostAt < 10000) {
+    communityError = 'Give it a few seconds before posting again.';
+    renderAll();
+    return;
+  }
+  var badge = selectedBadge();
+  var career = progressionRankFor(getProgression().careerXp || 0);
+  var rating = getRating();
+  var streak = getStreak();
+  communityError = '';
+  lsSet('readsCommunityLastPostAt', Date.now());
+  if (input) input.value = '';
+  window.__fbSync.postCommunity(communityTeamKey(league, team), {
+    teamId: team.id,
+    teamName: team.name,
+    league: league,
+    authorName: state.name,
+    badgeId: badge ? badge.id : null,
+    badgeTitle: badge ? badge.title : null,
+    badgeIcon: badge ? badge.icon : null,
+    careerRank: career.name,
+    rating: rating ? rating.score : null,
+    streak: streak.count || 0,
+    text: text
+  }).catch(function () {
+    communityError = 'Couldn’t post right now. Try again.';
+    if (state.screen === 'community') renderAll();
+  });
+}
+
 var MODE_DIFFICULTY_LABEL = { casual: 'Casual', competitive: 'Competitive', hardcore: 'Hardcore' };
 function modeCardHtml(m) {
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
@@ -3035,6 +3223,7 @@ function renderHome() {
     '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
     teamPickerPromptCardHtml() +
     personalDashboardHtml() +
+    communityCardHtml() +
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
     recommendedModeHtml() +
@@ -11086,6 +11275,7 @@ function renderAll() {
   else if (state.screen === 'h2h') html += renderH2HScreen();
   else if (state.screen === 'learn') html += renderLearnScreen();
   else if (state.screen === 'friends') html += renderFriendsScreen();
+  else if (state.screen === 'community') html += renderCommunityScreen();
   else if (state.screen === 'h2hLive') html += renderH2HLiveScreen();
   else if (state.screen === 'study') html += renderStudyScreen();
   else if (state.screen === 'playerClues') html += renderPlayerCluesScreen();
@@ -11313,7 +11503,7 @@ document.addEventListener('click', function (e) {
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
-    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], [data-share-design], ' +
+    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -11510,6 +11700,9 @@ document.addEventListener('click', function (e) {
   if (t.dataset.f101TestMeClose !== undefined) { state.f101Quiz = { active: false }; renderAll(); return; }
   if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
+  if (t.dataset.communityLeague !== undefined) { switchCommunityLeague(t.dataset.communityLeague); return; }
+  if (t.dataset.communityPost !== undefined) { submitCommunityPost(); return; }
+  if (t.dataset.communityPreset !== undefined) { setCommunityPreset(t.dataset.communityPreset); return; }
   if (t.dataset.profileBadge !== undefined) { selectProfileBadge(t.dataset.profileBadge); return; }
   if (t.dataset.profileCosmetic !== undefined) { selectProfileCosmetic(t.dataset.profileCosmetic); return; }
   if (t.dataset.shareDesign !== undefined) { selectShareDesign(t.dataset.shareDesign); return; }
