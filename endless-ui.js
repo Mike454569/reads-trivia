@@ -179,6 +179,17 @@ function nextEndless(){
   renderAll();
 }
 function endlessBestKey(){return 'readsEndlessBest__'+slugify(state.name||'guest');}
+
+function endlessEventSummaryHtml(){
+  var counts={};ENDLESS.history.forEach(function(x){if(x.event)counts[x.event]=(counts[x.event]||0)+1;});
+  var labels={boss:'Boss Rounds',checkpoint:'Checkpoints',clutch:'Clutch',rescue:'Team Rescues',hot:'Hot Hand',rivalry:'Rivalry Ambushes',chaos:'Chaos Ball',sudden:'Sudden Death'};
+  var keys=Object.keys(counts);
+  if(!keys.length)return '';
+  return '<div class="endless-event-recap"><div class="endless-event-recap-head"><span>RUN EVENTS</span><b>What you survived</b></div><div class="endless-event-recap-grid">'+
+    keys.map(function(k){return '<div><b>'+counts[k]+'</b><span>'+esc(labels[k]||k)+'</span></div>';}).join('')+
+    '</div></div>';
+}
+
 function finishEndless(){
   if(ENDLESS.screen==='summary')return;
   ENDLESS.screen='summary';ENDLESS.active=false;
@@ -200,7 +211,7 @@ function endlessHomeCardHtml(){
 function renderEndlessScreen(){
   if(ENDLESS.screen==='summary'){
     var pct=ENDLESS.total?Math.round(100*ENDLESS.correct/ENDLESS.total):0;
-    return '<div class="panel endless-panel">'+modeToolbarHtml('endless',true)+(ENDLESS.isNewBest?'<div class="endless-record-burst"><span>NEW PERSONAL BEST</span><b>'+ENDLESS.score.toLocaleString()+' PTS</b></div>':'')+broadcastResultHtml('ENDLESS RUN OVER',ENDLESS.score.toLocaleString()+' PTS',ENDLESS.correct+'/'+ENDLESS.total+' correct · '+pct+'% · best streak '+ENDLESS.bestStreak,pct>=70)+'<div class="endless-summary-grid"><div><b>'+ENDLESS.total+'</b><span>Questions</span></div><div><b>'+ENDLESS.bestStreak+'</b><span>Best Streak</span></div><div><b>'+ENDLESS.score.toLocaleString()+'</b><span>Score</span></div><div><b>'+state.stats.endless.bestScore.toLocaleString()+'</b><span>All-Time Best</span></div></div><div class="btn-row"><button class="btn-primary" data-endless-start>Run It Back</button><button class="btn-secondary" data-go="leaderboard">Leaderboard</button><button class="btn-secondary" data-go="home">Home</button></div></div>';
+    return '<div class="panel endless-panel">'+modeToolbarHtml('endless',true)+(ENDLESS.isNewBest?'<div class="endless-record-burst"><span>NEW PERSONAL BEST</span><b>'+ENDLESS.score.toLocaleString()+' PTS</b></div>':'')+broadcastResultHtml('ENDLESS RUN OVER',ENDLESS.score.toLocaleString()+' PTS',ENDLESS.correct+'/'+ENDLESS.total+' correct · '+pct+'% · best streak '+ENDLESS.bestStreak,pct>=70)+'<div class="endless-summary-grid"><div><b>'+ENDLESS.total+'</b><span>Questions</span></div><div><b>'+ENDLESS.bestStreak+'</b><span>Best Streak</span></div><div><b>'+ENDLESS.score.toLocaleString()+'</b><span>Score</span></div><div><b>'+state.stats.endless.bestScore.toLocaleString()+'</b><span>All-Time Best</span></div></div>'+endlessEventSummaryHtml()+'<div class="btn-row"><button class="btn-primary" data-endless-start>Run It Back</button><button class="btn-secondary" data-go="leaderboard">Leaderboard</button><button class="btn-secondary" data-go="home">Home</button></div></div>';
   }
   var q=ENDLESS.current;if(!q)return '<div class="panel">Building your run…</div>';
   var mech=endlessMechanic(),answered=ENDLESS.answered!==null;
