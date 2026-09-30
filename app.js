@@ -10253,16 +10253,17 @@ function seasonQuestionCountForCompletion(mode) {
   if(s&&typeof s.totalCount==='number')return s.totalCount||0;
   return 0;
 }
-function refreshSeasonCompetitiveSnapshots(season) {
-  var h=state.stats.h2h||{}, en=state.stats.endless||{};
-  season.h2hWins=Math.max(season.h2hWins,Number(h.wins)||0);
-  season.h2hLosses=Math.max(season.h2hLosses,Number(h.losses)||0);
-  season.h2hTies=Math.max(season.h2hTies,Number(h.ties)||0);
-  season.endlessBestScore=Math.max(season.endlessBestScore,Number(en.bestScore)||0);
-  season.endlessBestQuestions=Math.max(season.endlessBestQuestions,Number(en.bestQuestions)||0);
+function seasonH2hResult() {
+  var s=state.h2h, match=s&&s.match;
+  if(!s||!match||!match.players)return null;
+  var slugs=Object.keys(match.players), mine=match.players[s.mySlug];
+  var oppSlug=slugs.filter(function(sl){return sl!==s.mySlug;})[0], opp=oppSlug?match.players[oppSlug]:null;
+  if(!mine||!opp||!mine.finishedAt||!opp.finishedAt)return null;
+  var diff=h2hCompareRecords(mine,opp);
+  return diff>0?'win':diff<0?'loss':'tie';
 }
 
-function recordSeasonGame(mode) {
+function recordSeasonGame(mode, fields) {
   if (!state.name || !mode) return;
   var eventId = mode === 'daily' ? ('daily_' + todayStr()) : progressEventIdFor(mode);
   if (recordedSeasonSessions[mode] === eventId) return;
@@ -10281,7 +10282,16 @@ function recordSeasonGame(mode) {
     season.topMode = mode;
     season.topModePlays = season.modePlays[mode];
   }
-  refreshSeasonCompetitiveSnapshots(season);
+  if(mode==='h2h'){
+    var hResult=seasonH2hResult();
+    if(hResult==='win')season.h2hWins+=1;
+    else if(hResult==='loss')season.h2hLosses+=1;
+    else if(hResult==='tie')season.h2hTies+=1;
+  }
+  if(mode==='endless'&&fields){
+    season.endlessBestScore=Math.max(season.endlessBestScore,Number(fields.lastScore)||0);
+    season.endlessBestQuestions=Math.max(season.endlessBestQuestions,Number(fields.lastQuestions)||0);
+  }
   var rating = getRating();
   season.finalRating = rating ? rating.score : season.finalRating;
   p.seasons[seasonId] = season;
@@ -10495,7 +10505,7 @@ function pushLeaderboard(mode, fields) {
   }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
   recordPersonalizationCompletion(mode, fields);
-  recordSeasonGame(mode);
+  recordSeasonGame(mode, fields);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
   checkCommunityChallengeFromCompletion(mode);
