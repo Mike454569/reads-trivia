@@ -88,6 +88,7 @@ function endlessPickQuestion(){
   ENDLESS.league=league;ENDLESS.current=q;ENDLESS.visible=visible;ENDLESS.answered=null;ENDLESS.mechanicIndex=0;
 }
 function startEndlessMode(){
+  if (typeof beginProgressSession === 'function') beginProgressSession('endless');
   ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],mechanicIndex:0,league:'nfl',multiplier:1,correct:0,total:0,history:[]};
   state.screen='endless'; lsSet('nflTriviaLastMode','endless');
   if(window.__fbSync&&window.__fbSync.logPlay)window.__fbSync.logPlay('endless');
@@ -115,6 +116,14 @@ function nextEndless(){
   ENDLESS.index++; endlessPickQuestion(); renderAll();
 }
 function endlessBestKey(){return 'readsEndlessBest__'+slugify(state.name||'guest');}
+function recordEndlessPersonalization(pct){
+  if(!state.name || typeof getPersonalizationState!=='function') return;
+  var p=getPersonalizationState();
+  p.playEvents.push({mode:'endless',league:'mixed',at:Date.now(),pct:pct});
+  setPersonalizationState(p,true);
+  if(typeof checkWeeklyPersonalGoals==='function')checkWeeklyPersonalGoals();
+  if(typeof checkWeeklyRetentionReward==='function')checkWeeklyRetentionReward();
+}
 function finishEndless(){
   ENDLESS.screen='summary';ENDLESS.active=false;
   var best=lsGet(endlessBestKey(),{score:0,questions:0});
@@ -122,7 +131,7 @@ function finishEndless(){
   if(state.name){
     var pct=ENDLESS.total?Math.round(100*ENDLESS.correct/ENDLESS.total):0;
     updateRatingDrift(pct);
-    if(typeof recordPersonalizationCompletion==='function')recordPersonalizationCompletion('endless',{lastPct:pct});
+    recordEndlessPersonalization(pct);
     if(typeof awardProgressEvent==='function')awardProgressEvent('ENDLESS_FINISH',Math.min(150,25+ENDLESS.total*3),{score:ENDLESS.score,questions:ENDLESS.total});
   }
   playSound('complete');renderAll();
