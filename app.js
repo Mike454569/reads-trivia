@@ -11467,11 +11467,57 @@ function learnSectionCategories(id) {
 }
 
 /* Film Room: local study notebook, daily reps, and coach dashboard. */
-function filmNotebook() { return lsGet('readsFilmNotebook__' + slugify(state.name || 'guest'), { saved: [], viewed: {}, reps: 0, correct: 0, days: {}, last: null }); }
+function filmNotebook() {
+  var n=lsGet('readsFilmNotebook__' + slugify(state.name || 'guest'), { saved: [], viewed: {}, reps: 0, correct: 0, days: {}, last: null, mastery:{}, sessions:0, bossWins:0, review:[] });
+  n.saved=Array.isArray(n.saved)?n.saved:[]; n.viewed=n.viewed||{}; n.days=n.days||{}; n.mastery=n.mastery||{}; n.review=Array.isArray(n.review)?n.review:[];
+  n.reps=Number(n.reps)||0; n.correct=Number(n.correct)||0; n.sessions=Number(n.sessions)||0; n.bossWins=Number(n.bossWins)||0;
+  return n;
+}
 function filmSaveNotebook(n) { lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); }
-function filmRecordRep(correct) {
+var FILM_FAMILIES=[
+  {id:'coverage',label:'Coverages',icon:'🛡️',rx:/cover|coverage|zone|man defense|secondary|safety/i},
+  {id:'pressure',label:'Pressures',icon:'⚡',rx:/blitz|pressure|rush|pass rush|protection/i},
+  {id:'routes',label:'Routes & Pass Game',icon:'↗️',rx:/route|passing|receiver|concept|mesh|levels|flood|smash|spacing/i},
+  {id:'run',label:'Run Game',icon:'🏃',rx:/run game|rushing|zone run|power|counter|gap scheme|blocking/i},
+  {id:'fronts',label:'Fronts & Personnel',icon:'🧱',rx:/front|formation|personnel|alignment|defensive line|box/i},
+  {id:'situational',label:'Situational Football',icon:'🧠',rx:/down|distance|red zone|goal line|two-minute|clock|situational|third down|fourth down/i},
+  {id:'history',label:'Football History',icon:'🏆',rx:/history|award|heisman|hall of fame|champion|super bowl|record/i}
+];
+function filmFamilyForQuestion(q){
+  var hay=String((q&&q.category)||'')+' '+String((q&&q.question)||'')+' '+String((q&&q.notes)||'');
+  for(var i=0;i<FILM_FAMILIES.length;i++)if(FILM_FAMILIES[i].rx.test(hay))return FILM_FAMILIES[i].id;
+  return 'footballIQ';
+}
+function filmFamilyMeta(id){
+  return FILM_FAMILIES.find(function(f){return f.id===id;})||{id:'footballIQ',label:'Football IQ',icon:'🏈'};
+}
+function filmRecordRep(correct,q) {
   var n = filmNotebook(); n.reps++; if (correct) n.correct++;
+  var family=filmFamilyForQuestion(q), rec=n.mastery[family]||{attempts:0,correct:0,lastPracticed:0};
+  rec.attempts++; if(correct)rec.correct++; rec.lastPracticed=Date.now(); n.mastery[family]=rec;
+  if(!correct&&q){
+    n.review.unshift({family:family,question:q.question||q.prompt||'',answer:q.options&&q.correctIndex!=null?q.options[q.correctIndex]:'',notes:q.notes||q.explanation||'',at:Date.now()});
+    n.review=n.review.slice(0,30);
+  }
   n.days[new Date().toLocaleDateString('en-CA')] = true; filmSaveNotebook(n);
+}
+function filmMasteryLevel(rec){
+  rec=rec||{attempts:0,correct:0}; if(!rec.attempts)return {name:'Rookie',pct:0,next:'Starter'};
+  var pct=Math.round(100*rec.correct/rec.attempts);
+  if(rec.attempts>=12&&pct>=88)return {name:'Guru',pct:pct,next:null};
+  if(rec.attempts>=8&&pct>=80)return {name:'Coordinator',pct:pct,next:'Guru'};
+  if(rec.attempts>=5&&pct>=70)return {name:'Starter',pct:pct,next:'Coordinator'};
+  return {name:'Rookie',pct:pct,next:'Starter'};
+}
+function filmWeakFamily(){
+  var n=filmNotebook(), ids=FILM_FAMILIES.map(function(f){return f.id;});
+  ids.push('footballIQ');
+  ids.sort(function(x,y){
+    var a=n.mastery[x]||{attempts:0,correct:0},b=n.mastery[y]||{attempts:0,correct:0};
+    var ap=a.attempts?(a.correct/a.attempts):-.2,bp=b.attempts?(b.correct/b.attempts):-.2;
+    return ap-bp || a.attempts-b.attempts;
+  });
+  return ids[0];
 }
 function filmMeter(value, total, label) {
   return '<div class="film-meter"><div><span>' + esc(label) + '</span><strong>' + value + ' / ' + total + '</strong></div><div class="film-meter-track"><span style="width:' + Math.min(100, total ? 100 * value / total : 0) + '%"></span></div></div>';
