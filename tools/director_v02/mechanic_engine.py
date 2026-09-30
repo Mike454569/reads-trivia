@@ -468,6 +468,14 @@ VARIANTS: dict[str, dict[str, dict]] = {
         "FOURTH_DOWN_DECISION": {"competition": "MIXED"},
         "SERIES_SWEEP": {"competition": "MIXED"},
         "ROAD_TO_100": {"competition": "MIXED"},
+        "OPTION_ERASER": {"competition": "MIXED"},
+        "ROUTE_TREE": {"competition": "MIXED"},
+        "TURNOVER_BATTLE": {"competition": "MIXED"},
+        "CATEGORY_LOCKOUT": {"competition": "MIXED"},
+        "HAIL_MARY": {"competition": "MIXED"},
+        "MOVING_TARGET": {"competition": "MIXED"},
+        "DRAFT_ORDER": {"competition": "MIXED"},
+        "CHAMPIONSHIP_RUN": {"competition": "MIXED"},
     },
 }
 
@@ -2258,7 +2266,9 @@ def _roster_build_free_select_evaluate(package: dict, progress: dict, submission
 # state transitions; this file keeps the common Gateway contract centralized.
 
 def generate_strategy_arcade_round(*, variant: str, seed: str, round_count: int = 24) -> dict:
-    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
+    if variant in strategy_arcade_wave5.VARIANTS:
+        return strategy_arcade_wave5.build_package(seed, variant, round_count=max(round_count, 36))
     if variant in strategy_arcade_wave4.VARIANTS:
         return strategy_arcade_wave4.build_package(seed, variant, round_count=max(round_count, 36))
     if variant in strategy_arcade_wave3.VARIANTS:
@@ -2267,8 +2277,10 @@ def generate_strategy_arcade_round(*, variant: str, seed: str, round_count: int 
 
 
 def _strategy_arcade_client_view(package: dict, progress: dict) -> dict:
-    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
     variant = package.get("domain_variant")
+    if variant in strategy_arcade_wave5.VARIANTS:
+        return strategy_arcade_wave5.client_view(package, progress)
     if variant in strategy_arcade_wave4.VARIANTS:
         return strategy_arcade_wave4.client_view(package, progress)
     if variant in strategy_arcade_wave3.VARIANTS:
@@ -2277,9 +2289,11 @@ def _strategy_arcade_client_view(package: dict, progress: dict) -> dict:
 
 
 def _strategy_arcade_evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dict]:
-    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
     try:
         variant = package.get("domain_variant")
+        if variant in strategy_arcade_wave5.VARIANTS:
+            return strategy_arcade_wave5.evaluate(package, progress, submission)
         if variant in strategy_arcade_wave4.VARIANTS:
             return strategy_arcade_wave4.evaluate(package, progress, submission)
         if variant in strategy_arcade_wave3.VARIANTS:
