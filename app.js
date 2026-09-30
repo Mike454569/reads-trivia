@@ -8687,7 +8687,8 @@ function awardProgressForCompletion(mode, fields) {
     window.__fbSync.awardProgress(profileDocId(), eventId, eventData, xp, seasonId).then(function (result) {
       if (!result || !result.duplicate) {
         applyProgressAwardLocally(xp, seasonId);
-        if (state.screen === 'daily' || state.screen === 'home') renderAll();
+        syncAchievementUnlocks();
+        if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
       }
     }).catch(function () {
       // Gameplay must never fail because progression sync is unavailable.
@@ -8695,6 +8696,7 @@ function awardProgressForCompletion(mode, fields) {
     });
   } else {
     applyProgressAwardLocally(xp, seasonId);
+    syncAchievementUnlocks();
   }
 }
 
@@ -10725,7 +10727,10 @@ function mergeRewards(local, cloud) {
 }
 function earnedBadges() {
   var st = state.stats, streak = getStreak();
+  var persisted = {};
+  getRewards().unlockedBadgeIds.forEach(function (id) { persisted[id] = true; });
   return BADGES.filter(function (b) {
+    if (persisted[b.id]) return true;
     try { return b.check(st, streak); } catch (e) { return false; }
   });
 }
