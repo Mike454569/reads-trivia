@@ -1498,7 +1498,9 @@ function finalizeDailyQuestion(q, pickedIndex, firstTryCorrect) {
   var t = state.daily;
   t.answeredIndex = pickedIndex;
   if (firstTryCorrect) t.correctCount++;
-  else t.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: pickedIndex });
+  else if (!t.missed.some(function (m) { return m._dailyIndex === t.index; })) {
+    t.missed.push({ _dailyIndex:t.index, question:q.question, options:q.options, correctIndex:q.correctIndex, pickedIndex:pickedIndex });
+  }
   var league = q._dailyLeague === 'CFB' ? 'CFB' : 'NFL';
   t.leagueStats[league].total++;
   if (firstTryCorrect) t.leagueStats[league].correct++;
