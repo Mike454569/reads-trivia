@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.7.0';
+var APP_VERSION = '3.8.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -10698,12 +10698,20 @@ var PROFILE_COSMETICS = [
   { id: 'allpro', title: 'All-Pro', minXp: 3000, desc: 'Premium All-Pro profile treatment.' },
   { id: 'legend', title: 'Legend', minXp: 6000, desc: 'Top-tier Reads Legend profile frame.' }
 ];
+var SHARE_CARD_DESIGNS = [
+  { id: 'classic', title: 'Classic Reads', minXp: 0, desc: 'The clean Reads broadcast card.' },
+  { id: 'team', title: 'Team Takeover', minXp: 250, desc: 'Leans hard into your favorite team colors.' },
+  { id: 'spotlight', title: 'Prime Time', minXp: 750, desc: 'Brighter spotlight and broadcast glow.' },
+  { id: 'allpro', title: 'All-Pro Gold', minXp: 3000, desc: 'Gold-framed card for All-Pro careers.' },
+  { id: 'legend', title: 'Legend', minXp: 6000, desc: 'Premium dark-gold Legend treatment.' }
+];
 function rewardsKey() { return 'nflTriviaRewards__' + slugify(state.name || 'guest'); }
-function defaultRewards() { return { unlockedBadgeIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', updatedAt: 0 }; }
+function defaultRewards() { return { unlockedBadgeIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', selectedShareDesignId: 'classic', updatedAt: 0 }; }
 function getRewards() {
   var r = lsGet(rewardsKey(), defaultRewards());
   r.unlockedBadgeIds = Array.isArray(r.unlockedBadgeIds) ? r.unlockedBadgeIds : [];
   r.selectedCosmeticId = r.selectedCosmeticId || 'classic';
+  r.selectedShareDesignId = r.selectedShareDesignId || 'classic';
   return r;
 }
 function setRewards(r, skipSync) {
@@ -10722,6 +10730,7 @@ function mergeRewards(local, cloud) {
     unlockedBadgeIds: unlocked,
     selectedBadgeId: newer.selectedBadgeId || null,
     selectedCosmeticId: newer.selectedCosmeticId || 'classic',
+    selectedShareDesignId: newer.selectedShareDesignId || 'classic',
     updatedAt: Math.max(Number(local.updatedAt) || 0, Number(cloud.updatedAt) || 0)
   };
 }
@@ -10738,6 +10747,10 @@ function unlockedCosmetics() {
   var xp = Number(getProgression().careerXp) || 0;
   return PROFILE_COSMETICS.filter(function (c) { return xp >= c.minXp; });
 }
+function unlockedShareDesigns() {
+  var xp = Number(getProgression().careerXp) || 0;
+  return SHARE_CARD_DESIGNS.filter(function (d) { return xp >= d.minXp; });
+}
 function selectedBadge() {
   var r = getRewards();
   var earned = earnedBadges();
@@ -10746,6 +10759,10 @@ function selectedBadge() {
 function selectedProfileCosmetic() {
   var r = getRewards();
   return unlockedCosmetics().find(function (c) { return c.id === r.selectedCosmeticId; }) || PROFILE_COSMETICS[0];
+}
+function selectedShareDesign() {
+  var r = getRewards();
+  return unlockedShareDesigns().find(function (d) { return d.id === r.selectedShareDesignId; }) || SHARE_CARD_DESIGNS[0];
 }
 function rewardsProfileState() { return getRewards(); }
 function awardAchievementXp(badgeId) {
@@ -10769,6 +10786,7 @@ function syncAchievementUnlocks() {
     awardAchievementXp(b.id);
   });
   setRewards(r);
+  showAchievementCelebration(newly);
   return newly;
 }
 function selectProfileBadge(id) {
@@ -10779,6 +10797,51 @@ function selectProfileBadge(id) {
 function selectProfileCosmetic(id) {
   if (!unlockedCosmetics().some(function (c) { return c.id === id; })) return;
   var r = getRewards(); r.selectedCosmeticId = id; setRewards(r); renderAll();
+}
+function selectShareDesign(id) {
+  if (!unlockedShareDesigns().some(function (d) { return d.id === id; })) return;
+  var r = getRewards(); r.selectedShareDesignId = id; setRewards(r);
+  renderShareDesignPicker();
+  renderShareCard(shareCurrentFormat || 'square');
+}
+
+/* ============================== achievement celebrations ============================== */
+var achievementCelebrationQueue = [];
+var achievementCelebrationTimer = null;
+function showAchievementCelebration(badges) {
+  if (!badges || !badges.length || typeof document === 'undefined') return;
+  badges.forEach(function (b) { achievementCelebrationQueue.push(b); });
+  if (!achievementCelebrationTimer) playNextAchievementCelebration();
+}
+function playNextAchievementCelebration() {
+  if (!achievementCelebrationQueue.length) { achievementCelebrationTimer = null; return; }
+  var badge = achievementCelebrationQueue.shift();
+  var old = document.getElementById('achievement-celebration');
+  if (old && old.parentNode) old.parentNode.removeChild(old);
+  var wrap = document.createElement('div');
+  wrap.id = 'achievement-celebration';
+  wrap.className = 'achievement-celebration';
+  wrap.setAttribute('role', 'status');
+  wrap.setAttribute('aria-live', 'polite');
+  wrap.innerHTML =
+    '<div class="achievement-burst" aria-hidden="true"></div>' +
+    '<div class="achievement-celebration-card">' +
+      '<div class="achievement-celebration-eyebrow">ACHIEVEMENT UNLOCKED</div>' +
+      '<div class="achievement-celebration-icon">' + badge.icon + '</div>' +
+      '<div class="achievement-celebration-title">' + esc(badge.title) + '</div>' +
+      '<div class="achievement-celebration-desc">' + esc(badge.desc) + '</div>' +
+      '<div class="achievement-celebration-xp">+50 XP</div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  requestAnimationFrame(function () { wrap.classList.add('show'); });
+  achievementCelebrationTimer = setTimeout(function () {
+    wrap.classList.remove('show');
+    setTimeout(function () {
+      if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      achievementCelebrationTimer = null;
+      playNextAchievementCelebration();
+    }, 260);
+  }, 2200);
 }
 
 /* ============================== rating history (sparkline) ==============================
@@ -11195,7 +11258,7 @@ document.addEventListener('click', function (e) {
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
-    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], ' +
+    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], [data-share-design], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -11394,6 +11457,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
   if (t.dataset.profileBadge !== undefined) { selectProfileBadge(t.dataset.profileBadge); return; }
   if (t.dataset.profileCosmetic !== undefined) { selectProfileCosmetic(t.dataset.profileCosmetic); return; }
+  if (t.dataset.shareDesign !== undefined) { selectShareDesign(t.dataset.shareDesign); return; }
   if (t.dataset.typeaheadPick !== undefined) {
     var taListEl = t.closest('.typeahead-list');
     var taInputId = taListEl ? taListEl.id.replace(/-typeahead$/, '') : null;
