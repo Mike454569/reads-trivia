@@ -514,6 +514,15 @@ function drawNoRepeat(deckKey, ids, count) {
 function contentMemoryKey() { return 'readsContentMemory__' + slugify(state.name || 'guest'); }
 function getContentMemory() {
   var m=lsGet(contentMemoryKey(),{questions:[],entities:[]});
+  // Migration from the interrupted/older Endless draft, which stored an
+  // array of {key,entity,...} rows under the same key. Convert once into
+  // the compact vNext shape so old local data cannot break new selection.
+  if (Array.isArray(m)) {
+    var q=[], e=[];
+    m.forEach(function(x){ if(x&&x.key)q.push(String(x.key)); if(x&&x.entity)e.push(String(x.entity)); });
+    return { questions:q.slice(-180), entities:e.slice(-120) };
+  }
+  m=m&&typeof m==='object'?m:{};
   m.questions=Array.isArray(m.questions)?m.questions:[];
   m.entities=Array.isArray(m.entities)?m.entities:[];
   return m;
