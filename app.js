@@ -929,10 +929,13 @@ function removeFriend(name) {
   setFriends(getFriends().filter(function (f) { return slugify(f) !== slugify(name); }));
   renderAll();
 }
-function friendRatingFromLeaderboard(name) {
+function friendLeaderboardIdentity(name) {
   var slug = slugify(name);
-  var entry = (state.leaderboardData || []).find(function (r) { return r.mode === 'rating' && slugify(r.name || '') === slug; });
-  return entry ? { score: entry.score, games: entry.games || 0 } : null;
+  return (state.leaderboardData || []).find(function (r) { return r.mode === 'rating' && slugify(r.name || '') === slug; }) || null;
+}
+function friendRatingFromLeaderboard(name) {
+  var entry = friendLeaderboardIdentity(name);
+  return entry ? { score: entry.score, games: entry.games || 0, accountUid: entry.accountUid || null } : null;
 }
 // Not a live listener like the leaderboard (that would mean one Firestore
 // subscription per friend, torn down/rebuilt every time the list changes) —
@@ -947,9 +950,16 @@ function loadFriendsData() {
   friendsLoading = true;
   renderAll();
   Promise.all(friends.map(function (name) {
-    return window.__fbSync.getProfile(slugify(name)).then(function (profile) {
-      friendsProfileCache[slugify(name)] = profile;
-    }).catch(function () { friendsProfileCache[slugify(name)] = null; });
+    var identity = friendLeaderboardIdentity(name);
+    var uidProfileId = identity && identity.accountUid ? ('uid_' + identity.accountUid) : null;
+    var legacyId = slugify(name);
+    var first = uidProfileId ? window.__fbSync.getProfile(uidProfileId) : Promise.resolve(null);
+    return first.then(function(profile) {
+      if (profile || !uidProfileId) return profile;
+      return window.__fbSync.getProfile(legacyId);
+    }).then(function(profile) {
+      friendsProfileCache[legacyId] = profile;
+    }).catch(function () { friendsProfileCache[legacyId] = null; });
   })).then(function () {
     friendsLoading = false;
     renderAll();
