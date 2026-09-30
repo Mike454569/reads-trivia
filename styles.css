@@ -3707,3 +3707,34 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .community-hero { align-items:flex-start; }
   .community-login-note { align-items:flex-start; flex-direction:column; }
 }
+
+
+/* Competitive team community: daily challenge, team leaderboard, automatic activity. */
+.community-challenge-card { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:14px 0; padding:16px; border:1px solid rgba(var(--fav-team-color-rgb,230,182,80),.38); border-radius:15px; background:linear-gradient(135deg,rgba(var(--fav-team-color-rgb,230,182,80),.10),rgba(255,255,255,.018)); }
+.community-challenge-card h3 { margin:4px 0 5px; font:800 18px/1.1 var(--font-display); }
+.community-challenge-card p { margin:0; color:var(--text-dim); font-size:11px; line-height:1.4; }
+.community-challenge-card.completed { border-color:rgba(74,190,112,.45); background:linear-gradient(135deg,rgba(74,190,112,.10),rgba(255,255,255,.018)); }
+.community-challenge-actions { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex:0 0 auto; }
+.community-challenge-xp { padding:5px 8px; border-radius:999px; background:rgba(230,182,80,.10); color:var(--accent); font:800 10px var(--font-display); }
+.community-challenge-done { display:inline-flex; align-items:center; gap:5px; color:#8fe5aa; font:800 10px var(--font-display); }
+.community-challenge-done .icon { width:14px; height:14px; }
+
+.community-leaderboard { margin:18px 0; }
+.community-rank-list { display:grid; gap:6px; }
+.community-rank-row { display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:11px; background:rgba(255,255,255,.018); }
+.community-rank-row:first-child { border-color:rgba(230,182,80,.42); background:rgba(230,182,80,.055); }
+.community-rank-pos { width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.05); color:var(--text-dim); font:800 9px var(--font-display); }
+.community-rank-row:first-child .community-rank-pos { background:var(--accent); color:var(--accent-text); }
+.community-rank-row b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:800 11px var(--font-display); }
+.community-rank-row > span:last-child { color:var(--accent); font:800 12px var(--font-display); }
+
+.community-activity { position:relative; overflow:hidden; border-color:rgba(var(--fav-team-color-rgb,230,182,80),.24); background:linear-gradient(135deg,rgba(var(--fav-team-color-rgb,230,182,80),.055),rgba(255,255,255,.012)); }
+.community-activity::before { content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:var(--fav-team-color-readable,var(--accent)); }
+.community-activity-kicker { margin-bottom:7px; color:var(--accent); font:800 8px var(--font-display); letter-spacing:.12em; }
+.community-activity p { font-weight:700; }
+
+@media(max-width:600px) {
+  .community-challenge-card { align-items:flex-start; flex-direction:column; }
+  .community-challenge-actions { width:100%; align-items:flex-start; }
+  .community-challenge-actions .btn-primary { width:100%; }
+}
