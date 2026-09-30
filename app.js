@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.4.1';
+var APP_VERSION = '3.5.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -819,25 +819,50 @@ function mergeStreak(local, cloud) {
   if (cloud.lastPlayedDate === local.lastPlayedDate && (cloud.count || 0) > (local.count || 0)) return cloud;
   return local;
 }
+function mergeFavoriteTeams(local, cloud) {
+  local = local || { nfl: null, cfb: null, lastPicked: null, updatedAt: 0 };
+  cloud = cloud || { nfl: null, cfb: null, lastPicked: null, updatedAt: 0 };
+  return (Number(cloud.updatedAt) || 0) > (Number(local.updatedAt) || 0) ? cloud : local;
+}
 function pushProfileSnapshot() {
   if (!state.name || !window.__fbSync || !window.__fbSync.pushProfile) return;
-  window.__fbSync.pushProfile(slugify(state.name), { name: state.name, stats: state.stats, streak: getStreak() });
+  window.__fbSync.pushProfile(profileDocId(), {
+    name: state.name,
+    accountUid: activeAuthUid || null,
+    stats: state.stats,
+    streak: getStreak(),
+    favoriteTeams: getFavoriteTeams()
+  });
 }
-// Called once whenever a name is set/entered (see saveName()) — a one-time
-// fetch-and-merge, not a live listener like the leaderboard: nobody else
-// needs to watch your personal stats update in real time, this only ever
-// needs to run at the moment a device might be "catching up."
+// UID-keyed profiles are authoritative for real accounts. If this is the
+// first load after migration, fall back once to the old username-keyed
+// profile, merge it, and immediately republish under the UID.
 function pullProfileSnapshot() {
   if (!state.name || !window.__fbSync || !window.__fbSync.getProfile) return;
-  window.__fbSync.getProfile(slugify(state.name)).then(function (cloud) {
+  var canonicalId = profileDocId();
+  var legacyId = slugify(state.name);
+  window.__fbSync.getProfile(canonicalId).then(function (cloud) {
+    if (cloud || canonicalId === legacyId) return { cloud: cloud, migrated: false };
+    return window.__fbSync.getProfile(legacyId).then(function (legacy) {
+      return { cloud: legacy, migrated: !!legacy };
+    });
+  }).then(function (result) {
+    var cloud = result && result.cloud;
     if (!cloud) return;
-    var beforeStats = JSON.stringify(state.stats), beforeStreak = JSON.stringify(getStreak());
+    var beforeStats = JSON.stringify(state.stats);
+    var beforeStreak = JSON.stringify(getStreak());
+    var beforeFavorites = JSON.stringify(getFavoriteTeams());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
+    var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
-    if (JSON.stringify(state.stats) !== beforeStats || JSON.stringify(mergedStreak) !== beforeStreak) {
-      pushProfileSnapshot(); // close the loop: cloud should reflect the merge too, not just this device
+    lsSet(favoriteTeamsKey(), mergedFavorites);
+    var changed = JSON.stringify(state.stats) !== beforeStats ||
+      JSON.stringify(mergedStreak) !== beforeStreak ||
+      JSON.stringify(mergedFavorites) !== beforeFavorites;
+    if (changed || (result && result.migrated)) {
+      pushProfileSnapshot();
       renderAll();
     }
   }).catch(function (err) { console.warn('Profile pull failed', err); });
@@ -1668,6 +1693,17 @@ function setRankedPref(mode, ranked) {
 // slugify(state.name) exactly like it always has — a real login only
 // changes HOW state.name gets set, not what it's used for, so playing
 // under the same username you used to type picks your old stats back up.
+// Canonical account identity. Real Firebase accounts use one stable UID on
+// every device; guests retain the original browser-scoped identity.
+var activeAuthUid = null;
+function canonicalPlayerKey() {
+  if (activeAuthUid) return 'uid:' + activeAuthUid;
+  return state.name ? 'guest:' + slugify(state.name) + ':' + getClientId() : '';
+}
+function profileDocId() {
+  return activeAuthUid ? 'uid_' + activeAuthUid : slugify(state.name);
+}
+
 function saveName(name) {
   name = (name || '').trim();
   if (!name) return;
@@ -1687,6 +1723,7 @@ function saveName(name) {
 }
 function logOut() {
   if (window.__fbSync && window.__fbSync.logOut) window.__fbSync.logOut();
+  activeAuthUid = null;
   state.name = '';
   lsSet('nflTriviaName', '');
   lsSet('nflTriviaLoggedIn', false);
@@ -1779,6 +1816,7 @@ function authModalSubmit() {
   if (submitBtn) submitBtn.disabled = true;
   var action = authModalMode === 'signup' ? window.__fbSync.signUp(username, password) : window.__fbSync.logIn(username, password);
   action.then(function (result) {
+    activeAuthUid = result.uid || activeAuthUid;
     closeAuthModal();
     saveName(result.username);
   }).catch(function (err) {
@@ -2415,8 +2453,16 @@ function teamCodeBadgeHtml(league, teamName) {
   return '<span class="team-code-badge" style="' + teamSwatchStyle(t) + '; color: ' + blendedTeamTextColor(t) + '">' + esc(code) + '</span>';
 }
 function favoriteTeamsKey() { return 'nflTriviaFavoriteTeams'; }
-function getFavoriteTeams() { return lsGet(favoriteTeamsKey(), { nfl: null, cfb: null, lastPicked: null }); }
-function setFavoriteTeams(v) { lsSet(favoriteTeamsKey(), v); }
+function getFavoriteTeams() {
+  var v = lsGet(favoriteTeamsKey(), { nfl: null, cfb: null, lastPicked: null, updatedAt: 0 });
+  if (v.updatedAt == null) v.updatedAt = 0;
+  return v;
+}
+function setFavoriteTeams(v) {
+  v = Object.assign({}, v, { updatedAt: Date.now() });
+  lsSet(favoriteTeamsKey(), v);
+  pushProfileSnapshot();
+}
 function favoriteTeamById(league, id) {
   var list = league === 'nfl' ? NFL_TEAMS : CFB_TEAMS;
   return list.find(function (t) { return t.id === id; }) || null;
@@ -8387,14 +8433,45 @@ function getClientId() {
 }
 function pushLeaderboard(mode, fields) {
   if (!state.name) return;
-  var docId = slugify(state.name) + '_' + getClientId() + '__' + mode;
-  var payload = Object.assign({ name: state.name, mode: mode }, fields);
+  var docId = activeAuthUid ? ('account_' + activeAuthUid + '__' + mode)
+    : (slugify(state.name) + '_' + getClientId() + '__' + mode);
+  var payload = Object.assign({
+    name: state.name,
+    mode: mode,
+    playerKey: canonicalPlayerKey(),
+    accountUid: activeAuthUid || null
+  }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
-  // Every finish* function that changes state.stats already calls this
-  // right after — reusing it as the one choke point for pushProfileSnapshot()
-  // too means cross-device stats sync doesn't need its own call bolted onto
-  // all ~17 finish functions individually.
   pushProfileSnapshot();
+}
+function leaderboardRowTimestamp(row) {
+  if (!row || !row.updatedAt) return 0;
+  if (typeof row.updatedAt.toMillis === 'function') return row.updatedAt.toMillis();
+  if (typeof row.updatedAt.seconds === 'number') return row.updatedAt.seconds * 1000;
+  return Number(row.updatedAt) || 0;
+}
+function normalizeLeaderboardRows(list) {
+  list = Array.isArray(list) ? list : [];
+  var accountNameModes = {};
+  list.forEach(function (row) {
+    if (row && (row.accountUid || (row.playerKey && row.playerKey.indexOf('uid:') === 0))) {
+      accountNameModes[(row.mode || '') + '|' + slugify(row.name || '')] = true;
+    }
+  });
+  var chosen = {};
+  list.forEach(function (row) {
+    if (!row || !row.mode) return;
+    var isAccount = !!(row.accountUid || (row.playerKey && row.playerKey.indexOf('uid:') === 0));
+    var nameMode = row.mode + '|' + slugify(row.name || '');
+    if (!isAccount && accountNameModes[nameMode]) return;
+    var identity = isAccount
+      ? (row.accountUid ? 'uid:' + row.accountUid : row.playerKey)
+      : ('legacy:' + (row.id || 'unknown'));
+    var key = row.mode + '|' + identity;
+    var previous = chosen[key];
+    if (!previous || leaderboardRowTimestamp(row) >= leaderboardRowTimestamp(previous)) chosen[key] = row;
+  });
+  return Object.keys(chosen).map(function (key) { return chosen[key]; });
 }
 // True once this device has done its one-time cross-device stats/streak
 // pull for the current name — applyLeaderboard fires on every leaderboard
@@ -8405,8 +8482,8 @@ function pushLeaderboard(mode, fields) {
 var didInitialProfilePull = false;
 window.__triviaSync = {
   applyLeaderboard: function (list) {
-    state.leaderboardData = list;
-    reconcileRating(list);
+    state.leaderboardData = normalizeLeaderboardRows(list);
+    reconcileRating(state.leaderboardData);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
     if (state.screen === 'leaderboard') renderAll();
   },
@@ -8423,9 +8500,14 @@ window.__triviaSync = {
   // no-op.
   applyAuthUser: function (authUser) {
     if (authUser && authUser.username) {
+      var uidChanged = activeAuthUid !== authUser.uid;
+      activeAuthUid = authUser.uid || null;
+      if (uidChanged) didInitialProfilePull = false;
       lsSet('nflTriviaLoggedIn', true);
       if (!state.name) saveName(authUser.username);
+      else if (!didInitialProfilePull) { didInitialProfilePull = true; pullProfileSnapshot(); }
     } else if (!authUser && lsGet('nflTriviaLoggedIn', false)) {
+      activeAuthUid = null;
       lsSet('nflTriviaLoggedIn', false);
       if (state.name) { state.name = ''; lsSet('nflTriviaName', ''); renderAll(); }
     }
