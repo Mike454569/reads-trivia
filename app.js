@@ -710,19 +710,9 @@ var state = {
   study: null,
   learn: null,
   introTest: null,
-  // Non-null while the CURRENT session in some other mode (grid/blitz/
-  // silhouette/legends) is being played specifically as today's Daily
-  // Challenge — see dailyChallengeTypeForToday() and completeDailyChallengeFrom().
-  // Holds one of the DAILY_CHALLENGE_TYPES entries, or null the rest of the time.
+  // Legacy compatibility flags for a Daily Challenge that may have been
+  // started from an older cached client before Daily Reads shipped.
   dailyChallengeActive: null,
-  // UI/UX upgrade pass: dailyChallengeActive gets cleared the instant
-  // completeDailyChallengeFrom() runs, which is BEFORE that mode's own
-  // summary/result screen renders — so a completion screen has no way to
-  // tell "was this just today's Daily Challenge" from dailyChallengeActive
-  // alone. This holds the daily type id for exactly one completion-screen
-  // render (set by completeDailyChallengeFrom, read by
-  // dailyCompletionBannerHtml()), so grid/blitz/silhouette/legends' own
-  // result screens can show the streak instead of going silent about it.
   justCompletedDaily: null,
   // Same idea as dailyChallengeActive, but for a non-quiz-kind Head-to-Head
   // match currently being played inside another mode's own screen — see
@@ -1397,45 +1387,55 @@ function finishDailyChallenge() {
   var pct = Math.round(100 * t.correctCount / t.queue.length);
   st.correctTotal += t.correctCount;
   st.questionsTotal += t.queue.length;
+  lsSet('nflTriviaStats', state.stats);
   updateRatingDrift(pct);
   t.ratingDelta = lastRatingDelta;
   playSound(pct <= 60 ? 'boo' : 'complete');
-  completeDailyChallengeFrom('quiz', t.correctCount + ' / ' + t.queue.length + ' correct', pct);
+  completeDailyReads(t.correctCount + ' / ' + t.queue.length + ' correct', pct);
   t.screen = 'summary';
   renderAll();
 }
 function dailyChallengeCardHtml() {
   var already = playedToday();
   var streak = getStreak();
-  var streakBit = streak.count > 0 ? ' &middot; ' + icon('flame', 'streak-flame') + ' ' + streak.count + '-day streak' : '';
+  var streakBit = streak.count > 0 ? icon('flame', 'streak-flame') + ' ' + streak.count + '-day streak' : '';
   var badge = '<span class="daily-flame-badge">' + icon('flame') + '</span>';
-  var eyebrow = '<div class="daily-card-eyebrow">Today</div>';
-  var today = dailyChallengeTypeForToday();
+  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5</div>';
   if (already) {
     var r = getDailyResult();
-    var label = r.label || (r.correct + ' / ' + r.total + ' correct');
-    var typeLabel = (DAILY_CHALLENGE_TYPES.find(function (t) { return t.id === (r.type || 'quiz'); }) || today).label;
-    return '<div class="panel daily-card">' + eyebrow +
-      '<div class="daily-card-title">' + badge + ' Daily Challenge &middot; ' + esc(typeLabel) + '</div>' +
-      '<p class="mode-desc">' + icon('check') + ' Completed today — ' + esc(label) + streakBit + '. Come back tomorrow for a new one.</p>' +
-      (r.graceUsed ? '<p class="mode-desc streak-saved-note">🛡️ You missed a day, but your streak survived — one grace day free every 7 days.</p>' : '') +
+    var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
+    return '<div class="panel daily-card daily-reads-card">' + eyebrow +
+      '<div class="daily-card-title">' + badge + ' Daily Reads Complete</div>' +
+      '<p class="mode-desc">' + icon('check') + ' ' + esc(label) + (streakBit ? ' &middot; ' + streakBit : '') + '. You’re done for today.</p>' +
+      (r.graceUsed ? '<p class="mode-desc streak-saved-note">🛡️ Streak grace saved your run.</p>' : '') +
       '<button class="btn-secondary" data-go="daily">View Today’s Result</button>' +
       '</div>';
   }
-  return '<div class="panel daily-card">' +
+  var favs = getFavoriteTeams();
+  var personalized = !!(favs.nfl || favs.cfb || weakCategories('nfl').length || weakCategories('cfb').length);
+  return '<div class="panel daily-card daily-reads-card">' +
     '<div class="daily-card-deco" aria-hidden="true">' + icon('football') + '</div>' +
     eyebrow +
-    '<div class="daily-card-title">' + badge + ' Daily Challenge &middot; ' + esc(today.label) + '</div>' +
-    '<p class="mode-desc">' + esc(today.desc) + '</p>' +
-    (streakBit ? '<p class="daily-card-streak">' + streakBit.replace(/^\s*&middot;\s*/, '') + '</p>' : '') +
-    '<button class="btn-primary" data-daily-start>Play Today’s Challenge' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
+    '<div class="daily-card-title">' + badge + ' Daily Reads</div>' +
+    '<p class="mode-desc">Five quick football reads. About five minutes. ' +
+      (personalized ? 'Built around your teams, weak spots, and a fresh NFL/CFB mix.' : 'Your mix gets smarter as you play.') +
+      '</p>' +
+    '<div class="daily-reads-preview">' +
+      DAILY_READS_SLOT_LABELS.map(function (label, i) {
+        return '<span><b>' + (i + 1) + '</b>' + esc(label) + '</span>';
+      }).join('') +
+    '</div>' +
+    (streakBit ? '<p class="daily-card-streak">' + streakBit + '</p>' : '') +
+    '<button class="btn-primary" data-daily-start>Start My Daily 5' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
     '</div>';
 }
 function renderDailyQuestion() {
   var t = state.daily, q = currentDailyQuestion();
+  if (!q) return '<div class="panel"><h2 class="panel-title">Daily Reads</h2><p class="mode-desc">Couldn’t build today’s five. Head home and try again.</p><button class="btn-secondary" data-go="home">Home</button></div>';
   var answered = t.answeredIndex !== null;
-  return '<div class="panel">' + modeToolbarHtml('daily') +
-    quizProgressRowHtml('Daily Challenge &middot; Question ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
+  return '<div class="panel daily-reads-game">' + modeToolbarHtml('daily') +
+    '<div class="daily-reads-kicker"><span>' + esc(q._dailySlot || ('READ ' + (t.index + 1))) + '</span><small>' + esc(q._dailyReason || q._dailyLeague || '') + '</small></div>' +
+    quizProgressRowHtml('Daily Reads &middot; Game ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     '<div class="quiz-options">' +
     q.options.map(function (opt, i) {
@@ -1445,41 +1445,46 @@ function renderDailyQuestion() {
         else if (i === t.answeredIndex) cls += ' wrong';
       }
       return '<button class="' + cls + '" ' + (answered ? 'disabled' : 'data-daily-answer="' + i + '"') + '>' +
-        String.fromCharCode(65 + i) + '. ' + esc(opt) + '</button>';
+        '<span class="broadcast-option-letter">' + String.fromCharCode(65 + i) + '</span><span>' + esc(opt) + '</span></button>';
     }).join('') +
     '</div>' +
     (answered
       ? '<div class="quiz-feedback" aria-live="polite">' + (t.answeredIndex === q.correctIndex ? '<span class="feedback-good">' + icon('check') + ' Correct!</span>' : '<span class="feedback-bad">' + icon('xMark') + ' Incorrect.</span>') + (q.notes ? ' ' + esc(q.notes) : '') + '</div>' +
-        '<button class="btn-primary" data-daily-next>' + (t.index + 1 >= t.queue.length ? 'See Results' : 'Next Question') + '</button>'
+        '<button class="btn-primary" data-daily-next>' + (t.index + 1 >= t.queue.length ? 'Finish Daily Reads' : 'Next Read') + '</button>'
       : '') +
     '</div>';
 }
 function renderDailySummary() {
   var t = state.daily, pct = Math.round(100 * t.correctCount / t.queue.length);
-  return '<div class="panel">' +
-    '<h2 class="panel-title">Daily Challenge Complete</h2>' +
+  var p = getProgression();
+  var seasonId = footballSeasonIdForDate();
+  var seasonXp = p.seasons && p.seasons[seasonId] ? Number(p.seasons[seasonId].xp) || 0 : 0;
+  return '<div class="panel daily-reads-summary">' +
+    '<h2 class="panel-title">' + icon('flame') + ' Daily Reads Complete</h2>' +
     '<div class="summary-score">' + t.correctCount + ' / ' + t.queue.length + ' correct (' + pct + '%)</div>' +
-    '<div class="summary-note">' + icon('flame') + ' ' + getStreak().count + '-day streak. Come back tomorrow for a new challenge.' + (state.name ? '' : ' Log in above to save this to the leaderboard.') + '</div>' +
+    '<div class="daily-reads-reward"><b>+50 XP</b><span>Career + ' + esc(seasonId) + ' Season</span></div>' +
+    '<div class="summary-note">' + icon('flame') + ' ' + getStreak().count + '-day streak. Career XP: ' + (p.careerXp || 0) + ' &middot; Season XP: ' + seasonXp + '.</div>' +
     (lastStreakGraceUsed ? '<div class="summary-note streak-saved-note">🛡️ You missed a day, but your streak survived — one grace day free every 7 days.</div>' : '') +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
-    '<button class="btn-secondary" data-go="home">Home</button>' +
-    '</div>' + recommendedModeHtml() + '</div>';
+    '<button class="btn-primary" data-go="home">Back to Dashboard</button>' +
+    '</div></div>';
 }
 function renderDailyScreen() {
   if (!state.daily) {
     var r = getDailyResult();
     if (r && r.date === todayStr()) {
-      var label = r.label || (r.correct + ' / ' + r.total + ' correct');
-      var typeLabel = (DAILY_CHALLENGE_TYPES.find(function (t) { return t.id === (r.type || 'quiz'); }) || {}).label || 'Daily Quiz';
-      return '<div class="panel"><h2 class="panel-title">' + icon('flame') + ' Daily Challenge &middot; ' + esc(typeLabel) + ' &middot; Complete</h2>' +
+      var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
+      return '<div class="panel daily-reads-summary"><h2 class="panel-title">' + icon('flame') + ' Daily Reads &middot; Complete</h2>' +
         '<div class="summary-score">' + esc(label) + '</div>' +
-        '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Come back tomorrow for a new one.</div>' +
-        '<button class="btn-secondary" data-go="home">Home</button></div>';
+        '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
+        '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
-    var today = dailyChallengeTypeForToday();
-    return '<div class="panel"><h2 class="panel-title">Daily Challenge &middot; ' + esc(today.label) + '</h2><p class="mode-desc">' + esc(today.desc) + '</p><button class="btn-primary" data-daily-start>Play Today’s Challenge</button></div>';
+    return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads</h2>' +
+      '<p class="mode-desc">Five fast personalized football reads. About five minutes total.</p>' +
+      '<div class="daily-reads-preview">' + DAILY_READS_SLOT_LABELS.map(function (label, i) { return '<span><b>' + (i + 1) + '</b>' + esc(label) + '</span>'; }).join('') + '</div>' +
+      '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>';
   }
   if (state.daily.screen === 'summary') return renderDailySummary();
   return renderDailyQuestion();
