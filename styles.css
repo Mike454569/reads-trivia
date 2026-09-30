@@ -5872,3 +5872,169 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+
+/* Football Encyclopedia vNext */
+.encyc-recent,
+.encyc-graph,
+.encyc-key-takeaways,
+.encyc-study-cta {
+  margin:16px 0;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.024);
+}
+.encyc-recent-row {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.encyc-recent-row button {
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:10px 11px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  text-align:left;
+  background:rgba(255,255,255,.018);
+}
+.encyc-recent-row b {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.72rem;
+}
+.encyc-recent-row small {
+  color:var(--muted);
+  font-size:.6rem;
+}
+.encyc-key-takeaways > div {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  margin-top:9px;
+}
+.encyc-key-takeaways article {
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.018);
+}
+.encyc-key-takeaways article b {
+  display:block;
+  margin-bottom:4px;
+  color:var(--fav-team-color-readable,var(--accent));
+  font-size:.62rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.encyc-key-takeaways article p {
+  margin:0;
+  color:var(--muted);
+  font-size:.7rem;
+  line-height:1.45;
+}
+.encyc-graph {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.25);
+}
+.encyc-graph-explicit {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.encyc-graph-explicit button {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:10px 11px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  text-align:left;
+  background:rgba(255,255,255,.018);
+}
+.encyc-graph-explicit button > span {
+  display:grid;
+  place-items:center;
+  width:27px;
+  height:27px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:rgba(var(--fav-team-rgb,255,255,255),.1);
+  color:var(--fav-team-color-readable,var(--accent));
+  font-weight:950;
+}
+.encyc-graph-explicit button div {
+  display:grid;
+  gap:2px;
+}
+.encyc-graph-explicit b {
+  font-size:.72rem;
+}
+.encyc-graph-explicit small {
+  color:var(--muted);
+  font-size:.6rem;
+}
+.encyc-topic-strip {
+  margin-top:11px;
+  padding-top:11px;
+  border-top:1px solid var(--border);
+}
+.encyc-topic-strip > span {
+  display:block;
+  margin-bottom:7px;
+  color:var(--muted);
+  font-size:.62rem;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.encyc-topic-strip > div {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.encyc-topic-strip button {
+  padding:7px 9px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:rgba(255,255,255,.02);
+  font-size:.65rem;
+}
+.encyc-study-cta {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.34);
+  background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.1),rgba(255,255,255,.02));
+}
+.encyc-study-cta h3 {
+  margin:3px 0 4px;
+}
+.encyc-study-cta p {
+  margin:0;
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.4;
+}
+.encyc-row-meta b {
+  color:var(--fav-team-color-readable,var(--accent));
+  font-size:.58rem;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+@media (max-width:720px) {
+  .encyc-recent-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .encyc-key-takeaways > div,
+  .encyc-graph-explicit { grid-template-columns:1fr; }
+  .encyc-study-cta {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .encyc-study-cta .btn-primary {
+    width:100%;
+    justify-content:center;
+  }
+}
