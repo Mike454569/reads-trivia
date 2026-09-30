@@ -205,6 +205,7 @@ def client_view(package: dict, progress: dict) -> dict:
 
     if variant == "CONNECT_FOUR":
         board = s.get("connect_board") or [[None]*7 for _ in range(6)]
+        out["board_columns"] = 7
         out["board"] = [{"id":f"{r}:{c}","label":f"R{r+1} C{c+1}","value":board[r][c] or "OPEN"} for r in range(6) for c in range(7)]
         if s.get("pending_column") is None:
             actions=[{"id":str(c),"label":f"Column {c+1}"} for c in range(7) if board[0][c] is None]
