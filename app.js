@@ -12313,6 +12313,42 @@ function encyclopediaEntityConnectionsHtml(kind,node){
     '<div class="encyc-row-list">'+rows.slice(0,8).map(function(r){return '<button class="encyc-row" data-encyc-open="'+esc(r.kind+':'+r.id)+'"><span class="encyc-row-label">'+esc(r.label)+'</span><span class="encyc-row-meta">'+esc(r.meta)+'</span></button>';}).join('')+'</div></section>';
 }
 
+function encyclopediaLinkedHistoricalForTeam(node){
+  if(!node)return [];
+  var team=String(node.team||node.label||'').toLowerCase(), season=String(node.season||'');
+  if(!team)return [];
+  var all=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.historical_records)||{}, out=[];
+  Object.keys(all).forEach(function(id){
+    var h=all[id], hay=((h.team||'')+' '+(h.label||'')+' '+JSON.stringify(h.fields||{})).toLowerCase();
+    var seasonMatch=!season||String(h.season||'')===season||hay.indexOf(season.toLowerCase())!==-1;
+    if(hay.indexOf(team)!==-1&&seasonMatch)out.push({id:id,node:h});
+  });
+  return out.slice(0,6);
+}
+function encyclopediaLinkedTeamsForHistorical(node){
+  if(!node)return [];
+  var all=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.team_scheme_profiles)||{}, label=String(node.label||'').toLowerCase(), season=String(node.season||''), out=[];
+  Object.keys(all).forEach(function(id){
+    var t=all[id], team=String(t.team||t.label||'').toLowerCase();
+    if(!team)return;
+    var text=(label+' '+JSON.stringify(node.fields||{}));
+    if(text.indexOf(team)!==-1&&(!season||String(t.season||'')===season))out.push({id:id,node:t});
+  });
+  return out.slice(0,6);
+}
+function encyclopediaEntityLinksHtml(kind,node){
+  var rows=[];
+  if(kind==='team')rows=encyclopediaLinkedHistoricalForTeam(node).map(function(x){return {kind:'hist',id:x.id,label:x.node.label,meta:[x.node.league,x.node.season,x.node.side].filter(Boolean).join(' · ')};});
+  else if(kind==='hist')rows=encyclopediaLinkedTeamsForHistorical(node).map(function(x){return {kind:'team',id:x.id,label:x.node.label,meta:[x.node.league,x.node.season].filter(Boolean).join(' · ')};});
+  if(!rows.length)return '';
+  return '<section class="encyc-entity-links"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CONNECTED RECORDS</span><h3>'+(kind==='team'?'Seasons & Units':'Team Profiles')+'</h3></div><span>'+rows.length+' linked</span></div>'+
+    '<div>'+rows.map(function(r){return '<button class="encyc-row" data-encyc-open="'+esc(r.kind+':'+r.id)+'"><span class="encyc-row-label">'+esc(r.label)+'</span><span class="encyc-row-meta">'+esc(r.meta)+'</span></button>';}).join('')+'</div></section>';
+}
+function encyclopediaDomainQuickNavHtml(currentId){
+  var domains=encyclopediaDomains().filter(function(d){return encyclopediaDomainCount(d.id)>0;});
+  return '<div class="encyc-domain-quicknav">'+domains.map(function(d){return '<button class="'+(d.id===currentId?'active':'')+'" data-encyc-domain="'+esc(d.id)+'">'+esc(d.label)+'</button>';}).join('')+'</div>';
+}
+
 function encyclopediaDepthFactsHtml(node){
   if(!node||!node.fields)return '';
   var fields=node.fields, keys=Object.keys(fields), priority=['summary','what_to_identify','core_responsibilities','strengths','weaknesses','counters','coaching_points','key_reads','rules','technique','usage','advantages','disadvantages'];
@@ -12523,6 +12559,7 @@ function renderEncyclopediaDomainDetail() {
   return '<div class="panel">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-encyc-domains>' + icon('close') + ' All Domains</button></div>' +
     '<h2 class="panel-title">' + esc(title) + '</h2>' +
+    encyclopediaDomainQuickNavHtml(domainId) +
     body +
     '</div>';
 }
