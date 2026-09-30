@@ -76,7 +76,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment, runTransaction, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 var FIREBASE_CONFIG = {
   apiKey: "AIzaSyCYqKRGm2LSeTjxx1tpApm37TqBhOf2rIw",
@@ -256,7 +256,8 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     window.__fbSync.watchCommunity = function (teamKey, cb) {
       if (!teamKey || typeof cb !== 'function') return function () {};
       var postsCol = collection(db, 'games', GAME_ID, 'communities', teamKey, 'posts');
-      return onSnapshot(postsCol, function (snap) {
+      var newest = query(postsCol, orderBy('createdAt', 'desc'), limit(50));
+      return onSnapshot(newest, function (snap) {
         var rows = [];
         snap.forEach(function (d) {
           rows.push(Object.assign({ id: d.id }, d.data()));
@@ -274,9 +275,11 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     };
     window.__fbSync.postCommunity = function (teamKey, payload) {
       if (!teamKey || !payload) return Promise.reject(new Error('Invalid community post'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required to post'));
       var postsCol = collection(db, 'games', GAME_ID, 'communities', teamKey, 'posts');
       return addDoc(postsCol, Object.assign({}, payload, {
-        authorUid: auth.currentUser && !auth.currentUser.isAnonymous ? auth.currentUser.uid : null,
+        authorUid: auth.currentUser.uid,
+        authorName: auth.currentUser.displayName || 'Reads fan',
         createdAt: serverTimestamp()
       }));
     };
