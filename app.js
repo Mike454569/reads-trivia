@@ -4364,7 +4364,7 @@ function scoredModeRecommendations(limit) {
   return all.map(function (m, idx) {
     var plays = modeTimesPlayed(m.id);
     var mastery = modeMasteryScore(m.id);
-    var league = modeLeague(m.id);
+    var league = m.league || modeLeague(m.id);
     var bits = {
       unplayed: plays === 0,
       weakLeague: weakerLeague === league,
