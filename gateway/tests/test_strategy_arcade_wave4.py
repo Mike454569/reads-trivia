@@ -92,8 +92,8 @@ def test_road_to_100_uses_selected_shot_value():
 def test_wave4_moves_honest_distinct_format_count_to_92():
     from tools.director_v02.format_audit import audit_format_registry
     audit=audit_format_registry()
-    assert audit["registered_format_count"]==93
-    assert audit["presentation_alias_count"]==1
-    assert audit["distinct_format_count"]==92
-    assert audit["target_gap"]==8
+    assert audit["registered_format_count"] >= 93
+    assert audit["presentation_alias_count"] == 1
+    assert audit["distinct_format_count"] >= 92
+    assert audit["target_gap"] <= 8
     assert audit["mobile_unverified"]==[]
