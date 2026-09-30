@@ -1981,7 +1981,7 @@ function submitMechanicPilotAction(submission) {
     // only the subsequent "guess" action is (see mystery_roster.py).
     if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
         data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
-        data.result.action === 'reveal' ||
+        data.result.action === 'reveal' || data.result.action === 'skip' || data.result.action === 'vault' ||
         data.result.advanced_to !== undefined)) {
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
@@ -2063,6 +2063,10 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'draft_pick_ladder' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'category_roulette' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'common_link' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'strategy_arcade' && v.completed) {
+    var totalAnswered = (v.correct_total || 0) + (v.wrong_total || 0);
+    pct = totalAnswered ? 100 * (v.correct_total || 0) / totalAnswered : 0;
+  }
   if (pct == null) return;
   updateRatingDrift(pct);
 }
@@ -2077,6 +2081,11 @@ function finishMechanicPilotSession(cfg, s) {
 function renderMechanicPilotCompleteSummary(cfg, s) {
   var r = s.result || {};
   var v = s.view || {};
+  if (cfg.kind === 'strategy_arcade') {
+    return '<p class="mode-desc"><strong>' + esc(v.result_label || 'Complete') + '</strong>' +
+      ((v.correct_total || v.wrong_total) ? ' · ' + (v.correct_total || 0) + ' correct, ' + (v.wrong_total || 0) + ' missed.' : '') +
+      '</p>';
+  }
   if (cfg.kind === 'matching') {
     return '<p class="mode-desc">' + (r.correct_count != null ? r.correct_count + ' of ' + r.total_pairs + ' matched correctly.' : '') + '</p>';
   }
