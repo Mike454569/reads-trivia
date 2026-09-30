@@ -11,9 +11,11 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST' && event.httpMethod !== 'DELETE') {
     return { statusCode: 405, body: 'Method not allowed' };
   }
-  let sub;
+  let body, sub, meta = {};
   try {
-    sub = JSON.parse(event.body);
+    body = JSON.parse(event.body);
+    sub = body && body.subscription ? body.subscription : body;
+    meta = body && body.meta ? body.meta : {};
   } catch (e) {
     return { statusCode: 400, body: 'Invalid JSON' };
   }
@@ -32,6 +34,23 @@ exports.handler = async (event) => {
     await store.delete(key);
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
-  await store.setJSON(key, sub);
+  await store.setJSON(key, {
+    subscription: sub,
+    meta: {
+      name: String(meta.name || '').slice(0, 80),
+      updatedAt: Number(meta.updatedAt) || Date.now(),
+      localDate: meta.localDate || null,
+      dailyDone: !!meta.dailyDone,
+      streak: Number(meta.streak) || 0,
+      comebackGap: Number(meta.comebackGap) || 0,
+      comebackMode: meta.comebackMode || null,
+      weeklyHabitCurrent: Number(meta.weeklyHabitCurrent) || 0,
+      weeklyHabitTarget: Number(meta.weeklyHabitTarget) || 5,
+      missionsOpen: Number(meta.missionsOpen) || 0,
+      rivalName: meta.rivalName || null,
+      rivalGap: Number(meta.rivalGap) || 0,
+      prefs: Object.assign({ daily:true, rivals:true, missions:true, comeback:true }, meta.prefs || {})
+    }
+  });
   return { statusCode: 200, body: JSON.stringify({ ok: true }) };
 };
