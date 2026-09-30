@@ -4543,7 +4543,10 @@ function currentQuizQuestion() {
 function startQuizRound(category, difficulty, roundSize) {
   beginProgressSession('quiz');
   var pool = quizPool(category, difficulty);
-  if (typeof filterFreshQuestions === 'function') pool = filterFreshQuestions(pool, 'nfl', 70);
+  if (typeof filterFreshQuestions === 'function') {
+    var freshPool = filterFreshQuestions(pool, 'nfl', 70);
+    if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
+  }
   var ids = drawNoRepeat('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.quiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.quiz !== false };
   renderAll();
@@ -4825,7 +4828,10 @@ function currentCfbQuestion() {
 function startCfbQuizRound(category, difficulty, roundSize) {
   beginProgressSession('cfbQuiz');
   var pool = cfbPool(category, difficulty);
-  if (typeof filterFreshQuestions === 'function') pool = filterFreshQuestions(pool, 'cfb', 70);
+  if (typeof filterFreshQuestions === 'function') {
+    var freshPool = filterFreshQuestions(pool, 'cfb', 70);
+    if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
+  }
   var ids = drawNoRepeat('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
   state.cfbQuiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.cfbQuiz !== false };
   renderAll();
@@ -13592,7 +13598,10 @@ document.addEventListener('click', function (e) {
   if (t.dataset.cfbBlitzSubmit !== undefined) { submitCfbBlitzGuess(); return; }
   if (t.dataset.cfbBlitzSetup !== undefined) { state.cfbBlitz = null; renderAll(); return; }
 
-  if (t.dataset.modeRestart !== undefined) { stopTimers(); resetModeState(t.dataset.modeRestart); renderAll(); return; }
+  if (t.dataset.modeRestart !== undefined) {
+    if (t.dataset.modeRestart === 'endless') { startEndlessMode(); return; }
+    stopTimers(); resetModeState(t.dataset.modeRestart); renderAll(); return;
+  }
   if (t.dataset.modeExit !== undefined) { goToMode('home'); return; }
 });
 
