@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.20.0';
+var APP_VERSION = '3.21.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -12386,7 +12386,7 @@ function renderEncyclopediaDomains() {
     var rows = results.map(function (r) {
       return '<button class="encyc-row" data-encyc-open="' + r.kind + ':' + esc(r.id) + '">' +
         '<span class="encyc-row-label">' + esc(r.label) + '</span>' +
-        '<span class="encyc-row-meta">' + esc(encyclopediaPrettyLabel(r.domain || '')) + (r.sub ? ' · ' + esc(r.sub) : '') + '</span>' +
+        '<span class="encyc-row-meta"><b>' + esc(encyclopediaPrettyLabel(r.kind)) + '</b> · ' + esc(encyclopediaPrettyLabel(r.domain || '')) + (r.sub ? ' · ' + esc(r.sub) : '') + '</span>' +
         '</button>';
     }).join('');
     return '<div class="panel">' +
@@ -12422,6 +12422,7 @@ function renderEncyclopediaDomains() {
     '<h2 class="panel-title">Football 101</h2>' +
     '<p class="mode-desc">Learn any concept: what it is, see it on the field, how it works, and test yourself -- browse by topic or search for anything by name.</p>' +
     renderEncyclopediaSearchBox() +
+    encyclopediaRecentHtml() +
     '<div class="f101-cat-groups">' + groupsHtml + '</div>' +
     '</div>';
 }
@@ -12685,18 +12686,6 @@ function renderEncyclopediaConceptDetail() {
       '<p class="mode-desc">' + esc(authoredDive.text) + '</p></div>'
     : '';
 
-  var related = kind === 'concept' ? encyclopediaRelatedFor(id) : [];
-  var relatedHtml = related.length ? (
-    '<div class="encyc-related-label">Related concepts</div>' +
-    '<div class="encyc-row-list">' + related.map(function (r) {
-      var target = encyclopediaConceptByCanonicalId(r.id);
-      if (!target) return '';
-      var arrow = r.direction === 'out' ? '→' : '←';
-      return '<button class="encyc-row" data-encyc-open="concept:' + esc(r.id) + '">' +
-        '<span class="encyc-row-label">' + arrow + ' ' + esc(encyclopediaPrettyLabel(r.predicate)) + ' ' + esc(target.label) + '</span></button>';
-    }).join('') + '</div>'
-  ) : '';
-
   var classroomLink = '';
   if (kind === 'concept' && node.domain === 'COVERAGES' && LEARN_COVERAGES && LEARN_COVERAGES.concepts && LEARN_COVERAGES.concepts[id]) {
     classroomLink = '<button class="btn-secondary btn-tiny encyc-classroom-link" data-encyc-goto-classroom>' + icon('brain') + ' Learn this hands-on in the Coverage Classroom</button>';
@@ -12715,12 +12704,14 @@ function renderEncyclopediaConceptDetail() {
     (node.subcategory ? '<div class="encyc-subcategory-label">' + esc(encyclopediaPrettyLabel(node.subcategory)) + '</div>' : '') +
     '<div class="film-concept-tools"><button class="btn-secondary btn-tiny" data-film-save>' + (filmNotebook().saved.some(function(v) { return v.kind === kind && v.id === id; }) ? 'Saved to playbook ✓' : 'Save to playbook +') + '</button><span class="film-eyebrow">COACH’S NOTES</span></div>' + readToggleHtml +
     quickSummaryHtml +
+    encyclopediaDepthFactsHtml(node) +
     seeItHtml +
     authoredDiveHtml +
     ((!f101Match || readMode === 'deep') ? renderEncyclopediaFieldsList(fields) : '') +
     (testMeHtml ? '<div class="f101-test-me-row">' + testMeHtml + '</div>' : '') +
     classroomLink +
-    relatedHtml +
+    encyclopediaStudyCtaHtml(node) +
+    encyclopediaGraphHtml(id,node) +
     provenance +
     '</div>';
 }
@@ -13607,7 +13598,7 @@ document.addEventListener('click', function (e) {
     '[data-film-assignment], [data-film-jump], [data-film-study], [data-film-study-family], [data-film-boss], [data-film-review], [data-film-answer], [data-film-next], [data-film-saved], [data-film-save], [data-film-concept], [data-film-resume], [data-film-retry], [data-learn-open], [data-learn-back], [data-learn-cat], ' +
     '[data-classroom-exit], [data-classroom-lesson], [data-classroom-practice], [data-classroom-path], ' +
     '[data-classroom-step-next], [data-classroom-step-back], [data-classroom-answer], [data-classroom-exercise-next], ' +
-    '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
+    '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], [data-encyc-study], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
     '[data-friend-add], [data-friend-remove], [data-friend-compare], [data-friend-compare-close], [data-friend-challenge], [data-social-challenge-mode], [data-social-accept], [data-social-decline], [data-social-copy], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
@@ -13756,6 +13747,7 @@ document.addEventListener('click', function (e) {
     else encyclopediaBackToDomains();
     return;
   }
+  if (t.dataset.encycStudy !== undefined) { startFilmStudy(t.dataset.encycStudy,false); return; }
   if (t.dataset.encycGotoClassroom !== undefined) {
     var gotoClassroomLessonId = null;
     if (LEARN_COVERAGES && LEARN_COVERAGES.lessons) {
