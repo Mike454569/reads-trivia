@@ -279,6 +279,10 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Chain Reaction: College to NFL",
         "instructions": "Follow the real chain from college to the NFL team that drafted him.",
         "kind": "relationship_chain", "gen_kwargs": {"chain_count": 8},
+        # Backward-compatible presentation alias of six_degrees_cfb_nfl.
+        # It stays callable for old links/saved state but is intentionally
+        # excluded from discovery so the UI cannot count the same game twice.
+        "discoverable": False,
     },
     "choose_your_path_nfl": {
         "competition": "NFL", "taxonomy_id": "BRANCH_STATE", "variant": "NFL_TOPIC_PATH",
@@ -649,6 +653,7 @@ def list_public_mechanic_modes() -> list[dict]:
          "instructions": entry["instructions"], "kind": entry["kind"],
          "available": config.PUBLIC_GAME_ENABLED}
         for mode_id, entry in PUBLIC_MECHANIC_MODES.items()
+        if entry.get("discoverable", True)
     ]
 
 
