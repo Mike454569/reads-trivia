@@ -2915,7 +2915,7 @@ var LEAGUE_MODES = {
     .concat(ENABLE_CFB_PLAYER_FROM_CLUES_V01 ? [
       { id: 'cfbPlayerClues', icon: 'target', title: 'CFB Player From Clues', desc: 'A ladder of real clues about a college football player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
     ] : [])
-    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
+    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb' || e.league === 'mixed'; }))
 };
 var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
 
