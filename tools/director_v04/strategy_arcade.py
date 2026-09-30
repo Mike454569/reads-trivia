@@ -145,7 +145,7 @@ def _options(r: dict, *, fifty_fifty: bool = False) -> list[dict]:
         return opts
     correct = r["_answer_item_id"]
     decoy = next(it for it in opts if it["item_id"] != correct)
-    return [it for it in opts if it["item_id"] == correct or it["item_id"] == decoy]
+    return [it for it in opts if it["item_id"] == correct or it["item_id"] == decoy["item_id"]]
 
 
 def _question_view(package: dict, state: dict, *, fifty_fifty: bool = False) -> dict:
