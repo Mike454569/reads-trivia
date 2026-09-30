@@ -49,6 +49,7 @@ jobs:
 
       - name: Run 100-format audit and strategy regressions
         env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
           CI_SKIP_DB_TESTS: "1"
         run: |
           python -m pytest gateway/tests/test_100_format_audit.py gateway/tests/test_strategy_arcade_wave2.py gateway/tests/test_strategy_arcade_wave3.py -q
