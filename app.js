@@ -4222,6 +4222,7 @@ function renderHome() {
     personalDashboardHtml() +
     friendRivalAlertHtml() +
     teamBattleHtml() +
+    reengagementCenterHtml() +
     retentionMissionHtml() +
     unfinishedBusinessHtml() +
     communityCardHtml() +
@@ -10179,6 +10180,7 @@ function pushLeaderboard(mode, fields) {
   checkCommunityChallengeFromCompletion(mode);
   postCommunityGameActivity(mode, fields);
   syncAchievementUnlocks();
+  syncPushEngagementSnapshot(true);
 }
 function leaderboardRowTimestamp(row) {
   if (!row || !row.updatedAt) return 0;
@@ -10220,6 +10222,7 @@ window.__triviaSync = {
   applyLeaderboard: function (list) {
     state.leaderboardData = normalizeLeaderboardRows(list);
     reconcileRating(state.leaderboardData);
+    syncPushEngagementSnapshot(false);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
     if (state.screen === 'leaderboard' || state.screen === 'community' || state.screen === 'home' || state.screen === 'daily' || state.screen === 'friends') renderAll();
   },
@@ -10545,8 +10548,53 @@ function renderAbout() {
    hold of a subscription endpoint. */
 var VAPID_PUBLIC_KEY = 'BEQcgDnLWmFofJ7DLYv7z_DJYRcY58jiM4X_CEf2gCRRKx0N1Wu2QTLF0hSNG8Vn4l8bT0Oi3bzrWNscEDmSuC0';
 var PUSH_ENABLED_KEY = 'nflTriviaPushEnabled';
+var PUSH_PREFS_KEY = 'nflTriviaPushPrefs';
+var PUSH_META_SYNC_KEY = 'nflTriviaPushMetaSync';
 function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
 function pushEnabledLocally() { return lsGet(PUSH_ENABLED_KEY, false); }
+function getPushPreferences() {
+  return Object.assign({ daily:true, rivals:true, missions:true, comeback:true }, lsGet(PUSH_PREFS_KEY, {}));
+}
+function setPushPreference(key, value) {
+  var p=getPushPreferences(); p[key]=!!value; lsSet(PUSH_PREFS_KEY,p);
+  syncPushEngagementSnapshot(true);
+  renderAll();
+}
+function pushEngagementSnapshot() {
+  var weekly=weeklyRetentionGoal();
+  var goals=weeklyPersonalGoals();
+  var standings=weeklyFriendStandings();
+  var meIndex=standings.findIndex(function(r){return slugify(r.name)===slugify(state.name||'');});
+  var rivalAhead=meIndex>=0 ? standings.slice(0,meIndex).slice(-1)[0] : null;
+  var comeback=retentionMission();
+  return {
+    name:state.name||'',
+    updatedAt:Date.now(),
+    localDate:todayStr(),
+    dailyDone:playedToday(),
+    streak:Number(getStreak().count)||0,
+    comebackGap:comeback?comeback.gap:0,
+    comebackMode:comeback?comeback.mode:null,
+    weeklyHabitCurrent:weekly.current,
+    weeklyHabitTarget:weekly.target,
+    missionsOpen:goals.filter(function(g){return g.current<g.target;}).length,
+    rivalName:rivalAhead?rivalAhead.name:null,
+    rivalGap:rivalAhead&&meIndex>=0?(rivalAhead.total-standings[meIndex].total):0,
+    prefs:getPushPreferences()
+  };
+}
+function syncPushEngagementSnapshot(force) {
+  if (!pushEnabledLocally() || !pushSupported() || !state.name) return Promise.resolve();
+  var last=Number(lsGet(PUSH_META_SYNC_KEY,0))||0;
+  if(!force && Date.now()-last<15*60*1000) return Promise.resolve();
+  return navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription();}).then(function(sub){
+    if(!sub) return;
+    return fetch('/.netlify/functions/save-subscription',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({subscription:sub.toJSON ? sub.toJSON() : sub, meta:pushEngagementSnapshot()})
+    });
+  }).then(function(){lsSet(PUSH_META_SYNC_KEY,Date.now());}).catch(function(err){console.warn('Push metadata sync failed',err);});
+}
 // PushManager wants the VAPID public key as a raw Uint8Array, not the
 // base64url string it's distributed as everywhere else (URL, env vars) —
 // this is the standard conversion, same one every Web Push guide uses.
@@ -10566,7 +10614,8 @@ function enablePushNotifications() {
       return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
     }).then(function (sub) {
       return fetch('/.netlify/functions/save-subscription', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub)
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON ? sub.toJSON() : sub, meta: pushEngagementSnapshot() })
       });
     }).then(function () {
       lsSet(PUSH_ENABLED_KEY, true);
@@ -10581,7 +10630,8 @@ function disablePushNotifications() {
   }).then(function (sub) {
     if (!sub) return;
     return fetch('/.netlify/functions/save-subscription', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub)
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON ? sub.toJSON() : sub })
     }).then(function () { return sub.unsubscribe(); });
   }).then(function () {
     lsSet(PUSH_ENABLED_KEY, false);
@@ -10601,6 +10651,27 @@ function togglePushNotifications() {
    already used (toggleMute, openTeamPicker, setModeRankedPref/rankedToggleHtml,
    clearAllUserData), so there's exactly one source of truth for each
    setting regardless of where it's changed from. */
+function reengagementNudges() {
+  if(!state.name) return [];
+  var out=[], prefs=getPushPreferences(), streak=getStreak(), weekly=weeklyRetentionGoal();
+  if(prefs.daily && !playedToday()) out.push({type:'daily',icon:'flame',title:'Your Daily 5 is ready',body:(streak.count?streak.count+'-day streak on the line. ':'')+'Five games. About five minutes.',go:'daily',priority:100});
+  var standings=weeklyFriendStandings(), meIndex=standings.findIndex(function(r){return slugify(r.name)===slugify(state.name||'');});
+  if(prefs.rivals && meIndex>0){
+    var ahead=standings[meIndex-1], me=standings[meIndex];
+    out.push({type:'rival',icon:'versus',title:ahead.name+' is ahead of you',body:(ahead.total-me.total)+' points separate you in the weekly friend race.',go:'friends',priority:90});
+  }
+  var openGoal=weeklyPersonalGoals().filter(function(g){return g.current<g.target;}).sort(function(x,y){return (y.current/y.target)-(x.current/x.target);})[0];
+  if(prefs.missions && openGoal && openGoal.current>0) out.push({type:'mission',icon:'target',title:'Mission almost there',body:openGoal.label+': '+openGoal.current+' / '+openGoal.target+'. Finish it for +'+openGoal.xp+' XP.',go:openGoal.weak?(openGoal.weak.league==='cfb'?'cfbQuiz':'quiz'):'daily',priority:70});
+  if(prefs.missions && weekly.current>=3 && weekly.current<weekly.target) out.push({type:'habit',icon:'trophy',title:'Finish the Five-Day Drive',body:weekly.current+' / '+weekly.target+' Daily Reads days this week. +'+weekly.xp+' XP is waiting.',go:'daily',priority:75});
+  var comeback=retentionMission();
+  if(prefs.comeback && comeback) out.push({type:'comeback',icon:'restart',title:'Comeback Drive available',body:'You’ve been away '+comeback.gap+' days. One ranked game earns +'+comeback.xp+' XP.',go:comeback.mode,priority:95});
+  return out.sort(function(x,y){return y.priority-x.priority;});
+}
+function reengagementCenterHtml() {
+  var nudges=reengagementNudges().slice(0,3);
+  if(!nudges.length) return '';
+  return '<section class="reengagement-center"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">DON’T MISS IT</span><h3>Your next reasons to play</h3></div><span>'+nudges.length+' active</span></div><div class="reengagement-grid">'+nudges.map(function(n){return '<button data-go="'+esc(n.go)+'"><span class="reengagement-icon">'+icon(n.icon)+'</span><div><b>'+esc(n.title)+'</b><small>'+esc(n.body)+'</small></div>'+icon('arrowRight')+'</button>';}).join('')+'</div></section>';
+}
 function settingsClearDataSectionHtml() {
   if (!state.settingsConfirmClear) {
     return '<button class="btn-secondary" data-settings-clear-ask>' + icon('xMark') + ' Clear My Data</button>';
@@ -10629,8 +10700,9 @@ function renderSettings() {
 
     '<div class="about-section">' +
     '<h3 class="about-heading">Notifications</h3>' +
-    '<p class="mode-desc">' + (pushSupported() ? "A daily nudge when today's Daily Reads is live — nothing else, and you can turn it off any time." : "Your browser doesn't support push notifications.") + '</p>' +
+    '<p class="mode-desc">' + (pushSupported() ? "Reads sends at most one scheduled re-engagement push at a time, chosen from the things you care about below." : "Your browser doesn't support push notifications.") + '</p>' +
     (pushSupported() ? '<button class="btn-secondary" data-settings-push-toggle>' + (pushEnabledLocally() ? icon('volumeOff') + ' Notifications On — Turn Off' : icon('volumeOn') + ' Turn On Notifications') + '</button>' : '') +
+    (pushSupported() && pushEnabledLocally() ? '<div class="notification-pref-grid">' + Object.keys(getPushPreferences()).map(function(k){var labels={daily:'Daily 5 ready',rivals:'Friend/rival movement',missions:'Weekly mission progress',comeback:'Comeback reminders'};return '<button class="chip-toggle '+(getPushPreferences()[k]?'active':'')+'" data-push-pref="'+k+'">'+esc(labels[k])+'</button>';}).join('') + '</div>' : '') +
     '</div>' +
 
     '<div class="about-section">' +
@@ -12798,7 +12870,7 @@ document.addEventListener('click', function (e) {
     '[data-report], #report-close, #report-backdrop, #report-submit, [data-report-category], [data-copy-email], ' +
     '#rating-badge, #rating-close, #rating-backdrop, ' +
     '#team-picker-close, #team-picker-backdrop, [data-team-tab], [data-team-pick], [data-team-clear], [data-team-done], [data-team-picker-toggle], [data-team-prompt-dismiss], ' +
-    '[data-settings-mute-toggle], [data-settings-push-toggle], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
+    '[data-settings-mute-toggle], [data-settings-push-toggle], [data-push-pref], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
     '[data-h2h-go-create], [data-h2h-go-join], [data-h2h-back-menu], [data-h2h-roundsize], [data-h2h-create], ' +
     '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-rematch], [data-h2h-exit], ' +
     '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
@@ -12862,6 +12934,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.teamPromptDismiss !== undefined) { dismissTeamPrompt(); return; }
   if (t.dataset.settingsMuteToggle !== undefined) { toggleMute(); renderAll(); return; }
   if (t.dataset.settingsPushToggle !== undefined) { togglePushNotifications(); return; }
+  if (t.dataset.pushPref !== undefined) { var pp=getPushPreferences(); setPushPreference(t.dataset.pushPref,!pp[t.dataset.pushPref]); return; }
   if (t.dataset.settingsClearAsk !== undefined) { settingsClearDataAsk(); return; }
   if (t.dataset.settingsClearConfirm !== undefined) { clearAllUserData(); return; }
   if (t.dataset.settingsClearCancel !== undefined) { settingsClearDataCancel(); return; }
