@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.9.0';
+var APP_VERSION = '3.10.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -2884,7 +2884,9 @@ function communityCardHtml() {
 }
 function renderCommunityPost(row) {
   var badge = row.badgeTitle ? ((row.badgeIcon || '🏈') + ' ' + esc(row.badgeTitle)) : '';
-  return '<article class="community-post">' +
+  var isActivity = row.type === 'activity';
+  return '<article class="community-post' + (isActivity ? ' community-activity' : '') + '">' +
+    (isActivity ? '<div class="community-activity-kicker">' + (row.activityKind === 'challenge' ? 'TEAM CHALLENGE' : 'GAME RESULT') + '</div>' : '') +
     '<div class="community-post-head"><div><b>' + esc(row.authorName || 'Reads fan') + '</b>' +
     (badge ? '<span class="community-post-badge">' + badge + '</span>' : '') +
     '</div><time>' + esc(communityRelativeTime(row)) + '</time></div>' +
@@ -2896,6 +2898,175 @@ function renderCommunityPost(row) {
     '</div>' +
     '</article>';
 }
+function communityChallengeStorageKey(teamKey, date) {
+  return 'readsCommunityChallenge__' + teamKey + '__' + (date || todayStr());
+}
+function communityChallengeFor(league, team) {
+  if (!league || !team) return null;
+  var rng = mulberry32(hashStr(todayStr() + '__community__' + communityTeamKey(league, team)));
+  var targets = [70, 80, 90];
+  var target = targets[Math.floor(rng() * targets.length)];
+  return {
+    id: todayStr() + '__' + communityTeamKey(league, team),
+    mode: league === 'cfb' ? 'cfbQuiz' : 'quiz',
+    target: target,
+    title: team.name + ' Daily Challenge',
+    desc: 'Score ' + target + '% or better in ' + (league === 'cfb' ? 'College Football Quiz' : 'NFL Quiz') + ' today.',
+    xp: 75
+  };
+}
+function currentCompletionPercent(mode) {
+  var t = mode === 'quiz' ? state.quiz : mode === 'cfbQuiz' ? state.cfbQuiz : null;
+  if (!t || !t.queue || !t.queue.length) return null;
+  return Math.round(100 * (Number(t.correctCount) || 0) / t.queue.length);
+}
+function communityChallengeStatus(league, team) {
+  var key = communityChallengeStorageKey(communityTeamKey(league, team), todayStr());
+  return lsGet(key, { completed: false, pct: null, completedAt: null });
+}
+function markCommunityChallengeComplete(league, team, challenge, pct) {
+  var teamKey = communityTeamKey(league, team);
+  var storageKey = communityChallengeStorageKey(teamKey, todayStr());
+  var current = lsGet(storageKey, { completed: false });
+  if (current.completed) return;
+  lsSet(storageKey, { completed: true, pct: pct, completedAt: Date.now() });
+  if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
+    var eventId = 'community_challenge_' + challenge.id;
+    var seasonId = footballSeasonIdForDate();
+    window.__fbSync.awardProgress(profileDocId(), eventId, {
+      type: 'COMMUNITY_CHALLENGE_COMPLETED',
+      source: 'community',
+      teamKey: teamKey,
+      mode: challenge.mode,
+      scorePct: pct
+    }, challenge.xp, seasonId).then(function (result) {
+      if (!result || !result.duplicate) {
+        applyProgressAwardLocally(challenge.xp, seasonId);
+        syncAchievementUnlocks();
+      }
+    }).catch(function () {});
+  }
+  if (activeAuthUid && window.__fbSync && window.__fbSync.postCommunityActivity) {
+    var badge = selectedBadge();
+    var career = progressionRankFor(getProgression().careerXp || 0);
+    window.__fbSync.postCommunityActivity(teamKey, 'challenge_' + todayStr() + '_' + activeAuthUid, {
+      activityKind: 'challenge',
+      teamId: team.id,
+      teamName: team.name,
+      league: league,
+      badgeTitle: badge ? badge.title : null,
+      badgeIcon: badge ? badge.icon : null,
+      careerRank: career.name,
+      text: 'Completed today’s team challenge with ' + pct + '%.',
+      scoreValue: pct,
+      scoreLabel: 'Quiz score'
+    }).catch(function () {});
+  }
+}
+function checkCommunityChallengeFromCompletion(mode) {
+  if (!activeAuthUid) return;
+  var fav = getFavoriteTeams();
+  ['nfl','cfb'].forEach(function (league) {
+    var team = fav[league] ? favoriteTeamById(league, fav[league]) : null;
+    if (!team) return;
+    var challenge = communityChallengeFor(league, team);
+    if (!challenge || challenge.mode !== mode) return;
+    var pct = currentCompletionPercent(mode);
+    if (pct != null && pct >= challenge.target) markCommunityChallengeComplete(league, team, challenge, pct);
+  });
+}
+function communityActivitySummary(mode, fields) {
+  var label = modeLabelFor(mode);
+  var text = 'Finished ' + label + '.';
+  var scoreValue = null, scoreLabel = '';
+  if (mode === 'quiz' || mode === 'cfbQuiz') {
+    var pct = currentCompletionPercent(mode);
+    if (pct != null) { text = 'Dropped ' + pct + '% in ' + label + '.'; scoreValue = pct; scoreLabel = 'Score'; }
+  } else if (mode === 'daily' && state.daily && state.daily.queue && state.daily.queue.length) {
+    var dpct = Math.round(100 * state.daily.correctCount / state.daily.queue.length);
+    text = 'Finished Daily Reads at ' + dpct + '%.';
+    scoreValue = dpct; scoreLabel = 'Daily Reads';
+  } else if (fields && typeof fields.bestScore === 'number') {
+    text = 'Finished ' + label + ' with a score of ' + fields.bestScore + '.';
+    scoreValue = fields.bestScore; scoreLabel = 'Score';
+  } else if (fields && typeof fields.bestPct === 'number') {
+    text = 'Finished ' + label + ' at ' + fields.bestPct + '%.';
+    scoreValue = fields.bestPct; scoreLabel = 'Best';
+  }
+  return { text: text, scoreValue: scoreValue, scoreLabel: scoreLabel };
+}
+function postCommunityGameActivity(mode, fields) {
+  if (!activeAuthUid || !window.__fbSync || !window.__fbSync.postCommunityActivity) return;
+  var fav = getFavoriteTeams();
+  var summary = communityActivitySummary(mode, fields);
+  var badge = selectedBadge();
+  var career = progressionRankFor(getProgression().careerXp || 0);
+  var rating = getRating();
+  var streak = getStreak();
+  var activityIdBase = (mode === 'daily' ? ('daily_' + todayStr()) : progressEventIdFor(mode));
+  ['nfl','cfb'].forEach(function (league) {
+    var team = fav[league] ? favoriteTeamById(league, fav[league]) : null;
+    if (!team) return;
+    var relevant = mode === 'daily' || mode === 'h2h' ||
+      (league === 'cfb' ? mode.indexOf('cfb') === 0 : mode.indexOf('cfb') !== 0);
+    if (!relevant) return;
+    window.__fbSync.postCommunityActivity(communityTeamKey(league, team), 'game_' + slugify(activityIdBase) + '_' + activeAuthUid, {
+      activityKind: 'game',
+      teamId: team.id,
+      teamName: team.name,
+      league: league,
+      mode: mode,
+      badgeTitle: badge ? badge.title : null,
+      badgeIcon: badge ? badge.icon : null,
+      careerRank: career.name,
+      rating: rating ? rating.score : null,
+      streak: streak.count || 0,
+      text: summary.text,
+      scoreValue: summary.scoreValue,
+      scoreLabel: summary.scoreLabel
+    }).catch(function () {});
+  });
+}
+function communityLeaderboardRows(league, team) {
+  var teamId = team && team.id;
+  if (!teamId) return [];
+  var field = league === 'cfb' ? 'favoriteCfbTeam' : 'favoriteNflTeam';
+  var rows = state.leaderboardData.filter(function (r) {
+    return r.mode === 'rating' && r[field] === teamId && typeof r.score === 'number';
+  });
+  rows.sort(function (a,b) {
+    if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
+    return leaderboardRowTimestamp(b) - leaderboardRowTimestamp(a);
+  });
+  return rows.slice(0, 10);
+}
+function communityLeaderboardHtml(league, team) {
+  var rows = communityLeaderboardRows(league, team);
+  return '<section class="community-leaderboard">' +
+    '<div class="community-feed-head"><h3>Team Leaderboard</h3><span>Football Rating</span></div>' +
+    (rows.length ? '<div class="community-rank-list">' + rows.map(function (r, i) {
+      return '<div class="community-rank-row"><span class="community-rank-pos">' + (i + 1) + '</span>' +
+        '<b>' + esc(r.name || 'Reads fan') + '</b><span>' + r.score + '</span></div>';
+    }).join('') + '</div>' :
+    '<div class="community-empty"><b>No ranked fans yet.</b><span>Play a ranked game to join your team leaderboard.</span></div>') +
+    '</section>';
+}
+function communityChallengeHtml(league, team) {
+  var challenge = communityChallengeFor(league, team);
+  if (!challenge) return '';
+  var status = communityChallengeStatus(league, team);
+  return '<section class="community-challenge-card' + (status.completed ? ' completed' : '') + '">' +
+    '<div><span class="dashboard-eyebrow">TODAY’S TEAM CHALLENGE</span><h3>' + esc(challenge.title) + '</h3>' +
+    '<p>' + esc(challenge.desc) + '</p></div>' +
+    '<div class="community-challenge-actions">' +
+      '<span class="community-challenge-xp">+' + challenge.xp + ' XP</span>' +
+      (status.completed
+        ? '<span class="community-challenge-done">' + icon('check') + ' Completed' + (status.pct != null ? ' · ' + status.pct + '%' : '') + '</span>'
+        : '<button class="btn-primary" data-go="' + challenge.mode + '">Play Challenge</button>') +
+    '</div>' +
+    '</section>';
+}
+
 function renderCommunityScreen() {
   var fav = getFavoriteTeams();
   var hasNfl = !!fav.nfl, hasCfb = !!fav.cfb;
@@ -2938,6 +3109,8 @@ function renderCommunityScreen() {
       (rating ? '<span>' + rating.score + ' rating</span>' : '') +
       (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
     '</div>' +
+    communityChallengeHtml(league, team) +
+    communityLeaderboardHtml(league, team) +
     composer +
     (communityError ? '<div class="community-error">' + esc(communityError) + '</div>' : '') +
     '<div class="community-feed-head"><h3>Latest</h3><span>' + communityRows.length + ' post' + (communityRows.length === 1 ? '' : 's') + '</span></div>' +
@@ -8955,15 +9128,20 @@ function pushLeaderboard(mode, fields) {
   if (!state.name) return;
   var docId = activeAuthUid ? ('account_' + activeAuthUid + '__' + mode)
     : (slugify(state.name) + '_' + getClientId() + '__' + mode);
+  var favTeamsForScore = getFavoriteTeams();
   var payload = Object.assign({
     name: state.name,
     mode: mode,
     playerKey: canonicalPlayerKey(),
-    accountUid: activeAuthUid || null
+    accountUid: activeAuthUid || null,
+    favoriteNflTeam: favTeamsForScore.nfl || null,
+    favoriteCfbTeam: favTeamsForScore.cfb || null
   }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
+  checkCommunityChallengeFromCompletion(mode);
+  postCommunityGameActivity(mode, fields);
   syncAchievementUnlocks();
 }
 function leaderboardRowTimestamp(row) {
@@ -9007,7 +9185,7 @@ window.__triviaSync = {
     state.leaderboardData = normalizeLeaderboardRows(list);
     reconcileRating(state.leaderboardData);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
-    if (state.screen === 'leaderboard') renderAll();
+    if (state.screen === 'leaderboard' || state.screen === 'community') renderAll();
   },
   // Fires from firebase-sync.js's onAuthStateChanged every time the signed-
   // in Firebase user changes — including a plain anonymous session, which
