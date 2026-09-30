@@ -10973,6 +10973,19 @@ function renderProfile() {
         '</button>';
     }).join('') +
     '</div>' +
+    '<div class="profile-section-head"><div><span class="dashboard-eyebrow">SHARE CARDS</span><h3>Card Designs</h3></div><span>Unlock with career XP</span></div>' +
+    '<div class="profile-share-design-grid">' +
+    SHARE_CARD_DESIGNS.map(function (d) {
+      var unlocked = (progression.careerXp || 0) >= d.minXp;
+      var active = selectedShareDesign().id === d.id;
+      return '<button class="profile-share-design-card share-design-' + esc(d.id) + (unlocked ? ' unlocked' : '') + (active ? ' selected' : '') + '"' +
+        (unlocked ? ' data-share-design="' + esc(d.id) + '"' : ' disabled') + '>' +
+        '<span class="profile-share-design-preview"><span>READS</span><b>' + esc(d.title) + '</b></span>' +
+        '<strong>' + esc(d.title) + '</strong><small>' + esc(d.desc) + '</small>' +
+        '<span class="profile-cosmetic-unlock">' + (unlocked ? (active ? 'Selected' : 'Tap to select') : d.minXp + ' career XP') + '</span>' +
+        '</button>';
+    }).join('') +
+    '</div>' +
     '</div>';
   html += '<div class="profile-mode-grid">' + profileModeCardsHtml() + '</div>';
   return html;
