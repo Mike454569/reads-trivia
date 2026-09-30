@@ -5019,3 +5019,130 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .endless-panel .quiz-option,
   .endless-momentum-track i { transition:none; }
 }
+
+
+/* Endless Reads escalation layer */
+.endless-stage-row {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(180px,.72fr);
+  gap:9px;
+  margin:10px 0;
+}
+.endless-stage-copy,
+.endless-best-chase,
+.endless-event-card {
+  position:relative;
+  overflow:hidden;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+}
+.endless-stage-copy,
+.endless-best-chase {
+  display:grid;
+  gap:3px;
+}
+.endless-stage-copy span,
+.endless-best-chase span,
+.endless-event-card span {
+  font-size:.56rem;
+  font-weight:950;
+  letter-spacing:.11em;
+}
+.endless-stage-copy b,
+.endless-best-chase b,
+.endless-event-card b {
+  font-size:.78rem;
+}
+.endless-stage-copy span {
+  color:var(--fav-team-color-readable,var(--accent));
+}
+.endless-best-chase span {
+  color:var(--muted);
+}
+.endless-stage-row.stage-redzone .endless-stage-copy {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.28);
+  background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.10),rgba(255,255,255,.025));
+}
+.endless-stage-row.stage-primetime .endless-stage-copy {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.38);
+  background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.15),rgba(255,255,255,.035));
+  box-shadow:0 12px 26px rgba(0,0,0,.12);
+}
+.endless-stage-row.stage-sudden {
+  grid-template-columns:1fr;
+}
+.endless-stage-row.stage-sudden .endless-stage-copy {
+  border-color:rgba(255,255,255,.38);
+  background:
+    radial-gradient(circle at 85% 20%,rgba(var(--fav-team-rgb,255,255,255),.22),transparent 34%),
+    linear-gradient(115deg,rgba(var(--fav-team-rgb,255,255,255),.18),rgba(255,255,255,.035));
+  box-shadow:0 14px 34px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.endless-stage-row.stage-sudden .endless-stage-copy span {
+  font-size:.66rem;
+}
+.endless-stage-row.stage-sudden .endless-stage-copy b {
+  font-size:.92rem;
+}
+.endless-event-card {
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:8px 14px;
+  align-items:center;
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.35);
+  background:linear-gradient(100deg,rgba(var(--fav-team-rgb,255,255,255),.16),rgba(255,255,255,.025));
+  animation:endlessEventIn .28s ease both;
+}
+.endless-event-card span {
+  color:var(--fav-team-color-readable,var(--accent));
+}
+.endless-event-card.event-clutch::before,
+.endless-event-card.event-checkpoint::before,
+.endless-event-card.event-sudden::before {
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background:var(--fav-team-color-readable,var(--accent));
+}
+.endless-event-card.event-sudden {
+  border-color:rgba(255,255,255,.5);
+  background:linear-gradient(100deg,rgba(var(--fav-team-rgb,255,255,255),.24),rgba(255,255,255,.045));
+}
+.endless-event-card.event-sudden span {
+  font-size:.64rem;
+}
+.endless-answer-feedback strong {
+  display:inline-block;
+  margin-left:4px;
+  color:var(--fav-team-color-readable,var(--accent));
+}
+@keyframes endlessEventIn {
+  from { opacity:0; transform:translateY(-6px) scale(.99); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+@media (min-width:900px) {
+  .endless-panel:has(.stage-sudden)::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border:1px solid rgba(var(--fav-team-rgb,255,255,255),.2);
+    border-radius:inherit;
+    box-shadow:inset 0 0 80px rgba(var(--fav-team-rgb,255,255,255),.045);
+  }
+}
+@media (max-width:700px) {
+  .endless-stage-row { grid-template-columns:1fr; }
+  .endless-best-chase { grid-row:auto; }
+  .endless-event-card {
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .endless-event-card { animation:none; }
+}
