@@ -64,7 +64,6 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Guess the Season", "GUESS_THE_SEASON", "NFL_SUPER_BOWL_SEASON"),
     ("Connection Grid", "GRID_CONSTRAINT_BOARD", "NFL_TEAM_DRAFT_ROUND_GRID"),
     ("Six Degrees", "RELATIONSHIP_CHAIN", "CFB_SCHOOL_TO_NFL_TEAM_CHAIN"),
-    ("Chain Reaction", "RELATIONSHIP_CHAIN", "CFB_SCHOOL_TO_NFL_TEAM_CHAIN"),
     ("Perfect Drive", "DRIVE_PROGRESSION", "NFL_DRAFT_PERFECT_DRIVE"),
     ("Goal Line Stand", "DRIVE_PROGRESSION", "NFL_DRAFT_GOAL_LINE_STAND"),
     ("Double or Nothing", "DOUBLE_OR_NOTHING", "NFL_DRAFT_DOUBLE_OR_NOTHING"),
@@ -91,6 +90,14 @@ CREATOR_FORMAT_CATALOG_PHRASE = [
 def test_creator_format_catalog_has_no_duplicate_titles():
     titles = [row[0] for row in CREATOR_FORMAT_CATALOG_DIRECT] + [row[0] for row in CREATOR_FORMAT_CATALOG_PHRASE]
     assert len(titles) == len(set(titles)), "the picker would show two rows with the same title"
+
+
+def test_creator_format_catalog_has_no_duplicate_direct_backend_routes():
+    routes = [(row[1], row[2]) for row in CREATOR_FORMAT_CATALOG_DIRECT]
+    assert len(routes) == len(set(routes)), (
+        "two Creator cards point at the exact same taxonomy + variant; "
+        "that is a presentation alias, not a distinct format"
+    )
 
 
 @pytest.mark.parametrize("title,taxonomy_id,variant", CREATOR_FORMAT_CATALOG_DIRECT)
