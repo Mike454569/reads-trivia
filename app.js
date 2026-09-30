@@ -925,7 +925,8 @@ function pushProfileSnapshot() {
     rewards: rewardsProfileState(),
     progression: getProgression(),
     personalization: getPersonalizationState(),
-    contentMemory: getContentMemory()
+    contentMemory: getContentMemory(),
+    filmRoom: filmNotebook()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -951,6 +952,7 @@ function pullProfileSnapshot() {
     var beforeRewards = JSON.stringify(getRewards());
     var beforePersonalization = JSON.stringify(getPersonalizationState());
     var beforeContentMemory = JSON.stringify(getContentMemory());
+    var beforeFilmRoom = JSON.stringify(filmNotebook());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
@@ -959,6 +961,7 @@ function pullProfileSnapshot() {
     var mergedRewards = mergeRewards(getRewards(), cloud.rewards);
     var mergedPersonalization = mergePersonalization(getPersonalizationState(), cloud.personalization);
     var mergedContentMemory = mergeContentMemory(getContentMemory(), cloud.contentMemory);
+    var mergedFilmRoom = mergeFilmNotebook(filmNotebook(), cloud.filmRoom);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
@@ -970,6 +973,7 @@ function pullProfileSnapshot() {
     setRewards(mergedRewards, true);
     setPersonalizationState(mergedPersonalization, true);
     lsSet(contentMemoryKey(), mergedContentMemory);
+    filmSaveNotebook(mergedFilmRoom);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
@@ -977,7 +981,8 @@ function pullProfileSnapshot() {
       JSON.stringify(mergedDailyReads) !== beforeDailyReads ||
       JSON.stringify(mergedRewards) !== beforeRewards ||
       JSON.stringify(mergedPersonalization) !== beforePersonalization ||
-      JSON.stringify(mergedContentMemory) !== beforeContentMemory;
+      JSON.stringify(mergedContentMemory) !== beforeContentMemory ||
+      JSON.stringify(mergedFilmRoom) !== beforeFilmRoom;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -11476,7 +11481,7 @@ function filmNotebook() {
   n.reps=Number(n.reps)||0; n.correct=Number(n.correct)||0; n.sessions=Number(n.sessions)||0; n.bossWins=Number(n.bossWins)||0;
   return n;
 }
-function filmSaveNotebook(n) { lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); }
+function filmSaveNotebook(n) { n=n||filmNotebook(); n.updatedAt=Date.now(); lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); }
 var FILM_FAMILIES=[
   {id:'coverage',label:'Coverages',icon:'🛡️',rx:/cover|coverage|zone|man defense|secondary|safety/i},
   {id:'pressure',label:'Pressures',icon:'⚡',rx:/blitz|pressure|rush|pass rush|protection/i},
@@ -11499,11 +11504,29 @@ function filmRecordRep(correct,q) {
   var family=filmFamilyForQuestion(q), rec=n.mastery[family]||{attempts:0,correct:0,lastPracticed:0};
   rec.attempts++; if(correct)rec.correct++; rec.lastPracticed=Date.now(); n.mastery[family]=rec;
   if(!correct&&q){
-    n.review.unshift({family:family,question:q.question||q.prompt||'',answer:q.options&&q.correctIndex!=null?q.options[q.correctIndex]:'',notes:q.notes||q.explanation||'',at:Date.now()});
+    n.review.unshift({family:family,question:q.question||q.prompt||'',answer:q.options&&q.correctIndex!=null?q.options[q.correctIndex]:'',options:Array.isArray(q.options)?q.options.slice():null,correctIndex:q.correctIndex,notes:q.notes||q.explanation||'',at:Date.now()});
     n.review=n.review.slice(0,30);
   }
   n.days[new Date().toLocaleDateString('en-CA')] = true; filmSaveNotebook(n);
 }
+function mergeFilmNotebook(local,cloud){
+  local=local||filmNotebook();cloud=cloud||{};
+  var out={
+    saved:[],viewed:Object.assign({},local.viewed||{},cloud.viewed||{}),reps:Math.max(Number(local.reps)||0,Number(cloud.reps)||0),
+    correct:Math.max(Number(local.correct)||0,Number(cloud.correct)||0),days:Object.assign({},local.days||{},cloud.days||{}),
+    last:(Number(cloud.updatedAt)||0)>(Number(local.updatedAt)||0)?(cloud.last||local.last):(local.last||cloud.last),
+    mastery:{},sessions:Math.max(Number(local.sessions)||0,Number(cloud.sessions)||0),bossWins:Math.max(Number(local.bossWins)||0,Number(cloud.bossWins)||0),
+    review:[],updatedAt:Math.max(Number(local.updatedAt)||0,Number(cloud.updatedAt)||0)
+  };
+  var seen={};
+  (local.saved||[]).concat(cloud.saved||[]).forEach(function(x){var k=String(x.kind)+'|'+String(x.id);if(!seen[k]){seen[k]=true;out.saved.push(x);}});
+  var ids={};Object.keys(local.mastery||{}).forEach(function(k){ids[k]=true;});Object.keys(cloud.mastery||{}).forEach(function(k){ids[k]=true;});
+  Object.keys(ids).forEach(function(k){var l=local.mastery&&local.mastery[k]||{},c=cloud.mastery&&cloud.mastery[k]||{};out.mastery[k]={attempts:Math.max(Number(l.attempts)||0,Number(c.attempts)||0),correct:Math.max(Number(l.correct)||0,Number(c.correct)||0),lastPracticed:Math.max(Number(l.lastPracticed)||0,Number(c.lastPracticed)||0)};});
+  var reviews=(local.review||[]).concat(cloud.review||[]).sort(function(x,y){return (Number(y.at)||0)-(Number(x.at)||0);});
+  var rseen={};reviews.forEach(function(r){var k=String(r.question||'')+'|'+String(r.answer||'');if(!rseen[k]&&out.review.length<30){rseen[k]=true;out.review.push(r);}});
+  return out;
+}
+
 function filmMasteryLevel(rec){
   rec=rec||{attempts:0,correct:0}; if(!rec.attempts)return {name:'Rookie',pct:0,next:'Starter'};
   var pct=Math.round(100*rec.correct/rec.attempts);
@@ -11628,8 +11651,9 @@ function startFilmReview(){
   state.learn.screen='study';
   state.filmStudy={
     questions:rows.map(function(r,i){
-      var opts=[r.answer||'Review the correct read','Not this read','Different assignment','Check the coaching note'];
-      return {id:'review_'+i,category:filmFamilyMeta(r.family).label,question:r.question,options:opts,correctIndex:0,notes:r.notes||''};
+      var opts=Array.isArray(r.options)&&r.options.length?r.options.slice():[r.answer||'Review the correct read','Not this read','Different assignment','Check the coaching note'];
+      var correct=Number.isInteger(r.correctIndex)&&r.correctIndex>=0&&r.correctIndex<opts.length?r.correctIndex:0;
+      return {id:'review_'+i,category:filmFamilyMeta(r.family).label,question:r.question,options:opts,correctIndex:correct,notes:r.notes||''};
     }),
     index:0,answered:null,correct:0,review:[],type:'review',targetFamily:'review',completed:false
   };
