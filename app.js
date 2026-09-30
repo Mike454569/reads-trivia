@@ -9334,6 +9334,14 @@ function shareStatusLine(delta) {
   return parts.join(' · ');
 }
 function shareConfigFor(mode) {
+  if (mode === 'profile') {
+    var pp=getProgression(), career=progressionRankFor(pp.careerXp||0), seasonId=footballSeasonIdForDate();
+    var season=normalizeSeasonProgress(pp.seasons&&pp.seasons[seasonId]), seasonRank=seasonRankFor(season.xp||0);
+    var pr=getRating(), ps=getStreak(), fav=primaryFavoriteTeam();
+    var detail=[pr?pr.score+' Football Rating':'',ps.count?ps.count+'-day streak':'',fav?fav.name+' fan':''].filter(Boolean).join(' · ');
+    return {title:'Reads Profile',headline:career.name,sub:seasonId+' '+seasonRank.name+' · '+Number(pp.careerXp||0).toLocaleString()+' career XP',detail:detail,
+      shareText:'My Reads Football profile: '+career.name+' career rank · '+seasonId+' '+seasonRank.name+(pr?' · '+pr.score+' Football Rating':'')+(ps.count?' · '+ps.count+'-day streak':'')+'. reads.football'};
+  }
   if (mode === 'quiz' || mode === 'cfbQuiz' || mode === 'xso') {
     var t = state[mode];
     var pct = Math.round(100 * t.correctCount / t.queue.length);
@@ -12936,7 +12944,7 @@ function renderProfile() {
   var cosmetic = selectedProfileCosmetic();
   var cosmeticClass = ' profile-cosmetic-' + cosmetic.id;
   var html = '<div class="panel profile-rewards-shell' + cosmeticClass + '">' +
-    '<div class="mode-toolbar"><button class="btn-tiny" data-go="settings">' + icon('settings') + ' Settings</button><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
+    '<div class="mode-toolbar"><button class="btn-tiny" data-share="profile">' + icon('share') + ' Share Profile</button><button class="btn-tiny" data-go="settings">' + icon('settings') + ' Settings</button><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<div class="profile-identity-card">' +
       '<div class="profile-identity-main">' +
         '<div class="profile-avatar-mark">' + (selected ? selected.icon : icon('football')) + '</div>' +
