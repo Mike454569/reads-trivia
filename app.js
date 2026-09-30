@@ -752,37 +752,56 @@ if (state.stats.cfbLegends && state.stats.cfbLegends.bestWins > 12) state.stats.
 var INTRO_TEST_SIZE = 16;
 var RATING_DRIFT_ALPHA = 0.08;
 function ratingKey() { return 'nflTriviaRating__' + slugify(state.name); }
-// Unlike every other mode's leaderboard doc (keyed name+clientId, so each device
-// gets its own row), the rating doc is keyed by NAME ONLY — one canonical value
-// per person, shared across every device that plays under that name. See
-// reconcileRating() below for how a second device adopts it.
-function ratingDocId() { return 'rating__' + slugify(state.name); }
+// Rating now follows the same canonical-account rule as every other
+// leaderboard mode. Existing name-keyed rating rows remain readable as a
+// migration fallback until the account has written its UID-keyed row.
+function ratingDocId() {
+  return activeAuthUid ? ('account_' + activeAuthUid + '__rating') : ('rating__' + slugify(state.name));
+}
+function ratingPayload(r) {
+  return {
+    name: state.name,
+    mode: 'rating',
+    score: r.score,
+    games: r.games || 0,
+    playerKey: canonicalPlayerKey(),
+    accountUid: activeAuthUid || null
+  };
+}
 function getRating() { return state.name ? lsGet(ratingKey(), null) : null; }
 function setRating(r) {
   if (!state.name) return;
   lsSet(ratingKey(), r);
   if (window.__fbSync && window.__fbSync.pushScore) {
-    window.__fbSync.pushScore(ratingDocId(), { name: state.name, mode: 'rating', score: r.score, games: r.games || 0 });
+    window.__fbSync.pushScore(ratingDocId(), ratingPayload(r));
   }
 }
-// Called whenever fresh leaderboard data arrives from Firebase. If another
-// device has a more advanced rating for this same name (more games factored
-// in), adopt it locally — this is what makes the rating survive a cache clear
-// or a switch to a new device/browser. If THIS device is the one ahead, push
-// it back up so the other device(s) catch up next time they sync.
 function reconcileRating(list) {
   if (!state.name) return;
   var mySlug = slugify(state.name);
-  var cloud = list.find(function (r) { return r.mode === 'rating' && slugify(r.name || '') === mySlug; });
+  var cloud = null;
+  if (activeAuthUid) {
+    cloud = list.find(function (r) { return r.mode === 'rating' && r.accountUid === activeAuthUid; });
+  }
+  if (!cloud) {
+    cloud = list.find(function (r) { return r.mode === 'rating' && slugify(r.name || '') === mySlug; });
+  }
   if (!cloud || typeof cloud.score !== 'number') return;
   var local = getRating();
   if (!local || (cloud.games || 0) > (local.games || 0)) {
     lsSet(ratingKey(), { score: cloud.score, games: cloud.games || 0 });
     pushRatingHistory(cloud.score);
+    // If this came from a legacy name-keyed row for a real account, publish
+    // the exact adopted value to the new UID-keyed row immediately.
+    if (activeAuthUid && !cloud.accountUid && window.__fbSync && window.__fbSync.pushScore) {
+      window.__fbSync.pushScore(ratingDocId(), ratingPayload({ score: cloud.score, games: cloud.games || 0 }));
+    }
     if (state.screen === 'introTest') { state.introTest = null; state.screen = 'home'; }
     renderAll();
   } else if ((local.games || 0) > (cloud.games || 0) && window.__fbSync && window.__fbSync.pushScore) {
-    window.__fbSync.pushScore(ratingDocId(), { name: state.name, mode: 'rating', score: local.score, games: local.games || 0 });
+    window.__fbSync.pushScore(ratingDocId(), ratingPayload(local));
+  } else if (activeAuthUid && !cloud.accountUid && window.__fbSync && window.__fbSync.pushScore) {
+    window.__fbSync.pushScore(ratingDocId(), ratingPayload(local));
   }
 }
 // Cross-device sync for per-mode stats/badges/streak — the same "one doc
@@ -1689,10 +1708,9 @@ function setRankedPref(mode, ranked) {
 // Auth's email/password provider is used under the hood with a synthetic
 // slug@reads.local address so nobody ever needs a real email — see
 // firebase-sync.js's header comment for the full mechanism. Everything
-// downstream (leaderboard, rating, friends, H2H, profiles) still keys off
-// slugify(state.name) exactly like it always has — a real login only
-// changes HOW state.name gets set, not what it's used for, so playing
-// under the same username you used to type picks your old stats back up.
+// authenticated leaderboard/profile/rating writes now key off Firebase UID.
+// Legacy username-keyed data is still read as a one-time migration fallback,
+// so existing players keep their old progress automatically.
 // Canonical account identity. Real Firebase accounts use one stable UID on
 // every device; guests retain the original browser-scoped identity.
 var activeAuthUid = null;
@@ -1762,13 +1780,13 @@ function renderAuthModal() {
   if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
   if (authModalMode === 'signup') {
     if (titleEl) titleEl.textContent = 'Sign Up';
-    if (contextEl) contextEl.textContent = 'Pick a username and password — this is a real login, so your Football Rating, stats, and friends follow you to any device. No email needed. Playing under the same name you used before picks up right where you left off.';
+    if (contextEl) contextEl.textContent = 'Pick a username and password — this is a real login, so your Football Rating, stats, favorite teams, and progress follow you to any device. No email needed. Playing under the same name you used before picks up right where you left off.';
     if (submitBtn) submitBtn.textContent = 'Create Account';
     if (switchBtn) switchBtn.textContent = 'Already have an account? Log In';
     if (passwordEl) passwordEl.autocomplete = 'new-password';
   } else {
     if (titleEl) titleEl.textContent = 'Log In';
-    if (contextEl) contextEl.textContent = 'Log in to sync your Football Rating, stats, and friends across every device.';
+    if (contextEl) contextEl.textContent = 'Log in to sync your Football Rating, stats, favorite teams, and progress across every device.';
     if (submitBtn) submitBtn.textContent = 'Log In';
     if (switchBtn) switchBtn.textContent = 'Don’t have an account? Sign Up';
     if (passwordEl) passwordEl.autocomplete = 'current-password';
