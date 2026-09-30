@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.12.0';
+var APP_VERSION = '3.13.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -883,6 +883,7 @@ function pullProfileSnapshot() {
     if (mergedDailyReads.result) lsSet(dailyKey(), mergedDailyReads.result);
     setDailyHistory(mergedDailyReads.history);
     setDailyRecords(mergedDailyReads.records);
+    setDailyStreakClaims(mergedDailyReads.streakClaims);
     setRewards(mergedRewards, true);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
@@ -1191,6 +1192,13 @@ var DAILY_MECHANICS = {
   confidence: { label: 'Confidence Play', short: 'call your shot' },
   double: { label: 'Double Down', short: 'bonus point' }
 };
+var DAILY_STREAK_REWARDS = [
+  { days: 3, xp: 25, label: 'On a Roll' },
+  { days: 7, xp: 50, label: 'One Week Strong' },
+  { days: 14, xp: 100, label: 'Two-Week Heater' },
+  { days: 30, xp: 250, label: 'Monthly Machine' },
+  { days: 100, xp: 1000, label: 'Daily Reads Legend' }
+];
 function dailyQuestionKey(q) { return (q._dailyLeague || 'NFL') + ':' + q.id; }
 function dailyHistoryKey() { return 'nflTriviaDailyReadsHistory__' + slugify(state.name || 'guest'); }
 function getDailyHistory() { return lsGet(dailyHistoryKey(), []); }
@@ -1203,12 +1211,20 @@ function setDailyRecords(v) {
   var out = Object.keys(byDate).sort().map(function (d) { return byDate[d]; }).slice(-35);
   lsSet(dailyRecordsKey(), out);
 }
+function dailyStreakClaimsKey() { return 'readsDailyStreakClaims__' + slugify(state.name || 'guest'); }
+function getDailyStreakClaims() { return lsGet(dailyStreakClaimsKey(), []); }
+function setDailyStreakClaims(v) {
+  var seen = {}, out = [];
+  (v || []).forEach(function (n) { n = Number(n); if (n > 0 && !seen[n]) { seen[n] = true; out.push(n); } });
+  out.sort(function (x,y) { return x-y; });
+  lsSet(dailyStreakClaimsKey(), out);
+}
 function dailyReadsProfileState() {
-  return { result: getDailyResult(), history: getDailyHistory(), records: getDailyRecords() };
+  return { result: getDailyResult(), history: getDailyHistory(), records: getDailyRecords(), streakClaims: getDailyStreakClaims() };
 }
 function mergeDailyReads(local, cloud) {
-  local = local || { result: null, history: [], records: [] };
-  cloud = cloud || { result: null, history: [], records: [] };
+  local = local || { result: null, history: [], records: [], streakClaims: [] };
+  cloud = cloud || { result: null, history: [], records: [], streakClaims: [] };
   var lr = local.result, cr = cloud.result;
   var result = (!lr || (cr && String(cr.date || '') > String(lr.date || ''))) ? cr : lr;
   var seen = {}, history = [];
@@ -1222,7 +1238,13 @@ function mergeDailyReads(local, cloud) {
     if (!prev || (Number(r.savedAt) || 0) >= (Number(prev.savedAt) || 0)) recordMap[r.date] = r;
   });
   var records = Object.keys(recordMap).sort().map(function (d) { return recordMap[d]; }).slice(-35);
-  return { result: result || null, history: history.slice(-35), records: records };
+  var claimSeen = {}, streakClaims = [];
+  (local.streakClaims || []).concat(cloud.streakClaims || []).forEach(function (n) {
+    n = Number(n);
+    if (n > 0 && !claimSeen[n]) { claimSeen[n] = true; streakClaims.push(n); }
+  });
+  streakClaims.sort(function (x,y) { return x-y; });
+  return { result: result || null, history: history.slice(-35), records: records, streakClaims: streakClaims };
 }
 function questionMentionsTeam(q, team) {
   if (!q || !team) return false;
@@ -1428,7 +1450,22 @@ function completeDailyReads(label, pct) {
   var records = getDailyRecords();
   records.push(record);
   setDailyRecords(records);
-  pushLeaderboard('daily', { completions: st.completions, bestPct: st.bestPct, lastPct: pct, bonusPoints: record.bonusPoints });
+  var weekly = dailyRivalWeeklySnapshot();
+  pushLeaderboard('daily', {
+    completions: st.completions,
+    bestPct: st.bestPct,
+    lastPct: pct,
+    bonusPoints: record.bonusPoints,
+    dailyDate: record.date,
+    dailyCorrect: record.correct,
+    dailyTotal: record.total,
+    todayRivalPoints: dailyRivalPoints(record),
+    weekKey: weekly.weekKey,
+    weeklyRivalPoints: weekly.points,
+    weeklyDays: weekly.days,
+    weeklyAvg: weekly.avg
+  });
+  awardDailyStreakMilestones();
   pushProfileSnapshot();
   state.justCompletedDaily = { typeId: 'dailyReads' };
 }
@@ -1571,6 +1608,134 @@ function weeklyDailyRecapData() {
   var highHit = high.length ? Math.round(100 * high.filter(function (x) { return x.correct; }).length / high.length) : null;
   return { rows:rows, days:rows.length, avg:avg, best:best, perfects:perfects, bonus:bonus, highHit:highHit };
 }
+function dailyRivalPoints(record) {
+  record = record || {};
+  return (Number(record.correct) || 0) * 100 + (Number(record.bonusPoints) || 0) * 20 + (Number(record.difficultyTarget) || 0) * 10;
+}
+function dailyRivalWeekKey(dateStr) {
+  var p = String(dateStr || todayStr()).split('-').map(Number);
+  var d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+  var day = d.getDay();
+  var shift = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + shift);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function dailyRivalWeeklySnapshot() {
+  var weekKey = dailyRivalWeekKey(todayStr());
+  var rows = getDailyRecords().filter(function (r) { return dailyRivalWeekKey(r.date) === weekKey; });
+  var points = rows.reduce(function (sum,r) { return sum + dailyRivalPoints(r); }, 0);
+  var avg = rows.length ? Math.round(rows.reduce(function (sum,r) { return sum + (Number(r.pct) || 0); }, 0) / rows.length) : 0;
+  return { weekKey:weekKey, days:rows.length, points:points, avg:avg };
+}
+function dailyRivalSort(rows, key) {
+  return rows.slice().sort(function (x,y) {
+    var diff = (Number(y[key]) || 0) - (Number(x[key]) || 0);
+    if (diff) return diff;
+    return (Number(y.lastPct) || 0) - (Number(x.lastPct) || 0);
+  });
+}
+function dailyRivalRows(kind) {
+  var all = (state.leaderboardData || []).filter(function (r) { return r.mode === 'daily'; });
+  if (kind === 'week') {
+    return dailyRivalSort(all.filter(function (r) { return r.weekKey === dailyRivalWeekKey(todayStr()); }), 'weeklyRivalPoints');
+  }
+  return dailyRivalSort(all.filter(function (r) { return r.dailyDate === todayStr(); }), 'todayRivalPoints');
+}
+function dailyRivalMeIndex(rows) {
+  var key = canonicalPlayerKey();
+  var idx = rows.findIndex(function (r) { return (r.playerKey && r.playerKey === key) || slugify(r.name || '') === slugify(state.name || ''); });
+  return idx >= 0 ? idx + 1 : null;
+}
+function dailyRivalScopeRows(rows, scope) {
+  if (scope === 'friends') {
+    var names = getFriends().map(slugify);
+    names.push(slugify(state.name || ''));
+    return rows.filter(function (r) { return names.indexOf(slugify(r.name || '')) !== -1; });
+  }
+  if (scope === 'team') {
+    var league = defaultCommunityLeague();
+    var fav = getFavoriteTeams();
+    var id = fav[league];
+    if (!id) return [];
+    var field = league === 'cfb' ? 'favoriteCfbTeam' : 'favoriteNflTeam';
+    return rows.filter(function (r) { return r[field] === id; });
+  }
+  return rows;
+}
+function dailyRivalListHtml(rows, key, limit) {
+  rows = rows.slice(0, limit || 5);
+  if (!rows.length) return '<div class="daily-rivals-empty">No scores yet. Be the first one in.</div>';
+  return '<div class="daily-rivals-list">' + rows.map(function (r,i) {
+    return '<div class="daily-rival-row' + (slugify(r.name || '') === slugify(state.name || '') ? ' is-you' : '') + '">' +
+      '<span class="daily-rival-rank">' + (i+1) + '</span><b>' + esc(r.name || 'Reads fan') + '</b>' +
+      '<span>' + (Number(r[key]) || 0) + ' pts</span></div>';
+  }).join('') + '</div>';
+}
+function dailyRivalsHtml(compact) {
+  if (!state.name) return '';
+  var todayRows = dailyRivalRows('today');
+  var weekRows = dailyRivalRows('week');
+  var todayRank = dailyRivalMeIndex(todayRows);
+  var weekRank = dailyRivalMeIndex(weekRows);
+  var friends = dailyRivalScopeRows(todayRows, 'friends');
+  var team = dailyRivalScopeRows(todayRows, 'team');
+  var league = defaultCommunityLeague();
+  var favTeam = communityTeamForLeague(league);
+  return '<section class="daily-rivals' + (compact ? ' compact' : '') + '">' +
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">DAILY RIVALS</span><h3>Beat the room</h3></div>' +
+      '<span>' + (todayRank ? '#' + todayRank + ' today' : 'Play to rank') + '</span></div>' +
+    '<p class="daily-rivals-note">Rival Points reward correct answers, Double Down bonuses, and tougher Daily difficulty.</p>' +
+    '<div class="daily-rivals-rank-strip">' +
+      '<span><b>' + (todayRank ? '#' + todayRank : '—') + '</b><small>Today</small></span>' +
+      '<span><b>' + (weekRank ? '#' + weekRank : '—') + '</b><small>This week</small></span>' +
+      '<span><b>' + friends.length + '</b><small>Friends active</small></span>' +
+      '<span><b>' + team.length + '</b><small>' + esc(favTeam ? favTeam.name : 'Team') + ' active</small></span>' +
+    '</div>' +
+    (compact ? dailyRivalListHtml(todayRows, 'todayRivalPoints', 3) :
+      '<div class="daily-rivals-columns"><div><h4>Today</h4>' + dailyRivalListHtml(todayRows,'todayRivalPoints',5) + '</div>' +
+      '<div><h4>This Week</h4>' + dailyRivalListHtml(weekRows,'weeklyRivalPoints',5) + '</div>' +
+      '<div><h4>Friends Today</h4>' + dailyRivalListHtml(friends,'todayRivalPoints',5) + '</div>' +
+      '<div><h4>' + esc(favTeam ? favTeam.name + ' Fans' : 'Your Team') + '</h4>' + dailyRivalListHtml(team,'todayRivalPoints',5) + '</div></div>') +
+    '</section>';
+}
+function dailyStreakRewardsHtml() {
+  var count = getStreak().count || 0;
+  var claims = getDailyStreakClaims();
+  var next = DAILY_STREAK_REWARDS.find(function (r) { return r.days > count; });
+  return '<section class="daily-streak-ladder"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">STREAK REWARDS</span><h3>Keep the heater alive</h3></div>' +
+    '<span>' + (next ? (next.days - count) + ' day' + (next.days-count===1?'':'s') + ' to +' + next.xp + ' XP' : 'Legend status') + '</span></div>' +
+    '<div class="daily-streak-milestones">' + DAILY_STREAK_REWARDS.map(function (r) {
+      var claimed = claims.indexOf(r.days) !== -1;
+      var active = count >= r.days;
+      return '<span class="' + (active ? 'complete' : '') + '"><b>' + r.days + 'D</b><small>' + esc(r.label) + '</small><em>' + (claimed ? 'Claimed' : '+' + r.xp + ' XP') + '</em></span>';
+    }).join('') + '</div></section>';
+}
+function awardDailyStreakMilestones() {
+  if (!state.name) return;
+  var count = getStreak().count || 0;
+  var reward = DAILY_STREAK_REWARDS.find(function (r) { return r.days === count; });
+  if (!reward) return;
+  var claims = getDailyStreakClaims();
+  if (claims.indexOf(reward.days) !== -1) return;
+  claims.push(reward.days);
+  setDailyStreakClaims(claims);
+  var seasonId = footballSeasonIdForDate();
+  var eventId = 'daily_streak_' + reward.days;
+  if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
+    window.__fbSync.awardProgress(profileDocId(), eventId, {
+      type:'DAILY_STREAK_MILESTONE', source:'daily_reads', days:reward.days
+    }, reward.xp, seasonId).then(function (result) {
+      if (!result || !result.duplicate) applyProgressAwardLocally(reward.xp, seasonId);
+      pushSeasonLeaderboardSnapshot();
+      pushProfileSnapshot();
+      if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
+    }).catch(function () {});
+  } else {
+    applyProgressAwardLocally(reward.xp, seasonId);
+    pushSeasonLeaderboardSnapshot();
+    pushProfileSnapshot();
+  }
+}
 function weeklyDailyRecapHtml(compact) {
   var w = weeklyDailyRecapData();
   if (!w || w.days < 2) return '';
@@ -1679,6 +1844,8 @@ function renderDailySummary() {
       var missed = t.missed.some(function (m) { return m._dailyIndex === i || m.question === q.question; });
       return '<span class="' + (missed ? 'missed' : 'hit') + '"><b>' + esc(DAILY_MECHANICS[q._dailyMechanic || 'quick'].label) + '</b><small>' + (missed ? 'Miss' : 'Hit') + '</small></span>';
     }).join('') + '</div>' +
+    dailyRivalsHtml(true) +
+    dailyStreakRewardsHtml() +
     weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
     '<div class="btn-row">' +
@@ -3735,6 +3902,8 @@ function renderHome() {
     communityCardHtml() +
     dailyChallengeCardHtml() +
     weeklyDailyRecapHtml(false) +
+    dailyRivalsHtml(false) +
+    dailyStreakRewardsHtml() +
     continuePlayingCardHtml() +
     recommendationShelfHtml() +
     modeSectionHtml('nfl') +
@@ -8570,8 +8739,14 @@ function shareConfigFor(mode) {
     // the real streak into every mode's line universally, so keeping this
     // as a second, separate streak mention would just duplicate it.
     var rlD = shareStatusLine(d.ratingDelta);
-    return { title: 'Daily Reads', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct', detail: rlD,
-      shareText: 'I scored ' + pct2 + '% on today’s Daily Reads in Reads!' + (rlD ? ' ' + rlD : '') };
+    var rivalToday = dailyRivalRows('today');
+    var rivalWeek = dailyRivalRows('week');
+    var rankToday = dailyRivalMeIndex(rivalToday);
+    var rankWeek = dailyRivalMeIndex(rivalWeek);
+    var rivalPts = dailyRivalPoints(dailyRecordFromState(pct2));
+    var rivalLine = rivalPts + ' Rival Points' + (rankToday ? ' · #' + rankToday + ' today' : '') + (rankWeek ? ' · #' + rankWeek + ' this week' : '');
+    return { title: 'Daily Reads', headline: pct2 + '%', sub: d.correctCount + ' / ' + d.queue.length + ' correct' + (d.bonusPoints ? ' · +' + d.bonusPoints + ' bonus' : ''), detail: [rivalLine, rlD].filter(Boolean).join(' · '),
+      shareText: 'Daily Reads: ' + pct2 + '% · ' + rivalPts + ' Rival Points' + (rankToday ? ' · #' + rankToday + ' today' : '') + '. Think you can beat it? reads.football' };
   }
   if (mode === 'grid' || mode === 'cfbGrid') {
     var g = state[mode];
