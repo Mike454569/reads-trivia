@@ -63,7 +63,7 @@ def test_territory_takeover_awards_selected_zone():
 
 def test_exact_ten_commits_points_before_question():
     p=_package("EXACT_TEN"); _,s=sa.evaluate(p,{},{"action":"3"}); _,s=_answer(p,s)
-    assert s["total"]==3 and s["stake"] if False else True
+    assert s["total"] == 3 and "stake" not in s
 
 
 def test_pyramid_climb_moves_both_directions():
