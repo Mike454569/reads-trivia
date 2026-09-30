@@ -2914,7 +2914,7 @@ function personalDashboardHtml() {
       '</div>';
   }
   return '<section class="personal-dashboard" aria-label="Your Reads dashboard">' +
-    '<div class="dashboard-head"><div><span class="dashboard-eyebrow">YOUR READS</span><h2>' + esc(state.name) + ''s Dashboard</h2></div>' +
+    "<div class=\"dashboard-head\"><div><span class=\"dashboard-eyebrow\">YOUR READS</span><h2>" + esc(state.name) + "'s Dashboard</h2></div>" +
     (fav ? '<span class="dashboard-team">' + favoriteTeamBadgeHtml() + esc(fav.name) + '</span>' : '') + '</div>' +
     '<div class="dashboard-ranks">' +
     rankCard('Career Rank', career, 'Permanent') +
