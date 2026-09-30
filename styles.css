@@ -4128,3 +4128,17 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .personal-goal-grid { grid-template-columns: 1fr; }
   .personal-goal p { min-height: 0; }
 }
+
+.adaptive-difficulty-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+  color: var(--muted);
+  font-size: .8rem;
+}
+.adaptive-difficulty-note svg { flex: 0 0 auto; }
