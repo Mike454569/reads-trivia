@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.16.0';
+var APP_VERSION = '3.17.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -3565,8 +3565,7 @@ function communityTeamSeasonRank(league, team) {
   return idx===-1?null:{rank:idx+1,total:ids.length,xp:totals[team.id]||0};
 }
 function communityCurrentWeekKey() {
-  var d=new Date(), jan1=new Date(d.getFullYear(),0,1), days=Math.floor((d-jan1)/86400000);
-  return d.getFullYear()+'-W'+String(Math.ceil((days+jan1.getDay()+1)/7)).padStart(2,'0');
+  return dailyRivalWeekKey(todayStr());
 }
 function communityWeeklyTeamPoints(league, team) {
   if(!team)return 0;
