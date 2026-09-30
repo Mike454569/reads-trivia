@@ -83,7 +83,10 @@ jobs:
 
       - name: Install flyctl
         if: steps.check_token.outputs.has_token == 'true'
-        run: curl -L https://fly.io/install.sh | sh
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+          "$HOME/.fly/bin/flyctl" version
 
       # Lineup Concurrency pass: real implementation, not a TODO placeholder
       # -- but honestly caveated: every flyctl subcommand below was verified
