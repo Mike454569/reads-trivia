@@ -8,7 +8,7 @@ var ENDLESS_MECHANICS=[
   {id:'double',label:'Double Down',desc:'Two choices. Double points.'},
   {id:'survival',label:'Survival',desc:'A miss costs two lives.'}
 ];
-var ENDLESS={active:false,screen:'idle',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false};
+var ENDLESS={active:false,screen:'idle',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null};
 
 function endlessDifficultyLevel(){
   var base=0, rating=getRating(), rs=rating?Number(rating.score)||100:100;
@@ -33,6 +33,35 @@ function endlessQuestionsUntilRuleChange(){
 }
 function endlessMomentumPct(){
   return Math.min(100,Math.max(8,ENDLESS.streak*12+ENDLESS.multiplier*8));
+}
+function endlessQuestionNumber(){return ENDLESS.index+1;}
+function endlessStage(){
+  var n=endlessQuestionNumber();
+  if(n>=30)return {id:'sudden',label:'SUDDEN DEATH',desc:'One miss ends the run.',multiplier:3};
+  if(n>=20)return {id:'primetime',label:'PRIME TIME',desc:'The questions tighten up.',multiplier:1};
+  if(n>=10)return {id:'redzone',label:'RED ZONE',desc:'Pressure is climbing.',multiplier:1};
+  return {id:'drive',label:'OPENING DRIVE',desc:'Build the run.',multiplier:1};
+}
+function endlessSpecialEvent(){
+  var n=endlessQuestionNumber();
+  if(n>=30)return {id:'sudden',label:'SUDDEN DEATH',desc:'Triple points. One miss ends it.',scoreMult:3,restore:false};
+  if(n%10===0)return {id:'checkpoint',label:'CHECKPOINT',desc:ENDLESS.lives<3?'Get it right to win back a life.':'Protect the perfect stack.',scoreMult:2,restore:ENDLESS.lives<3};
+  if(n%5===0)return {id:'clutch',label:'CLUTCH QUESTION',desc:'Double points. Make it count.',scoreMult:2,restore:false};
+  return null;
+}
+function endlessBestChase(){
+  var best=lsGet(endlessBestKey(),null), bestScore=best?Number(best.score)||0:0, gap=Math.max(0,bestScore-ENDLESS.score);
+  if(!bestScore)return '<span>SET THE STANDARD</span><b>First run sets your personal best</b>';
+  if(gap===0)return '<span>PERSONAL BEST</span><b>You are at the mark right now</b>';
+  return '<span>PB CHASE</span><b>'+gap.toLocaleString()+' pts to your best</b>';
+}
+function endlessEventHtml(){
+  var ev=endlessSpecialEvent(), stage=endlessStage();
+  return '<div class="endless-stage-row stage-'+stage.id+'">' +
+    '<div class="endless-stage-copy"><span>'+esc(stage.label)+'</span><b>'+esc(stage.desc)+'</b></div>' +
+    '<div class="endless-best-chase">'+endlessBestChase()+'</div>' +
+    (ev?'<div class="endless-event-card event-'+ev.id+'"><span>'+esc(ev.label)+'</span><b>'+esc(ev.desc)+'</b></div>':'') +
+    '</div>';
 }
 function endlessRunStatusHtml(){
   var left=endlessQuestionsUntilRuleChange(), next=endlessNextMechanic(), difficulty=endlessDifficultyNames(endlessDifficultyLevel())[0];
@@ -69,7 +98,7 @@ function endlessPickQuestion(){
 }
 function startEndlessMode(){
   if(typeof beginProgressSession==='function')beginProgressSession('endless');
-  ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false};
+  ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null};
   state.screen='endless';lsSet('nflTriviaLastMode','endless');
   if(window.__fbSync&&window.__fbSync.logPlay)window.__fbSync.logPlay('endless');
   endlessPickQuestion();renderAll();
@@ -79,22 +108,27 @@ function answerEndless(i){
   var q=ENDLESS.current, mech=endlessMechanic(), good=i===q.correctIndex;
   ENDLESS.answered=i;ENDLESS.total++;
   if(typeof recordKnowledgeAnswer==='function')recordKnowledgeAnswer(ENDLESS.league,q.category||'General',good);
+  var event=endlessSpecialEvent(), eventMult=event?event.scoreMult:1, restored=false;
   if(good){
     ENDLESS.correct++;ENDLESS.streak++;ENDLESS.bestStreak=Math.max(ENDLESS.bestStreak,ENDLESS.streak);
     ENDLESS.multiplier=Math.min(5,1+Math.floor(ENDLESS.streak/3));
-    ENDLESS.score+=100*(mech.id==='double'?2:1)*ENDLESS.multiplier;
+    ENDLESS.score+=100*(mech.id==='double'?2:1)*ENDLESS.multiplier*eventMult;
+    if(event&&event.restore&&ENDLESS.lives<3){ENDLESS.lives++;restored=true;}
     removeFromMissedPool(ENDLESS.league,q.id);
   }else{
-    ENDLESS.lives-=mech.id==='survival'?2:1;ENDLESS.streak=0;ENDLESS.multiplier=1;
+    if(event&&event.id==='sudden')ENDLESS.lives=0;
+    else ENDLESS.lives-=mech.id==='survival'?2:1;
+    ENDLESS.streak=0;ENDLESS.multiplier=1;
     addToMissedPool(ENDLESS.league,q.id);
   }
-  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),good:good,mechanic:mech.id});
+  ENDLESS.lastEvent=event?{id:event.id,label:event.label,good:good,restored:restored,scoreMult:eventMult}:null;
+  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),good:good,mechanic:mech.id,event:event&&event.id});
   playSound(good?'correct':'wrong');renderAll();
 }
 function nextEndless(){
   if(ENDLESS.answered===null)return;
   if(ENDLESS.lives<=0){finishEndless();return;}
-  ENDLESS.index++;
+  ENDLESS.index++;ENDLESS.lastEvent=null;
   if(!endlessPickQuestion()){finishEndless();return;}
   renderAll();
 }
@@ -125,10 +159,10 @@ function renderEndlessScreen(){
   var q=ENDLESS.current;if(!q)return '<div class="panel">Building your run…</div>';
   var mech=endlessMechanic(),answered=ENDLESS.answered!==null;
   return '<div class="panel endless-panel">'+modeToolbarHtml('endless',true)+
-    '<div class="endless-scorebar"><span class="endless-stat-pill">❤️ <b>'+Math.max(0,ENDLESS.lives)+'</b><small>LIVES</small></span><span class="endless-stat-pill">🔥 <b>'+ENDLESS.streak+'</b><small>STREAK</small></span><span class="endless-stat-pill">×<b>'+ENDLESS.multiplier+'</b><small>MULTI</small></span><strong>'+ENDLESS.score.toLocaleString()+' <small>PTS</small></strong></div>'+endlessRunStatusHtml()+
+    '<div class="endless-scorebar"><span class="endless-stat-pill">❤️ <b>'+Math.max(0,ENDLESS.lives)+'</b><small>LIVES</small></span><span class="endless-stat-pill">🔥 <b>'+ENDLESS.streak+'</b><small>STREAK</small></span><span class="endless-stat-pill">×<b>'+ENDLESS.multiplier+'</b><small>MULTI</small></span><strong>'+ENDLESS.score.toLocaleString()+' <small>PTS</small></strong></div>'+endlessEventHtml()+endlessRunStatusHtml()+
     '<div class="endless-rule"><span>'+esc(mech.label)+'</span><b>'+esc(mech.desc)+'</b><em>RULE '+(Math.floor(ENDLESS.index/3)%ENDLESS_MECHANICS.length+1)+' / '+ENDLESS_MECHANICS.length+'</em></div>'+
     '<div class="quiz-progress">QUESTION '+(ENDLESS.index+1)+' · '+ENDLESS.league.toUpperCase()+' · '+esc(q.category)+' · '+esc(q.difficulty)+'</div>'+
     '<section class="stadium-question-card"><div class="quiz-question stadium-question">'+esc(q.question)+'</div></section>'+
     '<div class="quiz-options">'+ENDLESS.visible.map(function(i){var cls='quiz-option';if(answered){if(i===q.correctIndex)cls+=' correct';else if(i===ENDLESS.answered)cls+=' wrong';}return '<button class="'+cls+'" '+(answered?'disabled':'data-endless-answer="'+i+'"')+'><span class="broadcast-option-letter">'+String.fromCharCode(65+i)+'</span><span>'+esc(q.options[i])+'</span></button>';}).join('')+'</div>'+
-    (answered?'<div class="quiz-feedback">'+(ENDLESS.answered===q.correctIndex?'<span class="feedback-good">'+icon('check')+' Correct.</span>':'<span class="feedback-bad">'+icon('xMark')+' Missed it. '+Math.max(0,ENDLESS.lives)+' lives left.</span>')+(q.notes?' '+esc(q.notes):'')+'</div><button class="btn-primary" data-endless-next>'+(ENDLESS.lives<=0?'See Run Results':'Keep Going')+'</button>':'')+'</div>';
+    (answered?'<div class="quiz-feedback endless-answer-feedback">'+(ENDLESS.answered===q.correctIndex?'<span class="feedback-good">'+icon('check')+' Correct.</span>':'<span class="feedback-bad">'+icon('xMark')+' '+(ENDLESS.lives<=0?'Run over.':Math.max(0,ENDLESS.lives)+' lives left.')+'</span>')+(ENDLESS.lastEvent&&ENDLESS.lastEvent.good&&ENDLESS.lastEvent.scoreMult>1?' <strong>×'+ENDLESS.lastEvent.scoreMult+' event bonus.</strong>':'')+(ENDLESS.lastEvent&&ENDLESS.lastEvent.restored?' <strong>Life restored.</strong>':'')+(q.notes?' '+esc(q.notes):'')+'</div><button class="btn-primary" data-endless-next>'+(ENDLESS.lives<=0?'See Run Results':'Keep Going')+'</button>':'')+'</div>';
 }
