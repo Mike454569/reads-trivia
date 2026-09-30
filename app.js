@@ -4192,6 +4192,11 @@ function recordPersonalizationCompletion(mode, fields) {
   trackFormatEvent('complete', mode, {pct:completionPctForPersonalization(mode, fields)});
   markDailyFormatCompleted(mode);
   if (!state.name) return;
+  var rewardState=getRewards();
+  if(rewardState.formatPlayedIds.indexOf(mode)===-1){
+    rewardState.formatPlayedIds.push(mode);
+    setRewards(rewardState,true);
+  }
   checkRetentionMissionCompletion(mode);
   var p = getPersonalizationState();
   p.playEvents.push({ mode:mode, league:modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
@@ -13276,7 +13281,12 @@ var REWARD_BADGES = [
   { id: 'veteranRank', icon: '🛡️', title: 'Veteran', desc: 'Reached Veteran career rank.', check: function () { return (getProgression().careerXp || 0) >= 1500; } },
   { id: 'allProRank', icon: '💎', title: 'All-Pro', desc: 'Reached All-Pro career rank.', check: function () { return (getProgression().careerXp || 0) >= 3000; } },
   { id: 'legendRank', icon: '👑', title: 'Reads Legend', desc: 'Reached Legend career rank.', check: function () { return (getProgression().careerXp || 0) >= 6000; } },
-  { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } }
+  { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } },
+  { id: 'formatExplorer10', icon: '🧭', title: 'Format Explorer', desc: 'Completed 10 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 10; } },
+  { id: 'formatExplorer25', icon: '🗺️', title: 'Playbook Hunter', desc: 'Completed 25 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 25; } },
+  { id: 'formatExplorer50', icon: '🏟️', title: 'Half the Playbook', desc: 'Completed 50 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 50; } },
+  { id: 'formatExplorer75', icon: '💿', title: 'Deep Bag', desc: 'Completed 75 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 75; } },
+  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed all 100 distinct Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 100; } }
 ];
 BADGES = BADGES.concat(REWARD_BADGES);
 
@@ -13295,10 +13305,11 @@ var SHARE_CARD_DESIGNS = [
   { id: 'legend', title: 'Legend', minXp: 6000, desc: 'Premium dark-gold Legend treatment.' }
 ];
 function rewardsKey() { return 'nflTriviaRewards__' + slugify(state.name || 'guest'); }
-function defaultRewards() { return { unlockedBadgeIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', selectedShareDesignId: 'classic', updatedAt: 0 }; }
+function defaultRewards() { return { unlockedBadgeIds: [], formatPlayedIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', selectedShareDesignId: 'classic', updatedAt: 0 }; }
 function getRewards() {
   var r = lsGet(rewardsKey(), defaultRewards());
   r.unlockedBadgeIds = Array.isArray(r.unlockedBadgeIds) ? r.unlockedBadgeIds : [];
+  r.formatPlayedIds = Array.isArray(r.formatPlayedIds) ? r.formatPlayedIds : [];
   r.selectedCosmeticId = r.selectedCosmeticId || 'classic';
   r.selectedShareDesignId = r.selectedShareDesignId || 'classic';
   return r;
@@ -13314,9 +13325,14 @@ function mergeRewards(local, cloud) {
   (local.unlockedBadgeIds || []).concat(cloud.unlockedBadgeIds || []).forEach(function (id) {
     if (!seen[id]) { seen[id] = true; unlocked.push(id); }
   });
+  var formatSeen={}, formatPlayed=[];
+  (local.formatPlayedIds || []).concat(cloud.formatPlayedIds || []).forEach(function(id){
+    if(id&&!formatSeen[id]){formatSeen[id]=true;formatPlayed.push(id);}
+  });
   var newer = (Number(cloud.updatedAt) || 0) > (Number(local.updatedAt) || 0) ? cloud : local;
   return {
     unlockedBadgeIds: unlocked,
+    formatPlayedIds: formatPlayed,
     selectedBadgeId: newer.selectedBadgeId || null,
     selectedCosmeticId: newer.selectedCosmeticId || 'classic',
     selectedShareDesignId: newer.selectedShareDesignId || 'classic',
