@@ -2996,6 +2996,8 @@ function personalDashboardHtml() {
   var streak = getStreak();
   var rating = getRating();
   var fav = primaryFavoriteTeam();
+  var equippedBadge = selectedBadge();
+  var equippedCosmetic = selectedProfileCosmetic();
   function rankCard(label, rank, suffix) {
     return '<div class="dashboard-rank-card"><div class="dashboard-card-label">' + esc(label) + '</div>' +
       '<div class="dashboard-rank-name">' + esc(rank.name) + '</div>' +
@@ -3006,7 +3008,11 @@ function personalDashboardHtml() {
   }
   return '<section class="personal-dashboard" aria-label="Your Reads dashboard">' +
     "<div class=\"dashboard-head\"><div><span class=\"dashboard-eyebrow\">YOUR READS</span><h2>" + esc(state.name) + "'s Dashboard</h2></div>" +
-    (fav ? '<span class="dashboard-team">' + favoriteTeamBadgeHtml() + esc(fav.name) + '</span>' : '') + '</div>' +
+    '<div class="dashboard-identity-tools">' +
+      (equippedBadge ? '<span class="dashboard-equipped-badge" title="' + esc(equippedBadge.desc) + '">' + equippedBadge.icon + ' ' + esc(equippedBadge.title) + '</span>' : '') +
+      (fav ? '<span class="dashboard-team">' + favoriteTeamBadgeHtml() + esc(fav.name) + '</span>' : '') +
+    '</div></div>' +
+    '<div class="dashboard-cosmetic-label">' + esc(equippedCosmetic.title) + ' profile frame</div>' +
     '<div class="dashboard-ranks">' +
     rankCard('Career Rank', career, 'Permanent') +
     rankCard(seasonId + ' Season', seasonal, 'Resets next football season') +
