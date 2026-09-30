@@ -118,6 +118,9 @@ window.__fbSync = {
   watchCommunity: function () { return function () {}; },
   postCommunity: function () { return Promise.reject(new Error('Not connected')); },
   postCommunityActivity: function () { return Promise.reject(new Error('Not connected')); },
+  watchSocialChallenges: function () { return function () {}; },
+  createSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
+  updateSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
   signUp: function () { return Promise.reject(new Error('Not connected')); },
   logIn: function () { return Promise.reject(new Error('Not connected')); },
   logOut: function () { /* no-op until Firebase finishes initializing below */ }
@@ -137,6 +140,7 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     var reportsCol = collection(db, 'games', GAME_ID, 'reports');
     var matchesCol = collection(db, 'games', GAME_ID, 'matches');
     var profilesCol = collection(db, 'games', GAME_ID, 'profiles');
+    var socialChallengesCol = collection(db, 'games', GAME_ID, 'socialChallenges');
 
     // Not a real email — just a stable, uniqueness-checkable identifier
     // Firebase's email/password provider can key off of, so "username" can
@@ -295,6 +299,45 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
         authorName: auth.currentUser.displayName || 'Reads fan',
         createdAt: serverTimestamp()
       }), { merge: true });
+    };
+
+    window.__fbSync.watchSocialChallenges = function (username, cb) {
+      if (!username || typeof cb !== 'function') return function () {};
+      var me = usernameSlug(username);
+      return onSnapshot(socialChallengesCol, function (snap) {
+        var rows = [];
+        snap.forEach(function (d) {
+          var x = Object.assign({ id: d.id }, d.data());
+          if (x.senderSlug === me || x.recipientSlug === me) rows.push(x);
+        });
+        rows.sort(function (a,b) {
+          function ms(v){return v&&typeof v.toMillis==='function'?v.toMillis():v&&v.seconds?v.seconds*1000:Number(v)||0;}
+          return ms(b.updatedAt||b.createdAt)-ms(a.updatedAt||a.createdAt);
+        });
+        cb(rows.slice(0,100));
+      }, function (err) {
+        console.error('Social challenge watch failed', err);
+        cb([]);
+      });
+    };
+    window.__fbSync.createSocialChallenge = function (payload) {
+      if (!payload || !payload.recipientName || !payload.matchCode) return Promise.reject(new Error('Invalid challenge'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      var challengeId = auth.currentUser.uid + '__' + String(payload.matchCode).toLowerCase();
+      return setDoc(doc(socialChallengesCol, challengeId), Object.assign({}, payload, {
+        senderUid: auth.currentUser.uid,
+        senderName: auth.currentUser.displayName || 'Reads fan',
+        senderSlug: usernameSlug(auth.currentUser.displayName || ''),
+        recipientSlug: usernameSlug(payload.recipientName),
+        status: payload.status || 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }), { merge: true }).then(function(){ return { id: challengeId }; });
+    };
+    window.__fbSync.updateSocialChallenge = function (challengeId, patch) {
+      if (!challengeId || !patch) return Promise.reject(new Error('Invalid challenge update'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      return setDoc(doc(socialChallengesCol, challengeId), Object.assign({}, patch, { updatedAt: serverTimestamp() }), { merge: true });
     };
 
     // onAuthStateChanged now fires more than once per page load (logging in/
