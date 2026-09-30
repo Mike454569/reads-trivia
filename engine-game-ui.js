@@ -1858,6 +1858,25 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 100-format Expansion Wave 2 -- one shared renderer, 15 genuinely
+  // different server-side strategy state machines. No league reskins count
+  // twice; every entry below maps to a unique variant/backend contract.
+  bingoBlitz: { publicMode: 'bingo_blitz_mixed', hash: '#bingoblitzpilot', flagOn: function () { return true; }, title: 'Bingo Blitz', kind: 'strategy_arcade', icon: 'grid', desc: 'Claim a three-cell line on the board.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  territoryTakeover: { publicMode: 'territory_takeover_mixed', hash: '#territorytakeoverpilot', flagOn: function () { return true; }, title: 'Territory Takeover', kind: 'strategy_arcade', icon: 'flag', desc: 'Choose zones and win the territory battle.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  exactTen: { publicMode: 'exact_ten_mixed', hash: '#exacttenpilot', flagOn: function () { return true; }, title: 'Exact Ten', kind: 'strategy_arcade', icon: 'target', desc: 'Land on exactly 10 without busting.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  pyramidClimb: { publicMode: 'pyramid_climb_mixed', hash: '#pyramidclimbpilot', flagOn: function () { return true; }, title: 'Pyramid Climb', kind: 'strategy_arcade', icon: 'trendingUp', desc: 'Pick lanes and climb five levels.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  lockbox: { publicMode: 'lockbox_mixed', hash: '#lockboxpilot', flagOn: function () { return true; }, title: 'Lockbox', kind: 'strategy_arcade', icon: 'lock', desc: 'Open three locks and crack the vault.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  comboMeter: { publicMode: 'combo_meter_mixed', hash: '#combometerpilot', flagOn: function () { return true; }, title: 'Combo Meter', kind: 'strategy_arcade', icon: 'zap', desc: 'Build a scoring multiplier with a hot streak.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  checkpointRally: { publicMode: 'checkpoint_rally_mixed', hash: '#checkpointrallypilot', flagOn: function () { return true; }, title: 'Checkpoint Rally', kind: 'strategy_arcade', icon: 'flag', desc: 'Race forward and protect saved checkpoints.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  escalator: { publicMode: 'escalator_mixed', hash: '#escalatorpilot', flagOn: function () { return true; }, title: 'Escalator', kind: 'strategy_arcade', icon: 'trendingUp', desc: 'Risk one or two steps and reach the top.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  powerUp: { publicMode: 'power_up_mixed', hash: '#poweruppilot', flagOn: function () { return true; }, title: 'Power Up', kind: 'strategy_arcade', icon: 'zap', desc: 'Earn energy and spend it on a 50/50.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  categoryConquest: { publicMode: 'category_conquest_mixed', hash: '#categoryconquestpilot', flagOn: function () { return true; }, title: 'Category Conquest', kind: 'strategy_arcade', icon: 'trophy', desc: 'Capture every real trivia category.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  scoreboardSwing: { publicMode: 'scoreboard_swing_mixed', hash: '#scoreboardswingpilot', flagOn: function () { return true; }, title: 'Scoreboard Swing', kind: 'strategy_arcade', icon: 'barChart', desc: 'Race the opponent to 21.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  momentumBar: { publicMode: 'momentum_bar_mixed', hash: '#momentumbarpilot', flagOn: function () { return true; }, title: 'Momentum Bar', kind: 'strategy_arcade', icon: 'flame', desc: 'Push momentum to +8 before it collapses.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  timeoutTokens: { publicMode: 'timeout_tokens_mixed', hash: '#timeouttokenspilot', flagOn: function () { return true; }, title: 'Timeout Tokens', kind: 'strategy_arcade', icon: 'clock', desc: 'Manage skips and a double-score token.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  perfectSet: { publicMode: 'perfect_set_mixed', hash: '#perfectsetpilot', flagOn: function () { return true; }, title: 'Perfect Set', kind: 'strategy_arcade', icon: 'trophy', desc: 'Win two of three best-of-three sets.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  tripleOrTake: { publicMode: 'triple_or_take_mixed', hash: '#tripleortakepilot', flagOn: function () { return true; }, title: 'Triple or Take', kind: 'strategy_arcade', icon: 'layers', desc: 'Choose the size of each series and clear it to bank points.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
@@ -2260,6 +2279,7 @@ var _STADIUM_BROADCAST_KINDS = {
   guess_the_season: 'archive',
   pairwise_compare: 'duel',
   branch_state: 'path',
+  strategy_arcade: 'strategy',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2544,6 +2564,35 @@ function renderMechanicPilotFeedback(cfg, s) {
     (wasCorrect ? icon('check') : icon('xMark')) + ' ' + esc(headline) + '</span>' +
     (detail ? ' ' + esc(detail) : '') + '</div>';
 }
+function renderStrategyArcadeBody(v, s) {
+  var status = (v.status_items || []).map(function (it) {
+    return '<div class="strategy-stat"><span>' + esc(String(it.label)) + '</span><strong>' + esc(String(it.value)) + '</strong></div>';
+  }).join('');
+  var board = (v.board || []).length ? '<div class="strategy-board">' + v.board.map(function (cell) {
+    var value = String(cell.value || 'OPEN');
+    var cls = value === 'CLAIMED' || value === 'CAPTURED' || value === 'OPEN' ? ' is-good' :
+      (value === 'BURNT' || value === 'MISSED' || value === 'THEM' ? ' is-bad' : '');
+    return '<div class="strategy-cell' + cls + '"><span>' + esc(cell.label) + '</span><strong>' + esc(value) + '</strong></div>';
+  }).join('') + '</div>' : '';
+  var header = stadiumModeIntroHtml('STRATEGY ARCADE', v.title || 'Reads Strategy', v.goal_text || '') +
+    (status ? '<div class="strategy-scoreboard">' + status + '</div>' : '') + board;
+  if (v.phase === 'COMPLETE') {
+    return header + stadiumQuestionHtml('FINAL', v.result_label || 'Round complete.');
+  }
+  if (v.phase === 'SELECT') {
+    return header + stadiumQuestionHtml('MAKE YOUR MOVE', v.interaction_text || 'Choose your next move.') +
+      '<div class="strategy-actions">' + (v.actions || []).map(function (a) {
+        return '<button class="btn-primary strategy-action" data-mechanic-strategy-action="' + esc(a.id) + '">' + esc(a.label) + '</button>';
+      }).join('') + '</div>';
+  }
+  return header +
+    (v.selected_label ? '<div class="strategy-selection">LOCKED: <strong>' + esc(v.selected_label) + '</strong></div>' : '') +
+    stadiumQuestionHtml(v.category || 'REAL FOOTBALL', v.prompt || '') +
+    renderCandidateCardsHtml((v.options || []).map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-strategy-answer',
+    });
+}
+
 function renderMechanicPilotBody(cfg, s) {
   var v = s.view;
   if (cfg.kind === 'matching') {
@@ -2665,6 +2714,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'draft_pick_ladder') return renderDraftPickLadderBody(v, s);
   if (cfg.kind === 'category_roulette') return renderCategoryRouletteBody(v, s);
   if (cfg.kind === 'common_link') return renderCommonLinkBody(v, s);
+  if (cfg.kind === 'strategy_arcade') return renderStrategyArcadeBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new
