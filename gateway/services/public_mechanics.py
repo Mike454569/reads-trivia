@@ -868,6 +868,46 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Road to 100", "instructions": "Choose 10-, 20-, or 30-point shots and race to 100.",
         "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
     },
+    "option_eraser_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "OPTION_ERASER",
+        "title": "Option Eraser", "instructions": "Manage three erasers that remove one wrong option before a question.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "route_tree_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ROUTE_TREE",
+        "title": "Route Tree", "instructions": "Complete slant, post, and go routes in any order.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "turnover_battle_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TURNOVER_BATTLE",
+        "title": "Turnover Battle", "instructions": "Reach 50 yards before committing three turnovers.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "category_lockout_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_LOCKOUT",
+        "title": "Category Lockout", "instructions": "Score in every category before misses lock one out.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "hail_mary_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "HAIL_MARY",
+        "title": "Hail Mary", "instructions": "Earn a final rescue question if regulation ends one short.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "moving_target_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "MOVING_TARGET",
+        "title": "Moving Target", "instructions": "Hit an exact target score that shifts after every answer.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "draft_order_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "DRAFT_ORDER",
+        "title": "Draft Order", "instructions": "Trade up from pick 10 to pick one before five misses.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "championship_run_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CHAMPIONSHIP_RUN",
+        "title": "Championship Run", "instructions": "Survive four playoff stages with escalating requirements.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
