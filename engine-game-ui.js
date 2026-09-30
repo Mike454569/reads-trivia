@@ -1920,10 +1920,10 @@ var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
   return ENGINE_MECHANIC_MODES[modeKey] || ENGINE_MECHANIC_MODES.matching;
 }
-function startMechanicPilotRound(modeKey) {
+function startMechanicPilotRound(modeKey, sourceModeId) {
   if (modeKey) mechanicPilotCurrentModeKey = modeKey;
   state.mechanicPilot = {
-    modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
+    modeKey: mechanicPilotCurrentModeKey, sourceModeId: sourceModeId || null, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
     result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null,
     // Real bug fix ("all the games do this when you get something wrong"):
     // the ERROR screen's "Try Again" button always called
@@ -2107,7 +2107,22 @@ function finishMechanicPilotSession(cfg, s) {
     pct = totalAnswered ? 100 * (v.correct_total || 0) / totalAnswered : 0;
   }
   if (pct == null) return;
+  pct = Math.max(0, Math.min(100, Math.round(pct)));
   updateRatingDrift(pct);
+  // Close the long-standing parity gap between dynamic mechanic games and
+  // legacy modes: a completed public format now feeds the same centralized
+  // progression, season, personalization, achievements and analytics path.
+  // sourceModeId is the discovery route (e.g. bingo_blitz); direct hash
+  // launches fall back to the stable public mode id.
+  if (typeof pushLeaderboard === 'function') {
+    var completionMode = s.sourceModeId || cfg.publicMode || s.modeKey;
+    pushLeaderboard(completionMode, {
+      lastPct: pct,
+      bestPct: pct,
+      mechanicKind: cfg.kind,
+      publicMode: cfg.publicMode
+    });
+  }
 }
 /* Section 9/10/22 fix: the COMPLETE screen used to render nothing but
    "Round Complete" for all four mechanics -- no final score, no streak
