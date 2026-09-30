@@ -2828,6 +2828,31 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
       desc: ENGINE_MECHANIC_MODES.commonLinkCfb.desc, mechanicMode: 'commonLinkCfb', league: 'cfb', difficulty: 'competitive',
     });
   }
+  // 100-format Expansion Wave 2: mixed NFL/CFB strategy formats.
+  [
+    ['bingoBlitz','bingo_blitz','grid','casual'],
+    ['territoryTakeover','territory_takeover','flag','competitive'],
+    ['exactTen','exact_ten','target','competitive'],
+    ['pyramidClimb','pyramid_climb','trendingUp','competitive'],
+    ['lockbox','lockbox','lock','hardcore'],
+    ['comboMeter','combo_meter','zap','competitive'],
+    ['checkpointRally','checkpoint_rally','flag','competitive'],
+    ['escalator','escalator','trendingUp','competitive'],
+    ['powerUp','power_up','zap','competitive'],
+    ['categoryConquest','category_conquest','trophy','competitive'],
+    ['scoreboardSwing','scoreboard_swing','barChart','competitive'],
+    ['momentumBar','momentum_bar','flame','competitive'],
+    ['timeoutTokens','timeout_tokens','clock','hardcore'],
+    ['perfectSet','perfect_set','trophy','competitive'],
+    ['tripleOrTake','triple_or_take','layers','hardcore'],
+  ].forEach(function (row) {
+    var key=row[0], cfg=ENGINE_MECHANIC_MODES[key];
+    if (!cfg || !cfg.flagOn()) return;
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: row[1], icon: row[2], title: cfg.title, desc: cfg.desc,
+      mechanicMode: key, league: 'mixed', difficulty: row[3],
+    });
+  });
 }
 // v1.7, Part C8 (v2 rebuild: graph-driven Coach Connections): joins the
 // exact same discovery array -- card rendering (modeCardHtml) doesn't care
@@ -13617,7 +13642,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-don-answer], [data-mechanic-don-bank], [data-mechanic-guess-the-ranking-pick], ' +
     '[data-mechanic-stat-target-pick], [data-mechanic-reverse-trivia-pick], [data-mechanic-three-strikes-answer], ' +
     '[data-mechanic-mystery-reveal], [data-mechanic-mystery-guess], [data-mechanic-draft-pick-ladder-pick], ' +
-    '[data-mechanic-category-roulette-pick], [data-mechanic-common-link-pick], ' +
+    '[data-mechanic-category-roulette-pick], [data-mechanic-common-link-pick], [data-mechanic-strategy-action], [data-mechanic-strategy-answer], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -14255,6 +14280,18 @@ document.addEventListener('click', function (e) {
     var clOption = clView && clView.options && clView.options[clIdx];
     if (!clOption) return;
     submitMechanicPilotAction({ choice_item_id: clOption.item_id });
+    return;
+  }
+  if (t.dataset.mechanicStrategyAction !== undefined) {
+    submitMechanicPilotAction({ action: t.dataset.mechanicStrategyAction });
+    return;
+  }
+  if (t.dataset.mechanicStrategyAnswer !== undefined) {
+    var saIdx = parseInt(t.dataset.mechanicStrategyAnswer, 10);
+    var saView = state.mechanicPilot && state.mechanicPilot.view;
+    var saOption = saView && saView.options && saView.options[saIdx];
+    if (!saOption) return;
+    submitMechanicPilotAction({ choice_item_id: saOption.item_id });
     return;
   }
   if (t.dataset.mechanicBranchChoice !== undefined) {
