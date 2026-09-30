@@ -11636,12 +11636,36 @@ function startFilmReview(){
   renderAll();
 }
 function renderFilmStudy() {
-  var s = state.filmStudy;
-  if (!s || !s.questions.length) return '<div class="panel"><button class="btn-secondary" data-film-study>Start study session</button></div>';
-  var head = '<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">'+(s.type==='boss'?'COORDINATOR TEST':s.type==='review'?'TAPE REVIEW':'ADAPTIVE REPS')+'</span></div>';
-  if (s.index >= s.questions.length) { completeFilmStudySession(); var fpct=s.questions.length?Math.round(100*s.correct/s.questions.length):0; return '<div class="panel">' + head + '<div class="film-milestone" role="status"><span class="film-eyebrow">'+(s.type==='boss'?(fpct>=80?'COORDINATOR TEST PASSED':'COORDINATOR TEST COMPLETE'):'SESSION COMPLETE')+'</span><strong>' + s.correct + '<small> / ' + s.questions.length + '</small></strong><h2>' + (s.type==='boss'?(fpct>=80?'You passed the headset test.':'Run the tape and come back sharper.'):(s.correct === s.questions.length ? 'You made every read.' : 'Put the tape to work.')) + '</h2><p>'+(s.type==='boss'?(fpct>=80?'Boss win logged. Your Film Room résumé just got stronger.':'Score 80% next time to earn the Coordinator Test win.'):'Review the coaching notes, then attack your next assignment.')+'</p></div>'+progressionResultHookHtml()+<div class="film-review">' + s.review.map(function(r) { return '<div><span class="learn-pill">' + (r.correct ? 'Good read' : 'Review this') + '</span><h3>' + esc(r.q.question) + '</h3><p><strong>' + esc(r.q.options[r.q.correctIndex]) + '</strong></p>' + (r.q.notes ? '<p>' + esc(r.q.notes) + '</p>' : '') + '</div>'; }).join('') + '</div><button class="btn-primary" data-learn-back>Back to the Film Room</button></div>';
-  var q = s.questions[s.index], answered = s.answered !== null;
-  return '<div class="panel">' + head + filmMeter(s.index, s.questions.length, 'Session progress') + '<span class="learn-pill">' + esc(q.category) + '</span><h2 class="quiz-question">' + esc(q.question) + '</h2><div class="quiz-options">' + q.options.map(function(opt,i) { return '<button class="quiz-option' + (answered && i === q.correctIndex ? ' correct' : answered && i === s.answered ? ' wrong' : '') + '" data-film-answer="' + i + '"' + (answered ? ' disabled' : '') + '><span class="film-option-letter">' + String.fromCharCode(65+i) + '</span>' + esc(opt) + '</button>'; }).join('') + '</div>' + (answered ? '<div class="quiz-feedback" role="status"><span class="film-eyebrow">' + (s.answered === q.correctIndex ? 'GOOD READ' : 'COACH’S CORRECTION') + '</span><h3>' + esc(q.options[q.correctIndex]) + '</h3>' + (q.notes ? '<p>' + esc(q.notes) + '</p>' : '<p>Lock in that answer before moving to your next rep.</p>') + '</div><button class="btn-primary" data-film-next>' + (s.index + 1 === s.questions.length ? 'Review session' : 'Next rep →') + '</button>' : '') + '</div>';
+  var s=state.filmStudy;
+  if(!s||!s.questions.length)return '<div class="panel"><button class="btn-secondary" data-film-study>Start study session</button></div>';
+  var head='<div class="mode-toolbar"><button class="btn-tiny" data-learn-back>← Film Room</button><span class="film-eyebrow">'+
+    (s.type==='boss'?'COORDINATOR TEST':s.type==='review'?'TAPE REVIEW':'ADAPTIVE REPS')+'</span></div>';
+  if(s.index>=s.questions.length){
+    completeFilmStudySession();
+    var fpct=s.questions.length?Math.round(100*s.correct/s.questions.length):0;
+    return '<div class="panel">'+head+
+      '<div class="film-milestone" role="status"><span class="film-eyebrow">'+
+      (s.type==='boss'?(fpct>=80?'COORDINATOR TEST PASSED':'COORDINATOR TEST COMPLETE'):'SESSION COMPLETE')+
+      '</span><strong>'+s.correct+'<small> / '+s.questions.length+'</small></strong><h2>'+
+      (s.type==='boss'?(fpct>=80?'You passed the headset test.':'Run the tape and come back sharper.'):(s.correct===s.questions.length?'You made every read.':'Put the tape to work.'))+
+      '</h2><p>'+
+      (s.type==='boss'?(fpct>=80?'Boss win logged. Your Film Room résumé just got stronger.':'Score 80% next time to earn the Coordinator Test win.'):'Review the coaching notes, then attack your next assignment.')+
+      '</p></div>'+progressionResultHookHtml()+
+      '<div class="film-review">'+s.review.map(function(r){
+        return '<div><span class="learn-pill">'+(r.correct?'Good read':'Review this')+'</span><h3>'+esc(r.q.question)+'</h3><p><strong>'+esc(r.q.options[r.q.correctIndex])+'</strong></p>'+(r.q.notes?'<p>'+esc(r.q.notes)+'</p>':'')+'</div>';
+      }).join('')+'</div>'+
+      '<button class="btn-primary" data-learn-back>Back to the Film Room</button></div>';
+  }
+  var q=s.questions[s.index],answered=s.answered!==null;
+  return '<div class="panel">'+head+
+    filmMeter(s.index,s.questions.length,'Session progress')+
+    '<div class="film-session-target"><span>'+filmFamilyMeta(s.targetFamily).icon+'</span><b>'+esc(filmFamilyMeta(s.targetFamily).label)+'</b><small>'+(s.type==='boss'?'Boss focus':'Adaptive focus')+'</small></div>'+
+    '<span class="learn-pill">'+esc(q.category)+'</span><h2 class="quiz-question">'+esc(q.question)+'</h2>'+
+    '<div class="quiz-options">'+q.options.map(function(opt,i){
+      return '<button class="quiz-option'+(answered&&i===q.correctIndex?' correct':answered&&i===s.answered?' wrong':'')+'" data-film-answer="'+i+'"'+(answered?' disabled':'')+'><span class="film-option-letter">'+String.fromCharCode(65+i)+'</span>'+esc(opt)+'</button>';
+    }).join('')+'</div>'+
+    (answered?'<div class="quiz-feedback" role="status"><span class="film-eyebrow">'+(s.answered===q.correctIndex?'GOOD READ':'COACH’S CORRECTION')+'</span><h3>'+esc(q.options[q.correctIndex])+'</h3>'+(q.notes?'<p>'+esc(q.notes)+'</p>':'<p>Lock in that answer before moving to your next rep.</p>')+'</div><button class="btn-primary" data-film-next>'+(s.index+1===s.questions.length?'Review session':'Next rep →')+'</button>':'')+
+    '</div>';
 }
 function renderFilmSaved() {
   var n = filmNotebook();
