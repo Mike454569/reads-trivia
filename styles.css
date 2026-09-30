@@ -4142,3 +4142,140 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   font-size: .8rem;
 }
 .adaptive-difficulty-note svg { flex: 0 0 auto; }
+
+
+/* Habit / Retention Engine: comeback missions, unfinished business, return hooks. */
+.retention-return-hook {
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-top:14px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.035);
+}
+.retention-return-hook > span {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  flex:0 0 auto;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+}
+.retention-return-hook > div {
+  min-width:0;
+  flex:1;
+}
+.retention-return-hook b,
+.retention-return-hook small {
+  display:block;
+}
+.retention-return-hook small {
+  margin-top:3px;
+  color:var(--muted);
+  line-height:1.35;
+}
+.retention-comeback-card,
+.retention-weekly-card,
+.retention-unfinished {
+  margin-top:18px;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--panel);
+}
+.retention-comeback-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:18px;
+}
+.retention-comeback-card h3 {
+  margin:4px 0 6px;
+}
+.retention-comeback-card p {
+  margin:0 0 7px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.retention-comeback-card small {
+  color:var(--muted);
+}
+.retention-comeback-card > div:last-child {
+  display:grid;
+  justify-items:end;
+  gap:9px;
+  flex:0 0 auto;
+}
+.retention-comeback-card > div:last-child b {
+  font-size:1.15rem;
+}
+.retention-comeback-card.complete,
+.retention-weekly-card.complete {
+  box-shadow:inset 0 0 0 1px currentColor;
+}
+.retention-unfinished-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:11px;
+}
+.retention-unfinished-grid button {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:4px 8px;
+  align-items:center;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--panel-2,rgba(255,255,255,.035));
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.retention-unfinished-grid button > span {
+  grid-column:1 / -1;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.retention-unfinished-grid button > b {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.retention-unfinished-grid button > small {
+  grid-column:1 / 2;
+  color:var(--muted);
+  line-height:1.3;
+}
+.retention-unfinished-grid button > svg {
+  grid-column:2;
+  grid-row:2 / span 2;
+}
+.retention-weekly-card p {
+  margin:8px 0 12px;
+  color:var(--muted);
+}
+.retention-weekly-card > small {
+  display:block;
+  margin-top:8px;
+  color:var(--muted);
+}
+@media (max-width:700px) {
+  .retention-comeback-card {
+    display:grid;
+    padding:14px;
+  }
+  .retention-comeback-card > div:last-child {
+    justify-items:start;
+  }
+  .retention-unfinished,
+  .retention-weekly-card { padding:14px; }
+  .retention-unfinished-grid { grid-template-columns:1fr; }
+  .retention-return-hook { align-items:flex-start; }
+}
