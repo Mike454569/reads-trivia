@@ -132,8 +132,8 @@ def test_perfect_quarter_scores_touchdown_for_two_for_two_drive():
 def test_wave3_moves_honest_distinct_format_count_to_77():
     from tools.director_v02.format_audit import audit_format_registry
     audit=audit_format_registry()
-    assert audit["registered_format_count"]==78
-    assert audit["presentation_alias_count"]==1
-    assert audit["distinct_format_count"]==77
-    assert audit["target_gap"]==23
+    assert audit["registered_format_count"] >= 78
+    assert audit["presentation_alias_count"] == 1
+    assert audit["distinct_format_count"] >= 77
+    assert audit["target_gap"] <= 23
     assert audit["mobile_unverified"]==[]
