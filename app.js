@@ -8243,6 +8243,20 @@ function h2hBackToMenu() {
   state.h2h = { screen: 'menu', mode: 'quiz', roundSize: 10, listId: null, error: null };
   renderAll();
 }
+function h2hRematch() {
+  var s=state.h2h, match=s&&s.match;
+  if(!match) return h2hBackToMenu();
+  var slugs=Object.keys(match.players||{});
+  var oppSlug=slugs.filter(function(sl){return sl!==s.mySlug;})[0];
+  var opp=oppSlug?match.players[oppSlug]:null;
+  var mode=s.mode||match.mode||'quiz';
+  var size=s.roundSize||match.roundSize||10;
+  var listId=s.listId||match.listId||null;
+  h2hStopWatch();
+  state.h2hActive=null;
+  state.h2h={screen:'create',mode:mode,roundSize:size,listId:listId,error:null,intendedOpponent:opp?opp.name:null};
+  renderAll();
+}
 function h2hSetRoundSize(n) { state.h2h.roundSize = n; renderAll(); }
 // Changing the mode on the create screen resets round-size/list to that
 // mode's own defaults, and lazy-loads its data file if the create screen
@@ -12091,7 +12105,7 @@ function teamBattleHtml() {
   var mine=rows.filter(function(r){return (r.league==='nfl'&&r.id===fav.nfl)||(r.league==='cfb'&&r.id===fav.cfb);});
   if(!mine.length || rows.length<2) return '';
   var primary=mine[0];
-  var opponent=rows.find(function(r){return !(r.league===primary.league&&r.id===primary.id);});
+  var opponent=rows.find(function(r){return r.league===primary.league && r.id!==primary.id;});
   if(!opponent) return '';
   return '<section class="social-team-battle"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">COMMUNITY BATTLE</span><h3>'+esc(primary.name)+' vs. '+esc(opponent.name)+'</h3></div><span>This week</span></div><div class="team-battle-score"><div><b>'+esc(primary.name)+'</b><strong>'+primary.points+'</strong><small>'+primary.count+' active</small></div><span>VS</span><div><b>'+esc(opponent.name)+'</b><strong>'+opponent.points+'</strong><small>'+opponent.count+' active</small></div></div><p>Every Daily Reads Rival Point adds to your team total.</p></section>';
 }
@@ -12776,7 +12790,7 @@ document.addEventListener('click', function (e) {
     '#team-picker-close, #team-picker-backdrop, [data-team-tab], [data-team-pick], [data-team-clear], [data-team-done], [data-team-picker-toggle], [data-team-prompt-dismiss], ' +
     '[data-settings-mute-toggle], [data-settings-push-toggle], [data-settings-clear-ask], [data-settings-clear-confirm], [data-settings-clear-cancel], ' +
     '[data-h2h-go-create], [data-h2h-go-join], [data-h2h-back-menu], [data-h2h-roundsize], [data-h2h-create], ' +
-    '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-exit], ' +
+    '[data-h2h-join], [data-h2h-open-code], [data-h2h-start-play], [data-h2h-answer], [data-h2h-next], [data-h2h-rematch], [data-h2h-exit], ' +
     '[data-h2h-live-go-create], [data-h2h-live-go-join], [data-h2h-live-back-menu], [data-h2h-live-roundsize], [data-h2h-live-create], ' +
     '[data-h2h-live-join], [data-h2h-live-ready], [data-h2h-live-share-link], [data-h2h-live-answer], [data-h2h-live-exit], ' +
     '[data-film-assignment], [data-film-jump], [data-film-study], [data-film-answer], [data-film-next], [data-film-saved], [data-film-save], [data-film-concept], [data-film-resume], [data-film-retry], [data-learn-open], [data-learn-back], [data-learn-cat], ' +
@@ -12785,7 +12799,7 @@ document.addEventListener('click', function (e) {
     '[data-encyc-domain], [data-encyc-domains], [data-encyc-open], [data-encyc-back-domain], [data-encyc-goto-classroom], ' +
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
-    '[data-friend-add], [data-friend-remove], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
+    '[data-friend-add], [data-friend-remove], [data-friend-compare], [data-friend-compare-close], [data-friend-challenge], [data-social-challenge-mode], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
     '[data-typeahead-pick], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
@@ -12864,6 +12878,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.h2hStartPlay !== undefined) { h2hStartPlaying(); return; }
   if (t.dataset.h2hAnswer !== undefined) { h2hPickAnswer(parseInt(t.dataset.h2hAnswer, 10)); return; }
   if (t.dataset.h2hNext !== undefined) { h2hNextQuestion(); return; }
+  if (t.dataset.h2hRematch !== undefined) { h2hRematch(); return; }
   if (t.dataset.h2hExit !== undefined) { h2hStopWatch(); goToMode('home'); return; }
   if (t.dataset.h2hLiveGoCreate !== undefined) { state.h2hLive.screen = 'create'; state.h2hLive.error = null; renderAll(); return; }
   if (t.dataset.h2hLiveGoJoin !== undefined) { state.h2hLive.screen = 'join'; state.h2hLive.error = null; renderAll(); return; }
@@ -12982,6 +12997,10 @@ document.addEventListener('click', function (e) {
   if (t.dataset.f101TestMeClose !== undefined) { state.f101Quiz = { active: false }; renderAll(); return; }
   if (t.dataset.friendAdd !== undefined) { var friendInput = document.getElementById('friend-name-input'); addFriend(friendInput ? friendInput.value : ''); return; }
   if (t.dataset.friendRemove !== undefined) { removeFriend(t.dataset.friendRemove); return; }
+  if (t.dataset.friendCompare !== undefined) { state.friendCompare=t.dataset.friendCompare; renderAll(); return; }
+  if (t.dataset.friendCompareClose !== undefined) { state.friendCompare=null; renderAll(); return; }
+  if (t.dataset.friendChallenge !== undefined) { challengeFriendToMode(t.dataset.friendChallenge, 'quiz'); return; }
+  if (t.dataset.socialChallengeMode !== undefined) { challengeFriendToMode(null, t.dataset.socialChallengeMode); return; }
   if (t.dataset.communityLeague !== undefined) { switchCommunityLeague(t.dataset.communityLeague); return; }
   if (t.dataset.communityPost !== undefined) { submitCommunityPost(); return; }
   if (t.dataset.communityPreset !== undefined) { setCommunityPreset(t.dataset.communityPreset); return; }
