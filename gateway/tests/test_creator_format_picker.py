@@ -92,6 +92,21 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Timeout Tokens", "STRATEGY_ARCADE", "TIMEOUT_TOKENS"),
     ("Perfect Set", "STRATEGY_ARCADE", "PERFECT_SET"),
     ("Triple or Take", "STRATEGY_ARCADE", "TRIPLE_OR_TAKE"),
+    ("Connect Four", "STRATEGY_ARCADE", "CONNECT_FOUR"),
+    ("Tic-Tac-Toe", "STRATEGY_ARCADE", "TIC_TAC_TOE"),
+    ("Challenge Flag", "STRATEGY_ARCADE", "CHALLENGE_FLAG"),
+    ("Extra Point", "STRATEGY_ARCADE", "EXTRA_POINT"),
+    ("Comeback Mode", "STRATEGY_ARCADE", "COMEBACK_MODE"),
+    ("Category Draft", "STRATEGY_ARCADE", "CATEGORY_DRAFT"),
+    ("Three & Out", "STRATEGY_ARCADE", "THREE_AND_OUT"),
+    ("Pick Your Poison", "STRATEGY_ARCADE", "PICK_YOUR_POISON"),
+    ("Second Chance Queue", "STRATEGY_ARCADE", "SECOND_CHANCE_QUEUE"),
+    ("Coverage Shell", "STRATEGY_ARCADE", "COVERAGE_SHELL"),
+    ("Offense / Defense", "STRATEGY_ARCADE", "OFFENSE_DEFENSE"),
+    ("Field Goal Range", "STRATEGY_ARCADE", "FIELD_GOAL_RANGE"),
+    ("Two-Minute Drill", "STRATEGY_ARCADE", "TWO_MINUTE_DRILL"),
+    ("Category Streak", "STRATEGY_ARCADE", "CATEGORY_STREAK"),
+    ("Perfect Quarter", "STRATEGY_ARCADE", "PERFECT_QUARTER"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
