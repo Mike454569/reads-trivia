@@ -10742,7 +10742,7 @@ function clearAllUserData() {
   var keys = [];
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && k.indexOf('nflTrivia') === 0) keys.push(k);
+    if (k && (k.indexOf('nflTrivia') === 0 || k.indexOf('reads') === 0)) keys.push(k);
   }
   keys.forEach(function (k) { localStorage.removeItem(k); });
   location.reload();
