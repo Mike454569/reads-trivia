@@ -102,15 +102,28 @@ function liveFootballFreshnessText() {
 function liveFootballResultLine(g) {
   return g.away_team + ' ' + g.away_score + ' · ' + g.home_team + ' ' + g.home_score;
 }
+function liveFootballStoryline(g) {
+  var a=Number(g.away_score), h=Number(g.home_score);
+  if(!isFinite(a)||!isFinite(h)) return 'Final';
+  var margin=Math.abs(a-h);
+  if(margin<=3) return 'Down to the wire';
+  if(margin<=8) return 'One-score finish';
+  if(margin>=28) return 'Statement win';
+  if(margin>=17) return 'Pulled away';
+  return 'Final';
+}
 function liveFootballFinalCardHtml(g, compact) {
-  var winnerName = g.winner === g.home_team_code ? g.home_team : g.winner === g.away_team_code ? g.away_team : 'Tie';
-  return '<article class="live-final-card' + (liveFootballFavoriteMatch(g) ? ' favorite' : '') + '">' +
-    '<div class="live-final-top"><span>' + esc(g.league) + ' · WEEK ' + esc(String(g.week)) + '</span><b>FINAL</b></div>' +
-    '<div class="live-final-matchup"><div><span>' + esc(g.away_team) + '</span><strong>' + esc(String(g.away_score)) + '</strong></div>' +
-    '<div><span>' + esc(g.home_team) + '</span><strong>' + esc(String(g.home_score)) + '</strong></div></div>' +
-    '<small>' + esc(winnerName) + ' won' + (liveFootballFavoriteMatch(g) ? ' · Your team' : '') +
+  var favorite=liveFootballFavoriteMatch(g);
+  var homeWon=g.winner===g.home_team_code, awayWon=g.winner===g.away_team_code;
+  var winnerName = homeWon ? g.home_team : awayWon ? g.away_team : 'Tie';
+  return '<article class="live-final-card' + (favorite ? ' favorite' : '') + '">' +
+    '<div class="live-final-top"><span>' + esc(g.league) + ' · WEEK ' + esc(String(g.week)) + '</span><div><em>'+esc(liveFootballStoryline(g))+'</em><b>FINAL</b></div></div>' +
+    '<div class="live-final-matchup"><div class="'+(awayWon?'winner':'')+'"><span>' + esc(g.away_team) + '</span><strong>' + esc(String(g.away_score)) + '</strong></div>' +
+    '<div class="'+(homeWon?'winner':'')+'"><span>' + esc(g.home_team) + '</span><strong>' + esc(String(g.home_score)) + '</strong></div></div>' +
+    '<div class="live-final-footer"><small>' + esc(winnerName) + ' won' +
       (g.your_pick && g.outcome ? ' · Pick’em: ' + esc(PICKEM_OUTCOME_COPY[g.outcome] || g.outcome) : '') + '</small>' +
-    (!compact ? '<button class="btn-tiny" data-live-game-challenge="' + esc(g.league + ':' + g.game_id) + '">Quiz me on this final</button>' : '') +
+      (favorite?'<span class="live-your-team">YOUR TEAM</span>':'')+'</div>' +
+    (!compact ? '<button class="btn-tiny live-postgame-btn" data-live-game-challenge="' + esc(g.league + ':' + g.game_id) + '">Play this final</button>' : '') +
     '</article>';
 }
 function liveFootballHomeHtml() {
@@ -223,11 +236,11 @@ function renderLiveFootballScreen() {
   if (LIVE_FOOTBALL.challenge) return liveFootballChallengeHtml();
   var finals=liveFootballOrderedFinals(), favFinal=finals.find(liveFootballFavoriteMatch);
   return '<div class="panel live-football-hub"><div class="mode-toolbar"><button class="btn-tiny" data-go="home">'+icon('close')+' Exit to Home</button><button class="btn-tiny" data-live-football-refresh>'+icon('restart')+' Refresh</button></div>' +
-    '<span class="dashboard-eyebrow">LIVE FOOTBALL</span><h2 class="panel-title">Saturday + Sunday, inside Reads</h2>' +
+    '<div class="live-hub-kicker"><span class="live-pulse-dot"></span><span class="dashboard-eyebrow">LIVE FOOTBALL</span><b>'+liveFootballFreshnessText()+'</b></div><h2 class="panel-title">Saturday + Sunday, inside Reads</h2>' +
     '<p class="mode-desc">Current-week NFL and CFB results from the same real game feed that grades Pick’em. Scores only appear after the Gateway marks a game FINAL.</p>' +
-    '<div class="live-hub-meta"><span>'+liveFootballFreshnessText()+'</span><span>'+finals.length+' finals</span><span>'+liveFootballUpcomingCount()+' upcoming/active</span></div>' +
+    '<div class="live-hub-meta"><span><b>'+finals.length+'</b> finals</span><span><b>'+liveFootballUpcomingCount()+'</b> upcoming / active</span><span><b>'+finals.filter(liveFootballFavoriteMatch).length+'</b> favorite-team finals</span></div>' +
     (favFinal?'<div class="live-favorite-spotlight"><span>YOUR TEAM</span><b>'+esc(liveFootballResultLine(favFinal))+'</b><button class="btn-tiny" data-live-game-challenge="'+esc(favFinal.league+':'+favFinal.game_id)+'">Postgame challenge</button></div>':'') +
     (LIVE_FOOTBALL.error?'<div class="quiz-feedback">'+esc(LIVE_FOOTBALL.error)+'</div>':'') +
-    (finals.length?'<div class="live-final-grid live-final-grid-full">'+finals.map(function(g){return liveFootballFinalCardHtml(g,false);}).join('')+'</div>':'<p class="mode-desc">No finals yet in the current slates. Reads will refresh this screen automatically.</p>') +
+    (finals.length?'<div class="live-section-head"><div><span>LATEST FINALS</span><b>Tap a matchup and prove you watched it.</b></div><small>'+finals.length+' posted</small></div><div class="live-final-grid live-final-grid-full">'+finals.map(function(g){return liveFootballFinalCardHtml(g,false);}).join('')+'</div>':'<p class="mode-desc">No finals yet in the current slates. Reads will refresh this screen automatically.</p>') +
     '<div class="btn-row">'+(finals.length?'<button class="btn-primary" data-live-challenge-start>Play Postgame 5</button>':'')+'<button class="btn-secondary" data-go="pickem_nfl">NFL Pick’em</button><button class="btn-secondary" data-go="pickem_cfb">CFB Pick’em</button></div></div>';
 }
