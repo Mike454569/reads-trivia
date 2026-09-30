@@ -121,7 +121,7 @@ jobs:
 
           TEMP_VOL_ID=$(flyctl volumes create "$TEMP_VOL_NAME" \
             --snapshot-id "$LATEST_SNAPSHOT_ID" -a "$FLY_APP" --region "$FLY_REGION" \
-            --size 10 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+            --size 30 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
           # Minimal machine, same app's own image (already has the sqlite3
