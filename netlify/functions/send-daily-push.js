@@ -1,11 +1,9 @@
-// Scheduled function (see netlify.toml) — sends "today's Daily Challenge is
-// live" as a real push notification to every browser that's subscribed,
-// once a day. This is deliberately the broad/simple version: everyone
-// subscribed gets the same message at the same time, because there's no
-// server-side record of any individual's streak/last-active state to
-// target a "your streak is about to break" message at just them — that
-// would need the cross-device profile sync work to exist first (so a
-// user's real streak data lives somewhere this function could read it).
+// Scheduled function (see netlify.toml) — sends at most one useful
+// re-engagement push per subscribed browser. The client keeps a lightweight
+// engagement snapshot beside each PushSubscription (Daily status, streak,
+// friend-race gap, mission progress, comeback gap and user preferences).
+// This function chooses the highest-priority applicable message instead of
+// broadcasting the same generic notification to everyone.
 //
 // Requires VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY env vars in Netlify (same
 // keys the client uses to subscribe — see subscribeToPush() in app.js).
@@ -37,7 +35,7 @@ exports.handler = async () => {
       return { title:'Reads · Comeback Drive', body:`You’ve been away ${meta.comebackGap} days. One ranked game gets you back on the board.`, url:'/' };
     }
     if (prefs.rivals && meta.rivalName && meta.rivalGap > 0) {
-      return { title:'Reads · Rival Alert', body:`${meta.rivalName} is ${meta.rivalGap} points ahead of you this week. Go take it back.`, url:'/#friends' };
+      return { title:'Reads · Rival Alert', body:`${meta.rivalName} is ${meta.rivalGap} points ahead of you this week. Go take it back.`, url:'/' };
     }
     if (prefs.missions && meta.weeklyHabitCurrent >= 3 && meta.weeklyHabitCurrent < meta.weeklyHabitTarget) {
       return { title:'Reads · Weekly Drive', body:`${meta.weeklyHabitCurrent}/${meta.weeklyHabitTarget} Daily Reads days complete. Finish the week strong.`, url:'/' };
@@ -46,7 +44,7 @@ exports.handler = async () => {
       return { title:'Reads · Mission Check', body:`You’ve got ${meta.missionsOpen} weekly mission${meta.missionsOpen === 1 ? '' : 's'} still open.`, url:'/' };
     }
     if (prefs.daily && !meta.dailyDone) {
-      return { title:'Reads · Daily 5', body:(meta.streak ? `Your ${meta.streak}-day streak is live. ` : '') + 'Today’s Daily Reads is ready.', url:'/#daily' };
+      return { title:'Reads · Daily 5', body:(meta.streak ? `Your ${meta.streak}-day streak is live. ` : '') + 'Today’s Daily Reads is ready.', url:'/' };
     }
     return null;
   }
