@@ -2845,6 +2845,21 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
     ['timeoutTokens','timeout_tokens','clock','hardcore'],
     ['perfectSet','perfect_set','trophy','competitive'],
     ['tripleOrTake','triple_or_take','layers','hardcore'],
+    ['connectFour','connect_four','grid','competitive'],
+    ['ticTacToe','tic_tac_toe','grid','casual'],
+    ['challengeFlag','challenge_flag','flag','competitive'],
+    ['extraPoint','extra_point','target','competitive'],
+    ['comebackMode','comeback_mode','arrowUp','competitive'],
+    ['categoryDraft','category_draft','grid','hardcore'],
+    ['threeAndOut','three_and_out','xMark','hardcore'],
+    ['pickYourPoison','pick_your_poison','versus','competitive'],
+    ['secondChanceQueue','second_chance_queue','sync','competitive'],
+    ['coverageShell','coverage_shell','shield','hardcore'],
+    ['offenseDefense','offense_defense','versus','competitive'],
+    ['fieldGoalRange','field_goal_range','target','competitive'],
+    ['twoMinuteDrill','two_minute_drill','timer','hardcore'],
+    ['categoryStreak','category_streak','flame','hardcore'],
+    ['perfectQuarter','perfect_quarter','trophy','competitive'],
   ].forEach(function (row) {
     var key=row[0], cfg=ENGINE_MECHANIC_MODES[key];
     if (!cfg || !cfg.flagOn()) return;
