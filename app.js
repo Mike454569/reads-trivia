@@ -529,9 +529,15 @@ function getContentMemory() {
 }
 function contentFingerprint(q, league) { return (league||'nfl')+'|'+hashStr(normName(q&&q.question||'')); }
 function questionEntityTokens(q) {
-  var text=String((q&&q.question)||'')+' '+((q&&q.options)||[]).join(' ');
-  var tokens=(text.match(/\b[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}\b/g)||[]).map(normName).filter(function(x){return x.length>=4;});
-  var seen={}; return tokens.filter(function(x){if(seen[x])return false;seen[x]=true;return true;}).slice(0,8);
+  if(!q)return [];
+  var correct=(q.options&&typeof q.correctIndex==='number')?q.options[q.correctIndex]:'';
+  var text=String(q.question||'')+' '+String(correct||'');
+  var stop={who:1,which:1,what:1,when:1,where:1,how:1,nfl:1,cfb:1,team:1,player:1,season:1,game:1,'which team':1,'which player':1,'what team':1,'what player':1};
+  var tokens=(text.match(/\b[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}\b/g)||[])
+    .map(normName).filter(function(x){return x.length>=3&&!stop[x]&&!/^(who|which|what|when|where|how)\b/.test(x);});
+  var c=normName(correct);
+  if(c&&c.length>=3&&!stop[c])tokens.push(c);
+  var seen={}; return tokens.filter(function(x){if(seen[x])return false;seen[x]=true;return true;}).slice(0,6);
 }
 function rememberContentQuestion(q, league) {
   if(!q)return;
@@ -4197,7 +4203,7 @@ function totalModeCount() {
 // pattern the NFL/CFB mode grids already use, so the page reaches real
 // game content much sooner without losing any discoverability.
 function discoverGridHtml() {
-  var cards = [endlessHomeCardHtml(), h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
+  var cards = [h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
     .filter(function (html) { return html; });
   if (!cards.length) return '';
   return '<h2 class="mode-section-title">More Ways to Play</h2>' +
