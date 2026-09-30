@@ -3738,3 +3738,37 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .community-challenge-actions { width:100%; align-items:flex-start; }
   .community-challenge-actions .btn-primary { width:100%; }
 }
+
+
+/* Home Dashboard v2 + smart recommendations. */
+.dashboard-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:18px 0 10px; }
+.dashboard-section-head h3 { margin:3px 0 0; font:800 22px/1.1 var(--font-display); }
+.dashboard-section-head > span { color:var(--text-dim); font-size:10px; }
+.dashboard-action-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin-top:12px; }
+.dashboard-action-strip button { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:9px; align-items:center; padding:12px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.018); color:var(--text); text-align:left; }
+.dashboard-action-strip button > span { grid-row:1 / 3; width:30px; height:30px; display:grid; place-items:center; border-radius:9px; background:rgba(255,255,255,.05); color:var(--accent); }
+.dashboard-action-strip button.done { border-color:rgba(74,190,112,.35); }
+.dashboard-action-strip button.done > span { color:#8fe5aa; background:rgba(74,190,112,.08); }
+.dashboard-action-strip b { font:800 11px var(--font-display); }
+.dashboard-action-strip small { margin-top:2px; color:var(--text-dim); font-size:9px; }
+
+.smart-recommendations { margin:18px 0 22px; }
+.smart-recommendation-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.smart-recommendation-card { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-height:138px; padding:14px; border:1px solid var(--border); border-radius:14px; background:linear-gradient(145deg,rgba(255,255,255,.025),rgba(255,255,255,.01)); color:var(--text); text-align:left; overflow:hidden; }
+.smart-recommendation-card::after { content:""; position:absolute; right:-34px; bottom:-34px; width:100px; height:100px; border-radius:50%; background:rgba(var(--fav-team-color-rgb,230,182,80),.05); pointer-events:none; }
+.smart-recommendation-card:hover { border-color:rgba(var(--fav-team-color-rgb,230,182,80),.34); transform:translateY(-1px); }
+.smart-recommendation-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; background:rgba(var(--fav-team-color-rgb,230,182,80),.08); color:var(--fav-team-color-readable,var(--accent)); }
+.smart-recommendation-icon svg { width:17px; height:17px; }
+.smart-recommendation-reason { color:var(--fav-team-color-readable,var(--accent)); font:800 9px var(--font-display); letter-spacing:.08em; text-transform:uppercase; }
+.smart-recommendation-card strong { font:800 15px/1.15 var(--font-display); }
+.smart-recommendation-card small { margin-top:auto; color:var(--text-dim); font-size:9px; }
+
+@media(max-width:700px) {
+  .dashboard-action-strip { grid-template-columns:1fr; }
+  .smart-recommendation-grid { grid-template-columns:1fr; }
+  .smart-recommendation-card { min-height:0; }
+  .dashboard-section-head { align-items:flex-start; flex-direction:column; gap:4px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .smart-recommendation-card { transition:none; }
+}
