@@ -6100,3 +6100,11 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .momentum-vs{text-align:center}
   .survival-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 }
+
+.strategy-board.is-connect-four{gap:6px;max-width:520px;margin-left:auto;margin-right:auto}
+.strategy-disc{aspect-ratio:1;padding:0;display:grid;place-items:center;border-radius:50%}
+.strategy-disc strong{margin:0;font-size:clamp(18px,4vw,30px);line-height:1}
+@media (max-width:640px){
+  .strategy-board.is-connect-four{gap:4px}
+  .strategy-disc{padding:0}
+}
