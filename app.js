@@ -2128,8 +2128,9 @@ function enterMode(mode) {
   if (LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).some(function (m) { return m.id === mode; })) {
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
-  } else if (mode === 'h2h' && window.__fbSync && window.__fbSync.logPlay) {
-    window.__fbSync.logPlay('h2h');
+  } else if (mode === 'h2h') {
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay('h2h');
+    startSocialChallengeWatch();
   } else if (mode === 'h2hLive' && window.__fbSync && window.__fbSync.logPlay) {
     window.__fbSync.logPlay('h2hLive');
   } else if (mode === 'learn' && window.__fbSync && window.__fbSync.logPlay) {
@@ -8711,6 +8712,7 @@ function renderH2HMenu() {
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
     '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
     '<p class="mode-desc">Challenge a specific friend to the same question set and see who scores higher. Your record: ' + (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : '') + '.</p>' +
+    socialChallengeInboxHtml() +
     (state.h2h && state.h2h.intendedOpponent ? '<div class="h2h-target-friend">Challenge for <b>'+esc(state.h2h.intendedOpponent)+'</b>. Pick the mode, create the match, then send them the code.</div>' : '') +
     '<div class="btn-row">' +
     '<button class="btn-primary" data-h2h-go-create>Create Match</button>' +
@@ -8824,7 +8826,8 @@ function renderH2HSummary() {
     '<h2 class="panel-title">Head-to-Head Result</h2>' +
     (!oppDone
       ? '<div class="summary-score">You scored ' + me.correctCount + ' / ' + me.total + ' ' + m.resultSuffix + '</div>' +
-        '<p class="mode-desc">Waiting on ' + (opp ? esc(opp.name) : 'your opponent') + ' to finish — check back later, or share the code again if they haven’t joined yet: <b>' + esc(s.code) + '</b></p>'
+        '<p class="mode-desc">Waiting on ' + (opp ? esc(opp.name) : 'your opponent') + ' to finish — check back later, or send the invite again.</p>' +
+        '<div class="h2h-invite-strip"><b>Challenge code '+esc(s.code)+'</b><button class="btn-secondary" data-social-copy="'+esc(s.code)+'">'+icon('copy')+' Copy Invite</button></div>'
       : '<div class="h2h-result-banner h2h-result-' + result + '">' + (result === 'win' ? icon('trophy') + ' You Won!' : result === 'loss' ? 'You Lost' : 'Tie Game') + '</div>' +
         '<div class="h2h-players">' +
         '<div class="h2h-player-row"><span>' + esc(state.name) + ' (you)</span><span>' + me.correctCount + ' / ' + me.total + ' ' + m.resultSuffix + '</span></div>' +
@@ -12389,7 +12392,7 @@ function socialRivalryRecord(name){
   return {wins:w,losses:l,ties:t,total:rows.length};
 }
 function socialChallengeLink(code){
-  return SITE_URL+'?challenge='+encodeURIComponent(code||'');
+  return SITE_URL+'#challenge='+encodeURIComponent(code||'');
 }
 function copySocialChallengeLink(code){
   var text='I challenged you on Reads. Beat me: '+socialChallengeLink(code);
