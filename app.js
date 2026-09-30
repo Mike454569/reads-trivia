@@ -8109,6 +8109,8 @@ function fitShareText(ctx, text, font, maxWidth, startPx, minPx, weight) {
 function drawShareCard(ctx, cfg, format) {
   var W = 1080, H = format === 'story' ? 1920 : 1080, FONT = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
   var midY = format === 'story' ? 1000 : 500;
+  var shareDesign = selectedShareDesign();
+  var shareDesignId = shareDesign ? shareDesign.id : 'classic';
   // A favorite team (if set) themes the glow/bars/headline-number/team line —
   // the one thing on this card that's actually personal to whoever's sharing
   // it. The corner "READS" brand mark deliberately stays brand-orange either
@@ -8125,16 +8127,40 @@ function drawShareCard(ctx, cfg, format) {
   var fav = primaryFavoriteTeam();
   var rawAccent = fav ? fav.color : '#d9a63c';
   var rawAccent2 = fav ? (fav.color2 || fav.color) : shadeHexColor(rawAccent, -0.2);
+  if (shareDesignId === 'allpro' || shareDesignId === 'legend') {
+    rawAccent = '#d9a63c';
+    rawAccent2 = shareDesignId === 'legend' ? '#7b5814' : '#f0cf77';
+  }
   var accent = readableOnDark(rawAccent);
   var accent2 = readableOnDark(rawAccent2);
 
   // Subtle top-to-bottom gradient instead of a flat fill — reads as a lot
   // less "placeholder" than a single flat navy rectangle.
   var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#101a34');
-  bgGrad.addColorStop(1, '#080d18');
+  if (shareDesignId === 'team' && fav) {
+    bgGrad.addColorStop(0, shadeHexColor(fav.color, -0.65));
+    bgGrad.addColorStop(1, '#070a12');
+  } else if (shareDesignId === 'spotlight') {
+    bgGrad.addColorStop(0, '#16264b');
+    bgGrad.addColorStop(1, '#070b14');
+  } else if (shareDesignId === 'allpro') {
+    bgGrad.addColorStop(0, '#211d12');
+    bgGrad.addColorStop(1, '#090b10');
+  } else if (shareDesignId === 'legend') {
+    bgGrad.addColorStop(0, '#15120b');
+    bgGrad.addColorStop(1, '#050607');
+  } else {
+    bgGrad.addColorStop(0, '#101a34');
+    bgGrad.addColorStop(1, '#080d18');
+  }
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
+
+  if (shareDesignId === 'allpro' || shareDesignId === 'legend') {
+    ctx.strokeStyle = shareDesignId === 'legend' ? 'rgba(217,166,60,0.95)' : 'rgba(240,207,119,0.85)';
+    ctx.lineWidth = shareDesignId === 'legend' ? 14 : 9;
+    ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, W - ctx.lineWidth, H - ctx.lineWidth);
+  }
 
   // Soft spotlight glow centered behind the headline stat — draws the eye
   // straight to the number instead of every element competing at equal
@@ -8142,7 +8168,8 @@ function drawShareCard(ctx, cfg, format) {
   // team is set, so the theming actually reads at a glance instead of being
   // a barely-there tint.
   var glow = ctx.createRadialGradient(W / 2, midY, 40, W / 2, midY, 520);
-  glow.addColorStop(0, hexToRgbaString(accent, fav ? 0.30 : 0.20));
+  var glowAlpha = shareDesignId === 'spotlight' ? 0.42 : shareDesignId === 'team' ? 0.38 : (fav ? 0.30 : 0.20);
+  glow.addColorStop(0, hexToRgbaString(accent, glowAlpha));
   glow.addColorStop(1, hexToRgbaString(accent, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
@@ -8393,6 +8420,20 @@ var shareCurrentCfg = null;
 // share sheet was opened with (square) and closes immediately, so there's
 // no UI moment to offer a toggle there anyway.
 var shareCurrentFormat = 'square';
+function renderShareDesignPicker() {
+  var row = document.getElementById('share-design-row');
+  if (!row) return;
+  var selected = selectedShareDesign();
+  var xp = Number(getProgression().careerXp) || 0;
+  row.innerHTML = SHARE_CARD_DESIGNS.map(function (d) {
+    var unlocked = xp >= d.minXp;
+    var active = selected && selected.id === d.id;
+    return '<button class="share-design-chip' + (active ? ' active' : '') + '"' +
+      (unlocked ? ' data-share-design="' + esc(d.id) + '"' : ' disabled') + '>' +
+      '<b>' + esc(d.title) + '</b><small>' + (unlocked ? (active ? 'Selected' : 'Use design') : d.minXp + ' XP') + '</small>' +
+      '</button>';
+  }).join('');
+}
 function renderShareCard(format) {
   if (!shareCurrentCfg) return;
   var canvas = document.createElement('canvas');
@@ -8409,6 +8450,7 @@ function renderShareCard(format) {
 function openShareModal(dataUrl, cfg) {
   shareCurrentCfg = cfg;
   shareCurrentFormat = 'square';
+  renderShareDesignPicker();
   shareTriggerEl = document.activeElement;
   var img = document.getElementById('share-preview');
   if (img) img.src = dataUrl;
