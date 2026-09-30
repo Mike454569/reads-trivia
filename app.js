@@ -10248,7 +10248,7 @@ function applyProgressAwardLocally(xp, seasonId) {
 }
 var recordedSeasonSessions = {};
 
-function seasonQuestionCountForCompletion(mode) {
+function seasonQuestionCountForCompletion(mode, fields) {
   var s=state[mode];
   if(mode==='daily'&&state.daily&&state.daily.queue)return state.daily.queue.length||0;
   if(mode==='h2h'&&state.h2h){
@@ -10256,7 +10256,7 @@ function seasonQuestionCountForCompletion(mode) {
     var me=state.h2h.match&&state.h2h.match.players&&state.h2h.match.players[state.h2h.mySlug];
     return me&&Number(me.total)||0;
   }
-  if(mode==='endless')return state.stats.endless&&Number(state.stats.endless.bestQuestions)||0;
+  if(mode==='endless')return fields&&Number(fields.lastQuestions)||0;
   if(s&&s.queue&&Array.isArray(s.queue))return s.queue.length||0;
   if(s&&typeof s.totalCount==='number')return s.totalCount||0;
   return 0;
@@ -10283,7 +10283,7 @@ function recordSeasonGame(mode, fields) {
   season.gamesPlayed += 1;
   if (mode === 'daily') season.dailyCompletions += 1;
   season.bestStreak = Math.max(season.bestStreak, getStreak().count || 0);
-  season.questionsAnswered += seasonQuestionCountForCompletion(mode);
+  season.questionsAnswered += seasonQuestionCountForCompletion(mode, fields);
   season.modePlays = season.modePlays || {};
   season.modePlays[mode] = (Number(season.modePlays[mode]) || 0) + 1;
   if (season.modePlays[mode] >= season.topModePlays) {
