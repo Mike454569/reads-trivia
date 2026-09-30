@@ -510,6 +510,61 @@ function drawNoRepeat(deckKey, ids, count) {
   return drawn;
 }
 
+/* ============================== Engine vNext content memory + QA ============================== */
+function contentMemoryKey() { return 'readsContentMemory__' + slugify(state.name || 'guest'); }
+function getContentMemory() {
+  var m=lsGet(contentMemoryKey(),{questions:[],entities:[]});
+  m.questions=Array.isArray(m.questions)?m.questions:[];
+  m.entities=Array.isArray(m.entities)?m.entities:[];
+  return m;
+}
+function contentFingerprint(q, league) { return (league||'nfl')+'|'+hashStr(normName(q&&q.question||'')); }
+function questionEntityTokens(q) {
+  var text=String((q&&q.question)||'')+' '+((q&&q.options)||[]).join(' ');
+  var tokens=(text.match(/\b[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}\b/g)||[]).map(normName).filter(function(x){return x.length>=4;});
+  var seen={}; return tokens.filter(function(x){if(seen[x])return false;seen[x]=true;return true;}).slice(0,8);
+}
+function rememberContentQuestion(q, league) {
+  if(!q)return;
+  var m=getContentMemory(), fp=contentFingerprint(q,league);
+  m.questions=m.questions.filter(function(x){return x!==fp;}); m.questions.push(fp);
+  questionEntityTokens(q).forEach(function(e){m.entities=m.entities.filter(function(x){return x!==e;});m.entities.push(e);});
+  m.questions=m.questions.slice(-180); m.entities=m.entities.slice(-120); lsSet(contentMemoryKey(),m);
+}
+function contentRepeatPenalty(q, league) {
+  var m=getContentMemory(), penalty=0, fp=contentFingerprint(q,league);
+  if(m.questions.slice(-90).indexOf(fp)!==-1) penalty+=100;
+  var recent={};m.entities.slice(-50).forEach(function(e){recent[e]=(recent[e]||0)+1;});
+  questionEntityTokens(q).forEach(function(e){if(recent[e])penalty+=12*recent[e];});
+  return penalty;
+}
+function questionQualityScore(q, league, targetDifficulty) {
+  if(!q||typeof q.question!=='string'||!Array.isArray(q.options)||q.options.length<2)return 0;
+  if(typeof q.correctIndex!=='number'||q.correctIndex<0||q.correctIndex>=q.options.length)return 0;
+  var normalized=q.options.map(normName), unique={}; normalized.forEach(function(x){unique[x]=true;});
+  if(Object.keys(unique).length!==q.options.length)return 0;
+  var score=100;
+  if(q.question.length<12)score-=25;
+  if(q.question.length>220)score-=10;
+  if(!normName(q.options[q.correctIndex]))score-=50;
+  score-=Math.min(60,contentRepeatPenalty(q,league));
+  if(targetDifficulty && String(q.difficulty||'').toLowerCase()!==String(targetDifficulty).toLowerCase())score-=8;
+  return Math.max(0,score);
+}
+function qualityFilteredQuestions(pool, league, targetDifficulty) {
+  var scored=(pool||[]).map(function(q){return {q:q,score:questionQualityScore(q,league,targetDifficulty)};})
+    .filter(function(x){return x.score>=55;}).sort(function(x,y){return y.score-x.score;});
+  return scored.length?scored.map(function(x){return x.q;}):(pool||[]).slice();
+}
+function drawGlobalNoRepeatQuestions(deckKey, pool, count, league, targetDifficulty) {
+  var quality=qualityFilteredQuestions(pool,league,targetDifficulty);
+  var fresh=quality.filter(function(q){return contentRepeatPenalty(q,league)<60;});
+  var source=fresh.length>=Math.min(count,quality.length)?fresh:quality;
+  var ids=drawNoRepeat(deckKey,source.map(function(q){return q.id;}),count);
+  ids.forEach(function(id){var q=source.find(function(x){return x.id===id;});if(q)rememberContentQuestion(q,league);});
+  return ids;
+}
+
 /* ============================== data + state ============================== */
 /* ---- Engine content integration, Engine ID namespace 500000+ ----
    Kill switch: set to false to make the app behave exactly as it did before this
@@ -1318,8 +1373,11 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   if (!candidates.length && predicate) return pickDailyCandidate(pool, rng, used, recent, null, preferredDifficulty);
   if (!candidates.length) candidates = pool.filter(function (q) { return !used[dailyQuestionKey(q)]; });
   if (!candidates.length) return null;
-  var q = candidates[Math.floor(rng() * candidates.length)];
+  candidates.sort(function(a,b){return questionQualityScore(b,(b._dailyLeague||'NFL')==='CFB'?'cfb':'nfl',dailyDifficultyLabel(preferredDifficulty))-questionQualityScore(a,(a._dailyLeague||'NFL')==='CFB'?'cfb':'nfl',dailyDifficultyLabel(preferredDifficulty));});
+  var top=candidates.slice(0,Math.max(1,Math.min(8,candidates.length)));
+  var q = top[Math.floor(rng() * top.length)];
   used[dailyQuestionKey(q)] = true;
+  rememberContentQuestion(q,(q._dailyLeague||'NFL')==='CFB'?'cfb':'nfl');
   return q;
 }
 function dailyWeakSpot() {
@@ -4547,7 +4605,7 @@ function startQuizRound(category, difficulty, roundSize) {
     var freshPool = filterFreshQuestions(pool, 'nfl', 70);
     if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
   }
-  var ids = drawNoRepeat('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
+  var ids = drawGlobalNoRepeatQuestions('quiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool, roundSize, 'nfl', difficulty);
   state.quiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.quiz !== false };
   renderAll();
 }
@@ -4832,7 +4890,7 @@ function startCfbQuizRound(category, difficulty, roundSize) {
     var freshPool = filterFreshQuestions(pool, 'cfb', 70);
     if (freshPool.length >= Math.min(roundSize, pool.length)) pool = freshPool;
   }
-  var ids = drawNoRepeat('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool.map(function (q) { return q.id; }), roundSize);
+  var ids = drawGlobalNoRepeatQuestions('cfbquiz_' + (category || 'all') + '_' + (difficulty || 'all'), pool, roundSize, 'cfb', difficulty);
   state.cfbQuiz = { screen: 'question', category: category, difficulty: difficulty, roundSize: roundSize, queue: ids, index: 0, correctCount: 0, answeredIndex: null, missed: [], ranked: state.rankedPref.cfbQuiz !== false };
   renderAll();
 }
