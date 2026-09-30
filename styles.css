@@ -4597,3 +4597,80 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .live-final-grid-full { grid-template-columns:1fr; }
   .live-favorite-spotlight { grid-template-columns:1fr; }
 }
+
+
+/* Engine vNext + Endless Reads */
+.endless-home-card {
+  margin-top:18px;
+  padding:18px;
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:center;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--panel);
+}
+.endless-home-card h3 { margin:4px 0 6px; font-size:1.35rem; }
+.endless-home-card p { margin:0 0 7px; color:var(--muted); max-width:680px; }
+.endless-home-card small { color:var(--muted); }
+.endless-panel { max-width:860px; margin-inline:auto; }
+.endless-scorebar {
+  display:grid;
+  grid-template-columns:repeat(3,auto) 1fr;
+  gap:10px;
+  align-items:center;
+  margin:12px 0;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+}
+.endless-scorebar strong { justify-self:end; }
+.endless-rule {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:12px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--panel-2,rgba(255,255,255,.035));
+}
+.endless-rule > span:first-child {
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.endless-rule b { color:var(--muted); font-size:.82rem; }
+.endless-qa {
+  padding:4px 7px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:.66rem;
+  font-weight:900;
+}
+.endless-summary-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:16px 0;
+}
+.endless-summary-grid > div {
+  display:grid;
+  gap:3px;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  text-align:center;
+}
+.endless-summary-grid b { font-size:1.4rem; }
+.endless-summary-grid span { color:var(--muted); font-size:.75rem; }
+@media (max-width:700px) {
+  .endless-home-card { display:grid; padding:14px; }
+  .endless-scorebar { grid-template-columns:repeat(3,auto); }
+  .endless-scorebar strong { grid-column:1 / -1; justify-self:start; }
+  .endless-rule { grid-template-columns:1fr; }
+}
