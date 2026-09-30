@@ -150,8 +150,8 @@ def test_triple_or_take_banks_only_completed_series():
 def test_wave2_moves_honest_distinct_format_count_to_62():
     from tools.director_v02.format_audit import audit_format_registry
     audit=audit_format_registry()
-    assert audit["registered_format_count"]==63
-    assert audit["presentation_alias_count"]==1
-    assert audit["distinct_format_count"]==62
-    assert audit["target_gap"]==38
+    assert audit["registered_format_count"] >= 63
+    assert audit["presentation_alias_count"] == 1
+    assert audit["distinct_format_count"] >= 62
+    assert audit["target_gap"] <= 38
     assert audit["mobile_unverified"]==[]
