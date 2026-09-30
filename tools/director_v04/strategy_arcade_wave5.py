@@ -181,7 +181,7 @@ def evaluate(package,progress,submission):
         n=s.pop("shot"); r=core._grade(package,s,submission)
         if r["correct"]: s["score"]=s.get("score",0)+n
         else: s["score"]=max(0,s.get("score",0)-1)
-        _adv(s,r["correct"]); s["target"]=7+((s["cursor"]*2)%6)
+        _adv(s,r["correct"]); s["target"]=7+((s["cursor"]*4+1)%6)
         if s["score"]==s["target"]: s["completed"]=True; s["result_label"]="Target hit exactly"
         elif s["cursor"]>=10: s["completed"]=True; s["result_label"]=f"Finished on {s['score']} vs {s['target']}"
         return r,s
