@@ -306,7 +306,6 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', taxonomyId: 'GUESS_THE_SEASON', variant: 'NFL_SUPER_BOWL_SEASON' },
   { category: 'Story & Path', title: 'Connection Grid', desc: 'A real 3x3 grid of real team/round intersections.', taxonomyId: 'GRID_CONSTRAINT_BOARD', variant: 'NFL_TEAM_DRAFT_ROUND_GRID' },
   { category: 'Story & Path', title: 'Six Degrees', desc: 'Connect two real players through real teammates.', taxonomyId: 'RELATIONSHIP_CHAIN', variant: 'CFB_SCHOOL_TO_NFL_TEAM_CHAIN' },
-  { category: 'Story & Path', title: 'Chain Reaction', desc: 'A real chain of players and colleges.', taxonomyId: 'RELATIONSHIP_CHAIN', variant: 'CFB_SCHOOL_TO_NFL_TEAM_CHAIN' },
   { category: 'Drives', title: 'Perfect Drive', desc: 'Answer real questions to drive down the real field.', taxonomyId: 'DRIVE_PROGRESSION', variant: 'NFL_DRAFT_PERFECT_DRIVE' },
   { category: 'Drives', title: 'Goal Line Stand', desc: 'Real 4-down trivia from the real goal line.', taxonomyId: 'DRIVE_PROGRESSION', variant: 'NFL_DRAFT_GOAL_LINE_STAND' },
   { category: 'Live & Weekly', title: 'Weekly Pick’em', desc: 'Pick real winners for this week’s real NFL slate.', phrase: 'Give me the NFL weekly pick’em.' },
