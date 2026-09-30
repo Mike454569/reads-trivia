@@ -10406,13 +10406,16 @@ function seasonHistoryHtml() {
     '<div class="season-history-grid">' +
     list.map(function (item) {
       var d = item.data, rank = seasonRankFor(d.xp);
+      var trophy=seasonTrophyFor(item);
       return '<article class="season-history-card' + (item.id === current ? ' current' : '') + '">' +
         '<div class="season-history-head"><b>' + esc(item.id) + '</b><span>' + (item.id === current ? 'Current' : 'Final') + '</span></div>' +
-        '<div class="season-history-rank">' + esc(rank.name) + '</div>' +
-        '<div class="season-history-xp">' + d.xp + ' XP</div>' +
-        '<div class="season-history-stats"><span>' + d.gamesPlayed + ' games</span><span>' + d.dailyCompletions + ' Daily Reads</span><span>' + d.bestStreak + '-day best streak</span>' +
+        '<div class="season-history-rank"><span class="season-history-trophy">'+trophy.icon+'</span>' + esc(rank.name) + '</div>' +
+        '<div class="season-history-xp">' + d.xp.toLocaleString() + ' XP</div>' +
+        '<div class="season-history-stats"><span>' + d.gamesPlayed + ' games</span><span>' + d.questionsAnswered.toLocaleString() + ' questions</span><span>' + d.dailyCompletions + ' Daily Reads</span><span>' + d.bestStreak + '-day best streak</span>' +
+        '<span>H2H: '+d.h2hWins+'-'+d.h2hLosses+(d.h2hTies?'-'+d.h2hTies:'')+'</span>'+
+        (d.endlessBestScore ? '<span>Endless best: '+d.endlessBestScore.toLocaleString()+'</span>' : '') +
         (d.finalRating != null ? '<span>' + d.finalRating + ' final rating</span>' : '') +
-        (d.topMode ? '<span>Top mode: ' + esc(modeLabelFor(d.topMode)) + '</span>' : '') +
+        (d.topMode ? '<span>Most played: ' + esc(modeLabelFor(d.topMode)) + ' ×' + d.topModePlays + '</span>' : '') +
         '</div></article>';
     }).join('') + '</div></section>';
 }
@@ -10422,12 +10425,22 @@ function currentSeasonRecapHtml() {
   var d = normalizeSeasonProgress(p.seasons && p.seasons[id]);
   var rank = seasonRankFor(d.xp);
   var milestones = seasonMilestonesFor(d);
-  return '<section class="season-recap-card"><div><span class="dashboard-eyebrow">' + esc(id) + ' SEASON RECAP</span><h3>' + esc(rank.name) + '</h3><p>' + d.xp + ' season XP · ' + d.gamesPlayed + ' games · ' + d.dailyCompletions + ' Daily Reads</p></div>' +
+  var trophy=seasonTrophyFor({id:id,data:d});
+  var favLeague=defaultCommunityLeague(), favTeam=communityTeamForLeague(favLeague);
+  var contribution=favTeam?communityContributionPct(favLeague,favTeam):null;
+  return '<section class="season-recap-card">' +
+    '<div class="season-recap-title"><span class="season-recap-trophy">'+trophy.icon+'</span><div><span class="dashboard-eyebrow">' + esc(id) + ' READS SEASON</span><h3>' + esc(rank.name) + '</h3><p>' + d.xp.toLocaleString() + ' season XP · ' + d.gamesPlayed + ' games · ' + d.questionsAnswered.toLocaleString() + ' questions</p></div></div>' +
     '<div class="season-rank-progress"><div><b>' + esc(rank.name) + '</b><span>' + (rank.next ? rank.toNext + ' XP to ' + esc(rank.next) : 'Top seasonal tier') + '</span></div>' +
     '<span class="dashboard-xp-track"><span style="width:' + Math.round(rank.pct * 100) + '%"></span></span></div>' +
-    '<div class="season-recap-metrics"><span><b>' + d.bestStreak + '</b><small>Best streak</small></span>' +
-    '<span><b>' + (d.finalRating == null ? '—' : d.finalRating) + '</b><small>Rating</small></span>' +
-    '<span><b>' + (d.topMode ? esc(modeLabelFor(d.topMode)) : '—') + '</b><small>Top mode</small></span></div>' +
+    '<div class="season-recap-metrics season-recap-metrics-v2">' +
+      '<span><b>' + d.bestStreak + '</b><small>Best streak</small></span>' +
+      '<span><b>' + (d.finalRating == null ? '—' : d.finalRating) + '</b><small>Rating</small></span>' +
+      '<span><b>' + d.h2hWins + '-' + d.h2hLosses + (d.h2hTies?'-'+d.h2hTies:'') + '</b><small>H2H record</small></span>' +
+      '<span><b>' + (d.endlessBestScore ? d.endlessBestScore.toLocaleString() : '—') + '</b><small>Endless best</small></span>' +
+      '<span><b>' + (d.topMode ? esc(modeLabelFor(d.topMode)) : '—') + '</b><small>Most played</small></span>' +
+      '<span><b>' + d.dailyCompletions + '</b><small>Daily Reads</small></span>' +
+    '</div>' +
+    (contribution&&contribution.pct?'<div class="season-team-contribution"><span>'+favoriteTeamBadgeHtml()+' '+esc(favTeam.name)+'</span><b>Top '+Math.max(1,100-contribution.pct+1)+'% team contributor</b></div>':'')+
     '<div class="season-milestones">' + milestones.map(function (m) {
       return '<div class="' + (m.complete ? 'complete' : '') + '"><span>' + (m.complete ? icon('check') : icon('trophy')) + '</span><b>' + esc(m.label) + '</b><small>' + Math.min(m.current,m.target) + ' / ' + m.target + '</small></div>';
     }).join('') + '</div></section>';
