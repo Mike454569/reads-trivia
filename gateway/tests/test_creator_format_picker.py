@@ -122,6 +122,14 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Fourth Down Decision", "STRATEGY_ARCADE", "FOURTH_DOWN_DECISION"),
     ("Series Sweep", "STRATEGY_ARCADE", "SERIES_SWEEP"),
     ("Road to 100", "STRATEGY_ARCADE", "ROAD_TO_100"),
+    ("Option Eraser", "STRATEGY_ARCADE", "OPTION_ERASER"),
+    ("Route Tree", "STRATEGY_ARCADE", "ROUTE_TREE"),
+    ("Turnover Battle", "STRATEGY_ARCADE", "TURNOVER_BATTLE"),
+    ("Category Lockout", "STRATEGY_ARCADE", "CATEGORY_LOCKOUT"),
+    ("Hail Mary", "STRATEGY_ARCADE", "HAIL_MARY"),
+    ("Moving Target", "STRATEGY_ARCADE", "MOVING_TARGET"),
+    ("Draft Order", "STRATEGY_ARCADE", "DRAFT_ORDER"),
+    ("Championship Run", "STRATEGY_ARCADE", "CHAMPIONSHIP_RUN"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
