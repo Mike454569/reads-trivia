@@ -44,6 +44,9 @@ jobs:
       # once, in the Lineup Concurrency pass -- see PRODUCTION_STATUS.md).
       # Verified locally against a simulated fresh checkout (no DB
       # present): 435 passed, 670 skipped, 0 failed.
+      - name: Audit distinct game formats
+        run: python tools/audit_game_formats.py
+
       - name: Run gateway test suite (DB-independent subset)
         env:
           READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
