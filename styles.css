@@ -3817,3 +3817,50 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media(max-width:700px) {
   .season-milestones { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Daily Reads v2: mixed mechanics, adaptive difficulty, weekly recap. */
+.daily-v2-mechanics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:14px 0; }
+.daily-v2-mechanics > span { display:flex; flex-direction:column; gap:3px; padding:10px; border:1px solid var(--border); border-radius:11px; background:rgba(255,255,255,.018); }
+.daily-v2-mechanics b { font:800 10px var(--font-display); }
+.daily-v2-mechanics small { color:var(--text-dim); font-size:8px; }
+.daily-difficulty-note { display:flex; align-items:center; gap:7px; color:var(--text-dim); font-size:10px; margin:10px 0 0; }
+.daily-difficulty-note svg { width:14px; height:14px; color:var(--accent); }
+.daily-mechanic-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 16px; padding:10px 12px; border:1px solid var(--border); border-radius:11px; background:rgba(255,255,255,.02); }
+.daily-mechanic-banner b { color:var(--accent); font:900 11px var(--font-display); text-transform:uppercase; letter-spacing:.06em; }
+.daily-mechanic-banner span { color:var(--text-dim); font-size:9px; text-align:right; }
+.daily-confidence { display:flex; align-items:center; gap:8px; margin:0 0 12px; flex-wrap:wrap; }
+.daily-confidence > span { color:var(--text-dim); font:800 9px var(--font-display); text-transform:uppercase; letter-spacing:.08em; }
+.daily-confidence button { padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.02); color:var(--text); font:700 9px var(--font-display); }
+.daily-confidence button.active { border-color:rgba(var(--fav-team-color-rgb,230,182,80),.5); background:rgba(var(--fav-team-color-rgb,230,182,80),.09); color:var(--fav-team-color-readable,var(--accent)); }
+.daily-options .daily-eliminated { opacity:.28; text-decoration:line-through; filter:saturate(.5); }
+.daily-mechanic-fifty .daily-options,
+.daily-mechanic-double .daily-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.daily-mechanic-double .daily-mechanic-banner { box-shadow:inset 0 0 0 1px rgba(var(--fav-team-color-rgb,230,182,80),.08); }
+.daily-summary-mechanics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin:14px 0; }
+.daily-summary-mechanics span { padding:9px; border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; gap:3px; }
+.daily-summary-mechanics span.hit { border-color:rgba(74,190,112,.28); }
+.daily-summary-mechanics span.missed { border-color:rgba(220,80,80,.26); }
+.daily-summary-mechanics b { font:800 9px var(--font-display); }
+.daily-summary-mechanics small { color:var(--text-dim); font-size:8px; }
+.weekly-daily-recap { margin:18px 0 22px; padding:14px; border:1px solid var(--border); border-radius:14px; background:linear-gradient(145deg,rgba(255,255,255,.022),rgba(255,255,255,.01)); }
+.weekly-daily-recap.compact { margin:16px 0; padding:12px; }
+.weekly-daily-recap .dashboard-section-head { margin:0 0 12px; }
+.weekly-daily-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
+.weekly-daily-metrics span { min-height:58px; padding:9px; border-radius:10px; background:rgba(255,255,255,.025); display:flex; flex-direction:column; justify-content:center; gap:3px; }
+.weekly-daily-metrics b { font:900 16px var(--font-display); }
+.weekly-daily-metrics small { color:var(--text-dim); font-size:8px; }
+.weekly-daily-bars { height:78px; display:flex; align-items:flex-end; gap:7px; margin-top:12px; padding-top:6px; border-top:1px solid var(--border); }
+.weekly-daily-bars > span { flex:1; height:62px; display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch; gap:4px; }
+.weekly-daily-bars i { display:block; min-height:8px; border-radius:5px 5px 2px 2px; background:linear-gradient(180deg,var(--accent),rgba(var(--fav-team-color-rgb,230,182,80),.35)); }
+.weekly-daily-bars small { text-align:center; color:var(--text-dim); font-size:7px; }
+@media(max-width:700px) {
+  .daily-v2-mechanics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .daily-v2-mechanics > span:last-child { grid-column:1 / -1; }
+  .daily-summary-mechanics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .daily-mechanic-banner { align-items:flex-start; flex-direction:column; gap:4px; }
+  .daily-mechanic-banner span { text-align:left; }
+  .daily-mechanic-fifty .daily-options,
+  .daily-mechanic-double .daily-options { grid-template-columns:1fr; }
+  .weekly-daily-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
