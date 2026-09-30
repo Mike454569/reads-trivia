@@ -3799,3 +3799,21 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media(max-width:600px) {
   .season-recap-metrics { grid-template-columns:1fr; }
 }
+
+
+/* Seasonal tier progress + milestone collection. */
+.season-rank-progress { margin-top:12px; padding:11px 12px; border:1px solid var(--border); border-radius:11px; background:rgba(255,255,255,.018); }
+.season-rank-progress > div { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.season-rank-progress b { font:800 11px var(--font-display); }
+.season-rank-progress span { color:var(--text-dim); font-size:9px; }
+.season-milestones { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:12px; }
+.season-milestones > div { display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:7px; align-items:center; padding:9px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.015); }
+.season-milestones > div.complete { border-color:rgba(74,190,112,.36); background:rgba(74,190,112,.05); }
+.season-milestones > div > span { grid-row:1/3; color:var(--accent); }
+.season-milestones > div.complete > span { color:#8fe5aa; }
+.season-milestones svg { width:14px; height:14px; }
+.season-milestones b { font:800 9px var(--font-display); }
+.season-milestones small { color:var(--text-dim); font-size:8px; }
+@media(max-width:700px) {
+  .season-milestones { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
