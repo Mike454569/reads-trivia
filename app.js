@@ -4222,6 +4222,7 @@ function renderHome() {
     personalDashboardHtml() +
     friendRivalAlertHtml() +
     teamBattleHtml() +
+    liveFootballHomeHtml() +
     reengagementCenterHtml() +
     retentionMissionHtml() +
     unfinishedBusinessHtml() +
@@ -12663,9 +12664,11 @@ function renderAll() {
   else if (state.screen === 'sixDegrees') html += renderSixDegreesScreen();
   else if (state.screen === 'creator') html += renderCreatorScreen();
   else if (state.screen === 'pickem') html += renderPickemScreen();
+  else if (state.screen === 'liveFootball') html += renderLiveFootballScreen();
   app.innerHTML = html;
   renderRatingBadge();
   applyFavoriteTeamAccent();
+  if (typeof liveFootballMaybeRefresh === 'function' && (state.screen === 'home' || state.screen === 'liveFootball')) liveFootballMaybeRefresh(false);
   if (typeof syncBgMusic === 'function') syncBgMusic();
 
   var specificFocusHandled = false;
@@ -12886,7 +12889,8 @@ document.addEventListener('click', function (e) {
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], ' +
-    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry]');
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
+    '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close]');
   if (!t) return;
 
   // User request: the correct-answer crowd-cheer (and wrong-answer whistle)
@@ -13505,6 +13509,13 @@ document.addEventListener('click', function (e) {
   if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
   if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }
   if (t.dataset.pickemRetry !== undefined) { loadPickemView(); return; }
+  if (t.dataset.liveFootballOpen !== undefined) { openLiveFootballHub(); return; }
+  if (t.dataset.liveFootballRefresh !== undefined) { liveFootballMaybeRefresh(true); renderAll(); return; }
+  if (t.dataset.liveGameChallenge !== undefined) { startLiveFootballChallenge(t.dataset.liveGameChallenge); return; }
+  if (t.dataset.liveChallengeStart !== undefined) { startLiveFootballChallenge(null); return; }
+  if (t.dataset.liveChallengeAnswer !== undefined) { answerLiveFootballChallenge(t.dataset.liveChallengeAnswer); return; }
+  if (t.dataset.liveChallengeNext !== undefined) { nextLiveFootballChallenge(); return; }
+  if (t.dataset.liveChallengeClose !== undefined) { LIVE_FOOTBALL.challenge = null; renderAll(); return; }
   if (t.id === 'creator-auth-submit' || t.dataset.creatorAuthSubmit !== undefined) {
     var tokenInput = document.getElementById('creator-token-input');
     creatorSubmitToken(tokenInput ? tokenInput.value : '');
