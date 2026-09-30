@@ -639,6 +639,85 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "explains what connects them.",
         "kind": "common_link", "gen_kwargs": {"round_count": 8},
     },
+
+    # 100-format Expansion Wave 2: 15 genuinely different strategy loops.
+    # All share one audited mixed-trivia knowledge source, but each variant
+    # has its own server-side state machine and interaction contract.
+    "bingo_blitz_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "BINGO_BLITZ",
+        "title": "Bingo Blitz", "instructions": "Claim a three-cell line on a 3x3 board.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "territory_takeover_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TERRITORY_TAKEOVER",
+        "title": "Territory Takeover", "instructions": "Choose zones and outscore the opponent by claiming territory.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "exact_ten_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "EXACT_TEN",
+        "title": "Exact Ten", "instructions": "Choose 1-3 point plays and land on exactly 10 without busting.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "pyramid_climb_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PYRAMID_CLIMB",
+        "title": "Pyramid Climb", "instructions": "Pick a lane and climb five levels; misses knock you down.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "lockbox_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "LOCKBOX",
+        "title": "Lockbox", "instructions": "Open three locks, then beat the final vault question.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "combo_meter_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "COMBO_METER",
+        "title": "Combo Meter", "instructions": "Build a scoring multiplier with consecutive correct answers.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "checkpoint_rally_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CHECKPOINT_RALLY",
+        "title": "Checkpoint Rally", "instructions": "Advance to eight; misses send you back to your last saved checkpoint.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "escalator_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ESCALATOR",
+        "title": "Escalator", "instructions": "Risk one or two steps per question and reach step 10.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "power_up_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "POWER_UP",
+        "title": "Power Up", "instructions": "Earn energy with correct answers and spend it on a server-safe 50/50.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "category_conquest_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_CONQUEST",
+        "title": "Category Conquest", "instructions": "Choose and capture all three real trivia categories.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "scoreboard_swing_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SCOREBOARD_SWING",
+        "title": "Scoreboard Swing", "instructions": "Correct answers score seven; misses give the opponent three. First to 21 wins.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "momentum_bar_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "MOMENTUM_BAR",
+        "title": "Momentum Bar", "instructions": "Push momentum to +8 before it falls to -4.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "timeout_tokens_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TIMEOUT_TOKENS",
+        "title": "Timeout Tokens", "instructions": "Manage two skips and one double-score token across the run.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "perfect_set_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PERFECT_SET",
+        "title": "Perfect Set", "instructions": "Win two of three best-of-three trivia sets.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "triple_or_take_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TRIPLE_OR_TAKE",
+        "title": "Triple or Take", "instructions": "Choose 1-3 question series; clear the whole series to bank bigger points.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -742,6 +821,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_category_roulette_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "COMMON_LINK":
             package = mechanic_engine.generate_common_link_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "STRATEGY_ARCADE":
+            package = mechanic_engine.generate_strategy_arcade_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:
