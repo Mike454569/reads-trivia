@@ -1973,6 +1973,7 @@ function renderDailyScreen() {
         '<div class="summary-score">' + esc(label) + (r.bonusPoints ? ' · +' + r.bonusPoints + ' bonus' : '') + '</div>' +
         '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
         weeklyDailyRecapHtml(true) +
+        dailyFormatRotationHtml(false) +
         '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
     return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
@@ -13282,11 +13283,11 @@ var REWARD_BADGES = [
   { id: 'allProRank', icon: '💎', title: 'All-Pro', desc: 'Reached All-Pro career rank.', check: function () { return (getProgression().careerXp || 0) >= 3000; } },
   { id: 'legendRank', icon: '👑', title: 'Reads Legend', desc: 'Reached Legend career rank.', check: function () { return (getProgression().careerXp || 0) >= 6000; } },
   { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } },
-  { id: 'formatExplorer10', icon: '🧭', title: 'Format Explorer', desc: 'Completed 10 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 10; } },
-  { id: 'formatExplorer25', icon: '🗺️', title: 'Playbook Hunter', desc: 'Completed 25 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 25; } },
-  { id: 'formatExplorer50', icon: '🏟️', title: 'Half the Playbook', desc: 'Completed 50 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 50; } },
-  { id: 'formatExplorer75', icon: '💿', title: 'Deep Bag', desc: 'Completed 75 different Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 75; } },
-  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed all 100 distinct Reads game formats.', check: function () { return getRewards().formatPlayedIds.length >= 100; } }
+  { id: 'formatExplorer10', icon: '🧭', title: 'Format Explorer', desc: 'Completed 10 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 10; } },
+  { id: 'formatExplorer25', icon: '🗺️', title: 'Playbook Hunter', desc: 'Completed 25 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 25; } },
+  { id: 'formatExplorer50', icon: '🏟️', title: 'Half the Playbook', desc: 'Completed 50 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 50; } },
+  { id: 'formatExplorer75', icon: '💿', title: 'Deep Bag', desc: 'Completed 75 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 75; } },
+  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed 100 different playable Reads game routes.', check: function () { return getRewards().formatPlayedIds.length >= 100; } }
 ];
 BADGES = BADGES.concat(REWARD_BADGES);
 
