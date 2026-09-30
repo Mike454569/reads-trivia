@@ -723,7 +723,8 @@ var DEFAULT_STATS = {
   cfbGrid: { bestScore: 0, gamesPlayed: 0, cleanSweeps: 0 },
   daily: { completions: 0, correctTotal: 0, questionsTotal: 0, bestPct: 0 },
   cfbLegends: { bestWins: 0, bestScore: 0, bestGrade: '', gamesPlayed: 0 },
-  h2h: { wins: 0, losses: 0, ties: 0, matchesPlayed: 0 }
+  h2h: { wins: 0, losses: 0, ties: 0, matchesPlayed: 0 },
+  endless: { bestScore: 0, bestStreak: 0, bestQuestions: 0, runs: 0 }
 };
 
 var lastFocusedScreen = null; // tracks screen changes for renderAll()'s focus management
@@ -4014,7 +4015,7 @@ function noteRecommendedModePlayed(mode) {
   h.push({ mode: mode, at: Date.now() });
   lsSet(recommendationHistoryKey(), h.slice(-20));
 }
-function modeLeague(id) { return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl'; }
+function modeLeague(id) { if (id === 'endless') return 'mixed'; return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl'; }
 function modeMasteryScore(id) {
   var st = state.stats[id] || {};
   if (typeof st.bestPct === 'number') return st.bestPct;
@@ -4174,7 +4175,7 @@ function totalModeCount() {
 // pattern the NFL/CFB mode grids already use, so the page reaches real
 // game content much sooner without losing any discoverability.
 function discoverGridHtml() {
-  var cards = [h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
+  var cards = [endlessHomeCardHtml(), h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
     .filter(function (html) { return html; });
   if (!cards.length) return '';
   return '<h2 class="mode-section-title">More Ways to Play</h2>' +
@@ -10189,7 +10190,7 @@ function progressionEventForCompletion(mode, fields) {
   return {
     type: eventType,
     mode: mode,
-    league: mode && mode.indexOf('cfb') === 0 ? 'CFB' : 'NFL',
+    league: mode === 'endless' ? 'MIXED' : (mode && mode.indexOf('cfb') === 0 ? 'CFB' : 'NFL'),
     source: 'leaderboard_completion',
     fields: fields || {}
   };
@@ -10347,6 +10348,7 @@ var LEADERBOARD_MODES = [
   { id: 'rating', label: 'Football Rating', sortKey: 'score', cols: [['score', 'Rating'], ['games', 'Games Played']] },
   { id: 'season', label: footballSeasonIdForDate() + ' Season', sortKey: 'seasonXp', cols: [['seasonXp', 'Season XP'], ['gamesPlayed', 'Games'], ['bestStreak', 'Best Streak']] },
   { id: 'daily', label: 'Daily Reads', sortKey: 'completions', cols: [['completions', 'Days Completed'], ['bestPct', 'Best %']] },
+  { id: 'endless', label: 'Endless Reads', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['bestQuestions', 'Best Questions'], ['bestStreak', 'Best Streak'], ['runs', 'Runs']] },
   { id: 'quiz', label: 'NFL Quiz', sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'xso', label: "X's & O's", sortKey: 'bestPct', cols: [['bestPct', 'Best %'], ['correctTotal', 'Total Correct'], ['roundsPlayed', 'Rounds']] },
   { id: 'grid', label: 'NFL Grid', sortKey: 'bestScore', cols: [['bestScore', 'Best Score'], ['cleanSweeps', 'Clean Sweeps'], ['gamesPlayed', 'Games']] },
