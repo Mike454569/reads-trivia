@@ -1643,8 +1643,10 @@ function dailyRivalRows(kind) {
 }
 function dailyRivalMeIndex(rows) {
   var key = canonicalPlayerKey();
-  var idx = rows.findIndex(function (r) { return (r.playerKey && r.playerKey === key) || slugify(r.name || '') === slugify(state.name || ''); });
-  return idx >= 0 ? idx + 1 : null;
+  var exact = rows.findIndex(function (r) { return r.playerKey && r.playerKey === key; });
+  if (exact >= 0) return exact + 1;
+  var fallback = rows.findIndex(function (r) { return slugify(r.name || '') === slugify(state.name || ''); });
+  return fallback >= 0 ? fallback + 1 : null;
 }
 function dailyRivalScopeRows(rows, scope) {
   if (scope === 'friends') {
@@ -3433,6 +3435,19 @@ function communityLeaderboardRows(league, team) {
   });
   return rows.slice(0, 10);
 }
+function communityDailyRivalsHtml(league, team) {
+  if (!team) return '';
+  var field = league === 'cfb' ? 'favoriteCfbTeam' : 'favoriteNflTeam';
+  var rows = dailyRivalRows('today').filter(function (r) { return r[field] === team.id; });
+  return '<section class="community-leaderboard community-daily-rivals">' +
+    '<div class="community-feed-head"><h3>Daily Rivals</h3><span>Today · Rival Points</span></div>' +
+    (rows.length ? '<div class="community-rank-list">' + rows.slice(0,10).map(function (r,i) {
+      return '<div class="community-rank-row"><span class="community-rank-pos">' + (i+1) + '</span>' +
+        '<b>' + esc(r.name || 'Reads fan') + '</b><span>' + (Number(r.todayRivalPoints) || 0) + ' pts</span></div>';
+    }).join('') + '</div>' :
+    '<div class="community-empty"><b>No Daily scores yet.</b><span>Finish today’s Daily Reads to put your team on the board.</span></div>') +
+    '</section>';
+}
 function communityLeaderboardHtml(league, team) {
   var rows = communityLeaderboardRows(league, team);
   return '<section class="community-leaderboard">' +
@@ -3503,6 +3518,7 @@ function renderCommunityScreen() {
       (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
     '</div>' +
     communityChallengeHtml(league, team) +
+    communityDailyRivalsHtml(league, team) +
     communityLeaderboardHtml(league, team) +
     composer +
     (communityError ? '<div class="community-error">' + esc(communityError) + '</div>' : '') +
@@ -9873,7 +9889,7 @@ window.__triviaSync = {
     state.leaderboardData = normalizeLeaderboardRows(list);
     reconcileRating(state.leaderboardData);
     if (!didInitialProfilePull && state.name) { didInitialProfilePull = true; pullProfileSnapshot(); }
-    if (state.screen === 'leaderboard' || state.screen === 'community' || state.screen === 'home') renderAll();
+    if (state.screen === 'leaderboard' || state.screen === 'community' || state.screen === 'home' || state.screen === 'daily' || state.screen === 'friends') renderAll();
   },
   // Fires from firebase-sync.js's onAuthStateChanged every time the signed-
   // in Firebase user changes — including a plain anonymous session, which
@@ -11739,10 +11755,14 @@ function friendRowHtml(name) {
   var rating = friendRatingFromLeaderboard(name);
   var profile = friendsProfileCache[slug];
   var streakCount = profile && profile.streak ? (profile.streak.count || 0) : 0;
+  var todayRivals = dailyRivalRows('today');
+  var rivalIndex = todayRivals.findIndex(function (r) { return slugify(r.name || '') === slug; });
+  var rival = rivalIndex >= 0 ? todayRivals[rivalIndex] : null;
   var statsBits = [];
   if (rating) statsBits.push(icon('football') + ' ' + rating.score + ' rating');
   else statsBits.push('No rating yet');
   if (streakCount > 0) statsBits.push(icon('flame') + ' ' + streakCount + '-day streak');
+  if (rival) statsBits.push(icon('target') + ' Daily #' + (rivalIndex + 1) + ' · ' + (Number(rival.todayRivalPoints) || 0) + ' pts');
   return '<div class="friend-row">' +
     '<div class="friend-info"><div class="friend-name">' + esc(name) + '</div>' +
     '<div class="friend-stats">' + statsBits.join(' &middot; ') + '</div></div>' +
