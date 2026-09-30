@@ -2594,10 +2594,14 @@ function renderStrategyArcadeBody(v, s) {
     return '<div class="strategy-stat"><span>' + esc(String(it.label)) + '</span><strong>' + esc(String(it.value)) + '</strong></div>';
   }).join('');
   var boardCols = Math.max(1, Number(v.board_columns || 3));
-  var board = (v.board || []).length ? '<div class="strategy-board" style="grid-template-columns:repeat(' + boardCols + ',minmax(0,1fr))">' + v.board.map(function (cell) {
+  var board = (v.board || []).length ? '<div class="strategy-board' + (boardCols === 7 ? ' is-connect-four' : '') + '" style="grid-template-columns:repeat(' + boardCols + ',minmax(0,1fr))">' + v.board.map(function (cell) {
     var value = String(cell.value || 'OPEN');
-    var cls = value === 'CLAIMED' || value === 'CAPTURED' || value === 'OPEN' ? ' is-good' :
+    var cls = value === 'CLAIMED' || value === 'CAPTURED' || value === 'YOU' || value === 'OPEN' ? ' is-good' :
       (value === 'BURNT' || value === 'MISSED' || value === 'THEM' ? ' is-bad' : '');
+    if (boardCols === 7) {
+      var disc = value === 'YOU' ? '●' : (value === 'THEM' ? '○' : '·');
+      return '<div class="strategy-cell strategy-disc' + cls + '" aria-label="' + esc(cell.label + ' ' + value) + '"><strong>' + disc + '</strong></div>';
+    }
     return '<div class="strategy-cell' + cls + '"><span>' + esc(cell.label) + '</span><strong>' + esc(value) + '</strong></div>';
   }).join('') + '</div>' : '';
   var header = stadiumModeIntroHtml('STRATEGY ARCADE', v.title || 'Reads Strategy', v.goal_text || '') +
