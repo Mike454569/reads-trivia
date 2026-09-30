@@ -5477,3 +5477,185 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     justify-content:center;
   }
 }
+
+
+/* Career + Season v2 */
+.progression-result-hook {
+  margin:12px 0 16px;
+  padding:12px 14px;
+  border:1px solid rgba(var(--fav-team-rgb,255,255,255),.28);
+  border-radius:15px;
+  background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.11),rgba(255,255,255,.025));
+}
+.progression-result-hook.rank-up {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.48);
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+  animation:careerRankPop .42s ease-out both;
+}
+.progression-result-main {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:6px;
+}
+.progression-result-main span {
+  color:var(--fav-team-color-readable,var(--accent));
+  font-size:.58rem;
+  font-weight:950;
+  letter-spacing:.1em;
+}
+.progression-result-main b {
+  font-size:1rem;
+}
+.progression-result-lines {
+  display:grid;
+  gap:3px;
+}
+.progression-result-lines span {
+  color:var(--muted);
+  font-size:.7rem;
+}
+.career-ladder {
+  margin:18px 0;
+  padding:15px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.025);
+}
+.career-ladder-track {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+.career-ladder-step {
+  display:grid;
+  justify-items:center;
+  gap:4px;
+  padding:11px 7px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  text-align:center;
+  opacity:.55;
+  background:rgba(255,255,255,.018);
+}
+.career-ladder-step.unlocked {
+  opacity:1;
+}
+.career-ladder-step.current {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.48);
+  background:linear-gradient(140deg,rgba(var(--fav-team-rgb,255,255,255),.14),rgba(255,255,255,.025));
+  box-shadow:0 10px 26px rgba(0,0,0,.10);
+}
+.career-ladder-icon {
+  font-size:1.1rem;
+}
+.career-ladder-step b {
+  font-size:.72rem;
+}
+.career-ladder-step small {
+  color:var(--muted);
+  font-size:.6rem;
+}
+.career-ladder-next {
+  display:grid;
+  gap:7px;
+  margin-top:12px;
+}
+.career-ladder-next b {
+  color:var(--muted);
+  font-size:.68rem;
+}
+.season-trophy-case {
+  margin:18px 0;
+}
+.season-trophy-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.season-trophy {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+.season-trophy > span {
+  font-size:1.45rem;
+}
+.season-trophy div {
+  display:grid;
+  gap:2px;
+}
+.season-trophy b {
+  font-size:.78rem;
+}
+.season-trophy small {
+  color:var(--muted);
+  font-size:.64rem;
+}
+.season-recap-title {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.season-recap-trophy {
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  flex:0 0 auto;
+  border:1px solid rgba(var(--fav-team-rgb,255,255,255),.32);
+  border-radius:15px;
+  font-size:1.45rem;
+  background:rgba(var(--fav-team-rgb,255,255,255),.09);
+}
+.season-recap-metrics-v2 {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.season-team-contribution {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin:11px 0;
+  padding:10px 12px;
+  border:1px solid rgba(var(--fav-team-rgb,255,255,255),.24);
+  border-radius:13px;
+  background:rgba(var(--fav-team-rgb,255,255,255),.06);
+}
+.season-team-contribution span,
+.season-team-contribution b {
+  font-size:.7rem;
+}
+.season-history-trophy {
+  margin-right:6px;
+}
+@keyframes careerRankPop {
+  from { transform:scale(.985); opacity:.55; }
+  to { transform:scale(1); opacity:1; }
+}
+@media (max-width:800px) {
+  .career-ladder-track {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .season-recap-metrics-v2 {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media (max-width:560px) {
+  .season-trophy-grid {
+    grid-template-columns:1fr;
+  }
+  .season-team-contribution {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progression-result-hook.rank-up { animation:none; }
+}
