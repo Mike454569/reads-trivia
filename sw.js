@@ -10,7 +10,7 @@
 // old installs' caches for.
 var CACHE_VERSION = 'reads-v45';
 var CORE_ASSETS = [
-  './', './index.html', './styles.css', './app.js', './reads-config.js', './engine-game-ui.js', './six-degrees-ui.js', './creator-ui.js', './pickem-ui.js', './live-football-ui.js', './sound.js', './firebase-sync.js', './manifest.json',
+  './', './index.html', './styles.css', './app.js', './reads-config.js', './engine-game-ui.js', './six-degrees-ui.js', './creator-ui.js', './pickem-ui.js', './live-football-ui.js', './endless-ui.js', './sound.js', './firebase-sync.js', './manifest.json',
   './data/quiz.js', './data/quiz-engine-draft-production.js',
   './data/quiz-engine-game-result-production.js', './data/quiz-engine-cfb-game-result-production.js',
   './data/grid.js', './data/grid-engine-players.js', './data/blitz.js', './data/silhouette.js',
