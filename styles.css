@@ -3864,3 +3864,135 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .daily-mechanic-double .daily-options { grid-template-columns:1fr; }
   .weekly-daily-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Daily Rivals: daily/weekly competition, friend/team scopes, streak rewards. */
+.daily-rivals,
+.daily-streak-ladder {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+}
+.daily-rivals.compact { margin-top: 14px; }
+.daily-rivals-note {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.daily-rivals-rank-strip,
+.daily-streak-milestones {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+.daily-rivals-rank-strip > span,
+.daily-streak-milestones > span {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-2, rgba(255,255,255,.035));
+  text-align: center;
+}
+.daily-rivals-rank-strip b,
+.daily-streak-milestones b {
+  display: block;
+  font-size: 1.18rem;
+  line-height: 1.1;
+}
+.daily-rivals-rank-strip small,
+.daily-streak-milestones small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: .72rem;
+}
+.daily-rivals-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.daily-rivals-columns > div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.daily-rivals-columns h4 {
+  margin: 0 0 10px;
+  font-size: .9rem;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.daily-rivals-list {
+  display: grid;
+  gap: 7px;
+}
+.daily-rival-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+  font-size: .86rem;
+}
+.daily-rival-row.is-you {
+  outline: 1px solid currentColor;
+  background: rgba(255,255,255,.075);
+}
+.daily-rival-rank {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  font-weight: 800;
+}
+.daily-rival-row > span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 800;
+}
+.daily-rivals-empty {
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: .82rem;
+}
+.daily-streak-milestones {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+.daily-streak-milestones > span {
+  position: relative;
+}
+.daily-streak-milestones > span.complete {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.daily-streak-milestones em {
+  display: block;
+  margin-top: 7px;
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 800;
+}
+@media (max-width: 700px) {
+  .daily-rivals,
+  .daily-streak-ladder { padding: 14px; }
+  .daily-rivals-rank-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .daily-rivals-columns { grid-template-columns: 1fr; }
+  .daily-streak-milestones {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .daily-streak-milestones > span:last-child {
+    grid-column: 1 / -1;
+  }
+}
