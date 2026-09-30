@@ -973,7 +973,7 @@ function pullProfileSnapshot() {
     setRewards(mergedRewards, true);
     setPersonalizationState(mergedPersonalization, true);
     lsSet(contentMemoryKey(), mergedContentMemory);
-    filmSaveNotebook(mergedFilmRoom);
+    filmSaveNotebook(mergedFilmRoom,true);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
@@ -1838,7 +1838,7 @@ function awardDailyStreakMilestones() {
       if (!result || !result.duplicate) applyProgressAwardLocally(reward.xp, seasonId);
       pushSeasonLeaderboardSnapshot();
       pushProfileSnapshot();
-      if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile') renderAll();
+      if (state.screen === 'daily' || state.screen === 'home' || state.screen === 'profile' || state.screen === 'learn') renderAll();
     }).catch(function () {});
   } else {
     applyProgressAwardLocally(reward.xp, seasonId);
@@ -11481,7 +11481,7 @@ function filmNotebook() {
   n.reps=Number(n.reps)||0; n.correct=Number(n.correct)||0; n.sessions=Number(n.sessions)||0; n.bossWins=Number(n.bossWins)||0;
   return n;
 }
-function filmSaveNotebook(n) { n=n||filmNotebook(); n.updatedAt=Date.now(); lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); }
+function filmSaveNotebook(n,skipSync) { n=n||filmNotebook(); n.updatedAt=Date.now(); lsSet('readsFilmNotebook__' + slugify(state.name || 'guest'), n); if(!skipSync&&activeAuthUid)pushProfileSnapshot(); }
 var FILM_FAMILIES=[
   {id:'coverage',label:'Coverages',icon:'🛡️',rx:/cover|coverage|zone|man defense|secondary|safety/i},
   {id:'pressure',label:'Pressures',icon:'⚡',rx:/blitz|pressure|rush|pass rush|protection/i},
@@ -11602,7 +11602,12 @@ function completeFilmStudySession(){
   n.sessions=(n.sessions||0)+1;
   if(s.type==='boss'&&pct>=80)n.bossWins=(n.bossWins||0)+1;
   filmSaveNotebook(n);
-  awardProgressForCompletion('learn',{boss:s.type==='boss',correct:s.correct,total:s.questions.length,pct:pct,targetFamily:s.targetFamily});
+  var fields={boss:s.type==='boss',correct:s.correct,total:s.questions.length,pct:pct,targetFamily:s.targetFamily};
+  recordPersonalizationCompletion('learn',fields);
+  recordSeasonGame('learn',fields);
+  awardProgressForCompletion('learn',fields);
+  syncAchievementUnlocks();
+  pushProfileSnapshot();
 }
 
 function filmStatsHtml() {
