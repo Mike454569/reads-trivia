@@ -3772,3 +3772,30 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media(prefers-reduced-motion:reduce) {
   .smart-recommendation-card { transition:none; }
 }
+
+
+/* Seasonal progression v2 + career history. */
+.season-recap-card { margin:14px 0; padding:16px; border:1px solid rgba(230,182,80,.34); border-radius:15px; background:linear-gradient(135deg,rgba(230,182,80,.08),rgba(255,255,255,.018)); }
+.season-recap-card h3 { margin:4px 0 5px; font:800 22px/1.1 var(--font-display); }
+.season-recap-card p { margin:0; color:var(--text-dim); font-size:10px; }
+.season-recap-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.season-recap-metrics span { display:flex; flex-direction:column; gap:3px; padding:10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.02); }
+.season-recap-metrics b { font:800 14px var(--font-display); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.season-recap-metrics small { color:var(--text-dim); font-size:8px; }
+
+.season-leaderboard-card { margin:14px 0 0; padding-top:4px; }
+.profile-season-history { margin-top:24px; }
+.season-history-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+.season-history-card { padding:14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.018); }
+.season-history-card.current { border-color:rgba(230,182,80,.45); background:rgba(230,182,80,.045); }
+.season-history-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.season-history-head b { font:800 13px var(--font-display); }
+.season-history-head span { color:var(--text-dim); font:700 8px var(--font-display); letter-spacing:.08em; text-transform:uppercase; }
+.season-history-rank { margin-top:10px; font:800 21px/1 var(--font-display); }
+.season-history-xp { margin-top:4px; color:var(--accent); font:800 11px var(--font-display); }
+.season-history-stats { display:flex; flex-direction:column; gap:5px; margin-top:12px; }
+.season-history-stats span { color:var(--text-dim); font-size:9px; }
+
+@media(max-width:600px) {
+  .season-recap-metrics { grid-template-columns:1fr; }
+}
