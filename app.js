@@ -2808,6 +2808,7 @@ function dismissTeamPrompt() { lsSet(TEAM_PROMPT_DISMISS_KEY, true); renderAll()
 
 /* ============================== favorite-team communities ============================== */
 var communityRows = [];
+var communityDraft = '';
 var communityLoading = false;
 var communityError = '';
 var communityUnsubscribe = null;
@@ -2916,7 +2917,7 @@ function renderCommunityScreen() {
     '<button class="' + (league === 'cfb' ? 'active' : '') + '" data-community-league="cfb">College</button>' +
     '</div>' : '';
   var composer = activeAuthUid
-    ? '<div class="community-composer"><textarea id="community-post-input" maxlength="' + COMMUNITY_POST_LIMIT + '" rows="3" placeholder="What’s on your mind, ' + esc(team.name) + ' fans?"></textarea>' +
+    ? '<div class="community-composer"><textarea id="community-post-input" maxlength="' + COMMUNITY_POST_LIMIT + '" rows="3" placeholder="What’s on your mind, ' + esc(team.name) + ' fans?">' + esc(communityDraft) + '</textarea>' +
       '<div class="community-composer-foot"><span>' + COMMUNITY_POST_LIMIT + ' max</span><button class="btn-primary" data-community-post>Post</button></div>' +
       '<div class="community-quick-posts"><button data-community-preset="Daily Reads done. Who’s beating my score?">Daily Reads done</button>' +
       '<button data-community-preset="Who actually knows ball in here?">Who knows ball?</button>' +
@@ -2951,7 +2952,8 @@ function switchCommunityLeague(league) {
 function setCommunityPreset(text) {
   var input = document.getElementById('community-post-input');
   if (!input) return;
-  input.value = text || '';
+  communityDraft = text || '';
+  input.value = communityDraft;
   input.focus();
 }
 function submitCommunityPost() {
@@ -2959,7 +2961,7 @@ function submitCommunityPost() {
   var league = communityActiveLeague && communityTeamForLeague(communityActiveLeague) ? communityActiveLeague : defaultCommunityLeague();
   var team = communityTeamForLeague(league);
   var input = document.getElementById('community-post-input');
-  var text = input ? input.value.trim() : '';
+  var text = input ? input.value.trim() : communityDraft.trim();
   if (!team || !text) return;
   if (text.length > COMMUNITY_POST_LIMIT) text = text.slice(0, COMMUNITY_POST_LIMIT);
   var lastPostAt = Number(lsGet('readsCommunityLastPostAt', 0)) || 0;
@@ -2974,6 +2976,7 @@ function submitCommunityPost() {
   var streak = getStreak();
   communityError = '';
   lsSet('readsCommunityLastPostAt', Date.now());
+  communityDraft = '';
   if (input) input.value = '';
   window.__fbSync.postCommunity(communityTeamKey(league, team), {
     teamId: team.id,
@@ -12231,6 +12234,7 @@ document.addEventListener('input', function (e) {
   if (e.target.id === 'learn-filter-input') { state.learn.filter = e.target.value; renderAll(); return; }
   if (e.target.id === 'encyclopedia-search-input') { state.encyclopedia.filter = e.target.value; renderAll(); return; }
   if (e.target.id === 'team-picker-search') { teamPickerSetFilter(e.target.value); return; }
+  if (e.target.id === 'community-post-input') { communityDraft = e.target.value; return; }
 });
 
 document.addEventListener('change', function (e) {
