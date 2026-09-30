@@ -2860,6 +2860,21 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
     ['twoMinuteDrill','two_minute_drill','timer','hardcore'],
     ['categoryStreak','category_streak','flame','hardcore'],
     ['perfectQuarter','perfect_quarter','trophy','competitive'],
+    ['redZoneLadder','red_zone_ladder','target','competitive'],
+    ['driveBuilder','drive_builder','grid','competitive'],
+    ['hotHandSwitch','hot_hand_switch','flame','hardcore'],
+    ['overtimeShootout','overtime_shootout','versus','competitive'],
+    ['firstDownChain','first_down_chain','arrowRight','competitive'],
+    ['blitzPackage','blitz_package','zap','hardcore'],
+    ['zoneControl','zone_control','grid','competitive'],
+    ['playCaller','play_caller','football','competitive'],
+    ['possessionArrow','possession_arrow','sync','competitive'],
+    ['suddenDeath','sudden_death','xMark','hardcore'],
+    ['scoreBank','score_bank','barChart','hardcore'],
+    ['audible','audible','sync','competitive'],
+    ['fourthDownDecision','fourth_down_decision','flag','hardcore'],
+    ['seriesSweep','series_sweep','trophy','competitive'],
+    ['roadTo100','road_to100','target','hardcore'],
   ].forEach(function (row) {
     var key=row[0], cfg=ENGINE_MECHANIC_MODES[key];
     if (!cfg || !cfg.flagOn()) return;
