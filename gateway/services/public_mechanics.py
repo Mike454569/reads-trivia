@@ -793,6 +793,81 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Perfect Quarter", "instructions": "Score touchdowns on at least three of four two-question drives.",
         "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
     },
+    "red_zone_ladder_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "RED_ZONE_LADDER",
+        "title": "Red Zone Ladder", "instructions": "Climb from the 20 to the end zone before three misses.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "drive_builder_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "DRIVE_BUILDER",
+        "title": "Drive Builder", "instructions": "Complete short, medium, and deep plays to build a scoring drive.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "hot_hand_switch_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "HOT_HAND_SWITCH",
+        "title": "Hot Hand Switch", "instructions": "Stay with a hot category or switch and reset the multiplier.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "overtime_shootout_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "OVERTIME_SHOOTOUT",
+        "title": "Overtime Shootout", "instructions": "Trade overtime possessions until somebody leads.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "first_down_chain_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "FIRST_DOWN_CHAIN",
+        "title": "First Down Chain", "instructions": "Earn four first downs before a turnover on downs.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "blitz_package_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "BLITZ_PACKAGE",
+        "title": "Blitz Package", "instructions": "Choose pressure level and get five sacks before allowing three touchdowns.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "zone_control_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ZONE_CONTROL",
+        "title": "Zone Control", "instructions": "Capture all nine zones before the question window closes.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "play_caller_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PLAY_CALLER",
+        "title": "Play Caller", "instructions": "Call run, pass, or play action before each snap.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "possession_arrow_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "POSSESSION_ARROW",
+        "title": "Possession Arrow", "instructions": "Score while possession flips after every miss.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "sudden_death_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SUDDEN_DEATH",
+        "title": "Sudden Death", "instructions": "One miss can end it; outlast the opponent.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "score_bank_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SCORE_BANK",
+        "title": "Score Bank", "instructions": "Grow a pot, then decide when to bank it safely.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "audible_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "AUDIBLE",
+        "title": "Audible", "instructions": "Keep the call or spend one of two audibles to change category.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "fourth_down_decision_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "FOURTH_DOWN_DECISION",
+        "title": "Fourth Down Decision", "instructions": "Take three or risk the drive for seven on fourth down.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "series_sweep_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SERIES_SWEEP",
+        "title": "Series Sweep", "instructions": "Win a best-of-five series and chase the 3-0 sweep.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "road_to_100_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ROAD_TO_100",
+        "title": "Road to 100", "instructions": "Choose 10-, 20-, or 30-point shots and race to 100.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
