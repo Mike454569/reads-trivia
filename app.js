@@ -12247,8 +12247,15 @@ function encyclopediaRecentHtml(){
 }
 function encyclopediaTopicNeighbors(id,node){
   if(!node||!node.domain)return [];
-  var all=encyclopediaConceptsForDomain(node.domain), sub=node.subcategory||'';
-  return all.filter(function(c){return c.canonical_id!==id&&c.label!==node.label&&(sub?c.subcategory===sub:true);}).slice(0,6);
+  var all=encyclopediaAllConcepts(),sub=node.subcategory||'',rows=[];
+  Object.keys(all).forEach(function(cid){
+    var c=all[cid];
+    if(cid===id||c.label===node.label||c.domain!==node.domain)return;
+    if(sub&&c.subcategory!==sub)return;
+    rows.push({id:cid,label:c.label,domain:c.domain,subcategory:c.subcategory});
+  });
+  rows.sort(function(x,y){return String(x.label).localeCompare(String(y.label));});
+  return rows.slice(0,6);
 }
 function encyclopediaGraphHtml(id,node){
   if(!node||!node.domain)return '';
@@ -12260,7 +12267,7 @@ function encyclopediaGraphHtml(id,node){
   if(!explicit.length&&!topic.length)return '';
   return '<section class="encyc-graph"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">KNOWLEDGE GRAPH</span><h3>Follow the Football</h3></div><span>'+(explicit.length+topic.length)+' connections</span></div>'+
     (explicit.length?'<div class="encyc-graph-explicit">'+explicit.map(function(r){return '<button data-encyc-open="concept:'+esc(r.id)+'"><span>'+esc(r.direction==='out'?'→':'←')+'</span><div><b>'+esc(r.label)+'</b><small>'+esc(r.predicate)+'</small></div></button>';}).join('')+'</div>':'')+
-    (topic.length?'<div class="encyc-topic-strip"><span>More in '+esc(encyclopediaPrettyLabel(node.subcategory||node.domain))+'</span><div>'+topic.map(function(c){return '<button data-encyc-open="concept:'+esc(c.canonical_id)+'">'+esc(c.label)+'</button>';}).join('')+'</div></div>':'')+
+    (topic.length?'<div class="encyc-topic-strip"><span>More in '+esc(encyclopediaPrettyLabel(node.subcategory||node.domain))+'</span><div>'+topic.map(function(c){return '<button data-encyc-open="concept:'+esc(c.id)+'">'+esc(c.label)+'</button>';}).join('')+'</div></div>':'')+
     '</section>';
 }
 function encyclopediaStudyFamily(node){
@@ -12273,6 +12280,30 @@ function encyclopediaStudyCtaHtml(node){
   var family=encyclopediaStudyFamily(node),meta=filmFamilyMeta(family);
   return '<section class="encyc-study-cta"><div><span class="dashboard-eyebrow">TURN THIS INTO REPS</span><h3>'+meta.icon+' Study '+esc(meta.label)+'</h3><p>Jump from reading into an adaptive Film Room session weighted toward this concept family.</p></div><button class="btn-primary" data-encyc-study="'+esc(family)+'">Take 5 Reps</button></section>';
 }
+function encyclopediaEntityConnectionsHtml(kind,node){
+  if(!node||(kind!=='team'&&kind!=='hist'))return '';
+  function flatten(x){
+    var s=[x.label,x.team,x.league,x.season,x.side].filter(Boolean).join(' ');
+    Object.keys(x.fields||{}).forEach(function(k){var v=x.fields[k];s+=' '+(Array.isArray(v)?v.join(' '):String(v));});
+    return s.toLowerCase();
+  }
+  var rows=[];
+  if(kind==='team'){
+    var needle=String(node.team||node.label||'').toLowerCase();
+    var hist=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.historical_records)||{};
+    Object.keys(hist).forEach(function(id){if(needle&&flatten(hist[id]).indexOf(needle)!==-1)rows.push({kind:'hist',id:id,label:hist[id].label,meta:[hist[id].season,hist[id].side].filter(Boolean).join(' · ')});});
+  } else {
+    var hay=flatten(node),teams=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.team_scheme_profiles)||{};
+    Object.keys(teams).forEach(function(id){
+      var t=teams[id],needle=String(t.team||t.label||'').toLowerCase();
+      if(needle&&hay.indexOf(needle)!==-1)rows.push({kind:'team',id:id,label:t.label,meta:[t.league,t.season].filter(Boolean).join(' · ')});
+    });
+  }
+  if(!rows.length)return '';
+  return '<section class="encyc-entity-links"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CONNECTED RECORDS</span><h3>Keep Exploring</h3></div><span>'+rows.length+' linked</span></div>'+
+    '<div class="encyc-row-list">'+rows.slice(0,8).map(function(r){return '<button class="encyc-row" data-encyc-open="'+esc(r.kind+':'+r.id)+'"><span class="encyc-row-label">'+esc(r.label)+'</span><span class="encyc-row-meta">'+esc(r.meta)+'</span></button>';}).join('')+'</div></section>';
+}
+
 function encyclopediaDepthFactsHtml(node){
   if(!node||!node.fields)return '';
   var fields=node.fields, keys=Object.keys(fields), priority=['summary','what_to_identify','core_responsibilities','strengths','weaknesses','counters','coaching_points','key_reads','rules','technique','usage','advantages','disadvantages'];
@@ -12711,6 +12742,7 @@ function renderEncyclopediaConceptDetail() {
     (testMeHtml ? '<div class="f101-test-me-row">' + testMeHtml + '</div>' : '') +
     classroomLink +
     encyclopediaStudyCtaHtml(node) +
+    encyclopediaEntityConnectionsHtml(kind,node) +
     encyclopediaGraphHtml(id,node) +
     provenance +
     '</div>';
