@@ -117,6 +117,7 @@ window.__fbSync = {
   awardProgress: function () { return Promise.reject(new Error('Not connected')); },
   watchCommunity: function () { return function () {}; },
   postCommunity: function () { return Promise.reject(new Error('Not connected')); },
+  postCommunityActivity: function () { return Promise.reject(new Error('Not connected')); },
   signUp: function () { return Promise.reject(new Error('Not connected')); },
   logIn: function () { return Promise.reject(new Error('Not connected')); },
   logOut: function () { /* no-op until Firebase finishes initializing below */ }
@@ -282,6 +283,18 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
         authorName: auth.currentUser.displayName || 'Reads fan',
         createdAt: serverTimestamp()
       }));
+    };
+
+    window.__fbSync.postCommunityActivity = function (teamKey, activityId, payload) {
+      if (!teamKey || !activityId || !payload) return Promise.reject(new Error('Invalid community activity'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      var postRef = doc(db, 'games', GAME_ID, 'communities', teamKey, 'posts', activityId);
+      return setDoc(postRef, Object.assign({}, payload, {
+        type: 'activity',
+        authorUid: auth.currentUser.uid,
+        authorName: auth.currentUser.displayName || 'Reads fan',
+        createdAt: serverTimestamp()
+      }), { merge: true });
     };
 
     // onAuthStateChanged now fires more than once per page load (logging in/
