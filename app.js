@@ -2,7 +2,7 @@
 // for any real feature/content change, CONTENT_UPDATED specifically when a
 // question bank (data/*.js) changes, since that's the date players actually
 // care about ("is the CFB bank still the old buggy one or the audited one").
-var APP_VERSION = '3.13.0';
+var APP_VERSION = '3.14.0';
 var CONTENT_UPDATED = 'Aug 4, 2026';
 var SITE_URL = 'https://reads.football/';
 
@@ -846,7 +846,8 @@ function pushProfileSnapshot() {
     favoriteTeams: getFavoriteTeams(),
     dailyReads: dailyReadsProfileState(),
     rewards: rewardsProfileState(),
-    progression: getProgression()
+    progression: getProgression(),
+    personalization: getPersonalizationState()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -870,12 +871,14 @@ function pullProfileSnapshot() {
     var beforeProgression = JSON.stringify(getProgression());
     var beforeDailyReads = JSON.stringify(dailyReadsProfileState());
     var beforeRewards = JSON.stringify(getRewards());
+    var beforePersonalization = JSON.stringify(getPersonalizationState());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
     var mergedProgression = mergeProgression(getProgression(), cloud.progression);
     var mergedDailyReads = mergeDailyReads(dailyReadsProfileState(), cloud.dailyReads);
     var mergedRewards = mergeRewards(getRewards(), cloud.rewards);
+    var mergedPersonalization = mergePersonalization(getPersonalizationState(), cloud.personalization);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
@@ -885,12 +888,14 @@ function pullProfileSnapshot() {
     setDailyRecords(mergedDailyReads.records);
     setDailyStreakClaims(mergedDailyReads.streakClaims);
     setRewards(mergedRewards, true);
+    setPersonalizationState(mergedPersonalization, true);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
       JSON.stringify(mergedProgression) !== beforeProgression ||
       JSON.stringify(mergedDailyReads) !== beforeDailyReads ||
-      JSON.stringify(mergedRewards) !== beforeRewards;
+      JSON.stringify(mergedRewards) !== beforeRewards ||
+      JSON.stringify(mergedPersonalization) !== beforePersonalization;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -1545,6 +1550,7 @@ function finalizeDailyQuestion(q, pickedIndex, firstTryCorrect) {
   if (q._dailyMechanic === 'confidence') {
     t.confidenceResults.push({ confidence: t.confidenceByIndex[t.index] || 1, correct: !!firstTryCorrect });
   }
+  recordKnowledgeAnswer(league === 'CFB' ? 'cfb' : 'nfl', q.category || 'General', !!firstTryCorrect);
 }
 function pickDailyAnswer(i) {
   var t = state.daily;
@@ -3674,6 +3680,148 @@ function friendsCardHtml() {
   var label = count ? (count + ' friend' + (count === 1 ? '' : 's') + ' added') : 'See how they stack up';
   return discoverRowHtml('friends', 'users', 'Friends', label, 'friends-card');
 }
+function personalizationKey() { return 'readsPersonalizationV2__' + slugify(state.name || 'guest'); }
+function defaultPersonalizationState() { return { playEvents: [], categoryStats: { nfl:{}, cfb:{} }, weeklyClaims: [], updatedAt: 0 }; }
+function getPersonalizationState() {
+  var p = lsGet(personalizationKey(), defaultPersonalizationState());
+  p.playEvents = Array.isArray(p.playEvents) ? p.playEvents : [];
+  p.categoryStats = p.categoryStats || { nfl:{}, cfb:{} };
+  p.categoryStats.nfl = p.categoryStats.nfl || {};
+  p.categoryStats.cfb = p.categoryStats.cfb || {};
+  p.weeklyClaims = Array.isArray(p.weeklyClaims) ? p.weeklyClaims : [];
+  return p;
+}
+function setPersonalizationState(p, skipSync) {
+  p = Object.assign(defaultPersonalizationState(), p || {}, { updatedAt: Date.now() });
+  p.playEvents = (p.playEvents || []).slice(-120);
+  lsSet(personalizationKey(), p);
+  if (!skipSync) pushProfileSnapshot();
+}
+function mergePersonalization(local, cloud) {
+  local = local || defaultPersonalizationState(); cloud = cloud || defaultPersonalizationState();
+  var events = {}, mergedEvents = [];
+  (local.playEvents || []).concat(cloud.playEvents || []).forEach(function (e) {
+    if (!e || !e.at || !e.mode) return;
+    var key = e.mode + '|' + e.at;
+    if (!events[key]) { events[key] = true; mergedEvents.push(e); }
+  });
+  mergedEvents.sort(function (x,y) { return (Number(x.at)||0)-(Number(y.at)||0); });
+  var stats = { nfl:{}, cfb:{} };
+  ['nfl','cfb'].forEach(function (league) {
+    var cats = {};
+    [local, cloud].forEach(function (src) {
+      var obj = src.categoryStats && src.categoryStats[league] || {};
+      Object.keys(obj).forEach(function (cat) {
+        var x = obj[cat] || {};
+        cats[cat] = cats[cat] || { correct:0, total:0 };
+        cats[cat].correct += Number(x.correct) || 0;
+        cats[cat].total += Number(x.total) || 0;
+      });
+    });
+    stats[league] = cats;
+  });
+  var claims = {};
+  (local.weeklyClaims || []).concat(cloud.weeklyClaims || []).forEach(function (id) { if (id) claims[id] = true; });
+  return { playEvents: mergedEvents.slice(-120), categoryStats: stats, weeklyClaims: Object.keys(claims), updatedAt: Math.max(Number(local.updatedAt)||0, Number(cloud.updatedAt)||0) };
+}
+function recordKnowledgeAnswer(league, category, correct) {
+  if (!state.name || !category) return;
+  league = league === 'cfb' ? 'cfb' : 'nfl';
+  var p = getPersonalizationState();
+  var row = p.categoryStats[league][category] || { correct:0, total:0 };
+  row.total++;
+  if (correct) row.correct++;
+  p.categoryStats[league][category] = row;
+  setPersonalizationState(p, true);
+}
+function completionPctForPersonalization(mode, fields) {
+  fields = fields || {};
+  if (typeof fields.lastPct === 'number') return fields.lastPct;
+  if (typeof fields.bestPct === 'number') return fields.bestPct;
+  if ((mode === 'quiz' || mode === 'cfbQuiz') && state[mode] && state[mode].queue && state[mode].queue.length) return Math.round(100 * state[mode].correctCount / state[mode].queue.length);
+  if (mode === 'daily' && state.daily && state.daily.queue && state.daily.queue.length) return Math.round(100 * state.daily.correctCount / state.daily.queue.length);
+  return null;
+}
+function recordPersonalizationCompletion(mode, fields) {
+  if (!state.name || !mode) return;
+  var p = getPersonalizationState();
+  p.playEvents.push({ mode:mode, league:modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
+  setPersonalizationState(p, true);
+  checkWeeklyPersonalGoals();
+}
+function personalizationMasteryRows() {
+  var p = getPersonalizationState(), rows = [];
+  ['nfl','cfb'].forEach(function (league) {
+    Object.keys(p.categoryStats[league] || {}).forEach(function (cat) {
+      var x = p.categoryStats[league][cat];
+      if (!x || !x.total) return;
+      rows.push({ league:league, category:cat, correct:x.correct||0, total:x.total||0, pct:Math.round(100*(x.correct||0)/x.total) });
+    });
+  });
+  return rows.sort(function (x,y) { return y.total-x.total; });
+}
+function personalizationLeagueProfile() {
+  var events = getPersonalizationState().playEvents || [];
+  var out = { nfl:{plays:0,pcts:[]}, cfb:{plays:0,pcts:[]} };
+  events.forEach(function (e) {
+    var l = e.league === 'cfb' ? 'cfb' : 'nfl'; out[l].plays++;
+    if (typeof e.pct === 'number') out[l].pcts.push(e.pct);
+  });
+  ['nfl','cfb'].forEach(function (l) {
+    out[l].avg = out[l].pcts.length ? Math.round(out[l].pcts.reduce(function(s,n){return s+n;},0)/out[l].pcts.length) : null;
+  });
+  return out;
+}
+function weeklyGoalWeekKey() { return dailyRivalWeekKey(todayStr()); }
+function weeklyPersonalGoals() {
+  var week = weeklyGoalWeekKey(), p = getPersonalizationState();
+  var events = (p.playEvents || []).filter(function (e) {
+    var d = new Date(Number(e.at)||0), ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    return dailyRivalWeekKey(ds) === week;
+  });
+  var nfl = events.filter(function(e){return e.league!=='cfb';}).length;
+  var cfb = events.filter(function(e){return e.league==='cfb';}).length;
+  var daily = getDailyRecords().filter(function(r){return dailyRivalWeekKey(r.date)===week;}).length;
+  var mastery = personalizationMasteryRows();
+  var weak = mastery.filter(function(r){return r.total>=3;}).sort(function(x,y){return x.pct-y.pct;})[0];
+  var goals = [
+    { id:week+'_daily3', label:'Daily Habit', desc:'Complete Daily Reads 3 times this week.', current:daily, target:3, xp:75 },
+    { id:week+'_balance', label:'Play Both Sides', desc:'Play 2 NFL and 2 College games this week.', current:Math.min(2,nfl)+Math.min(2,cfb), target:4, xp:100 }
+  ];
+  if (weak) goals.push({ id:week+'_mastery_'+slugify(weak.league+'_'+weak.category), label:'Fix a Weak Spot', desc:'Get 5 more answers right in '+weak.category+'.', current:0, target:5, xp:100, weak:weak });
+  else goals.push({ id:week+'_games5', label:'Build Your Profile', desc:'Play 5 ranked games so Reads can learn your game.', current:events.length, target:5, xp:75 });
+  return goals;
+}
+function checkWeeklyPersonalGoals() {
+  if (!state.name) return;
+  var p = getPersonalizationState(), claims = {};
+  (p.weeklyClaims||[]).forEach(function(id){claims[id]=true;});
+  weeklyPersonalGoals().forEach(function(g){
+    if (claims[g.id] || g.current < g.target) return;
+    p.weeklyClaims.push(g.id); claims[g.id]=true;
+    var seasonId = footballSeasonIdForDate();
+    if (activeAuthUid && window.__fbSync && window.__fbSync.awardProgress) {
+      window.__fbSync.awardProgress(profileDocId(), 'personal_goal_'+g.id, {type:'PERSONAL_GOAL_COMPLETED',source:'personalization',goalId:g.id}, g.xp, seasonId)
+        .then(function(result){ if(!result || !result.duplicate) applyProgressAwardLocally(g.xp,seasonId); pushSeasonLeaderboardSnapshot(); pushProfileSnapshot(); }).catch(function(){});
+    } else applyProgressAwardLocally(g.xp, seasonId);
+  });
+  setPersonalizationState(p, true);
+}
+function personalizationMasteryHtml() {
+  if (!state.name) return '';
+  var rows = personalizationMasteryRows().filter(function(r){return r.total>=3;});
+  if (!rows.length) return '<section class="personalization-panel"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">YOUR FOOTBALL BRAIN</span><h3>Mastery Map</h3></div><span>Learning as you play</span></div><p class="mode-desc">Play Quiz, College Quiz, and Daily Reads to build category mastery.</p></section>';
+  var strongest = rows.slice().sort(function(x,y){return y.pct-x.pct;}).slice(0,3);
+  var weakest = rows.slice().sort(function(x,y){return x.pct-y.pct;}).slice(0,3);
+  function cards(list, cls){return list.map(function(r){return '<div class="mastery-chip '+cls+'"><span>'+esc(r.league.toUpperCase())+'</span><b>'+esc(r.category)+'</b><strong>'+r.pct+'%</strong><small>'+r.correct+'/'+r.total+' correct</small></div>';}).join('');}
+  return '<section class="personalization-panel"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">YOUR FOOTBALL BRAIN</span><h3>Mastery Map</h3></div><span>Real answer history</span></div><div class="mastery-columns"><div><h4>Strengths</h4>'+cards(strongest,'strong')+'</div><div><h4>Work On</h4>'+cards(weakest,'weak')+'</div></div></section>';
+}
+function weeklyPersonalGoalsHtml() {
+  if (!state.name) return '';
+  var claims=getPersonalizationState().weeklyClaims||[];
+  var goals=weeklyPersonalGoals();
+  return '<section class="personalization-panel weekly-personal-goals"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">THIS WEEK</span><h3>Your Missions</h3></div><span>Adaptive goals</span></div><div class="personal-goal-grid">'+goals.map(function(g){var done=claims.indexOf(g.id)!==-1||g.current>=g.target;var pct=Math.max(0,Math.min(100,Math.round(100*g.current/g.target)));return '<div class="personal-goal '+(done?'complete':'')+'"><div><b>'+esc(g.label)+'</b><span>+'+g.xp+' XP</span></div><p>'+esc(g.desc)+'</p><div class="personal-goal-track"><i style="width:'+pct+'%"></i></div><small>'+(done?'Complete':Math.min(g.current,g.target)+' / '+g.target)+'</small></div>';}).join('')+'</div></section>';
+}
 function recommendationHistoryKey() { return 'readsRecommendationHistory__' + slugify(state.name || 'guest'); }
 function getRecommendationHistory() { return lsGet(recommendationHistoryKey(), []); }
 function noteRecommendedModePlayed(mode) {
@@ -3693,9 +3841,11 @@ function modeMasteryScore(id) {
 }
 function recommendationReasonFor(mode, scoreBits) {
   if (scoreBits.unplayed) return 'New to you';
+  if (scoreBits.masteryFit) return 'Attack a weak spot';
   if (scoreBits.weakLeague) return 'Build your weak side';
   if (scoreBits.favoriteLeague) return 'Fits your teams';
   if (scoreBits.lowMastery) return 'Room to improve';
+  if (scoreBits.cooldown) return 'Fresh rotation';
   if (scoreBits.fresh) return 'Keep it fresh';
   return 'Picked for you';
 }
@@ -3709,9 +3859,17 @@ function scoredModeRecommendations(limit) {
   hist.slice(-5).forEach(function (x) { if (x && x.mode) recentModes[x.mode] = true; });
   if (last) recentModes[last] = true;
 
+  var profile = personalizationLeagueProfile();
   var nflPlays = LEAGUE_MODES.nfl.reduce(function (n,m) { return n + modeTimesPlayed(m.id); }, 0);
   var cfbPlays = LEAGUE_MODES.cfb.reduce(function (n,m) { return n + modeTimesPlayed(m.id); }, 0);
-  var weakerLeague = nflPlays === cfbPlays ? null : (nflPlays < cfbPlays ? 'nfl' : 'cfb');
+  var weakerLeague = profile.nfl.avg != null && profile.cfb.avg != null && profile.nfl.avg !== profile.cfb.avg
+    ? (profile.nfl.avg < profile.cfb.avg ? 'nfl' : 'cfb')
+    : (nflPlays === cfbPlays ? null : (nflPlays < cfbPlays ? 'nfl' : 'cfb'));
+  var playEvents = getPersonalizationState().playEvents || [];
+  var recentCounts = {};
+  playEvents.slice(-8).forEach(function(e){recentCounts[e.mode]=(recentCounts[e.mode]||0)+1;});
+  var masteryRows = personalizationMasteryRows().filter(function(r){return r.total>=3;});
+  var weakMasteryLeague = masteryRows.length ? masteryRows.slice().sort(function(x,y){return x.pct-y.pct;})[0].league : null;
   var daySeed = hashStr(todayStr() + '_smartReco_' + state.name);
 
   return all.map(function (m, idx) {
@@ -3723,6 +3881,8 @@ function scoredModeRecommendations(limit) {
       weakLeague: weakerLeague === league,
       favoriteLeague: !!fav[league],
       lowMastery: mastery != null && mastery < 70,
+      masteryFit: weakMasteryLeague === league,
+      cooldown: !recentCounts[m.id],
       fresh: !recentModes[m.id]
     };
     var score = 0;
@@ -3730,10 +3890,13 @@ function scoredModeRecommendations(limit) {
     if (bits.favoriteLeague) score += 18;
     if (bits.weakLeague) score += 12;
     if (bits.lowMastery) score += 18;
+    if (bits.masteryFit) score += 14;
+    if (bits.cooldown) score += 10;
     if (bits.fresh) score += 20;
     score += Math.max(0, 12 - Math.min(12, plays * 2));
     if (m.featured) score += 5;
     if (recentModes[m.id]) score -= 45;
+    if ((recentCounts[m.id] || 0) >= 2) score -= 35 * recentCounts[m.id];
     // Stable daily tie-breaker keeps recommendations consistent through rerenders.
     score += ((hashStr(m.id + '_' + daySeed + '_' + idx) % 100) / 100);
     return { mode: m, score: score, reason: recommendationReasonFor(m, bits), bits: bits };
@@ -3782,7 +3945,12 @@ function dailyCompletionBannerHtml(dailyTypeId) {
     (streak.count > 0 ? ' — ' + streak.count + '-day streak' : '') + '. Come back tomorrow for a new one.</div>';
 }
 function postGameNextStepsHtml(dailyTypeId) {
-  return dailyCompletionBannerHtml(dailyTypeId) + recommendedModeHtml();
+  var rec = scoredModeRecommendations(1)[0];
+  var mastery = personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(x,y){return x.pct-y.pct;})[0];
+  return dailyCompletionBannerHtml(dailyTypeId) +
+    (mastery ? '<div class="one-more-game-context"><b>Reads learned something:</b> '+esc(mastery.category)+' is currently your biggest tracked weak spot at '+mastery.pct+'%.</div>' : '') +
+    (rec ? '<div class="one-more-game-label">ONE MORE GAME · '+esc(rec.reason)+'</div>' : '') +
+    recommendedModeHtml();
 }
 // UI re-audit: this used to be a hardcoded "12 ways to play" in the tagline
 // below -- real, live-verified stale copy (production actually offers 19:
@@ -3922,6 +4090,8 @@ function renderHome() {
     dailyStreakRewardsHtml() +
     continuePlayingCardHtml() +
     recommendationShelfHtml() +
+    personalizationMasteryHtml() +
+    weeklyPersonalGoalsHtml() +
     modeSectionHtml('nfl') +
     modeSectionHtml('cfb') +
     discoverGridHtml() +
@@ -4232,6 +4402,7 @@ function pickQuizAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.quiz.correctCount++; if (q) removeFromMissedPool('nfl', q.id); }
   else if (q) { state.quiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('nfl', q.id); }
+  if (q) recordKnowledgeAnswer('nfl', q.category || 'General', !!isCorrect);
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -4508,6 +4679,7 @@ function pickCfbAnswer(i) {
   var isCorrect = q && i === q.correctIndex;
   if (isCorrect) { state.cfbQuiz.correctCount++; if (q) removeFromMissedPool('cfb', q.id); }
   else if (q) { state.cfbQuiz.missed.push({ question: q.question, options: q.options, correctIndex: q.correctIndex, pickedIndex: i }); addToMissedPool('cfb', q.id); }
+  if (q) recordKnowledgeAnswer('cfb', q.category || 'General', !!isCorrect);
   playSound(isCorrect ? 'correct' : 'wrong');
   renderAll();
 }
@@ -9841,6 +10013,7 @@ function pushLeaderboard(mode, fields) {
     favoriteCfbTeam: favTeamsForScore.cfb || null
   }, fields);
   if (window.__fbSync && window.__fbSync.pushScore) window.__fbSync.pushScore(docId, payload);
+  recordPersonalizationCompletion(mode, fields);
   recordSeasonGame(mode);
   pushProfileSnapshot();
   awardProgressForCompletion(mode, fields);
