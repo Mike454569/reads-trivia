@@ -12183,28 +12183,104 @@ function encyclopediaNormalizeQuery(q) {
   return q.replace(/\bcover\s+(one|two|three|four|five|six)\b/g, function (_, w) { return 'cover ' + F101_NUMBER_WORDS[w]; });
 }
 function encyclopediaSearch(query) {
-  var q = encyclopediaNormalizeQuery((query || '').trim().toLowerCase());
-  if (!q) return [];
-  var results = [];
-  var all = encyclopediaAllConcepts();
-  for (var id in all) {
-    var c = all[id];
-    var hay = (c.label || '') + ' ' + (c.subcategory || '') + ' ' + (c.domain || '');
-    if (c.fields) { for (var k in c.fields) hay += ' ' + c.fields[k]; }
-    if (hay.toLowerCase().indexOf(q) !== -1) {
-      results.push({ kind: 'concept', id: id, label: c.label, domain: c.domain, sub: c.subcategory });
-      if (results.length >= ENCYCLOPEDIA_SEARCH_LIMIT) return results;
-    }
+  var q=encyclopediaNormalizeQuery((query||'').trim().toLowerCase());
+  if(!q)return [];
+  var terms=q.split(/\s+/).filter(Boolean), results=[];
+  function fieldText(fields){
+    var out='';fields=fields||{};
+    Object.keys(fields).forEach(function(k){var v=fields[k];out+=' '+k+' '+(Array.isArray(v)?v.join(' '):String(v));});
+    return out;
   }
-  var teams = (LEARN_ENCYCLOPEDIA && LEARN_ENCYCLOPEDIA.team_scheme_profiles) || {};
-  for (var tid in teams) {
-    var t = teams[tid];
-    if ((t.label || '').toLowerCase().indexOf(q) !== -1) {
-      results.push({ kind: 'team', id: tid, label: t.label, domain: t.domain, sub: t.league });
-      if (results.length >= ENCYCLOPEDIA_SEARCH_LIMIT) return results;
-    }
+  function score(hay,label,sub){
+    hay=encyclopediaNormalizeQuery(String(hay||'').toLowerCase());
+    label=encyclopediaNormalizeQuery(String(label||'').toLowerCase());
+    sub=encyclopediaNormalizeQuery(String(sub||'').toLowerCase());
+    var total=0;
+    terms.forEach(function(t){
+      if(label===t)total+=30;
+      else if(label.indexOf(t)===0)total+=20;
+      else if(label.indexOf(t)!==-1)total+=14;
+      else if(sub.indexOf(t)!==-1)total+=8;
+      else if(hay.indexOf(t)!==-1)total+=3;
+      else total-=20;
+    });
+    if(hay.indexOf(q)!==-1)total+=10;
+    return total;
   }
-  return results;
+  var all=encyclopediaAllConcepts();
+  Object.keys(all).forEach(function(id){
+    var c=all[id], hay=(c.label||'')+' '+(c.subcategory||'')+' '+(c.domain||'')+fieldText(c.fields);
+    var s=score(hay,c.label,c.subcategory||c.domain);
+    if(s>0)results.push({kind:'concept',id:id,label:c.label,domain:c.domain,sub:c.subcategory,score:s});
+  });
+  var teams=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.team_scheme_profiles)||{};
+  Object.keys(teams).forEach(function(id){
+    var t=teams[id], hay=(t.label||'')+' '+(t.team||'')+' '+(t.league||'')+' '+(t.season||'')+fieldText(t.fields);
+    var s=score(hay,t.label,(t.league||'')+' '+(t.season||''));
+    if(s>0)results.push({kind:'team',id:id,label:t.label,domain:t.domain,sub:[t.league,t.season].filter(Boolean).join(' · '),score:s});
+  });
+  var hist=(LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.historical_records)||{};
+  Object.keys(hist).forEach(function(id){
+    var h=hist[id], hay=(h.label||'')+' '+(h.league||'')+' '+(h.side||'')+' '+(h.season||'')+fieldText(h.fields);
+    var s=score(hay,h.label,[h.league,h.season,h.side].filter(Boolean).join(' '));
+    if(s>0)results.push({kind:'hist',id:id,label:h.label,domain:'GREAT_UNITS',sub:[h.league,h.season,h.side].filter(Boolean).join(' · '),score:s});
+  });
+  results.sort(function(x,y){return y.score-x.score||String(x.label).localeCompare(String(y.label));});
+  return results.slice(0,ENCYCLOPEDIA_SEARCH_LIMIT);
+}
+
+function encyclopediaNodeFor(kind,id){
+  if(kind==='concept')return encyclopediaConceptByCanonicalId(id);
+  if(kind==='team')return ((LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.team_scheme_profiles)||{})[id]||null;
+  if(kind==='hist')return ((LEARN_ENCYCLOPEDIA&&LEARN_ENCYCLOPEDIA.historical_records)||{})[id]||null;
+  return null;
+}
+function encyclopediaRecentHtml(){
+  var n=filmNotebook(), viewed=n.viewed||{}, rows=Object.keys(viewed).sort(function(x,y){return viewed[y]-viewed[x];}).slice(0,6).map(function(key){
+    var p=key.split(':'),kind=p.shift(),id=p.join(':'),node=encyclopediaNodeFor(kind,id);
+    return node?{kind:kind,id:id,label:node.label||id,at:viewed[key]}:null;
+  }).filter(Boolean);
+  if(!rows.length)return '';
+  return '<section class="encyc-recent"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">RECENT FILM</span><h3>Pick Up Where You Left Off</h3></div><span>'+rows.length+' recent</span></div><div class="encyc-recent-row">'+
+    rows.map(function(r){return '<button data-encyc-open="'+esc(r.kind+':'+r.id)+'"><b>'+esc(r.label)+'</b><small>'+esc(encyclopediaPrettyLabel(r.kind))+'</small></button>';}).join('')+
+    '</div></section>';
+}
+function encyclopediaTopicNeighbors(id,node){
+  if(!node||!node.domain)return [];
+  var all=encyclopediaConceptsForDomain(node.domain), sub=node.subcategory||'';
+  return all.filter(function(c){return c.canonical_id!==id&&c.label!==node.label&&(sub?c.subcategory===sub:true);}).slice(0,6);
+}
+function encyclopediaGraphHtml(id,node){
+  if(!node||!node.domain)return '';
+  var explicit=encyclopediaRelatedFor(id).map(function(r){
+    var t=encyclopediaConceptByCanonicalId(r.id);if(!t)return null;
+    return {id:r.id,label:t.label,predicate:encyclopediaPrettyLabel(r.predicate),direction:r.direction};
+  }).filter(Boolean);
+  var topic=encyclopediaTopicNeighbors(id,node);
+  if(!explicit.length&&!topic.length)return '';
+  return '<section class="encyc-graph"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">KNOWLEDGE GRAPH</span><h3>Follow the Football</h3></div><span>'+(explicit.length+topic.length)+' connections</span></div>'+
+    (explicit.length?'<div class="encyc-graph-explicit">'+explicit.map(function(r){return '<button data-encyc-open="concept:'+esc(r.id)+'"><span>'+esc(r.direction==='out'?'→':'←')+'</span><div><b>'+esc(r.label)+'</b><small>'+esc(r.predicate)+'</small></div></button>';}).join('')+'</div>':'')+
+    (topic.length?'<div class="encyc-topic-strip"><span>More in '+esc(encyclopediaPrettyLabel(node.subcategory||node.domain))+'</span><div>'+topic.map(function(c){return '<button data-encyc-open="concept:'+esc(c.canonical_id)+'">'+esc(c.label)+'</button>';}).join('')+'</div></div>':'')+
+    '</section>';
+}
+function encyclopediaStudyFamily(node){
+  if(!node)return 'footballIQ';
+  var hay=[node.domain,node.subcategory,node.label].filter(Boolean).join(' ');
+  return filmFamilyForQuestion({category:hay,question:hay});
+}
+function encyclopediaStudyCtaHtml(node){
+  if(!node)return '';
+  var family=encyclopediaStudyFamily(node),meta=filmFamilyMeta(family);
+  return '<section class="encyc-study-cta"><div><span class="dashboard-eyebrow">TURN THIS INTO REPS</span><h3>'+meta.icon+' Study '+esc(meta.label)+'</h3><p>Jump from reading into an adaptive Film Room session weighted toward this concept family.</p></div><button class="btn-primary" data-encyc-study="'+esc(family)+'">Take 5 Reps</button></section>';
+}
+function encyclopediaDepthFactsHtml(node){
+  if(!node||!node.fields)return '';
+  var fields=node.fields, keys=Object.keys(fields), priority=['summary','what_to_identify','core_responsibilities','strengths','weaknesses','counters','coaching_points','key_reads','rules','technique','usage','advantages','disadvantages'];
+  var selected=[];
+  priority.forEach(function(k){if(fields[k]!=null&&selected.length<4)selected.push(k);});
+  keys.forEach(function(k){if(selected.indexOf(k)===-1&&selected.length<4&&fields[k]!=null)selected.push(k);});
+  if(!selected.length)return '';
+  return '<section class="encyc-key-takeaways"><span class="dashboard-eyebrow">COACH’S BOARD</span><div>'+selected.map(function(k){var v=fields[k];return '<article><b>'+esc(encyclopediaPrettyLabel(k))+'</b><p>'+esc(Array.isArray(v)?v.join('; '):String(v))+'</p></article>';}).join('')+'</div></section>';
 }
 
 // Football 101 Interactive Redesign, Section 4/5: looks a canonical_id up
