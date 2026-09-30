@@ -30,16 +30,35 @@ exports.handler = async () => {
     return { statusCode: 200, body: 'No subscribers yet.' };
   }
 
-  const payload = JSON.stringify({
-    title: 'Reads',
-    body: "Today's Daily Challenge is live — go get your rating in.",
-    url: '/'
-  });
+  function messageFor(meta) {
+    meta = meta || {};
+    const prefs = Object.assign({ daily:true, rivals:true, missions:true, comeback:true }, meta.prefs || {});
+    if (prefs.comeback && meta.comebackGap >= 2) {
+      return { title:'Reads · Comeback Drive', body:`You’ve been away ${meta.comebackGap} days. One ranked game gets you back on the board.`, url:'/' };
+    }
+    if (prefs.rivals && meta.rivalName && meta.rivalGap > 0) {
+      return { title:'Reads · Rival Alert', body:`${meta.rivalName} is ${meta.rivalGap} points ahead of you this week. Go take it back.`, url:'/#friends' };
+    }
+    if (prefs.missions && meta.weeklyHabitCurrent >= 3 && meta.weeklyHabitCurrent < meta.weeklyHabitTarget) {
+      return { title:'Reads · Weekly Drive', body:`${meta.weeklyHabitCurrent}/${meta.weeklyHabitTarget} Daily Reads days complete. Finish the week strong.`, url:'/' };
+    }
+    if (prefs.missions && meta.missionsOpen > 0) {
+      return { title:'Reads · Mission Check', body:`You’ve got ${meta.missionsOpen} weekly mission${meta.missionsOpen === 1 ? '' : 's'} still open.`, url:'/' };
+    }
+    if (prefs.daily && !meta.dailyDone) {
+      return { title:'Reads · Daily 5', body:(meta.streak ? `Your ${meta.streak}-day streak is live. ` : '') + 'Today’s Daily Reads is ready.', url:'/#daily' };
+    }
+    return null;
+  }
 
-  let sent = 0, removed = 0;
+  let sent = 0, removed = 0, skipped = 0;
   await Promise.all(blobs.map(async ({ key }) => {
-    const sub = await store.get(key, { type: 'json' });
-    if (!sub) return;
+    const record = await store.get(key, { type: 'json' });
+    if (!record) return;
+    const sub = record.subscription || record;
+    const msg = messageFor(record.meta || {});
+    if (!msg) { skipped++; return; }
+    const payload = JSON.stringify(msg);
     try {
       await webpush.sendNotification(sub, payload);
       sent++;
@@ -56,5 +75,5 @@ exports.handler = async () => {
     }
   }));
 
-  return { statusCode: 200, body: `Sent ${sent}, removed ${removed} stale subscriptions.` };
+  return { statusCode: 200, body: `Sent ${sent}, skipped ${skipped}, removed ${removed} stale subscriptions.` };
 };
