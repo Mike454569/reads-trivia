@@ -3714,8 +3714,8 @@ function mergePersonalization(local, cloud) {
       Object.keys(obj).forEach(function (cat) {
         var x = obj[cat] || {};
         cats[cat] = cats[cat] || { correct:0, total:0 };
-        cats[cat].correct += Number(x.correct) || 0;
-        cats[cat].total += Number(x.total) || 0;
+        cats[cat].correct = Math.max(cats[cat].correct, Number(x.correct) || 0);
+        cats[cat].total = Math.max(cats[cat].total, Number(x.total) || 0);
       });
     });
     stats[league] = cats;
@@ -3788,8 +3788,10 @@ function weeklyPersonalGoals() {
     { id:week+'_daily3', label:'Daily Habit', desc:'Complete Daily Reads 3 times this week.', current:daily, target:3, xp:75 },
     { id:week+'_balance', label:'Play Both Sides', desc:'Play 2 NFL and 2 College games this week.', current:Math.min(2,nfl)+Math.min(2,cfb), target:4, xp:100 }
   ];
-  if (weak) goals.push({ id:week+'_mastery_'+slugify(weak.league+'_'+weak.category), label:'Fix a Weak Spot', desc:'Get 5 more answers right in '+weak.category+'.', current:0, target:5, xp:100, weak:weak });
-  else goals.push({ id:week+'_games5', label:'Build Your Profile', desc:'Play 5 ranked games so Reads can learn your game.', current:events.length, target:5, xp:75 });
+  if (weak) {
+    var weakLeagueGames = events.filter(function(e){return (e.league==='cfb'?'cfb':'nfl')===weak.league;}).length;
+    goals.push({ id:week+'_weak_'+slugify(weak.league), label:'Attack Your Weak Side', desc:'Play 2 '+(weak.league==='cfb'?'College':'NFL')+' games. '+weak.category+' is your lowest tracked category at '+weak.pct+'%.', current:weakLeagueGames, target:2, xp:100, weak:weak });
+  } else goals.push({ id:week+'_games5', label:'Build Your Profile', desc:'Play 5 ranked games so Reads can learn your game.', current:events.length, target:5, xp:75 });
   return goals;
 }
 function checkWeeklyPersonalGoals() {
