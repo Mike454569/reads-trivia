@@ -5659,3 +5659,216 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 @media (prefers-reduced-motion: reduce) {
   .progression-result-hook.rank-up { animation:none; }
 }
+
+
+/* Film Room v2 */
+.film-mastery-tree,
+.film-coach-assignment,
+.film-boss-card,
+.film-review-queue,
+.profile-film-resume {
+  margin:16px 0;
+  padding:15px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.025);
+}
+.film-coach-assignment,
+.film-boss-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+}
+.film-coach-assignment {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.32);
+  background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.12),rgba(255,255,255,.02));
+}
+.film-boss-card {
+  border-color:rgba(255,255,255,.34);
+  background:
+    radial-gradient(circle at 88% 20%,rgba(var(--fav-team-rgb,255,255,255),.18),transparent 30%),
+    linear-gradient(120deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  box-shadow:0 14px 30px rgba(0,0,0,.12);
+}
+.film-coach-assignment h3,
+.film-boss-card h3 {
+  margin:3px 0 4px;
+}
+.film-coach-assignment p,
+.film-boss-card p {
+  margin:0;
+  color:var(--muted);
+  font-size:.75rem;
+  line-height:1.4;
+}
+.film-mastery-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.film-mastery-card {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:8px;
+  align-items:center;
+  padding:11px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:rgba(255,255,255,.018);
+}
+.film-mastery-card.mastery-coordinator,
+.film-mastery-card.mastery-guru {
+  border-color:rgba(var(--fav-team-rgb,255,255,255),.32);
+  background:rgba(var(--fav-team-rgb,255,255,255),.07);
+}
+.film-mastery-icon {
+  font-size:1.15rem;
+}
+.film-mastery-card > div {
+  display:grid;
+  gap:2px;
+}
+.film-mastery-card b {
+  font-size:.72rem;
+}
+.film-mastery-card small {
+  color:var(--muted);
+  font-size:.6rem;
+}
+.film-mastery-bar {
+  grid-column:1 / -1;
+  height:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+}
+.film-mastery-bar i {
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,var(--fav-team-color-readable,var(--accent)),#fff);
+}
+.film-review-queue > div:last-child {
+  display:grid;
+  gap:8px;
+}
+.film-review-queue article {
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(255,255,255,.018);
+}
+.film-review-queue article > div {
+  display:grid;
+  gap:2px;
+}
+.film-review-queue article b {
+  font-size:.7rem;
+}
+.film-review-queue article small {
+  color:var(--muted);
+  font-size:.62rem;
+}
+.film-session-target {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:10px 0 14px;
+  padding:8px 10px;
+  border:1px solid rgba(var(--fav-team-rgb,255,255,255),.22);
+  border-radius:12px;
+  background:rgba(var(--fav-team-rgb,255,255,255),.055);
+}
+.film-session-target span {
+  font-size:1rem;
+}
+.film-session-target b {
+  font-size:.72rem;
+}
+.film-session-target small {
+  margin-left:auto;
+  color:var(--muted);
+  font-size:.6rem;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.profile-film-stats {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.profile-film-stats > div {
+  display:grid;
+  gap:2px;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  text-align:center;
+  background:rgba(255,255,255,.018);
+}
+.profile-film-stats b {
+  font-size:1.05rem;
+}
+.profile-film-stats span,
+.profile-film-readout span,
+.profile-film-mastery small {
+  color:var(--muted);
+  font-size:.62rem;
+}
+.profile-film-readout {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:9px;
+}
+.profile-film-readout > div {
+  display:grid;
+  gap:3px;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+}
+.profile-film-readout b {
+  font-size:.72rem;
+}
+.profile-film-mastery {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-top:9px;
+}
+.profile-film-mastery > span {
+  display:grid;
+  gap:2px;
+  padding:8px 10px;
+  border-radius:11px;
+  background:rgba(255,255,255,.025);
+}
+.profile-film-mastery b {
+  font-size:.68rem;
+}
+@media (max-width:800px) {
+  .film-mastery-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:620px) {
+  .film-coach-assignment,
+  .film-boss-card {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .film-coach-assignment .btn-primary,
+  .film-boss-card .btn-secondary {
+    width:100%;
+    justify-content:center;
+  }
+  .profile-film-stats,
+  .profile-film-readout,
+  .profile-film-mastery {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
