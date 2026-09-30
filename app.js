@@ -2875,6 +2875,14 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
     ['fourthDownDecision','fourth_down_decision','flag','hardcore'],
     ['seriesSweep','series_sweep','trophy','competitive'],
     ['roadTo100','road_to100','target','hardcore'],
+    ['optionEraser','option_eraser','xMark','competitive'],
+    ['routeTree','route_tree','arrowRight','competitive'],
+    ['turnoverBattle','turnover_battle','shield','competitive'],
+    ['categoryLockout','category_lockout','lock','hardcore'],
+    ['hailMary','hail_mary','football','competitive'],
+    ['movingTarget','moving_target','target','hardcore'],
+    ['draftOrder','draft_order','arrowUp','competitive'],
+    ['championshipRun','championship_run','trophy','hardcore'],
   ].forEach(function (row) {
     var key=row[0], cfg=ENGINE_MECHANIC_MODES[key];
     if (!cfg || !cfg.flagOn()) return;
