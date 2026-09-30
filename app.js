@@ -547,6 +547,11 @@ function contentRepeatPenalty(q, league) {
   questionEntityTokens(q).forEach(function(e){if(recent[e])penalty+=12*recent[e];});
   return penalty;
 }
+function mergeContentMemory(local, cloud) {
+  local=local||{questions:[],entities:[]}; cloud=cloud||{questions:[],entities:[]};
+  function mergeRecent(a,b,limit){var seen={},out=[];(a||[]).concat(b||[]).forEach(function(x){if(!x||seen[x])return;seen[x]=true;out.push(x);});return out.slice(-limit);}
+  return {questions:mergeRecent(local.questions,cloud.questions,180),entities:mergeRecent(local.entities,cloud.entities,120)};
+}
 function questionQualityScore(q, league, targetDifficulty) {
   if(!q||typeof q.question!=='string'||!Array.isArray(q.options)||q.options.length<2)return 0;
   if(typeof q.correctIndex!=='number'||q.correctIndex<0||q.correctIndex>=q.options.length)return 0;
@@ -913,7 +918,8 @@ function pushProfileSnapshot() {
     dailyReads: dailyReadsProfileState(),
     rewards: rewardsProfileState(),
     progression: getProgression(),
-    personalization: getPersonalizationState()
+    personalization: getPersonalizationState(),
+    contentMemory: getContentMemory()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -938,6 +944,7 @@ function pullProfileSnapshot() {
     var beforeDailyReads = JSON.stringify(dailyReadsProfileState());
     var beforeRewards = JSON.stringify(getRewards());
     var beforePersonalization = JSON.stringify(getPersonalizationState());
+    var beforeContentMemory = JSON.stringify(getContentMemory());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
@@ -945,6 +952,7 @@ function pullProfileSnapshot() {
     var mergedDailyReads = mergeDailyReads(dailyReadsProfileState(), cloud.dailyReads);
     var mergedRewards = mergeRewards(getRewards(), cloud.rewards);
     var mergedPersonalization = mergePersonalization(getPersonalizationState(), cloud.personalization);
+    var mergedContentMemory = mergeContentMemory(getContentMemory(), cloud.contentMemory);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
@@ -955,13 +963,15 @@ function pullProfileSnapshot() {
     setDailyStreakClaims(mergedDailyReads.streakClaims);
     setRewards(mergedRewards, true);
     setPersonalizationState(mergedPersonalization, true);
+    lsSet(contentMemoryKey(), mergedContentMemory);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
       JSON.stringify(mergedProgression) !== beforeProgression ||
       JSON.stringify(mergedDailyReads) !== beforeDailyReads ||
       JSON.stringify(mergedRewards) !== beforeRewards ||
-      JSON.stringify(mergedPersonalization) !== beforePersonalization;
+      JSON.stringify(mergedPersonalization) !== beforePersonalization ||
+      JSON.stringify(mergedContentMemory) !== beforeContentMemory;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -4024,7 +4034,10 @@ function noteRecommendedModePlayed(mode) {
   h.push({ mode: mode, at: Date.now() });
   lsSet(recommendationHistoryKey(), h.slice(-20));
 }
-function modeLeague(id) { if (id === 'endless') return 'mixed'; return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl'; }
+function modeLeague(id) {
+  if (id === 'endless' && typeof ENDLESS !== 'undefined' && ENDLESS && ENDLESS.league) return ENDLESS.league;
+  return id && id.indexOf('cfb') === 0 ? 'cfb' : 'nfl';
+}
 function modeMasteryScore(id) {
   var st = state.stats[id] || {};
   if (typeof st.bestPct === 'number') return st.bestPct;
