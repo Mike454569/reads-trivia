@@ -2876,6 +2876,58 @@ function discoverGridHtml() {
   return '<h2 class="mode-section-title">More Ways to Play</h2>' +
     '<div class="discover-grid">' + cards.join('') + '</div>';
 }
+var PROGRESSION_RANKS = [
+  { name: 'Rookie', min: 0 },
+  { name: 'Starter', min: 250 },
+  { name: 'Playmaker', min: 750 },
+  { name: 'Veteran', min: 1500 },
+  { name: 'All-Pro', min: 3000 },
+  { name: 'Legend', min: 6000 }
+];
+function progressionRankFor(xp) {
+  xp = Math.max(0, Number(xp) || 0);
+  var current = PROGRESSION_RANKS[0], next = null;
+  for (var i = 0; i < PROGRESSION_RANKS.length; i++) {
+    if (xp >= PROGRESSION_RANKS[i].min) current = PROGRESSION_RANKS[i];
+    else { next = PROGRESSION_RANKS[i]; break; }
+  }
+  var pct = 1;
+  if (next) pct = Math.max(0, Math.min(1, (xp - current.min) / (next.min - current.min)));
+  return { name: current.name, next: next && next.name, xp: xp, pct: pct, toNext: next ? next.min - xp : 0 };
+}
+function personalDashboardHtml() {
+  if (!state.name) return '';
+  var p = getProgression();
+  var seasonId = footballSeasonIdForDate();
+  var seasonalXp = p.seasons && p.seasons[seasonId] ? Number(p.seasons[seasonId].xp) || 0 : 0;
+  var career = progressionRankFor(p.careerXp);
+  var seasonal = progressionRankFor(seasonalXp);
+  var streak = getStreak();
+  var rating = getRating();
+  var fav = primaryFavoriteTeam();
+  function rankCard(label, rank, suffix) {
+    return '<div class="dashboard-rank-card"><div class="dashboard-card-label">' + esc(label) + '</div>' +
+      '<div class="dashboard-rank-name">' + esc(rank.name) + '</div>' +
+      '<div class="dashboard-xp-line"><b>' + rank.xp + ' XP</b><span>' + (rank.next ? rank.toNext + ' to ' + esc(rank.next) : 'Max rank') + '</span></div>' +
+      '<span class="dashboard-xp-track"><span style="width:' + Math.round(rank.pct * 100) + '%"></span></span>' +
+      (suffix ? '<div class="dashboard-card-foot">' + esc(suffix) + '</div>' : '') +
+      '</div>';
+  }
+  return '<section class="personal-dashboard" aria-label="Your Reads dashboard">' +
+    '<div class="dashboard-head"><div><span class="dashboard-eyebrow">YOUR READS</span><h2>' + esc(state.name) + ''s Dashboard</h2></div>' +
+    (fav ? '<span class="dashboard-team">' + favoriteTeamBadgeHtml() + esc(fav.name) + '</span>' : '') + '</div>' +
+    '<div class="dashboard-ranks">' +
+    rankCard('Career Rank', career, 'Permanent') +
+    rankCard(seasonId + ' Season', seasonal, 'Resets next football season') +
+    '</div>' +
+    '<div class="dashboard-quick-stats">' +
+    '<div><span>' + icon('flame') + '</span><b>' + (streak.count || 0) + '</b><small>Day Streak</small></div>' +
+    '<div><span>' + icon('shield') + '</span><b>' + (rating ? rating.score : '—') + '</b><small>Football Rating</small></div>' +
+    '<div><span>' + icon('trophy') + '</span><b>' + (state.stats.daily.completions || 0) + '</b><small>Daily Wins</small></div>' +
+    '</div>' +
+    '</section>';
+}
+
 function renderHome() {
   return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
     '<div class="hero-kicker">Built for people who actually know ball</div>' +
@@ -2885,6 +2937,7 @@ function renderHome() {
     '<div class="hero-actions"><button class="btn-primary" data-go="quiz">Play NFL Quiz ' + icon('arrowRight') + '</button>' +
     '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
     teamPickerPromptCardHtml() +
+    personalDashboardHtml() +
     dailyChallengeCardHtml() +
     continuePlayingCardHtml() +
     recommendedModeHtml() +
