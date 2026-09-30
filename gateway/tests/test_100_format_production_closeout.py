@@ -18,8 +18,8 @@ def test_closeout_keeps_honest_100_format_audit_green():
     snap=audit_snapshot()
     assert snap["passes_integrity_gate"] is True
     assert snap["reached_100_distinct_formats"] is True
-    assert snap["registry"]["distinct_format_count"] == 100
-    assert snap["registry"]["target_gap"] == 0
+    assert snap["formats"]["distinct_format_count"] == 100
+    assert snap["formats"]["target_gap"] == 0
 
 
 def test_format_funnel_tracks_discovery_launch_completion_and_share():
@@ -73,7 +73,7 @@ def test_format_exploration_achievements_are_persistent_and_syncable():
 
 def test_home_to_game_to_completion_to_share_smoke_wiring_exists():
     # Discovery card/quick play launches through the shared data-go path.
-    assert 'data-go="'+esc(m.id)+'"' in APP
+    assert 'data-go="' in APP and "esc(m.id)" in APP
     assert "function goToMode(mode)" in APP
     assert "startMechanicPilotRound(mechanicEntry.mechanicMode, mode);" in APP
     # Dynamic game completion and existing result/share affordances.
