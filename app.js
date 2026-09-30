@@ -850,7 +850,8 @@ function pushProfileSnapshot() {
     accountUid: activeAuthUid || null,
     stats: state.stats,
     streak: getStreak(),
-    favoriteTeams: getFavoriteTeams()
+    favoriteTeams: getFavoriteTeams(),
+    dailyReads: dailyReadsProfileState()
   });
 }
 // UID-keyed profiles are authoritative for real accounts. If this is the
@@ -872,18 +873,23 @@ function pullProfileSnapshot() {
     var beforeStreak = JSON.stringify(getStreak());
     var beforeFavorites = JSON.stringify(getFavoriteTeams());
     var beforeProgression = JSON.stringify(getProgression());
+    var beforeDailyReads = JSON.stringify(dailyReadsProfileState());
     state.stats = mergeStats(state.stats, cloud.stats);
     var mergedStreak = mergeStreak(getStreak(), cloud.streak);
     var mergedFavorites = mergeFavoriteTeams(getFavoriteTeams(), cloud.favoriteTeams);
     var mergedProgression = mergeProgression(getProgression(), cloud.progression);
+    var mergedDailyReads = mergeDailyReads(dailyReadsProfileState(), cloud.dailyReads);
     lsSet('nflTriviaStats', state.stats);
     lsSet(streakKey(), mergedStreak);
     lsSet(favoriteTeamsKey(), mergedFavorites);
     setProgression(mergedProgression);
+    if (mergedDailyReads.result) lsSet(dailyKey(), mergedDailyReads.result);
+    setDailyHistory(mergedDailyReads.history);
     var changed = JSON.stringify(state.stats) !== beforeStats ||
       JSON.stringify(mergedStreak) !== beforeStreak ||
       JSON.stringify(mergedFavorites) !== beforeFavorites ||
-      JSON.stringify(mergedProgression) !== beforeProgression;
+      JSON.stringify(mergedProgression) !== beforeProgression ||
+      JSON.stringify(mergedDailyReads) !== beforeDailyReads;
     if (changed || (result && result.migrated)) {
       pushProfileSnapshot();
       renderAll();
@@ -1176,64 +1182,154 @@ function seededShuffle(arr, rng) {
   for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
   return a;
 }
-var DAILY_SIZE = 10;
+var DAILY_SIZE = 5;
+var DAILY_READS_SLOT_LABELS = ['YOUR TEAM', 'WEAK SPOT', 'NFL QUICK HIT', 'CFB QUICK HIT', 'THE FINISHER'];
+function dailyQuestionKey(q) { return (q._dailyLeague || 'NFL') + ':' + q.id; }
+function dailyHistoryKey() { return 'nflTriviaDailyReadsHistory__' + slugify(state.name || 'guest'); }
+function getDailyHistory() { return lsGet(dailyHistoryKey(), []); }
+function setDailyHistory(v) { lsSet(dailyHistoryKey(), (v || []).slice(-35)); }
+function dailyReadsProfileState() {
+  return { result: getDailyResult(), history: getDailyHistory() };
+}
+function mergeDailyReads(local, cloud) {
+  local = local || { result: null, history: [] };
+  cloud = cloud || { result: null, history: [] };
+  var lr = local.result, cr = cloud.result;
+  var result = (!lr || (cr && String(cr.date || '') > String(lr.date || ''))) ? cr : lr;
+  var seen = {}, history = [];
+  (local.history || []).concat(cloud.history || []).forEach(function (k) {
+    if (!seen[k]) { seen[k] = true; history.push(k); }
+  });
+  return { result: result || null, history: history.slice(-35) };
+}
+function questionMentionsTeam(q, team) {
+  if (!q || !team) return false;
+  var hay = (String(q.question || '') + ' ' + (q.options || []).join(' ')).toLowerCase();
+  var names = [team.name, team.code, team.id].filter(Boolean).map(function (x) { return String(x).toLowerCase(); });
+  return names.some(function (n) { return n.length > 2 && hay.indexOf(n) !== -1; });
+}
+function dailyCandidatePool(source, league) {
+  return (source || []).map(function (q) {
+    return Object.assign({}, q, { _dailyLeague: league });
+  });
+}
+function pickDailyCandidate(pool, rng, used, recent, predicate) {
+  var candidates = pool.filter(function (q) {
+    var key = dailyQuestionKey(q);
+    return !used[key] && !recent[key] && (!predicate || predicate(q));
+  });
+  if (!candidates.length) {
+    candidates = pool.filter(function (q) {
+      var key = dailyQuestionKey(q);
+      return !used[key] && (!predicate || predicate(q));
+    });
+  }
+  if (!candidates.length && predicate) return pickDailyCandidate(pool, rng, used, recent, null);
+  if (!candidates.length) return null;
+  var q = candidates[Math.floor(rng() * candidates.length)];
+  used[dailyQuestionKey(q)] = true;
+  return q;
+}
+function dailyWeakSpot() {
+  var nfl = weakCategories('nfl')[0];
+  var cfb = weakCategories('cfb')[0];
+  if (!nfl && !cfb) return null;
+  if (!nfl) return { league: 'CFB', category: cfb.category };
+  if (!cfb) return { league: 'NFL', category: nfl.category };
+  return nfl.count >= cfb.count ? { league: 'NFL', category: nfl.category } : { league: 'CFB', category: cfb.category };
+}
 function dailyQuestionPool() {
-  var rng = mulberry32(hashStr(todayStr()));
-  var half = Math.floor(DAILY_SIZE / 2);
-  var nfl = seededShuffle(QUIZ, rng).slice(0, half);
-  var cfb = seededShuffle(CFB, rng).slice(0, DAILY_SIZE - half);
-  return seededShuffle(nfl.concat(cfb), rng);
+  var seed = todayStr() + '__dailyReads__' + (state.name || 'guest');
+  var rng = mulberry32(hashStr(seed));
+  var nflPool = dailyCandidatePool(QUIZ, 'NFL');
+  var cfbPool = dailyCandidatePool(CFB, 'CFB');
+  var all = nflPool.concat(cfbPool);
+  var recent = {};
+  getDailyHistory().slice(-20).forEach(function (k) { recent[k] = true; });
+  var used = {};
+  var out = [];
+  var favs = getFavoriteTeams();
+  var preferredTeams = [];
+  if (favs.nfl) preferredTeams.push({ league: 'NFL', team: favoriteTeamById('nfl', favs.nfl) });
+  if (favs.cfb) preferredTeams.push({ league: 'CFB', team: favoriteTeamById('cfb', favs.cfb) });
+  var primary = primaryFavoriteTeam();
+  if (primary && favs.lastPicked) {
+    preferredTeams.sort(function (a) { return a.league === favs.lastPicked.toUpperCase() ? -1 : 1; });
+  }
+  var teamPick = null;
+  for (var i = 0; i < preferredTeams.length && !teamPick; i++) {
+    var tp = preferredTeams[i];
+    var source = tp.league === 'NFL' ? nflPool : cfbPool;
+    teamPick = pickDailyCandidate(source, rng, used, recent, function (q) { return questionMentionsTeam(q, tp.team); });
+  }
+  if (!teamPick) teamPick = pickDailyCandidate(all, rng, used, recent, null);
+  if (teamPick) {
+    teamPick._dailySlot = DAILY_READS_SLOT_LABELS[0];
+    teamPick._dailyReason = preferredTeams.length && questionMentionsTeam(teamPick, preferredTeams[0].team) ? 'Picked around one of your teams' : 'Personalized opener';
+    out.push(teamPick);
+  }
+
+  var weak = dailyWeakSpot(), weakPick = null;
+  if (weak) {
+    var weakPool = weak.league === 'NFL' ? nflPool : cfbPool;
+    weakPick = pickDailyCandidate(weakPool, rng, used, recent, function (q) { return q.category === weak.category; });
+  }
+  if (!weakPick) weakPick = pickDailyCandidate(all, rng, used, recent, null);
+  if (weakPick) {
+    weakPick._dailySlot = DAILY_READS_SLOT_LABELS[1];
+    weakPick._dailyReason = weak ? ('Based on your misses · ' + weak.category) : 'Build your range';
+    out.push(weakPick);
+  }
+
+  var nflPick = pickDailyCandidate(nflPool, rng, used, recent, null);
+  if (nflPick) { nflPick._dailySlot = DAILY_READS_SLOT_LABELS[2]; nflPick._dailyReason = 'NFL'; out.push(nflPick); }
+  var cfbPick = pickDailyCandidate(cfbPool, rng, used, recent, null);
+  if (cfbPick) { cfbPick._dailySlot = DAILY_READS_SLOT_LABELS[3]; cfbPick._dailyReason = 'College Football'; out.push(cfbPick); }
+
+  var rating = getRating();
+  var hardWords = ['hard', 'expert', 'sicko'];
+  var finisher = pickDailyCandidate(all, rng, used, recent, function (q) {
+    var d = String(q.difficulty || '').toLowerCase();
+    return rating && rating.score >= 115 ? hardWords.some(function (w) { return d.indexOf(w) !== -1; }) : true;
+  });
+  if (!finisher) finisher = pickDailyCandidate(all, rng, used, recent, null);
+  if (finisher) { finisher._dailySlot = DAILY_READS_SLOT_LABELS[4]; finisher._dailyReason = 'Finish strong'; out.push(finisher); }
+  return out.slice(0, DAILY_SIZE);
 }
 function dailyKey() { return 'nflTriviaDaily__' + slugify(state.name); }
 function getDailyResult() { return state.name ? lsGet(dailyKey(), null) : null; }
 function playedToday() { var r = getDailyResult(); return !!(r && r.date === todayStr()); }
-// Which mode today's Daily Challenge routes into — deterministic per day (same
-// seeded-hash pattern as dailyQuestionPool) so it's the same for everyone, but
-// varies day to day across every mode type that makes sense as a quick daily
-// pick: the classic 10-question quiz, Silhouette, either Immaculate Grid, either
-// Blitz list pool, or a full 17-0/12-0 fantasy draft.
-var DAILY_CHALLENGE_TYPES = [
-  { id: 'quiz', mode: 'daily', label: 'Daily Quiz', desc: '10 mixed NFL + College Football questions, same for everyone today.' },
-  { id: 'silhouette', mode: 'silhouette', label: 'Silhouette', desc: 'Guess 5 players from a silhouette and a ladder of clues.' },
-  { id: 'grid', mode: 'grid', label: 'NFL Immaculate Grid', desc: 'A fresh 3x3 NFL grid — name a player for every square.' },
-  { id: 'cfbGrid', mode: 'cfbGrid', label: 'CFB Immaculate Grid', desc: 'A fresh 3x3 college football grid — name a player for every square.' },
-  { id: 'blitz', mode: 'blitz', label: 'NFL Blitz', desc: 'Type every correct answer you can before the clock runs out.' },
-  { id: 'cfbBlitz', mode: 'cfbBlitz', label: 'CFB Blitz', desc: 'Type every correct college football answer before the clock runs out.' },
-  { id: 'legends', mode: 'legends', label: '17-0', desc: 'Draft a 7-player fantasy team and see if it grades out as a perfect season.' },
-  { id: 'cfbLegends', mode: 'cfbLegends', label: 'CFB 12-0', desc: 'Draft an 8-player college roster and see how your season plays out.' }
-];
-function dailyChallengeTypeForToday() {
-  var rng = mulberry32(hashStr(todayStr() + '__dailyType'));
-  return DAILY_CHALLENGE_TYPES[Math.floor(rng() * DAILY_CHALLENGE_TYPES.length)];
-}
-// Shared completion bookkeeping for every non-quiz daily type (the quiz type's
-// own finishDailyChallenge() below calls this too, after its quiz-specific stat
-// updates) — bumps the streak, records today's generic result, and pushes to
-// the Daily Challenge leaderboard, regardless of which underlying mode was
-// actually played. No-ops if this round wasn't today's designated daily type
-// (i.e. the player just played that mode normally, not via the daily card).
-function completeDailyChallengeFrom(typeId, label, pct) {
-  if (!state.dailyChallengeActive || state.dailyChallengeActive.id !== typeId) return;
-  state.dailyChallengeActive = null;
+function completeDailyReads(label, pct) {
+  if (playedToday()) return;
   var st = state.stats.daily;
   st.completions++;
   if (typeof pct === 'number' && Math.round(pct) > st.bestPct) st.bestPct = Math.round(pct);
   lsSet('nflTriviaStats', state.stats);
   bumpStreak();
-  if (state.name) lsSet(dailyKey(), { date: todayStr(), type: typeId, label: label, graceUsed: lastStreakGraceUsed });
+  var result = {
+    date: todayStr(),
+    type: 'dailyReads',
+    label: label,
+    correct: state.daily ? state.daily.correctCount : null,
+    total: state.daily ? state.daily.queue.length : DAILY_SIZE,
+    graceUsed: lastStreakGraceUsed
+  };
+  if (state.name) lsSet(dailyKey(), result);
+  var hist = getDailyHistory();
+  (state.daily && state.daily.queue || []).forEach(function (q) { hist.push(dailyQuestionKey(q)); });
+  setDailyHistory(hist);
   pushLeaderboard('daily', { completions: st.completions, bestPct: st.bestPct });
-  state.justCompletedDaily = { typeId: typeId };
+  pushProfileSnapshot();
+  state.justCompletedDaily = { typeId: 'dailyReads' };
 }
-// Loads a mode's data file (if not already loaded, same lazy-load path as
-// goToMode) then runs startFn — used to route the Daily Challenge into
-// whichever real mode today's type points at. Forces that mode's ranked
-// preference to true for the duration of startFn so a daily run always
-// counts, regardless of the player's usual Practice-mode toggle for it.
-// Shared by startDailyIntoMode (below) and the Head-to-Head equivalent
-// (startH2hIntoMode, see the head-to-head section) — both route into a real
-// mode's own engine from a wrapper flow, so both need "load this mode's data
-// file if it isn't already, then run" as a first step, same lazy-load path
-// goToMode itself uses.
+function completeDailyChallengeFrom(typeId, label, pct) {
+  // Compatibility shim for any older cached mode that finishes a legacy
+  // Daily Challenge after this release. New Daily Reads never routes out to
+  // a full mode, but we still honor an already-started legacy session once.
+  if (!state.dailyChallengeActive || state.dailyChallengeActive.id !== typeId) return;
+  state.dailyChallengeActive = null;
+  completeDailyReads(label, pct);
+}
 function loadModeDataThenRun(mode, run, onError) {
   var files = MODE_DATA_FILES[mode];
   var pending = files && files.filter(function (f) { return !loadedScripts[f]; });
@@ -1252,9 +1348,6 @@ function loadModeDataThenRun(mode, run, onError) {
   refreshDataAliases();
   run();
 }
-// Forces mode's ranked preference to true for the duration of startFn (a
-// daily/h2h run always counts, regardless of the player's usual Practice
-// toggle for that mode) then restores whatever it was before.
 function startModeRanked(mode, startFn) {
   var prevPref = state.rankedPref[mode];
   state.rankedPref[mode] = true;
@@ -1267,30 +1360,17 @@ function startDailyIntoMode(mode, startFn) {
 function startDailyChallenge() {
   beginProgressSession('daily');
   if (playedToday()) return;
-  var today = dailyChallengeTypeForToday();
-  state.dailyChallengeActive = today;
-  if (today.id === 'quiz') {
-    state.daily = { queue: dailyQuestionPool(), index: 0, correctCount: 0, answeredIndex: null, missed: [], screen: 'question' };
-    state.screen = 'daily';
-    renderAll();
-    return;
-  }
-  if (today.id === 'blitz' || today.id === 'cfbBlitz') {
-    startDailyIntoMode(today.mode, function () {
-      var pool = today.id === 'blitz' ? BLITZ_LISTS : CFB_BLITZ_LISTS;
-      var rng = mulberry32(hashStr(todayStr() + '__dailyList'));
-      var listId = pool[Math.floor(rng() * pool.length)].id;
-      (today.id === 'blitz' ? startBlitz : startCfbBlitz)(listId, 90);
-    });
-    return;
-  }
-  startDailyIntoMode(today.mode, function () {
-    if (today.id === 'silhouette') startSilhouetteRound(5);
-    else if (today.id === 'grid') startGridRound();
-    else if (today.id === 'cfbGrid') startCfbGridRound();
-    else if (today.id === 'legends') startLegends();
-    else if (today.id === 'cfbLegends') startCfbLegends();
-  });
+  state.dailyChallengeActive = null;
+  state.daily = {
+    queue: dailyQuestionPool(),
+    index: 0,
+    correctCount: 0,
+    answeredIndex: null,
+    missed: [],
+    screen: 'question'
+  };
+  state.screen = 'daily';
+  renderAll();
 }
 function currentDailyQuestion() { return state.daily.queue[state.daily.index]; }
 function pickDailyAnswer(i) {
@@ -8579,7 +8659,7 @@ function progressionEventForCompletion(mode, fields) {
 }
 function awardProgressForCompletion(mode, fields) {
   if (!state.name || !mode) return;
-  var eventId = progressEventIdFor(mode);
+  var eventId = mode === 'daily' ? ('daily_' + todayStr()) : progressEventIdFor(mode);
   if (awardedProgressSessions[mode] === eventId) return;
   awardedProgressSessions[mode] = eventId;
   var seasonId = footballSeasonIdForDate();
