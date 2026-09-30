@@ -175,7 +175,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/sorting.py:generate_sorting_round()",
         "qa_requirements": "No duplicate item_ids; real, verified chronological/ranked order.",
         "casual_aliases": ["put these in order", "sort these"],
-        "mobile_verified": False, "creator_selectable": False, "production_status": "PRODUCTION_READY",
+        "mobile_verified": True, "creator_selectable": False, "production_status": "PRODUCTION_READY",
     },
     "TIMELINE_RIBBON": {
         "format_id": "TIMELINE_RIBBON",
@@ -449,7 +449,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/matching.py:generate_matching_round()",
         "qa_requirements": "No duplicate left/right item_ids; every pair independently real and verified.",
         "casual_aliases": ["match these up", "pair these"],
-        "mobile_verified": False, "creator_selectable": False, "production_status": "PRODUCTION_READY",
+        "mobile_verified": True, "creator_selectable": False, "production_status": "PRODUCTION_READY",
     },
     "COMPARE_CARD_DEFAULT": {
         "format_id": "COMPARE_CARD_DEFAULT",
@@ -474,7 +474,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/higher_lower.py:generate_higher_lower_round() (server variant)",
         "qa_requirements": "Sequence values real and distinct enough to avoid ties at the compare boundary.",
         "casual_aliases": [],
-        "mobile_verified": False, "creator_selectable": False, "production_status": "PRODUCTION_READY",
+        "mobile_verified": True, "creator_selectable": False, "production_status": "PRODUCTION_READY",
     },
     "SURVIVAL_PROMPT_DEFAULT": {
         "format_id": "SURVIVAL_PROMPT_DEFAULT",
@@ -498,7 +498,7 @@ VISUAL_TEMPLATE_REGISTRY: dict[str, dict] = {
         "generation_schema": "tools/director_v04/elimination.py:generate_elimination_round()",
         "qa_requirements": "Every prompt's real membership independently verified before publishing.",
         "casual_aliases": [],
-        "mobile_verified": False, "creator_selectable": False, "production_status": "PRODUCTION_READY",
+        "mobile_verified": True, "creator_selectable": False, "production_status": "PRODUCTION_READY",
     },
     "CARD_STACK": {
         "format_id": "CARD_STACK",
