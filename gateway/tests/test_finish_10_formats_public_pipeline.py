@@ -50,9 +50,13 @@ def test_all_10_new_public_modes_are_listed():
         "goal_line_stand_nfl", "goal_line_stand_cfb", "lineup_builder_nfl", "lineup_builder_cfb",
         "auction_draft_nfl", "auction_draft_cfb", "cap_challenge_nfl", "cap_challenge_cfb",
         "knockout_tournament_nfl", "knockout_tournament_cfb",
-        "six_degrees_cfb_nfl", "chain_reaction_cfb_nfl", "choose_your_path_nfl",
+        "six_degrees_cfb_nfl", "choose_your_path_nfl",
     }
     assert expected.issubset(modes)
+    # Final format audit: Chain Reaction is the same backend + variant as
+    # Six Degrees, so it remains directly callable for backwards
+    # compatibility but is intentionally hidden from discovery.
+    assert "chain_reaction_cfb_nfl" not in modes
 
 
 # --- 1. CONNECTION_GRID -------------------------------------------------------
