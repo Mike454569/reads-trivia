@@ -6491,13 +6491,20 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 
 /* Reads-owned game art system — generated badge art, no league/team logos. */
 .reads-game-art{display:block;background-image:var(--game-art-image);background-repeat:no-repeat;background-size:var(--game-art-size-x) var(--game-art-size-y);background-position:var(--game-art-pos-x) var(--game-art-pos-y);background-color:#07101b}
-.format-hub-card-art{width:calc(100% + 30px);aspect-ratio:1.58/1;margin:-15px -15px 12px;border-bottom:1px solid var(--border);box-shadow:inset 0 -18px 24px -24px rgba(0,0,0,.9)}
+.format-hub-card-art{width:calc(100% + 30px);aspect-ratio:1/1;margin:-15px -15px 12px;border-bottom:1px solid var(--border);box-shadow:inset 0 -18px 24px -24px rgba(0,0,0,.9)}
 .format-hub-card.has-game-art{padding-top:15px}
 .format-hub-card.has-game-art .format-hub-icon{background:rgba(6,12,20,.72);backdrop-filter:blur(7px)}
-.mode-card-art{width:calc(100% + 32px);aspect-ratio:1.58/1;margin:-16px -16px 14px;border-bottom:1px solid var(--border);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.mode-card-art{width:calc(100% + 32px);aspect-ratio:1/1;margin:-16px -16px 14px;border-bottom:1px solid var(--border);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0}
 .mode-card.has-game-art{overflow:hidden}
 .mode-card.has-game-art .mode-difficulty,.mode-card.has-game-art .mode-new-badge{z-index:2;background:rgba(5,10,18,.82);backdrop-filter:blur(8px)}
 @media(max-width:640px){
  .format-hub-card-art{width:calc(100% + 24px);margin:-12px -12px 10px}
  .mode-card-art{width:calc(100% + 24px);margin:-12px -12px 12px}
 }
+
+.reads-game-art-fallback{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;background:
+ radial-gradient(circle at 50% 25%,rgba(var(--home-glow-rgb),.36),transparent 44%),
+ linear-gradient(145deg,#0a1625,#07101b 68%);color:#fff;text-align:center}
+.reads-game-art-fallback:before{content:"";position:absolute;inset:10%;border:1px solid rgba(var(--home-glow-rgb),.42);border-radius:22%;transform:rotate(45deg);opacity:.55}
+.reads-game-art-fallback .reads-game-art-r{position:relative;z-index:1;display:grid;place-items:center;width:44px;height:44px;border:2px solid var(--home-accent);border-radius:12px;font-family:var(--font-display);font-size:26px;font-weight:900;box-shadow:0 0 24px rgba(var(--home-glow-rgb),.3)}
+.reads-game-art-fallback b{position:relative;z-index:1;max-width:90%;font-family:var(--font-display);font-size:clamp(15px,4vw,23px);line-height:1.05;text-transform:uppercase;text-shadow:0 2px 12px #000}
