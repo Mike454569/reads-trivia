@@ -1,0 +1,32 @@
+name: Temporary real DB CI diagnostic
+
+on:
+  push:
+    branches:
+      - feature/100-format-audit-cleanup
+    paths:
+      - ".github/workflows/ci-real-db-diagnostic.yml"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install flyctl
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          curl -L https://fly.io/install.sh | sh
+          "$HOME/.fly/bin/flyctl" version
+
+      - name: Inspect active real DB helper
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP: reads-football-gateway
+          TARGET_NAME: ci-db-36802401713
+        run: |
+          set -euo pipefail
+          TARGET_ID=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys,os; n=os.environ['TARGET_NAME']; rows=json.load(sys.stdin); print(next((r.get('id') or r.get('ID')) for r in rows if (r.get('name') or r.get('Name'))==n))")
+          echo "helper=$TARGET_ID"
+          "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TARGET_ID" \
+            -C "sh -lc 'echo ===PS===; ps -ef || ps; echo ===FILES===; ls -lh /tmp/reads-ci-src.tgz /tmp/reads-ci/tools/ci/run_real_db_tests.sh 2>/dev/null || true; echo ===PYTHON===; python3 --version 2>/dev/null || true; echo ===DB===; stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || true; echo ===DISK===; df -h /data /tmp'"
