@@ -142,8 +142,8 @@ this shape:
   "translation_status": "TRANSLATED" | "UNDERSTOOD_UNSUPPORTED_MECHANIC" | "NEEDS_CLARIFICATION" | "NO_MATCH",
   "spec": null or {
     "mechanic": "guess" | "identify_player_from_clues",
-    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH" | "NFL_SCORING_PLAY" | "NFL_DEFENSIVE_EVENT" | "NFL_DRIVE" | "CFB_BETTING" | "CROSS_LEAGUE_HONORS" | "CFB_GAME_BOXSCORE" | "CFB_OFFENSE_LINEUP" | "CFB_PLAYER_SEASON" | "CFB_RANKING" | "NFL_PLAYER_SEASON",
-    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026" | "FIRST_TOUCHDOWN_SCORER" | "RECORDED_SACK" | "RECORDED_INTERCEPTION" | "FORCED_FUMBLE" | "RECOVERED_FUMBLE" | "DRIVE_RESULT" | "COVERED_SPREAD" | "ALL_AMERICAN_TO_NFL_DRAFT_TEAM" | "TEAM_SEASON_OF_STARTING_OFFENSE" | "SCHOOL_OF_SEASON" | "RANKED_HIGHER" | "TEAM_OF_SEASON",
+    "domain": "NFL_DRAFT" | "NFL_CHAMPIONSHIP" | "NFL_PLAYER_IDENTITY" | "NFL_OFFENSE_LINEUP" | "CFB_HEISMAN" | "NFL_GAME_RESULT" | "CFB_GAME_RESULT" | "NFL_OFFENSE_LINEUP_COLLEGE" | "NFL_GAME_BOXSCORE" | "NFL_SUPER_BOWL" | "NFL_AWARDS" | "CFB_CHAMPIONSHIP" | "NFL_SEASON_STATS" | "CFB_SEASON_STATS" | "NFL_COACHING" | "CFB_TRANSFER" | "CFB_RIVALRY" | "NFL_OFFENSE_COLLEGE_CURATED" | "NFL_SB_CHAMPION_OFFENSE_COLLEGE" | "CFB_FILL_THE_COLLEGES" | "CFB_ODD_COLLEGE_OUT" | "CFB_SPOT_THE_FAKE_LINEUP" | "CFB_WHO_CHANGED" | "CFB_THREE_CLUES_ONE_CHAMPION" | "CFB_POSITION_TRAP" | "CFB_DUPLICATE_COLLEGE_HUNT" | "CFB_ONE_SCHOOL_MISSING" | "CFB_RIVALRY_TRIVIA" | "NFL_FRANCHISE_MARATHON" | "CFB_2026_CURRENT_ROSTER" | "CFB_2026_HEAD_COACH" | "NFL_SCORING_PLAY" | "NFL_DEFENSIVE_EVENT" | "NFL_DRIVE" | "CFB_BETTING" | "CROSS_LEAGUE_HONORS" | "CFB_GAME_BOXSCORE",
+    "relationship_predicate": "DRAFTED_BY" | "TEAM_POSTSEASON_RESULT" | "IDENTIFY_FROM_CLUES" | "TEAM_OF_STARTING_LINEUP" | "WON_HEISMAN" | "WON_GAME" | "TEAM_OF_STARTING_LINEUP_BY_COLLEGE" | "HAD_MORE_YARDS" | "ATTENDED_COLLEGE" | "WON_CHAMPIONSHIP" | "WON_AWARD" | "HAD_MORE_SACKS" | "HAD_FEWER_TURNOVERS" | "HAD_FEWER_PENALTIES" | "LED_LEAGUE_IN_STAT" | "COACHED_TEAM" | "RIVAL_OF" | "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE" | "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE" | "COLLEGE_OF_POSITION" | "IMPOSTOR_COLLEGE" | "ALTERED_POSITION" | "CHANGED_POSITION" | "TEAM_SEASON_FROM_THREE_CLUES" | "SWAPPED_POSITION_PAIR" | "REPEATED_COLLEGE" | "MISSING_COLLEGE" | "CORRECT_TRIVIA_ANSWER" | "FRANCHISE_MARATHON_STAGE" | "ON_2026_ROSTER" | "COACHES_TEAM_2026" | "FIRST_TOUCHDOWN_SCORER" | "RECORDED_SACK" | "RECORDED_INTERCEPTION" | "FORCED_FUMBLE" | "RECOVERED_FUMBLE" | "DRIVE_RESULT" | "COVERED_SPREAD" | "ALL_AMERICAN_TO_NFL_DRAFT_TEAM",
     "question_count": <integer 1-100, default 25 if unspecified>,
     "difficulty": "any" | "easy" | "medium" | "hard",
     "filters": {},
@@ -446,26 +446,6 @@ recorded more sacks; games with an equal (including 0-0) real sack count are exc
 winner to ask about. Real measured pool: 14,921 real CFB games with a decisive comparison. \
 Team-level only -- cfb_plays has no player-identity columns at all, so this never answers "who \
 recorded the sack" for CFB (that's a real, disclosed data gap, not an unwritten adapter).
-
-45. mechanic=guess, domain=NFL_PLAYER_SEASON, relationship_predicate=TEAM_OF_SEASON
-    The player sees a real NFL player and season and picks the real NFL team that player represented
-in that season. This is season-specific player-team membership, not draft team and not career-history
-inference; use it only when the request is explicitly about a player's team in a particular season.
-
-46. mechanic=guess, domain=CFB_PLAYER_SEASON, relationship_predicate=SCHOOL_OF_SEASON
-    The player sees a real college-football player and season and picks the real school represented
-in that season. This is season-specific roster/stat membership, so transfers are resolved by the
-requested season rather than by a player's overall college history.
-
-47. mechanic=guess, domain=CFB_RANKING, relationship_predicate=RANKED_HIGHER
-    The player sees two real CFB teams in the same real poll snapshot and picks which team was ranked
-higher. Both teams must be ranked in the same season/week/poll snapshot; ties or incomparable rows
-are never invented. This is a two-team comparison, distinct from RANKED_IN_POLL.
-
-48. mechanic=guess, domain=CFB_OFFENSE_LINEUP, relationship_predicate=TEAM_SEASON_OF_STARTING_OFFENSE
-    The player sees a real CFB starting offense for a specific season, position by position, and
-identifies the real team-season it belongs to. This uses real CFB team-season roster/stat data and
-must never be silently substituted with the NFL lineup capability.
 
 --- RULE A: COMPETITION-AWARENESS -- NEVER SILENTLY SUBSTITUTE ONE LEAGUE FOR ANOTHER ---
 Some capabilities are NFL-only with NO registered CFB equivalent at all: 3 (player-from-clues), \
