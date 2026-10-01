@@ -164,3 +164,38 @@ def test_creator_review_queue_has_search_filter_and_sort():
     assert "state.creator.queueSearch = e.target.value" in APP
     assert "state.creator.queueLeague = e.target.value" in APP
     assert "state.creator.queueSort = e.target.value" in APP
+
+
+def test_creator_duplicate_intelligence_is_real_and_actionable():
+    packages = (ROOT / "gateway" / "services" / "packages.py").read_text(encoding="utf-8")
+    service = (ROOT / "gateway" / "services" / "creator.py").read_text(encoding="utf-8")
+    gateway = (ROOT / "gateway" / "app.py").read_text(encoding="utf-8")
+    assert "def analyze_creator_duplicates(package_id: str" in packages
+    assert "duplicate_risk" in packages
+    assert "similarity" in packages
+    assert "def analyze_duplicates(package_id: str)" in service
+    assert '@app.get("/v1/creator/duplicates/{package_id}")' in gateway
+    assert "function creatorLoadDuplicateReport(packageId)" in CREATOR
+    assert "creatorDuplicateReportHtml" in CREATOR
+    assert "data-creator-check-duplicates" in CREATOR
+
+
+def test_creator_can_replace_one_question_without_mutating_original():
+    assert "function creatorReplaceQuestion(index)" in CREATOR
+    assert "creator-slot-" in CREATOR
+    assert "'/v1/creator/generate'" in CREATOR
+    assert "'/v1/creator/question/revise'" in CREATOR
+    assert "data-creator-replace-question" in CREATOR
+    assert "creatorReplaceQuestion(parseInt(t.dataset.creatorReplaceQuestion" in APP
+
+
+def test_creator_batch_review_supports_multi_select_approve_and_reject():
+    assert "selectedPackages" in CREATOR
+    assert "function creatorTogglePackageSelection(packageId)" in CREATOR
+    assert "function creatorSelectVisiblePackages()" in CREATOR
+    assert "function creatorBatchReview(status)" in CREATOR
+    assert "Approve Selected" in CREATOR
+    assert "Reject Selected" in CREATOR
+    assert "data-creator-batch-review" in CREATOR
+    assert "creatorBatchReview(t.dataset.creatorBatchReview)" in APP
+    assert ".creator-batch-bar" in CSS
