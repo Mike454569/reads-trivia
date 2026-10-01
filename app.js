@@ -1444,10 +1444,28 @@ function dailyVisibleIndexes(q, rng, mechanic) {
   var other = wrong[Math.floor(rng() * wrong.length)];
   return seededShuffle([q.correctIndex, other], rng);
 }
+function dailyMechanicForFormatFamily(family, fallback) {
+  if (family === 'strategy') return 'confidence';
+  if (family === 'survival') return 'elimination';
+  if (family === 'board') return 'fifty';
+  if (family === 'roster') return 'double';
+  if (family === 'identify') return 'fifty';
+  if (family === 'sequence') return 'quick';
+  return fallback || 'quick';
+}
 function decorateDailyQueue(out, rng, targetDifficulty) {
   var mechanics = dailyMechanicOrder(rng);
+  var rotation = dailyFormatRotation();
+  var formatMap = {};
+  allPlayableModesUnique().forEach(function (m) { formatMap[m.id] = m; });
   out.forEach(function (q, i) {
-    q._dailyMechanic = mechanics[i] || 'quick';
+    var sourceId = rotation.modeIds[i] || null;
+    var source = sourceId ? formatMap[sourceId] : null;
+    var family = source ? formatHubFamily(source) : null;
+    q._dailyMechanic = dailyMechanicForFormatFamily(family, mechanics[i] || 'quick');
+    q._dailyFormatSourceId = sourceId;
+    q._dailyFormatSourceTitle = source ? source.title : null;
+    q._dailyFormatFamily = family;
     q._dailyDifficultyTarget = Math.max(0, Math.min(3, targetDifficulty + (i === 0 ? -1 : i === 4 ? 1 : 0)));
     q._dailyVisibleIndexes = dailyVisibleIndexes(q, rng, q._dailyMechanic);
   });
@@ -1528,6 +1546,8 @@ function dailyRecordFromState(pct) {
     leagueStats: t.leagueStats || { NFL:{correct:0,total:0}, CFB:{correct:0,total:0} },
     confidence: t.confidenceResults || [],
     mechanics: (t.queue || []).map(function (q) { return q._dailyMechanic || 'quick'; }),
+    formatSources: (t.queue || []).map(function (q) { return q._dailyFormatSourceId || null; }),
+    formatFamilies: (t.queue || []).map(function (q) { return q._dailyFormatFamily || null; }),
     difficultyTarget: t.difficultyTarget == null ? adaptiveDailyDifficulty() : t.difficultyTarget
   };
 }
@@ -1913,7 +1933,7 @@ function renderDailyQuestion() {
   return '<div class="panel daily-reads-game daily-mechanic-' + esc(mechanic) + '">' + modeToolbarHtml('daily') +
     '<div class="daily-reads-kicker"><span>' + esc(q._dailySlot || ('READ ' + (t.index + 1))) + '</span><small>' + esc(q._dailyReason || q._dailyLeague || '') + '</small></div>' +
     quizProgressRowHtml('Daily Reads &middot; Game ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
-    '<div class="daily-mechanic-banner"><b>' + esc(DAILY_MECHANICS[mechanic].label) + '</b><span>' + esc(dailyMechanicInstructions(q)) + '</span></div>' +
+    '<div class="daily-mechanic-banner"><b>' + esc(DAILY_MECHANICS[mechanic].label) + '</b><span>' + esc(dailyMechanicInstructions(q)) + (q._dailyFormatSourceTitle ? ' · Inspired by ' + esc(q._dailyFormatSourceTitle) : '') + '</span></div>' +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     (mechanic === 'confidence' && !answered ? '<div class="daily-confidence"><span>Confidence</span>' +
       [1,2,3].map(function (n) { return '<button class="' + (confidence === n ? 'active' : '') + '" data-daily-confidence="' + n + '">' + n + (n === 1 ? ' · Lean' : n === 2 ? ' · Like it' : ' · Lock') + '</button>'; }).join('') +
