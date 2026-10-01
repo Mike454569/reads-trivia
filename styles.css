@@ -6487,3 +6487,17 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .seasonal-mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .community-pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Reads-owned game art system — generated badge art, no league/team logos. */
+.reads-game-art{display:block;background-image:var(--game-art-image);background-repeat:no-repeat;background-size:var(--game-art-size-x) var(--game-art-size-y);background-position:var(--game-art-pos-x) var(--game-art-pos-y);background-color:#07101b}
+.format-hub-card-art{width:calc(100% + 30px);aspect-ratio:1.58/1;margin:-15px -15px 12px;border-bottom:1px solid var(--border);box-shadow:inset 0 -18px 24px -24px rgba(0,0,0,.9)}
+.format-hub-card.has-game-art{padding-top:15px}
+.format-hub-card.has-game-art .format-hub-icon{background:rgba(6,12,20,.72);backdrop-filter:blur(7px)}
+.mode-card-art{width:calc(100% + 32px);aspect-ratio:1.58/1;margin:-16px -16px 14px;border-bottom:1px solid var(--border);border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.mode-card.has-game-art{overflow:hidden}
+.mode-card.has-game-art .mode-difficulty,.mode-card.has-game-art .mode-new-badge{z-index:2;background:rgba(5,10,18,.82);backdrop-filter:blur(8px)}
+@media(max-width:640px){
+ .format-hub-card-art{width:calc(100% + 24px);margin:-12px -12px 10px}
+ .mode-card-art{width:calc(100% + 24px);margin:-12px -12px 12px}
+}
