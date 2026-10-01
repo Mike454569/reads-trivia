@@ -4280,41 +4280,95 @@ function modeMarkFamily(m) {
   if (/bracket|gauntlet|elimination|survival/i.test(id) || iconName === 'trophy') return 'tournament';
   return 'trivia';
 }
-var MODE_LOGO_CODE_OVERRIDES = {
-  quiz:'QZ', grid:'3X3', blitz:'BLZ', speed:'SPD', silhouette:'ID', iq:'IQ',
-  legends:'17-0', higherLower:'H/L', playerClues:'WHO',
-  cfbQuiz:'CQ', cfbGrid:'C3', cfbBlitz:'CBZ', cfbSpeed:'CSP', cfbIq:'CIQ',
-  cfbLegends:'12-0', cfbPlayerClues:'CWHO',
-  pickem:'PICK', h2h:'H2H', learn:'FILM', daily:'D5', endless:'END',
-  draft_guess:'DRFT', championship_guess:'CHMP', lineup_guess:'XI'
-};
-function modeLogoCode(m) {
-  if (!m) return 'R';
-  if (MODE_LOGO_CODE_OVERRIDES[m.id]) return MODE_LOGO_CODE_OVERRIDES[m.id];
-  var title = String(m.title || m.id || 'Reads')
-    .replace(/\b(NFL|CFB|College|Football|Mode|Game|The|Of|And|To|A)\b/gi, ' ')
-    .replace(/[^A-Za-z0-9 ]/g, ' ')
-    .trim();
-  var words = title.split(/\s+/).filter(Boolean);
-  if (!words.length) return 'R';
-  if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
-  var initials = words.map(function(w){ return w[0]; }).join('').toUpperCase();
-  if (initials.length >= 2 && initials.length <= 4) return initials;
-  return (words[0].slice(0,2) + words[1].slice(0,2)).toUpperCase().slice(0,4);
-}
 function modeLogoVariant(m) {
   var key = String((m && (m.id || m.title)) || 'reads');
-  return Math.abs(hashStr(key + '|mode-logo-v2')) % 12;
+  return Math.abs(hashStr(key + '|mode-logo-v3')) % 12;
+}
+function modeLogoSvg(m) {
+  var id = String((m && m.id) || '');
+  var family = modeMarkFamily(m);
+  var v = modeLogoVariant(m);
+  var common = 'viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  var body = '';
+
+  if (id === 'quiz' || id === 'cfbQuiz') {
+    body = '<path d="M10 15c6-7 22-7 28 0l-3 18c-6 5-16 5-22 0z"/><path d="M20 20c.8-3 6.8-3.5 8.5-.5 2.3 4-4.5 4.2-4.5 8"/><path d="M24 33h.01"/>';
+  } else if (id === 'grid' || id === 'cfbGrid') {
+    body = '<rect x="8" y="8" width="32" height="32" rx="6"/><path d="M18.7 8v32M29.3 8v32M8 18.7h32M8 29.3h32"/><circle cx="24" cy="24" r="3.2"/>';
+  } else if (id === 'blitz' || id === 'cfbBlitz') {
+    body = '<path d="M10 35V17M38 35V17M10 22h28"/><path d="M27 7 17 25h8l-4 16 11-21h-8z"/>';
+  } else if (id === 'speed' || id === 'cfbSpeed') {
+    body = '<circle cx="23" cy="26" r="14"/><path d="M23 12V7M18 7h10M23 26l8-6"/><path d="M34 13l3-3"/>';
+  } else if (id === 'silhouette') {
+    body = '<path d="M15 35c1-7 5-10 9-10s8 3 9 10"/><circle cx="24" cy="16" r="7"/><path d="M12 38h24"/>';
+  } else if (id === 'iq' || id === 'cfbIq') {
+    body = '<path d="M18 36c-5-1-8-5-8-10 0-4 2-7 5-9 0-6 8-9 12-5 5-3 11 1 11 7 3 2 4 5 3 9-1 5-5 8-10 8"/><path d="M24 12v24M18 18h6M24 24h7M17 30h7"/>';
+  } else if (id === 'legends' || id === 'cfbLegends') {
+    body = '<path d="M16 9h16v7c0 7-3 12-8 15-5-3-8-8-8-15z"/><path d="M12 12H8c0 7 3 10 9 10M36 12h4c0 7-3 10-9 10M24 31v6M18 39h12"/><circle cx="24" cy="16" r="3"/>';
+  } else if (id === 'higherLower') {
+    body = '<path d="M14 31V13m0 0-6 6m6-6 6 6M34 17v18m0 0-6-6m6 6 6-6"/><path d="M22 24h4"/>';
+  } else if (id === 'playerClues' || id === 'cfbPlayerClues') {
+    body = '<circle cx="20" cy="20" r="10"/><path d="m28 28 10 10"/><circle cx="17" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="22" cy="18" r="1.2" fill="currentColor" stroke="none"/><path d="M16 24c2-2 6-2 8 0"/>';
+  } else if (/pickem/i.test(id)) {
+    body = '<path d="M8 24c7-10 25-10 32 0-7 10-25 10-32 0z"/><path d="m17 24 5 5 10-11"/>';
+  } else if (id === 'h2h') {
+    body = '<path d="M8 16c5-4 11-4 16 0v16c-5 4-11 4-16 0zM40 16c-5-4-11-4-16 0v16c5 4 11 4 16 0z"/><path d="M19 24h10"/>';
+  } else if (id === 'learn') {
+    body = '<rect x="8" y="11" width="32" height="26" rx="5"/><path d="M13 16h5M13 32h5M30 16h5M30 32h5"/><path d="m21 18 9 6-9 6z"/>';
+  } else if (id === 'daily') {
+    body = '<rect x="9" y="11" width="30" height="28" rx="5"/><path d="M15 7v8M33 7v8M9 19h30"/><path d="m17 29 5 5 10-11"/>';
+  } else if (id === 'draft_guess') {
+    body = '<path d="M11 34h8V22h10v12h8"/><path d="M7 38h34"/><circle cx="24" cy="13" r="5"/><path d="M24 8V5"/>';
+  } else if (id === 'championship_guess') {
+    body = '<circle cx="24" cy="18" r="10"/><path d="M17 28l-3 11 10-5 10 5-3-11"/><path d="m20 18 3 3 6-7"/>';
+  } else if (id === 'lineup_guess') {
+    body = '<circle cx="24" cy="9" r="3"/><circle cx="14" cy="18" r="3"/><circle cx="34" cy="18" r="3"/><circle cx="10" cy="31" r="3"/><circle cx="24" cy="31" r="3"/><circle cx="38" cy="31" r="3"/><path d="M24 12v7M14 21l-4 7M34 21l4 7M24 22v6"/>';
+  } else if (family === 'board') {
+    body = '<rect x="8" y="8" width="32" height="32" rx="7"/><circle cx="16" cy="16" r="2.5"/><circle cx="32" cy="16" r="2.5"/><circle cx="16" cy="32" r="2.5"/><circle cx="32" cy="32" r="2.5"/><path d="M18 16h12M16 18v12M32 18v12M18 32h12"/>';
+  } else if (family === 'roster') {
+    body = '<circle cx="24" cy="13" r="4"/><circle cx="14" cy="27" r="4"/><circle cx="34" cy="27" r="4"/><path d="M24 17v5M18 24l3-2M30 24l-3-2M10 37h28"/>';
+  } else if (family === 'survival') {
+    body = '<path d="M24 7 38 12v10c0 9-5 15-14 19C15 37 10 31 10 22V12z"/><path d="M16 18h16M18 24h12M20 30h8"/>';
+  } else if (family === 'strategy') {
+    body = '<rect x="8" y="9" width="32" height="30" rx="6"/><path d="M14 31c4-8 8-12 15-12h5"/><path d="m30 15 4 4-4 4"/><circle cx="15" cy="31" r="2.5"/>';
+  } else if (family === 'identify') {
+    body = '<circle cx="21" cy="21" r="11"/><path d="m29 29 9 9"/><path d="M17 17c2-3 7-3 9 0M17 24c2 3 7 3 9 0"/>';
+  } else if (family === 'sequence') {
+    body = '<circle cx="11" cy="24" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="37" cy="24" r="3"/><path d="M14 24h7M27 24h7"/><path d="m32 20 5 4-5 4"/>';
+  } else if (family === 'stats') {
+    body = '<path d="M10 37V25h7v12M21 37V17h7v20M32 37V10h7v27"/><path d="M8 40h33"/>';
+  } else if (family === 'timeline') {
+    body = '<path d="M8 24h32"/><circle cx="13" cy="24" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="35" cy="24" r="3"/><path d="M13 17v-4M24 31v4M35 17v-4"/>';
+  } else if (family === 'tournament') {
+    body = '<path d="M10 10h8v7h8v7h8v7h4M10 38h8v-7h8v-7h8v-7h4"/><circle cx="40" cy="24" r="4"/>';
+  } else if (family === 'speed') {
+    body = '<path d="M8 16h20M5 24h23M10 32h18"/><path d="m31 10-7 14h7l-4 14 12-20h-7z"/>';
+  } else {
+    body = '<path d="M10 15c6-7 22-7 28 0l-3 18c-6 5-16 5-22 0z"/><path d="M18 20h12M16 25h16M20 30h8"/>';
+  }
+
+  var signature = [
+    '<path class="mode-logo-signature" d="M7 10h6"/>',
+    '<path class="mode-logo-signature" d="M35 10h6"/>',
+    '<path class="mode-logo-signature" d="M7 38h6"/>',
+    '<path class="mode-logo-signature" d="M35 38h6"/>',
+    '<circle class="mode-logo-signature" cx="8" cy="8" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="40" cy="8" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="8" cy="40" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="40" cy="40" r="1.7"/>',
+    '<path class="mode-logo-signature" d="m7 12 5-5"/>',
+    '<path class="mode-logo-signature" d="m36 7 5 5"/>',
+    '<path class="mode-logo-signature" d="m7 36 5 5"/>',
+    '<path class="mode-logo-signature" d="m36 41 5-5"/>'
+  ][v];
+
+  return '<svg ' + common + '>' + body + signature + '</svg>';
 }
 function modeMarkHtml(m, size) {
   var league = modeLeagueFor(m);
   var family = modeMarkFamily(m);
-  var variant = modeLogoVariant(m);
-  var code = modeLogoCode(m);
-  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + ' mode-mark-v' + variant + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
-    '<span class="mode-mark-corner">' + icon(m.icon || 'football') + '</span>' +
-    '<span class="mode-mark-code">' + esc(code) + '</span>' +
-    '<span class="mode-mark-stitch"></span>' +
+  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
+    '<span class="mode-mark-art">' + modeLogoSvg(m) + '</span>' +
     '</span>';
 }
 function modeCardHtml(m) {
