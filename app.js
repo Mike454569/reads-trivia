@@ -4793,6 +4793,25 @@ function careerLadderHtml() {
     '<div class="career-ladder-next"><span class="dashboard-xp-track"><span style="width:'+Math.round(rank.pct*100)+'%"></span></span>'+
       '<b>'+(rank.next?rank.toNext+' XP until '+esc(rank.next):'Career maxed — Legend status')+'</b></div></section>';
 }
+function progressionRoadHtml() {
+  if(!state.name) return '';
+  var xp=Number(getProgression().careerXp)||0, milestones={};
+  function addMilestone(min,label,type){
+    min=Number(min)||0;
+    if(min<=xp)return;
+    milestones[min]=milestones[min]||{xp:min,items:[]};
+    if(!milestones[min].items.some(function(x){return x.label===label;})) milestones[min].items.push({label:label,type:type});
+  }
+  PROGRESSION_RANKS.forEach(function(r){addMilestone(r.min,r.name+' career rank','rank');});
+  (PROFILE_COSMETICS||[]).forEach(function(x){addMilestone(x.minXp,x.title+' profile frame','frame');});
+  (SHARE_CARD_DESIGNS||[]).forEach(function(x){addMilestone(x.minXp,x.title+' share card','share');});
+  var upcoming=Object.keys(milestones).map(Number).sort(function(a,b){return a-b;}).slice(0,4).map(function(k){return milestones[k];});
+  var rank=progressionRankFor(xp), next=upcoming[0];
+  return '<section class="progression-road"><div class="profile-section-head"><div><span class="dashboard-eyebrow">ROAD TO LEGEND</span><h3>Every game moves something</h3></div><span>'+xp.toLocaleString()+' XP</span></div>'+
+    '<div class="progression-road-now"><div><small>CURRENT</small><b>'+esc(rank.name)+'</b></div><span class="dashboard-xp-track"><span style="width:'+Math.round(rank.pct*100)+'%"></span></span><div><small>NEXT UNLOCK</small><b>'+(next?esc(next.items[0].label)+' · '+(next.xp-xp)+' XP':'Legend complete')+'</b></div></div>'+
+    (upcoming.length?'<div class="progression-road-grid">'+upcoming.map(function(m,i){return '<article class="'+(i===0?'next':'')+'"><span>'+m.xp.toLocaleString()+' XP</span><b>'+m.items.map(function(x){return esc(x.label);}).join(' + ')+'</b><small>'+m.items.map(function(x){return esc(x.type);}).join(' · ')+'</small></article>';}).join('')+'</div>':'<div class="progression-road-max">👑 Every career milestone unlocked.</div>')+
+  '</section>';
+}
 function seasonTrophyFor(item) {
   var rank=seasonRankFor(item.data.xp), icons={Rookie:'🎟️',Prospect:'🏈',Starter:'⭐',Playmaker:'⚡','All-Pro':'💎',MVP:'🏆'};
   return {icon:icons[rank.name]||'🏈',name:rank.name};
@@ -13889,6 +13908,7 @@ function renderProfile() {
   }
 
   html += careerLadderHtml();
+  html += progressionRoadHtml();
   html += footballDNAHtml(false);
   html += personalizationMasteryHtml();
   html += weeklyPersonalGoalsHtml();
