@@ -607,6 +607,23 @@ def generate_for_review(*, request_text: str, puzzle_count, difficulty, seed) ->
     return result
 
 
+def revise_question(*, package_id: str, question_index: int, replacement: dict) -> dict:
+    """Create a new immutable package version with one edited question."""
+    try:
+        return packages.create_question_revision(package_id, question_index, replacement)
+    except FileNotFoundError:
+        raise GatewayError("PACKAGE_NOT_FOUND", "No such package.")
+    except packages.PackageIdInvalid:
+        raise GatewayError("PACKAGE_NOT_FOUND", "No such package.")
+    except IndexError:
+        raise GatewayError("INVALID_REQUEST", "question_index is out of range.")
+    except ValueError as exc:
+        message = str(exc)
+        if message == "QUESTION_REVISION_UNSUPPORTED":
+            raise GatewayError("INVALID_REQUEST", "This package type does not support question-level editing yet.")
+        raise GatewayError("INVALID_REQUEST", message)
+
+
 def list_review_queue(review_status: str | None) -> list[dict]:
     return packages.list_packages(review_status=review_status)
 
