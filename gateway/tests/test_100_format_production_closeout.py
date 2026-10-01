@@ -112,7 +112,7 @@ def test_real_db_ci_uses_isolated_volume_fork_and_dumb_helper():
     cleanup=workflow[workflow.index("- name: Clean up temporary Fly volume and machine"):]
     assert '"$HOME/.fly/bin/flyctl" version' in install
     assert '"$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID"' in restore
-    assert "PROD_IMAGE_REF" in restore
+    assert "alpine:3.20" in restore
     assert '--volume "${TEMP_VOL_ID}:/data"' in restore
     assert '--entrypoint "tail -f /dev/null"' in restore
     assert '"$HOME/.fly/bin/flyctl" ssh sftp put' in restore
