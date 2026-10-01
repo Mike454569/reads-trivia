@@ -3031,6 +3031,92 @@ var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
    Mixed modes appear in both league arrays for navigation, so this helper
    deduplicates by playable id before search/recommendation. */
 var READS_DISTINCT_FORMAT_COUNT = 100;
+
+var READS_GAME_ART = {
+  'NFL Quiz':[1,0,0,10,4], 'NFL Grid':[1,1,0,10,4], 'NFL Blitz':[1,2,0,10,4],
+  'NFL Silhouette':[1,3,0,10,4], 'NFL IQ Test':[1,4,0,10,4], '17-0':[1,5,0,10,4],
+  'Higher or Lower':[1,6,0,10,4], 'Player From Clues':[1,7,0,10,4],
+  'College Football Quiz':[1,8,0,10,4], 'CFB Immaculate Grid':[1,9,0,10,4],
+  'CFB Blitz':[1,0,1,10,4], 'CFB Speed Round':[1,1,1,10,4],
+  'College Football IQ Test':[1,2,1,10,4], 'CFB 12-0':[1,3,1,10,4],
+  'CFB Player From Clues':[1,4,1,10,4], 'NFL Draft Class Matching':[1,5,1,10,4],
+  'Heisman Timeline':[1,6,1,10,4], 'NFL Rushing Ladder':[1,7,1,10,4],
+  'NFL Passing TD Ladder':[1,8,1,10,4], 'CFB Rushing Ladder':[1,9,1,10,4],
+  'NFL Wins Streak':[1,0,2,10,4], 'Super Bowl Champion Survival':[1,1,2,10,4],
+  'NFL Wins Bracket':[1,2,2,10,4], 'NFL Connection Grid':[1,3,2,10,4],
+  'Perfect Drive (NFL)':[1,4,2,10,4], 'Perfect Drive (CFB)':[1,5,2,10,4],
+  'Goal Line Stand (NFL)':[1,6,2,10,4], 'Goal Line Stand (CFB)':[1,7,2,10,4],
+  '2010s Offense Builder':[1,8,2,10,4], 'CFB Skill Position Builder':[1,9,2,10,4],
+  'NFL Auction Draft':[1,0,3,10,4], 'CFB Auction Draft':[1,1,3,10,4],
+  'NFL Cap Challenge':[1,2,3,10,4], 'CFB Cap Challenge':[1,3,3,10,4],
+  'NFL Knockout Tournament':[1,4,3,10,4], 'CFB Knockout Tournament':[1,5,3,10,4],
+  'Six Degrees: College to NFL':[1,6,3,10,4], 'Choose Your Path':[1,7,3,10,4],
+  'Guess the Season':[1,8,3,10,4], 'Rushing Duel':[1,9,3,10,4],
+
+  'Chain Reaction: College to NFL':[2,2,0,4,5],
+  'Choose Your Path: College Football':[2,0,1,4,5],
+  'Passing TD Duel':[2,3,1,4,5], 'CFB Rushing Duel':[2,0,2,4,5],
+  'QB Best of Seven':[2,1,2,4,5], 'Pick the Impostor':[2,2,2,4,5],
+  'Pick the Impostor: College Football':[2,3,2,4,5], 'Unique One Out':[2,0,3,4,5],
+  'Missing Piece':[2,1,3,4,5], 'Missing Piece: College Football':[2,2,3,4,5],
+  'Before & After':[2,3,3,4,5], 'Before & After: College Football':[2,0,4,4,5],
+  'Map the Career':[2,1,4,4,5], 'Map the Career: College Football':[2,2,4,4,5],
+  'Career Path':[2,3,4,4,5],
+
+  'Career Path: College Football':[3,0,0,4,5], 'Risk It':[3,1,0,4,5],
+  'Risk It (CFB)':[3,2,0,4,5], 'Wager Mode':[3,3,0,4,5],
+  'Leaderboard Climb':[3,0,1,4,5], 'Blind Resume':[3,1,1,4,5],
+  'Blind Resume (CFB)':[3,2,1,4,5], 'Double or Nothing':[3,3,1,4,5],
+  'Double or Nothing (CFB)':[3,0,2,4,5], 'King of the Hill':[3,1,2,4,5],
+  'King of the Hill (CFB)':[3,2,2,4,5], 'Fact or Fake':[3,3,2,4,5],
+  'Fact or Fake (CFB)':[3,0,3,4,5], 'Guess the Ranking':[3,1,3,4,5],
+  'Guess the Ranking (CFB)':[3,2,3,4,5], 'Stat Target':[3,3,3,4,5],
+  'Stat Target (CFB)':[3,0,4,4,5], 'Reverse Trivia':[3,1,4,4,5],
+  'Reverse Trivia (CFB)':[3,2,4,4,5], 'Three Strikes':[3,3,4,4,5],
+
+  'Three Strikes (CFB)':[4,0,0,4,5], 'Mystery Roster':[4,1,0,4,5],
+  'Mystery Roster (CFB)':[4,2,0,4,5], 'Draft Pick Ladder':[4,3,0,4,5],
+  'Category Roulette':[4,0,1,4,5], 'Common Link':[4,1,1,4,5],
+  'Common Link (CFB)':[4,2,1,4,5], 'Bingo Blitz':[4,3,1,4,5],
+  'Territory Takeover':[4,0,2,4,5], 'Exact Ten':[4,1,2,4,5],
+  'Pyramid Climb':[4,2,2,4,5], 'Lockbox':[4,3,2,4,5],
+  'Combo Meter':[4,0,3,4,5], 'Checkpoint Rally':[4,1,3,4,5],
+  'Escalator':[4,2,3,4,5], 'Power Up':[4,3,3,4,5],
+  'Category Conquest':[4,0,4,4,5], 'Scoreboard Swing':[4,1,4,4,5],
+  'Momentum Bar':[4,2,4,4,5], 'Timeout Tokens':[4,3,4,4,5]
+};
+var READS_GAME_ART_CHUNKS = {
+  1:['assets/game-art/01-40-0.b64','assets/game-art/01-40-1.b64','assets/game-art/01-40-2.b64','assets/game-art/01-40-3.b64','assets/game-art/01-40-4.b64'],
+  2:['assets/game-art/41-60-0.b64','assets/game-art/41-60-1.b64','assets/game-art/41-60-2.b64','assets/game-art/41-60-3.b64'],
+  3:['assets/game-art/61-80-0.b64','assets/game-art/61-80-1.b64','assets/game-art/61-80-2.b64','assets/game-art/61-80-3.b64'],
+  4:['assets/game-art/81-100-0.b64','assets/game-art/81-100-1.b64','assets/game-art/81-100-2.b64','assets/game-art/81-100-3.b64']
+};
+function gameArtSpec(m){ return m && READS_GAME_ART[m.title] || null; }
+function gameArtStyle(m){
+  var x=gameArtSpec(m); if(!x)return '';
+  var sheet=x[0], col=x[1], row=x[2], cols=x[3], rows=x[4];
+  var px=cols===1?0:(col*100/(cols-1)), py=rows===1?0:(row*100/(rows-1));
+  return '--game-art-image:var(--reads-game-art-'+sheet+');--game-art-size-x:'+(cols*100)+'%;--game-art-size-y:'+(rows*100)+'%;--game-art-pos-x:'+px+'%;--game-art-pos-y:'+py+'%;';
+}
+function gameArtHtml(m, extraClass){
+  if(!gameArtSpec(m))return '';
+  return '<span class="reads-game-art'+(extraClass?' '+extraClass:'')+'" style="'+gameArtStyle(m)+'" aria-hidden="true"></span>';
+}
+var readsGameArtLoading=false;
+function loadReadsGameArt(){
+  if(readsGameArtLoading || typeof fetch!=='function')return;
+  readsGameArtLoading=true;
+  Object.keys(READS_GAME_ART_CHUNKS).forEach(function(sheet){
+    Promise.all(READS_GAME_ART_CHUNKS[sheet].map(function(path){
+      return fetch(path,{cache:'force-cache'}).then(function(r){if(!r.ok)throw new Error('game art '+path);return r.text();});
+    })).then(function(parts){
+      var uri='url("data:image/webp;base64,'+parts.join('').trim()+'")';
+      document.documentElement.style.setProperty('--reads-game-art-'+sheet,uri);
+    }).catch(function(err){ console.warn('Reads game art failed to load',sheet,err); });
+  });
+}
+if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
+
 /* Reads-owned game artwork. Each sheet is a compact sprite atlas so the
    100-format hub can use real mode art without downloading 100 separate
    images. Titles are deliberately matched to the exact player-facing copy;
@@ -3269,8 +3355,8 @@ function formatHubQuickPlayMode() {
   return rows[Math.abs(seed)%Math.min(rows.length,6)].mode;
 }
 function formatHubCardHtml(m) {
-  var plays=modeTimesPlayed(m.id), family=formatHubFamily(m), art=readsGameArtHtml(m,'format-hub-art');
-  return '<button class="format-hub-card'+(art?' has-art':'')+'" data-go="'+esc(m.id)+'">'+
+  var plays=modeTimesPlayed(m.id), family=formatHubFamily(m), art=gameArtHtml(m,'format-hub-card-art');
+  return '<button class="format-hub-card'+(art?' has-game-art':'')+'" data-go="'+esc(m.id)+'">'+
     art+
     '<div class="format-hub-card-top"><span class="format-hub-icon">'+icon(m.icon||'football')+'</span>'+
     '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
@@ -4313,6 +4399,7 @@ function socialProofModeHtml(mode, compact) {
   return '<span class="mode-social-proof'+(compact?' compact':'')+'>'+icon('users')+' '+n.toLocaleString()+' Reads play'+(n===1?'':'s')+'</span>';
 }
 function modeCardHtml(m) {
+  var gameArt = gameArtHtml(m,'mode-card-art');
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
   // played by this player) plus Reads-owned per-game artwork where available.
   var isNew = state.name && modeTimesPlayed(m.id) === 0;
