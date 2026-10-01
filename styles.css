@@ -6858,3 +6858,202 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .pickem-team-name{font-size:14px}
   .pickem-at-mark{width:21px;height:21px;font-size:10px}
 }
+
+
+/* App-wide game identity polish */
+.mode-mark{
+  --mark-accent:var(--accent);
+  --mark-glow:217,166,60;
+  position:relative;
+  display:inline-grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border-radius:14px;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 30% 22%,rgba(255,255,255,.18),transparent 28%),
+    linear-gradient(145deg,rgba(var(--mark-glow),.34),rgba(var(--mark-glow),.08) 55%,rgba(0,0,0,.24));
+  border:1px solid rgba(var(--mark-glow),.55);
+  color:var(--mark-accent);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 0 18px rgba(var(--mark-glow),.10);
+  overflow:hidden;
+}
+.mode-mark::before{
+  content:'';
+  position:absolute;
+  inset:5px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:10px;
+  pointer-events:none;
+}
+.mode-mark::after{
+  content:'';
+  position:absolute;
+  left:-25%;
+  top:-40%;
+  width:58%;
+  height:170%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.11),transparent);
+  transform:rotate(24deg);
+  pointer-events:none;
+}
+.mode-mark-core{
+  position:relative;
+  z-index:2;
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+}
+.mode-mark-core .icon{
+  width:24px;
+  height:24px;
+  stroke-width:1.9;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+.mode-mark-stitch{
+  position:absolute;
+  z-index:1;
+  width:18px;
+  height:2px;
+  bottom:6px;
+  border-radius:99px;
+  background:currentColor;
+  opacity:.24;
+}
+.mode-mark-nfl{--mark-accent:#f4d276;--mark-glow:217,166,60}
+.mode-mark-cfb{--mark-accent:#ef8d72;--mark-glow:205,76,51}
+.mode-mark-neutral{--mark-accent:#9ed1b2;--mark-glow:94,154,116}
+.mode-mark-grid{border-radius:11px}
+.mode-mark-grid::before{
+  background:
+    linear-gradient(90deg,transparent 32%,rgba(255,255,255,.08) 32% 35%,transparent 35% 65%,rgba(255,255,255,.08) 65% 68%,transparent 68%),
+    linear-gradient(0deg,transparent 32%,rgba(255,255,255,.08) 32% 35%,transparent 35% 65%,rgba(255,255,255,.08) 65% 68%,transparent 68%);
+}
+.mode-mark-matchup{border-radius:50% 18% 50% 18%/50% 18% 50% 18%;transform:rotate(-2deg)}
+.mode-mark-matchup .mode-mark-core{transform:rotate(2deg)}
+.mode-mark-identity{border-radius:50%}
+.mode-mark-speed{clip-path:polygon(13% 0,100% 0,86% 100%,0 100%)}
+.mode-mark-stats{border-radius:8px 16px 8px 16px}
+.mode-mark-timeline{border-radius:999px}
+.mode-mark-tournament{
+  clip-path:polygon(50% 0,88% 12%,100% 48%,82% 87%,50% 100%,18% 87%,0 48%,12% 12%);
+}
+.mode-mark-roster{border-radius:16px 16px 8px 8px}
+.mode-mark-trivia{border-radius:15px}
+.mode-mark-sm{width:36px;height:36px;border-radius:11px}
+.mode-mark-sm .mode-mark-core{width:22px;height:22px}
+.mode-mark-sm .mode-mark-core .icon{width:19px;height:19px}
+.mode-mark-sm .mode-mark-stitch{width:13px;bottom:4px}
+.mode-mark-lg{width:58px;height:58px;border-radius:18px}
+.mode-mark-lg .mode-mark-core{width:36px;height:36px}
+.mode-mark-lg .mode-mark-core .icon{width:31px;height:31px}
+.mode-mark-lg .mode-mark-stitch{width:22px;bottom:7px}
+
+.mode-icon{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  margin-bottom:11px;
+}
+.mode-grid-secondary .mode-icon{
+  width:auto;
+  height:auto;
+  display:flex;
+  place-items:unset;
+  border-radius:0;
+  background:transparent;
+  margin-bottom:11px;
+}
+.mode-grid-secondary .mode-icon .icon{width:24px;height:24px}
+.mode-card.featured .mode-icon{font-size:inherit}
+.mode-card.featured .mode-mark{
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 0 24px rgba(var(--mark-glow),.16);
+}
+
+.msi-icon{
+  display:grid;
+  place-items:center;
+  width:44px;
+  flex:0 0 44px;
+}
+.msi-icon>.mode-mark{margin:0}
+
+.continue-card-mode-mark{
+  width:44px;
+  height:44px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.continue-card-mode-mark .mode-mark{width:40px;height:40px}
+.continue-card-mode-mark .mode-mark-core .icon{width:20px;height:20px}
+
+/* Top and bottom app tabs get the same premium emblem language. */
+#top-nav .nav-btn>.icon,
+#settings-toggle>.icon,
+#help-toggle>.icon,
+#mute-toggle>.icon{
+  box-sizing:content-box;
+  padding:6px;
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+#top-nav .nav-btn[data-league-toggle="nfl"]>.icon{
+  color:#f4d276;
+  border-color:rgba(217,166,60,.28);
+  background:linear-gradient(145deg,rgba(217,166,60,.15),rgba(217,166,60,.035));
+}
+#top-nav .nav-btn[data-league-toggle="cfb"]>.icon{
+  color:#ef8d72;
+  border-color:rgba(205,76,51,.28);
+  background:linear-gradient(145deg,rgba(205,76,51,.14),rgba(205,76,51,.035));
+}
+#top-nav .nav-btn[data-go="learn"]>.icon{
+  color:#9ed1b2;
+  border-color:rgba(94,154,116,.26);
+  background:linear-gradient(145deg,rgba(94,154,116,.15),rgba(94,154,116,.035));
+}
+#top-nav .nav-btn[data-go="leaderboard"]>.icon{
+  color:#f0c862;
+  border-color:rgba(240,200,98,.25);
+}
+
+#bottom-nav .bn-icon{
+  width:34px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.012));
+  border:1px solid rgba(255,255,255,.065);
+  transition:transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
+}
+#bottom-nav .bottom-nav-btn.active .bn-icon,
+#bottom-nav .bottom-nav-btn.sheet-open .bn-icon{
+  transform:translateY(-1px);
+  border-color:rgba(217,166,60,.48);
+  background:linear-gradient(145deg,rgba(217,166,60,.19),rgba(217,166,60,.06));
+  box-shadow:0 5px 14px rgba(0,0,0,.24),0 0 12px rgba(217,166,60,.10);
+}
+#bottom-nav [data-league-toggle="nfl"] .bn-icon{color:#f4d276}
+#bottom-nav [data-league-toggle="cfb"] .bn-icon{color:#ef8d72}
+#bottom-nav [data-go="learn"] .bn-icon{color:#9ed1b2}
+#bottom-nav [data-go="leaderboard"] .bn-icon{color:#f0c862}
+#bottom-nav .bn-icon .icon{width:20px;height:20px;stroke-width:2}
+
+@media(max-width:640px){
+  .mode-mark{width:43px;height:43px}
+  .mode-mark-lg{width:52px;height:52px}
+  .mode-mark-lg .mode-mark-core .icon{width:27px;height:27px}
+  .mode-card.featured .mode-icon{min-height:52px}
+}
