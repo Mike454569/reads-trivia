@@ -476,15 +476,17 @@ function renderCreatorScreen() {
   }
 
   if (s.screen === CREATOR_SCREEN.AUTH) {
-    return '<div class="panel">' +
-      '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit</button></div>' +
-      '<h2 class="panel-title">Game Creator</h2>' +
-      '<p class="mode-desc">Admin only. Enter the Gateway admin token to continue. Kept only in this ' +
-      'browser tab\'s session storage -- never written to source, never sent anywhere except this ' +
-      'Gateway.</p>' +
-      '<input type="password" id="creator-token-input" class="creator-input" placeholder="Admin token" autocomplete="off" />' +
-      '<div class="btn-row"><button class="btn-primary" data-creator-auth-submit>Continue</button></div>' +
-      '</div>';
+    return '<div class="creator-auth-shell">' +
+      '<div class="creator-auth-card">' +
+      '<button class="btn-tiny creator-auth-exit" data-go="home">' + icon('close') + ' Exit</button>' +
+      '<div class="creator-auth-mark">R</div>' +
+      '<span class="dashboard-eyebrow">OWNER WORKSPACE</span><h2>Reads Creator</h2>' +
+      '<p>Build, inspect and review real engine-generated football games from one private workspace.</p>' +
+      '<label class="creator-auth-label">Gateway admin token</label>' +
+      '<input type="password" id="creator-token-input" class="creator-input" placeholder="Enter token" autocomplete="off" />' +
+      '<button class="btn-primary creator-auth-submit" data-creator-auth-submit>Enter Creator ' + icon('arrowRight') + '</button>' +
+      '<small>Stored only for this browser tab and sent only to your Reads Gateway.</small>' +
+      '</div></div>';
   }
 
   if (s.screen === CREATOR_SCREEN.ERROR) {
