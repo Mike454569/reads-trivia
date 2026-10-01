@@ -276,3 +276,119 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     rivalry = next(c for c in caps if c["relationship_predicate"] == "RIVAL_OF")
     assert rivalry["domain"] == "CFB_RIVALRY"
     assert rivalry["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+
+
+def test_creator_question_revision_requires_admin(client):
+    r = client.post(
+        "/v1/creator/question/revise",
+        json={"package_id": "GGP:" + "a" * 24, "question_index": 0, "replacement": {"question": "Edited?"}},
+    )
+    assert r.status_code == 401
+
+
+def test_creator_question_revision_creates_new_immutable_package(client, auth_headers):
+    # Keep this route-level regression independent of the production football
+    # warehouse. The normal CI lane intentionally runs without data_coverage;
+    # real-engine generation is exercised by the separate real-DB integration
+    # job. Here we seed a contract-valid immutable package, then verify the
+    # Creator revision route itself end to end.
+    from gateway.services import packages
+
+    original = packages.save_package({
+        "package_id": "GGP:" + "1" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Creator revision fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [
+            {
+                "question": "Which team drafted Player A?",
+                "options": ["Team A", "Team B", "Team C", "Team D"],
+                "correctIndex": 0,
+                "answer": "Team A",
+                "notes": "",
+                "difficulty": "medium",
+            },
+            {
+                "question": "Which team drafted Player B?",
+                "options": ["Team E", "Team F", "Team G", "Team H"],
+                "correctIndex": 1,
+                "answer": "Team F",
+                "notes": "",
+                "difficulty": "medium",
+            },
+        ],
+        "question_count": 2,
+    })
+    q = original["questions"][0]
+    replacement = {
+        "question": q["question"] + " (reviewed edit)",
+        "options": q["options"],
+        "correctIndex": q["correctIndex"],
+        "notes": q.get("notes", ""),
+        "difficulty": q.get("difficulty", "medium"),
+    }
+    revised = client.post(
+        "/v1/creator/question/revise",
+        json={"package_id": original["package_id"], "question_index": 0, "replacement": replacement},
+        headers=auth_headers,
+    )
+    assert revised.status_code == 200
+    body = revised.json()
+    assert body["package_id"] != original["package_id"]
+    assert body["revision_of"] == original["package_id"]
+    assert body["review_status"] == "GENERATED"
+    assert body["questions"][0]["question"].endswith("(reviewed edit)")
+
+    untouched = client.get(f"/v1/games/{original['package_id']}", headers=auth_headers).json()
+    assert untouched["questions"][0]["question"] == q["question"]
+
+
+def test_creator_duplicate_report_requires_admin(client):
+    r = client.get("/v1/creator/duplicates/GGP:" + "a" * 24)
+    assert r.status_code == 401
+
+
+def test_creator_duplicate_report_runs_for_generated_package(client, auth_headers):
+    # Duplicate Intelligence is a package-repository feature, so seed two
+    # valid packages directly instead of requiring the warehouse-less unit
+    # test lane to generate NFL Draft content.
+    from gateway.services import packages
+
+    target = packages.save_package({
+        "package_id": "GGP:" + "2" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Duplicate target fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [{
+            "question": "Which team drafted Player C?",
+            "options": ["Team I", "Team J", "Team K", "Team L"],
+            "correctIndex": 2,
+            "answer": "Team K",
+            "notes": "",
+            "difficulty": "medium",
+        }],
+        "question_count": 1,
+    })
+    packages.save_package({
+        "package_id": "GGP:" + "3" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Duplicate comparison fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [{
+            "question": "Which team drafted Player C?",
+            "options": ["Team I", "Team J", "Team K", "Team L"],
+            "correctIndex": 2,
+            "answer": "Team K",
+            "notes": "",
+            "difficulty": "medium",
+        }],
+        "question_count": 1,
+    })
+    package_id = target["package_id"]
+    report = client.get(f"/v1/creator/duplicates/{package_id}", headers=auth_headers)
+    assert report.status_code == 200
+    body = report.json()
+    assert body["package_id"] == package_id
+    assert body["question_count"] >= 1
+    assert "flagged_count" in body
+    assert isinstance(body["questions"], list)

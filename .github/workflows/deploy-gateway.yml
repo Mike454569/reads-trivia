@@ -20,6 +20,11 @@ jobs:
         run: flyctl deploy . --config gateway/fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Repair live capability catalog drift
+        run: |
+          flyctl ssh console -a reads-football-gateway -C "python3 -c \"import sys; sys.path.insert(0,'/app'); from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows; print(repair_missing_catalog_rows())\""
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Verify live gateway
         run: |
           for attempt in {1..12}; do

@@ -1,8 +1,12 @@
 name: Gateway tests
+# CI nudge: retrigger real-DB gate after frontend/art bundle updates.
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * *"
   push:
-    branches: [main]
+    branches: [main, feature/retention-moat-upgrades]
     paths:
       - "gateway/**"
       - "tools/**"
@@ -64,6 +68,35 @@ jobs:
           CI_SKIP_DB_TESTS: "1"
         run: python -m pytest gateway/tests -q
 
+
+  certified-db-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+
+      - name: Build certified lightweight Reads DB
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+        run: |
+          python tools/ci/build_certified_ci_db.py --engine-dir "$READS_ENGINE_DIR"
+          ls -lh "$READS_ENGINE_DIR/reads_football_v4.0.sqlite"
+
+      - name: Run certified DB contract tests
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+        run: python -m pytest gateway/tests/test_certified_ci_fixture.py -q
+
+
   # Full-coverage job: same suite, but against the REAL database, copied
   # from production via an isolated Fly volume fork (a block-level test copy,
   # never a fabricated mock and never the live mounted production volume).
@@ -72,7 +105,9 @@ jobs:
   # PRODUCTION_STATUS.md's CI section for the exact remaining step. Until
   # that secret exists, this job is skipped (not failing) rather than red.
   integration-tests-with-real-db:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -116,8 +151,8 @@ jobs:
           PROD_MACHINE_IDS=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
           SOURCE_VOLUME_ID=""
           for PROD_MACHINE_ID in $PROD_MACHINE_IDS; do
-            DB_SIZE=$("$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$PROD_MACHINE_ID" \
-              -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' 2>/dev/null | tail -n 1 | tr -dc '0-9')
+            DB_SIZE=$(timeout 45s "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$PROD_MACHINE_ID" \
+              -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' 2>/dev/null | tail -n 1 | tr -dc '0-9' || true)
             DB_SIZE=${DB_SIZE:-0}
             echo "Production machine $PROD_MACHINE_ID DB bytes: $DB_SIZE"
             if [ "$DB_SIZE" -gt 104857600 ]; then
@@ -131,16 +166,21 @@ jobs:
           fi
           echo "Forking verified production volume $SOURCE_VOLUME_ID into isolated CI copy"
 
-          TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
-            -a "$FLY_APP" --region "$FLY_REGION" --name "$TEMP_VOL_NAME" --json | \
-            python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          echo "Forking with an 8-minute hard timeout so Fly cannot pin CI indefinitely"
+          FORK_JSON=$(timeout 8m "$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
+            -a "$FLY_APP" --region "$FLY_REGION" --name "$TEMP_VOL_NAME" --json) || {
+              rc=$?
+              echo "Fly volume fork failed or timed out (exit $rc)" >&2
+              exit "$rc"
+            }
+          TEMP_VOL_ID=$(printf '%s' "$FORK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
           # Run the real-DB suite beside the fork instead of copying the
           # multi-GB SQLite database back through Fly SSH/SFTP. A disposable
           # Alpine helper reliably supports Fly SSH; Python/test dependencies
           # are installed only inside this isolated CI machine.
-          "$HOME/.fly/bin/flyctl" machine run alpine:3.20 \
+          timeout 3m "$HOME/.fly/bin/flyctl" machine run alpine:3.20 \
             -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
             --name "$TEMP_MACHINE_NAME" --entrypoint "tail -f /dev/null" \
             --memory 1024 --detach
@@ -179,10 +219,10 @@ jobs:
             --exclude='node_modules' \
             --exclude='.venv' \
             -czf "$SRC_ARCHIVE" .
-          "$HOME/.fly/bin/flyctl" ssh sftp put "$SRC_ARCHIVE" /tmp/reads-ci-src.tgz \
+          timeout 3m "$HOME/.fly/bin/flyctl" ssh sftp put "$SRC_ARCHIVE" /tmp/reads-ci-src.tgz \
             -a "$FLY_APP" --machine "$TEMP_MACHINE_ID"
 
-          "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" \
+          timeout 22m "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" \
             -C "sh -lc 'set -eu; apk add --no-cache python3 py3-pip; rm -rf /tmp/reads-ci; mkdir -p /tmp/reads-ci; tar -xzf /tmp/reads-ci-src.tgz -C /tmp/reads-ci; chmod +x /tmp/reads-ci/tools/ci/run_real_db_tests.sh; /tmp/reads-ci/tools/ci/run_real_db_tests.sh'"
 
 
@@ -203,6 +243,15 @@ jobs:
           if [ -n "${{ steps.restore.outputs.temp_volume_id }}" ]; then
             "$HOME/.fly/bin/flyctl" volumes destroy "${{ steps.restore.outputs.temp_volume_id }}" -a "$FLY_APP" --yes || true
           fi
+
+          # If a Fly command timed out before outputs were written, sweep by
+          # deterministic CI names so orphan resources cannot accumulate.
+          TEMP_MACHINE_NAME="ci-db-${GITHUB_RUN_ID}"
+          TEMP_VOL_NAME="ci_fork_${GITHUB_RUN_ID}"
+          MACHINE_IDS=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | python3 -c "import json,sys; name='$TEMP_MACHINE_NAME'; print(' '.join(str(r.get('id') or r.get('ID')) for r in json.load(sys.stdin) if (r.get('name') or r.get('Name'))==name and (r.get('id') or r.get('ID'))))" || true)
+          for id in $MACHINE_IDS; do "$HOME/.fly/bin/flyctl" machine destroy "$id" -a "$FLY_APP" --force || true; done
+          VOLUME_IDS=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | python3 -c "import json,sys; name='$TEMP_VOL_NAME'; print(' '.join(str(r.get('id') or r.get('ID')) for r in json.load(sys.stdin) if (r.get('name') or r.get('Name'))==name and (r.get('id') or r.get('ID'))))" || true)
+          for id in $VOLUME_IDS; do "$HOME/.fly/bin/flyctl" volumes destroy "$id" -a "$FLY_APP" --yes || true; done
 
       - name: Report skipped (no token)
         if: steps.check_token.outputs.has_token != 'true'

@@ -12,7 +12,7 @@ export READS_ENGINE_DIR=/data/engine
 export READS_ENGINE_PACKAGES_DIR=/tmp/ci-packages
 export READS_ENGINE_GAME_STATE_DIR=/tmp/ci-game-state
 export READS_ENGINE_LOG_DIR=/tmp/ci-logs
-export CI_REAL_DB_ONLY=1
+export CI_ONLY_DB_TESTS=1
 
 python - <<'PY'
 import os
@@ -38,4 +38,19 @@ finally:
     con.close()
 PY
 
-python -m pytest gateway/tests -q --maxfail=20
+python - <<'PY'
+from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows
+print("Catalog drift repair:", repair_missing_catalog_rows())
+PY
+
+python - <<'PY'
+from tools.director_v02.generate_schema_and_prompt import verify_anthropic_prompt
+print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
+PY
+
+# The sibling pytest job already covers every DB-independent test. Here we
+# select only node IDs empirically proven to need the real warehouse, which
+# removes duplicate work and lets Fly surface real integration regressions.
+# Fail fast while this gate is being stabilized so the first failing node is
+# visible instead of being hidden behind a remote-session timeout.
+python -m pytest gateway/tests -x -vv --tb=short

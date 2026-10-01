@@ -157,6 +157,136 @@ def save_package(package: dict, *, review_status: str = "GENERATED") -> dict:
     return record
 
 
+def create_question_revision(package_id: str, question_index: int, replacement: dict) -> dict:
+    """Create a NEW immutable package version with one question replaced.
+
+    Creator editing must never mutate content-addressed game content in place.
+    This helper clones the stored package, replaces exactly one question,
+    derives a fresh ID in the same GGP prefix family, then sends the clone
+    through save_package() so the global package contract independently
+    validates the revised content before it can enter the review queue.
+    """
+    original = load_package(package_id)
+    if original is None:
+        raise FileNotFoundError(f"no such package: {package_id}")
+    questions = original.get("questions")
+    if not isinstance(questions, list):
+        raise ValueError("QUESTION_REVISION_UNSUPPORTED")
+    if question_index < 0 or question_index >= len(questions):
+        raise IndexError("question_index out of range")
+    if not isinstance(replacement, dict):
+        raise ValueError("replacement must be an object")
+
+    allowed = {"question", "options", "correctIndex", "notes", "difficulty"}
+    revised_question = dict(questions[question_index])
+    for key, value in replacement.items():
+        if key not in allowed:
+            raise ValueError(f"field {key!r} cannot be edited")
+        revised_question[key] = value
+
+    revised = dict(original)
+    revised_questions = [dict(q) for q in questions]
+    revised_questions[question_index] = revised_question
+    revised["questions"] = revised_questions
+    revised["question_count"] = len(revised_questions)
+    revised["revision_of"] = package_id
+    revised["revision_note"] = f"Creator question {question_index + 1} revision"
+    for key in ("gateway_stored_at", "reviewed_at", "review_status", "generated_at"):
+        revised.pop(key, None)
+
+    prefix = package_id.split(":", 1)[0]
+    digest_source = dict(revised)
+    digest_source.pop("package_id", None)
+    digest = hashlib.sha256(
+        json.dumps(digest_source, sort_keys=True, ensure_ascii=False, default=str).encode()
+    ).hexdigest()[:24]
+    revised["package_id"] = f"{prefix}:{digest}"
+    revised["qa_status"] = "PASSED"
+    return save_package(revised)
+
+
+def _creator_question_texts(record: dict) -> list[str]:
+    questions = record.get("questions") or []
+    if isinstance(questions, list):
+        return [str(q.get("question") or "").strip() for q in questions if isinstance(q, dict) and str(q.get("question") or "").strip()]
+    puzzles = record.get("puzzles") or []
+    out = []
+    if isinstance(puzzles, list):
+        for p in puzzles:
+            if not isinstance(p, dict):
+                continue
+            clues = p.get("clues") or []
+            clue_text = " | ".join(str(x.get("display_text") or "") for x in clues if isinstance(x, dict))
+            if clue_text.strip():
+                out.append(clue_text.strip())
+    return out
+
+
+def _creator_similarity_tokens(text: str) -> set[str]:
+    import re
+    return {tok for tok in re.findall(r"[a-z0-9]+", text.lower()) if len(tok) > 2}
+
+
+def analyze_creator_duplicates(package_id: str, *, recent_limit: int = 100) -> dict:
+    """Compare one package against recent Creator output.
+
+    Uses exact normalized prompt equality plus conservative token Jaccard
+    similarity. This is editorial duplicate intelligence, not a factual
+    correctness score, and never mutates or rejects content automatically.
+    """
+    target = load_package(package_id)
+    if target is None:
+        raise FileNotFoundError(f"no such package: {package_id}")
+    target_texts = _creator_question_texts(target)
+    if not target_texts:
+        return {"package_id": package_id, "question_count": 0, "flagged_count": 0, "questions": []}
+
+    recent = []
+    for summary in list_packages(limit=recent_limit + 1):
+        other_id = summary.get("package_id")
+        if not other_id or other_id == package_id:
+            continue
+        other = load_package(other_id)
+        if other:
+            recent.append((other_id, other))
+        if len(recent) >= recent_limit:
+            break
+
+    rows = []
+    for index, text in enumerate(target_texts):
+        norm = " ".join(text.lower().split())
+        tokens = _creator_similarity_tokens(text)
+        matches = []
+        for other_id, other in recent:
+            for other_index, other_text in enumerate(_creator_question_texts(other)):
+                other_norm = " ".join(other_text.lower().split())
+                other_tokens = _creator_similarity_tokens(other_text)
+                exact = bool(norm and norm == other_norm)
+                union = tokens | other_tokens
+                score = 1.0 if exact else ((len(tokens & other_tokens) / len(union)) if union else 0.0)
+                if exact or score >= 0.72:
+                    matches.append({
+                        "package_id": other_id,
+                        "question_index": other_index,
+                        "similarity": round(score, 3),
+                        "exact": exact,
+                        "question": other_text[:260],
+                    })
+        matches.sort(key=lambda x: (not x["exact"], -x["similarity"]))
+        rows.append({
+            "question_index": index,
+            "question": text[:260],
+            "duplicate_risk": "HIGH" if any(m["exact"] for m in matches) else ("MEDIUM" if matches else "CLEAR"),
+            "matches": matches[:5],
+        })
+    return {
+        "package_id": package_id,
+        "question_count": len(rows),
+        "flagged_count": sum(1 for row in rows if row["duplicate_risk"] != "CLEAR"),
+        "questions": rows,
+    }
+
+
 def load_package(package_id: str) -> dict | None:
     """Returns the stored record, or None if not found. Raises
     PackageIdInvalid for a malformed ID -- callers map that to the same
@@ -229,9 +359,14 @@ def list_packages(*, review_status: str | None = None, limit: int = 100) -> list
             "review_status": record.get("review_status"),
             "qa_status": record.get("qa_status"),
             "question_count": record.get("question_count"),
+            "puzzle_count": record.get("puzzle_count"),
+            "taxonomy_id": record.get("taxonomy_id"),
+            "variant": record.get("variant"),
             "requested_description": record.get("requested_description"),
             "gateway_stored_at": record.get("gateway_stored_at"),
             "reviewed_at": record.get("reviewed_at"),
+            "revision_of": record.get("revision_of"),
+            "revision_note": record.get("revision_note"),
             "capability": {
                 "mechanic": (record.get("parsed_spec") or {}).get("mechanic"),
                 "relationship_predicate": (record.get("parsed_spec") or {}).get("relationship_predicate"),

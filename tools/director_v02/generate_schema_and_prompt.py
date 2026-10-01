@@ -93,7 +93,7 @@ def catalog_public_domains_and_predicates() -> tuple[set[str], set[str]]:
     try:
         rows = c.execute(
             "SELECT DISTINCT domain, relationship_predicate FROM capability_catalog "
-            "WHERE verification_status IN ('PUBLIC_ENABLED', 'LEGACY_PUBLIC_PENDING_REVALIDATION')"
+            "WHERE public_availability='PUBLIC_ENABLED'"
         ).fetchall()
     finally:
         c.close()

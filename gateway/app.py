@@ -42,7 +42,7 @@ from .errors import GatewayError  # noqa: E402
 from .models import (AdminPickemGameStatusRequest, CreatorConceptsRequest, CreatorFeasibilityRequest,  # noqa: E402
                       CreatorFormatGenerateRequest, CreatorGenerateRequest,
                       CreatorIdeasRequest, CreatorJobTier2CertificationRequest,
-                      CreatorReviewRequest,
+                      CreatorQuestionRevisionRequest, CreatorReviewRequest,
                       GenerateRequest, GridBoardRequest, GridValidateRequest,
                       MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
@@ -1036,6 +1036,11 @@ def creator_format_generate(body: CreatorFormatGenerateRequest, request: Request
     )
 
 
+@app.get("/v1/creator/duplicates/{package_id}")
+def creator_duplicates(package_id: str, request: Request,
+                       _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    return creator_service.analyze_duplicates(package_id)
+
 @app.get("/v1/creator/queue")
 def creator_queue(request: Request,
                    review_status: Optional[str] = Query(default=None, max_length=20),
@@ -1044,6 +1049,13 @@ def creator_queue(request: Request,
         raise GatewayError("INVALID_REQUEST", f"review_status must be one of {sorted(packages.REVIEW_STATUSES)}.")
     return {"packages": creator_service.list_review_queue(review_status)}
 
+
+@app.post("/v1/creator/question/revise")
+def creator_question_revise(body: CreatorQuestionRevisionRequest, request: Request,
+                            _rl=Depends(rate_limit_generate), _admin=Depends(require_admin)):
+    return creator_service.revise_question(
+        package_id=body.package_id, question_index=body.question_index, replacement=body.replacement,
+    )
 
 @app.post("/v1/creator/review")
 def creator_review(body: CreatorReviewRequest, request: Request,

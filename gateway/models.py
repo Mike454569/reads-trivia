@@ -266,6 +266,14 @@ class CreatorFormatGenerateRequest(BaseModel):
     seed: Optional[str] = Field(default=None, min_length=1, max_length=128)
 
 
+class CreatorQuestionRevisionRequest(BaseModel):
+    """Create a new immutable Creator package with one question revised."""
+    model_config = ConfigDict(extra="forbid")
+
+    package_id: str = Field(min_length=1, max_length=64)
+    question_index: int = Field(ge=0, le=24)
+    replacement: Dict[str, Any] = Field(default_factory=dict)
+
 class CreatorReviewRequest(BaseModel):
     """POST /v1/creator/review -- the approve/reject step (Part G/H). Only
     the three human-set review statuses are ever accepted here -- GENERATED

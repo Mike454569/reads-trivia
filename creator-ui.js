@@ -101,14 +101,23 @@ function creatorInitialState() {
   return {
     screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
     requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
-    capabilities: null, error: null,
+    capabilities: null, error: null, formatQuery: '', formatCategory: 'All',
+    guidedLeague: 'NFL', guidedTopic: 'General', guidedDifficulty: 'medium', guidedCount: 5,
+    previewMode: 'player', editingQuestionIndex: null,
+    recent: [], recentLoading: false, bulkCount: 5, bulkRunning: false, bulkResults: [], bulkTopic: 'General', bulkLeague: 'NFL',
+    queueSearch: '', queueLeague: 'All', queueSort: 'priority', recipes: [], recipeName: '',
+    duplicateReports: {}, duplicateLoading: {}, selectedPackages: {}, batchReviewRunning: false,
+    collections: [], collectionName: '', previewSurface: 'game', fixingIssues: false,
   };
 }
 
 function creatorSubmitToken(token) {
   creatorSetToken((token || '').trim());
   state.creator.screen = CREATOR_SCREEN.HOME;
+  creatorLoadRecipes();
+  creatorLoadCollections();
   renderAll();
+  creatorLoadRecent();
 }
 
 function creatorLogout() {
@@ -120,10 +129,93 @@ function creatorLogout() {
 
 function creatorGoHome() {
   var s = state.creator; if (!s) return;
+  creatorLoadRecipes();
+  creatorLoadCollections();
   s.screen = CREATOR_SCREEN.HOME; s.error = null;
   renderAll();
+  creatorLoadRecent();
 }
 
+function creatorLoadRecent() {
+  var s=state.creator;if(!s||!creatorToken())return;
+  s.recentLoading=true;
+  creatorFetchJson('/v1/creator/queue').then(function(result){
+    if(state.creator!==s)return;
+    s.recent=(result.packages||[]).slice(0,100);s.recentLoading=false;
+    if(s.screen===CREATOR_SCREEN.HOME)renderAll();
+  }).catch(function(){if(state.creator===s){s.recentLoading=false;if(s.screen===CREATOR_SCREEN.HOME)renderAll();}});
+}
+function creatorOpenPackage(packageId) {
+  var s=state.creator;if(!s||!packageId)return;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/games/'+encodeURIComponent(packageId)).then(function(pkg){
+    s.generated=pkg;s.requestText=pkg.requested_description||s.requestText||'';s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();
+  }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorClonePackage(packageId) {
+  var s=state.creator;if(!s||!packageId)return;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/games/'+encodeURIComponent(packageId)).then(function(pkg){
+    s.requestText=pkg.requested_description||'';
+    s.guidedCount=pkg.question_count||pkg.puzzle_count||5;
+    var first=(pkg.questions&&pkg.questions[0])||(pkg.puzzles&&pkg.puzzles[0]);
+    if(first&&first.difficulty)s.guidedDifficulty=first.difficulty;
+    s.generated=null;s.feasibility=null;s.screen=CREATOR_SCREEN.HOME;renderAll();
+    setTimeout(function(){var el=document.getElementById('creator-request-input');if(el){el.focus();el.scrollIntoView({block:'center',behavior:'smooth'});}},0);
+  }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorBulkPrompt(i) {
+  var s=state.creator||{}; var league=s.bulkLeague||'NFL', topic=s.bulkTopic||'General';
+  var topicMap={'General':'mixed football knowledge','Draft':'draft history','History':'football history','Players':'players and careers','Teams':'teams and seasons','Stats':'player and team statistics','Awards':'awards and honors','Games':'real game results and performances'};
+  return 'Make me a '+league+' trivia game about '+(topicMap[topic]||topic.toLowerCase())+'.';
+}
+function creatorBulkSet(field,value) {
+  var s=state.creator;if(!s)return;
+  if(field==='count')s.bulkCount=Math.max(2,Math.min(25,parseInt(value,10)||5));
+  else if(field==='league')s.bulkLeague=value;
+  else if(field==='topic')s.bulkTopic=value;
+  renderAll();
+}
+function creatorBulkGenerate() {
+  var s=state.creator;if(!s||s.bulkRunning)return;
+  var total=Math.max(2,Math.min(25,Number(s.bulkCount)||5));
+  s.bulkRunning=true;s.bulkResults=[];renderAll();
+  var chain=Promise.resolve();
+  for(var i=0;i<total;i++){(function(index){
+    chain=chain.then(function(){
+      return creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:creatorBulkPrompt(index),puzzle_count:s.guidedCount||5,difficulty:s.guidedDifficulty||'medium',seed:'creator-bulk-'+Date.now()+'-'+index})})
+        .then(function(result){s.bulkResults.push({ok:true,result:result,index:index});renderAll();})
+        .catch(function(err){s.bulkResults.push({ok:false,error:creatorUserFacingError(err),index:index});renderAll();});
+    });
+  })(i);}
+  chain.then(function(){s.bulkRunning=false;creatorLoadRecent();renderAll();});
+}
+function creatorRecentHtml() {
+  var s=state.creator||{};
+  var rows=s.recent||[];
+  return '<section class="creator-recent"><div class="creator-library-head"><div><span class="dashboard-eyebrow">RECENT CREATIONS</span><h3>Your latest factory output</h3><p>Open, review, or clone any recent generated package.</p></div><button class="btn-tiny" data-creator-refresh-recent>'+icon('restart')+' Refresh</button></div>'+
+    (s.recentLoading?'<div class="creator-empty-state"><b>Loading recent creations…</b></div>':
+    rows.length?'<div class="creator-recent-grid">'+rows.slice(0,12).map(function(p){
+      var count=(p.question_count!=null?p.question_count:(p.puzzle_count||0));
+      return '<article class="creator-recent-card"><div><span class="creator-format-type">'+esc(p.review_status||'GENERATED')+'</span><b>'+esc(p.game_title||'Generated Game')+'</b><small>'+esc((p.requested_description||'').slice(0,100))+'</small></div>'+
+        '<div class="creator-recent-meta"><span>QA '+esc(p.qa_status||'—')+'</span><span>'+count+' items</span></div>'+
+        '<div class="btn-row"><button class="btn-secondary" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone & Edit</button></div></article>';
+    }).join('')+'</div>':'<div class="creator-empty-state"><b>No creations yet.</b><span>Your generated games will show up here.</span></div>')+
+  '</section>';
+}
+function creatorBulkHtml() {
+  var s=state.creator||{}; var topics=['General','Draft','History','Players','Teams','Stats','Awards','Games'];
+  return '<section class="creator-bulk-card"><div class="creator-compose-head"><div><span class="dashboard-eyebrow">BULK CREATOR</span><h2>Build a whole content pack</h2></div><span class="creator-step-chip">Factory mode</span></div>'+
+    '<div class="creator-guided-grid">'+
+      '<label><span>League</span><select data-creator-bulk="league"><option'+(s.bulkLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.bulkLeague==='CFB'?' selected':'')+'>CFB</option><option'+(s.bulkLeague==='Mixed'?' selected':'')+'>Mixed</option></select></label>'+
+      '<label><span>Topic</span><select data-creator-bulk="topic">'+topics.map(function(x){return '<option'+(s.bulkTopic===x?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Games</span><select data-creator-bulk="count">'+[5,10,15,20,25].map(function(n){return '<option value="'+n+'"'+(Number(s.bulkCount)===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Questions / game</span><b class="creator-bulk-static">'+Number(s.guidedCount||5)+'</b></label>'+
+    '</div>'+
+    '<div class="creator-bulk-progress">'+(s.bulkResults.length?'<b>'+s.bulkResults.filter(function(x){return x.ok&&x.result&&x.result.qa_status==="PASSED";}).length+' passed · '+s.bulkResults.filter(function(x){return x.ok&&(!x.result||x.result.qa_status!=="PASSED");}).length+' needs review · '+s.bulkResults.filter(function(x){return !x.ok;}).length+' failed · '+s.bulkResults.length+'/'+Number(s.bulkCount||5)+' attempted</b>':'<b>Ready to build '+Number(s.bulkCount||5)+' games.</b>')+'</div>'+
+    '<button class="btn-primary" data-creator-bulk-generate'+(s.bulkRunning?' disabled':'')+'>'+icon('zap')+' '+(s.bulkRunning?'Building pack…':'Generate Content Pack')+'</button>'+
+  '</section>';
+}
 function creatorCheckFeasibility(text) {
   var s = state.creator; if (!s) return;
   s.requestText = text;
@@ -150,7 +242,7 @@ function creatorGenerate() {
   renderAll();
   creatorFetchJson('/v1/creator/generate', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ request_text: s.requestText, puzzle_count: 5 }),
+    body: JSON.stringify({ request_text: s.requestText, puzzle_count: s.guidedCount || 5, difficulty: s.guidedDifficulty || 'medium' }),
   }).then(function (result) {
     s.generated = result;
     s.screen = CREATOR_SCREEN.PREVIEW;
@@ -179,6 +271,224 @@ function creatorSetReview(packageId, reviewStatus) {
   });
 }
 
+var CREATOR_RECIPES_KEY='reads_creator_recipes_v1';
+function creatorLoadRecipes(){
+  var s=state.creator;if(!s)return;
+  try{s.recipes=JSON.parse(localStorage.getItem(CREATOR_RECIPES_KEY)||'[]');if(!Array.isArray(s.recipes))s.recipes=[];}catch(e){s.recipes=[];}
+}
+function creatorSaveRecipe(){
+  var s=state.creator;if(!s)return;
+  var name=(document.getElementById('creator-recipe-name')||{}).value||s.recipeName||'';
+  name=String(name).trim().slice(0,50);if(!name)return;
+  var recipe={id:'r'+Date.now(),name:name,league:s.guidedLeague||'NFL',topic:s.guidedTopic||'General',difficulty:s.guidedDifficulty||'medium',count:s.guidedCount||5,requestText:s.requestText||''};
+  s.recipes=(s.recipes||[]).filter(function(r){return r.name.toLowerCase()!==name.toLowerCase();});
+  s.recipes.unshift(recipe);s.recipes=s.recipes.slice(0,20);
+  localStorage.setItem(CREATOR_RECIPES_KEY,JSON.stringify(s.recipes));s.recipeName='';renderAll();
+}
+function creatorRunRecipe(id){
+  var s=state.creator;if(!s)return;var r=(s.recipes||[]).find(function(x){return x.id===id;});if(!r)return;
+  s.guidedLeague=r.league;s.guidedTopic=r.topic;s.guidedDifficulty=r.difficulty;s.guidedCount=r.count;s.requestText=r.requestText||'';
+  renderAll();
+}
+function creatorDeleteRecipe(id){
+  var s=state.creator;if(!s)return;s.recipes=(s.recipes||[]).filter(function(r){return r.id!==id;});
+  localStorage.setItem(CREATOR_RECIPES_KEY,JSON.stringify(s.recipes));renderAll();
+}
+function creatorRecipesHtml(){
+  var s=state.creator||{};var rows=s.recipes||[];
+  return '<section class="creator-recipes"><div class="creator-library-head"><div><span class="dashboard-eyebrow">SAVED RECIPES</span><h3>One-click build setups</h3><p>Save your favorite Creator configurations and reload them instantly.</p></div></div>'+
+    '<div class="creator-recipe-save"><input id="creator-recipe-name" maxlength="50" placeholder="Recipe name, e.g. Alabama Weekly Pack"><button class="btn-primary" data-creator-save-recipe>Save Current Setup</button></div>'+
+    (rows.length?'<div class="creator-recipe-grid">'+rows.map(function(r){return '<article><div><b>'+esc(r.name)+'</b><small>'+esc(r.league)+' · '+esc(r.topic)+' · '+esc(r.difficulty)+' · '+r.count+' questions</small></div><div class="btn-row"><button class="btn-secondary" data-creator-run-recipe="'+esc(r.id)+'">Load</button><button class="btn-tiny" data-creator-delete-recipe="'+esc(r.id)+'">Delete</button></div></article>';}).join('')+'</div>':'<div class="creator-empty-state"><b>No saved recipes yet.</b><span>Save the current Guided Builder setup above.</span></div>')+
+  '</section>';
+}
+
+var CREATOR_COLLECTIONS_KEY='reads_creator_collections_v1';
+function creatorLoadCollections(){
+  var s=state.creator;if(!s)return;
+  try{s.collections=JSON.parse(localStorage.getItem(CREATOR_COLLECTIONS_KEY)||'[]');if(!Array.isArray(s.collections))s.collections=[];}catch(e){s.collections=[];}
+}
+function creatorSaveCollections(){try{localStorage.setItem(CREATOR_COLLECTIONS_KEY,JSON.stringify((state.creator&&state.creator.collections)||[]));}catch(e){}}
+function creatorCreateCollection(){
+  var s=state.creator;if(!s)return;
+  var el=document.getElementById('creator-collection-name'),name=String((el&&el.value)||s.collectionName||'').trim().slice(0,60);
+  if(!name)return;
+  if(!(s.collections||[]).some(function(x){return String(x.name).toLowerCase()===name.toLowerCase();}))s.collections.unshift({id:'c'+Date.now(),name:name,packageIds:[]});
+  s.collectionName='';creatorSaveCollections();renderAll();
+}
+function creatorAddToCollection(collectionId,packageId){
+  var s=state.creator;if(!s||!packageId)return;var col=(s.collections||[]).find(function(x){return x.id===collectionId;});if(!col)return;
+  col.packageIds=Array.isArray(col.packageIds)?col.packageIds:[];
+  if(col.packageIds.indexOf(packageId)===-1)col.packageIds.unshift(packageId);
+  creatorSaveCollections();renderAll();
+}
+function creatorRemoveCollection(collectionId){var s=state.creator;if(!s)return;s.collections=(s.collections||[]).filter(function(x){return x.id!==collectionId;});creatorSaveCollections();renderAll();}
+function creatorCollectionsHtml(){
+  var s=state.creator||{},cols=s.collections||[],recent=s.recent||[];
+  return '<section class="creator-collections"><div class="creator-library-head"><div><span class="dashboard-eyebrow">COLLECTIONS</span><h3>Organize the factory</h3><p>Group immutable packages without changing or duplicating their content.</p></div></div>'+
+    '<div class="creator-recipe-save"><input id="creator-collection-name" maxlength="60" placeholder="Collection name, e.g. 2026 Alabama"><button class="btn-primary" data-creator-create-collection>Create Collection</button></div>'+
+    (cols.length?'<div class="creator-collection-grid">'+cols.map(function(col){var ids=col.packageIds||[];var latest=ids.map(function(id){return recent.find(function(p){return p.package_id===id;});}).filter(Boolean).slice(0,3);return '<article><div><b>'+esc(col.name)+'</b><small>'+ids.length+' packages</small></div>'+(latest.length?'<small>'+latest.map(function(p){return esc(p.game_title||p.package_id);}).join(' · ')+'</small>':'<small>Empty collection</small>')+'<button class="btn-tiny" data-creator-delete-collection="'+esc(col.id)+'">Delete</button></article>';}).join('')+'</div>':'<div class="creator-empty-state"><b>No collections yet.</b><span>Create one for a team, season, content series or Daily Reads candidate pool.</span></div>')+
+  '</section>';
+}
+function creatorDashboardHtml(){
+  var s=state.creator||{},rows=s.recent||[];
+  var counts={GENERATED:0,REVIEWED:0,APPROVED:0,REJECTED:0};rows.forEach(function(p){if(counts[p.review_status]!=null)counts[p.review_status]++;});
+  var risk=rows.filter(function(p){return p.qa_status!=='PASSED'||Number(p.question_count||p.puzzle_count||0)<1;}).length;
+  return '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">COMMAND CENTER</span><h2>Creator Dashboard</h2><p>One glance at what needs attention across the factory.</p></div><button class="btn-secondary" data-creator-nav="queue">Open Smart Review Queue</button></div>'+
+    '<div class="creator-command-grid">'+
+      '<button data-creator-dashboard-filter="GENERATED"><b>'+counts.GENERATED+'</b><span>Needs Review</span></button>'+
+      '<button data-creator-dashboard-filter="APPROVED"><b>'+counts.APPROVED+'</b><span>Approved</span></button>'+
+      '<button data-creator-dashboard-filter="REJECTED"><b>'+counts.REJECTED+'</b><span>Rejected</span></button>'+
+      '<button data-creator-dashboard-filter=""><b>'+rows.length+'</b><span>Recent Output</span></button>'+
+      '<button data-creator-dashboard-filter="risk"><b>'+risk+'</b><span>QA Risk</span></button>'+
+      '<button data-creator-nav="home"><b>'+(s.recipes||[]).length+'</b><span>Saved Recipes</span></button>'+
+    '</div></section>';
+}
+function creatorQuestionQaFlags(g){
+  var qs=(g&&g.questions)||[],seen={},flags=[];
+  qs.forEach(function(q,i){
+    var reasons=[],text=String(q.question||'').trim(),norm=text.toLowerCase().replace(/\s+/g,' ');
+    if(!text||text.length<18)reasons.push('Question wording is unusually short');
+    if(seen[norm]!=null)reasons.push('Question wording repeats Q'+(seen[norm]+1));else if(norm)seen[norm]=i;
+    var opts=(q.options||[]).map(function(x){return String(x||'').trim().toLowerCase();});
+    if(opts.length<2)reasons.push('Not enough answer options');
+    if(new Set(opts).size!==opts.length)reasons.push('Duplicate answer options');
+    if(!Number.isInteger(q.correctIndex)||q.correctIndex<0||q.correctIndex>=opts.length)reasons.push('Invalid correct answer index');
+    if(reasons.length)flags.push({index:i,reasons:reasons});
+  });
+  return flags;
+}
+function creatorQaFlagsHtml(g){
+  var flags=creatorQuestionQaFlags(g);
+  return '<div class="creator-qa-flags '+(flags.length?'has-risk':'clear')+'"><div><b>Question-level QA</b><small>'+(flags.length?flags.length+' question'+(flags.length===1?'':'s')+' need attention':'No structural question flags detected')+'</small></div>'+
+    (flags.length?'<div>'+flags.map(function(f){return '<span><b>Q'+(f.index+1)+'</b> '+esc(f.reasons.join(' · '))+'</span>';}).join('')+'</div><button class="btn-primary" data-creator-fix-issues'+((state.creator||{}).fixingIssues?' disabled':'')+'>'+((state.creator||{}).fixingIssues?'Fixing…':'Fix Flagged Questions')+'</button>':'')+
+  '</div>';
+}
+function creatorFixFlaggedQuestions(){
+  var s=state.creator,g=s&&s.generated;if(!g||s.fixingIssues)return;var flags=creatorQuestionQaFlags(g);if(!flags.length)return;
+  s.fixingIssues=true;renderAll();
+  var count=g.question_count||g.questions.length,baseId=g.package_id,working=g;
+  creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:s.requestText,puzzle_count:count,difficulty:s.guidedDifficulty||'medium',seed:'creator-fix-'+Date.now()})})
+    .then(function(fresh){
+      var chain=Promise.resolve();
+      flags.forEach(function(flag){chain=chain.then(function(){var q=fresh.questions&&fresh.questions[flag.index];if(!q)return;return creatorFetchJson('/v1/creator/question/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:working.package_id,question_index:flag.index,replacement:{question:q.question,options:q.options,correctIndex:q.correctIndex,notes:q.notes||'',difficulty:q.difficulty||s.guidedDifficulty||'medium'}})}).then(function(next){working=next;});});});
+      return chain;
+    }).then(function(){s.generated=working;s.fixingIssues=false;s.previewMode='player';delete s.duplicateReports[baseId];creatorLoadRecent();renderAll();})
+    .catch(function(err){s.fixingIssues=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorPublishReadinessHtml(g){
+  var s=state.creator||{},report=s.duplicateReports[g.package_id],checks=[
+    {label:'Global QA passed',ok:g.qa_status==='PASSED'},
+    {label:'Playable content present',ok:Number(g.question_count||g.puzzle_count||0)>0},
+    {label:'Question-level QA clear',ok:creatorQuestionQaFlags(g).length===0},
+    {label:'Duplicate scan complete',ok:!!report},
+    {label:'Duplicate scan clear',ok:!!report&&Number(report.flagged_count||0)===0},
+    {label:'Human review approved',ok:g.review_status==='APPROVED'},
+    {label:'Immutable package ID present',ok:!!g.package_id}
+  ],passed=checks.filter(function(x){return x.ok;}).length;
+  return '<div class="creator-readiness"><div class="creator-quality-head"><span>PUBLISH READINESS</span><b>'+passed+'/'+checks.length+'</b></div><div class="creator-quality-grid">'+checks.map(function(x){return '<span class="'+(x.ok?'pass':'fail')+'">'+(x.ok?'✓':'!')+' '+esc(x.label)+'</span>';}).join('')+'</div><small>This checklist never publishes automatically. Public exposure remains a separate release decision.</small></div>';
+}
+function creatorVersionHistoryHtml(g){
+  var rows=(state.creator&&state.creator.recent)||[],byId={};rows.forEach(function(p){byId[p.package_id]=p;});
+  var ids=[],cursor=g.package_id,guard=0;while(cursor&&guard++<20){ids.push(cursor);var row=byId[cursor];cursor=row&&row.revision_of;}
+  rows.forEach(function(p){if(p.revision_of===g.package_id&&ids.indexOf(p.package_id)===-1)ids.unshift(p.package_id);});
+  return '<div class="creator-version-history"><div><b>Version History</b><small>Immutable versions only. Restoring reopens an older package; it never overwrites newer content.</small></div>'+
+    '<div>'+ids.map(function(id,i){return '<button class="'+(id===g.package_id?'active':'')+'" data-creator-restore-version="'+esc(id)+'"><b>'+(id===g.package_id?'Current':'Version '+(ids.length-i))+'</b><small>'+esc(id)+'</small></button>';}).join('')+'</div></div>';
+}
+function creatorCollectionPickerHtml(packageId){
+  var cols=(state.creator&&state.creator.collections)||[];if(!packageId||!cols.length)return '';
+  return '<div class="creator-collection-picker"><span>Add to collection</span>'+cols.map(function(col){var has=(col.packageIds||[]).indexOf(packageId)!==-1;return '<button class="btn-tiny'+(has?' active':'')+'" data-creator-add-collection="'+esc(col.id)+'" data-creator-package-id="'+esc(packageId)+'">'+(has?'✓ ':'')+esc(col.name)+'</button>';}).join('')+'</div>';
+}
+function creatorPreviewMatrixHtml(){
+  var s=state.creator||{},surface=s.previewSurface||'game',items=[['game','Gameplay'],['mobile','Mobile'],['daily','Daily Reads'],['home','Homepage Card']];
+  return '<div class="creator-preview-matrix"><span>Preview surface</span>'+items.map(function(x){return '<button class="'+(surface===x[0]?'active':'')+'" data-creator-preview-surface="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>';
+}
+function creatorQualityScorecardHtml(p){
+  var checks=[
+    {label:'QA contract',ok:p.qa_status==='PASSED'},
+    {label:'Has content',ok:Number(p.question_count||p.puzzle_count||0)>0},
+    {label:'Review state',ok:['GENERATED','REVIEWED','APPROVED','REJECTED'].indexOf(p.review_status)>=0},
+    {label:'Creator request',ok:!!String(p.requested_description||'').trim()},
+    {label:'Mechanic mapped',ok:!!((p.capability&&p.capability.mechanic)||p.taxonomy_id)},
+    {label:'Stored record',ok:!!p.package_id}
+  ];
+  var passed=checks.filter(function(x){return x.ok;}).length;
+  var pct=Math.round(100*passed/checks.length);
+  return '<div class="creator-quality"><div class="creator-quality-head"><span>QUALITY CHECK</span><b>'+pct+'%</b></div><div class="creator-quality-grid">'+checks.map(function(x){return '<span class="'+(x.ok?'pass':'fail')+'">'+(x.ok?'✓':'!')+' '+esc(x.label)+'</span>';}).join('')+'</div></div>';
+}
+function creatorQueueRows(){
+  var s=state.creator||{},q=String(s.queueSearch||'').toLowerCase(),league=s.queueLeague||'All';
+  var rows=(s.queue||[]).slice().filter(function(p){
+    var hay=[p.package_id,p.game_title,p.requested_description,p.taxonomy_id,p.variant,p.review_status,p.qa_status,p.gateway_stored_at,p.reviewed_at,p.revision_of,p.capability&&p.capability.mechanic,p.capability&&p.capability.relationship_predicate].filter(Boolean).join(' ').toLowerCase();
+    if(q && hay.indexOf(q)===-1)return false;
+    if(league!=='All'){var lh=hay.toUpperCase();if(lh.indexOf(league.toUpperCase())===-1)return false;}
+    return true;
+  });
+  if(s.queueSort==='oldest')rows.reverse();
+  else if(s.queueSort==='qa-risk')rows.sort(function(a,b){return (a.qa_status==='PASSED'?1:0)-(b.qa_status==='PASSED'?1:0);});
+  else if(s.queueSort==='status')rows.sort(function(a,b){return String(a.review_status||'').localeCompare(String(b.review_status||''));});
+  else if(s.queueSort==='priority')rows.sort(function(a,b){
+    function score(p){var n=0;if(p.qa_status!=='PASSED')n+=100;if(p.review_status==='GENERATED')n+=40;if(Number(p.question_count||p.puzzle_count||0)<1)n+=30;var r=(s.duplicateReports||{})[p.package_id];if(r&&r.flagged_count)n+=20+Number(r.flagged_count);if(p.review_status==='REJECTED')n-=10;return n;}
+    return score(b)-score(a);
+  });
+  return rows;
+}
+function creatorQueueControlsHtml(){
+  var s=state.creator||{};
+  return '<div class="creator-queue-controls"><div class="creator-search-wrap">'+icon('search')+'<input id="creator-queue-search" value="'+esc(s.queueSearch||'')+'" placeholder="Search title, request, mechanic…"></div>'+
+    '<select data-creator-queue-league><option'+(s.queueLeague==='All'?' selected':'')+'>All</option><option'+(s.queueLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.queueLeague==='CFB'?' selected':'')+'>CFB</option></select>'+
+    '<select data-creator-queue-sort><option value="priority"'+(s.queueSort==='priority'?' selected':'')+'>Smart Priority</option><option value="newest"'+(s.queueSort==='newest'?' selected':'')+'>Newest</option><option value="oldest"'+(s.queueSort==='oldest'?' selected':'')+'>Oldest</option><option value="qa-risk"'+(s.queueSort==='qa-risk'?' selected':'')+'>QA Risk</option><option value="status"'+(s.queueSort==='status'?' selected':'')+'>Status</option></select></div>';
+}
+function creatorLoadDuplicateReport(packageId){
+  var s=state.creator;if(!s||!packageId)return;
+  s.duplicateLoading[packageId]=true;renderAll();
+  creatorFetchJson('/v1/creator/duplicates/'+encodeURIComponent(packageId)).then(function(report){
+    if(state.creator!==s)return;s.duplicateReports[packageId]=report;s.duplicateLoading[packageId]=false;renderAll();
+  }).catch(function(){if(state.creator===s){s.duplicateLoading[packageId]=false;renderAll();}});
+}
+function creatorDuplicateReportHtml(packageId){
+  var s=state.creator||{};var report=s.duplicateReports[packageId];
+  if(s.duplicateLoading[packageId])return '<div class="creator-duplicate-box loading"><b>Checking recent content…</b></div>';
+  if(!report)return '<div class="creator-duplicate-box"><div><b>Duplicate Intelligence</b><small>Compare this package against recent Creator output.</small></div><button class="btn-tiny" data-creator-check-duplicates="'+esc(packageId)+'">Scan</button></div>';
+  var flagged=(report.questions||[]).filter(function(q){return q.duplicate_risk!=='CLEAR';});
+  return '<div class="creator-duplicate-box '+(flagged.length?'has-risk':'clear')+'"><div class="creator-duplicate-head"><div><b>Duplicate Intelligence</b><small>'+report.flagged_count+' of '+report.question_count+' questions flagged</small></div><button class="btn-tiny" data-creator-check-duplicates="'+esc(packageId)+'">Rescan</button></div>'+
+    (flagged.length?'<div class="creator-duplicate-list">'+flagged.map(function(q){var m=q.matches&&q.matches[0];return '<div><span>'+esc(q.duplicate_risk)+'</span><b>Q'+(q.question_index+1)+' · '+esc(q.question)+'</b>'+(m?'<small>'+Math.round((m.similarity||0)*100)+'% similar to '+esc(m.package_id)+'</small>':'')+'</div>';}).join('')+'</div>':'<div class="creator-duplicate-clear">✓ No close repeats found in recent Creator output.</div>')+
+  '</div>';
+}
+function creatorReplaceQuestion(index){
+  var s=state.creator,g=s&&s.generated;if(!g||!g.package_id||!Array.isArray(g.questions)||!s.requestText)return;
+  var count=g.question_count||g.questions.length;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:s.requestText,puzzle_count:count,difficulty:s.guidedDifficulty||'medium',seed:'creator-slot-'+Date.now()+'-'+index})})
+    .then(function(fresh){
+      if(!fresh||!Array.isArray(fresh.questions)||!fresh.questions[index])throw new Error('Fresh replacement question was not available.');
+      var q=fresh.questions[index];
+      return creatorFetchJson('/v1/creator/question/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:g.package_id,question_index:index,replacement:{question:q.question,options:q.options,correctIndex:q.correctIndex,notes:q.notes||'',difficulty:q.difficulty||s.guidedDifficulty||'medium'}})});
+    }).then(function(result){
+      s.generated=result;s.editingQuestionIndex=null;s.previewMode='player';delete s.duplicateReports[g.package_id];s.screen=CREATOR_SCREEN.PREVIEW;renderAll();
+    }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorTogglePackageSelection(packageId){
+  var s=state.creator;if(!s||!packageId)return;
+  if(s.selectedPackages[packageId])delete s.selectedPackages[packageId];else s.selectedPackages[packageId]=true;
+  renderAll();
+}
+function creatorSelectVisiblePackages(){
+  var s=state.creator;if(!s)return;
+  creatorQueueRows().forEach(function(p){if(p.package_id)s.selectedPackages[p.package_id]=true;});renderAll();
+}
+function creatorClearPackageSelection(){var s=state.creator;if(!s)return;s.selectedPackages={};renderAll();}
+function creatorBatchReview(status){
+  var s=state.creator;if(!s||s.batchReviewRunning)return;
+  var ids=Object.keys(s.selectedPackages||{});if(!ids.length)return;
+  s.batchReviewRunning=true;renderAll();
+  var chain=Promise.resolve();
+  ids.forEach(function(id){chain=chain.then(function(){return creatorFetchJson('/v1/creator/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:id,review_status:status})}).then(function(result){var row=s.queue.find(function(p){return p.package_id===id;});if(row)row.review_status=result.review_status;});});});
+  chain.then(function(){s.batchReviewRunning=false;s.selectedPackages={};creatorLoadQueue(s.queueFilter||'');}).catch(function(err){s.batchReviewRunning=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorBatchReviewBarHtml(){
+  var s=state.creator||{},n=Object.keys(s.selectedPackages||{}).length;
+  return '<div class="creator-batch-bar"><div><b>'+n+' selected</b><small>Batch review never publishes content; it only updates human review status.</small></div><div class="btn-row"><button class="btn-tiny" data-creator-select-visible>Select Visible</button><button class="btn-tiny" data-creator-clear-selection>Clear</button><button class="btn-primary" data-creator-batch-review="APPROVED"'+(!n||s.batchReviewRunning?' disabled':'')+'>Approve Selected</button><button class="btn-secondary" data-creator-batch-review="REJECTED"'+(!n||s.batchReviewRunning?' disabled':'')+'>Reject Selected</button></div></div>';
+}
 function creatorLoadQueue(filter) {
   var s = state.creator; if (!s) return;
   s.queueFilter = filter || '';
@@ -242,6 +552,74 @@ function creatorUseExample(text) {
   if (el) el.focus();
 }
 
+function creatorGuidedPrompt() {
+  var s=state.creator||{};
+  var league=s.guidedLeague||'NFL', topic=s.guidedTopic||'General', diff=s.guidedDifficulty||'medium';
+  var topicCopy={
+    'General':'mixed football knowledge', 'Draft':'draft history', 'History':'football history',
+    'Players':'players and careers', 'Teams':'teams and seasons', 'Stats':'player and team statistics',
+    'Awards':'awards and honors', 'Games':'real game results and performances'
+  };
+  return 'Make me a '+league+' trivia game about '+(topicCopy[topic]||topic.toLowerCase())+'. Use '+diff+' difficulty.';
+}
+function creatorGuidedBuild() {
+  var s=state.creator;if(!s)return;
+  s.requestText=creatorGuidedPrompt();
+  creatorCheckFeasibility(s.requestText);
+}
+function creatorSetGuided(field,value) {
+  var s=state.creator;if(!s)return;
+  if(field==='league')s.guidedLeague=value;
+  else if(field==='topic')s.guidedTopic=value;
+  else if(field==='difficulty')s.guidedDifficulty=value;
+  else if(field==='count')s.guidedCount=Math.max(1,Math.min(25,parseInt(value,10)||5));
+  renderAll();
+}
+function creatorTogglePreviewMode(mode){ if(!state.creator)return; state.creator.previewMode=mode==='admin'?'admin':'player'; renderAll(); }
+function creatorEditQuestion(index){ if(!state.creator)return; state.creator.editingQuestionIndex=(state.creator.editingQuestionIndex===index?null:index); renderAll(); }
+function creatorSaveQuestionRevision(index){
+  var s=state.creator,g=s&&s.generated;if(!g||!g.package_id||!g.questions)return;
+  var q=g.questions[index];if(!q)return;
+  var promptEl=document.getElementById('creator-edit-question-'+index);
+  var notesEl=document.getElementById('creator-edit-notes-'+index);
+  var opts=[]; for(var oi=0;oi<(q.options||[]).length;oi++){var el=document.getElementById('creator-edit-option-'+index+'-'+oi);opts.push(el?el.value:q.options[oi]);}
+  var correctEl=document.getElementById('creator-edit-correct-'+index);
+  var replacement={question:promptEl?promptEl.value:q.question,options:opts,correctIndex:correctEl?parseInt(correctEl.value,10):q.correctIndex,notes:notesEl?notesEl.value:(q.notes||''),difficulty:q.difficulty||'medium'};
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/question/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:g.package_id,question_index:index,replacement:replacement})})
+    .then(function(result){s.generated=result;s.editingQuestionIndex=null;s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();})
+    .catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorRegeneratePackage(){
+  var s=state.creator;if(!s||!s.requestText)return;
+  var count=(s.generated&&s.generated.question_count)||s.guidedCount||5;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:s.requestText,puzzle_count:count,difficulty:s.guidedDifficulty||'medium',seed:'creator-refresh-'+Date.now()})})
+    .then(function(result){s.generated=result;s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();})
+    .catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+
+function creatorGuidedBuilderHtml(){
+  var s=state.creator||{}; var topics=['General','Draft','History','Players','Teams','Stats','Awards','Games'];
+  return '<section class="creator-guided-card"><div class="creator-compose-head"><div><span class="dashboard-eyebrow">GUIDED BUILDER</span><h2>Build it without writing a prompt</h2></div><span class="creator-step-chip">Fast path</span></div>'+
+    '<div class="creator-guided-grid">'+
+      '<label><span>League</span><select data-creator-guided="league"><option'+(s.guidedLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.guidedLeague==='CFB'?' selected':'')+'>CFB</option><option'+(s.guidedLeague==='Mixed'?' selected':'')+'>Mixed</option></select></label>'+
+      '<label><span>Topic</span><select data-creator-guided="topic">'+topics.map(function(x){return '<option'+(s.guidedTopic===x?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Difficulty</span><select data-creator-guided="difficulty"><option value="easy"'+(s.guidedDifficulty==='easy'?' selected':'')+'>Easy</option><option value="medium"'+(s.guidedDifficulty==='medium'?' selected':'')+'>Medium</option><option value="hard"'+(s.guidedDifficulty==='hard'?' selected':'')+'>Hard</option></select></label>'+
+      '<label><span>Questions</span><select data-creator-guided="count">'+[5,10,15,20,25].map(function(n){return '<option value="'+n+'"'+(Number(s.guidedCount)===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></label>'+
+    '</div><div class="creator-guided-preview"><small>Creator will ask:</small><b>'+esc(creatorGuidedPrompt())+'</b></div>'+
+    '<button class="btn-primary" data-creator-guided-build>'+icon('zap')+' Check Guided Build</button></section>';
+}
+
+function creatorQuestionEditorHtml(q,index){
+  return '<div class="creator-question-editor">'+
+    '<label>Question<textarea id="creator-edit-question-'+index+'">'+esc(q.question||'')+'</textarea></label>'+
+    '<div class="creator-edit-options">'+(q.options||[]).map(function(opt,oi){return '<label>Option '+String.fromCharCode(65+oi)+'<input id="creator-edit-option-'+index+'-'+oi+'" value="'+esc(opt)+'"></label>';}).join('')+'</div>'+
+    '<label>Correct answer<select id="creator-edit-correct-'+index+'">'+(q.options||[]).map(function(opt,oi){return '<option value="'+oi+'"'+(oi===q.correctIndex?' selected':'')+'>'+String.fromCharCode(65+oi)+' · '+esc(opt)+'</option>';}).join('')+'</select></label>'+
+    '<label>Notes<textarea id="creator-edit-notes-'+index+'">'+esc(q.notes||'')+'</textarea></label>'+
+    '<div class="btn-row"><button class="btn-primary" data-creator-question-save="'+index+'">Save as New Version</button><button class="btn-secondary" data-creator-question-edit="'+index+'">Cancel</button></div>'+
+    '<small>The original package stays untouched. This creates a new QA-validated package ID.</small></div>';
+}
 // Format Picker pass: the user's own real gap report -- "I want it to
 // give me options when you make a game mode ... without having to use a
 // keyword or sum bs like that." Every entry with a taxonomyId+variant
@@ -388,28 +766,83 @@ function creatorPickFormat(index) {
   if (entry.taxonomyId) { creatorGenerateDirect(entry.taxonomyId, entry.variant); return; }
   creatorUseExample(entry.phrase);
 }
-function renderCreatorFormatPickerHtml() {
-  var byCategory = {};
-  var order = [];
-  CREATOR_FORMAT_CATALOG.forEach(function (entry, i) {
-    if (!byCategory[entry.category]) { byCategory[entry.category] = []; order.push(entry.category); }
-    byCategory[entry.category].push({ entry: entry, index: i });
+function creatorFormatCategories() {
+  var seen={All:true}, out=['All'];
+  CREATOR_FORMAT_CATALOG.forEach(function(entry){
+    if(!seen[entry.category]){seen[entry.category]=true;out.push(entry.category);}
   });
-  // Reuses .creator-examples-label (the existing small bold dim-text
-  // section label) for each category heading and .creator-queue-row (the
-  // existing Review Queue row style) for each entry -- zero new CSS.
-  return order.map(function (cat) {
-    return '<div class="creator-examples-label">' + esc(cat) + '</div>' +
-      byCategory[cat].map(function (row) {
-        return '<div class="creator-queue-row">' +
-          '<div><b>' + esc(row.entry.title) + '</b></div>' +
-          '<div class="mode-desc">' + esc(row.entry.desc) + '</div>' +
-          '<div class="btn-row"><button class="btn-tiny" data-creator-format-pick="' + row.index + '">Use This Format</button></div>' +
-          '</div>';
-      }).join('');
-  }).join('');
+  return out;
 }
-
+function creatorFormatMatches(entry, query, category) {
+  if(category && category!=='All' && entry.category!==category) return false;
+  query=String(query||'').trim().toLowerCase();
+  if(!query) return true;
+  return [entry.title,entry.desc,entry.category,entry.taxonomyId,entry.variant].filter(Boolean).join(' ').toLowerCase().indexOf(query)!==-1;
+}
+function creatorSetFormatCategory(category) {
+  if(!state.creator)return;
+  state.creator.formatCategory=category||'All';
+  renderAll();
+}
+function creatorSetFormatQuery(query) {
+  if(!state.creator)return;
+  state.creator.formatQuery=query||'';
+  renderAll();
+  setTimeout(function(){
+    var el=document.getElementById('creator-format-search');
+    if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}}
+  },0);
+}
+function renderCreatorFormatPickerHtml() {
+  var s=state.creator||{}, query=s.formatQuery||'', category=s.formatCategory||'All';
+  var rows=CREATOR_FORMAT_CATALOG.map(function(entry,index){return {entry:entry,index:index};})
+    .filter(function(row){return creatorFormatMatches(row.entry,query,category);});
+  var cats=creatorFormatCategories();
+  return '<section class="creator-library">'+
+    '<div class="creator-library-head"><div><span class="dashboard-eyebrow">FORMAT LIBRARY</span><h3>Choose a proven mechanic</h3><p>Search the catalog or narrow by family. Direct formats generate immediately.</p></div><div class="creator-library-count"><b>'+rows.length+'</b><span>shown</span></div></div>'+
+    '<div class="creator-library-controls">'+
+      '<div class="creator-search-wrap">'+icon('search')+'<input id="creator-format-search" value="'+esc(query)+'" placeholder="Search formats, mechanics, variants…" autocomplete="off"></div>'+
+      '<div class="creator-category-strip">'+cats.map(function(cat){return '<button class="'+(category===cat?'active':'')+'" data-creator-format-category="'+esc(cat)+'">'+esc(cat)+'</button>';}).join('')+'</div>'+
+    '</div>'+
+    (rows.length?'<div class="creator-format-grid">'+rows.map(function(row){
+      var e=row.entry, direct=!!e.taxonomyId;
+      return '<article class="creator-format-card">'+
+        '<div class="creator-format-card-top"><span class="creator-format-category">'+esc(e.category)+'</span><span class="creator-format-type">'+(direct?'DIRECT':'GUIDED')+'</span></div>'+
+        '<h4>'+esc(e.title)+'</h4><p>'+esc(e.desc)+'</p>'+
+        '<div class="creator-format-meta">'+
+          (e.taxonomyId?'<span>'+esc(e.taxonomyId)+'</span>':'<span>Natural language</span>')+
+          (e.variant?'<span>'+esc(e.variant.replace(/_/g,' '))+'</span>':'')+
+        '</div>'+
+        '<button class="'+(direct?'btn-primary':'btn-secondary')+'" data-creator-format-pick="'+row.index+'">'+(direct?'Generate':'Use Prompt')+'</button>'+
+      '</article>';
+    }).join('')+'</div>':'<div class="creator-empty-state"><b>No formats match that search.</b><span>Try another term or switch back to All.</span></div>')+
+  '</section>';
+}
+function creatorTaxonomyKind(taxonomyId) {
+  var map={
+    MATCHING:'matching',SORTING_TIMELINE:'sorting',HIGHER_LOWER_STREAK:'higher_lower',ELIMINATION_SURVIVAL:'elimination',
+    COMPARISON_BRACKET:'comparison',KNOCKOUT_BRACKET:'knockout_bracket',GRID_CONSTRAINT_BOARD:'grid_constraint',
+    DRIVE_PROGRESSION:'drive_progression',ROSTER_BUILD:'roster_build',RELATIONSHIP_CHAIN:'relationship_chain',
+    BRANCH_STATE:'branch_state',GUESS_THE_SEASON:'guess_the_season',PAIRWISE_COMPARE:'pairwise_compare',
+    PICK_THE_IMPOSTOR:'pick_the_impostor',MISSING_PIECE:'missing_piece',BEFORE_AFTER:'before_after',CAREER_PATH:'career_path',
+    RISK_IT:'risk_it',WAGER_MODE:'wager_mode',LEADERBOARD_CLIMB:'leaderboard_climb',BLIND_RESUME:'blind_resume',
+    DOUBLE_OR_NOTHING:'double_or_nothing',KING_OF_THE_HILL:'king_of_the_hill',FACT_OR_FAKE:'fact_or_fake',
+    GUESS_THE_RANKING:'guess_the_ranking',STAT_TARGET:'stat_target',REVERSE_TRIVIA:'reverse_trivia',THREE_STRIKES:'three_strikes',
+    MYSTERY_ROSTER:'mystery_roster',DRAFT_PICK_LADDER:'draft_pick_ladder',CATEGORY_ROULETTE:'category_roulette',COMMON_LINK:'common_link',
+    STRATEGY_ARCADE:'strategy_arcade'
+  };
+  return map[taxonomyId]||null;
+}
+function creatorDirectPlayerPreviewHtml(rg) {
+  var kind=creatorTaxonomyKind(rg.taxonomy_id);
+  if(!kind || typeof renderMechanicPilotBody!=='function') return '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>';
+  try {
+    var ps={view:rg.view||{},result:null,matchSelection:{},sortOrder:null,sortFormat:'SORT_LIST_DEFAULT',selectedRosterSlot:null,selectedGridCell:null};
+    return '<div class="creator-player-preview creator-player-preview-static">'+renderMechanicPilotBody({kind:kind,title:(rg.view&&rg.view.title)||rg.taxonomy_id},ps)+'</div>';
+  } catch(e) {
+    return '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>';
+  }
+}
 function creatorSupportBadgeHtml(status) {
   var cls = { SUPPORTED: 'good', SUPPORTED_WITH_LIMITATIONS: 'good', UNDERSTOOD_BUT_UNSUPPORTED: 'warn',
     MISSING_DATA: 'warn', UNSAFE: 'bad', UNKNOWN: 'warn' }[status] || 'warn';
@@ -417,13 +850,20 @@ function creatorSupportBadgeHtml(status) {
 }
 
 function creatorToolbarHtml(showBack) {
-  return '<div class="mode-toolbar">' +
-    (showBack ? '<button class="btn-tiny" data-creator-nav="home">&larr; Back</button>' : '') +
-    '<button class="btn-tiny" data-creator-nav="queue">Review Queue</button>' +
-    '<button class="btn-tiny" data-creator-nav="capabilities">Capabilities</button>' +
-    '<button class="btn-tiny" data-creator-logout>Log Out</button>' +
-    '<button class="btn-tiny" data-go="home">' + icon('close') + ' Exit</button>' +
-    '</div>';
+  var screen=(state.creator&&state.creator.screen)||CREATOR_SCREEN.HOME;
+  return '<div class="creator-topbar">'+
+    '<div class="creator-brand"><span class="creator-brand-mark">R</span><div><b>Reads Creator</b><small>Engine Workspace</small></div></div>'+
+    '<div class="creator-topnav">'+
+      '<button class="'+(screen===CREATOR_SCREEN.HOME?'active':'')+'" data-creator-nav="home">'+icon('zap')+' Create</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.QUEUE?'active':'')+'" data-creator-nav="queue">'+icon('list')+' Review</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.CAPABILITIES?'active':'')+'" data-creator-nav="capabilities">'+icon('layers')+' Capabilities</button>'+
+    '</div>'+
+    '<div class="creator-top-actions">'+
+      (showBack?'<button class="btn-tiny" data-creator-nav="home">&larr; Creator</button>':'')+
+      '<button class="btn-tiny" data-creator-logout>Log Out</button>'+
+      '<button class="btn-tiny" data-go="home">'+icon('close')+' Exit</button>'+
+    '</div>'+
+  '</div>';
 }
 
 function renderCreatorScreen() {
@@ -439,15 +879,17 @@ function renderCreatorScreen() {
   }
 
   if (s.screen === CREATOR_SCREEN.AUTH) {
-    return '<div class="panel">' +
-      '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit</button></div>' +
-      '<h2 class="panel-title">Game Creator</h2>' +
-      '<p class="mode-desc">Admin only. Enter the Gateway admin token to continue. Kept only in this ' +
-      'browser tab\'s session storage -- never written to source, never sent anywhere except this ' +
-      'Gateway.</p>' +
-      '<input type="password" id="creator-token-input" class="creator-input" placeholder="Admin token" autocomplete="off" />' +
-      '<div class="btn-row"><button class="btn-primary" data-creator-auth-submit>Continue</button></div>' +
-      '</div>';
+    return '<div class="creator-auth-shell">' +
+      '<div class="creator-auth-card">' +
+      '<button class="btn-tiny creator-auth-exit" data-go="home">' + icon('close') + ' Exit</button>' +
+      '<div class="creator-auth-mark">R</div>' +
+      '<span class="dashboard-eyebrow">OWNER WORKSPACE</span><h2>Reads Creator</h2>' +
+      '<p>Build, inspect and review real engine-generated football games from one private workspace.</p>' +
+      '<label class="creator-auth-label">Gateway admin token</label>' +
+      '<input type="password" id="creator-token-input" class="creator-input" placeholder="Enter token" autocomplete="off" />' +
+      '<button class="btn-primary creator-auth-submit" data-creator-auth-submit>Enter Creator ' + icon('arrowRight') + '</button>' +
+      '<small>Stored only for this browser tab and sent only to your Reads Gateway.</small>' +
+      '</div></div>';
   }
 
   if (s.screen === CREATOR_SCREEN.ERROR) {
@@ -459,26 +901,24 @@ function renderCreatorScreen() {
 
   if (s.screen === CREATOR_SCREEN.QUEUE) {
     var filters = ['', 'GENERATED', 'REVIEWED', 'APPROVED', 'REJECTED'];
-    return '<div class="panel">' + creatorToolbarHtml(true) +
-      '<h2 class="panel-title">Review Queue</h2>' +
-      '<div class="chip-row">' + filters.map(function (f) {
-        return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>';
-      }).join('') + '</div>' +
-      (s.queue.length ? s.queue.map(function (p) {
-        // Same real question_count/puzzle_count shape mismatch as the
-        // PREVIEW screen above -- a stored identify_player_from_clues
-        // package's real count lives in puzzle_count, not question_count.
+    var queueRows=creatorQueueRows();
+    return '<div class="creator-workspace">' + creatorToolbarHtml(false) +
+      '<div class="creator-page-head"><div><span class="dashboard-eyebrow">QUALITY CONTROL</span><h2>Review Queue</h2><p>Search, filter, sort and make fast decisions without losing context.</p></div><div class="creator-page-stats"><span><b>'+queueRows.length+'</b>Shown</span><span><b>'+s.queue.length+'</b>Loaded</span></div></div>'+
+      creatorQueueControlsHtml()+
+      creatorBatchReviewBarHtml()+
+      '<div class="chip-row">' + filters.map(function (f) { return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>'; }).join('') + '</div>' +
+      (queueRows.length ? '<div class="creator-review-list">'+queueRows.map(function (p) {
         var pCount = (p.question_count != null) ? p.question_count : (p.puzzle_count != null ? p.puzzle_count : 0);
         var pLabel = (p.question_count == null && p.puzzle_count != null) ? 'puzzles' : 'questions';
-        return '<div class="creator-queue-row">' +
-          '<div><b>' + esc(p.game_title || p.package_id) + '</b> &middot; ' + esc(p.review_status) + ' &middot; QA ' + esc(p.qa_status) +
-          ' &middot; ' + pCount + ' ' + pLabel + '</div>' +
-          '<div class="mode-desc">' + esc((p.requested_description || '').slice(0, 140)) + '</div>' +
-          '<div class="btn-row">' +
-          '<button class="btn-tiny" data-creator-review="APPROVED" data-creator-package-id="' + esc(p.package_id) + '">Approve</button>' +
-          '<button class="btn-tiny" data-creator-review="REJECTED" data-creator-package-id="' + esc(p.package_id) + '">Reject</button>' +
-          '</div></div>';
-      }).join('') : '<p class="mode-desc">No packages yet in this filter.</p>') +
+        return '<article class="creator-review-card'+(s.selectedPackages[p.package_id]?' selected':'')+'">' +
+          '<div class="creator-review-card-head"><div class="creator-review-title"><button class="creator-select-box '+(s.selectedPackages[p.package_id]?'selected':'')+'" data-creator-toggle-package="'+esc(p.package_id)+'" aria-label="Select package">'+(s.selectedPackages[p.package_id]?'✓':'')+'</button><div><b>' + esc(p.game_title || p.package_id) + '</b><small>'+esc((p.requested_description || '').slice(0, 140))+'</small></div></div>'+
+          '<div class="creator-review-badges">'+creatorSupportBadgeHtml(p.review_status||'GENERATED')+'<span>QA '+esc(p.qa_status||'—')+'</span><span>'+pCount+' '+pLabel+'</span></div></div>'+
+          creatorQualityScorecardHtml(p)+
+          creatorDuplicateReportHtml(p.package_id)+
+          '<div class="creator-review-actions"><button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="'+esc(p.package_id)+'">Approve</button>'+
+          '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="'+esc(p.package_id)+'">Reject</button>'+
+          '<button class="btn-tiny" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone</button></div></article>';
+      }).join('')+'</div>' : '<div class="creator-empty-state"><b>Nothing matches.</b><span>Try another filter or search term.</span></div>') +
       '</div>';
   }
 
@@ -524,14 +964,14 @@ function renderCreatorScreen() {
       '<button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="' + esc(rg.round_id) + '">Approve</button>' +
       '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="' + esc(rg.round_id) + '">Reject</button>' +
       '</div>' +
-      '<div class="creator-queue-row"><pre style="white-space:pre-wrap;word-break:break-word;margin:0;">' +
-      esc(JSON.stringify(rg.view, null, 2)) + '</pre></div>' +
+      '<div class="creator-preview-toggle"><button class="'+(s.previewMode!=='admin'?'active':'')+'" data-creator-preview-mode="player">Player View</button><button class="'+(s.previewMode==='admin'?'active':'')+'" data-creator-preview-mode="admin">Admin JSON</button></div>' +
+      (s.previewMode==='admin' ? '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>' : creatorDirectPlayerPreviewHtml(rg)) +
       '</div>';
     return html2;
   }
 
   if (s.screen === CREATOR_SCREEN.RESULT || s.screen === CREATOR_SCREEN.PREVIEW) {
-    var f = s.feasibility;
+    var f = s.feasibility || {support_status:'SUPPORTED',reason:'Loaded existing immutable package.',known_limitations:[]};
     var html = '<div class="panel">' + creatorToolbarHtml(true) +
       '<h2 class="panel-title">Feasibility</h2>' +
       '<p class="mode-desc"><i>' + esc(s.requestText) + '</i></p>' +
@@ -561,8 +1001,15 @@ function renderCreatorScreen() {
       var items = g.questions || g.puzzles || [];
       var itemCount = (g.question_count != null) ? g.question_count : ((g.puzzle_count != null) ? g.puzzle_count : items.length);
       var itemLabel = g.puzzles ? 'puzzles' : 'questions';
-      html += '<div class="panel">' +
-        '<h2 class="panel-title">Preview -- ' + esc(g.game_title || '') + '</h2>' +
+      html += '<div class="panel creator-preview-shell">' +
+        '<div class="creator-preview-head"><div><span class="dashboard-eyebrow">PLAYER PREVIEW</span><h2 class="panel-title">' + esc(g.game_title || 'Generated Game') + '</h2></div><div class="creator-preview-toggle"><button class="'+(s.previewMode!=='admin'?'active':'')+'" data-creator-preview-mode="player">Player View</button><button class="'+(s.previewMode==='admin'?'active':'')+'" data-creator-preview-mode="admin">Admin View</button></div></div>' +
+        creatorPreviewMatrixHtml() +
+        '<div class="btn-row"><button class="btn-secondary" data-creator-regenerate>'+icon('restart')+' Regenerate Fresh Version</button></div>' +
+        creatorPublishReadinessHtml(g) +
+        creatorQaFlagsHtml(g) +
+        creatorDuplicateReportHtml(g.package_id) +
+        creatorVersionHistoryHtml(g) +
+        creatorCollectionPickerHtml(g.package_id) +
         '<p class="mode-desc">QA: ' + esc(g.qa_status) + ' &middot; ' + itemCount + ' ' + itemLabel + ' &middot; review status: ' + esc(g.review_status) + '</p>';
       if (g.package_id) {
         html += '<div class="btn-row">' +
@@ -593,13 +1040,15 @@ function renderCreatorScreen() {
         items.forEach(function (q, i) {
           var payload = creatorQuestionAsPublicPayload(q);
           html += '<div class="creator-preview-question">' +
-            '<div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
-            renderEnginePilotPromptHtml({ payload: payload }) +
+            '<div class="creator-preview-question-head"><div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
+            '<div class="creator-question-actions"><button class="btn-tiny" data-creator-replace-question="' + i + '">'+icon('restart')+' Replace</button><button class="btn-tiny" data-creator-question-edit="' + i + '">' + (s.editingQuestionIndex === i ? 'Close editor' : 'Edit') + '</button></div></div>' +
+            (s.previewMode === 'admin' ? '<div class="creator-admin-question-meta"><b>Correct:</b> ' + esc(q.options[q.correctIndex] || '') + (q.notes ? '<br><b>Notes:</b> ' + esc(q.notes) : '') + '</div>' : '') +
+            '<div class="creator-player-preview creator-surface-'+esc(s.previewSurface||'game')+'">' + renderEnginePilotPromptHtml({ payload: payload }) +
             '<div class="quiz-options">' + q.options.map(function (opt, oi) {
-              return '<div class="quiz-option' + (oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
+              return '<div class="quiz-option' + (s.previewMode === 'admin' && oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
                 String.fromCharCode(65 + oi) + '. ' + esc(opt) + '</div>';
-            }).join('') + '</div>' +
-            (q.notes ? '<div class="quiz-feedback">' + esc(q.notes) + '</div>' : '') +
+            }).join('') + '</div></div>' +
+            (s.editingQuestionIndex === i ? creatorQuestionEditorHtml(q, i) : '') +
             '</div>';
         });
       }
@@ -609,21 +1058,26 @@ function renderCreatorScreen() {
   }
 
   // HOME
-  return '<div class="panel">' + creatorToolbarHtml(false) +
-    '<h2 class="panel-title">Game Creator</h2>' +
-    '<p class="mode-desc">Describe a game in plain English. This checks it against the real Director ' +
-    'feasibility engine -- nothing here executes SQL, code, or a shell command from your text; it can ' +
-    'only ever resolve to one of a fixed set of registered, pre-audited capabilities (Part C/L).</p>' +
-    '<textarea id="creator-request-input" class="creator-textarea" rows="3" placeholder="e.g. Guess the NFL team from its starting offense, by position.">' + esc(s.requestText || '') + '</textarea>' +
-    '<div class="btn-row"><button class="btn-primary" data-creator-check-feasibility>Check Feasibility</button></div>' +
-    '<div class="creator-examples-label">Try one of these:</div>' +
-    '<div class="chip-row">' + CREATOR_EXAMPLE_PROMPTS.map(function (ex) {
-      return '<button class="chip-toggle" data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>';
-    }).join('') + '</div>' +
-    '<h2 class="panel-title">Or Pick a Game Format</h2>' +
-    '<p class="mode-desc">Every format below is real and already playable -- pick one to fill in a ' +
-    'proven real request, then Check Feasibility as usual. Typing your own description above still ' +
-    'works too, especially for the classic quiz categories.</p>' +
+  var directCount = CREATOR_FORMAT_CATALOG.filter(function (x) { return !!x.taxonomyId; }).length;
+  var guidedCount = CREATOR_FORMAT_CATALOG.length - directCount;
+  return '<div class="creator-workspace">' + creatorToolbarHtml(false) +
+    '<section class="creator-hero">' +
+      '<div><span class="dashboard-eyebrow">GAME FACTORY</span><h1>Build football games without fighting the engine.</h1><p>Describe an idea in plain English or jump straight into a proven format. Reads handles feasibility, generation, QA and review.</p></div>' +
+      '<div class="creator-hero-stats"><span><b>' + CREATOR_FORMAT_CATALOG.length + '</b>Formats</span><span><b>' + directCount + '</b>Direct</span><span><b>' + guidedCount + '</b>Guided</span></div>' +
+    '</section>' +
+    creatorDashboardHtml() +
+    creatorRecentHtml() +
+    creatorCollectionsHtml() +
+    creatorRecipesHtml() +
+    '<section class="creator-compose-card">' +
+      '<div class="creator-compose-head"><div><span class="dashboard-eyebrow">DESCRIBE IT</span><h2>What do you want to build?</h2></div><span class="creator-step-chip">1 · Describe</span></div>' +
+      '<textarea id="creator-request-input" class="creator-textarea creator-prompt-box" rows="4" placeholder="Example: Give me a game where I rank NFL quarterbacks by career passing touchdowns.">' + esc(s.requestText || '') + '</textarea>' +
+      '<div class="creator-compose-footer"><div class="creator-example-row">' + CREATOR_EXAMPLE_PROMPTS.slice(0, 3).map(function (ex) { return '<button data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>'; }).join('') + '</div>' +
+      '<button class="btn-primary creator-check-btn" data-creator-check-feasibility>' + icon('zap') + ' Check & Build</button></div>' +
+    '</section>' +
+    creatorGuidedBuilderHtml() +
+    creatorBulkHtml() +
+    '<div class="creator-divider"><span>OR START FROM A PROVEN FORMAT</span></div>' +
     renderCreatorFormatPickerHtml() +
     '</div>';
 }

@@ -167,16 +167,18 @@ def pytest_collection_modifyitems(config, items):
     import os as _os
 
     skip_db = _os.environ.get("CI_SKIP_DB_TESTS") == "1"
-    real_db_only = _os.environ.get("CI_REAL_DB_ONLY") == "1"
-    if not skip_db and not real_db_only:
+    only_db = _os.environ.get("CI_ONLY_DB_TESTS") == "1"
+    if not skip_db and not only_db:
         return
+
     list_path = Path(__file__).with_name(".ci_needs_real_db.txt")
     if not list_path.exists():
         return
     needs_db = {line.strip() for line in list_path.read_text().splitlines() if line.strip()}
 
-    if real_db_only:
-        selected, deselected = [], []
+    if only_db:
+        selected = []
+        deselected = []
         for item in items:
             (selected if item.nodeid in needs_db else deselected).append(item)
         items[:] = selected

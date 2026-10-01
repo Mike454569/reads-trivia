@@ -5,43 +5,34 @@ APP = (ROOT / "app.js").read_text()
 CSS = (ROOT / "styles.css").read_text()
 
 
-def test_mode_logos_have_per_game_codes_and_variants():
-    assert "var MODE_LOGO_CODE_OVERRIDES" in APP
-    assert "function modeLogoCode(m)" in APP
+def test_mode_logos_use_current_pictogram_system():
+    assert "function modeLogoSvg(m)" in APP
     assert "function modeLogoVariant(m)" in APP
-    assert "mode-mark-v" in APP
-    assert "mode-mark-code" in APP
-    assert "mode-mark-corner" in APP
+    assert "mode-mark-art" in APP
+    assert "MODE_LOGO_CODE_OVERRIDES" not in APP
+    assert "modeLogoCode(m)" not in APP
 
 
-def test_flagship_modes_have_distinct_logo_codes():
-    for snippet in (
-        "quiz:'QZ'",
-        "grid:'3X3'",
-        "blitz:'BLZ'",
-        "speed:'SPD'",
-        "silhouette:'ID'",
-        "iq:'IQ'",
-        "legends:'17-0'",
-        "higherLower:'H/L'",
-        "playerClues:'WHO'",
-        "cfbLegends:'12-0'",
-        "cfbPlayerClues:'CWHO'",
+def test_flagship_modes_have_distinct_drawn_pictograms():
+    for mode_id in (
+        "quiz", "grid", "blitz", "speed", "silhouette", "iq",
+        "legends", "higherLower", "playerClues", "cfbQuiz",
+        "cfbGrid", "cfbBlitz", "cfbSpeed", "cfbIq",
+        "cfbLegends", "cfbPlayerClues",
     ):
-        assert snippet in APP
+        assert f"id === '{mode_id}'" in APP or f"id === '{mode_id}' ||" in APP
 
 
-def test_discovery_surfaces_use_shared_mode_marks_not_raw_icons():
+def test_discovery_surfaces_use_shared_mode_marks():
     assert "modeMarkHtml(m,'md')" in APP
     assert "modeMarkHtml(m,'sm')" in APP
     assert "modeMarkHtml(r.mode,'sm')" in APP
-    assert "icon(m.icon||'football')" not in APP
-    assert "icon(r.mode.icon||'football')" not in APP
+    assert "mode-mark-art" in CSS
+    assert "mode-logo-signature" in CSS
 
 
-def test_logo_variant_styles_exist():
-    for i in range(12):
-        assert f".mode-mark-v{i}" in CSS
-    assert ".mode-mark-code" in CSS
-    assert ".mode-mark-corner" in CSS
-    assert ".format-mini-mark" in CSS
+def test_generated_game_art_and_pictograms_can_coexist():
+    assert "var READS_GAME_ART = {" in APP
+    assert "gameArtHtml(m,'format-hub-card-art')" in APP
+    assert "gameArtHtml(m,'mode-card-art')" in APP
+    assert "Reads-owned game art system" in CSS
