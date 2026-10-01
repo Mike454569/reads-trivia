@@ -12682,25 +12682,58 @@ function f101QuickSummary(node, diagram) {
 function f101QuestionHistoryKey(canonicalId) {
   return 'readsF101QuestionHistory__' + slugify(state.name || 'guest') + '__' + String(canonicalId || 'unknown');
 }
+function f101QuestionSignature(q) {
+  return String((q && q.question) || '').trim();
+}
 function f101FreshTestQuestion(diagram, category, siblings) {
   if (!diagram || !FootballField || !FootballField.generateTestMeQuestion) return null;
+
   var key = f101QuestionHistoryKey(diagram.id);
   var history = lsGet(key, []);
-  history = Array.isArray(history) ? history.slice(-8) : [];
+  history = Array.isArray(history) ? history.filter(Boolean) : [];
+  var lastSignature = history.length ? history[history.length - 1] : '';
   var seen = {};
-  history.forEach(function (x) { seen[x] = true; });
-  var base = Math.abs(hashStr(String(diagram.id) + '|' + String(category) + '|' + todayStr() + '|' + String(Date.now())));
-  var picked = null, signature = '';
-  for (var i = 0; i < 32; i++) {
-    var q = FootballField.generateTestMeQuestion(diagram, category, siblings, base + (i * 37));
+  history.forEach(function (sig) { seen[sig] = true; });
+
+  // Build the complete reachable question cycle for this diagram instead of
+  // trying a small handful of random seeds and then falling back to a repeat.
+  // The generator's question families are seed-driven, so sweeping a wide,
+  // deterministic seed range discovers every distinct prompt it can produce
+  // for the current diagram/routes/assignments while deduping option shuffles.
+  var base = Math.abs(hashStr(String(diagram.id) + '|' + String(category)));
+  var candidates = [];
+  var candidateBySignature = {};
+  for (var i = 0; i < 256; i++) {
+    var q = FootballField.generateTestMeQuestion(diagram, category, siblings, base + i);
     if (!q) continue;
-    var sig = String(q.variantKey || 'legacy') + '|' + String(q.question || '');
-    if (!seen[sig]) { picked = q; signature = sig; break; }
-    if (!picked) { picked = q; signature = sig; }
+    var sig = f101QuestionSignature(q);
+    if (!sig || candidateBySignature[sig]) continue;
+    candidateBySignature[sig] = q;
+    candidates.push({ question: q, signature: sig });
   }
-  if (!picked) return null;
-  history.push(signature);
-  lsSet(key, history.slice(-8));
+  if (!candidates.length) return null;
+
+  // Serve every distinct prompt once before recycling the pool.
+  var fresh = candidates.filter(function (entry) { return !seen[entry.signature]; });
+  if (!fresh.length) {
+    history = lastSignature ? [lastSignature] : [];
+    seen = {};
+    if (lastSignature) seen[lastSignature] = true;
+    fresh = candidates.filter(function (entry) { return !seen[entry.signature]; });
+    if (!fresh.length) fresh = candidates.slice();
+  }
+
+  // Stable-but-varied pick order; the history guarantees uniqueness, while
+  // the time component prevents every new cycle from starting identically.
+  var pickSeed = Math.abs(hashStr(String(diagram.id) + '|' + String(Date.now()) + '|' + String(history.length)));
+  var pickedEntry = fresh[pickSeed % fresh.length];
+  var picked = pickedEntry.question;
+  history.push(pickedEntry.signature);
+
+  // Retain the whole practical cycle, not the old eight-question window.
+  // This cap is intentionally far above the generator's current reachable
+  // prompt count and only protects localStorage from unbounded future growth.
+  lsSet(key, history.slice(-256));
   return picked;
 }
 
