@@ -13303,6 +13303,14 @@ var FILM_BADGES = [
 ];
 BADGES = BADGES.concat(FILM_BADGES);
 
+function completedFormatFamilyCount(family) {
+  var played=getRewards().formatPlayedIds||[], map={};
+  allPlayableModesUnique().forEach(function(m){map[m.id]=m;});
+  return played.reduce(function(n,id){
+    var m=map[id];
+    return n+(m&&formatHubFamily(m)===family?1:0);
+  },0);
+}
 var REWARD_BADGES = [
   { id: 'firstRead', icon: '📖', title: 'First Read', desc: 'Completed your first Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 1; } },
   { id: 'daily25', icon: '🗓️', title: 'Daily Habit', desc: 'Completed 25 Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 25; } },
@@ -13317,7 +13325,13 @@ var REWARD_BADGES = [
   { id: 'formatExplorer25', icon: '🗺️', title: 'Playbook Hunter', desc: 'Completed 25 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 25; } },
   { id: 'formatExplorer50', icon: '🏟️', title: 'Half the Playbook', desc: 'Completed 50 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 50; } },
   { id: 'formatExplorer75', icon: '💿', title: 'Deep Bag', desc: 'Completed 75 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 75; } },
-  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed 100 different playable Reads game routes.', check: function () { return getRewards().formatPlayedIds.length >= 100; } }
+  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed 100 different playable Reads game routes.', check: function () { return getRewards().formatPlayedIds.length >= 100; } },
+  { id: 'boardSpecialist', icon: '🧩', title: 'Board Specialist', desc: 'Completed five different board-style Reads formats.', check: function () { return completedFormatFamilyCount('board') >= 5; } },
+  { id: 'strategySpecialist', icon: '♟️', title: 'Field General', desc: 'Completed five different strategy Reads formats.', check: function () { return completedFormatFamilyCount('strategy') >= 5; } },
+  { id: 'survivalSpecialist', icon: '🧱', title: 'Still Standing', desc: 'Completed five different survival Reads formats.', check: function () { return completedFormatFamilyCount('survival') >= 5; } },
+  { id: 'identifySpecialist', icon: '🕵️', title: 'Film Detective', desc: 'Completed five different identify Reads formats.', check: function () { return completedFormatFamilyCount('identify') >= 5; } },
+  { id: 'rosterSpecialist', icon: '📋', title: 'Roster Architect', desc: 'Completed five different roster-building Reads formats.', check: function () { return completedFormatFamilyCount('roster') >= 5; } },
+  { id: 'sequenceSpecialist', icon: '🛤️', title: 'Connect the Dots', desc: 'Completed five different sequence/path Reads formats.', check: function () { return completedFormatFamilyCount('sequence') >= 5; } }
 ];
 BADGES = BADGES.concat(REWARD_BADGES);
 
