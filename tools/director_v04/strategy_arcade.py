@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from tools.director_v04 import category_roulette
 
-PACKAGE_SCHEMA_VERSION = "1.0"
+PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "STRATEGY_ARCADE"
 
 FORMAT_SPECS = {
