@@ -2982,6 +2982,14 @@ function trackFormatEvent(type, mode, meta) {
   rows.push({type:String(type||''),mode:mode||null,at:Date.now(),meta:Object.assign({},meta||{})});
   lsSet(formatAnalyticsKey(), rows.slice(-500));
 }
+var formatHubLastImpressionSignature = null;
+function trackFormatHubImpression(modes) {
+  var sig=(modes||[]).map(function(m){return m.id;}).join('|')+'::'+
+    [formatHubState.query,formatHubState.league,formatHubState.difficulty,formatHubState.family,formatHubState.newOnly].join('|');
+  if(sig===formatHubLastImpressionSignature)return;
+  formatHubLastImpressionSignature=sig;
+  trackFormatEvent('impression',null,{results:(modes||[]).length});
+}
 function formatAnalyticsSummary() {
   var out={impression:0,search:0,filter:0,launch:0,complete:0,share:0,byMode:{}};
   getFormatAnalyticsEvents().forEach(function(e){
@@ -3095,7 +3103,7 @@ function formatHubCardHtml(m) {
 }
 function formatDiscoveryHubHtml() {
   var modes=formatHubFilteredModes(), quick=formatHubQuickPlayMode(), recs=formatHubRecommendationRows(6);
-  trackFormatEvent('impression', null, {results:modes.length});
+  trackFormatHubImpression(modes);
   var totalPlayable=allPlayableModesUnique().length;
   return '<section class="format-hub" aria-label="Game format discovery">'+
     '<div class="format-hub-hero"><div><span class="dashboard-eyebrow">THE PLAYBOOK</span><h2>100 Ways to Play Football</h2>'+
@@ -4200,8 +4208,10 @@ function recordPersonalizationCompletion(mode, fields) {
   }
   checkRetentionMissionCompletion(mode);
   var p = getPersonalizationState();
-  p.playEvents.push({ mode:mode, league:modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
+  var playableMeta=allPlayableModesUnique().find(function(m){return m.id===mode;});
+  p.playEvents.push({ mode:mode, league:(playableMeta&&playableMeta.league)||modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
   setPersonalizationState(p, true);
+  syncAchievementUnlocks();
   checkWeeklyPersonalGoals();
   checkWeeklyRetentionReward();
 }
