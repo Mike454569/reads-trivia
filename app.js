@@ -3658,6 +3658,7 @@ var communityRows = [];
 var communityDraft = '';
 var communityLoading = false;
 var communityError = '';
+var communityReplyOpenId = null;
 var communityUnsubscribe = null;
 var communityActiveLeague = null;
 var COMMUNITY_POST_LIMIT = 180;
@@ -3727,9 +3728,29 @@ function communityCardHtml() {
     icon('arrowRight', 'continue-card-chevron') +
     '</button>';
 }
+function communityReactionCounts(row) {
+  var out={knowball:0,laugh:0,clown:0,fire:0};
+  Object.keys((row&&row.reactions)||{}).forEach(function(uid){
+    var r=row.reactions[uid]; if(out[r]!==undefined) out[r]++;
+  });
+  return out;
+}
+function renderCommunityReplies(row) {
+  var replies=Array.isArray(row.replies)?row.replies.slice(-6):[];
+  if(!replies.length && communityReplyOpenId!==row.id) return '';
+  return '<div class="community-replies">'+
+    replies.map(function(r){return '<div class="community-reply"><b>'+esc(r.authorName||'Reads fan')+'</b><span>'+esc(r.text||'')+'</span></div>';}).join('')+
+    (communityReplyOpenId===row.id ? (activeAuthUid ?
+      '<div class="community-reply-composer"><input id="community-reply-input-'+esc(row.id)+'" maxlength="180" placeholder="Reply to '+esc(row.authorName||'this post')+'…"><button class="btn-tiny" data-community-reply-send="'+esc(row.id)+'">Reply</button></div>' :
+      '<div class="community-login-note"><span>Log in to reply.</span><button class="btn-tiny" data-auth-open="login">Log In</button></div>') : '')+
+  '</div>';
+}
 function renderCommunityPost(row) {
   var badge = row.badgeTitle ? ((row.badgeIcon || '🏈') + ' ' + esc(row.badgeTitle)) : '';
   var isActivity = row.type === 'activity';
+  var counts=communityReactionCounts(row);
+  var myReaction=activeAuthUid && row.reactions ? row.reactions[activeAuthUid] : null;
+  var canChallenge=state.name && row.authorName && slugify(row.authorName)!==slugify(state.name);
   return '<article class="community-post' + (isActivity ? ' community-activity' : '') + '">' +
     (isActivity ? '<div class="community-activity-kicker">' + (row.activityKind === 'challenge' ? 'TEAM CHALLENGE' : 'GAME RESULT') + '</div>' : '') +
     '<div class="community-post-head"><div><b>' + esc(row.authorName || 'Reads fan') + '</b>' +
@@ -3741,6 +3762,15 @@ function renderCommunityPost(row) {
       (row.rating ? '<span>' + row.rating + ' rating</span>' : '') +
       (row.streak ? '<span>' + row.streak + '-day streak</span>' : '') +
     '</div>' +
+    '<div class="community-post-actions">'+
+      '<button class="'+(myReaction==='knowball'?'active':'')+'" data-community-react="'+esc(row.id)+':knowball">🏈 '+counts.knowball+' <small>Know Ball</small></button>'+
+      '<button class="'+(myReaction==='laugh'?'active':'')+'" data-community-react="'+esc(row.id)+':laugh">😂 '+counts.laugh+'</button>'+
+      '<button class="'+(myReaction==='fire'?'active':'')+'" data-community-react="'+esc(row.id)+':fire">🔥 '+counts.fire+'</button>'+
+      '<button class="'+(myReaction==='clown'?'active':'')+'" data-community-react="'+esc(row.id)+':clown">🤡 '+counts.clown+'</button>'+
+      '<button data-community-reply-toggle="'+esc(row.id)+'">'+icon('messageCircle')+' '+((row.replies&&row.replies.length)||0)+' replies</button>'+
+      (canChallenge?'<button data-friend-challenge="'+esc(row.authorName)+'">'+icon('versus')+' Challenge</button>':'')+
+    '</div>'+
+    renderCommunityReplies(row)+
     '</article>';
 }
 function communityChallengeStorageKey(teamKey, date) {
@@ -4092,6 +4122,37 @@ function setCommunityPreset(text) {
   communityDraft = text || '';
   input.value = communityDraft;
   input.focus();
+}
+function communityActiveTeamKey() {
+  var league=communityActiveLeague&&communityTeamForLeague(communityActiveLeague)?communityActiveLeague:defaultCommunityLeague();
+  var team=communityTeamForLeague(league);
+  return team?communityTeamKey(league,team):'';
+}
+function reactCommunityPost(spec) {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  var parts=String(spec||'').split(':'), postId=parts[0], reaction=parts[1];
+  if(!postId||!reaction||!window.__fbSync||!window.__fbSync.reactCommunity)return;
+  window.__fbSync.reactCommunity(communityActiveTeamKey(),postId,reaction).catch(function(){
+    communityError='Couldn’t react right now. Try again.';
+    if(state.screen==='community')renderAll();
+  });
+}
+function toggleCommunityReply(postId) {
+  communityReplyOpenId=communityReplyOpenId===postId?null:postId;
+  renderAll();
+  if(communityReplyOpenId) setTimeout(function(){var el=document.getElementById('community-reply-input-'+postId);if(el)el.focus();},0);
+}
+function sendCommunityReply(postId) {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  var input=document.getElementById('community-reply-input-'+postId);
+  var text=input?input.value.trim():'';
+  if(!text||!window.__fbSync||!window.__fbSync.replyCommunity)return;
+  window.__fbSync.replyCommunity(communityActiveTeamKey(),postId,text).then(function(){
+    communityReplyOpenId=null;
+  }).catch(function(){
+    communityError='Couldn’t reply right now. Try again.';
+    if(state.screen==='community')renderAll();
+  });
 }
 function submitCommunityPost() {
   if (!activeAuthUid || !state.name) { openAuthModal('login'); return; }
@@ -14375,6 +14436,9 @@ document.addEventListener('click', function (e) {
   if (t.dataset.communityLeague !== undefined) { switchCommunityLeague(t.dataset.communityLeague); return; }
   if (t.dataset.communityPost !== undefined) { submitCommunityPost(); return; }
   if (t.dataset.communityPreset !== undefined) { setCommunityPreset(t.dataset.communityPreset); return; }
+  if (t.dataset.communityReact !== undefined) { reactCommunityPost(t.dataset.communityReact); return; }
+  if (t.dataset.communityReplyToggle !== undefined) { toggleCommunityReply(t.dataset.communityReplyToggle); return; }
+  if (t.dataset.communityReplySend !== undefined) { sendCommunityReply(t.dataset.communityReplySend); return; }
   if (t.dataset.profileBadge !== undefined) { selectProfileBadge(t.dataset.profileBadge); return; }
   if (t.dataset.profileCosmetic !== undefined) { selectProfileCosmetic(t.dataset.profileCosmetic); return; }
   if (t.dataset.shareDesign !== undefined) { selectShareDesign(t.dataset.shareDesign); return; }
