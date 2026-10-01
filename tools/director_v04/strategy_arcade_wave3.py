@@ -97,7 +97,7 @@ FORMAT_SPECS = {
     },
 }
 VARIANTS = frozenset(FORMAT_SPECS)
-_CATEGORIES = ("NFL Team Records", "Heisman Winners", "Super Bowl Champions")
+_CATEGORIES=("Game Day","Season & Legacy","College Chaos")
 _TTT_LINES = ((0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6))
 
 
@@ -148,7 +148,7 @@ def _find_category_index(package: dict, start: int, category: str, excluded: set
     excluded = excluded or set()
     for off in range(len(package["rounds"])):
         idx = (start + off) % len(package["rounds"])
-        if idx not in excluded and package["rounds"][idx]["category"] == category:
+        if idx not in excluded and package["rounds"][idx].get("bucket")==category:
             return idx
     raise ValueError(f"no real question available for category {category!r}")
 
