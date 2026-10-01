@@ -100,7 +100,13 @@ def repair_missing_catalog_rows(conn=None) -> dict:
             )
             inserted.append(capability_id)
         c.commit()
-        return {"inserted": inserted, "inserted_count": len(inserted)}
+        from tools.director_v02 import catalog
+        availability = catalog.recompute_public_availability(c)
+        return {
+            "inserted": inserted,
+            "inserted_count": len(inserted),
+            "public_availability_recomputed": availability,
+        }
     finally:
         if own:
             c.close()
