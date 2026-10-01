@@ -103,3 +103,29 @@ def test_creator_regenerate_creates_fresh_version_instead_of_mutating():
     assert "function creatorRegeneratePackage()" in CREATOR
     assert "creator-refresh-" in CREATOR
     assert "Regenerate Fresh Version" in CREATOR
+
+
+def test_creator_recent_creations_and_clone_workflow_are_wired():
+    assert "function creatorLoadRecent()" in CREATOR
+    assert "function creatorOpenPackage(packageId)" in CREATOR
+    assert "function creatorClonePackage(packageId)" in CREATOR
+    assert "function creatorRecentHtml()" in CREATOR
+    assert 'data-creator-open-package' in CREATOR
+    assert 'data-creator-clone-package' in CREATOR
+    assert "creatorLoadRecent();" in APP
+    assert ".creator-recent-grid" in CSS
+
+
+def test_creator_bulk_factory_runs_sequential_real_generation_requests():
+    assert "function creatorBulkGenerate()" in CREATOR
+    assert "chain=chain.then" in CREATOR
+    assert "'/v1/creator/generate'" in CREATOR
+    assert "bulkCount" in CREATOR
+    assert "bulkResults" in CREATOR
+    assert "Generate Content Pack" in CREATOR
+    assert "creatorBulkSet(e.target.dataset.creatorBulk, e.target.value)" in APP
+    assert ".creator-bulk-card" in CSS
+
+
+def test_creator_bootstrap_uses_canonical_state_initializer():
+    assert "state.creator = creatorInitialState();" in APP
