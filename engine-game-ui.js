@@ -1858,15 +1858,72 @@ var ENGINE_MECHANIC_MODES = {
     fallbackLabel: 'Play CFB Quiz Instead',
     fallback: function () { state.mechanicPilot = null; state.screen = 'cfbQuiz'; startCfbQuizRound('', '', 10); },
   },
+  // 100-format Expansion Wave 2 -- one shared renderer, 15 genuinely
+  // different server-side strategy state machines. No league reskins count
+  // twice; every entry below maps to a unique variant/backend contract.
+  bingoBlitz: { publicMode: 'bingo_blitz_mixed', hash: '#bingoblitzpilot', flagOn: function () { return true; }, title: 'Bingo Blitz', kind: 'strategy_arcade', icon: 'grid', desc: 'Claim a three-cell line on the board.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  territoryTakeover: { publicMode: 'territory_takeover_mixed', hash: '#territorytakeoverpilot', flagOn: function () { return true; }, title: 'Territory Takeover', kind: 'strategy_arcade', icon: 'flag', desc: 'Choose zones and win the territory battle.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  exactTen: { publicMode: 'exact_ten_mixed', hash: '#exacttenpilot', flagOn: function () { return true; }, title: 'Exact Ten', kind: 'strategy_arcade', icon: 'target', desc: 'Land on exactly 10 without busting.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  pyramidClimb: { publicMode: 'pyramid_climb_mixed', hash: '#pyramidclimbpilot', flagOn: function () { return true; }, title: 'Pyramid Climb', kind: 'strategy_arcade', icon: 'arrowUp', desc: 'Pick lanes and climb five levels.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  lockbox: { publicMode: 'lockbox_mixed', hash: '#lockboxpilot', flagOn: function () { return true; }, title: 'Lockbox', kind: 'strategy_arcade', icon: 'lock', desc: 'Open three locks and crack the vault.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  comboMeter: { publicMode: 'combo_meter_mixed', hash: '#combometerpilot', flagOn: function () { return true; }, title: 'Combo Meter', kind: 'strategy_arcade', icon: 'zap', desc: 'Build a scoring multiplier with a hot streak.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  checkpointRally: { publicMode: 'checkpoint_rally_mixed', hash: '#checkpointrallypilot', flagOn: function () { return true; }, title: 'Checkpoint Rally', kind: 'strategy_arcade', icon: 'flag', desc: 'Race forward and protect saved checkpoints.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  escalator: { publicMode: 'escalator_mixed', hash: '#escalatorpilot', flagOn: function () { return true; }, title: 'Escalator', kind: 'strategy_arcade', icon: 'arrowUp', desc: 'Risk one or two steps and reach the top.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  powerUp: { publicMode: 'power_up_mixed', hash: '#poweruppilot', flagOn: function () { return true; }, title: 'Power Up', kind: 'strategy_arcade', icon: 'zap', desc: 'Earn energy and spend it on a 50/50.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  categoryConquest: { publicMode: 'category_conquest_mixed', hash: '#categoryconquestpilot', flagOn: function () { return true; }, title: 'Category Conquest', kind: 'strategy_arcade', icon: 'trophy', desc: 'Capture every real trivia category.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  scoreboardSwing: { publicMode: 'scoreboard_swing_mixed', hash: '#scoreboardswingpilot', flagOn: function () { return true; }, title: 'Scoreboard Swing', kind: 'strategy_arcade', icon: 'barChart', desc: 'Race the opponent to 21.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  momentumBar: { publicMode: 'momentum_bar_mixed', hash: '#momentumbarpilot', flagOn: function () { return true; }, title: 'Momentum Bar', kind: 'strategy_arcade', icon: 'flame', desc: 'Push momentum to +8 before it collapses.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  timeoutTokens: { publicMode: 'timeout_tokens_mixed', hash: '#timeouttokenspilot', flagOn: function () { return true; }, title: 'Timeout Tokens', kind: 'strategy_arcade', icon: 'timer', desc: 'Manage skips and a double-score token.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  perfectSet: { publicMode: 'perfect_set_mixed', hash: '#perfectsetpilot', flagOn: function () { return true; }, title: 'Perfect Set', kind: 'strategy_arcade', icon: 'trophy', desc: 'Win two of three best-of-three sets.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  tripleOrTake: { publicMode: 'triple_or_take_mixed', hash: '#tripleortakepilot', flagOn: function () { return true; }, title: 'Triple or Take', kind: 'strategy_arcade', icon: 'grid', desc: 'Choose the size of each series and clear it to bank points.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  connectFour: { publicMode: 'connect_four_mixed', hash: '#connectfourpilot', flagOn: function () { return true; }, title: 'Connect Four', kind: 'strategy_arcade', icon: 'grid', desc: 'Drop four in a row before the opponent.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  ticTacToe: { publicMode: 'tic_tac_toe_mixed', hash: '#tictactoepilot', flagOn: function () { return true; }, title: 'Tic-Tac-Toe', kind: 'strategy_arcade', icon: 'grid', desc: 'Claim three squares in a row before the opponent.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  challengeFlag: { publicMode: 'challenge_flag_mixed', hash: '#challengeflagpilot', flagOn: function () { return true; }, title: 'Challenge Flag', kind: 'strategy_arcade', icon: 'flag', desc: 'Use replay challenges to overturn misses.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  extraPoint: { publicMode: 'extra_point_mixed', hash: '#extrapointpilot', flagOn: function () { return true; }, title: 'Extra Point', kind: 'strategy_arcade', icon: 'target', desc: 'Score touchdowns, then choose one or go for two.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  comebackMode: { publicMode: 'comeback_mode_mixed', hash: '#comebackmodepilot', flagOn: function () { return true; }, title: 'Comeback Mode', kind: 'strategy_arcade', icon: 'arrowUp', desc: 'Erase a 21-point deficit in six possessions.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  categoryDraft: { publicMode: 'category_draft_mixed', hash: '#categorydraftpilot', flagOn: function () { return true; }, title: 'Category Draft', kind: 'strategy_arcade', icon: 'grid', desc: 'Draft your categories under a two-use limit.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  threeAndOut: { publicMode: 'three_and_out_mixed', hash: '#threeandoutpilot', flagOn: function () { return true; }, title: 'Three & Out', kind: 'strategy_arcade', icon: 'xMark', desc: 'Convert every three-play drive or the run ends.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  pickYourPoison: { publicMode: 'pick_your_poison_mixed', hash: '#pickyourpoisonpilot', flagOn: function () { return true; }, title: 'Pick Your Poison', kind: 'strategy_arcade', icon: 'versus', desc: 'Choose between two categories before every question.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  secondChanceQueue: { publicMode: 'second_chance_queue_mixed', hash: '#secondchancequeuepilot', flagOn: function () { return true; }, title: 'Second Chance Queue', kind: 'strategy_arcade', icon: 'sync', desc: 'Defer the first miss and replay it at the end.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  coverageShell: { publicMode: 'coverage_shell_mixed', hash: '#coverageshellpilot', flagOn: function () { return true; }, title: 'Coverage Shell', kind: 'strategy_arcade', icon: 'shield', desc: 'Lock down short, middle, and deep zones.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  offenseDefense: { publicMode: 'offense_defense_mixed', hash: '#offensedefensepilot', flagOn: function () { return true; }, title: 'Offense / Defense', kind: 'strategy_arcade', icon: 'versus', desc: 'Alternate offense and defense snaps.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  fieldGoalRange: { publicMode: 'field_goal_range_mixed', hash: '#fieldgoalrangepilot', flagOn: function () { return true; }, title: 'Field Goal Range', kind: 'strategy_arcade', icon: 'target', desc: 'Build field position and decide when to kick.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  twoMinuteDrill: { publicMode: 'two_minute_drill_mixed', hash: '#twominutedrillpilot', flagOn: function () { return true; }, title: 'Two-Minute Drill', kind: 'strategy_arcade', icon: 'timer', desc: 'Choose tempo and beat the clock.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  categoryStreak: { publicMode: 'category_streak_mixed', hash: '#categorystreakpilot', flagOn: function () { return true; }, title: 'Category Streak', kind: 'strategy_arcade', icon: 'flame', desc: 'Build a two-answer streak in every category.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  perfectQuarter: { publicMode: 'perfect_quarter_mixed', hash: '#perfectquarterpilot', flagOn: function () { return true; }, title: 'Perfect Quarter', kind: 'strategy_arcade', icon: 'trophy', desc: 'Score on at least three of four two-question drives.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  redZoneLadder: { publicMode: 'red_zone_ladder_mixed', hash: '#redzoneladderpilot', flagOn: function () { return true; }, title: 'Red Zone Ladder', kind: 'strategy_arcade', icon: 'target', desc: 'Red Zone Ladder strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  driveBuilder: { publicMode: 'drive_builder_mixed', hash: '#drivebuilderpilot', flagOn: function () { return true; }, title: 'Drive Builder', kind: 'strategy_arcade', icon: 'grid', desc: 'Drive Builder strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  hotHandSwitch: { publicMode: 'hot_hand_switch_mixed', hash: '#hothandswitchpilot', flagOn: function () { return true; }, title: 'Hot Hand Switch', kind: 'strategy_arcade', icon: 'flame', desc: 'Hot Hand Switch strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  overtimeShootout: { publicMode: 'overtime_shootout_mixed', hash: '#overtimeshootoutpilot', flagOn: function () { return true; }, title: 'Overtime Shootout', kind: 'strategy_arcade', icon: 'versus', desc: 'Overtime Shootout strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  firstDownChain: { publicMode: 'first_down_chain_mixed', hash: '#firstdownchainpilot', flagOn: function () { return true; }, title: 'First Down Chain', kind: 'strategy_arcade', icon: 'arrowRight', desc: 'First Down Chain strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  blitzPackage: { publicMode: 'blitz_package_mixed', hash: '#blitzpackagepilot', flagOn: function () { return true; }, title: 'Blitz Package', kind: 'strategy_arcade', icon: 'zap', desc: 'Blitz Package strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  zoneControl: { publicMode: 'zone_control_mixed', hash: '#zonecontrolpilot', flagOn: function () { return true; }, title: 'Zone Control', kind: 'strategy_arcade', icon: 'grid', desc: 'Zone Control strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  playCaller: { publicMode: 'play_caller_mixed', hash: '#playcallerpilot', flagOn: function () { return true; }, title: 'Play Caller', kind: 'strategy_arcade', icon: 'football', desc: 'Play Caller strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  possessionArrow: { publicMode: 'possession_arrow_mixed', hash: '#possessionarrowpilot', flagOn: function () { return true; }, title: 'Possession Arrow', kind: 'strategy_arcade', icon: 'sync', desc: 'Possession Arrow strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  suddenDeath: { publicMode: 'sudden_death_mixed', hash: '#suddendeathpilot', flagOn: function () { return true; }, title: 'Sudden Death', kind: 'strategy_arcade', icon: 'xMark', desc: 'Sudden Death strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  scoreBank: { publicMode: 'score_bank_mixed', hash: '#scorebankpilot', flagOn: function () { return true; }, title: 'Score Bank', kind: 'strategy_arcade', icon: 'barChart', desc: 'Score Bank strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  audible: { publicMode: 'audible_mixed', hash: '#audiblepilot', flagOn: function () { return true; }, title: 'Audible', kind: 'strategy_arcade', icon: 'sync', desc: 'Audible strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  fourthDownDecision: { publicMode: 'fourth_down_decision_mixed', hash: '#fourthdowndecisionpilot', flagOn: function () { return true; }, title: 'Fourth Down Decision', kind: 'strategy_arcade', icon: 'flag', desc: 'Fourth Down Decision strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  seriesSweep: { publicMode: 'series_sweep_mixed', hash: '#seriessweeppilot', flagOn: function () { return true; }, title: 'Series Sweep', kind: 'strategy_arcade', icon: 'trophy', desc: 'Series Sweep strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  roadTo100: { publicMode: 'road_to_100_mixed', hash: '#roadto100pilot', flagOn: function () { return true; }, title: 'Road to 100', kind: 'strategy_arcade', icon: 'target', desc: 'Road to 100 strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  optionEraser: { publicMode: 'option_eraser_mixed', hash: '#optioneraserpilot', flagOn: function () { return true; }, title: 'Option Eraser', kind: 'strategy_arcade', icon: 'xMark', desc: 'Option Eraser strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  routeTree: { publicMode: 'route_tree_mixed', hash: '#routetreepilot', flagOn: function () { return true; }, title: 'Route Tree', kind: 'strategy_arcade', icon: 'arrowRight', desc: 'Route Tree strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  turnoverBattle: { publicMode: 'turnover_battle_mixed', hash: '#turnoverbattlepilot', flagOn: function () { return true; }, title: 'Turnover Battle', kind: 'strategy_arcade', icon: 'shield', desc: 'Turnover Battle strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  categoryLockout: { publicMode: 'category_lockout_mixed', hash: '#categorylockoutpilot', flagOn: function () { return true; }, title: 'Category Lockout', kind: 'strategy_arcade', icon: 'lock', desc: 'Category Lockout strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  hailMary: { publicMode: 'hail_mary_mixed', hash: '#hailmarypilot', flagOn: function () { return true; }, title: 'Hail Mary', kind: 'strategy_arcade', icon: 'football', desc: 'Hail Mary strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  movingTarget: { publicMode: 'moving_target_mixed', hash: '#movingtargetpilot', flagOn: function () { return true; }, title: 'Moving Target', kind: 'strategy_arcade', icon: 'target', desc: 'Moving Target strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  draftOrder: { publicMode: 'draft_order_mixed', hash: '#draftorderpilot', flagOn: function () { return true; }, title: 'Draft Order', kind: 'strategy_arcade', icon: 'arrowUp', desc: 'Draft Order strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+  championshipRun: { publicMode: 'championship_run_mixed', hash: '#championshiprunpilot', flagOn: function () { return true; }, title: 'Championship Run', kind: 'strategy_arcade', icon: 'trophy', desc: 'Championship Run strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
+
 };
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
   return ENGINE_MECHANIC_MODES[modeKey] || ENGINE_MECHANIC_MODES.matching;
 }
-function startMechanicPilotRound(modeKey) {
+function startMechanicPilotRound(modeKey, sourceModeId) {
   if (modeKey) mechanicPilotCurrentModeKey = modeKey;
   state.mechanicPilot = {
-    modeKey: mechanicPilotCurrentModeKey, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
+    modeKey: mechanicPilotCurrentModeKey, sourceModeId: sourceModeId || null, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
     result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null,
     // Real bug fix ("all the games do this when you get something wrong"):
     // the ERROR screen's "Try Again" button always called
@@ -1962,7 +2019,8 @@ function submitMechanicPilotAction(submission) {
     // only the subsequent "guess" action is (see mystery_roster.py).
     if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
         data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
-        data.result.action === 'reveal' ||
+        data.result.action === 'reveal' || data.result.action === 'skip' || data.result.action === 'vault' ||
+        data.result.action === 'accept' ||
         data.result.advanced_to !== undefined)) {
       s.screen = ENGINE_GAME_SCREEN.QUESTION_READY;
       renderAll();
@@ -2044,8 +2102,27 @@ function finishMechanicPilotSession(cfg, s) {
   else if (cfg.kind === 'draft_pick_ladder' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'category_roulette' && r.correct !== undefined) pct = r.correct ? 100 : 0;
   else if (cfg.kind === 'common_link' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'strategy_arcade' && v.completed) {
+    var totalAnswered = (v.correct_total || 0) + (v.wrong_total || 0);
+    pct = totalAnswered ? 100 * (v.correct_total || 0) / totalAnswered : 0;
+  }
   if (pct == null) return;
+  pct = Math.max(0, Math.min(100, Math.round(pct)));
   updateRatingDrift(pct);
+  // Close the long-standing parity gap between dynamic mechanic games and
+  // legacy modes: a completed public format now feeds the same centralized
+  // progression, season, personalization, achievements and analytics path.
+  // sourceModeId is the discovery route (e.g. bingo_blitz); direct hash
+  // launches fall back to the stable public mode id.
+  if (typeof pushLeaderboard === 'function') {
+    var completionMode = s.sourceModeId || cfg.publicMode || s.modeKey;
+    pushLeaderboard(completionMode, {
+      lastPct: pct,
+      bestPct: pct,
+      mechanicKind: cfg.kind,
+      publicMode: cfg.publicMode
+    });
+  }
 }
 /* Section 9/10/22 fix: the COMPLETE screen used to render nothing but
    "Round Complete" for all four mechanics -- no final score, no streak
@@ -2058,6 +2135,11 @@ function finishMechanicPilotSession(cfg, s) {
 function renderMechanicPilotCompleteSummary(cfg, s) {
   var r = s.result || {};
   var v = s.view || {};
+  if (cfg.kind === 'strategy_arcade') {
+    return '<p class="mode-desc"><strong>' + esc(v.result_label || 'Complete') + '</strong>' +
+      ((v.correct_total || v.wrong_total) ? ' · ' + (v.correct_total || 0) + ' correct, ' + (v.wrong_total || 0) + ' missed.' : '') +
+      '</p>';
+  }
   if (cfg.kind === 'matching') {
     return '<p class="mode-desc">' + (r.correct_count != null ? r.correct_count + ' of ' + r.total_pairs + ' matched correctly.' : '') + '</p>';
   }
@@ -2260,6 +2342,7 @@ var _STADIUM_BROADCAST_KINDS = {
   guess_the_season: 'archive',
   pairwise_compare: 'duel',
   branch_state: 'path',
+  strategy_arcade: 'strategy',
 };
 function mechanicPilotPanelClass(cfg, s) {
   var variant = cfg && _STADIUM_BROADCAST_KINDS[cfg.kind];
@@ -2544,6 +2627,40 @@ function renderMechanicPilotFeedback(cfg, s) {
     (wasCorrect ? icon('check') : icon('xMark')) + ' ' + esc(headline) + '</span>' +
     (detail ? ' ' + esc(detail) : '') + '</div>';
 }
+function renderStrategyArcadeBody(v, s) {
+  var status = (v.status_items || []).map(function (it) {
+    return '<div class="strategy-stat"><span>' + esc(String(it.label)) + '</span><strong>' + esc(String(it.value)) + '</strong></div>';
+  }).join('');
+  var boardCols = Math.max(1, Number(v.board_columns || 3));
+  var board = (v.board || []).length ? '<div class="strategy-board' + (boardCols === 7 ? ' is-connect-four' : '') + '" style="grid-template-columns:repeat(' + boardCols + ',minmax(0,1fr))">' + v.board.map(function (cell) {
+    var value = String(cell.value || 'OPEN');
+    var cls = value === 'CLAIMED' || value === 'CAPTURED' || value === 'YOU' || value === 'OPEN' ? ' is-good' :
+      (value === 'BURNT' || value === 'MISSED' || value === 'THEM' ? ' is-bad' : '');
+    if (boardCols === 7) {
+      var disc = value === 'YOU' ? '●' : (value === 'THEM' ? '○' : '·');
+      return '<div class="strategy-cell strategy-disc' + cls + '" aria-label="' + esc(cell.label + ' ' + value) + '"><strong>' + disc + '</strong></div>';
+    }
+    return '<div class="strategy-cell' + cls + '"><span>' + esc(cell.label) + '</span><strong>' + esc(value) + '</strong></div>';
+  }).join('') + '</div>' : '';
+  var header = stadiumModeIntroHtml('STRATEGY ARCADE', v.title || 'Reads Strategy', v.goal_text || '') +
+    (status ? '<div class="strategy-scoreboard">' + status + '</div>' : '') + board;
+  if (v.phase === 'COMPLETE') {
+    return header + stadiumQuestionHtml('FINAL', v.result_label || 'Round complete.');
+  }
+  if (v.phase === 'SELECT') {
+    return header + stadiumQuestionHtml('MAKE YOUR MOVE', v.interaction_text || 'Choose your next move.') +
+      '<div class="strategy-actions">' + (v.actions || []).map(function (a) {
+        return '<button class="btn-primary strategy-action" data-mechanic-strategy-action="' + esc(a.id) + '">' + esc(a.label) + '</button>';
+      }).join('') + '</div>';
+  }
+  return header +
+    (v.selected_label ? '<div class="strategy-selection">LOCKED: <strong>' + esc(v.selected_label) + '</strong></div>' : '') +
+    stadiumQuestionHtml(v.category || 'REAL FOOTBALL', v.prompt || '') +
+    renderCandidateCardsHtml((v.options || []).map(function (it) { return it.label; }), {
+      dataAttr: 'data-mechanic-strategy-answer',
+    });
+}
+
 function renderMechanicPilotBody(cfg, s) {
   var v = s.view;
   if (cfg.kind === 'matching') {
@@ -2665,6 +2782,7 @@ function renderMechanicPilotBody(cfg, s) {
   if (cfg.kind === 'draft_pick_ladder') return renderDraftPickLadderBody(v, s);
   if (cfg.kind === 'category_roulette') return renderCategoryRouletteBody(v, s);
   if (cfg.kind === 'common_link') return renderCommonLinkBody(v, s);
+  if (cfg.kind === 'strategy_arcade') return renderStrategyArcadeBody(v, s);
   return '';
 }
 /* ============================== Finish-10-Formats pass: 5 new

@@ -81,4 +81,4 @@ def test_film_room_discovery_card_still_exists_as_a_secondary_entry_point():
     existing home-screen discovery card -- both pointing at the same real
     screen is fine, not "burying" it."""
     js = _app_js()
-    assert "discoverRowHtml('learn', 'book', 'The Film Room'" in js
+    assert "discoverRowHtml('learn', 'clapperboard', 'The Film Room'" in js

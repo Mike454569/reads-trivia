@@ -100,7 +100,7 @@ TAXONOMY_IDS = frozenset({
     "CATEGORY_ROULETTE",
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # common_link.py's own module docstring.
-    "COMMON_LINK",
+    "COMMON_LINK", "STRATEGY_ARCADE",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -417,6 +417,65 @@ VARIANTS: dict[str, dict[str, dict]] = {
         # CFB retrofit pass -- real school/season/conference link types
         # (not draft-flavored), see common_link.py's own module docstring.
         "CFB_SEASON_COMMON_LINK": {"competition": "CFB"},
+    },
+    # 100-format Expansion Wave 2: 15 distinct strategy/state-loop formats
+    # sharing one audited execution taxonomy and one real mixed-trivia
+    # knowledge source. Distinctness lives in the server state machine, not
+    # duplicated data adapters.
+    "STRATEGY_ARCADE": {
+        "BINGO_BLITZ": {"competition": "MIXED"},
+        "TERRITORY_TAKEOVER": {"competition": "MIXED"},
+        "EXACT_TEN": {"competition": "MIXED"},
+        "PYRAMID_CLIMB": {"competition": "MIXED"},
+        "LOCKBOX": {"competition": "MIXED"},
+        "COMBO_METER": {"competition": "MIXED"},
+        "CHECKPOINT_RALLY": {"competition": "MIXED"},
+        "ESCALATOR": {"competition": "MIXED"},
+        "POWER_UP": {"competition": "MIXED"},
+        "CATEGORY_CONQUEST": {"competition": "MIXED"},
+        "SCOREBOARD_SWING": {"competition": "MIXED"},
+        "MOMENTUM_BAR": {"competition": "MIXED"},
+        "TIMEOUT_TOKENS": {"competition": "MIXED"},
+        "PERFECT_SET": {"competition": "MIXED"},
+        "TRIPLE_OR_TAKE": {"competition": "MIXED"},
+        "CONNECT_FOUR": {"competition": "MIXED"},
+        "TIC_TAC_TOE": {"competition": "MIXED"},
+        "CHALLENGE_FLAG": {"competition": "MIXED"},
+        "EXTRA_POINT": {"competition": "MIXED"},
+        "COMEBACK_MODE": {"competition": "MIXED"},
+        "CATEGORY_DRAFT": {"competition": "MIXED"},
+        "THREE_AND_OUT": {"competition": "MIXED"},
+        "PICK_YOUR_POISON": {"competition": "MIXED"},
+        "SECOND_CHANCE_QUEUE": {"competition": "MIXED"},
+        "COVERAGE_SHELL": {"competition": "MIXED"},
+        "OFFENSE_DEFENSE": {"competition": "MIXED"},
+        "FIELD_GOAL_RANGE": {"competition": "MIXED"},
+        "TWO_MINUTE_DRILL": {"competition": "MIXED"},
+        "CATEGORY_STREAK": {"competition": "MIXED"},
+        "PERFECT_QUARTER": {"competition": "MIXED"},
+        "RED_ZONE_LADDER": {"competition": "MIXED"},
+        "DRIVE_BUILDER": {"competition": "MIXED"},
+        "HOT_HAND_SWITCH": {"competition": "MIXED"},
+        "OVERTIME_SHOOTOUT": {"competition": "MIXED"},
+        "FIRST_DOWN_CHAIN": {"competition": "MIXED"},
+        "BLITZ_PACKAGE": {"competition": "MIXED"},
+        "ZONE_CONTROL": {"competition": "MIXED"},
+        "PLAY_CALLER": {"competition": "MIXED"},
+        "POSSESSION_ARROW": {"competition": "MIXED"},
+        "SUDDEN_DEATH": {"competition": "MIXED"},
+        "SCORE_BANK": {"competition": "MIXED"},
+        "AUDIBLE": {"competition": "MIXED"},
+        "FOURTH_DOWN_DECISION": {"competition": "MIXED"},
+        "SERIES_SWEEP": {"competition": "MIXED"},
+        "ROAD_TO_100": {"competition": "MIXED"},
+        "OPTION_ERASER": {"competition": "MIXED"},
+        "ROUTE_TREE": {"competition": "MIXED"},
+        "TURNOVER_BATTLE": {"competition": "MIXED"},
+        "CATEGORY_LOCKOUT": {"competition": "MIXED"},
+        "HAIL_MARY": {"competition": "MIXED"},
+        "MOVING_TARGET": {"competition": "MIXED"},
+        "DRAFT_ORDER": {"competition": "MIXED"},
+        "CHAMPIONSHIP_RUN": {"competition": "MIXED"},
     },
 }
 
@@ -2201,6 +2260,49 @@ def _roster_build_free_select_evaluate(package: dict, progress: dict, submission
     raise MechanicError(f"action must be one of 'select', 'deselect', 'submit_lineup', got {action!r}")
 
 
+# --- STRATEGY_ARCADE (100-format Expansion Wave 2) -------------------------
+# Fifteen different server-authoritative state machines over the same real,
+# already-certified mixed trivia pool. The strategy module owns the detailed
+# state transitions; this file keeps the common Gateway contract centralized.
+
+def generate_strategy_arcade_round(*, variant: str, seed: str, round_count: int = 24) -> dict:
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
+    if variant in strategy_arcade_wave5.VARIANTS:
+        return strategy_arcade_wave5.build_package(seed, variant, round_count=max(round_count, 36))
+    if variant in strategy_arcade_wave4.VARIANTS:
+        return strategy_arcade_wave4.build_package(seed, variant, round_count=max(round_count, 36))
+    if variant in strategy_arcade_wave3.VARIANTS:
+        return strategy_arcade_wave3.build_package(seed, variant, round_count=max(round_count, 30))
+    return strategy_arcade.build_package(seed, variant, round_count=round_count)
+
+
+def _strategy_arcade_client_view(package: dict, progress: dict) -> dict:
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
+    variant = package.get("domain_variant")
+    if variant in strategy_arcade_wave5.VARIANTS:
+        return strategy_arcade_wave5.client_view(package, progress)
+    if variant in strategy_arcade_wave4.VARIANTS:
+        return strategy_arcade_wave4.client_view(package, progress)
+    if variant in strategy_arcade_wave3.VARIANTS:
+        return strategy_arcade_wave3.client_view(package, progress)
+    return strategy_arcade.client_view(package, progress)
+
+
+def _strategy_arcade_evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dict]:
+    from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
+    try:
+        variant = package.get("domain_variant")
+        if variant in strategy_arcade_wave5.VARIANTS:
+            return strategy_arcade_wave5.evaluate(package, progress, submission)
+        if variant in strategy_arcade_wave4.VARIANTS:
+            return strategy_arcade_wave4.evaluate(package, progress, submission)
+        if variant in strategy_arcade_wave3.VARIANTS:
+            return strategy_arcade_wave3.evaluate(package, progress, submission)
+        return strategy_arcade.evaluate(package, progress, submission)
+    except ValueError as exc:
+        raise MechanicError(str(exc)) from exc
+
+
 # --- Generic dispatch used by the Gateway routes ---
 
 def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
@@ -2278,6 +2380,8 @@ def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
         return _category_roulette_client_view(package, progress["current_index"])
     if taxonomy_id == "COMMON_LINK":
         return _common_link_client_view(package, progress["current_index"])
+    if taxonomy_id == "STRATEGY_ARCADE":
+        return _strategy_arcade_client_view(package, progress)
     raise MechanicError(f"unknown taxonomy_id {taxonomy_id!r}")
 
 
@@ -2496,6 +2600,8 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["rounds"])
         return result, progress
+    if taxonomy_id == "STRATEGY_ARCADE":
+        return _strategy_arcade_evaluate(package, progress, submission)
     if taxonomy_id == "HIGHER_LOWER_STREAK":
         if progress.get("ended"):
             raise MechanicError("this streak has already ended")
@@ -2639,6 +2745,9 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
 
 
 def initial_progress(taxonomy_id: str) -> dict:
+    if taxonomy_id == "STRATEGY_ARCADE":
+        return {"cursor": 0, "score": 0, "correct_total": 0, "wrong_total": 0,
+                "phase": "SELECT", "completed": False, "ended": False}
     if taxonomy_id == "PROGRESSIVE_CLUE_IDENTIFY":
         return {"current_index": 0, "clues_revealed": 1, "completed": False}
     if taxonomy_id == "HIGHER_LOWER_STREAK":

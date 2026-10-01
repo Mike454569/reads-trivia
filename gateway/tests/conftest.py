@@ -145,6 +145,24 @@ def auth_headers():
 #      .ci_needs_real_db.txt, replacing it entirely.
 #   4. Re-run with CI_SKIP_DB_TESTS=1 against that same scratch dir and
 #      confirm 0 failed before committing.
+# Some legacy schedule tests resolve a real future week at MODULE IMPORT time.
+# A post-collection skip marker cannot protect CI from those imports because
+# collection crashes before pytest_collection_modifyitems runs. Keep this
+# narrow, explicit pre-collection guard for exactly those known DB-dependent
+# modules; the real-DB integration job still collects/runs them normally.
+_CI_IMPORT_TIME_DB_MODULES = {
+    "test_confidence_pick.py",
+    "test_nl_schedule_driven_routing.py",
+    "test_weekly_pickem.py",
+}
+
+
+def pytest_ignore_collect(collection_path, config):
+    if os.environ.get("CI_SKIP_DB_TESTS") != "1":
+        return False
+    return Path(str(collection_path)).name in _CI_IMPORT_TIME_DB_MODULES
+
+
 def pytest_collection_modifyitems(config, items):
     import os as _os
 

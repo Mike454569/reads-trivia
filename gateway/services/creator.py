@@ -254,6 +254,7 @@ _NEW_TAXONOMY_TITLES = {
     "DRAFT_PICK_LADDER": "Draft Pick Ladder",
     "CATEGORY_ROULETTE": "Category Roulette",
     "COMMON_LINK": "Common Link",
+    "STRATEGY_ARCADE": "Strategy Arcade",
 }
 
 
@@ -366,9 +367,12 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "CATEGORY_ROULETTE":
         package = mechanic_engine.generate_category_roulette_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 6), seed=real_seed)
-    else:  # COMMON_LINK
+    elif taxonomy_id == "COMMON_LINK":
         package = mechanic_engine.generate_common_link_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
+    else:  # STRATEGY_ARCADE
+        package = mechanic_engine.generate_strategy_arcade_round(
+            variant=variant, round_count=gen_kwargs.get("round_count", 24), seed=real_seed)
 
     if package.get("qa_status") != "PASSED":
         raise GatewayError(

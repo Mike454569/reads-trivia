@@ -279,6 +279,10 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Chain Reaction: College to NFL",
         "instructions": "Follow the real chain from college to the NFL team that drafted him.",
         "kind": "relationship_chain", "gen_kwargs": {"chain_count": 8},
+        # Backward-compatible presentation alias of six_degrees_cfb_nfl.
+        # It stays callable for old links/saved state but is intentionally
+        # excluded from discovery so the UI cannot count the same game twice.
+        "discoverable": False,
     },
     "choose_your_path_nfl": {
         "competition": "NFL", "taxonomy_id": "BRANCH_STATE", "variant": "NFL_TOPIC_PATH",
@@ -635,6 +639,275 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
                          "explains what connects them.",
         "kind": "common_link", "gen_kwargs": {"round_count": 8},
     },
+
+    # 100-format Expansion Wave 2: 15 genuinely different strategy loops.
+    # All share one audited mixed-trivia knowledge source, but each variant
+    # has its own server-side state machine and interaction contract.
+    "bingo_blitz_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "BINGO_BLITZ",
+        "title": "Bingo Blitz", "instructions": "Claim a three-cell line on a 3x3 board.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "territory_takeover_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TERRITORY_TAKEOVER",
+        "title": "Territory Takeover", "instructions": "Choose zones and outscore the opponent by claiming territory.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "exact_ten_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "EXACT_TEN",
+        "title": "Exact Ten", "instructions": "Choose 1-3 point plays and land on exactly 10 without busting.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "pyramid_climb_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PYRAMID_CLIMB",
+        "title": "Pyramid Climb", "instructions": "Pick a lane and climb five levels; misses knock you down.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "lockbox_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "LOCKBOX",
+        "title": "Lockbox", "instructions": "Open three locks, then beat the final vault question.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "combo_meter_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "COMBO_METER",
+        "title": "Combo Meter", "instructions": "Build a scoring multiplier with consecutive correct answers.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "checkpoint_rally_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CHECKPOINT_RALLY",
+        "title": "Checkpoint Rally", "instructions": "Advance to eight; misses send you back to your last saved checkpoint.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "escalator_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ESCALATOR",
+        "title": "Escalator", "instructions": "Risk one or two steps per question and reach step 10.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "power_up_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "POWER_UP",
+        "title": "Power Up", "instructions": "Earn energy with correct answers and spend it on a server-safe 50/50.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "category_conquest_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_CONQUEST",
+        "title": "Category Conquest", "instructions": "Choose and capture all three real trivia categories.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "scoreboard_swing_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SCOREBOARD_SWING",
+        "title": "Scoreboard Swing", "instructions": "Correct answers score seven; misses give the opponent three. First to 21 wins.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "momentum_bar_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "MOMENTUM_BAR",
+        "title": "Momentum Bar", "instructions": "Push momentum to +8 before it falls to -4.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "timeout_tokens_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TIMEOUT_TOKENS",
+        "title": "Timeout Tokens", "instructions": "Manage two skips and one double-score token across the run.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "perfect_set_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PERFECT_SET",
+        "title": "Perfect Set", "instructions": "Win two of three best-of-three trivia sets.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "triple_or_take_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TRIPLE_OR_TAKE",
+        "title": "Triple or Take", "instructions": "Choose 1-3 question series; clear the whole series to bank bigger points.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 24},
+    },
+    "connect_four_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CONNECT_FOUR",
+        "title": "Connect Four", "instructions": "Drop four of your discs in a row before the opponent.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "tic_tac_toe_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TIC_TAC_TOE",
+        "title": "Tic-Tac-Toe", "instructions": "Claim a three-cell line before the opponent.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "challenge_flag_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CHALLENGE_FLAG",
+        "title": "Challenge Flag", "instructions": "Use two replay challenges to overturn missed answers.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "extra_point_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "EXTRA_POINT",
+        "title": "Extra Point", "instructions": "Score touchdowns, then choose one safe point or a two-point trivia try.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "comeback_mode_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "COMEBACK_MODE",
+        "title": "Comeback Mode", "instructions": "Erase a 21-point deficit in six possessions.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "category_draft_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_DRAFT",
+        "title": "Category Draft", "instructions": "Draft each real category at most twice across six picks.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "three_and_out_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "THREE_AND_OUT",
+        "title": "Three & Out", "instructions": "Get at least one answer right on each three-play drive.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "pick_your_poison_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PICK_YOUR_POISON",
+        "title": "Pick Your Poison", "instructions": "Choose between two visible categories before each question.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "second_chance_queue_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SECOND_CHANCE_QUEUE",
+        "title": "Second Chance Queue", "instructions": "Defer your first miss and replay that exact question at the end.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "coverage_shell_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "COVERAGE_SHELL",
+        "title": "Coverage Shell", "instructions": "Record two stops in every zone before allowing three completions.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "offense_defense_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "OFFENSE_DEFENSE",
+        "title": "Offense / Defense", "instructions": "Alternate offense and defense snaps and outscore the opponent.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "field_goal_range_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "FIELD_GOAL_RANGE",
+        "title": "Field Goal Range", "instructions": "Build field position, then decide when to attempt the kick.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "two_minute_drill_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TWO_MINUTE_DRILL",
+        "title": "Two-Minute Drill", "instructions": "Choose tempo and reach 60 yards before 120 seconds expire.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "category_streak_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_STREAK",
+        "title": "Category Streak", "instructions": "Build a two-answer streak in all three real categories.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "perfect_quarter_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PERFECT_QUARTER",
+        "title": "Perfect Quarter", "instructions": "Score touchdowns on at least three of four two-question drives.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 30},
+    },
+    "red_zone_ladder_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "RED_ZONE_LADDER",
+        "title": "Red Zone Ladder", "instructions": "Climb from the 20 to the end zone before three misses.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "drive_builder_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "DRIVE_BUILDER",
+        "title": "Drive Builder", "instructions": "Complete short, medium, and deep plays to build a scoring drive.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "hot_hand_switch_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "HOT_HAND_SWITCH",
+        "title": "Hot Hand Switch", "instructions": "Stay with a hot category or switch and reset the multiplier.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "overtime_shootout_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "OVERTIME_SHOOTOUT",
+        "title": "Overtime Shootout", "instructions": "Trade overtime possessions until somebody leads.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "first_down_chain_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "FIRST_DOWN_CHAIN",
+        "title": "First Down Chain", "instructions": "Earn four first downs before a turnover on downs.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "blitz_package_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "BLITZ_PACKAGE",
+        "title": "Blitz Package", "instructions": "Choose pressure level and get five sacks before allowing three touchdowns.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "zone_control_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ZONE_CONTROL",
+        "title": "Zone Control", "instructions": "Capture all nine zones before the question window closes.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "play_caller_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "PLAY_CALLER",
+        "title": "Play Caller", "instructions": "Call run, pass, or play action before each snap.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "possession_arrow_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "POSSESSION_ARROW",
+        "title": "Possession Arrow", "instructions": "Score while possession flips after every miss.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "sudden_death_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SUDDEN_DEATH",
+        "title": "Sudden Death", "instructions": "One miss can end it; outlast the opponent.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "score_bank_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SCORE_BANK",
+        "title": "Score Bank", "instructions": "Grow a pot, then decide when to bank it safely.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "audible_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "AUDIBLE",
+        "title": "Audible", "instructions": "Keep the call or spend one of two audibles to change category.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "fourth_down_decision_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "FOURTH_DOWN_DECISION",
+        "title": "Fourth Down Decision", "instructions": "Take three or risk the drive for seven on fourth down.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "series_sweep_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "SERIES_SWEEP",
+        "title": "Series Sweep", "instructions": "Win a best-of-five series and chase the 3-0 sweep.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "road_to_100_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ROAD_TO_100",
+        "title": "Road to 100", "instructions": "Choose 10-, 20-, or 30-point shots and race to 100.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "option_eraser_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "OPTION_ERASER",
+        "title": "Option Eraser", "instructions": "Manage three erasers that remove one wrong option before a question.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "route_tree_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "ROUTE_TREE",
+        "title": "Route Tree", "instructions": "Complete slant, post, and go routes in any order.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "turnover_battle_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "TURNOVER_BATTLE",
+        "title": "Turnover Battle", "instructions": "Reach 50 yards before committing three turnovers.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "category_lockout_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CATEGORY_LOCKOUT",
+        "title": "Category Lockout", "instructions": "Score in every category before misses lock one out.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "hail_mary_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "HAIL_MARY",
+        "title": "Hail Mary", "instructions": "Earn a final rescue question if regulation ends one short.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "moving_target_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "MOVING_TARGET",
+        "title": "Moving Target", "instructions": "Hit an exact target score that shifts after every answer.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "draft_order_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "DRAFT_ORDER",
+        "title": "Draft Order", "instructions": "Trade up from pick 10 to pick one before five misses.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
+    "championship_run_mixed": {
+        "competition": "MIXED", "taxonomy_id": "STRATEGY_ARCADE", "variant": "CHAMPIONSHIP_RUN",
+        "title": "Championship Run", "instructions": "Survive four playoff stages with escalating requirements.",
+        "kind": "strategy_arcade", "gen_kwargs": {"round_count": 36},
+    },
 }
 
 _generation_semaphore = threading.Semaphore(config.PUBLIC_MECHANIC_MAX_CONCURRENCY)
@@ -649,6 +922,7 @@ def list_public_mechanic_modes() -> list[dict]:
          "instructions": entry["instructions"], "kind": entry["kind"],
          "available": config.PUBLIC_GAME_ENABLED}
         for mode_id, entry in PUBLIC_MECHANIC_MODES.items()
+        if entry.get("discoverable", True)
     ]
 
 
@@ -737,6 +1011,8 @@ def start_public_round(*, mode: str) -> dict:
             package = mechanic_engine.generate_category_roulette_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         elif taxonomy_id == "COMMON_LINK":
             package = mechanic_engine.generate_common_link_round(variant=variant, seed=seed, **entry["gen_kwargs"])
+        elif taxonomy_id == "STRATEGY_ARCADE":
+            package = mechanic_engine.generate_strategy_arcade_round(variant=variant, seed=seed, **entry["gen_kwargs"])
         else:  # unreachable given PUBLIC_MECHANIC_MODES' own real contents, defensive only
             raise GatewayError("INVALID_MODE", f"mode={mode!r} has no public generator wired.")
     finally:

@@ -1444,10 +1444,28 @@ function dailyVisibleIndexes(q, rng, mechanic) {
   var other = wrong[Math.floor(rng() * wrong.length)];
   return seededShuffle([q.correctIndex, other], rng);
 }
+function dailyMechanicForFormatFamily(family, fallback) {
+  if (family === 'strategy') return 'confidence';
+  if (family === 'survival') return 'elimination';
+  if (family === 'board') return 'fifty';
+  if (family === 'roster') return 'double';
+  if (family === 'identify') return 'fifty';
+  if (family === 'sequence') return 'quick';
+  return fallback || 'quick';
+}
 function decorateDailyQueue(out, rng, targetDifficulty) {
   var mechanics = dailyMechanicOrder(rng);
+  var rotation = dailyFormatRotation();
+  var formatMap = {};
+  allPlayableModesUnique().forEach(function (m) { formatMap[m.id] = m; });
   out.forEach(function (q, i) {
-    q._dailyMechanic = mechanics[i] || 'quick';
+    var sourceId = rotation.modeIds[i] || null;
+    var source = sourceId ? formatMap[sourceId] : null;
+    var family = source ? formatHubFamily(source) : null;
+    q._dailyMechanic = dailyMechanicForFormatFamily(family, mechanics[i] || 'quick');
+    q._dailyFormatSourceId = sourceId;
+    q._dailyFormatSourceTitle = source ? source.title : null;
+    q._dailyFormatFamily = family;
     q._dailyDifficultyTarget = Math.max(0, Math.min(3, targetDifficulty + (i === 0 ? -1 : i === 4 ? 1 : 0)));
     q._dailyVisibleIndexes = dailyVisibleIndexes(q, rng, q._dailyMechanic);
   });
@@ -1528,6 +1546,8 @@ function dailyRecordFromState(pct) {
     leagueStats: t.leagueStats || { NFL:{correct:0,total:0}, CFB:{correct:0,total:0} },
     confidence: t.confidenceResults || [],
     mechanics: (t.queue || []).map(function (q) { return q._dailyMechanic || 'quick'; }),
+    formatSources: (t.queue || []).map(function (q) { return q._dailyFormatSourceId || null; }),
+    formatFamilies: (t.queue || []).map(function (q) { return q._dailyFormatFamily || null; }),
     difficultyTarget: t.difficultyTarget == null ? adaptiveDailyDifficulty() : t.difficultyTarget
   };
 }
@@ -1892,7 +1912,7 @@ function dailyChallengeCardHtml() {
     '<p class="daily-difficulty-note">' + icon('target') + ' Today’s target: <b>' + esc(dailyDifficultyLabel(adaptiveDailyDifficulty())) + '</b></p>' +
     (streakBit ? '<p class="daily-card-streak">' + streakBit + '</p>' : '') +
     '<button class="btn-primary" data-daily-start>Start My Daily 5' + icon('arrowRight', 'daily-cta-arrow') + '</button>' +
-    '</div>';
+    '</div>' + dailyFormatRotationHtml(true);
 }
 function dailyMechanicInstructions(q) {
   var id = q._dailyMechanic || 'quick';
@@ -1913,7 +1933,7 @@ function renderDailyQuestion() {
   return '<div class="panel daily-reads-game daily-mechanic-' + esc(mechanic) + '">' + modeToolbarHtml('daily') +
     '<div class="daily-reads-kicker"><span>' + esc(q._dailySlot || ('READ ' + (t.index + 1))) + '</span><small>' + esc(q._dailyReason || q._dailyLeague || '') + '</small></div>' +
     quizProgressRowHtml('Daily Reads &middot; Game ' + (t.index + 1) + ' of ' + t.queue.length, t.index, t.queue.length) +
-    '<div class="daily-mechanic-banner"><b>' + esc(DAILY_MECHANICS[mechanic].label) + '</b><span>' + esc(dailyMechanicInstructions(q)) + '</span></div>' +
+    '<div class="daily-mechanic-banner"><b>' + esc(DAILY_MECHANICS[mechanic].label) + '</b><span>' + esc(dailyMechanicInstructions(q)) + (q._dailyFormatSourceTitle ? ' · Inspired by ' + esc(q._dailyFormatSourceTitle) : '') + '</span></div>' +
     '<div class="quiz-question">' + esc(q.question) + '</div>' +
     (mechanic === 'confidence' && !answered ? '<div class="daily-confidence"><span>Confidence</span>' +
       [1,2,3].map(function (n) { return '<button class="' + (confidence === n ? 'active' : '') + '" data-daily-confidence="' + n + '">' + n + (n === 1 ? ' · Lean' : n === 2 ? ' · Like it' : ' · Lock') + '</button>'; }).join('') +
@@ -1958,6 +1978,7 @@ function renderDailySummary() {
     dailyStreakRewardsHtml() +
     weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
+    dailyFormatRotationHtml(false) +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
     '<button class="btn-primary" data-go="home">Back to Dashboard</button>' +
@@ -1972,12 +1993,14 @@ function renderDailyScreen() {
         '<div class="summary-score">' + esc(label) + (r.bonusPoints ? ' · +' + r.bonusPoints + ' bonus' : '') + '</div>' +
         '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
         weeklyDailyRecapHtml(true) +
+        dailyFormatRotationHtml(false) +
         '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
     return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
       '<p class="mode-desc">Five personalized mini-games. About five minutes total. Difficulty adapts to you.</p>' +
       '<div class="daily-v2-mechanics">' + dailyMechanicPreviewHtml() + '</div>' +
-      '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>';
+      '<button class="btn-primary" data-daily-start>Start My Daily 5</button></div>' +
+      dailyFormatRotationHtml(false);
   }
   if (state.daily.screen === 'summary') return renderDailySummary();
   return renderDailyQuestion();
@@ -2160,6 +2183,11 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
+  if (isTrackedPlayableFormat(mode)) beginFormatAnalyticsRun(mode,state.screen||'unknown');
+  else if (formatAnalyticsActiveRun) {
+    trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),to:mode||'unknown'});
+    formatAnalyticsActiveRun=null;
+  }
   if (state.screen === 'community' && mode !== 'community') stopCommunityWatch();
   if (state.name) {
     var recNow = scoredModeRecommendations(3).some(function (r) { return r.mode.id === mode; });
@@ -2225,7 +2253,7 @@ function goToMode(mode) {
     beginProgressSession(mode);
     lsSet('nflTriviaLastMode', mode);
     if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
-    startMechanicPilotRound(mechanicEntry.mechanicMode);
+    startMechanicPilotRound(mechanicEntry.mechanicMode, mode);
     return;
   }
   // v1.7, Part C8: same unified-discovery routing as the block above, kept
@@ -2828,6 +2856,69 @@ if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
       desc: ENGINE_MECHANIC_MODES.commonLinkCfb.desc, mechanicMode: 'commonLinkCfb', league: 'cfb', difficulty: 'competitive',
     });
   }
+  // 100-format Expansion Wave 2: mixed NFL/CFB strategy formats.
+  [
+    ['bingoBlitz','bingo_blitz','grid','casual'],
+    ['territoryTakeover','territory_takeover','flag','competitive'],
+    ['exactTen','exact_ten','target','competitive'],
+    ['pyramidClimb','pyramid_climb','trendingUp','competitive'],
+    ['lockbox','lockbox','lock','hardcore'],
+    ['comboMeter','combo_meter','zap','competitive'],
+    ['checkpointRally','checkpoint_rally','flag','competitive'],
+    ['escalator','escalator','trendingUp','competitive'],
+    ['powerUp','power_up','zap','competitive'],
+    ['categoryConquest','category_conquest','trophy','competitive'],
+    ['scoreboardSwing','scoreboard_swing','barChart','competitive'],
+    ['momentumBar','momentum_bar','flame','competitive'],
+    ['timeoutTokens','timeout_tokens','clock','hardcore'],
+    ['perfectSet','perfect_set','trophy','competitive'],
+    ['tripleOrTake','triple_or_take','layers','hardcore'],
+    ['connectFour','connect_four','grid','competitive'],
+    ['ticTacToe','tic_tac_toe','grid','casual'],
+    ['challengeFlag','challenge_flag','flag','competitive'],
+    ['extraPoint','extra_point','target','competitive'],
+    ['comebackMode','comeback_mode','arrowUp','competitive'],
+    ['categoryDraft','category_draft','grid','hardcore'],
+    ['threeAndOut','three_and_out','xMark','hardcore'],
+    ['pickYourPoison','pick_your_poison','versus','competitive'],
+    ['secondChanceQueue','second_chance_queue','sync','competitive'],
+    ['coverageShell','coverage_shell','shield','hardcore'],
+    ['offenseDefense','offense_defense','versus','competitive'],
+    ['fieldGoalRange','field_goal_range','target','competitive'],
+    ['twoMinuteDrill','two_minute_drill','timer','hardcore'],
+    ['categoryStreak','category_streak','flame','hardcore'],
+    ['perfectQuarter','perfect_quarter','trophy','competitive'],
+    ['redZoneLadder','red_zone_ladder','target','competitive'],
+    ['driveBuilder','drive_builder','grid','competitive'],
+    ['hotHandSwitch','hot_hand_switch','flame','hardcore'],
+    ['overtimeShootout','overtime_shootout','versus','competitive'],
+    ['firstDownChain','first_down_chain','arrowRight','competitive'],
+    ['blitzPackage','blitz_package','zap','hardcore'],
+    ['zoneControl','zone_control','grid','competitive'],
+    ['playCaller','play_caller','football','competitive'],
+    ['possessionArrow','possession_arrow','sync','competitive'],
+    ['suddenDeath','sudden_death','xMark','hardcore'],
+    ['scoreBank','score_bank','barChart','hardcore'],
+    ['audible','audible','sync','competitive'],
+    ['fourthDownDecision','fourth_down_decision','flag','hardcore'],
+    ['seriesSweep','series_sweep','trophy','competitive'],
+    ['roadTo100','road_to100','target','hardcore'],
+    ['optionEraser','option_eraser','xMark','competitive'],
+    ['routeTree','route_tree','arrowRight','competitive'],
+    ['turnoverBattle','turnover_battle','shield','competitive'],
+    ['categoryLockout','category_lockout','lock','hardcore'],
+    ['hailMary','hail_mary','football','competitive'],
+    ['movingTarget','moving_target','target','hardcore'],
+    ['draftOrder','draft_order','arrowUp','competitive'],
+    ['championshipRun','championship_run','trophy','hardcore'],
+  ].forEach(function (row) {
+    var key=row[0], cfg=ENGINE_MECHANIC_MODES[key];
+    if (!cfg || !cfg.flagOn()) return;
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: row[1], icon: row[2], title: cfg.title, desc: cfg.desc,
+      mechanicMode: key, league: 'mixed', difficulty: row[3],
+    });
+  });
 }
 // v1.7, Part C8 (v2 rebuild: graph-driven Coach Connections): joins the
 // exact same discovery array -- card rendering (modeCardHtml) doesn't care
@@ -2890,9 +2981,217 @@ var LEAGUE_MODES = {
     .concat(ENABLE_CFB_PLAYER_FROM_CLUES_V01 ? [
       { id: 'cfbPlayerClues', icon: 'target', title: 'CFB Player From Clues', desc: 'A ladder of real clues about a college football player — narrowing from broad to specific. Guess who it is with as few clues as you can.', featured: true, difficulty: 'competitive' },
     ] : [])
-    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb'; }))
+    .concat(ENGINE_DISCOVERY_ENTRIES.filter(function (e) { return e.league === 'cfb' || e.league === 'mixed'; }))
 };
 var LEAGUE_LABELS = { nfl: 'NFL Modes', cfb: 'College Football Modes' };
+
+/* ============================== 100-format discovery hub ==============================
+   The format audit is the source of truth for the product milestone: 101
+   registry entries, one explicit presentation alias, 100 distinct formats.
+   Player discovery intentionally works from PLAYABLE mode records instead of
+   mirroring backend registry metadata into a second giant frontend list.
+   Mixed modes appear in both league arrays for navigation, so this helper
+   deduplicates by playable id before search/recommendation. */
+var READS_DISTINCT_FORMAT_COUNT = 100;
+var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
+
+/* Product analytics: local, bounded and intentionally non-PII. This gives the
+   closeout pass real signals for discovery -> launch -> completion -> share
+   without making gameplay depend on an analytics backend. Signed-in play
+   still uses the existing Firebase play/progression paths separately. */
+function formatAnalyticsKey() { return 'readsFormatAnalyticsV1'; }
+function getFormatAnalyticsEvents() { return lsGet(formatAnalyticsKey(), []); }
+function trackFormatEvent(type, mode, meta) {
+  var rows=getFormatAnalyticsEvents();
+  rows.push({type:String(type||''),mode:mode||null,at:Date.now(),meta:Object.assign({},meta||{})});
+  lsSet(formatAnalyticsKey(), rows.slice(-500));
+}
+var formatAnalyticsActiveRun = null;
+function isTrackedPlayableFormat(mode) {
+  return !!mode && allPlayableModesUnique().some(function(m){return m.id===mode;});
+}
+function beginFormatAnalyticsRun(mode, from) {
+  if (!isTrackedPlayableFormat(mode)) return;
+  var now=Date.now();
+  if (formatAnalyticsActiveRun && formatAnalyticsActiveRun.mode !== mode) {
+    trackFormatEvent('abandon', formatAnalyticsActiveRun.mode, {
+      durationMs:Math.max(0,now-formatAnalyticsActiveRun.startedAt),
+      to:mode
+    });
+  }
+  formatAnalyticsActiveRun={mode:mode,startedAt:now};
+  trackFormatEvent('launch',mode,{from:from||'unknown'});
+}
+function finishFormatAnalyticsRun(mode, meta) {
+  var now=Date.now(), payload=Object.assign({},meta||{});
+  if (formatAnalyticsActiveRun && formatAnalyticsActiveRun.mode===mode) {
+    payload.durationMs=Math.max(0,now-formatAnalyticsActiveRun.startedAt);
+    formatAnalyticsActiveRun=null;
+  }
+  trackFormatEvent('complete',mode,payload);
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', function () {
+    if (!formatAnalyticsActiveRun) return;
+    trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{
+      durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),
+      to:'pagehide'
+    });
+    formatAnalyticsActiveRun=null;
+  });
+}
+var formatHubLastImpressionSignature = null;
+function trackFormatHubImpression(modes) {
+  var sig=(modes||[]).map(function(m){return m.id;}).join('|')+'::'+
+    [formatHubState.query,formatHubState.league,formatHubState.difficulty,formatHubState.family,formatHubState.newOnly].join('|');
+  if(sig===formatHubLastImpressionSignature)return;
+  formatHubLastImpressionSignature=sig;
+  trackFormatEvent('impression',null,{results:(modes||[]).length});
+}
+function formatAnalyticsSummary() {
+  var out={impression:0,search:0,filter:0,launch:0,complete:0,abandon:0,share:0,totalDurationMs:0,byMode:{}};
+  getFormatAnalyticsEvents().forEach(function(e){
+    if(out[e.type]!==undefined) out[e.type]++;
+    if(e.mode){
+      out.byMode[e.mode]=out.byMode[e.mode]||{launch:0,complete:0,abandon:0,share:0,totalDurationMs:0};
+      if(out.byMode[e.mode][e.type]!==undefined) out.byMode[e.mode][e.type]++;
+      if((e.type==='complete'||e.type==='abandon')&&e.meta&&Number(e.meta.durationMs)>=0){
+        out.byMode[e.mode].totalDurationMs+=Number(e.meta.durationMs)||0;
+        out.totalDurationMs+=Number(e.meta.durationMs)||0;
+      }
+    }
+  });
+  return out;
+}
+
+function dailyFormatRotationKey() { return 'readsDailyFormatFive__' + slugify(state.name || 'guest') + '__' + todayStr(); }
+function dailyFormatRotation() {
+  var saved=lsGet(dailyFormatRotationKey(),null);
+  if(saved&&Array.isArray(saved.modeIds)&&saved.modeIds.length===5) return saved;
+  var pool=formatHubRecommendationRows(40).map(function(r){return r.mode;});
+  var chosen=[], seenFamilies={}, seenLeagues={}, seed=hashStr(todayStr()+'|formatFive|'+(state.name||'guest'));
+  pool.sort(function(a,b){return (hashStr(a.id+'|'+seed)%100000)-(hashStr(b.id+'|'+seed)%100000);});
+  function take(m){
+    if(!m||chosen.some(function(x){return x.id===m.id;}))return false;
+    chosen.push(m);seenFamilies[formatHubFamily(m)]=true;seenLeagues[m.league||modeLeague(m.id)]=true;return true;
+  }
+  pool.forEach(function(m){
+    if(chosen.length>=5)return;
+    var fam=formatHubFamily(m), lg=m.league||modeLeague(m.id);
+    if(!seenFamilies[fam] || !seenLeagues[lg]) take(m);
+  });
+  pool.forEach(function(m){if(chosen.length<5)take(m);});
+  saved={date:todayStr(),modeIds:chosen.slice(0,5).map(function(m){return m.id;}),completedIds:[],createdAt:Date.now()};
+  lsSet(dailyFormatRotationKey(),saved);
+  return saved;
+}
+function markDailyFormatCompleted(mode) {
+  if(!mode)return;
+  var d=dailyFormatRotation();
+  if(d.modeIds.indexOf(mode)===-1||d.completedIds.indexOf(mode)!==-1)return;
+  d.completedIds.push(mode);lsSet(dailyFormatRotationKey(),d);
+}
+function dailyFormatRotationHtml(compact) {
+  var d=dailyFormatRotation(), map={};
+  allPlayableModesUnique().forEach(function(m){map[m.id]=m;});
+  var rows=d.modeIds.map(function(id){return map[id];}).filter(Boolean);
+  if(!rows.length)return '';
+  return '<section class="daily-format-five'+(compact?' compact':'')+'">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s 100-format rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
+    '<p class="mode-desc">Five personalized full game formats, rotated daily from the complete Reads catalog. Your Daily Reads streak still comes from the five-minute Daily 5 above.</p>'+
+    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;return '<button class="'+(done?'complete':'')+'" data-go="'+esc(m.id)+'"><span>'+(done?icon('check'):icon(m.icon||'football'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
+    '</section>';
+}
+
+function allPlayableModesUnique() {
+  var seen = {}, out = [];
+  LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).forEach(function (m) {
+    if (!m || !m.id || seen[m.id]) return;
+    seen[m.id] = true;
+    var copy = Object.assign({}, m);
+    var engine = ENGINE_DISCOVERY_ENTRIES.find(function (e) { return e.id === m.id; });
+    copy.league = engine && engine.league ? engine.league :
+      (LEAGUE_MODES.cfb.some(function (x) { return x.id === m.id; }) &&
+       LEAGUE_MODES.nfl.some(function (x) { return x.id === m.id; }) ? 'mixed' :
+       (LEAGUE_MODES.cfb.some(function (x) { return x.id === m.id; }) ? 'cfb' : 'nfl'));
+    out.push(copy);
+  });
+  return out;
+}
+function formatHubFamily(m) {
+  var text = ((m.title || '') + ' ' + (m.desc || '') + ' ' + (m.id || '')).toLowerCase();
+  if (/grid|board|bingo|tic|connect|zone|territory/.test(text)) return 'board';
+  if (/draft|lineup|roster|cap|auction/.test(text)) return 'roster';
+  if (/streak|survival|gauntlet|sudden|three.strike|knockout|king/.test(text)) return 'survival';
+  if (/risk|wager|bank|double|confidence|higher|lower|target|road.to/.test(text)) return 'strategy';
+  if (/clue|mystery|resume|missing|impostor|fake|who|silhouette/.test(text)) return 'identify';
+  if (/timeline|career|chain|degree|connection|before|after|route/.test(text)) return 'sequence';
+  return 'trivia';
+}
+function formatHubFilteredModes() {
+  var q=(formatHubState.query||'').trim().toLowerCase();
+  return allPlayableModesUnique().filter(function(m){
+    if(formatHubState.league!=='all' && m.league!==formatHubState.league && m.league!=='mixed') return false;
+    if(formatHubState.difficulty!=='all' && m.difficulty!==formatHubState.difficulty) return false;
+    if(formatHubState.family!=='all' && formatHubFamily(m)!==formatHubState.family) return false;
+    if(formatHubState.newOnly && modeTimesPlayed(m.id)>0) return false;
+    if(q && ((m.title||'')+' '+(m.desc||'')+' '+formatHubFamily(m)).toLowerCase().indexOf(q)===-1) return false;
+    return true;
+  });
+}
+function formatHubRecommendationRows(limit) {
+  var ranked = scoredModeRecommendations(999), rankMap={};
+  ranked.forEach(function(r){rankMap[r.mode.id]=r;});
+  return allPlayableModesUnique().map(function(m){
+    var row=rankMap[m.id];
+    return {mode:m, score:row?row.score:0, reason:row?row.reason:(modeTimesPlayed(m.id)?'Worth another run':'New to you')};
+  }).sort(function(a,b){return b.score-a.score;}).slice(0,limit||6);
+}
+function formatHubQuickPlayMode() {
+  var rows=formatHubRecommendationRows(12);
+  if(!rows.length) return null;
+  var seed=hashStr(todayStr()+'_formatHubQuick_'+(state.name||'guest'));
+  return rows[Math.abs(seed)%Math.min(rows.length,6)].mode;
+}
+function formatHubCardHtml(m) {
+  var plays=modeTimesPlayed(m.id), family=formatHubFamily(m);
+  return '<button class="format-hub-card" data-go="'+esc(m.id)+'">'+
+    '<div class="format-hub-card-top"><span class="format-hub-icon">'+icon(m.icon||'football')+'</span>'+
+    '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
+    '<small>'+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></span></div>'+
+    '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
+    '<div class="format-hub-card-foot"><span>'+esc(family.replace('_',' '))+'</span><span>'+(plays?plays+' played':'New to you')+' '+icon('arrowRight')+'</span></div>'+
+    '</button>';
+}
+function formatDiscoveryHubHtml() {
+  var modes=formatHubFilteredModes(), quick=formatHubQuickPlayMode(), recs=formatHubRecommendationRows(6);
+  trackFormatHubImpression(modes);
+  var totalPlayable=allPlayableModesUnique().length;
+  return '<section class="format-hub" aria-label="Game format discovery">'+
+    '<div class="format-hub-hero"><div><span class="dashboard-eyebrow">THE PLAYBOOK</span><h2>100 Ways to Play Football</h2>'+
+    '<p>'+READS_DISTINCT_FORMAT_COUNT+' genuinely distinct game formats. Search it, filter it, or let Reads pick your next obsession.</p></div>'+
+    (quick?'<button class="btn-primary format-hub-quick" data-go="'+esc(quick.id)+'">'+icon('zap')+' Quick Play <small>'+esc(quick.title)+'</small></button>':'')+
+    '</div>'+
+    (state.name && recs.length?'<div class="format-hub-for-you"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOR YOU</span><h3>Your next six</h3></div><span>Personalized daily</span></div>'+
+      '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span>'+icon(r.mode.icon||'football')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
+    '<div class="format-hub-controls">'+
+      '<label class="format-hub-search">'+icon('search')+'<input id="format-hub-search" value="'+esc(formatHubState.query)+'" placeholder="Search 100 formats…" autocomplete="off"></label>'+
+      '<div class="format-hub-filter-row" role="group" aria-label="League filter">'+
+        [['all','All'],['nfl','NFL'],['cfb','College'],['mixed','Mixed']].map(function(x){return '<button class="chip-toggle'+(formatHubState.league===x[0]?' active':'')+'" data-format-hub-league="'+x[0]+'">'+x[1]+'</button>';}).join('')+
+      '</div>'+
+      '<div class="format-hub-filter-row format-hub-scroll" role="group" aria-label="Game style filter">'+
+        [['all','All styles'],['trivia','Trivia'],['board','Boards'],['strategy','Strategy'],['survival','Survival'],['identify','Identify'],['sequence','Sequence'],['roster','Roster']].map(function(x){return '<button class="chip-toggle'+(formatHubState.family===x[0]?' active':'')+'" data-format-hub-family="'+x[0]+'">'+x[1]+'</button>';}).join('')+
+      '</div>'+
+      '<div class="format-hub-filter-row format-hub-scroll" role="group" aria-label="Difficulty filter">'+
+        [['all','Any difficulty'],['casual','Casual'],['competitive','Competitive'],['hardcore','Hardcore']].map(function(x){return '<button class="chip-toggle'+(formatHubState.difficulty===x[0]?' active':'')+'" data-format-hub-difficulty="'+x[0]+'">'+x[1]+'</button>';}).join('')+
+        '<button class="chip-toggle'+(formatHubState.newOnly?' active':'')+'" data-format-hub-new>'+icon('sparkle')+' New to me</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="format-hub-results-head"><b>'+modes.length+' playable choices</b><span>'+totalPlayable+' live routes · '+READS_DISTINCT_FORMAT_COUNT+' distinct format designs</span></div>'+
+    (modes.length?'<div class="format-hub-grid">'+modes.map(formatHubCardHtml).join('')+'</div>':
+      '<div class="format-hub-empty"><b>No formats match that.</b><span>Clear a filter or try a broader search.</span><button class="btn-secondary" data-format-hub-reset>Reset filters</button></div>')+
+    '</section>';
+}
 
 /* ============================== favorite team ==============================
    NFL team codes/names match GRID_TEAM_NAMES in data/grid.js exactly (all 32
@@ -3849,8 +4148,14 @@ function continuePlayingCardHtml() {
 // across all of them for the one thing recommendedModeHtml() needs to know.
 function modeTimesPlayed(id) {
   var st = state.stats[id];
-  if (!st) return 0;
-  return st.roundsPlayed || st.gamesPlayed || st.attempts || st.testsTaken || st.sessionsPlayed || st.completions || 0;
+  var statCount = st ? (st.roundsPlayed || st.gamesPlayed || st.attempts || st.testsTaken || st.sessionsPlayed || st.completions || 0) : 0;
+  // Dynamic engine/strategy formats do not each own a permanent DEFAULT_STATS
+  // bucket. Their real play history lives in the personalization event stream,
+  // so use that as the fallback instead of incorrectly showing "New to you"
+  // forever after somebody has already played one.
+  if (statCount) return statCount;
+  if (!state.name || typeof getPersonalizationState !== 'function') return 0;
+  return (getPersonalizationState().playEvents || []).filter(function (e) { return e && e.mode === id; }).length;
 }
 // "Recommended for you" — deliberately deterministic per day+name (same
 // seeded-PRNG pattern as the Daily Reads) rather than Math.random(),
@@ -3954,11 +4259,21 @@ function completionPctForPersonalization(mode, fields) {
   return null;
 }
 function recordPersonalizationCompletion(mode, fields) {
-  if (!state.name || !mode) return;
+  if (!mode) return;
+  finishFormatAnalyticsRun(mode, {pct:completionPctForPersonalization(mode, fields)});
+  markDailyFormatCompleted(mode);
+  if (!state.name) return;
+  var rewardState=getRewards();
+  if(rewardState.formatPlayedIds.indexOf(mode)===-1){
+    rewardState.formatPlayedIds.push(mode);
+    setRewards(rewardState,true);
+  }
   checkRetentionMissionCompletion(mode);
   var p = getPersonalizationState();
-  p.playEvents.push({ mode:mode, league:modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
+  var playableMeta=allPlayableModesUnique().find(function(m){return m.id===mode;});
+  p.playEvents.push({ mode:mode, league:(playableMeta&&playableMeta.league)||modeLeague(mode), at:Date.now(), pct:completionPctForPersonalization(mode, fields) });
   setPersonalizationState(p, true);
+  syncAchievementUnlocks();
   checkWeeklyPersonalGoals();
   checkWeeklyRetentionReward();
 }
@@ -4178,7 +4493,7 @@ function recommendationReasonFor(mode, scoreBits) {
 }
 function scoredModeRecommendations(limit) {
   if (!state.name) return [];
-  var all = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb);
+  var all = allPlayableModesUnique();
   var fav = getFavoriteTeams();
   var last = lsGet('nflTriviaLastMode', null);
   var hist = getRecommendationHistory();
@@ -4202,7 +4517,7 @@ function scoredModeRecommendations(limit) {
   return all.map(function (m, idx) {
     var plays = modeTimesPlayed(m.id);
     var mastery = modeMasteryScore(m.id);
-    var league = modeLeague(m.id);
+    var league = m.league || modeLeague(m.id);
     var bits = {
       unplayed: plays === 0,
       weakLeague: weakerLeague === league,
@@ -4288,7 +4603,7 @@ function postGameNextStepsHtml(dailyTypeId) {
 // count again, regardless of which flags are on for a given deployment --
 // the exact bug that let the old number go stale in the first place.
 function totalModeCount() {
-  return LEAGUE_MODES.nfl.length + LEAGUE_MODES.cfb.length;
+  return READS_DISTINCT_FORMAT_COUNT;
 }
 // UI/UX upgrade pass: the home screen used to stack the Daily Reads,
 // Continue Playing, Recommended, Head-to-Head, Live Match, X's & O's, Film
@@ -4486,8 +4801,7 @@ function renderHome() {
     personalizationMasteryHtml() +
     weeklyPersonalGoalsHtml() +
     weeklyRetentionGoalHtml() +
-    modeSectionHtml('nfl') +
-    modeSectionHtml('cfb') +
+    formatDiscoveryHubHtml() +
     discoverGridHtml() +
     '<button class="btn-secondary leaderboard-link" data-go="leaderboard">' + icon('trophy') + ' View Leaderboard</button>' +
     (getRating() ? '<button class="btn-secondary leaderboard-link" data-retake-intro>' + icon('restart') + ' Retake Intro Test (resets Football Rating)</button>' : '') ;
@@ -12365,6 +12679,63 @@ function f101QuickSummary(node, diagram) {
   var fields = node.fields || {};
   return fields.summary || fields.what_to_identify || fields.core_responsibilities || diagram.notes || diagram.description || '';
 }
+function f101QuestionHistoryKey(canonicalId) {
+  return 'readsF101QuestionHistory__' + slugify(state.name || 'guest') + '__' + String(canonicalId || 'unknown');
+}
+function f101QuestionSignature(q) {
+  return String((q && q.question) || '').trim();
+}
+function f101FreshTestQuestion(diagram, category, siblings) {
+  if (!diagram || !FootballField || !FootballField.generateTestMeQuestion) return null;
+
+  var key = f101QuestionHistoryKey(diagram.id);
+  var history = lsGet(key, []);
+  history = Array.isArray(history) ? history.filter(Boolean) : [];
+  var lastSignature = history.length ? history[history.length - 1] : '';
+  var seen = {};
+  history.forEach(function (sig) { seen[sig] = true; });
+
+  // Build the complete reachable question cycle for this diagram instead of
+  // trying a small handful of random seeds and then falling back to a repeat.
+  // The generator's question families are seed-driven, so sweeping a wide,
+  // deterministic seed range discovers every distinct prompt it can produce
+  // for the current diagram/routes/assignments while deduping option shuffles.
+  var base = Math.abs(hashStr(String(diagram.id) + '|' + String(category)));
+  var candidates = [];
+  var candidateBySignature = {};
+  for (var i = 0; i < 256; i++) {
+    var q = FootballField.generateTestMeQuestion(diagram, category, siblings, base + i);
+    if (!q) continue;
+    var sig = f101QuestionSignature(q);
+    if (!sig || candidateBySignature[sig]) continue;
+    candidateBySignature[sig] = q;
+    candidates.push({ question: q, signature: sig });
+  }
+  if (!candidates.length) return null;
+
+  // Serve every distinct prompt once before recycling the pool.
+  var fresh = candidates.filter(function (entry) { return !seen[entry.signature]; });
+  if (!fresh.length) {
+    history = lastSignature ? [lastSignature] : [];
+    seen = {};
+    if (lastSignature) seen[lastSignature] = true;
+    fresh = candidates.filter(function (entry) { return !seen[entry.signature]; });
+    if (!fresh.length) fresh = candidates.slice();
+  }
+
+  // Stable-but-varied pick order; the history guarantees uniqueness, while
+  // the time component prevents every new cycle from starting identically.
+  var pickSeed = Math.abs(hashStr(String(diagram.id) + '|' + String(Date.now()) + '|' + String(history.length)));
+  var pickedEntry = fresh[pickSeed % fresh.length];
+  var picked = pickedEntry.question;
+  history.push(pickedEntry.signature);
+
+  // Retain the whole practical cycle, not the old eight-question window.
+  // This cap is intentionally far above the generator's current reachable
+  // prompt count and only protects localStorage from unbounded future growth.
+  lsSet(key, history.slice(-256));
+  return picked;
+}
 
 function openEncyclopediaDomain(domainId) {
   state.encyclopedia = state.encyclopedia || {};
@@ -13031,6 +13402,14 @@ var FILM_BADGES = [
 ];
 BADGES = BADGES.concat(FILM_BADGES);
 
+function completedFormatFamilyCount(family) {
+  var played=getRewards().formatPlayedIds||[], map={};
+  allPlayableModesUnique().forEach(function(m){map[m.id]=m;});
+  return played.reduce(function(n,id){
+    var m=map[id];
+    return n+(m&&formatHubFamily(m)===family?1:0);
+  },0);
+}
 var REWARD_BADGES = [
   { id: 'firstRead', icon: '📖', title: 'First Read', desc: 'Completed your first Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 1; } },
   { id: 'daily25', icon: '🗓️', title: 'Daily Habit', desc: 'Completed 25 Daily Reads.', check: function (st) { return (st.daily.completions || 0) >= 25; } },
@@ -13040,7 +13419,18 @@ var REWARD_BADGES = [
   { id: 'veteranRank', icon: '🛡️', title: 'Veteran', desc: 'Reached Veteran career rank.', check: function () { return (getProgression().careerXp || 0) >= 1500; } },
   { id: 'allProRank', icon: '💎', title: 'All-Pro', desc: 'Reached All-Pro career rank.', check: function () { return (getProgression().careerXp || 0) >= 3000; } },
   { id: 'legendRank', icon: '👑', title: 'Reads Legend', desc: 'Reached Legend career rank.', check: function () { return (getProgression().careerXp || 0) >= 6000; } },
-  { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } }
+  { id: 'teamLoyal', icon: '🚩', title: 'Rep Your Colors', desc: 'Set a favorite NFL or CFB team.', check: function () { var f = getFavoriteTeams(); return !!(f.nfl || f.cfb); } },
+  { id: 'formatExplorer10', icon: '🧭', title: 'Format Explorer', desc: 'Completed 10 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 10; } },
+  { id: 'formatExplorer25', icon: '🗺️', title: 'Playbook Hunter', desc: 'Completed 25 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 25; } },
+  { id: 'formatExplorer50', icon: '🏟️', title: 'Half the Playbook', desc: 'Completed 50 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 50; } },
+  { id: 'formatExplorer75', icon: '💿', title: 'Deep Bag', desc: 'Completed 75 different playable Reads games.', check: function () { return getRewards().formatPlayedIds.length >= 75; } },
+  { id: 'formatExplorer100', icon: '💯', title: 'The Whole Playbook', desc: 'Completed 100 different playable Reads game routes.', check: function () { return getRewards().formatPlayedIds.length >= 100; } },
+  { id: 'boardSpecialist', icon: '🧩', title: 'Board Specialist', desc: 'Completed five different board-style Reads formats.', check: function () { return completedFormatFamilyCount('board') >= 5; } },
+  { id: 'strategySpecialist', icon: '♟️', title: 'Field General', desc: 'Completed five different strategy Reads formats.', check: function () { return completedFormatFamilyCount('strategy') >= 5; } },
+  { id: 'survivalSpecialist', icon: '🧱', title: 'Still Standing', desc: 'Completed five different survival Reads formats.', check: function () { return completedFormatFamilyCount('survival') >= 5; } },
+  { id: 'identifySpecialist', icon: '🕵️', title: 'Film Detective', desc: 'Completed five different identify Reads formats.', check: function () { return completedFormatFamilyCount('identify') >= 5; } },
+  { id: 'rosterSpecialist', icon: '📋', title: 'Roster Architect', desc: 'Completed five different roster-building Reads formats.', check: function () { return completedFormatFamilyCount('roster') >= 5; } },
+  { id: 'sequenceSpecialist', icon: '🛤️', title: 'Connect the Dots', desc: 'Completed five different sequence/path Reads formats.', check: function () { return completedFormatFamilyCount('sequence') >= 5; } }
 ];
 BADGES = BADGES.concat(REWARD_BADGES);
 
@@ -13059,10 +13449,11 @@ var SHARE_CARD_DESIGNS = [
   { id: 'legend', title: 'Legend', minXp: 6000, desc: 'Premium dark-gold Legend treatment.' }
 ];
 function rewardsKey() { return 'nflTriviaRewards__' + slugify(state.name || 'guest'); }
-function defaultRewards() { return { unlockedBadgeIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', selectedShareDesignId: 'classic', updatedAt: 0 }; }
+function defaultRewards() { return { unlockedBadgeIds: [], formatPlayedIds: [], selectedBadgeId: null, selectedCosmeticId: 'classic', selectedShareDesignId: 'classic', updatedAt: 0 }; }
 function getRewards() {
   var r = lsGet(rewardsKey(), defaultRewards());
   r.unlockedBadgeIds = Array.isArray(r.unlockedBadgeIds) ? r.unlockedBadgeIds : [];
+  r.formatPlayedIds = Array.isArray(r.formatPlayedIds) ? r.formatPlayedIds : [];
   r.selectedCosmeticId = r.selectedCosmeticId || 'classic';
   r.selectedShareDesignId = r.selectedShareDesignId || 'classic';
   return r;
@@ -13078,9 +13469,14 @@ function mergeRewards(local, cloud) {
   (local.unlockedBadgeIds || []).concat(cloud.unlockedBadgeIds || []).forEach(function (id) {
     if (!seen[id]) { seen[id] = true; unlocked.push(id); }
   });
+  var formatSeen={}, formatPlayed=[];
+  (local.formatPlayedIds || []).concat(cloud.formatPlayedIds || []).forEach(function(id){
+    if(id&&!formatSeen[id]){formatSeen[id]=true;formatPlayed.push(id);}
+  });
   var newer = (Number(cloud.updatedAt) || 0) > (Number(local.updatedAt) || 0) ? cloud : local;
   return {
     unlockedBadgeIds: unlocked,
+    formatPlayedIds: formatPlayed,
     selectedBadgeId: newer.selectedBadgeId || null,
     selectedCosmeticId: newer.selectedCosmeticId || 'classic',
     selectedShareDesignId: newer.selectedShareDesignId || 'classic',
@@ -13453,6 +13849,8 @@ function renderAll() {
   // The Learn filter box re-renders the whole table on every keystroke
   // (see the 'input' listener above) — without this, the innerHTML replace
   // would steal focus after the very first character typed.
+  var formatHubSearchInput = document.getElementById('format-hub-search');
+  if (formatHubSearchInput && formatHubState.query) { formatHubSearchInput.focus(); formatHubSearchInput.setSelectionRange(formatHubSearchInput.value.length, formatHubSearchInput.value.length); specificFocusHandled = true; }
   var filmSearchInput = document.getElementById('film-search-input');
   if (filmSearchInput && state.learn.filmFilter) { filmSearchInput.focus(); filmSearchInput.setSelectionRange(filmSearchInput.value.length, filmSearchInput.value.length); specificFocusHandled = true; }
   var learnFilterInput = document.getElementById('learn-filter-input');
@@ -13617,7 +14015,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-don-answer], [data-mechanic-don-bank], [data-mechanic-guess-the-ranking-pick], ' +
     '[data-mechanic-stat-target-pick], [data-mechanic-reverse-trivia-pick], [data-mechanic-three-strikes-answer], ' +
     '[data-mechanic-mystery-reveal], [data-mechanic-mystery-guess], [data-mechanic-draft-pick-ladder-pick], ' +
-    '[data-mechanic-category-roulette-pick], [data-mechanic-common-link-pick], ' +
+    '[data-mechanic-category-roulette-pick], [data-mechanic-common-link-pick], [data-mechanic-strategy-action], [data-mechanic-strategy-answer], ' +
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
@@ -13649,7 +14047,7 @@ document.addEventListener('click', function (e) {
     '[data-f101-toggle], [data-f101-reset], [data-f101-readmode], [data-f101-player], [data-f101-player-close], ' +
     '[data-f101-test-me], [data-f101-quiz-answer], [data-f101-test-me-close], ' +
     '[data-friend-add], [data-friend-remove], [data-friend-compare], [data-friend-compare-close], [data-friend-challenge], [data-social-challenge-mode], [data-social-accept], [data-social-decline], [data-social-copy], [data-profile-badge], [data-profile-cosmetic], [data-share-design], [data-community-league], [data-community-post], [data-community-preset], ' +
-    '[data-typeahead-pick], ' +
+    '[data-typeahead-pick], [data-format-hub-league], [data-format-hub-family], [data-format-hub-difficulty], [data-format-hub-new], [data-format-hub-reset], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], ' +
@@ -13667,6 +14065,12 @@ document.addEventListener('click', function (e) {
   // already does via its own stopSfx() call.
   stopSfx();
 
+  if (t.dataset.formatHubLeague !== undefined) { formatHubState.league=t.dataset.formatHubLeague; trackFormatEvent('filter',null,{kind:'league',value:formatHubState.league}); renderAll(); return; }
+  if (t.dataset.formatHubFamily !== undefined) { formatHubState.family=t.dataset.formatHubFamily; trackFormatEvent('filter',null,{kind:'family',value:formatHubState.family}); renderAll(); return; }
+  if (t.dataset.formatHubDifficulty !== undefined) { formatHubState.difficulty=t.dataset.formatHubDifficulty; trackFormatEvent('filter',null,{kind:'difficulty',value:formatHubState.difficulty}); renderAll(); return; }
+  if (t.dataset.formatHubNew !== undefined) { formatHubState.newOnly=!formatHubState.newOnly; trackFormatEvent('filter',null,{kind:'newOnly',value:formatHubState.newOnly}); renderAll(); return; }
+  if (t.dataset.formatHubReset !== undefined) { formatHubState={query:'',league:'all',difficulty:'all',family:'all',newOnly:false}; renderAll(); return; }
+
   if (t.id === 'help-toggle') {
     var helpMode = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === state.screen; });
     openOnboarding(helpMode ? contextualHelpSteps(helpMode) : null);
@@ -13675,7 +14079,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.onboardingSampleAnswer !== undefined) { onboardingPickSample(parseInt(t.dataset.onboardingSampleAnswer, 10)); return; }
   if (t.id === 'onboarding-next') { onboardingNext(); return; }
   if (t.id === 'onboarding-skip' || t.id === 'onboarding-backdrop') { closeOnboarding(); return; }
-  if (t.dataset.share !== undefined) { shareResultCard(t.dataset.share); return; }
+  if (t.dataset.share !== undefined) { trackFormatEvent('share', t.dataset.share, {}); shareResultCard(t.dataset.share); return; }
   if (t.id === 'share-close' || t.id === 'share-backdrop') { closeShareModal(); return; }
   if (t.id === 'share-download') { shareDownloadImage(); return; }
   if (t.id === 'share-x') { shareToX(); return; }
@@ -13835,8 +14239,8 @@ document.addEventListener('click', function (e) {
     var tmDiagram = tmBucketData ? tmBucketData[tmId] : null;
     if (tmDiagram && FootballField) {
       var tmSiblings = Object.keys(tmBucketData).map(function (k) { return tmBucketData[k]; });
-      var tmQ = FootballField.generateTestMeQuestion(tmDiagram, tmCategory, tmSiblings, Math.floor(Math.random() * 1000));
-      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, explanation: tmDiagram.notes || tmDiagram.description || '', answeredIndex: -1 };
+      var tmQ = f101FreshTestQuestion(tmDiagram, tmCategory, tmSiblings);
+      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, variantKey: tmQ.variantKey || null, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, explanation: tmDiagram.notes || tmDiagram.description || '', answeredIndex: -1 };
     }
     renderAll();
     return;
@@ -14257,6 +14661,18 @@ document.addEventListener('click', function (e) {
     submitMechanicPilotAction({ choice_item_id: clOption.item_id });
     return;
   }
+  if (t.dataset.mechanicStrategyAction !== undefined) {
+    submitMechanicPilotAction({ action: t.dataset.mechanicStrategyAction });
+    return;
+  }
+  if (t.dataset.mechanicStrategyAnswer !== undefined) {
+    var saIdx = parseInt(t.dataset.mechanicStrategyAnswer, 10);
+    var saView = state.mechanicPilot && state.mechanicPilot.view;
+    var saOption = saView && saView.options && saView.options[saIdx];
+    if (!saOption) return;
+    submitMechanicPilotAction({ choice_item_id: saOption.item_id });
+    return;
+  }
   if (t.dataset.mechanicBranchChoice !== undefined) {
     submitMechanicPilotAction({ choice_id: t.dataset.mechanicBranchChoice });
     return;
@@ -14384,6 +14800,7 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 document.addEventListener('input', function (e) {
+  if (e.target.id === 'format-hub-search') { formatHubState.query=e.target.value; if(formatHubState.query.length===1||formatHubState.query.length%4===0)trackFormatEvent('search',null,{length:formatHubState.query.length}); renderAll(); return; }
   if (e.target.id === 'grid-input') { state.grid.input = e.target.value; renderTypeahead('grid-input'); return; }
   if (e.target.id === 'cfb-grid-input') { state.cfbGrid.input = e.target.value; renderTypeahead('cfb-grid-input'); return; }
   if (e.target.id === 'blitz-input') { state.blitz.input = e.target.value; return; }

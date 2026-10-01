@@ -64,7 +64,6 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Guess the Season", "GUESS_THE_SEASON", "NFL_SUPER_BOWL_SEASON"),
     ("Connection Grid", "GRID_CONSTRAINT_BOARD", "NFL_TEAM_DRAFT_ROUND_GRID"),
     ("Six Degrees", "RELATIONSHIP_CHAIN", "CFB_SCHOOL_TO_NFL_TEAM_CHAIN"),
-    ("Chain Reaction", "RELATIONSHIP_CHAIN", "CFB_SCHOOL_TO_NFL_TEAM_CHAIN"),
     ("Perfect Drive", "DRIVE_PROGRESSION", "NFL_DRAFT_PERFECT_DRIVE"),
     ("Goal Line Stand", "DRIVE_PROGRESSION", "NFL_DRAFT_GOAL_LINE_STAND"),
     ("Double or Nothing", "DOUBLE_OR_NOTHING", "NFL_DRAFT_DOUBLE_OR_NOTHING"),
@@ -78,6 +77,59 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Draft Pick Ladder", "DRAFT_PICK_LADDER", "NFL_DRAFT_PICK_LADDER"),
     ("Category Roulette", "CATEGORY_ROULETTE", "CATEGORY_ROULETTE_MIXED"),
     ("Common Link", "COMMON_LINK", "NFL_DRAFT_COMMON_LINK"),
+    ("Bingo Blitz", "STRATEGY_ARCADE", "BINGO_BLITZ"),
+    ("Territory Takeover", "STRATEGY_ARCADE", "TERRITORY_TAKEOVER"),
+    ("Exact Ten", "STRATEGY_ARCADE", "EXACT_TEN"),
+    ("Pyramid Climb", "STRATEGY_ARCADE", "PYRAMID_CLIMB"),
+    ("Lockbox", "STRATEGY_ARCADE", "LOCKBOX"),
+    ("Combo Meter", "STRATEGY_ARCADE", "COMBO_METER"),
+    ("Checkpoint Rally", "STRATEGY_ARCADE", "CHECKPOINT_RALLY"),
+    ("Escalator", "STRATEGY_ARCADE", "ESCALATOR"),
+    ("Power Up", "STRATEGY_ARCADE", "POWER_UP"),
+    ("Category Conquest", "STRATEGY_ARCADE", "CATEGORY_CONQUEST"),
+    ("Scoreboard Swing", "STRATEGY_ARCADE", "SCOREBOARD_SWING"),
+    ("Momentum Bar", "STRATEGY_ARCADE", "MOMENTUM_BAR"),
+    ("Timeout Tokens", "STRATEGY_ARCADE", "TIMEOUT_TOKENS"),
+    ("Perfect Set", "STRATEGY_ARCADE", "PERFECT_SET"),
+    ("Triple or Take", "STRATEGY_ARCADE", "TRIPLE_OR_TAKE"),
+    ("Connect Four", "STRATEGY_ARCADE", "CONNECT_FOUR"),
+    ("Tic-Tac-Toe", "STRATEGY_ARCADE", "TIC_TAC_TOE"),
+    ("Challenge Flag", "STRATEGY_ARCADE", "CHALLENGE_FLAG"),
+    ("Extra Point", "STRATEGY_ARCADE", "EXTRA_POINT"),
+    ("Comeback Mode", "STRATEGY_ARCADE", "COMEBACK_MODE"),
+    ("Category Draft", "STRATEGY_ARCADE", "CATEGORY_DRAFT"),
+    ("Three & Out", "STRATEGY_ARCADE", "THREE_AND_OUT"),
+    ("Pick Your Poison", "STRATEGY_ARCADE", "PICK_YOUR_POISON"),
+    ("Second Chance Queue", "STRATEGY_ARCADE", "SECOND_CHANCE_QUEUE"),
+    ("Coverage Shell", "STRATEGY_ARCADE", "COVERAGE_SHELL"),
+    ("Offense / Defense", "STRATEGY_ARCADE", "OFFENSE_DEFENSE"),
+    ("Field Goal Range", "STRATEGY_ARCADE", "FIELD_GOAL_RANGE"),
+    ("Two-Minute Drill", "STRATEGY_ARCADE", "TWO_MINUTE_DRILL"),
+    ("Category Streak", "STRATEGY_ARCADE", "CATEGORY_STREAK"),
+    ("Perfect Quarter", "STRATEGY_ARCADE", "PERFECT_QUARTER"),
+    ("Red Zone Ladder", "STRATEGY_ARCADE", "RED_ZONE_LADDER"),
+    ("Drive Builder", "STRATEGY_ARCADE", "DRIVE_BUILDER"),
+    ("Hot Hand Switch", "STRATEGY_ARCADE", "HOT_HAND_SWITCH"),
+    ("Overtime Shootout", "STRATEGY_ARCADE", "OVERTIME_SHOOTOUT"),
+    ("First Down Chain", "STRATEGY_ARCADE", "FIRST_DOWN_CHAIN"),
+    ("Blitz Package", "STRATEGY_ARCADE", "BLITZ_PACKAGE"),
+    ("Zone Control", "STRATEGY_ARCADE", "ZONE_CONTROL"),
+    ("Play Caller", "STRATEGY_ARCADE", "PLAY_CALLER"),
+    ("Possession Arrow", "STRATEGY_ARCADE", "POSSESSION_ARROW"),
+    ("Sudden Death", "STRATEGY_ARCADE", "SUDDEN_DEATH"),
+    ("Score Bank", "STRATEGY_ARCADE", "SCORE_BANK"),
+    ("Audible", "STRATEGY_ARCADE", "AUDIBLE"),
+    ("Fourth Down Decision", "STRATEGY_ARCADE", "FOURTH_DOWN_DECISION"),
+    ("Series Sweep", "STRATEGY_ARCADE", "SERIES_SWEEP"),
+    ("Road to 100", "STRATEGY_ARCADE", "ROAD_TO_100"),
+    ("Option Eraser", "STRATEGY_ARCADE", "OPTION_ERASER"),
+    ("Route Tree", "STRATEGY_ARCADE", "ROUTE_TREE"),
+    ("Turnover Battle", "STRATEGY_ARCADE", "TURNOVER_BATTLE"),
+    ("Category Lockout", "STRATEGY_ARCADE", "CATEGORY_LOCKOUT"),
+    ("Hail Mary", "STRATEGY_ARCADE", "HAIL_MARY"),
+    ("Moving Target", "STRATEGY_ARCADE", "MOVING_TARGET"),
+    ("Draft Order", "STRATEGY_ARCADE", "DRAFT_ORDER"),
+    ("Championship Run", "STRATEGY_ARCADE", "CHAMPIONSHIP_RUN"),
 ]
 
 # The 3 schedule-driven rows that still use a real, proven NL phrase.
@@ -93,8 +145,19 @@ def test_creator_format_catalog_has_no_duplicate_titles():
     assert len(titles) == len(set(titles)), "the picker would show two rows with the same title"
 
 
+def test_creator_format_catalog_has_no_duplicate_direct_backend_routes():
+    routes = [(row[1], row[2]) for row in CREATOR_FORMAT_CATALOG_DIRECT]
+    assert len(routes) == len(set(routes)), (
+        "two Creator cards point at the exact same taxonomy + variant; "
+        "that is a presentation alias, not a distinct format"
+    )
+
+
 @pytest.mark.parametrize("title,taxonomy_id,variant", CREATOR_FORMAT_CATALOG_DIRECT)
 def test_creator_format_picker_direct_entry_generates_a_real_playable_round(title, taxonomy_id, variant):
+    import os
+    if os.environ.get("CI_SKIP_DB_TESTS") == "1":
+        pytest.skip("direct Creator generation requires the real Football Warehouse DB")
     from gateway.services import creator
 
     result = creator.generate_direct(taxonomy_id=taxonomy_id, variant=variant, seed=f"pytest-picker-{title}")
