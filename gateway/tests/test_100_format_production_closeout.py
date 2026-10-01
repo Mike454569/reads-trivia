@@ -106,15 +106,20 @@ def test_closeout_dedupes_discovery_impressions_and_syncs_format_badges_immediat
 
 def test_real_db_ci_uses_isolated_volume_fork_and_dumb_helper():
     workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
+    runner=(ROOT/"tools/ci/run_real_db_tests.sh").read_text(encoding="utf-8")
     install=workflow[workflow.index("- name: Install flyctl"):workflow.index("- name: Fork real DB volume")]
-    restore=workflow[workflow.index("- name: Fork real DB volume"):workflow.index("- name: Install dependencies", workflow.index("- name: Fork real DB volume"))]
+    restore=workflow[workflow.index("- name: Fork real DB volume"):workflow.index("- name: Clean up temporary Fly volume and machine")]
     cleanup=workflow[workflow.index("- name: Clean up temporary Fly volume and machine"):]
     assert '"$HOME/.fly/bin/flyctl" version' in install
     assert '"$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID"' in restore
-    assert "alpine:3.20" in restore
+    assert "PROD_IMAGE_REF" in restore
     assert '--volume "${TEMP_VOL_ID}:/data"' in restore
     assert '--entrypoint "tail -f /dev/null"' in restore
-    assert '"$HOME/.fly/bin/flyctl" ssh sftp get' in restore
+    assert '"$HOME/.fly/bin/flyctl" ssh sftp put' in restore
+    assert "run_real_db_tests.sh" in restore
+    assert "SSH_READY=0" in restore
+    assert "READS_ENGINE_DIR=/data/engine" in runner
+    assert "python -m pytest gateway/tests -q" in runner
     assert '"$HOME/.fly/bin/flyctl" machine destroy' in cleanup
     assert '"$HOME/.fly/bin/flyctl" volumes destroy' in cleanup
 
