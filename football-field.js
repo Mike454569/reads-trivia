@@ -492,86 +492,149 @@
   var DB_PATTERNS = [/Cornerback/, /Safety/, /Nickel/, /Dime/];
   var DL_PATTERNS = [/Defensive End/, /Tackle/, /Nose/, /3-Technique/];
 
+  function numberOptions(correct, values, seed) {
+    var pool = [correct].concat(values || []);
+    var n = correct - 1;
+    while (pool.length < 6) { if (n >= 0) pool.push(n); n++; pool.push(correct + n + 1); }
+    var unique = Array.from(new Set(pool)).filter(function (x) { return x >= 0; });
+    var distractors = shuffle(unique.filter(function (x) { return x !== correct; }), seed).slice(0, 3);
+    var options = shuffle([correct].concat(distractors), seed + 17);
+    return { options: options.map(String), correctIndex: options.indexOf(correct) };
+  }
+
+  function textOptions(correct, candidates, seed) {
+    var unique = [];
+    [correct].concat(candidates || []).forEach(function (x) {
+      if (x != null && x !== '' && unique.indexOf(x) === -1) unique.push(x);
+    });
+    var distractors = shuffle(unique.filter(function (x) { return x !== correct; }), seed).slice(0, 3);
+    if (!distractors.length) return null;
+    var options = shuffle([correct].concat(distractors), seed + 29);
+    return { options: options, correctIndex: options.indexOf(correct) };
+  }
+
+  function deepestPlayer(diagram) {
+    var players = realPlayers(diagram);
+    if (!players.length) return null;
+    return players.slice().sort(function (a, b) { return b.y - a.y || Math.abs(b.x - 50) - Math.abs(a.x - 50); })[0];
+  }
+
+  var LB_PATTERNS = [/Linebacker/, /Mike/, /Will/, /Sam/, /Edge \/ Outside/];
+
   function generateTestMeQuestion(diagram, category, siblings, seed) {
     siblings = (siblings || []).filter(function (d) { return d.id !== diagram.id; });
+    seed = Number(seed) || 1;
     var name = diagram.display_name || diagram.id;
+    var variant = Math.abs(seed) % 4;
 
     if (category === 'formation') {
-      var wp = widestPlayer(diagram);
-      if (!wp) return null;
-      var wpText = wp.role || wp.label;
-      var others = pickDistinctDistractors(shuffle(realPlayers(diagram).filter(function (p) { return p.id !== wp.id; }), seed), [wpText], 3);
-      if (others.length < 1) return null;
-      var options = shuffle([wp].concat(others), seed + 1).map(function (p) { return p.role || p.label; });
-      return {
-        question: 'In the ' + name + ', which player is aligned widest from the ball (the biggest split)?',
-        options: options,
-        correctIndex: options.indexOf(wpText),
-      };
+      if (variant === 0) {
+        var wp = widestPlayer(diagram);
+        if (!wp) return null;
+        var wpText = wp.role || wp.label;
+        var others = pickDistinctDistractors(shuffle(realPlayers(diagram).filter(function (p) { return p.id !== wp.id; }), seed), [wpText], 3);
+        if (!others.length) return null;
+        var opts = shuffle([wp].concat(others), seed + 1).map(function (p) { return p.role || p.label; });
+        return { question: 'In the ' + name + ', which player is aligned widest from the ball (the biggest split)?', options: opts, correctIndex: opts.indexOf(wpText), variantKey: 'formation_widest' };
+      }
+      if (variant === 1 && diagram.personnel) {
+        var personnel = textOptions(String(diagram.personnel), siblings.map(function (s) { return s.personnel && String(s.personnel); }), seed);
+        if (personnel) return { question: 'What personnel grouping is shown in the ' + name + '?', options: personnel.options, correctIndex: personnel.correctIndex, variantKey: 'formation_personnel' };
+      }
+      if (variant === 2) {
+        var dp = deepestPlayer(diagram);
+        if (dp) {
+          var dpText = dp.role || dp.label;
+          var dpOther = pickDistinctDistractors(shuffle(realPlayers(diagram).filter(function (p) { return p.id !== dp.id; }), seed + 2), [dpText], 3);
+          if (dpOther.length) {
+            var dpOpts = shuffle([dp].concat(dpOther), seed + 3).map(function (p) { return p.role || p.label; });
+            return { question: 'Which player is aligned deepest in the ' + name + ' diagram?', options: dpOpts, correctIndex: dpOpts.indexOf(dpText), variantKey: 'formation_deepest' };
+          }
+        }
+      }
+      var backCount = realPlayers(diagram).filter(function (p) { return /Running Back|Fullback/.test(p.role || ''); }).length;
+      var backNums = numberOptions(backCount, siblings.map(function (s) { return realPlayers(s).filter(function (p) { return /Running Back|Fullback/.test(p.role || ''); }).length; }), seed);
+      return { question: 'How many running backs/fullbacks are shown in the ' + name + ' backfield?', options: backNums.options, correctIndex: backNums.correctIndex, variantKey: 'formation_backfield_count' };
     }
 
     if (category === 'front') {
-      var dbCount = countByRoleMatch(diagram, DB_PATTERNS);
-      var pool = [dbCount];
-      siblings.forEach(function (s) { pool.push(countByRoleMatch(s, DB_PATTERNS)); });
-      var uniquePool = shuffle(Array.from(new Set(pool)), seed).slice(0, 4);
-      if (uniquePool.indexOf(dbCount) === -1) uniquePool[0] = dbCount;
-      uniquePool = shuffle(uniquePool, seed + 2);
-      return {
-        question: 'How many defensive backs (cornerbacks, safeties, nickel/dime defenders) are on the field in the ' + name + '?',
-        options: uniquePool.map(String),
-        correctIndex: uniquePool.indexOf(dbCount),
-      };
+      var metric = variant === 0 ? {label:'defensive backs', patterns:DB_PATTERNS, key:'front_db'} :
+        variant === 1 ? {label:'defensive linemen', patterns:DL_PATTERNS, key:'front_dl'} :
+        variant === 2 ? {label:'linebackers', patterns:LB_PATTERNS, key:'front_lb'} : null;
+      if (metric) {
+        var count = countByRoleMatch(diagram, metric.patterns);
+        var nums = numberOptions(count, siblings.map(function (s) { return countByRoleMatch(s, metric.patterns); }), seed);
+        return { question: 'How many ' + metric.label + ' are on the field in the ' + name + '?', options: nums.options, correctIndex: nums.correctIndex, variantKey: metric.key };
+      }
+      if (diagram.personnel) {
+        var frontPersonnel = textOptions(String(diagram.personnel), siblings.map(function (s) { return s.personnel && String(s.personnel); }), seed);
+        if (frontPersonnel) return { question: 'Which personnel description matches the ' + name + ' front?', options: frontPersonnel.options, correctIndex: frontPersonnel.correctIndex, variantKey: 'front_personnel' };
+      }
     }
 
     if (category === 'coverage') {
-      if (diagram.man_coverage) {
-        var manOptions = ['Man coverage', 'Zone coverage'];
-        return { question: 'Is ' + name + ' primarily man coverage or zone coverage?', options: manOptions, correctIndex: 0 };
+      if (variant === 0) {
+        var coverageType = diagram.man_coverage ? 'Man coverage' : 'Zone coverage';
+        return { question: 'Is ' + name + ' primarily man coverage or zone coverage?', options: ['Man coverage','Zone coverage'], correctIndex: coverageType === 'Man coverage' ? 0 : 1, variantKey: 'coverage_type' };
       }
-      var deep = (diagram.zones || []).length;
-      var deepPool = [deep];
-      siblings.filter(function (s) { return !s.man_coverage; }).forEach(function (s) { deepPool.push((s.zones || []).length); });
-      var uniqueDeep = shuffle(Array.from(new Set(deepPool)), seed).slice(0, 4);
-      if (uniqueDeep.indexOf(deep) === -1) uniqueDeep[0] = deep;
-      uniqueDeep = shuffle(uniqueDeep, seed + 3);
-      return {
-        question: 'How many deep zones does ' + name + ' divide the field into?',
-        options: uniqueDeep.map(String),
-        correctIndex: uniqueDeep.indexOf(deep),
-      };
+      if (variant === 1) {
+        var deep = (diagram.zones || []).length;
+        var deepNums = numberOptions(deep, siblings.map(function (s) { return (s.zones || []).length; }), seed);
+        return { question: 'How many deep zones are diagrammed in ' + name + '?', options: deepNums.options, correctIndex: deepNums.correctIndex, variantKey: 'coverage_zone_count' };
+      }
+      if (variant === 2 && diagram.shell) {
+        var shell = textOptions(String(diagram.shell), siblings.map(function (s) { return s.shell; }), seed);
+        if (shell) return { question: 'Which safety shell is shown for ' + name + '?', options: shell.options, correctIndex: shell.correctIndex, variantKey: 'coverage_shell' };
+      }
+      var sameZoneCount = siblings.filter(function (s) { return (s.zones || []).length === (diagram.zones || []).length; });
+      var covCandidates = siblings.filter(function (s) { return sameZoneCount.indexOf(s) === -1; }).map(function (s) { return s.display_name || s.id; });
+      var covNames = textOptions(name, covCandidates, seed);
+      if (covNames) return { question: 'Which coverage is diagrammed with ' + (diagram.zones || []).length + ' deep zone' + ((diagram.zones || []).length === 1 ? '' : 's') + '?', options: covNames.options, correctIndex: covNames.correctIndex, variantKey: 'coverage_identify_by_zones' };
     }
 
     if (category === 'pass_concept') {
-      var routes = diagram.routes || [];
-      var labeled = routes.filter(function (r) { return r.label; });
-      if (!labeled.length) return null;
-      var pick = labeled[Math.floor((seed % labeled.length + labeled.length) % labeled.length)];
+      var routes = (diagram.routes || []).filter(function (r) { return r.label; });
+      if (!routes.length) return null;
+      var pick = routes[Math.floor((seed % routes.length + routes.length) % routes.length)];
       var runner = realPlayers(diagram).find(function (p) { return p.id === pick.player; });
-      if (!runner) return null;
-      var runnerText = runner.role || runner.label;
-      var distractors = pickDistinctDistractors(shuffle(realPlayers(diagram).filter(function (p) { return p.id !== runner.id; }), seed), [runnerText], 3);
-      if (distractors.length < 1) return null;
-      var pcOptions = shuffle([runner].concat(distractors), seed + 4).map(function (p) { return p.role || p.label; });
-      return {
-        question: 'In ' + name + ', which player runs the "' + pick.label + '" route?',
-        options: pcOptions,
-        correctIndex: pcOptions.indexOf(runnerText),
-      };
+      if (variant === 0 || !runner) {
+        if (!runner) return null;
+        var runnerText = runner.role || runner.label;
+        var distractors = pickDistinctDistractors(shuffle(realPlayers(diagram).filter(function (p) { return p.id !== runner.id; }), seed), [runnerText], 3);
+        if (!distractors.length) return null;
+        var pcOptions = shuffle([runner].concat(distractors), seed + 4).map(function (p) { return p.role || p.label; });
+        return { question: 'In ' + name + ', which player runs the "' + pick.label + '" route?', options: pcOptions, correctIndex: pcOptions.indexOf(runnerText), variantKey: 'pass_route_runner' };
+      }
+      if (variant === 1) {
+        var routeNames = routes.map(function (r) { return r.label; });
+        var siblingRoutes = [];
+        siblings.forEach(function (s) { (s.routes || []).forEach(function (r) { if (r.label) siblingRoutes.push(r.label); }); });
+        var routeOpts = textOptions(pick.label, siblingRoutes.concat(routeNames), seed);
+        if (routeOpts) return { question: 'What route does the ' + (runner.role || runner.label) + ' run in ' + name + '?', options: routeOpts.options, correctIndex: routeOpts.correctIndex, variantKey: 'pass_runner_route' };
+      }
+      if (variant === 2) {
+        var routeNums = numberOptions(routes.length, siblings.map(function (s) { return (s.routes || []).filter(function (r) { return r.label; }).length; }), seed);
+        return { question: 'How many labeled routes are shown in the ' + name + ' concept?', options: routeNums.options, correctIndex: routeNums.correctIndex, variantKey: 'pass_route_count' };
+      }
+      var allSiblingLabels = [];
+      siblings.forEach(function (s) { (s.routes || []).forEach(function (r) { if (r.label) allSiblingLabels.push(r.label); }); });
+      var labelOpts = textOptions(pick.label, allSiblingLabels, seed + 9);
+      if (labelOpts) return { question: 'Which route label appears in the ' + name + ' concept?', options: labelOpts.options, correctIndex: labelOpts.correctIndex, variantKey: 'pass_route_present' };
     }
 
     if (category === 'run_concept') {
-      var blockCount = (diagram.blocks || []).length;
-      var rcPool = [blockCount];
-      siblings.forEach(function (s) { rcPool.push((s.blocks || []).length); });
-      var uniqueRc = shuffle(Array.from(new Set(rcPool)), seed).slice(0, 4);
-      if (uniqueRc.indexOf(blockCount) === -1) uniqueRc[0] = blockCount;
-      uniqueRc = shuffle(uniqueRc, seed + 5);
-      return {
-        question: 'How many blocking assignments are diagrammed for ' + name + '?',
-        options: uniqueRc.map(String),
-        correctIndex: uniqueRc.indexOf(blockCount),
-      };
+      var blocks = diagram.blocks || [];
+      if (variant === 0) {
+        var blockNums = numberOptions(blocks.length, siblings.map(function (s) { return (s.blocks || []).length; }), seed);
+        return { question: 'How many blocking assignments are diagrammed for ' + name + '?', options: blockNums.options, correctIndex: blockNums.correctIndex, variantKey: 'run_block_count' };
+      }
+      var blockers = Array.from(new Set(blocks.map(function (b) { return b.player || b.from || b.id; }).filter(Boolean)));
+      if (variant === 1 && blockers.length) {
+        var blockerOpts = textOptions(String(blockers[0]), realPlayers(diagram).map(function (p) { return p.id; }), seed);
+        if (blockerOpts) return { question: 'Which player ID is explicitly part of a blocking assignment in ' + name + '?', options: blockerOpts.options, correctIndex: blockerOpts.correctIndex, variantKey: 'run_blocker_id' };
+      }
+      var runNames = textOptions(name, siblings.map(function (s) { return s.display_name || s.id; }), seed);
+      if (runNames) return { question: 'Which run concept has ' + blocks.length + ' diagrammed blocking assignment' + (blocks.length === 1 ? '' : 's') + '?', options: runNames.options, correctIndex: runNames.correctIndex, variantKey: 'run_identify_by_blocks' };
     }
 
     return null;
