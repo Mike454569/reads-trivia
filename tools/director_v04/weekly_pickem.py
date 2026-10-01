@@ -247,6 +247,73 @@ def _cfb_display(c, school_id: str) -> str:
     return row["school_name"] if row else school_id
 
 
+def _record_text(wins: int, losses: int, ties: int = 0) -> str:
+    return f"{wins}-{losses}" + (f"-{ties}" if ties else "")
+
+
+def _pregame_record_snapshots(c, variant: str, season: int, target_rows: list) -> dict[str, dict]:
+    """Real team records immediately BEFORE each target game's kickoff.
+
+    Computing from already-ingested game results keeps historical Pick'em
+    honest too: opening an old week shows the record the team actually
+    carried into that matchup, not today's/final season record.
+    """
+    target_ids = {str(r["game_id"]) for r in target_rows}
+    if not target_ids:
+        return {}
+
+    if variant == "NFL_WEEKLY_PICKEM":
+        rows = c.execute(
+            "SELECT game_id, home_team, away_team, home_score, away_score, game_date, game_time "
+            "FROM games WHERE season=? AND game_type!='PRE' "
+            "ORDER BY game_date, COALESCE(game_time,''), game_id",
+            (season,),
+        ).fetchall()
+    else:
+        rows = c.execute(
+            "SELECT game_id, home_school_id AS home_team, away_school_id AS away_team, "
+            "home_score, away_score, game_date "
+            "FROM cfb_games_canonical WHERE season=? ORDER BY game_date, game_id",
+            (season,),
+        ).fetchall()
+
+    records: dict = {}
+    snapshots: dict[str, dict] = {}
+
+    def current(team):
+        rec = records.get(team)
+        if rec is None:
+            rec = [0, 0, 0]
+            records[team] = rec
+        return rec
+
+    for r in rows:
+        home, away = r["home_team"], r["away_team"]
+        h = current(home)
+        a = current(away)
+        gid = str(r["game_id"])
+        if gid in target_ids:
+            snapshots[gid] = {
+                "home_record": _record_text(h[0], h[1], h[2]),
+                "away_record": _record_text(a[0], a[1], a[2]),
+            }
+
+        hs, aws = r["home_score"], r["away_score"]
+        if hs is None or aws is None:
+            continue
+        if hs > aws:
+            h[0] += 1
+            a[1] += 1
+        elif aws > hs:
+            a[0] += 1
+            h[1] += 1
+        else:
+            h[2] += 1
+            a[2] += 1
+
+    return snapshots
+
+
 def generate_slate(seed: str, variant: str, season: int, week) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
@@ -255,6 +322,11 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
     try:
         safety_result = safety_check(c)
         rows = _nfl_slate_rows(c, season, week) if variant == "NFL_WEEKLY_PICKEM" else _cfb_slate_rows(c, season, week)
+        record_snapshots = _pregame_record_snapshots(c, variant, season, rows)
+        ranks = {}
+        if variant == "CFB_WEEKLY_PICKEM":
+            season_type = "postseason" if week in _CFB_POSTSEASON_WEEK_TOKENS else "regular"
+            ranks = _ap_top25(c, season, week, season_type)
         games = []
         for r in rows:
             home_display = _nfl_display(c, r["home_team"], season) if variant == "NFL_WEEKLY_PICKEM" \
@@ -286,9 +358,12 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
             # so it's checked the same honest way: does the RAW source
             # value actually carry a time component, never assumed by league.
             has_real_time = bool(r["game_time"]) if variant == "NFL_WEEKLY_PICKEM" else len(r["game_date"] or "") > 10
+            snapshot = record_snapshots.get(str(r["game_id"]), {})
             games.append({
                 "game_id": r["game_id"], "home_team": r["home_team"], "away_team": r["away_team"],
                 "home_display": home_display, "away_display": away_display,
+                "home_record": snapshot.get("home_record"), "away_record": snapshot.get("away_record"),
+                "home_rank": ranks.get(r["home_team"]), "away_rank": ranks.get(r["away_team"]),
                 "kickoff": kickoff_dt.isoformat() if kickoff_dt else r["game_date"],
                 # The renderer must not localize/reformat a date-only value
                 # as if it had real clock-time precision -- doing so is
@@ -376,15 +451,26 @@ def normalize_slate(slate: str | None) -> str:
 
 
 def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
-    """school_id -> real AP Top 25 rank for this real (season, week).
-    Postseason rankings are stored at the same degenerate week=1 every
-    postseason row uses (confirmed live -- the same real "everything
-    mislabeled" pattern already disclosed for cfb_games_canonical's own
-    bowls/CFP rows) -- queried by season_type, never by the postseason
-    token string itself."""
-    rank_week = 1 if season_type == "postseason" else int(week)
+    """school_id -> latest real AP Top 25 available for this matchup week.
+
+    Schedule week and poll week do not always advance at the same moment.
+    The old exact-week lookup made TOP25 Pick'em empty whenever the next
+    schedule week became current before that same-numbered AP poll landed.
+    Use the latest published real AP poll at or before the requested week;
+    never look ahead and never fabricate a rank.
+    """
+    requested_week = 1 if season_type == "postseason" else int(week)
+    latest = c.execute(
+        "SELECT MAX(week) AS week FROM cfb_rankings "
+        "WHERE season=? AND season_type=? AND poll='AP Top 25' AND week<=?",
+        (season, season_type, requested_week),
+    ).fetchone()
+    rank_week = latest["week"] if latest and latest["week"] is not None else None
+    if rank_week is None:
+        return {}
     rows = c.execute(
-        "SELECT school_id, rank FROM cfb_rankings WHERE season=? AND week=? AND season_type=? AND poll='AP Top 25'",
+        "SELECT school_id, rank FROM cfb_rankings "
+        "WHERE season=? AND week=? AND season_type=? AND poll='AP Top 25'",
         (season, rank_week, season_type),
     ).fetchall()
     return {r["school_id"]: r["rank"] for r in rows}

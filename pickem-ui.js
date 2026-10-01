@@ -41,6 +41,7 @@ function pickemUserFacingError(err) {
 function startPickemRound(league) {
   state.pickem = {
     league: league, screen: 'LOADING', season: null, week: null,
+    currentSeason: null, currentWeek: null,
     slate: league === 'CFB' ? 'FEATURED' : 'FULL', conference: null,
     view: null, pendingPickGameId: null, lastPickError: null, error: null,
     seasonRecord: null,
@@ -75,7 +76,8 @@ function loadPickemSeasonRecord() {
       });
     }
     applyPickemWeeksToRating(s.league, record.season, record.per_week);
-    renderAll();
+    if (state.screen === 'pickem' && s.view) renderPickemPreservingScroll();
+    else renderAll();
   }).catch(function () {
     // Real, non-critical background fetch -- the weekly slate above is
     // still fully playable without a season record, so this fails silently
@@ -119,26 +121,73 @@ function pickemPath(s) {
   return base + '?' + params.join('&');
 }
 
-function loadPickemView() {
+function renderPickemPreservingScroll() {
+  var y = Math.max(0, window.scrollY || window.pageYOffset || 0);
+  renderAll();
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { window.scrollTo(0, y); });
+  });
+}
+
+function loadPickemView(opts) {
   var s = state.pickem;
   if (!s) return;
-  s.screen = 'LOADING';
+  var preserveScroll = !!(opts && opts.preserveScroll && s.view);
+  if (!preserveScroll) s.screen = 'LOADING';
   s.error = null;
-  renderAll();
+  if (!preserveScroll) renderAll();
   enginePilotFetchJson(pickemPath(s)).then(function (result) {
     if (state.pickem !== s) return; // navigated away mid-flight
     s.season = result.season;
     s.week = result.week;
+    if (s.currentSeason == null) s.currentSeason = result.season;
+    if (s.currentWeek == null) s.currentWeek = result.week;
     if (result.slate) s.slate = result.slate; // echoes the server-resolved default (e.g. FEATURED) back
     s.view = result.view;
     s.screen = 'READY';
-    renderAll();
+    if (preserveScroll) renderPickemPreservingScroll();
+    else renderAll();
   }).catch(function (err) {
     if (state.pickem !== s) return;
     s.error = { code: err && err.code, text: pickemUserFacingError(err) };
     s.screen = 'ERROR';
-    renderAll();
+    if (preserveScroll) renderPickemPreservingScroll();
+    else renderAll();
   });
+}
+
+function pickemNumericWeek(v) {
+  var n = parseInt(String(v), 10);
+  return String(n) === String(v) || /^\d+$/.test(String(v)) ? n : null;
+}
+
+function changePickemWeek(nextWeek) {
+  var s = state.pickem;
+  if (!s || !s.currentSeason) return;
+  var n = parseInt(nextWeek, 10);
+  var max = pickemNumericWeek(s.currentWeek);
+  if (!Number.isFinite(n) || n < 1 || (max != null && n > max)) return;
+  s.season = s.currentSeason;
+  s.week = String(n);
+  s.lastPickError = null;
+  loadPickemView({ preserveScroll: true });
+}
+
+function renderPickemWeekRail(s) {
+  var current = pickemNumericWeek(s.currentWeek);
+  var selected = pickemNumericWeek(s.week);
+  if (current == null || current < 1) return '';
+  var weeks = [];
+  for (var i = 1; i <= current; i++) weeks.push(i);
+  return '<div class="pickem-week-nav">' +
+    '<div class="pickem-week-nav-head"><span>Season Weeks</span><small>Tap any week to review your picks</small></div>' +
+    '<div class="pickem-week-rail">' +
+      weeks.map(function (wk) {
+        var active = wk === selected;
+        var label = wk === current ? 'W' + wk + ' · NOW' : 'W' + wk;
+        return '<button class="pickem-week-chip' + (active ? ' active' : '') + '" data-pickem-week="' + wk + '">' + label + '</button>';
+      }).join('') +
+    '</div></div>';
 }
 
 function changePickemSlate(newSlate, conference) {
@@ -146,7 +195,7 @@ function changePickemSlate(newSlate, conference) {
   if (!s || s.league !== 'CFB') return;
   s.slate = newSlate;
   s.conference = newSlate === 'CONFERENCE' ? (conference || s.conference || PICKEM_CONFERENCES[0]) : null;
-  loadPickemView();
+  loadPickemView({ preserveScroll: true });
 }
 
 function submitPickemPick(gameId, teamCode) {
@@ -154,7 +203,7 @@ function submitPickemPick(gameId, teamCode) {
   if (!s || s.pendingPickGameId || !s.season || !s.week) return;
   s.pendingPickGameId = gameId;
   s.lastPickError = null;
-  renderAll();
+  renderPickemPreservingScroll();
   enginePilotFetchJson('/v1/public/pickem/' + s.league.toLowerCase() + '/' + s.season + '/' + s.week + '/pick', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -162,13 +211,13 @@ function submitPickemPick(gameId, teamCode) {
   }).then(function () {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
-    loadPickemView();
+    loadPickemView({ preserveScroll: true });
     loadPickemSeasonRecord();
   }).catch(function (err) {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
     s.lastPickError = pickemUserFacingError(err);
-    renderAll();
+    renderPickemPreservingScroll();
   });
 }
 
@@ -214,6 +263,7 @@ function renderPickemScreen() {
     broadcastMarqueeHtml(s.league + ' · WEEK ' + v.week, 'PICK YOUR WINNERS', v.season + ' SEASON · Picks lock when games start') +
     broadcastScorebugHtml([['PICKED', v.picks_made + '/' + v.game_count], ['CORRECT', v.correct_count], ['GRADED', v.graded_count]]) +
     renderPickemSeasonRecordHtml(s) +
+    renderPickemWeekRail(s) +
     (s.league === 'CFB' ? renderPickemSlateChips(s) : '') +
     (s.lastPickError ? '<div class="quiz-feedback">' + esc(s.lastPickError) + '</div>' : '') +
     (allGraded ? renderPickemCompletionSummary(v) : '') +
@@ -309,22 +359,53 @@ function formatPickemKickoff(kickoffRaw, hasTime) {
 // instead of graded inline. data-pickem-game/data-pickem-team stay as the
 // two data attributes the existing click handler already reads -- this is
 // a presentation change only, zero click-wiring/state-shape change.
+function pickemTeamAbbrev(label) {
+  var words = String(label || '').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+  return words.map(function (w) { return w[0]; }).join('').slice(0, 4).toUpperCase();
+}
+
+function pickemTeamVisual(league, teamName) {
+  var list = league === 'CFB' ? (typeof CFB_TEAMS !== 'undefined' ? CFB_TEAMS : []) : (typeof NFL_TEAMS !== 'undefined' ? NFL_TEAMS : []);
+  var t = list.find(function (x) { return x.name === teamName || x.id === teamName; }) || null;
+  var code = t ? (t.code || t.id) : pickemTeamAbbrev(teamName);
+  var bg = t ? teamSwatchStyle(t) : 'background:#2f3a31';
+  var fg = t ? blendedTeamTextColor(t) : '#f4f7f1';
+  return '<span class="pickem-football-badge" style="' + bg + ';color:' + fg + '">' +
+    '<span class="pickem-football-code">' + esc(code) + '</span></span>';
+}
+
+function pickemTeamButtonHtml(g, s, side) {
+  var isHome = side === 'home';
+  var code = isHome ? g.home_team_code : g.away_team_code;
+  var name = isHome ? g.home_team : g.away_team;
+  var rank = isHome ? g.home_rank : g.away_rank;
+  var record = isHome ? g.home_record : g.away_record;
+  var score = isHome ? g.home_score : g.away_score;
+  var isFinal = g.status === 'FINAL';
+  var isLocked = isFinal || ['IN_PROGRESS', 'POSTPONED', 'CANCELED'].indexOf(g.status) >= 0;
+  var disabled = isLocked || s.pendingPickGameId === g.game_id;
+  var st = 'default';
+  if (g.your_pick === code) st = isFinal ? (g.winner === code ? 'correct' : 'wrong') : 'selected';
+  else if (isFinal && g.winner === code) st = 'correct';
+
+  return '<button class="binary-choice-card pickem-team-choice ' + st + '" ' +
+    'data-pickem-team="' + esc(code) + '" data-pickem-game="' + esc(g.game_id) + '"' + (disabled ? ' disabled' : '') + '>' +
+    '<div class="pickem-team-mark-wrap">' + pickemTeamVisual(s.league, name) +
+      (rank ? '<span class="pickem-rank-chip">#' + esc(String(rank)) + '</span>' : '') +
+    '</div>' +
+    '<div class="pickem-team-name">' + esc(name) + '</div>' +
+    '<div class="pickem-team-meta">' + (record ? '<span>' + esc(record) + '</span>' : '') +
+      '<span>' + (isHome ? 'HOME' : 'AWAY') + '</span></div>' +
+    (isFinal ? '<div class="binary-choice-reveal">' + esc(String(score)) + '</div>' : '') +
+  '</button>';
+}
+
 function pickemGameCardHtml(g, s) {
   var isFinal = g.status === 'FINAL';
   var isLocked = isFinal || ['IN_PROGRESS', 'POSTPONED', 'CANCELED'].indexOf(g.status) >= 0;
   var disabled = isLocked || s.pendingPickGameId === g.game_id;
-
-  function side(code, label, isHome) {
-    var st = 'default';
-    if (g.your_pick === code) st = isFinal ? (g.winner === code ? 'correct' : 'wrong') : 'selected';
-    else if (isFinal && g.winner === code) st = 'correct';
-    return {
-      code: code, label: label,
-      sublabel: isHome ? 'Home' : 'Away',
-      reveal: isFinal ? String(isHome ? g.home_score : g.away_score) : null,
-      state: st,
-    };
-  }
 
   var kickoffText = formatPickemKickoff(g.kickoff, g.kickoff_has_time);
   var statusChip = isFinal
@@ -338,11 +419,11 @@ function pickemGameCardHtml(g, s) {
 
   return '<div class="panel stadium-game broadcast-finish broadcast-finish--pickem pickem-game-card' + (s.league === 'CFB' ? ' broadcast-finish--cfb' : '') + (isFinal ? ' pickem-game-final' : '') + '">' +
     '<div class="pickem-game-status-row">' + statusChip + '</div>' +
-    renderBinaryChoiceHtml(
-      side(g.away_team_code, g.away_team, false),
-      side(g.home_team_code, g.home_team, true),
-      { dataAttr: 'data-pickem-team', disabled: disabled, extraAttrs: 'data-pickem-game="' + esc(g.game_id) + '"' }
-    ) +
+    '<div class="binary-choice-row pickem-matchup-row">' +
+      pickemTeamButtonHtml(g, s, 'away') +
+      '<div class="binary-choice-vs"><span class="pickem-at-mark">@</span></div>' +
+      pickemTeamButtonHtml(g, s, 'home') +
+    '</div>' +
     (g.your_pick ? '<div class="broadcast-pick-confirmation">' + icon('check') + ' YOUR PICK: <b>' + esc(g.your_pick === g.home_team_code ? g.home_team : g.away_team) + '</b></div>' : '') +
     outcome +
     '</div>';

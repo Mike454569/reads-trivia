@@ -111,38 +111,51 @@ def test_featured_slate_is_deterministic_across_repeated_calls():
     assert [g["game_id"] for g in first] == [g["game_id"] for g in second]
 
 
-def test_top25_slate_only_includes_games_with_a_real_ranked_participant():
-    """This must keep working as the real season progresses (see
-    _real_cfb_full_slate()'s own docstring) -- but "the real current week"
-    can legitimately roll into a week the AP hasn't published a poll for
-    yet (confirmed live, Sep 2026: the season's real Week 1 had a real
-    published poll; the moment the schedule bridge resolved forward to
-    Week 2, that week's own AP Top 25 genuinely didn't exist yet -- CFBD/AP
-    publish a few days after each week's games, not before). weekly_pickem.
-    _ap_top25() queries the exact requested week with no fallback to the
-    most recent prior poll (a real, disclosed, intentional design choice,
-    not a bug this test should paper over) -- so an honestly EMPTY TOP25
-    slate is the correct real behavior for such a week, not a failure."""
+def test_top25_slate_uses_latest_real_ap_poll_at_or_before_game_week():
+    """TOP25 should stay useful when schedule week advances before the next
+    same-numbered AP poll is published. It may use the latest prior real AP
+    poll, but it must never look ahead to a future poll or invent rankings."""
     from tools.director_v04 import weekly_pickem
     season, week, games = _real_cfb_full_slate()
-    filtered, meta = weekly_pickem.filter_games_for_slate(games, slate="TOP25", conference=None, season=season, week=week)
+    filtered, meta = weekly_pickem.filter_games_for_slate(
+        games, slate="TOP25", conference=None, season=season, week=week)
     assert meta["slate"] == "TOP25"
+
+    requested_week = int(week) if str(week).isdigit() else 1
     c = engine_bootstrap.connect()
     try:
+        latest = c.execute(
+            "SELECT MAX(week) AS week FROM cfb_rankings "
+            "WHERE season=? AND season_type='regular' AND poll='AP Top 25' AND week<=?",
+            (season, requested_week),
+        ).fetchone()
+        if latest is None or latest["week"] is None:
+            pytest.skip(f"no real AP Top 25 poll available yet for season={season}")
+        rank_week = latest["week"]
         ranked_school_ids = {r["school_id"] for r in c.execute(
-            "SELECT school_id FROM cfb_rankings WHERE season=? AND week=? AND season_type='regular' AND poll='AP Top 25'",
-            (season, int(week)) if str(week).isdigit() else (season, 1),
+            "SELECT school_id FROM cfb_rankings "
+            "WHERE season=? AND week=? AND season_type='regular' AND poll='AP Top 25'",
+            (season, rank_week),
         )}
     finally:
         c.close()
-    if not ranked_school_ids:
-        assert filtered == [], "no real ranked schools this week, but TOP25 still returned a game -- real bug"
-        pytest.skip(f"no real AP Top 25 poll published yet for season={season} week={week!r} -- "
-                    f"an honestly empty TOP25 slate, not a real failure")
-    assert len(filtered) >= 1  # real, current AP Top 25 data exists for this fixture week
+
+    assert rank_week <= requested_week
+    assert filtered, "a real prior/current AP poll exists, so TOP25 should not be blank"
     for g in filtered:
         assert g["home_team"] in ranked_school_ids or g["away_team"] in ranked_school_ids
 
+
+def test_cfb_pickem_games_include_real_pregame_records_and_rank_fields(client):
+    body = client.get("/v1/public/pickem/CFB", params={"slate": "FEATURED"}).json()
+    assert body["view"]["games"]
+    for game in body["view"]["games"]:
+        assert "home_record" in game
+        assert "away_record" in game
+        assert game["home_record"]
+        assert game["away_record"]
+        assert "home_rank" in game
+        assert "away_rank" in game
 
 def test_power4_slate_only_includes_games_with_a_real_p4_participant():
     from tools.director_v04 import weekly_pickem

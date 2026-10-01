@@ -6135,26 +6135,6 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .format-hub-results-head{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--text-dim);font-size:12px;margin:14px 0 10px}
 .format-hub-results-head b{color:var(--text);font-size:14px}
 .format-hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
-.reads-game-art,.format-hub-art,.mode-card-art,.format-collection-art,.daily-format-art,.mode-sheet-art{display:block;background-repeat:no-repeat;background-color:#07111f}
-.format-hub-card.has-art{padding:10px;min-height:330px}
-.format-hub-art{width:100%;height:150px;border-radius:11px;border:1px solid rgba(255,255,255,.08);margin-bottom:10px}
-.format-hub-card.has-art .format-hub-card-top{padding:0 4px}
-.mode-card.has-art{overflow:hidden}
-.mode-card-art{width:calc(100% + 32px);height:150px;margin:-16px -16px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.format-collection-row button.has-art{padding:8px;min-height:190px}
-.format-collection-art{width:100%;height:92px;border-radius:9px;margin-bottom:8px;border:1px solid rgba(255,255,255,.07)}
-.format-collection-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(var(--home-glow-rgb),.11);color:var(--home-accent);margin-bottom:8px}
-.daily-format-five-grid button.has-art{padding:8px;min-height:190px}
-.daily-format-art{width:100%;height:92px;border-radius:9px;margin-bottom:8px;border:1px solid rgba(255,255,255,.07)}
-.daily-format-icon{color:var(--home-accent);height:24px}
-.mode-sheet-item.has-art{grid-template-columns:58px 36px minmax(0,1fr)}
-.mode-sheet-art{width:58px;height:58px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
-@media(max-width:640px){
- .format-hub-card.has-art{min-height:285px;padding:8px}
- .format-hub-art{height:118px}
- .mode-card-art{height:128px}
-}
-
 .format-hub-card{position:relative;display:flex;flex-direction:column;min-height:190px;text-align:left;padding:15px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated);color:var(--text);cursor:pointer;overflow:hidden}
 .format-hub-card:before{content:"";position:absolute;inset:0 auto 0 0;width:2px;background:var(--home-accent);opacity:0;transition:opacity .15s ease}
 .format-hub-card:hover{border-color:rgba(var(--home-glow-rgb),.5);transform:translateY(-2px);box-shadow:0 10px 24px -18px rgba(0,0,0,.8)}
@@ -6204,8 +6184,8 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .daily-format-five-grid button{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:118px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elevated);color:var(--text);text-align:left;cursor:pointer}
 .daily-format-five-grid button:hover{border-color:var(--home-accent);transform:translateY(-1px)}
 .daily-format-five-grid button.complete{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.06)}
-.daily-format-five-grid button>.daily-format-icon{color:var(--home-accent);height:24px}
-.daily-format-five-grid button.complete>.daily-format-icon{color:var(--good)}
+.daily-format-five-grid button>span{color:var(--home-accent);height:24px}
+.daily-format-five-grid button.complete>span{color:var(--good)}
 .daily-format-five-grid button small{font-size:9px;letter-spacing:.09em;color:var(--text-dim);font-weight:800;margin:5px 0 3px}
 .daily-format-five-grid button b{font-size:13px;line-height:1.2}
 .daily-format-five-grid button em{font-style:normal;color:var(--text-dim);font-size:10px;text-transform:capitalize;margin-top:auto;padding-top:8px}
@@ -6235,7 +6215,7 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .format-collection-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
 .format-collection-row button{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:128px;padding:13px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated);color:var(--text);text-align:left;cursor:pointer}
 .format-collection-row button:hover{border-color:var(--home-accent);transform:translateY(-1px)}
-.format-collection-row button>.format-collection-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(var(--home-glow-rgb),.11);color:var(--home-accent);margin-bottom:10px}
+.format-collection-row button>span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(var(--home-glow-rgb),.11);color:var(--home-accent);margin-bottom:10px}
 .format-collection-row b{font-size:13px;line-height:1.2}
 .format-collection-row small{margin-top:auto;padding-top:8px;color:var(--text-dim);font-size:10px;text-transform:capitalize}
 .daily-social-proof{margin:14px 0;padding:14px;border:1px solid rgba(var(--home-glow-rgb),.24);border-radius:var(--radius);background:rgba(var(--home-glow-rgb),.05)}
@@ -6486,6 +6466,760 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .football-dna-traits{grid-template-columns:1fr}
   .seasonal-mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .community-pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+
+/* Mobile navigation + home stacking hotfix */
+.app-backbar{
+  display:flex;
+  align-items:center;
+  margin:0 0 12px;
+  min-height:36px;
+}
+.app-back-button{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.app-back-icon{
+  display:inline-flex;
+  transform:rotate(180deg);
+}
+.app-back-icon .icon{width:15px;height:15px}
+
+/* Priority cards must size from their own content. The old height:100%
+   rule caused Safari grid rows to reuse/stretch heights while Live Football
+   refreshed asynchronously, which let adjacent cards visually occupy the
+   same space. */
+.home-priority-stack{
+  grid-auto-rows:max-content;
+  align-items:start;
+}
+.home-priority-item{
+  min-width:0;
+  height:auto;
+  min-height:0;
+  align-self:start;
+  position:relative;
+  isolation:isolate;
+}
+.home-priority-item>.panel,
+.home-priority-item>section,
+.home-priority-item>button{
+  height:auto!important;
+  min-height:0;
+  margin:0;
+  width:100%;
+}
+@media(max-width:800px){
+  .home-priority-stack{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .home-priority-item{
+    width:100%;
+    flex:0 0 auto;
+  }
+  .home-priority-item>.panel,
+  .home-priority-item>section,
+  .home-priority-item>button{
+    position:relative;
+    inset:auto;
+    transform:none;
+  }
+}
+
+
+/* Pick'em visual identity upgrade */
+.pickem-matchup-row{
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+  gap:10px;
+  align-items:stretch;
+}
+.pickem-team-choice{
+  min-height:154px!important;
+  padding:16px 10px 14px!important;
+  gap:7px!important;
+  overflow:visible;
+}
+.pickem-team-mark-wrap{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:82px;
+  height:56px;
+  margin-bottom:3px;
+}
+.pickem-football-badge{
+  position:relative;
+  isolation:isolate;
+  width:74px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  border-radius:52% 48% 52% 48% / 58% 58% 42% 42%;
+  border:2px solid rgba(255,255,255,.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.22),
+    inset 0 -10px 18px rgba(0,0,0,.18),
+    0 8px 20px rgba(0,0,0,.28);
+  transform:rotate(-2deg);
+  overflow:hidden;
+}
+.pickem-football-badge::before{
+  content:'';
+  position:absolute;
+  z-index:1;
+  width:28px;
+  height:2px;
+  border-radius:999px;
+  background:currentColor;
+  opacity:.72;
+  box-shadow:0 -1px 0 rgba(0,0,0,.18);
+}
+.pickem-football-badge::after{
+  content:'';
+  position:absolute;
+  z-index:1;
+  width:22px;
+  height:15px;
+  opacity:.72;
+  background:
+    linear-gradient(currentColor,currentColor) center/2px 100% no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 2px/18px 2px no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 7px/18px 2px no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 12px/18px 2px no-repeat;
+}
+.pickem-football-code{
+  position:relative;
+  z-index:2;
+  padding:2px 5px;
+  border-radius:5px;
+  font:900 14px/1 var(--font-display);
+  letter-spacing:.045em;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  background:rgba(0,0,0,.17);
+  backdrop-filter:blur(1px);
+}
+.pickem-rank-chip{
+  position:absolute;
+  z-index:4;
+  top:-7px;
+  right:-3px;
+  min-width:29px;
+  height:27px;
+  padding:0 6px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#e6b650;
+  color:#142018;
+  border:2px solid #142018;
+  box-shadow:0 4px 10px rgba(0,0,0,.28);
+  font:900 12px/1 var(--font-display);
+}
+.pickem-team-name{
+  max-width:100%;
+  color:#f4f7f1;
+  font:700 18px/1.08 var(--font-display);
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.pickem-team-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:5px 8px;
+  min-height:18px;
+  color:#aebcaf;
+  font:700 10px/1 var(--font-display);
+  letter-spacing:.08em;
+}
+.pickem-team-meta span:first-child{
+  color:#f1d488;
+  font-size:12px;
+  letter-spacing:.02em;
+}
+.pickem-at-mark{
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid #526254;
+  background:#111c15;
+  color:#9dab9f;
+  font:800 12px/1 var(--font-display);
+}
+.broadcast-finish--pickem .pickem-team-choice.selected{
+  transform:translateY(-2px);
+  box-shadow:inset 0 -4px #e6b650,0 10px 20px rgba(0,0,0,.22);
+}
+.broadcast-finish--pickem .pickem-team-choice.correct .pickem-football-badge{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 0 2px #82dba3,0 8px 20px rgba(0,0,0,.28);
+}
+.broadcast-finish--pickem .pickem-team-choice.wrong .pickem-football-badge{
+  filter:saturate(.7) brightness(.85);
+}
+@media(max-width:560px){
+  .pickem-team-choice{
+    min-height:145px!important;
+    padding:14px 7px 12px!important;
+  }
+  .pickem-team-mark-wrap{width:72px;height:52px}
+  .pickem-football-badge{width:66px;height:42px}
+  .pickem-football-code{font-size:12px}
+  .pickem-team-name{font-size:16px}
+  .pickem-rank-chip{top:-5px;right:-2px}
+}
+@media(max-width:360px){
+  .pickem-matchup-row{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:6px}
+  .pickem-team-choice{padding-left:4px!important;padding-right:4px!important}
+  .pickem-football-badge{width:60px;height:39px}
+  .pickem-team-name{font-size:14px}
+  .pickem-at-mark{width:22px;height:22px;font-size:10px}
+}
+
+
+/* Pick'em identity + week-history upgrade */
+.pickem-week-nav{
+  margin:14px 0 10px;
+  padding:12px;
+  border:1px solid #405043;
+  background:#142018;
+  border-radius:4px;
+}
+.pickem-week-nav-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+}
+.pickem-week-nav-head>span{
+  font:700 12px var(--font-display);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#f4f7f1;
+}
+.pickem-week-nav-head>small{
+  color:#96a99b;
+  font-size:10px;
+  text-align:right;
+}
+.pickem-week-rail{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:2px 1px 5px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.pickem-week-rail::-webkit-scrollbar{display:none}
+.pickem-week-chip{
+  flex:0 0 auto;
+  border:1px solid #405043;
+  border-radius:999px;
+  background:#202a21;
+  color:#b9c8bc;
+  padding:7px 11px;
+  font:700 10px var(--font-display);
+  letter-spacing:.045em;
+}
+.pickem-week-chip.active{
+  border-color:#e6b650;
+  background:#332d19;
+  color:#ffe39c;
+  box-shadow:0 0 0 1px rgba(230,182,80,.14) inset;
+}
+
+.pickem-matchup-row{
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+  gap:8px;
+}
+.broadcast-finish--pickem .pickem-team-choice{
+  min-height:154px;
+  gap:8px;
+  padding:16px 8px 13px;
+}
+.pickem-team-mark-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:58px;
+}
+.pickem-football-badge{
+  position:relative;
+  width:82px;
+  height:50px;
+  display:grid;
+  place-items:center;
+  border-radius:52% 48% 52% 48% / 50% 50% 50% 50%;
+  border:2px solid rgba(255,255,255,.48);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -8px 14px rgba(0,0,0,.16);
+  overflow:hidden;
+  isolation:isolate;
+}
+.pickem-football-badge::before{
+  content:'';
+  position:absolute;
+  width:34px;
+  height:10px;
+  top:7px;
+  left:50%;
+  transform:translateX(-50%);
+  opacity:.9;
+  background:
+    linear-gradient(90deg,transparent 0 3px,currentColor 3px 5px,transparent 5px 9px,currentColor 9px 11px,transparent 11px 15px,currentColor 15px 17px,transparent 17px 21px,currentColor 21px 23px,transparent 23px 27px,currentColor 27px 29px,transparent 29px),
+    linear-gradient(currentColor,currentColor) center 4px/34px 2px no-repeat;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));
+}
+.pickem-football-badge::after{
+  content:'';
+  position:absolute;
+  inset:4px;
+  border-radius:inherit;
+  border:1px solid rgba(255,255,255,.18);
+  pointer-events:none;
+}
+.pickem-football-code{
+  position:relative;
+  z-index:2;
+  margin-top:9px;
+  font:900 16px/1 var(--font-display);
+  letter-spacing:.03em;
+  text-shadow:0 1px 2px rgba(0,0,0,.45);
+}
+.pickem-rank-chip{
+  position:absolute;
+  right:-9px;
+  top:-7px;
+  min-width:28px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  padding:0 6px;
+  border-radius:999px;
+  background:#f1c75c;
+  border:2px solid #142018;
+  color:#171b14;
+  font:900 11px/1 var(--font-display);
+  box-shadow:0 4px 10px rgba(0,0,0,.28);
+}
+.pickem-team-name{
+  font:700 19px/1.08 var(--font-display);
+  color:#f4f7f1;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.pickem-team-meta{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  color:#9fb0a2;
+  font:700 10px/1 var(--font-display);
+  letter-spacing:.06em;
+}
+.pickem-team-meta>span:first-child:not(:last-child){
+  color:#e7d6a5;
+}
+.pickem-at-mark{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:1px solid #526156;
+  background:#1a261d;
+  color:#94a599;
+  font:800 12px var(--font-display);
+}
+@media(max-width:560px){
+  .pickem-week-nav-head{align-items:flex-start;flex-direction:column;gap:3px}
+  .pickem-week-nav-head>small{text-align:left}
+  .broadcast-finish--pickem .pickem-team-choice{min-height:145px;padding:14px 5px 12px}
+  .pickem-football-badge{width:72px;height:44px}
+  .pickem-football-code{font-size:14px;margin-top:8px}
+  .pickem-team-name{font-size:16px}
+  .pickem-team-meta{font-size:9px}
+  .pickem-rank-chip{right:-8px;top:-6px}
+}
+@media(max-width:360px){
+  .pickem-matchup-row{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:4px}
+  .pickem-football-badge{width:64px;height:40px}
+  .pickem-team-name{font-size:14px}
+  .pickem-at-mark{width:21px;height:21px;font-size:10px}
+}
+
+
+/* App-wide game identity polish */
+.mode-mark{
+  --mark-accent:var(--accent);
+  --mark-glow:217,166,60;
+  position:relative;
+  display:inline-grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border-radius:14px;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 30% 22%,rgba(255,255,255,.18),transparent 28%),
+    linear-gradient(145deg,rgba(var(--mark-glow),.34),rgba(var(--mark-glow),.08) 55%,rgba(0,0,0,.24));
+  border:1px solid rgba(var(--mark-glow),.55);
+  color:var(--mark-accent);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 0 18px rgba(var(--mark-glow),.10);
+  overflow:hidden;
+}
+.mode-mark::before{
+  content:'';
+  position:absolute;
+  inset:5px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:10px;
+  pointer-events:none;
+}
+.mode-mark::after{
+  content:'';
+  position:absolute;
+  left:-25%;
+  top:-40%;
+  width:58%;
+  height:170%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.11),transparent);
+  transform:rotate(24deg);
+  pointer-events:none;
+}
+.mode-mark-core{
+  position:relative;
+  z-index:2;
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+}
+.mode-mark-core .icon{
+  width:24px;
+  height:24px;
+  stroke-width:1.9;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+.mode-mark-stitch{
+  position:absolute;
+  z-index:1;
+  width:18px;
+  height:2px;
+  bottom:6px;
+  border-radius:99px;
+  background:currentColor;
+  opacity:.24;
+}
+.mode-mark-nfl{--mark-accent:#f4d276;--mark-glow:217,166,60}
+.mode-mark-cfb{--mark-accent:#ef8d72;--mark-glow:205,76,51}
+.mode-mark-neutral{--mark-accent:#9ed1b2;--mark-glow:94,154,116}
+.mode-mark-grid{border-radius:11px}
+.mode-mark-grid::before{
+  background:
+    linear-gradient(90deg,transparent 32%,rgba(255,255,255,.08) 32% 35%,transparent 35% 65%,rgba(255,255,255,.08) 65% 68%,transparent 68%),
+    linear-gradient(0deg,transparent 32%,rgba(255,255,255,.08) 32% 35%,transparent 35% 65%,rgba(255,255,255,.08) 65% 68%,transparent 68%);
+}
+.mode-mark-matchup{border-radius:50% 18% 50% 18%/50% 18% 50% 18%;transform:rotate(-2deg)}
+.mode-mark-matchup .mode-mark-core{transform:rotate(2deg)}
+.mode-mark-identity{border-radius:50%}
+.mode-mark-speed{clip-path:polygon(13% 0,100% 0,86% 100%,0 100%)}
+.mode-mark-stats{border-radius:8px 16px 8px 16px}
+.mode-mark-timeline{border-radius:999px}
+.mode-mark-tournament{
+  clip-path:polygon(50% 0,88% 12%,100% 48%,82% 87%,50% 100%,18% 87%,0 48%,12% 12%);
+}
+.mode-mark-roster{border-radius:16px 16px 8px 8px}
+.mode-mark-trivia{border-radius:15px}
+.mode-mark-sm{width:36px;height:36px;border-radius:11px}
+.mode-mark-sm .mode-mark-core{width:22px;height:22px}
+.mode-mark-sm .mode-mark-core .icon{width:19px;height:19px}
+.mode-mark-sm .mode-mark-stitch{width:13px;bottom:4px}
+.mode-mark-lg{width:58px;height:58px;border-radius:18px}
+.mode-mark-lg .mode-mark-core{width:36px;height:36px}
+.mode-mark-lg .mode-mark-core .icon{width:31px;height:31px}
+.mode-mark-lg .mode-mark-stitch{width:22px;bottom:7px}
+
+.mode-icon{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  margin-bottom:11px;
+}
+.mode-grid-secondary .mode-icon{
+  width:auto;
+  height:auto;
+  display:flex;
+  place-items:unset;
+  border-radius:0;
+  background:transparent;
+  margin-bottom:11px;
+}
+.mode-grid-secondary .mode-icon .icon{width:24px;height:24px}
+.mode-card.featured .mode-icon{font-size:inherit}
+.mode-card.featured .mode-mark{
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 0 24px rgba(var(--mark-glow),.16);
+}
+
+.msi-icon{
+  display:grid;
+  place-items:center;
+  width:44px;
+  flex:0 0 44px;
+}
+.msi-icon>.mode-mark{margin:0}
+
+.continue-card-mode-mark{
+  width:44px;
+  height:44px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.continue-card-mode-mark .mode-mark{width:40px;height:40px}
+.continue-card-mode-mark .mode-mark-core .icon{width:20px;height:20px}
+
+/* Top and bottom app tabs get the same premium emblem language. */
+#top-nav .nav-btn>.icon,
+#settings-toggle>.icon,
+#help-toggle>.icon,
+#mute-toggle>.icon{
+  box-sizing:content-box;
+  padding:6px;
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+#top-nav .nav-btn[data-league-toggle="nfl"]>.icon{
+  color:#f4d276;
+  border-color:rgba(217,166,60,.28);
+  background:linear-gradient(145deg,rgba(217,166,60,.15),rgba(217,166,60,.035));
+}
+#top-nav .nav-btn[data-league-toggle="cfb"]>.icon{
+  color:#ef8d72;
+  border-color:rgba(205,76,51,.28);
+  background:linear-gradient(145deg,rgba(205,76,51,.14),rgba(205,76,51,.035));
+}
+#top-nav .nav-btn[data-go="learn"]>.icon{
+  color:#9ed1b2;
+  border-color:rgba(94,154,116,.26);
+  background:linear-gradient(145deg,rgba(94,154,116,.15),rgba(94,154,116,.035));
+}
+#top-nav .nav-btn[data-go="leaderboard"]>.icon{
+  color:#f0c862;
+  border-color:rgba(240,200,98,.25);
+}
+
+#bottom-nav .bn-icon{
+  width:34px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(255,255,255,.06),rgba(255,255,255,.012));
+  border:1px solid rgba(255,255,255,.065);
+  transition:transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
+}
+#bottom-nav .bottom-nav-btn.active .bn-icon,
+#bottom-nav .bottom-nav-btn.sheet-open .bn-icon{
+  transform:translateY(-1px);
+  border-color:rgba(217,166,60,.48);
+  background:linear-gradient(145deg,rgba(217,166,60,.19),rgba(217,166,60,.06));
+  box-shadow:0 5px 14px rgba(0,0,0,.24),0 0 12px rgba(217,166,60,.10);
+}
+#bottom-nav [data-league-toggle="nfl"] .bn-icon{color:#f4d276}
+#bottom-nav [data-league-toggle="cfb"] .bn-icon{color:#ef8d72}
+#bottom-nav [data-go="learn"] .bn-icon{color:#9ed1b2}
+#bottom-nav [data-go="leaderboard"] .bn-icon{color:#f0c862}
+#bottom-nav .bn-icon .icon{width:20px;height:20px;stroke-width:2}
+
+@media(max-width:640px){
+  .mode-mark{width:43px;height:43px}
+  .mode-mark-lg{width:52px;height:52px}
+  .mode-mark-lg .mode-mark-core .icon{width:27px;height:27px}
+  .mode-card.featured .mode-icon{min-height:52px}
+}
+
+
+/* Per-game logo identity v2: each mode gets a distinct monogram + signature. */
+.mode-mark{
+  position:relative;
+}
+.mode-mark-corner{
+  position:absolute;
+  top:5px;
+  right:5px;
+  display:grid;
+  place-items:center;
+  width:15px;
+  height:15px;
+  opacity:.72;
+  z-index:3;
+}
+.mode-mark-corner .icon{
+  width:13px;
+  height:13px;
+  stroke-width:2;
+}
+.mode-mark-code{
+  position:relative;
+  z-index:2;
+  display:block;
+  max-width:100%;
+  padding:0 5px;
+  font:900 12px/1 var(--font-display);
+  letter-spacing:.015em;
+  text-align:center;
+  color:currentColor;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  transform:translateY(1px);
+}
+.mode-mark-lg .mode-mark-code{font-size:14px}
+.mode-mark-sm .mode-mark-code{font-size:10px}
+.mode-mark-sm .mode-mark-corner{top:3px;right:3px;width:11px;height:11px}
+.mode-mark-sm .mode-mark-corner .icon{width:10px;height:10px}
+
+/* Twelve deterministic signatures ensure long-tail modes with related
+   mechanics still read as different logos rather than cloned glyphs. */
+.mode-mark-v0{box-shadow:0 8px 18px rgba(0,0,0,.26),inset 3px 0 0 rgba(255,255,255,.10)}
+.mode-mark-v1{border-radius:50% 18% 50% 18%/28% 50% 28% 50%}
+.mode-mark-v2{transform:rotate(-2deg)}
+.mode-mark-v2 .mode-mark-code,.mode-mark-v2 .mode-mark-corner{transform:rotate(2deg)}
+.mode-mark-v3{clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)}
+.mode-mark-v4{clip-path:polygon(50% 0,95% 22%,84% 100%,16% 100%,5% 22%)}
+.mode-mark-v5{border-radius:50%}
+.mode-mark-v6{border-radius:8px 18px 8px 18px}
+.mode-mark-v7{clip-path:polygon(0 0,86% 0,100% 50%,86% 100%,0 100%,10% 50%)}
+.mode-mark-v8::after{transform:rotate(-28deg)}
+.mode-mark-v9{border-bottom-width:3px}
+.mode-mark-v10{border-left-width:3px;border-radius:18px 8px 18px 8px}
+.mode-mark-v11{clip-path:polygon(50% 0,100% 28%,88% 100%,12% 100%,0 28%)}
+
+.format-mini-mark{
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+}
+.format-mini-complete{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:rgba(87,184,114,.12);
+  border:1px solid rgba(87,184,114,.35);
+  color:var(--good);
+}
+.format-mini-complete .icon{width:18px;height:18px}
+
+.daily-format-five-grid>button>span.format-mini-mark,
+.format-collection-row>button>span.format-mini-mark,
+.format-hub-rec-row>button>span.format-mini-mark{
+  width:auto;
+  height:auto;
+  background:none;
+  border:0;
+  border-radius:0;
+}
+.format-hub-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+
+/* Game logo redesign v3 — actual pictograms, not monograms. */
+.mode-mark-art{
+  position:relative;
+  z-index:2;
+  width:31px;
+  height:31px;
+  display:grid;
+  place-items:center;
+}
+.mode-mark-art svg{
+  width:100%;
+  height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.28));
+}
+.mode-mark-lg .mode-mark-art{width:39px;height:39px}
+.mode-mark-sm .mode-mark-art{width:24px;height:24px}
+.mode-logo-signature{
+  opacity:.42;
+  stroke-width:2;
+}
+.mode-mark-nfl .mode-mark-art{
+  color:#f3ce70;
+}
+.mode-mark-cfb .mode-mark-art{
+  color:#f08b71;
+}
+.mode-mark-neutral .mode-mark-art{
+  color:#9ed1b2;
+}
+
+/* Keep the badge as framing, but let the pictogram be the identity. */
+.mode-mark{
+  background:
+    radial-gradient(circle at 33% 24%,rgba(255,255,255,.14),transparent 31%),
+    linear-gradient(145deg,rgba(var(--mark-glow),.19),rgba(12,18,14,.78) 62%);
+  border-color:rgba(var(--mark-glow),.38);
+}
+.mode-mark::before{
+  inset:4px;
+  border-color:rgba(255,255,255,.075);
+}
+.mode-mark::after{
+  opacity:.45;
+}
+.mode-mark-grid,
+.mode-mark-matchup,
+.mode-mark-identity,
+.mode-mark-speed,
+.mode-mark-stats,
+.mode-mark-timeline,
+.mode-mark-tournament,
+.mode-mark-roster,
+.mode-mark-trivia{
+  transform:none;
+}
+.mode-mark-matchup .mode-mark-art{transform:none}
+.mode-mark-speed{clip-path:none}
+.mode-mark-tournament{clip-path:none}
+.mode-mark-grid{border-radius:13px}
+.mode-mark-matchup{border-radius:18px 9px 18px 9px}
+.mode-mark-identity{border-radius:50%}
+.mode-mark-speed{border-radius:10px 18px 10px 18px}
+.mode-mark-stats{border-radius:9px}
+.mode-mark-timeline{border-radius:999px}
+.mode-mark-tournament{border-radius:10px 10px 18px 18px}
+.mode-mark-roster{border-radius:18px}
+.mode-mark-trivia{border-radius:14px}
+
+/* Retire the old text-badge internals from v2. */
+.mode-mark-code,
+.mode-mark-corner,
+.mode-mark-stitch{
+  display:none!important;
 }
 
 

@@ -2220,7 +2220,33 @@ function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
+var appNavigationStack = [];
+var appNavigationBackInProgress = false;
+function rememberAppNavigation(nextScreen) {
+  var current = state && state.screen ? state.screen : 'home';
+  if (appNavigationBackInProgress || !current || current === nextScreen) return;
+  var last = appNavigationStack[appNavigationStack.length - 1];
+  var entry = { screen: current, scrollY: Math.max(0, window.scrollY || window.pageYOffset || 0) };
+  if (last && last.screen === entry.screen) appNavigationStack[appNavigationStack.length - 1] = entry;
+  else appNavigationStack.push(entry);
+  if (appNavigationStack.length > 20) appNavigationStack = appNavigationStack.slice(-20);
+}
+function appBackBarHtml() {
+  if (!state || state.screen === 'home') return '';
+  return '<div class="app-backbar"><button class="btn-tiny app-back-button" data-app-back>' +
+    '<span class="app-back-icon">' + icon('arrowRight') + '</span> Back</button></div>';
+}
+function appNavigateBack() {
+  var entry = appNavigationStack.length ? appNavigationStack.pop() : { screen:'home', scrollY:0 };
+  appNavigationBackInProgress = true;
+  goToMode(entry.screen || 'home');
+  appNavigationBackInProgress = false;
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { window.scrollTo(0, Math.max(0, Number(entry.scrollY) || 0)); });
+  });
+}
 function goToMode(mode) {
+  rememberAppNavigation(mode);
   if (isTrackedPlayableFormat(mode)) beginFormatAnalyticsRun(mode,state.screen||'unknown');
   else if (formatAnalyticsActiveRun) {
     trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),to:mode||'unknown'});
@@ -3143,83 +3169,6 @@ function loadReadsGameArt(){
 }
 if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
 
-/* Reads-owned game artwork. Each sheet is a compact sprite atlas so the
-   100-format hub can use real mode art without downloading 100 separate
-   images. Titles are deliberately matched to the exact player-facing copy;
-   anything without an exact/approved alias falls back to its existing icon. */
-var READS_GAME_ART_SHEETS = {
-  a: { src:'assets/game-art/reads-game-art-01-40.webp', cols:10, rows:4 },
-  b: { src:'assets/game-art/reads-game-art-41-60.webp', cols:4, rows:5 },
-  c: { src:'assets/game-art/reads-game-art-61-80.webp', cols:4, rows:5 },
-  d: { src:'assets/game-art/reads-game-art-81-100.webp', cols:4, rows:5 }
-};
-var READS_GAME_ART_INDEX = {};
-function registerReadsGameArt(sheet, titles) {
-  titles.forEach(function(title, index) {
-    if (title && !READS_GAME_ART_INDEX[title]) READS_GAME_ART_INDEX[title] = { sheet:sheet, index:index };
-  });
-}
-registerReadsGameArt('a', [
-  'NFL Quiz','NFL Grid','NFL Blitz','NFL Silhouette','NFL IQ Test','17-0 Challenge',
-  'Higher or Lower','Player From Clues','College Football Quiz','CFB Immaculate Grid',
-  'CFB Blitz','CFB Speed Round','College Football IQ Test','CFB 12-0 Challenge',
-  'CFB Player From Clues','NFL Draft Class Matching','Heisman Timeline','NFL Rushing Ladder',
-  'NFL Passing TD Ladder','CFB Rushing Ladder','NFL Wins Streak','Super Bowl Champion Survival',
-  'NFL Wins Bracket','NFL Connection Grid','Perfect Drive (NFL)','Perfect Drive (CFB)',
-  'Goal Line Stand (NFL)','Goal Line Stand (CFB)','2010s Offense Builder','CFB Skill Position Builder',
-  'NFL Auction Draft','CFB Auction Draft','NFL Cap Challenge','CFB Cap Challenge',
-  'NFL Knockout Tournament','CFB Knockout Tournament','Six Degrees: College to NFL',
-  'Choose Your Path','Guess the Season','Rushing Duel'
-]);
-registerReadsGameArt('b', [
-  'CFB Knockout Tournament','Six Degrees: College to NFL','Chain Reaction: College to NFL',
-  'Choose Your Path','Choose Your Path: College Football','Guess the Season','Rushing Duel',
-  'Passing TD Duel','CFB Rushing Duel','QB Best of Seven','Pick the Impostor',
-  'Pick the Impostor: College Football','Unique One Out','Missing Piece',
-  'Missing Piece: College Football','Before & After','Before & After: College Football',
-  'Map the Career','Map the Career: College Football','Career Path'
-]);
-registerReadsGameArt('c', [
-  'Career Path: College Football','Risk It','Risk It (CFB)','Wager Mode','Leaderboard Climb',
-  'Blind Resume','Blind Resume (CFB)','Double or Nothing','Double or Nothing (CFB)',
-  'King of the Hill','King of the Hill (CFB)','Fact or Fake','Fact or Fake (CFB)',
-  'Guess the Ranking','Guess the Ranking (CFB)','Stat Target','Stat Target (CFB)',
-  'Reverse Trivia','Reverse Trivia (CFB)','Three Strikes'
-]);
-registerReadsGameArt('d', [
-  'Three Strikes (CFB)','Mystery Roster','Mystery Roster (CFB)','Draft Pick Ladder',
-  'Category Roulette','Common Link','Common Link (CFB)','Bingo Blitz','Territory Takeover',
-  'Exact Ten','Pyramid Climb','Lockbox','Combo Meter','Checkpoint Rally','Escalator',
-  'Power Up','Category Conquest','Scoreboard Swing','Momentum Bar','Timeout Tokens'
-]);
-var READS_GAME_ART_ALIASES = {
-  '17-0':'17-0 Challenge',
-  'CFB 12-0':'CFB 12-0 Challenge'
-};
-function readsGameArtMeta(m) {
-  var title = m && m.title ? m.title : '';
-  title = READS_GAME_ART_ALIASES[title] || title;
-  return READS_GAME_ART_INDEX[title] || null;
-}
-function readsGameArtStyle(m) {
-  var meta=readsGameArtMeta(m);
-  if(!meta) return '';
-  var sheet=READS_GAME_ART_SHEETS[meta.sheet];
-  var col=meta.index % sheet.cols;
-  var row=Math.floor(meta.index / sheet.cols);
-  var x=sheet.cols > 1 ? (col/(sheet.cols-1))*100 : 0;
-  var y=sheet.rows > 1 ? (row/(sheet.rows-1))*100 : 0;
-  return 'background-image:url(&quot;'+sheet.src+'&quot;);background-size:'+
-    (sheet.cols*100)+'% '+(sheet.rows*100)+'%;background-position:'+
-    x.toFixed(4)+'% '+y.toFixed(4)+'%;';
-}
-function readsGameArtHtml(m, className) {
-  var style=readsGameArtStyle(m);
-  if(!style) return '';
-  return '<span class="'+esc(className||'reads-game-art')+'" style="'+style+
-    '" role="img" aria-label="'+esc((m && m.title)||'Game')+' artwork"></span>';
-}
-
 var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
 
 /* Product analytics: local, bounded and intentionally non-PII. This gives the
@@ -3326,7 +3275,7 @@ function dailyFormatRotationHtml(compact) {
   return '<section class="daily-format-five'+(compact?' compact':'')+'">'+
     '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s 100-format rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
     '<p class="mode-desc">Five personalized full game formats, rotated daily from the complete Reads catalog. Your Daily Reads streak still comes from the five-minute Daily 5 above.</p>'+
-    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;var art=readsGameArtHtml(m,'daily-format-art'); return '<button class="'+(done?'complete ':'')+(art?'has-art':'')+'" data-go="'+esc(m.id)+'">'+art+'<span class="daily-format-icon">'+(done?icon('check'):icon(m.icon||'football'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
+    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;var art=gameArtHtml(m,'daily-format-art');return '<button class="'+(done?'complete ':'')+(art?'has-art':'')+'" data-go="'+esc(m.id)+'">'+art+'<span class="format-mini-mark">'+(done?'<span class="format-mini-complete">'+icon('check')+'</span>':modeMarkHtml(m,'sm'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
     '</section>';
 }
 
@@ -3384,7 +3333,7 @@ function formatHubCardHtml(m) {
   var plays=modeTimesPlayed(m.id), family=formatHubFamily(m), art=gameArtHtml(m,'format-hub-card-art');
   return '<button class="format-hub-card'+(art?' has-game-art':'')+'" data-go="'+esc(m.id)+'">'+
     art+
-    '<div class="format-hub-card-top"><span class="format-hub-icon">'+icon(m.icon||'football')+'</span>'+
+    '<div class="format-hub-card-top"><span class="format-hub-icon">'+modeMarkHtml(m,'md')+'</span>'+
     '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
     '<small>'+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></span></div>'+
     '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
@@ -3403,7 +3352,7 @@ function formatCollectionShelfHtml(title, subtitle, modes) {
   if(!modes || !modes.length) return '';
   return '<section class="format-collection"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">PLAYLIST</span><h3>'+esc(title)+'</h3></div><span>'+esc(subtitle)+'</span></div>'+
     '<div class="format-collection-row">'+modes.map(function(m){
-      var art=readsGameArtHtml(m,'format-collection-art'); return '<button class="'+(art?'has-art':'')+'" data-go="'+esc(m.id)+'">'+art+'<span class="format-collection-icon">'+icon(m.icon||'football')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
+      var art=gameArtHtml(m,'format-collection-art');return '<button class="'+(art?'has-art':'')+'" data-go="'+esc(m.id)+'">'+art+'<span class="format-mini-mark">'+modeMarkHtml(m,'sm')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
     }).join('')+'</div></section>';
 }
 function formatCollectionsHtml() {
@@ -3432,7 +3381,7 @@ function formatDiscoveryHubHtml() {
     (quick?'<button class="btn-primary format-hub-quick" data-go="'+esc(quick.id)+'">'+icon('zap')+' Quick Play <small>'+esc(quick.title)+'</small></button>':'')+
     '</div>'+
     (state.name && recs.length?'<div class="format-hub-for-you"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOR YOU</span><h3>Your next six</h3></div><span>Personalized daily</span></div>'+
-      '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span>'+icon(r.mode.icon||'football')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
+      '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span class="format-mini-mark">'+modeMarkHtml(r.mode,'sm')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
     '<div class="format-hub-controls">'+
       '<label class="format-hub-search">'+icon('search')+'<input id="format-hub-search" value="'+esc(formatHubState.query)+'" placeholder="Search 100 formats…" autocomplete="off"></label>'+
       '<div class="format-hub-filter-row" role="group" aria-label="League filter">'+
@@ -4424,17 +4373,131 @@ function socialProofModeHtml(mode, compact) {
   if(!n) return '';
   return '<span class="mode-social-proof'+(compact?' compact':'')+'>'+icon('users')+' '+n.toLocaleString()+' Reads play'+(n===1?'':'s')+'</span>';
 }
+function modeLeagueFor(m) {
+  if (!m) return 'neutral';
+  if (m.league) return m.league;
+  if (LEAGUE_MODES.nfl.some(function(x){ return x.id === m.id; })) return 'nfl';
+  if (LEAGUE_MODES.cfb.some(function(x){ return x.id === m.id; })) return 'cfb';
+  return 'neutral';
+}
+function modeMarkFamily(m) {
+  var id = (m && m.id) || '';
+  var iconName = (m && m.icon) || '';
+  if (/grid/i.test(id) || iconName === 'grid') return 'grid';
+  if (/pickem|gameResult|boxscore/i.test(id) || iconName === 'versus') return 'matchup';
+  if (/clue|who|silhouette|mystery/i.test(id) || iconName === 'search' || iconName === 'mystery') return 'identity';
+  if (/draft|lineup|roster|legend/i.test(id) || iconName === 'users') return 'roster';
+  if (/speed|blitz|timer/i.test(id) || iconName === 'timer' || iconName === 'zap') return 'speed';
+  if (/higher|lower|stat|leader|rank/i.test(id) || iconName === 'barChart') return 'stats';
+  if (/timeline|era|career|before|after/i.test(id) || iconName === 'timeline') return 'timeline';
+  if (/bracket|gauntlet|elimination|survival/i.test(id) || iconName === 'trophy') return 'tournament';
+  return 'trivia';
+}
+function modeLogoVariant(m) {
+  var key = String((m && (m.id || m.title)) || 'reads');
+  return Math.abs(hashStr(key + '|mode-logo-v3')) % 12;
+}
+function modeLogoSvg(m) {
+  var id = String((m && m.id) || '');
+  var family = modeMarkFamily(m);
+  var v = modeLogoVariant(m);
+  var common = 'viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  var body = '';
+
+  if (id === 'quiz' || id === 'cfbQuiz') {
+    body = '<path d="M10 15c6-7 22-7 28 0l-3 18c-6 5-16 5-22 0z"/><path d="M20 20c.8-3 6.8-3.5 8.5-.5 2.3 4-4.5 4.2-4.5 8"/><path d="M24 33h.01"/>';
+  } else if (id === 'grid' || id === 'cfbGrid') {
+    body = '<rect x="8" y="8" width="32" height="32" rx="6"/><path d="M18.7 8v32M29.3 8v32M8 18.7h32M8 29.3h32"/><circle cx="24" cy="24" r="3.2"/>';
+  } else if (id === 'blitz' || id === 'cfbBlitz') {
+    body = '<path d="M10 35V17M38 35V17M10 22h28"/><path d="M27 7 17 25h8l-4 16 11-21h-8z"/>';
+  } else if (id === 'speed' || id === 'cfbSpeed') {
+    body = '<circle cx="23" cy="26" r="14"/><path d="M23 12V7M18 7h10M23 26l8-6"/><path d="M34 13l3-3"/>';
+  } else if (id === 'silhouette') {
+    body = '<path d="M15 35c1-7 5-10 9-10s8 3 9 10"/><circle cx="24" cy="16" r="7"/><path d="M12 38h24"/>';
+  } else if (id === 'iq' || id === 'cfbIq') {
+    body = '<path d="M18 36c-5-1-8-5-8-10 0-4 2-7 5-9 0-6 8-9 12-5 5-3 11 1 11 7 3 2 4 5 3 9-1 5-5 8-10 8"/><path d="M24 12v24M18 18h6M24 24h7M17 30h7"/>';
+  } else if (id === 'legends' || id === 'cfbLegends') {
+    body = '<path d="M16 9h16v7c0 7-3 12-8 15-5-3-8-8-8-15z"/><path d="M12 12H8c0 7 3 10 9 10M36 12h4c0 7-3 10-9 10M24 31v6M18 39h12"/><circle cx="24" cy="16" r="3"/>';
+  } else if (id === 'higherLower') {
+    body = '<path d="M14 31V13m0 0-6 6m6-6 6 6M34 17v18m0 0-6-6m6 6 6-6"/><path d="M22 24h4"/>';
+  } else if (id === 'playerClues' || id === 'cfbPlayerClues') {
+    body = '<circle cx="20" cy="20" r="10"/><path d="m28 28 10 10"/><circle cx="17" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="22" cy="18" r="1.2" fill="currentColor" stroke="none"/><path d="M16 24c2-2 6-2 8 0"/>';
+  } else if (/pickem/i.test(id)) {
+    body = '<path d="M8 24c7-10 25-10 32 0-7 10-25 10-32 0z"/><path d="m17 24 5 5 10-11"/>';
+  } else if (id === 'h2h') {
+    body = '<path d="M8 16c5-4 11-4 16 0v16c-5 4-11 4-16 0zM40 16c-5-4-11-4-16 0v16c5 4 11 4 16 0z"/><path d="M19 24h10"/>';
+  } else if (id === 'learn') {
+    body = '<rect x="8" y="11" width="32" height="26" rx="5"/><path d="M13 16h5M13 32h5M30 16h5M30 32h5"/><path d="m21 18 9 6-9 6z"/>';
+  } else if (id === 'daily') {
+    body = '<rect x="9" y="11" width="30" height="28" rx="5"/><path d="M15 7v8M33 7v8M9 19h30"/><path d="m17 29 5 5 10-11"/>';
+  } else if (id === 'draft_guess') {
+    body = '<path d="M11 34h8V22h10v12h8"/><path d="M7 38h34"/><circle cx="24" cy="13" r="5"/><path d="M24 8V5"/>';
+  } else if (id === 'championship_guess') {
+    body = '<circle cx="24" cy="18" r="10"/><path d="M17 28l-3 11 10-5 10 5-3-11"/><path d="m20 18 3 3 6-7"/>';
+  } else if (id === 'lineup_guess') {
+    body = '<circle cx="24" cy="9" r="3"/><circle cx="14" cy="18" r="3"/><circle cx="34" cy="18" r="3"/><circle cx="10" cy="31" r="3"/><circle cx="24" cy="31" r="3"/><circle cx="38" cy="31" r="3"/><path d="M24 12v7M14 21l-4 7M34 21l4 7M24 22v6"/>';
+  } else if (family === 'board') {
+    body = '<rect x="8" y="8" width="32" height="32" rx="7"/><circle cx="16" cy="16" r="2.5"/><circle cx="32" cy="16" r="2.5"/><circle cx="16" cy="32" r="2.5"/><circle cx="32" cy="32" r="2.5"/><path d="M18 16h12M16 18v12M32 18v12M18 32h12"/>';
+  } else if (family === 'roster') {
+    body = '<circle cx="24" cy="13" r="4"/><circle cx="14" cy="27" r="4"/><circle cx="34" cy="27" r="4"/><path d="M24 17v5M18 24l3-2M30 24l-3-2M10 37h28"/>';
+  } else if (family === 'survival') {
+    body = '<path d="M24 7 38 12v10c0 9-5 15-14 19C15 37 10 31 10 22V12z"/><path d="M16 18h16M18 24h12M20 30h8"/>';
+  } else if (family === 'strategy') {
+    body = '<rect x="8" y="9" width="32" height="30" rx="6"/><path d="M14 31c4-8 8-12 15-12h5"/><path d="m30 15 4 4-4 4"/><circle cx="15" cy="31" r="2.5"/>';
+  } else if (family === 'identify') {
+    body = '<circle cx="21" cy="21" r="11"/><path d="m29 29 9 9"/><path d="M17 17c2-3 7-3 9 0M17 24c2 3 7 3 9 0"/>';
+  } else if (family === 'sequence') {
+    body = '<circle cx="11" cy="24" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="37" cy="24" r="3"/><path d="M14 24h7M27 24h7"/><path d="m32 20 5 4-5 4"/>';
+  } else if (family === 'stats') {
+    body = '<path d="M10 37V25h7v12M21 37V17h7v20M32 37V10h7v27"/><path d="M8 40h33"/>';
+  } else if (family === 'timeline') {
+    body = '<path d="M8 24h32"/><circle cx="13" cy="24" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="35" cy="24" r="3"/><path d="M13 17v-4M24 31v4M35 17v-4"/>';
+  } else if (family === 'tournament') {
+    body = '<path d="M10 10h8v7h8v7h8v7h4M10 38h8v-7h8v-7h8v-7h4"/><circle cx="40" cy="24" r="4"/>';
+  } else if (family === 'speed') {
+    body = '<path d="M8 16h20M5 24h23M10 32h18"/><path d="m31 10-7 14h7l-4 14 12-20h-7z"/>';
+  } else {
+    body = '<path d="M10 15c6-7 22-7 28 0l-3 18c-6 5-16 5-22 0z"/><path d="M18 20h12M16 25h16M20 30h8"/>';
+  }
+
+  var signature = [
+    '<path class="mode-logo-signature" d="M7 10h6"/>',
+    '<path class="mode-logo-signature" d="M35 10h6"/>',
+    '<path class="mode-logo-signature" d="M7 38h6"/>',
+    '<path class="mode-logo-signature" d="M35 38h6"/>',
+    '<circle class="mode-logo-signature" cx="8" cy="8" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="40" cy="8" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="8" cy="40" r="1.7"/>',
+    '<circle class="mode-logo-signature" cx="40" cy="40" r="1.7"/>',
+    '<path class="mode-logo-signature" d="m7 12 5-5"/>',
+    '<path class="mode-logo-signature" d="m36 7 5 5"/>',
+    '<path class="mode-logo-signature" d="m7 36 5 5"/>',
+    '<path class="mode-logo-signature" d="m36 41 5-5"/>'
+  ][v];
+
+  return '<svg ' + common + '>' + body + signature + '</svg>';
+}
+function modeMarkHtml(m, size) {
+  var league = modeLeagueFor(m);
+  var family = modeMarkFamily(m);
+  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
+    '<span class="mode-mark-art">' + modeLogoSvg(m) + '</span>' +
+    '</span>';
+}
 function modeCardHtml(m) {
-  var gameArt = gameArtHtml(m,'mode-card-art');
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
-  // played by this player) plus Reads-owned per-game artwork where available.
+  // played by this player, per the same modeTimesPlayed() signal
+  // recommendedModeHtml()'s own "New to you" copy already uses) and a
+  // "Play Now" chevron affordance on featured cards, matching the
+  // redesigned homepage mockup -- no fabricated freshness flag, no new
+  // per-mode metadata.
   var isNew = state.name && modeTimesPlayed(m.id) === 0;
-  var art = readsGameArtHtml(m,'mode-card-art');
-  return '<button class="mode-card' + (m.featured ? ' featured' : '') + (art ? ' has-art' : '') + '" data-go="' + m.id + '">' +
+  var art=gameArtHtml(m,'mode-card-art');
+  return '<button class="mode-card' + (m.featured ? ' featured' : '') + (art ? ' has-game-art' : '') + '" data-go="' + m.id + '">' +
+    art +
     (m.difficulty ? '<span class="mode-difficulty mode-difficulty-' + m.difficulty + '">' + MODE_DIFFICULTY_LABEL[m.difficulty] + '</span>' : '') +
     (isNew ? '<span class="mode-new-badge">New</span>' : '') +
-    art +
-    '<div class="mode-icon">' + icon(m.icon) + '</div>' +
+    '<div class="mode-icon">' + modeMarkHtml(m, m.featured ? 'lg' : 'md') + '</div>' +
     '<div class="mode-title">' + esc(m.title) + '</div>' +
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
     socialProofModeHtml(m.id, true) +
@@ -4507,8 +4570,9 @@ function modeTimesPlayed(id) {
 // size), just one consistent premium row shape instead of every card
 // hand-assembling its own continue-card markup.
 function discoverRowHtml(mode, iconName, title, sublabel, extraClass) {
+  var pseudoMode = { id: mode, icon: iconName, title: title };
   return '<button class="continue-card discover-row' + (extraClass ? ' ' + extraClass : '') + '" data-go="' + esc(mode) + '">' +
-    '<span class="continue-card-icon">' + icon(iconName) + '</span>' +
+    '<span class="continue-card-icon continue-card-mode-mark">' + modeMarkHtml(pseudoMode, 'sm') + '</span>' +
     '<span class="continue-card-text"><span class="continue-card-mode">' + esc(title) + '</span>' +
     '<span class="continue-card-label">' + esc(sublabel) + '</span></span>' +
     icon('arrowRight', 'continue-card-chevron') +
@@ -5287,7 +5351,7 @@ function openModeSheet(league) {
     itemsEl.innerHTML =
       (favTeam ? '<button class="mode-sheet-your-team" data-team-picker-toggle><span class="team-picker-swatch" style="' + teamSwatchStyle(favTeam) + '"></span>Your team: ' + esc(favTeam.name) + (favTeam.chant ? ' — ' + esc(favTeam.chant) : '') + '</button>' : '') +
       LEAGUE_MODES[league].map(function (m) {
-        var art=readsGameArtHtml(m,'mode-sheet-art'); return '<button class="mode-sheet-item'+(art?' has-art':'')+'" data-go="' + m.id + '">'+art+'<span class="msi-icon">' + icon(m.icon) + '</span><span class="msi-text">' + esc(m.title) +
+        var art=gameArtHtml(m,'mode-sheet-art'); return '<button class="mode-sheet-item'+(art?' has-art':'')+'" data-go="' + m.id + '">'+art+'<span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text">' + esc(m.title) +
           '<span class="msi-desc">' + esc(m.desc) + '</span></span></button>';
       }).join('');
   }
@@ -12552,7 +12616,7 @@ function filmOpenConcept(kind, id) {
 function learnSectionCardHtml(s) {
   var shortDesc = { footballEncyclopedia: 'An interactive playbook for positions, formations, coverages, routes, and schemes.', coverageClassroom: 'Read the defense, break down assignments, and test yourself with guided reps.', xsoAlmanac: '700 scheme and strategy facts. Make your read, then reveal the answer.' };
   return '<button class="mode-card" data-learn-open="' + s.id + '">' +
-    '<div class="mode-icon">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" />' : icon(s.icon)) + '</div>' +
+    '<div class="mode-icon">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" />' : modeMarkHtml({id:s.id,icon:s.icon,title:s.title,league:'neutral'}, 'md')) + '</div>' +
     '<div class="mode-title">' + esc(s.title) + '</div>' +
     '<div class="mode-desc">' + esc(shortDesc[s.id] || s.desc) + '</div>' + '<span class="film-card-action">Open session →</span>' +
     '</button>';
@@ -14329,6 +14393,7 @@ function renderAll() {
   var app = document.getElementById('app');
   if (!app) return;
   var html = nameBarHtml();
+  html += appBackBarHtml();
   if (state.screen === 'home') html += renderHome();
   else if (state.screen === 'quiz') html += renderQuizScreen();
   else if (state.screen === 'xso') html += renderXsoScreen();
@@ -14600,8 +14665,8 @@ document.addEventListener('click', function (e) {
     '[data-typeahead-pick], [data-format-hub-league], [data-format-hub-family], [data-format-hub-difficulty], [data-format-hub-new], [data-format-hub-reset], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
-    '[data-mode-restart], [data-mode-exit], ' +
-    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
+    '[data-mode-restart], [data-mode-exit], [data-app-back], ' +
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-week], [data-pickem-game], [data-pickem-retry], ' +
     '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
     '[data-endless-start], [data-endless-answer], [data-endless-next]');
   if (!t) return;
@@ -14831,6 +14896,7 @@ document.addEventListener('click', function (e) {
     if (taInputId && TYPEAHEAD_CONFIGS[taInputId]) { closeTypeahead(taInputId); TYPEAHEAD_CONFIGS[taInputId].onPick(t.dataset.typeaheadPick); }
     return;
   }
+  if (t.dataset.appBack !== undefined) { appNavigateBack(); return; }
   if (t.dataset.leagueToggle !== undefined) { toggleModeSheet(t.dataset.leagueToggle); return; }
   if (t.id === 'mode-sheet-close' || t.id === 'mode-sheet-backdrop') { closeModeSheet(); return; }
   if (t.dataset.go !== undefined) { closeModeSheet(); goToMode(t.dataset.go); return; }
@@ -15248,6 +15314,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
   if (t.dataset.sixdegreesGiveup !== undefined) { giveUpSixDegrees(); return; }
+  if (t.dataset.pickemWeek !== undefined) { changePickemWeek(t.dataset.pickemWeek); return; }
   if (t.dataset.pickemSlate !== undefined) { changePickemSlate(t.dataset.pickemSlate, null); return; }
   if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
   if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }

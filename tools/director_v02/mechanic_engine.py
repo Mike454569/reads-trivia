@@ -1621,6 +1621,8 @@ def _weekly_pickem_client_view(package: dict, progress: dict) -> dict:
             # never a guess.
             "home_team": g["home_display"], "home_team_code": g["home_team"],
             "away_team": g["away_display"], "away_team_code": g["away_team"],
+            "home_record": g.get("home_record"), "away_record": g.get("away_record"),
+            "home_rank": g.get("home_rank"), "away_rank": g.get("away_rank"),
             # kickoff_has_time: real bug fix -- this explicit allow-list
             # was silently dropping the field the frontend needs to avoid
             # re-localizing a date-only value (see weekly_pickem.py's own
