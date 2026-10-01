@@ -648,21 +648,20 @@ function renderCreatorScreen() {
   }
 
   // HOME
-  return '<div class="panel">' + creatorToolbarHtml(false) +
-    '<h2 class="panel-title">Game Creator</h2>' +
-    '<p class="mode-desc">Describe a game in plain English. This checks it against the real Director ' +
-    'feasibility engine -- nothing here executes SQL, code, or a shell command from your text; it can ' +
-    'only ever resolve to one of a fixed set of registered, pre-audited capabilities (Part C/L).</p>' +
-    '<textarea id="creator-request-input" class="creator-textarea" rows="3" placeholder="e.g. Guess the NFL team from its starting offense, by position.">' + esc(s.requestText || '') + '</textarea>' +
-    '<div class="btn-row"><button class="btn-primary" data-creator-check-feasibility>Check Feasibility</button></div>' +
-    '<div class="creator-examples-label">Try one of these:</div>' +
-    '<div class="chip-row">' + CREATOR_EXAMPLE_PROMPTS.map(function (ex) {
-      return '<button class="chip-toggle" data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>';
-    }).join('') + '</div>' +
-    '<h2 class="panel-title">Or Pick a Game Format</h2>' +
-    '<p class="mode-desc">Every format below is real and already playable -- pick one to fill in a ' +
-    'proven real request, then Check Feasibility as usual. Typing your own description above still ' +
-    'works too, especially for the classic quiz categories.</p>' +
+  var directCount = CREATOR_FORMAT_CATALOG.filter(function (x) { return !!x.taxonomyId; }).length;
+  var guidedCount = CREATOR_FORMAT_CATALOG.length - directCount;
+  return '<div class="creator-workspace">' + creatorToolbarHtml(false) +
+    '<section class="creator-hero">' +
+      '<div><span class="dashboard-eyebrow">GAME FACTORY</span><h1>Build football games without fighting the engine.</h1><p>Describe an idea in plain English or jump straight into a proven format. Reads handles feasibility, generation, QA and review.</p></div>' +
+      '<div class="creator-hero-stats"><span><b>' + CREATOR_FORMAT_CATALOG.length + '</b>Formats</span><span><b>' + directCount + '</b>Direct</span><span><b>' + guidedCount + '</b>Guided</span></div>' +
+    '</section>' +
+    '<section class="creator-compose-card">' +
+      '<div class="creator-compose-head"><div><span class="dashboard-eyebrow">DESCRIBE IT</span><h2>What do you want to build?</h2></div><span class="creator-step-chip">1 · Describe</span></div>' +
+      '<textarea id="creator-request-input" class="creator-textarea creator-prompt-box" rows="4" placeholder="Example: Give me a game where I rank NFL quarterbacks by career passing touchdowns.">' + esc(s.requestText || '') + '</textarea>' +
+      '<div class="creator-compose-footer"><div class="creator-example-row">' + CREATOR_EXAMPLE_PROMPTS.slice(0, 3).map(function (ex) { return '<button data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>'; }).join('') + '</div>' +
+      '<button class="btn-primary creator-check-btn" data-creator-check-feasibility>' + icon('zap') + ' Check & Build</button></div>' +
+    '</section>' +
+    '<div class="creator-divider"><span>OR START FROM A PROVEN FORMAT</span></div>' +
     renderCreatorFormatPickerHtml() +
     '</div>';
 }
