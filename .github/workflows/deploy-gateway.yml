@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 concurrency:
   group: deploy-reads-gateway
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
