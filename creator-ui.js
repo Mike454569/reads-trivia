@@ -141,7 +141,7 @@ function creatorLoadRecent() {
   s.recentLoading=true;
   creatorFetchJson('/v1/creator/queue').then(function(result){
     if(state.creator!==s)return;
-    s.recent=(result.packages||[]).slice(0,24);s.recentLoading=false;
+    s.recent=(result.packages||[]).slice(0,100);s.recentLoading=false;
     if(s.screen===CREATOR_SCREEN.HOME)renderAll();
   }).catch(function(){if(state.creator===s){s.recentLoading=false;if(s.screen===CREATOR_SCREEN.HOME)renderAll();}});
 }
@@ -971,7 +971,7 @@ function renderCreatorScreen() {
   }
 
   if (s.screen === CREATOR_SCREEN.RESULT || s.screen === CREATOR_SCREEN.PREVIEW) {
-    var f = s.feasibility;
+    var f = s.feasibility || {support_status:'SUPPORTED',reason:'Loaded existing immutable package.',known_limitations:[]};
     var html = '<div class="panel">' + creatorToolbarHtml(true) +
       '<h2 class="panel-title">Feasibility</h2>' +
       '<p class="mode-desc"><i>' + esc(s.requestText) + '</i></p>' +
