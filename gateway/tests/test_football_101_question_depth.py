@@ -44,13 +44,18 @@ def test_test_me_questions_are_derived_from_existing_diagram_data():
     assert "diagram.blocks || []" in FIELD
 
 
-def test_recent_encyclopedia_questions_are_persisted_per_user_and_concept():
+def test_encyclopedia_questions_exhaust_unique_cycle_before_repeating():
     assert "function f101QuestionHistoryKey(canonicalId)" in APP
     assert "readsF101QuestionHistory__" in APP
-    assert "history.slice(-8)" in APP
+    assert "function f101QuestionSignature(q)" in APP
     assert "function f101FreshTestQuestion(diagram, category, siblings)" in APP
-    assert "for (var i = 0; i < 32; i++)" in APP
-    assert "if (!seen[sig])" in APP
+    assert "for (var i = 0; i < 256; i++)" in APP
+    assert "candidateBySignature[sig]" in APP
+    assert "fresh = candidates.filter(function (entry) { return !seen[entry.signature]; });" in APP
+    assert "if (!fresh.length)" in APP
+    assert "history = lastSignature ? [lastSignature] : [];" in APP
+    assert "history.slice(-256)" in APP
+    assert "history.slice(-8)" not in APP
 
 
 def test_test_me_click_uses_fresh_question_selector_not_raw_random_generator():
