@@ -104,6 +104,7 @@ function creatorInitialState() {
     capabilities: null, error: null, formatQuery: '', formatCategory: 'All',
     guidedLeague: 'NFL', guidedTopic: 'General', guidedDifficulty: 'medium', guidedCount: 5,
     previewMode: 'player', editingQuestionIndex: null,
+    recent: [], recentLoading: false, bulkCount: 5, bulkRunning: false, bulkResults: [], bulkTopic: 'General', bulkLeague: 'NFL',
   };
 }
 
@@ -111,6 +112,7 @@ function creatorSubmitToken(token) {
   creatorSetToken((token || '').trim());
   state.creator.screen = CREATOR_SCREEN.HOME;
   renderAll();
+  creatorLoadRecent();
 }
 
 function creatorLogout() {
@@ -124,8 +126,89 @@ function creatorGoHome() {
   var s = state.creator; if (!s) return;
   s.screen = CREATOR_SCREEN.HOME; s.error = null;
   renderAll();
+  creatorLoadRecent();
 }
 
+function creatorLoadRecent() {
+  var s=state.creator;if(!s||!creatorToken())return;
+  s.recentLoading=true;
+  creatorFetchJson('/v1/creator/queue').then(function(result){
+    if(state.creator!==s)return;
+    s.recent=(result.packages||[]).slice(0,24);s.recentLoading=false;
+    if(s.screen===CREATOR_SCREEN.HOME)renderAll();
+  }).catch(function(){if(state.creator===s){s.recentLoading=false;if(s.screen===CREATOR_SCREEN.HOME)renderAll();}});
+}
+function creatorOpenPackage(packageId) {
+  var s=state.creator;if(!s||!packageId)return;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/games/'+encodeURIComponent(packageId)).then(function(pkg){
+    s.generated=pkg;s.requestText=pkg.requested_description||s.requestText||'';s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();
+  }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorClonePackage(packageId) {
+  var s=state.creator;if(!s||!packageId)return;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/games/'+encodeURIComponent(packageId)).then(function(pkg){
+    s.requestText=pkg.requested_description||'';
+    s.guidedCount=pkg.question_count||pkg.puzzle_count||5;
+    var first=(pkg.questions&&pkg.questions[0])||(pkg.puzzles&&pkg.puzzles[0]);
+    if(first&&first.difficulty)s.guidedDifficulty=first.difficulty;
+    s.generated=null;s.feasibility=null;s.screen=CREATOR_SCREEN.HOME;renderAll();
+    setTimeout(function(){var el=document.getElementById('creator-request-input');if(el){el.focus();el.scrollIntoView({block:'center',behavior:'smooth'});}},0);
+  }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorBulkPrompt(i) {
+  var s=state.creator||{}; var league=s.bulkLeague||'NFL', topic=s.bulkTopic||'General';
+  var topicMap={'General':'mixed football knowledge','Draft':'draft history','History':'football history','Players':'players and careers','Teams':'teams and seasons','Stats':'player and team statistics','Awards':'awards and honors','Games':'real game results and performances'};
+  return 'Make me a '+league+' trivia game about '+(topicMap[topic]||topic.toLowerCase())+'. Batch item '+(i+1)+' of '+(s.bulkCount||5)+'.';
+}
+function creatorBulkSet(field,value) {
+  var s=state.creator;if(!s)return;
+  if(field==='count')s.bulkCount=Math.max(2,Math.min(20,parseInt(value,10)||5));
+  else if(field==='league')s.bulkLeague=value;
+  else if(field==='topic')s.bulkTopic=value;
+  renderAll();
+}
+function creatorBulkGenerate() {
+  var s=state.creator;if(!s||s.bulkRunning)return;
+  var total=Math.max(2,Math.min(20,Number(s.bulkCount)||5));
+  s.bulkRunning=true;s.bulkResults=[];renderAll();
+  var chain=Promise.resolve();
+  for(var i=0;i<total;i++){(function(index){
+    chain=chain.then(function(){
+      return creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:creatorBulkPrompt(index),puzzle_count:s.guidedCount||5,difficulty:s.guidedDifficulty||'medium',seed:'creator-bulk-'+Date.now()+'-'+index})})
+        .then(function(result){s.bulkResults.push({ok:true,result:result,index:index});renderAll();})
+        .catch(function(err){s.bulkResults.push({ok:false,error:creatorUserFacingError(err),index:index});renderAll();});
+    });
+  })(i);}
+  chain.then(function(){s.bulkRunning=false;creatorLoadRecent();renderAll();});
+}
+function creatorRecentHtml() {
+  var s=state.creator||{};
+  var rows=s.recent||[];
+  return '<section class="creator-recent"><div class="creator-library-head"><div><span class="dashboard-eyebrow">RECENT CREATIONS</span><h3>Your latest factory output</h3><p>Open, review, or clone any recent generated package.</p></div><button class="btn-tiny" data-creator-refresh-recent>'+icon('restart')+' Refresh</button></div>'+
+    (s.recentLoading?'<div class="creator-empty-state"><b>Loading recent creations…</b></div>':
+    rows.length?'<div class="creator-recent-grid">'+rows.slice(0,12).map(function(p){
+      var count=(p.question_count!=null?p.question_count:(p.puzzle_count||0));
+      return '<article class="creator-recent-card"><div><span class="creator-format-type">'+esc(p.review_status||'GENERATED')+'</span><b>'+esc(p.game_title||'Generated Game')+'</b><small>'+esc((p.requested_description||'').slice(0,100))+'</small></div>'+
+        '<div class="creator-recent-meta"><span>QA '+esc(p.qa_status||'—')+'</span><span>'+count+' items</span></div>'+
+        '<div class="btn-row"><button class="btn-secondary" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone & Edit</button></div></article>';
+    }).join('')+'</div>':'<div class="creator-empty-state"><b>No creations yet.</b><span>Your generated games will show up here.</span></div>')+
+  '</section>';
+}
+function creatorBulkHtml() {
+  var s=state.creator||{}; var topics=['General','Draft','History','Players','Teams','Stats','Awards','Games'];
+  return '<section class="creator-bulk-card"><div class="creator-compose-head"><div><span class="dashboard-eyebrow">BULK CREATOR</span><h2>Build a whole content pack</h2></div><span class="creator-step-chip">Factory mode</span></div>'+
+    '<div class="creator-guided-grid">'+
+      '<label><span>League</span><select data-creator-bulk="league"><option'+(s.bulkLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.bulkLeague==='CFB'?' selected':'')+'>CFB</option><option'+(s.bulkLeague==='Mixed'?' selected':'')+'>Mixed</option></select></label>'+
+      '<label><span>Topic</span><select data-creator-bulk="topic">'+topics.map(function(x){return '<option'+(s.bulkTopic===x?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Games</span><select data-creator-bulk="count">'+[5,10,15,20].map(function(n){return '<option value="'+n+'"'+(Number(s.bulkCount)===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Questions / game</span><b class="creator-bulk-static">'+Number(s.guidedCount||5)+'</b></label>'+
+    '</div>'+
+    '<div class="creator-bulk-progress">'+(s.bulkResults.length?'<b>'+s.bulkResults.filter(function(x){return x.ok;}).length+' built · '+s.bulkResults.filter(function(x){return !x.ok;}).length+' failed · '+s.bulkResults.length+'/'+Number(s.bulkCount||5)+' attempted</b>':'<b>Ready to build '+Number(s.bulkCount||5)+' games.</b>')+'</div>'+
+    '<button class="btn-primary" data-creator-bulk-generate'+(s.bulkRunning?' disabled':'')+'>'+icon('zap')+' '+(s.bulkRunning?'Building pack…':'Generate Content Pack')+'</button>'+
+  '</section>';
+}
 function creatorCheckFeasibility(text) {
   var s = state.creator; if (!s) return;
   s.requestText = text;
@@ -753,6 +836,7 @@ function renderCreatorScreen() {
       '<div><span class="dashboard-eyebrow">GAME FACTORY</span><h1>Build football games without fighting the engine.</h1><p>Describe an idea in plain English or jump straight into a proven format. Reads handles feasibility, generation, QA and review.</p></div>' +
       '<div class="creator-hero-stats"><span><b>' + CREATOR_FORMAT_CATALOG.length + '</b>Formats</span><span><b>' + directCount + '</b>Direct</span><span><b>' + guidedCount + '</b>Guided</span></div>' +
     '</section>' +
+    creatorRecentHtml() +
     '<section class="creator-compose-card">' +
       '<div class="creator-compose-head"><div><span class="dashboard-eyebrow">DESCRIBE IT</span><h2>What do you want to build?</h2></div><span class="creator-step-chip">1 · Describe</span></div>' +
       '<textarea id="creator-request-input" class="creator-textarea creator-prompt-box" rows="4" placeholder="Example: Give me a game where I rank NFL quarterbacks by career passing touchdowns.">' + esc(s.requestText || '') + '</textarea>' +
@@ -760,6 +844,7 @@ function renderCreatorScreen() {
       '<button class="btn-primary creator-check-btn" data-creator-check-feasibility>' + icon('zap') + ' Check & Build</button></div>' +
     '</section>' +
     creatorGuidedBuilderHtml() +
+    creatorBulkHtml() +
     '<div class="creator-divider"><span>OR START FROM A PROVEN FORMAT</span></div>' +
     renderCreatorFormatPickerHtml() +
     '</div>';
