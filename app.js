@@ -3086,10 +3086,10 @@ var READS_GAME_ART = {
   'Momentum Bar':[4,2,4,4,5], 'Timeout Tokens':[4,3,4,4,5]
 };
 var READS_GAME_ART_CHUNKS = {
-  1:['assets/game-art/01-40-0.b64','assets/game-art/01-40-1.b64'],
-  2:['assets/game-art/41-60-0.b64'],
-  3:['assets/game-art/61-80-0.b64'],
-  4:['assets/game-art/81-100-0.b64']
+  1:['assets/game-art/01-40-0.b64','assets/game-art/01-40-1.b64','assets/game-art/01-40-2.b64'],
+  2:['assets/game-art/41-60-0.b64','assets/game-art/41-60-1.b64'],
+  3:['assets/game-art/61-80-0.b64','assets/game-art/61-80-1.b64'],
+  4:['assets/game-art/81-100-0.b64','assets/game-art/81-100-1.b64']
 };
 function gameArtSpec(m){ return m && READS_GAME_ART[m.title] || null; }
 function gameArtStyle(m){
