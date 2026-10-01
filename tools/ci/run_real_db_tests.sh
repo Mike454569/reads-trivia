@@ -43,6 +43,11 @@ from tools.data_refresh.repair_capability_catalog_drift import repair_missing_ca
 print("Catalog drift repair:", repair_missing_catalog_rows())
 PY
 
+python - <<'PY'
+from tools.director_v02.generate_schema_and_prompt import verify_anthropic_prompt
+print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
+PY
+
 # The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
 # removes duplicate work and lets Fly surface real integration regressions.
