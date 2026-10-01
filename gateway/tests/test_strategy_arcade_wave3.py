@@ -7,11 +7,11 @@ from tools.director_v04 import strategy_arcade_wave3 as w3
 
 
 def _package(variant: str) -> dict:
-    cats=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+    cats=("Game Day","Season & Legacy","College Chaos")
     rounds=[]
     for i in range(36):
         rounds.append({
-            "round_index":i, "category":cats[i%3], "prompt":f"Real question {i}?",
+            "round_index":i, "category":cats[i%3], "bucket":cats[i%3], "prompt":f"Real question {i}?",
             "options":[
                 {"item_id":"A","label":f"Correct {i}"},
                 {"item_id":"B","label":f"Decoy B {i}"},
@@ -71,9 +71,9 @@ def test_comeback_mode_completes_at_21():
 def test_category_draft_enforces_two_use_limit():
     p=_package("CATEGORY_DRAFT"); s={}
     for _ in range(2):
-        _,s=w3.evaluate(p,s,{"action":"Heisman Winners"}); _,s=_answer(p,s)
+        _,s=w3.evaluate(p,s,{"action":"Season & Legacy"}); _,s=_answer(p,s)
     with pytest.raises(ValueError):
-        w3.evaluate(p,s,{"action":"Heisman Winners"})
+        w3.evaluate(p,s,{"action":"Season & Legacy"})
 
 
 def test_three_and_out_converts_drive_on_one_correct():
@@ -82,8 +82,8 @@ def test_three_and_out_converts_drive_on_one_correct():
 
 
 def test_pick_your_poison_routes_selected_category():
-    p=_package("PICK_YOUR_POISON"); _,s=w3.evaluate(p,{},{"action":"NFL Team Records"})
-    assert w3.client_view(p,s)["category"]=="NFL Team Records"
+    p=_package("PICK_YOUR_POISON"); _,s=w3.evaluate(p,{},{"action":"Game Day"})
+    assert w3.client_view(p,s)["category"]=="Game Day"
 
 
 def test_second_chance_queue_defers_first_miss():
@@ -119,8 +119,8 @@ def test_two_minute_drill_spends_clock_by_tempo():
 
 
 def test_category_streak_tracks_categories_independently():
-    p=_package("CATEGORY_STREAK"); _,s=w3.evaluate(p,{},{"action":"Heisman Winners"}); _,s=_answer(p,s)
-    assert s["category_streaks"]["Heisman Winners"]==1
+    p=_package("CATEGORY_STREAK"); _,s=w3.evaluate(p,{},{"action":"Season & Legacy"}); _,s=_answer(p,s)
+    assert s["category_streaks"]["Season & Legacy"]==1
 
 
 def test_perfect_quarter_scores_touchdown_for_two_for_two_drive():
