@@ -101,7 +101,7 @@ function creatorInitialState() {
   return {
     screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
     requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
-    capabilities: null, error: null,
+    capabilities: null, error: null, formatQuery: '', formatCategory: 'All',
   };
 }
 
@@ -388,28 +388,58 @@ function creatorPickFormat(index) {
   if (entry.taxonomyId) { creatorGenerateDirect(entry.taxonomyId, entry.variant); return; }
   creatorUseExample(entry.phrase);
 }
-function renderCreatorFormatPickerHtml() {
-  var byCategory = {};
-  var order = [];
-  CREATOR_FORMAT_CATALOG.forEach(function (entry, i) {
-    if (!byCategory[entry.category]) { byCategory[entry.category] = []; order.push(entry.category); }
-    byCategory[entry.category].push({ entry: entry, index: i });
+function creatorFormatCategories() {
+  var seen={All:true}, out=['All'];
+  CREATOR_FORMAT_CATALOG.forEach(function(entry){
+    if(!seen[entry.category]){seen[entry.category]=true;out.push(entry.category);}
   });
-  // Reuses .creator-examples-label (the existing small bold dim-text
-  // section label) for each category heading and .creator-queue-row (the
-  // existing Review Queue row style) for each entry -- zero new CSS.
-  return order.map(function (cat) {
-    return '<div class="creator-examples-label">' + esc(cat) + '</div>' +
-      byCategory[cat].map(function (row) {
-        return '<div class="creator-queue-row">' +
-          '<div><b>' + esc(row.entry.title) + '</b></div>' +
-          '<div class="mode-desc">' + esc(row.entry.desc) + '</div>' +
-          '<div class="btn-row"><button class="btn-tiny" data-creator-format-pick="' + row.index + '">Use This Format</button></div>' +
-          '</div>';
-      }).join('');
-  }).join('');
+  return out;
 }
-
+function creatorFormatMatches(entry, query, category) {
+  if(category && category!=='All' && entry.category!==category) return false;
+  query=String(query||'').trim().toLowerCase();
+  if(!query) return true;
+  return [entry.title,entry.desc,entry.category,entry.taxonomyId,entry.variant].filter(Boolean).join(' ').toLowerCase().indexOf(query)!==-1;
+}
+function creatorSetFormatCategory(category) {
+  if(!state.creator)return;
+  state.creator.formatCategory=category||'All';
+  renderAll();
+}
+function creatorSetFormatQuery(query) {
+  if(!state.creator)return;
+  state.creator.formatQuery=query||'';
+  renderAll();
+  setTimeout(function(){
+    var el=document.getElementById('creator-format-search');
+    if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}}
+  },0);
+}
+function renderCreatorFormatPickerHtml() {
+  var s=state.creator||{}, query=s.formatQuery||'', category=s.formatCategory||'All';
+  var rows=CREATOR_FORMAT_CATALOG.map(function(entry,index){return {entry:entry,index:index};})
+    .filter(function(row){return creatorFormatMatches(row.entry,query,category);});
+  var cats=creatorFormatCategories();
+  return '<section class="creator-library">'+
+    '<div class="creator-library-head"><div><span class="dashboard-eyebrow">FORMAT LIBRARY</span><h3>Choose a proven mechanic</h3><p>Search the catalog or narrow by family. Direct formats generate immediately.</p></div><div class="creator-library-count"><b>'+rows.length+'</b><span>shown</span></div></div>'+
+    '<div class="creator-library-controls">'+
+      '<div class="creator-search-wrap">'+icon('search')+'<input id="creator-format-search" value="'+esc(query)+'" placeholder="Search formats, mechanics, variants…" autocomplete="off"></div>'+
+      '<div class="creator-category-strip">'+cats.map(function(cat){return '<button class="'+(category===cat?'active':'')+'" data-creator-format-category="'+esc(cat)+'">'+esc(cat)+'</button>';}).join('')+'</div>'+
+    '</div>'+
+    (rows.length?'<div class="creator-format-grid">'+rows.map(function(row){
+      var e=row.entry, direct=!!e.taxonomyId;
+      return '<article class="creator-format-card">'+
+        '<div class="creator-format-card-top"><span class="creator-format-category">'+esc(e.category)+'</span><span class="creator-format-type">'+(direct?'DIRECT':'GUIDED')+'</span></div>'+
+        '<h4>'+esc(e.title)+'</h4><p>'+esc(e.desc)+'</p>'+
+        '<div class="creator-format-meta">'+
+          (e.taxonomyId?'<span>'+esc(e.taxonomyId)+'</span>':'<span>Natural language</span>')+
+          (e.variant?'<span>'+esc(e.variant.replace(/_/g,' '))+'</span>':'')+
+        '</div>'+
+        '<button class="'+(direct?'btn-primary':'btn-secondary')+'" data-creator-format-pick="'+row.index+'">'+(direct?'Generate':'Use Prompt')+'</button>'+
+      '</article>';
+    }).join('')+'</div>':'<div class="creator-empty-state"><b>No formats match that search.</b><span>Try another term or switch back to All.</span></div>')+
+  '</section>';
+}
 function creatorSupportBadgeHtml(status) {
   var cls = { SUPPORTED: 'good', SUPPORTED_WITH_LIMITATIONS: 'good', UNDERSTOOD_BUT_UNSUPPORTED: 'warn',
     MISSING_DATA: 'warn', UNSAFE: 'bad', UNKNOWN: 'warn' }[status] || 'warn';
