@@ -1390,7 +1390,7 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   function eligible(q, ignoreRecent, ignoreDifficulty) {
     var key = dailyQuestionKey(q);
     if (used[key]) return false;
-    if (typeof contentMemoryAllows === 'function' && !ignoreRecent && !contentMemoryAllows(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl')) return false;
+    if (!ignoreRecent && typeof contentRepeatPenalty === 'function' && contentRepeatPenalty(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl') >= 60) return false;
     if (!ignoreRecent && recent[key]) return false;
     if (predicate && !predicate(q)) return false;
     if (!ignoreDifficulty && preferredDifficulty != null && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) > 0) return false;
@@ -1472,7 +1472,7 @@ function decorateDailyQueue(out, rng, targetDifficulty) {
   return out;
 }
 function dailyQuestionPool() {
-  var seed = todayStr() + '__dailyReadsV2__' + (state.name || 'guest');
+  var seed = todayStr() + '__dailyReadsV3__' + (state.name || 'guest');
   var rng = mulberry32(hashStr(seed));
   var nflPool = dailyCandidatePool(QUIZ, 'NFL');
   var cfbPool = dailyCandidatePool(CFB, 'CFB');
