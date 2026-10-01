@@ -7242,3 +7242,87 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .reads-game-art-fallback:before{content:"";position:absolute;inset:10%;border:1px solid rgba(var(--home-glow-rgb),.42);border-radius:22%;transform:rotate(45deg);opacity:.55}
 .reads-game-art-fallback .reads-game-art-r{position:relative;z-index:1;display:grid;place-items:center;width:44px;height:44px;border:2px solid var(--home-accent);border-radius:12px;font-family:var(--font-display);font-size:26px;font-weight:900;box-shadow:0 0 24px rgba(var(--home-glow-rgb),.3)}
 .reads-game-art-fallback b{position:relative;z-index:1;max-width:90%;font-family:var(--font-display);font-size:clamp(15px,4vw,23px);line-height:1.05;text-transform:uppercase;text-shadow:0 2px 12px #000}
+
+
+/* Game art v4 — retina-safe vector treatment.
+   Raster atlases remain in the repository only for rollback/history; no
+   rendered game surface depends on them anymore. */
+.reads-game-art-vector{
+  position:relative;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 34%,rgba(var(--mark-glow),.18),transparent 36%),
+    linear-gradient(155deg,rgba(255,255,255,.035),rgba(5,11,18,.92) 72%);
+  background-image:none!important;
+}
+.reads-game-art-vector::before{
+  content:"";
+  position:absolute;
+  inset:9%;
+  border:1px solid rgba(var(--mark-glow),.18);
+  border-radius:24%;
+  transform:rotate(45deg);
+  pointer-events:none;
+}
+.reads-game-art-vector-mark{
+  position:relative;
+  z-index:1;
+  display:grid;
+  place-items:center;
+}
+.mode-mark-xl{
+  width:112px;
+  height:112px;
+  border-radius:28px;
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.34),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.mode-mark-xl .mode-mark-art{
+  width:78px;
+  height:78px;
+}
+.mode-mark-xl .mode-mark-art svg{
+  shape-rendering:geometricPrecision;
+  vector-effect:non-scaling-stroke;
+}
+.mode-logo-fingerprint{
+  opacity:.62;
+  stroke-width:1.8;
+}
+.format-hub-card-art,
+.mode-card-art{
+  aspect-ratio:16/9;
+}
+.format-hub-card.has-game-art .format-hub-icon,
+.mode-card.has-game-art .mode-icon{
+  display:none;
+}
+.format-collection-row>button.has-art .format-mini-mark,
+.daily-format-five-grid>button.has-art .format-mini-mark{
+  display:none;
+}
+.format-collection-art,
+.daily-format-art{
+  min-height:112px;
+  border-radius:14px;
+  margin-bottom:10px;
+}
+.format-collection-art .mode-mark-xl,
+.daily-format-art .mode-mark-xl{
+  width:76px;
+  height:76px;
+  border-radius:20px;
+}
+.format-collection-art .mode-mark-xl .mode-mark-art,
+.daily-format-art .mode-mark-xl .mode-mark-art{
+  width:54px;
+  height:54px;
+}
+@media(max-width:640px){
+  .mode-mark-xl{width:88px;height:88px;border-radius:22px}
+  .mode-mark-xl .mode-mark-art{width:62px;height:62px}
+  .format-collection-art,.daily-format-art{min-height:96px}
+}
