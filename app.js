@@ -3767,7 +3767,7 @@ function renderCommunityPost(row) {
       '<button class="'+(myReaction==='laugh'?'active':'')+'" data-community-react="'+esc(row.id)+':laugh">😂 '+counts.laugh+'</button>'+
       '<button class="'+(myReaction==='fire'?'active':'')+'" data-community-react="'+esc(row.id)+':fire">🔥 '+counts.fire+'</button>'+
       '<button class="'+(myReaction==='clown'?'active':'')+'" data-community-react="'+esc(row.id)+':clown">🤡 '+counts.clown+'</button>'+
-      '<button data-community-reply-toggle="'+esc(row.id)+'">'+icon('messageCircle')+' '+((row.replies&&row.replies.length)||0)+' replies</button>'+
+      '<button data-community-reply-toggle="'+esc(row.id)+'">'+icon('users')+' '+((row.replies&&row.replies.length)||0)+' replies</button>'+
       (canChallenge?'<button data-friend-challenge="'+esc(row.authorName)+'">'+icon('versus')+' Challenge</button>':'')+
     '</div>'+
     renderCommunityReplies(row)+
