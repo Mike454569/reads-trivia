@@ -118,6 +118,8 @@ window.__fbSync = {
   watchCommunity: function () { return function () {}; },
   postCommunity: function () { return Promise.reject(new Error('Not connected')); },
   postCommunityActivity: function () { return Promise.reject(new Error('Not connected')); },
+  reactCommunity: function () { return Promise.reject(new Error('Not connected')); },
+  replyCommunity: function () { return Promise.reject(new Error('Not connected')); },
   watchSocialChallenges: function () { return function () {}; },
   createSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
   updateSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
@@ -299,6 +301,45 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
         authorName: auth.currentUser.displayName || 'Reads fan',
         createdAt: serverTimestamp()
       }), { merge: true });
+    };
+
+    window.__fbSync.reactCommunity = function (teamKey, postId, reaction) {
+      if (!teamKey || !postId || !reaction) return Promise.reject(new Error('Invalid community reaction'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      var postRef = doc(db, 'games', GAME_ID, 'communities', teamKey, 'posts', postId);
+      return runTransaction(db, function (tx) {
+        return tx.get(postRef).then(function (snap) {
+          if (!snap.exists()) throw new Error('Post not found');
+          var data=snap.data()||{}, reactions=Object.assign({},data.reactions||{});
+          var uid=auth.currentUser.uid;
+          if (reactions[uid]===reaction) delete reactions[uid];
+          else reactions[uid]=reaction;
+          tx.set(postRef,{reactions:reactions},{merge:true});
+          return { reaction: reactions[uid] || null };
+        });
+      });
+    };
+
+    window.__fbSync.replyCommunity = function (teamKey, postId, text) {
+      text=String(text||'').trim().slice(0,180);
+      if (!teamKey || !postId || !text) return Promise.reject(new Error('Invalid community reply'));
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      var postRef = doc(db, 'games', GAME_ID, 'communities', teamKey, 'posts', postId);
+      return runTransaction(db, function (tx) {
+        return tx.get(postRef).then(function (snap) {
+          if (!snap.exists()) throw new Error('Post not found');
+          var data=snap.data()||{}, replies=Array.isArray(data.replies)?data.replies.slice(-29):[];
+          replies.push({
+            id: auth.currentUser.uid+'_'+Date.now(),
+            authorUid: auth.currentUser.uid,
+            authorName: auth.currentUser.displayName || 'Reads fan',
+            text: text,
+            createdAtMs: Date.now()
+          });
+          tx.set(postRef,{replies:replies},{merge:true});
+          return { count: replies.length };
+        });
+      });
     };
 
     window.__fbSync.watchSocialChallenges = function (username, cb) {
