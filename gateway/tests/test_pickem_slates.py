@@ -111,23 +111,22 @@ def test_featured_slate_is_deterministic_across_repeated_calls():
     assert [g["game_id"] for g in first] == [g["game_id"] for g in second]
 
 
-def test_top25_slate_uses_latest_real_ap_poll_at_or_before_game_week():
-    """TOP25 should stay useful when schedule week advances before the next
-    same-numbered AP poll is published. It may use the latest prior real AP
-    poll, but it must never look ahead to a future poll or invent rankings."""
+def test_top25_slate_uses_latest_real_ap_poll_for_current_week():
+    """Current Pick'em follows the latest published AP poll even when poll
+    and schedule week numbers are offset; historical weeks remain bounded
+    in weekly_pickem._ap_top25()."""
     from tools.director_v04 import weekly_pickem
     season, week, games = _real_cfb_full_slate()
     filtered, meta = weekly_pickem.filter_games_for_slate(
         games, slate="TOP25", conference=None, season=season, week=week)
     assert meta["slate"] == "TOP25"
 
-    requested_week = int(week) if str(week).isdigit() else 1
     c = engine_bootstrap.connect()
     try:
         latest = c.execute(
             "SELECT MAX(week) AS week FROM cfb_rankings "
-            "WHERE season=? AND season_type='regular' AND poll='AP Top 25' AND week<=?",
-            (season, requested_week),
+            "WHERE season=? AND season_type='regular' AND poll='AP Top 25'",
+            (season,),
         ).fetchone()
         if latest is None or latest["week"] is None:
             pytest.skip(f"no real AP Top 25 poll available yet for season={season}")
@@ -140,10 +139,23 @@ def test_top25_slate_uses_latest_real_ap_poll_at_or_before_game_week():
     finally:
         c.close()
 
-    assert rank_week <= requested_week
-    assert filtered, "a real prior/current AP poll exists, so TOP25 should not be blank"
+    assert filtered, "a real current AP poll exists, so TOP25 should not be blank"
     for g in filtered:
         assert g["home_team"] in ranked_school_ids or g["away_team"] in ranked_school_ids
+
+
+def test_top25_slate_is_sorted_by_best_numerical_rank():
+    from tools.director_v04 import weekly_pickem
+    season, week, games = _real_cfb_full_slate()
+    filtered, _ = weekly_pickem.filter_games_for_slate(
+        games, slate="TOP25", conference=None, season=season, week=week)
+    c = engine_bootstrap.connect()
+    try:
+        ranks = weekly_pickem._ap_top25(c, season, week, "regular")
+    finally:
+        c.close()
+    best = [min(ranks.get(g["home_team"]) or 999, ranks.get(g["away_team"]) or 999) for g in filtered]
+    assert best == sorted(best)
 
 
 def test_cfb_pickem_games_include_real_pregame_records_and_rank_fields(client):
