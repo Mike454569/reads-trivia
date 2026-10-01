@@ -17,7 +17,7 @@ from tools.director_v04 import strategy_arcade as core
 
 PACKAGE_SCHEMA_VERSION="1.0"
 MECHANIC="STRATEGY_ARCADE"
-_CATEGORIES=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+_CATEGORIES=("Game Day","Season & Legacy","College Chaos")
 
 FORMAT_SPECS={
 "RED_ZONE_LADDER":{"title":"Red Zone Ladder","goal":"Climb from the 20 to the end zone before three misses.","interaction":"Each correct answer advances five yards; every miss costs a life."},
@@ -78,7 +78,7 @@ def _adv(s,correct,n=1):
 def _find(package,start,category):
     for off in range(len(package["rounds"])):
         idx=(start+off)%len(package["rounds"])
-        if package["rounds"][idx]["category"]==category:return idx
+        if package["rounds"][idx].get("bucket")==category:return idx
     raise ValueError("category unavailable")
 
 def client_view(package,progress):
