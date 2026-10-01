@@ -132,21 +132,7 @@ jobs:
             python3 -c "import json,sys; rows=json.load(sys.stdin); print(next((r.get('config') or {}).get('image') for r in rows if (r.get('config') or {}).get('image')))")
           echo "Using deployed production image ref for restore helper"
           export TEMP_MACHINE_NAME PROD_IMAGE_REF TEMP_VOL_ID FLY_REGION
-          MACHINE_PAYLOAD=$(python3 - <<'PY'
-import json, os
-print(json.dumps({
-    "name": os.environ["TEMP_MACHINE_NAME"],
-    "region": os.environ["FLY_REGION"],
-    "config": {
-        "image": os.environ["PROD_IMAGE_REF"],
-        "auto_destroy": False,
-        "processes": [{"name": "ci-restore", "cmd": ["sleep", "600"]}],
-        "mounts": [{"volume": os.environ["TEMP_VOL_ID"], "path": "/data"}],
-        "guest": {"cpu_kind": "shared", "cpus": 1, "memory_mb": 256}
-    }
-}))
-PY
-          )
+          MACHINE_PAYLOAD=$(python3 -c 'import json,os; print(json.dumps({"name":os.environ["TEMP_MACHINE_NAME"],"region":os.environ["FLY_REGION"],"config":{"image":os.environ["PROD_IMAGE_REF"],"auto_destroy":False,"processes":[{"name":"ci-restore","cmd":["sleep","600"]}],"mounts":[{"volume":os.environ["TEMP_VOL_ID"],"path":"/data"}],"guest":{"cpu_kind":"shared","cpus":1,"memory_mb":256}}}))')
           TEMP_MACHINE_JSON=$(curl -fsS -X POST \
             -H "Authorization: Bearer ${FLY_API_TOKEN}" \
             -H "Content-Type: application/json" \
