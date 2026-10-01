@@ -6281,3 +6281,8 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .mode-social-proof .icon{width:12px;height:12px}
 .mode-social-proof.compact{font-size:9.5px}
 .format-hub-card>.mode-social-proof{margin-top:auto;padding-top:8px}
+
+/* Favorite-team game-day context (honest slate status; no invented live score) */
+.live-favorite-context{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:10px 0 14px;padding:13px 14px;border:1px solid rgba(var(--fav-team-rgb,255,255,255),.30);border-radius:14px;background:linear-gradient(110deg,rgba(var(--fav-team-rgb,255,255,255),.09),rgba(255,255,255,.02))}
+.live-favorite-context>div{min-width:0}.live-favorite-context b,.live-favorite-context small{display:block}.live-favorite-context b{margin:3px 0;font-size:14px}.live-favorite-context small{color:var(--text-dim);font-size:11px}
+@media(max-width:560px){.live-favorite-context{align-items:flex-start;flex-direction:column}.live-favorite-context .btn-tiny{width:100%;justify-content:center}}
