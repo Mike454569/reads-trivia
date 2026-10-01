@@ -157,6 +157,54 @@ def save_package(package: dict, *, review_status: str = "GENERATED") -> dict:
     return record
 
 
+def create_question_revision(package_id: str, question_index: int, replacement: dict) -> dict:
+    """Create a NEW immutable package version with one question replaced.
+
+    Creator editing must never mutate content-addressed game content in place.
+    This helper clones the stored package, replaces exactly one question,
+    derives a fresh ID in the same GGP prefix family, then sends the clone
+    through save_package() so the global package contract independently
+    validates the revised content before it can enter the review queue.
+    """
+    original = load_package(package_id)
+    if original is None:
+        raise FileNotFoundError(f"no such package: {package_id}")
+    questions = original.get("questions")
+    if not isinstance(questions, list):
+        raise ValueError("QUESTION_REVISION_UNSUPPORTED")
+    if question_index < 0 or question_index >= len(questions):
+        raise IndexError("question_index out of range")
+    if not isinstance(replacement, dict):
+        raise ValueError("replacement must be an object")
+
+    allowed = {"question", "options", "correctIndex", "notes", "difficulty"}
+    revised_question = dict(questions[question_index])
+    for key, value in replacement.items():
+        if key not in allowed:
+            raise ValueError(f"field {key!r} cannot be edited")
+        revised_question[key] = value
+
+    revised = dict(original)
+    revised_questions = [dict(q) for q in questions]
+    revised_questions[question_index] = revised_question
+    revised["questions"] = revised_questions
+    revised["question_count"] = len(revised_questions)
+    revised["revision_of"] = package_id
+    revised["revision_note"] = f"Creator question {question_index + 1} revision"
+    for key in ("gateway_stored_at", "reviewed_at", "review_status", "generated_at"):
+        revised.pop(key, None)
+
+    prefix = package_id.split(":", 1)[0]
+    digest_source = dict(revised)
+    digest_source.pop("package_id", None)
+    digest = hashlib.sha256(
+        json.dumps(digest_source, sort_keys=True, ensure_ascii=False, default=str).encode()
+    ).hexdigest()[:24]
+    revised["package_id"] = f"{prefix}:{digest}"
+    revised["qa_status"] = "PASSED"
+    return save_package(revised)
+
+
 def load_package(package_id: str) -> dict | None:
     """Returns the stored record, or None if not found. Raises
     PackageIdInvalid for a malformed ID -- callers map that to the same
