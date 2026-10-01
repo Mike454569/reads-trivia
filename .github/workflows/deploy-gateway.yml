@@ -18,20 +18,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Normalize Fly gateway to one production machine
+      - name: Remove known unhealthy duplicate Fly machine
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
-          echo "Current Fly machine count:"
-          flyctl scale show -a "$APP"
-          # Reads gateway uses a single writable Engine volume. Keep exactly
-          # one production machine so a duplicate/stale machine cannot block
-          # rolling deploy health checks.
-          flyctl scale count 1 -a "$APP" --yes
-          echo "Normalized Fly machine count:"
-          flyctl scale show -a "$APP"
+          BAD_MACHINE="e820d65c36ed58"
+          MACHINES_JSON=$(flyctl machines list -a "$APP" --json)
+          if printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; bad='$BAD_MACHINE'; rows=json.load(sys.stdin); raise SystemExit(0 if any(str(r.get('id') or r.get('ID'))==bad for r in rows) else 1)"; then
+            echo "Destroying repeat-failing duplicate Fly machine $BAD_MACHINE"
+            flyctl machine destroy "$BAD_MACHINE" -a "$APP" --force
+          else
+            echo "Known bad machine already absent."
+          fi
+          REMAINING=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-')]; print(' '.join(ids)); print(len(ids), file=sys.stderr)")
+          echo "Remaining production machines: $REMAINING"
 
       - name: Deploy Reads gateway
         run: flyctl deploy . --config gateway/fly.toml --remote-only
