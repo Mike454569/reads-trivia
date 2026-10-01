@@ -158,6 +158,23 @@ jobs:
           echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
           "$HOME/.fly/bin/flyctl" machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
 
+          # Fly can report the Machine started a few seconds before its SSH
+          # server accepts connections. Gate the source upload on actual SSH
+          # readiness rather than racing the guest boot.
+          SSH_READY=0
+          for attempt in $(seq 1 30); do
+            if "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" -C "true" >/dev/null 2>&1; then
+              SSH_READY=1
+              break
+            fi
+            echo "Waiting for helper SSH (attempt $attempt/30)"
+            sleep 2
+          done
+          if [ "$SSH_READY" != "1" ]; then
+            echo "Helper Machine never became SSH-ready" >&2
+            exit 1
+          fi
+
           # Ship the branch source to the helper. This is intentionally the
           # inverse of the old design: move a small source archive to Fly,
           # never the multi-GB production database away from Fly.
