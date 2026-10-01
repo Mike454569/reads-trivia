@@ -14280,6 +14280,8 @@ document.addEventListener('click', function (e) {
     '[data-creator-clone-package], [data-creator-refresh-recent], [data-creator-bulk-generate], [data-creator-save-recipe], ' +
     '[data-creator-run-recipe], [data-creator-delete-recipe], [data-creator-check-duplicates], [data-creator-replace-question], ' +
     '[data-creator-toggle-package], [data-creator-select-visible], [data-creator-clear-selection], [data-creator-batch-review], ' +
+    '[data-creator-dashboard-filter], [data-creator-create-collection], [data-creator-delete-collection], [data-creator-add-collection], ' +
+    '[data-creator-fix-issues], [data-creator-preview-surface], [data-creator-restore-version], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -14999,6 +15001,17 @@ document.addEventListener('click', function (e) {
   if (t.dataset.creatorSelectVisible !== undefined) { creatorSelectVisiblePackages(); return; }
   if (t.dataset.creatorClearSelection !== undefined) { creatorClearPackageSelection(); return; }
   if (t.dataset.creatorBatchReview !== undefined) { creatorBatchReview(t.dataset.creatorBatchReview); return; }
+  if (t.dataset.creatorDashboardFilter !== undefined) {
+    if (t.dataset.creatorDashboardFilter === 'risk') { state.creator.queueSort='qa-risk'; creatorLoadQueue(''); }
+    else { state.creator.queueSort='priority'; creatorLoadQueue(t.dataset.creatorDashboardFilter); }
+    return;
+  }
+  if (t.dataset.creatorCreateCollection !== undefined) { creatorCreateCollection(); return; }
+  if (t.dataset.creatorDeleteCollection !== undefined) { creatorRemoveCollection(t.dataset.creatorDeleteCollection); return; }
+  if (t.dataset.creatorAddCollection !== undefined) { creatorAddToCollection(t.dataset.creatorAddCollection,t.dataset.creatorPackageId); return; }
+  if (t.dataset.creatorFixIssues !== undefined) { creatorFixFlaggedQuestions(); return; }
+  if (t.dataset.creatorPreviewSurface !== undefined) { state.creator.previewSurface=t.dataset.creatorPreviewSurface; renderAll(); return; }
+  if (t.dataset.creatorRestoreVersion !== undefined) { creatorOpenPackage(t.dataset.creatorRestoreVersion); return; }
   if (t.dataset.creatorSaveRecipe !== undefined) { creatorSaveRecipe(); return; }
   if (t.dataset.creatorRunRecipe !== undefined) { creatorRunRecipe(t.dataset.creatorRunRecipe); return; }
   if (t.dataset.creatorDeleteRecipe !== undefined) { creatorDeleteRecipe(t.dataset.creatorDeleteRecipe); return; }
@@ -15420,7 +15433,7 @@ if (HIDDEN_ROUTES[location.hash]) {
     state.creator = creatorInitialState();
   }
   renderAll();
-  if (state.screen === 'creator' && creatorToken()) { creatorLoadRecipes(); creatorLoadRecent(); }
+  if (state.screen === 'creator' && creatorToken()) { creatorLoadRecipes(); creatorLoadCollections(); creatorLoadRecent(); }
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode && !pendingSocialChallengeCode) { openOnboarding(); }
 
