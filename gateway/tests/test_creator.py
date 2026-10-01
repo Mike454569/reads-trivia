@@ -287,12 +287,38 @@ def test_creator_question_revision_requires_admin(client):
 
 
 def test_creator_question_revision_creates_new_immutable_package(client, auth_headers):
-    original = client.post(
-        "/v1/creator/generate",
-        json={"request_text": DRAFT_REQUEST, "puzzle_count": 2, "seed": "pytest-creator-revision-base"},
-        headers=auth_headers,
-    ).json()
-    assert original["package_id"]
+    # Keep this route-level regression independent of the production football
+    # warehouse. The normal CI lane intentionally runs without data_coverage;
+    # real-engine generation is exercised by the separate real-DB integration
+    # job. Here we seed a contract-valid immutable package, then verify the
+    # Creator revision route itself end to end.
+    from gateway.services import packages
+
+    original = packages.save_package({
+        "package_id": "GGP:" + "1" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Creator revision fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [
+            {
+                "question": "Which team drafted Player A?",
+                "options": ["Team A", "Team B", "Team C", "Team D"],
+                "correctIndex": 0,
+                "answer": "Team A",
+                "notes": "",
+                "difficulty": "medium",
+            },
+            {
+                "question": "Which team drafted Player B?",
+                "options": ["Team E", "Team F", "Team G", "Team H"],
+                "correctIndex": 1,
+                "answer": "Team F",
+                "notes": "",
+                "difficulty": "medium",
+            },
+        ],
+        "question_count": 2,
+    })
     q = original["questions"][0]
     replacement = {
         "question": q["question"] + " (reviewed edit)",
@@ -323,13 +349,42 @@ def test_creator_duplicate_report_requires_admin(client):
 
 
 def test_creator_duplicate_report_runs_for_generated_package(client, auth_headers):
-    created = client.post(
-        "/v1/creator/generate",
-        json={"request_text": DRAFT_REQUEST, "puzzle_count": 2, "seed": "pytest-creator-duplicate-report"},
-        headers=auth_headers,
-    )
-    assert created.status_code == 200
-    package_id = created.json()["package_id"]
+    # Duplicate Intelligence is a package-repository feature, so seed two
+    # valid packages directly instead of requiring the warehouse-less unit
+    # test lane to generate NFL Draft content.
+    from gateway.services import packages
+
+    target = packages.save_package({
+        "package_id": "GGP:" + "2" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Duplicate target fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [{
+            "question": "Which team drafted Player C?",
+            "options": ["Team I", "Team J", "Team K", "Team L"],
+            "correctIndex": 2,
+            "answer": "Team K",
+            "notes": "",
+            "difficulty": "medium",
+        }],
+        "question_count": 1,
+    })
+    packages.save_package({
+        "package_id": "GGP:" + "3" * 24,
+        "qa_status": "PASSED",
+        "game_title": "Duplicate comparison fixture",
+        "requested_description": DRAFT_REQUEST,
+        "questions": [{
+            "question": "Which team drafted Player C?",
+            "options": ["Team I", "Team J", "Team K", "Team L"],
+            "correctIndex": 2,
+            "answer": "Team K",
+            "notes": "",
+            "difficulty": "medium",
+        }],
+        "question_count": 1,
+    })
+    package_id = target["package_id"]
     report = client.get(f"/v1/creator/duplicates/{package_id}", headers=auth_headers)
     assert report.status_code == 200
     body = report.json()
