@@ -18,23 +18,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Remove stale stopped Fly machine
+      - name: Normalize Fly gateway to one production machine
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
-          MACHINES_JSON=$(flyctl machines list -a "$APP" --json)
-          STARTED_COUNT=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; rows=json.load(sys.stdin); print(sum(1 for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-')))")
-          STOPPED_IDS=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='stopped' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
-          if [ "$STARTED_COUNT" -ge 1 ] && [ -n "$STOPPED_IDS" ]; then
-            echo "Healthy started production machine exists; removing stale stopped machine(s): $STOPPED_IDS"
-            for id in $STOPPED_IDS; do
-              flyctl machine destroy "$id" -a "$APP" --force
-            done
-          else
-            echo "No stale stopped production machine removed (started=$STARTED_COUNT)."
-          fi
+          echo "Current Fly machine count:"
+          flyctl scale show -a "$APP"
+          # Reads gateway uses a single writable Engine volume. Keep exactly
+          # one production machine so a duplicate/stale machine cannot block
+          # rolling deploy health checks.
+          flyctl scale count 1 -a "$APP" --yes
+          echo "Normalized Fly machine count:"
+          flyctl scale show -a "$APP"
 
       - name: Deploy Reads gateway
         run: flyctl deploy . --config gateway/fly.toml --remote-only
