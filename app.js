@@ -14439,7 +14439,7 @@ document.addEventListener('click', function (e) {
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], [data-app-back], ' +
-    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-week], [data-pickem-game], [data-pickem-retry], ' +
     '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
     '[data-endless-start], [data-endless-answer], [data-endless-next]');
   if (!t) return;
@@ -15087,6 +15087,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
   if (t.dataset.sixdegreesGiveup !== undefined) { giveUpSixDegrees(); return; }
+  if (t.dataset.pickemWeek !== undefined) { changePickemWeek(t.dataset.pickemWeek); return; }
   if (t.dataset.pickemSlate !== undefined) { changePickemSlate(t.dataset.pickemSlate, null); return; }
   if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
   if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }
