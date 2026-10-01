@@ -137,18 +137,10 @@ jobs:
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
           # Run the real-DB suite beside the fork instead of copying the
-          # multi-GB SQLite database back through Fly SSH/SFTP. Reuse the
-          # deployed production image so Python + runtime dependencies match
-          # production, but override its entrypoint and isolate all mutable
-          # test state under /tmp.
-          PROD_IMAGE_REF=$(printf '%s' "$MACHINES_JSON" | \
-            python3 -c "import json,sys; mid='$PROD_MACHINE_ID'; rows=json.load(sys.stdin); r=next(x for x in rows if str(x.get('id') or x.get('ID'))==mid); print((r.get('config') or {}).get('image') or '')")
-          if [ -z "$PROD_IMAGE_REF" ]; then
-            echo "Could not resolve deployed production image" >&2
-            exit 1
-          fi
-
-          "$HOME/.fly/bin/flyctl" machine run "$PROD_IMAGE_REF" \
+          # multi-GB SQLite database back through Fly SSH/SFTP. A disposable
+          # Alpine helper reliably supports Fly SSH; Python/test dependencies
+          # are installed only inside this isolated CI machine.
+          "$HOME/.fly/bin/flyctl" machine run alpine:3.20 \
             -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
             --name "$TEMP_MACHINE_NAME" --entrypoint "tail -f /dev/null" \
             --memory 1024 --detach
@@ -191,7 +183,7 @@ jobs:
             -a "$FLY_APP" --machine "$TEMP_MACHINE_ID"
 
           "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" \
-            -C "sh -lc 'set -eu; rm -rf /tmp/reads-ci; mkdir -p /tmp/reads-ci; tar -xzf /tmp/reads-ci-src.tgz -C /tmp/reads-ci; chmod +x /tmp/reads-ci/tools/ci/run_real_db_tests.sh; /tmp/reads-ci/tools/ci/run_real_db_tests.sh'"
+            -C "sh -lc 'set -eu; apk add --no-cache python3 py3-pip; rm -rf /tmp/reads-ci; mkdir -p /tmp/reads-ci; tar -xzf /tmp/reads-ci-src.tgz -C /tmp/reads-ci; chmod +x /tmp/reads-ci/tools/ci/run_real_db_tests.sh; /tmp/reads-ci/tools/ci/run_real_db_tests.sh'"
 
 
       # Always runs, even if an earlier step failed -- a temporary volume or
