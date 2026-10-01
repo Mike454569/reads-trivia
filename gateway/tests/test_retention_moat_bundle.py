@@ -87,3 +87,22 @@ def test_progression_road_unifies_rank_frame_and_share_unlocks():
     profile = APP.split("function renderProfile() {", 1)[1].split("function profileModeCardsHtml()", 1)[0]
     assert "progressionRoadHtml()" in profile
     assert ".progression-road" in CSS
+
+
+def test_social_proof_uses_real_aggregate_play_counts():
+    assert "function globalModePlayCount(mode)" in APP
+    assert "window.__fbSync.playCounts" in APP
+    assert "function socialProofModeHtml(mode, compact)" in APP
+    assert "socialProofModeHtml(m.id, true)" in APP
+    assert "state.screen === 'stats' || state.screen === 'home'" in APP
+
+
+def test_live_football_favorite_context_never_invents_scores():
+    live = (ROOT / "live-football-ui.js").read_text(encoding="utf-8")
+    assert "function liveFootballFavoriteOpenGames()" in live
+    assert "function liveFootballFavoriteContextHtml()" in live
+    assert "g.status !== 'FINAL' && g.status !== 'CANCELED'" in live
+    context = live.split("function liveFootballFavoriteContextHtml()", 1)[1].split("function liveFootballHomeHtml()", 1)[0]
+    assert "away_score" not in context
+    assert "home_score" not in context
+    assert ".live-favorite-context" in CSS
