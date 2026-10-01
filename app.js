@@ -1390,7 +1390,7 @@ function pickDailyCandidate(pool, rng, used, recent, predicate, preferredDifficu
   function eligible(q, ignoreRecent, ignoreDifficulty) {
     var key = dailyQuestionKey(q);
     if (used[key]) return false;
-    if (typeof contentMemoryAllows === 'function' && !ignoreRecent && !contentMemoryAllows(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl')) return false;
+    if (!ignoreRecent && typeof contentRepeatPenalty === 'function' && contentRepeatPenalty(q, q._dailyLeague === 'CFB' ? 'cfb' : 'nfl') >= 60) return false;
     if (!ignoreRecent && recent[key]) return false;
     if (predicate && !predicate(q)) return false;
     if (!ignoreDifficulty && preferredDifficulty != null && Math.abs(dailyDifficultyLevel(q) - preferredDifficulty) > 0) return false;
@@ -1472,7 +1472,7 @@ function decorateDailyQueue(out, rng, targetDifficulty) {
   return out;
 }
 function dailyQuestionPool() {
-  var seed = todayStr() + '__dailyReadsV2__' + (state.name || 'guest');
+  var seed = todayStr() + '__dailyReadsV3__' + (state.name || 'guest');
   var rng = mulberry32(hashStr(seed));
   var nflPool = dailyCandidatePool(QUIZ, 'NFL');
   var cfbPool = dailyCandidatePool(CFB, 'CFB');
@@ -1888,7 +1888,7 @@ function dailyChallengeCardHtml() {
   var streak = getStreak();
   var streakBit = streak.count > 0 ? icon('flame', 'streak-flame') + ' ' + streak.count + '-day streak' : '';
   var badge = '<span class="daily-flame-badge">' + icon('flame') + '</span>';
-  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5 · V2</div>';
+  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5 · V3</div>';
   if (already) {
     var r = getDailyResult();
     var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
@@ -1959,6 +1959,39 @@ function renderDailyQuestion() {
       : '') +
     '</div>';
 }
+
+function dailyTomorrowPlanHtml() {
+  if (!state.name) return '';
+  var recs=scoredModeRecommendations(2), weak=personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(a,b){return a.pct-b.pct;})[0];
+  var fav=primaryFavoriteTeam();
+  var bits=[];
+  if(fav) bits.push('more '+fav.name);
+  if(weak) bits.push('a '+weak.category+' rep');
+  if(recs[0]) bits.push('a '+recs[0].mode.title+'-style look');
+  return '<section class="daily-tomorrow-plan"><span class="dashboard-eyebrow">TOMORROW’S READ</span><b>'+(bits.length?'Reads is lining up '+esc(bits.slice(0,2).join(' + '))+'.':'Your next five will rotate away from today’s mix.')+'</b><small>Daily Reads keeps recent formats and questions on cooldown so the five stay fresh.</small></section>';
+}
+function dailyOneMoreHtml() {
+  var rec=scoredModeRecommendations(1)[0];
+  if(!rec)return '';
+  return '<section class="daily-one-more"><div><span class="dashboard-eyebrow">ONE MORE?</span><h3>'+esc(rec.mode.title)+'</h3><p>'+esc(rec.reason)+'. Keep playing without changing today’s Daily 5 result.</p></div><button class="btn-primary" data-go="'+esc(rec.mode.id)+'">Play Bonus Game</button></section>';
+}
+function dailySocialProofHtml() {
+  if(!state.name) return '';
+  var today=dailyRivalRows('today');
+  var friends=dailyRivalScopeRows(today,'friends');
+  var team=dailyRivalScopeRows(today,'team');
+  var overallRank=dailyRivalMeIndex(today);
+  var friendRank=dailyRivalMeIndex(friends);
+  var teamRank=dailyRivalMeIndex(team);
+  if(!today.length && !friends.length && !team.length) return '';
+  return '<section class="daily-social-proof"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">HOW YOU STACKED UP</span><h3>Today’s room</h3></div><span>Live leaderboard data</span></div>'+
+    '<div class="daily-rivals-rank-strip">'+
+      '<span><b>'+(overallRank?'#'+overallRank:'—')+'</b><small>Reads today</small></span>'+
+      '<span><b>'+(friendRank?'#'+friendRank:'—')+'</b><small>Friends</small></span>'+
+      '<span><b>'+(teamRank?'#'+teamRank:'—')+'</b><small>Your team</small></span>'+
+      '<span><b>'+today.length+'</b><small>Players active</small></span>'+
+    '</div></section>';
+}
 function renderDailySummary() {
   var t = state.daily, pct = Math.round(100 * t.correctCount / t.queue.length);
   var p = getProgression();
@@ -1974,11 +2007,14 @@ function renderDailySummary() {
       var missed = t.missed.some(function (m) { return m._dailyIndex === i || m.question === q.question; });
       return '<span class="' + (missed ? 'missed' : 'hit') + '"><b>' + esc(DAILY_MECHANICS[q._dailyMechanic || 'quick'].label) + '</b><small>' + (missed ? 'Miss' : 'Hit') + '</small></span>';
     }).join('') + '</div>' +
+    dailySocialProofHtml() +
     dailyRivalsHtml(true) +
     dailyStreakRewardsHtml() +
     weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
     dailyFormatRotationHtml(false) +
+    dailyTomorrowPlanHtml() +
+    dailyOneMoreHtml() +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
     '<button class="btn-primary" data-go="home">Back to Dashboard</button>' +
@@ -1994,6 +2030,8 @@ function renderDailyScreen() {
         '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
         weeklyDailyRecapHtml(true) +
         dailyFormatRotationHtml(false) +
+        dailyTomorrowPlanHtml() +
+        dailyOneMoreHtml() +
         '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
     return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
@@ -3160,8 +3198,39 @@ function formatHubCardHtml(m) {
     '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
     '<small>'+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></span></div>'+
     '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
+    socialProofModeHtml(m.id, true)+
     '<div class="format-hub-card-foot"><span>'+esc(family.replace('_',' '))+'</span><span>'+(plays?plays+' played':'New to you')+' '+icon('arrowRight')+'</span></div>'+
     '</button>';
+}
+function formatCollectionModes(predicate, limit) {
+  return allPlayableModesUnique().filter(predicate).sort(function(a,b){
+    var ap=modeTimesPlayed(a.id), bp=modeTimesPlayed(b.id);
+    if(ap!==bp) return ap-bp;
+    return (a.title||'').localeCompare(b.title||'');
+  }).slice(0,limit||5);
+}
+function formatCollectionShelfHtml(title, subtitle, modes) {
+  if(!modes || !modes.length) return '';
+  return '<section class="format-collection"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">PLAYLIST</span><h3>'+esc(title)+'</h3></div><span>'+esc(subtitle)+'</span></div>'+
+    '<div class="format-collection-row">'+modes.map(function(m){
+      return '<button data-go="'+esc(m.id)+'"><span>'+icon(m.icon||'football')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
+    }).join('')+'</div></section>';
+}
+function formatCollectionsHtml() {
+  var all=allPlayableModesUnique();
+  if(!all.length) return '';
+  var fav=getFavoriteTeams(), prefLeague=fav.cfb && !fav.nfl ? 'cfb' : fav.nfl && !fav.cfb ? 'nfl' : null;
+  var newModes=formatCollectionModes(function(m){return modeTimesPlayed(m.id)===0;},5);
+  var quick=formatCollectionModes(function(m){return m.difficulty==='casual' || /quick|speed|blitz|daily|higher|lower/i.test((m.title||'')+' '+(m.id||''));},5);
+  var brutal=formatCollectionModes(function(m){return m.difficulty==='hardcore';},5);
+  var tailored=formatCollectionModes(function(m){return prefLeague ? (m.league===prefLeague || m.league==='mixed') : formatHubRecommendationRows(12).some(function(r){return r.mode.id===m.id;});},5);
+  return '<section class="format-collections" aria-label="Curated game collections">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CURATED FOR YOU</span><h2>Pick a lane</h2></div><span>100 games, less hunting</span></div>'+
+    formatCollectionShelfHtml('New to You','Fresh formats',newModes)+
+    formatCollectionShelfHtml('Quick Hitters','Fast games',quick)+
+    formatCollectionShelfHtml('Think You Know Ball?','Hardcore',brutal)+
+    formatCollectionShelfHtml(prefLeague==='cfb'?'College Sickos':prefLeague==='nfl'?'Sunday Mode':'Because You Play Reads','Personalized',tailored)+
+  '</section>';
 }
 function formatDiscoveryHubHtml() {
   var modes=formatHubFilteredModes(), quick=formatHubQuickPlayMode(), recs=formatHubRecommendationRows(6);
@@ -3610,6 +3679,7 @@ var communityRows = [];
 var communityDraft = '';
 var communityLoading = false;
 var communityError = '';
+var communityReplyOpenId = null;
 var communityUnsubscribe = null;
 var communityActiveLeague = null;
 var COMMUNITY_POST_LIMIT = 180;
@@ -3675,13 +3745,33 @@ function communityCardHtml() {
   return '<button class="community-home-card" data-go="community">' +
     '<span class="community-home-icon">' + favoriteTeamBadgeHtml() + '</span>' +
     '<span class="community-home-copy"><span class="community-home-kicker">YOUR TEAM COMMUNITY</span>' +
-    '<strong>' + esc(team.name) + ' Fans</strong><small>Talk ball with people repping your team.</small></span>' +
+    '<strong>' + esc(team.name) + ' Fans</strong><small>Weekly leaderboard, team challenges, live reactions and fan-to-fan matchups.</small></span>' +
     icon('arrowRight', 'continue-card-chevron') +
     '</button>';
+}
+function communityReactionCounts(row) {
+  var out={knowball:0,laugh:0,clown:0,fire:0};
+  Object.keys((row&&row.reactions)||{}).forEach(function(uid){
+    var r=row.reactions[uid]; if(out[r]!==undefined) out[r]++;
+  });
+  return out;
+}
+function renderCommunityReplies(row) {
+  var replies=Array.isArray(row.replies)?row.replies.slice(-6):[];
+  if(!replies.length && communityReplyOpenId!==row.id) return '';
+  return '<div class="community-replies">'+
+    replies.map(function(r){return '<div class="community-reply"><b>'+esc(r.authorName||'Reads fan')+'</b><span>'+esc(r.text||'')+'</span></div>';}).join('')+
+    (communityReplyOpenId===row.id ? (activeAuthUid ?
+      '<div class="community-reply-composer"><input id="community-reply-input-'+esc(row.id)+'" maxlength="180" placeholder="Reply to '+esc(row.authorName||'this post')+'…"><button class="btn-tiny" data-community-reply-send="'+esc(row.id)+'">Reply</button></div>' :
+      '<div class="community-login-note"><span>Log in to reply.</span><button class="btn-tiny" data-auth-open="login">Log In</button></div>') : '')+
+  '</div>';
 }
 function renderCommunityPost(row) {
   var badge = row.badgeTitle ? ((row.badgeIcon || '🏈') + ' ' + esc(row.badgeTitle)) : '';
   var isActivity = row.type === 'activity';
+  var counts=communityReactionCounts(row);
+  var myReaction=activeAuthUid && row.reactions ? row.reactions[activeAuthUid] : null;
+  var canChallenge=state.name && row.authorName && slugify(row.authorName)!==slugify(state.name);
   return '<article class="community-post' + (isActivity ? ' community-activity' : '') + '">' +
     (isActivity ? '<div class="community-activity-kicker">' + (row.activityKind === 'challenge' ? 'TEAM CHALLENGE' : 'GAME RESULT') + '</div>' : '') +
     '<div class="community-post-head"><div><b>' + esc(row.authorName || 'Reads fan') + '</b>' +
@@ -3693,6 +3783,15 @@ function renderCommunityPost(row) {
       (row.rating ? '<span>' + row.rating + ' rating</span>' : '') +
       (row.streak ? '<span>' + row.streak + '-day streak</span>' : '') +
     '</div>' +
+    '<div class="community-post-actions">'+
+      '<button class="'+(myReaction==='knowball'?'active':'')+'" data-community-react="'+esc(row.id)+':knowball">🏈 '+counts.knowball+' <small>Know Ball</small></button>'+
+      '<button class="'+(myReaction==='laugh'?'active':'')+'" data-community-react="'+esc(row.id)+':laugh">😂 '+counts.laugh+'</button>'+
+      '<button class="'+(myReaction==='fire'?'active':'')+'" data-community-react="'+esc(row.id)+':fire">🔥 '+counts.fire+'</button>'+
+      '<button class="'+(myReaction==='clown'?'active':'')+'" data-community-react="'+esc(row.id)+':clown">🤡 '+counts.clown+'</button>'+
+      '<button data-community-reply-toggle="'+esc(row.id)+'">'+icon('users')+' '+((row.replies&&row.replies.length)||0)+' replies</button>'+
+      (canChallenge?'<button data-friend-challenge="'+esc(row.authorName)+'">'+icon('versus')+' Challenge</button>':'')+
+    '</div>'+
+    renderCommunityReplies(row)+
     '</article>';
 }
 function communityChallengeStorageKey(teamKey, date) {
@@ -3978,6 +4077,14 @@ function communityChallengeHtml(league, team) {
     '</section>';
 }
 
+
+function communityWeeklyPulseHtml(league,team){
+  var cutoff=Date.now()-7*86400000, rows=(communityRows||[]).filter(function(r){return communityCreatedAtMs(r)>=cutoff;});
+  var posters={},reactions=0,challenges=0;
+  rows.forEach(function(r){if(r.authorName)posters[slugify(r.authorName)]=true;reactions+=Object.keys(r.reactions||{}).length;if(r.activityKind==='challenge')challenges++;});
+  var dailyRows=dailyRivalScopeRows(dailyRivalRows('week'),'team');
+  return '<section class="community-weekly-pulse"><div class="community-feed-head"><h3>This Week in '+esc(team.name)+'</h3><span>Community v2</span></div><div class="community-pulse-grid"><div><b>'+Object.keys(posters).length+'</b><small>Active fans</small></div><div><b>'+rows.length+'</b><small>Posts + results</small></div><div><b>'+reactions+'</b><small>Reactions</small></div><div><b>'+challenges+'</b><small>Challenges cleared</small></div><div><b>'+dailyRows.length+'</b><small>Daily competitors</small></div></div></section>';
+}
 function renderCommunityScreen() {
   var fav = getFavoriteTeams();
   var hasNfl = !!fav.nfl, hasCfb = !!fav.cfb;
@@ -4021,6 +4128,7 @@ function renderCommunityScreen() {
       (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
     '</div>' +
     communityTeamPulseHtml(league, team) +
+    communityWeeklyPulseHtml(league, team) +
     communityBattleHtml(league, team) +
     communityChallengeHtml(league, team) +
     communityDailyRivalsHtml(league, team) +
@@ -4044,6 +4152,37 @@ function setCommunityPreset(text) {
   communityDraft = text || '';
   input.value = communityDraft;
   input.focus();
+}
+function communityActiveTeamKey() {
+  var league=communityActiveLeague&&communityTeamForLeague(communityActiveLeague)?communityActiveLeague:defaultCommunityLeague();
+  var team=communityTeamForLeague(league);
+  return team?communityTeamKey(league,team):'';
+}
+function reactCommunityPost(spec) {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  var parts=String(spec||'').split(':'), postId=parts[0], reaction=parts[1];
+  if(!postId||!reaction||!window.__fbSync||!window.__fbSync.reactCommunity)return;
+  window.__fbSync.reactCommunity(communityActiveTeamKey(),postId,reaction).catch(function(){
+    communityError='Couldn’t react right now. Try again.';
+    if(state.screen==='community')renderAll();
+  });
+}
+function toggleCommunityReply(postId) {
+  communityReplyOpenId=communityReplyOpenId===postId?null:postId;
+  renderAll();
+  if(communityReplyOpenId) setTimeout(function(){var el=document.getElementById('community-reply-input-'+postId);if(el)el.focus();},0);
+}
+function sendCommunityReply(postId) {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  var input=document.getElementById('community-reply-input-'+postId);
+  var text=input?input.value.trim():'';
+  if(!text||!window.__fbSync||!window.__fbSync.replyCommunity)return;
+  window.__fbSync.replyCommunity(communityActiveTeamKey(),postId,text).then(function(){
+    communityReplyOpenId=null;
+  }).catch(function(){
+    communityError='Couldn’t reply right now. Try again.';
+    if(state.screen==='community')renderAll();
+  });
 }
 function submitCommunityPost() {
   if (!activeAuthUid || !state.name) { openAuthModal('login'); return; }
@@ -4086,6 +4225,15 @@ function submitCommunityPost() {
 }
 
 var MODE_DIFFICULTY_LABEL = { casual: 'Casual', competitive: 'Competitive', hardcore: 'Hardcore' };
+function globalModePlayCount(mode) {
+  var counts=(window.__fbSync&&window.__fbSync.playCounts)||{};
+  return Math.max(0,Number(counts[mode])||0);
+}
+function socialProofModeHtml(mode, compact) {
+  var n=globalModePlayCount(mode);
+  if(!n) return '';
+  return '<span class="mode-social-proof'+(compact?' compact':'')+'>'+icon('users')+' '+n.toLocaleString()+' Reads play'+(n===1?'':'s')+'</span>';
+}
 function modeCardHtml(m) {
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
   // played by this player, per the same modeTimesPlayed() signal
@@ -4100,6 +4248,7 @@ function modeCardHtml(m) {
     '<div class="mode-icon">' + icon(m.icon) + '</div>' +
     '<div class="mode-title">' + esc(m.title) + '</div>' +
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
+    socialProofModeHtml(m.id, true) +
     (m.featured ? '<span class="mode-card-play">Play Now' + icon('arrowRight') + '</span>' : '') +
     '</button>';
 }
@@ -4482,14 +4631,16 @@ function adaptiveDifficultyNoteHtml(league) {
   return '<div class="adaptive-difficulty-note">'+icon('target')+' Reads recommends <b>'+esc(personalizedDifficultyTarget(league))+'</b> difficulty from your Football Rating and tracked mastery.</div>';
 }
 function recommendationReasonFor(mode, scoreBits) {
-  if (scoreBits.unplayed) return 'New to you';
-  if (scoreBits.masteryFit) return 'Attack a weak spot';
-  if (scoreBits.weakLeague) return 'Build your weak side';
-  if (scoreBits.favoriteLeague) return 'Fits your teams';
-  if (scoreBits.lowMastery) return 'Room to improve';
-  if (scoreBits.cooldown) return 'Fresh rotation';
-  if (scoreBits.fresh) return 'Keep it fresh';
-  return 'Picked for you';
+  var weak=personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(a,b){return a.pct-b.pct;})[0];
+  var fav=primaryFavoriteTeam();
+  if (scoreBits.unplayed) return 'New format for you';
+  if (scoreBits.masteryFit && weak) return 'Because '+weak.category+' is a weak spot';
+  if (scoreBits.weakLeague) return 'Build your weaker league';
+  if (scoreBits.favoriteLeague && fav) return 'Because you follow '+fav.name;
+  if (scoreBits.lowMastery) return 'Try something harder here';
+  if (scoreBits.cooldown) return 'Back after a cooldown';
+  if (scoreBits.fresh) return 'Fresh from your rotation';
+  return 'Picked from your play history';
 }
 function scoredModeRecommendations(limit) {
   if (!state.name) return [];
@@ -4684,6 +4835,25 @@ function careerLadderHtml() {
     '<div class="career-ladder-next"><span class="dashboard-xp-track"><span style="width:'+Math.round(rank.pct*100)+'%"></span></span>'+
       '<b>'+(rank.next?rank.toNext+' XP until '+esc(rank.next):'Career maxed — Legend status')+'</b></div></section>';
 }
+function progressionRoadHtml() {
+  if(!state.name) return '';
+  var xp=Number(getProgression().careerXp)||0, milestones={};
+  function addMilestone(min,label,type){
+    min=Number(min)||0;
+    if(min<=xp)return;
+    milestones[min]=milestones[min]||{xp:min,items:[]};
+    if(!milestones[min].items.some(function(x){return x.label===label;})) milestones[min].items.push({label:label,type:type});
+  }
+  PROGRESSION_RANKS.forEach(function(r){addMilestone(r.min,r.name+' career rank','rank');});
+  (PROFILE_COSMETICS||[]).forEach(function(x){addMilestone(x.minXp,x.title+' profile frame','frame');});
+  (SHARE_CARD_DESIGNS||[]).forEach(function(x){addMilestone(x.minXp,x.title+' share card','share');});
+  var upcoming=Object.keys(milestones).map(Number).sort(function(a,b){return a-b;}).slice(0,4).map(function(k){return milestones[k];});
+  var rank=progressionRankFor(xp), next=upcoming[0];
+  return '<section class="progression-road"><div class="profile-section-head"><div><span class="dashboard-eyebrow">ROAD TO LEGEND</span><h3>Every game moves something</h3></div><span>'+xp.toLocaleString()+' XP</span></div>'+
+    '<div class="progression-road-now"><div><small>CURRENT</small><b>'+esc(rank.name)+'</b></div><span class="dashboard-xp-track"><span style="width:'+Math.round(rank.pct*100)+'%"></span></span><div><small>NEXT UNLOCK</small><b>'+(next?esc(next.items[0].label)+' · '+(next.xp-xp)+' XP':'Legend complete')+'</b></div></div>'+
+    (upcoming.length?'<div class="progression-road-grid">'+upcoming.map(function(m,i){return '<article class="'+(i===0?'next':'')+'"><span>'+m.xp.toLocaleString()+' XP</span><b>'+m.items.map(function(x){return esc(x.label);}).join(' + ')+'</b><small>'+m.items.map(function(x){return esc(x.type);}).join(' · ')+'</small></article>';}).join('')+'</div>':'<div class="progression-road-max">👑 Every career milestone unlocked.</div>')+
+  '</section>';
+}
 function seasonTrophyFor(item) {
   var rank=seasonRankFor(item.data.xp), icons={Rookie:'🎟️',Prospect:'🏈',Starter:'⭐',Playmaker:'⚡','All-Pro':'💎',MVP:'🏆'};
   return {icon:icons[rank.name]||'🏈',name:rank.name};
@@ -4716,6 +4886,21 @@ function nextAchievementProgress() {
   c.pct = Math.max(0, Math.min(100, Math.round((c.current / c.target) * 100)));
   return c;
 }
+
+function seasonalMilestones() {
+  var p=getProgression(), sid=footballSeasonIdForDate(), s=normalizeSeasonProgress(p.seasons&&p.seasons[sid]), xp=Number(s.xp)||0, games=Number(s.gamesPlayed)||0;
+  return [
+    {label:'Opening Drive',desc:'Earn 250 season XP.',current:xp,target:250},
+    {label:'Every-Down Player',desc:'Play 25 ranked games this season.',current:games,target:25},
+    {label:'All-Conference Push',desc:'Earn 1,500 season XP.',current:xp,target:1500},
+    {label:'Legend Season',desc:'Earn 3,000 season XP.',current:xp,target:3000}
+  ];
+}
+function seasonalMissionHtml() {
+  if(!state.name)return '';
+  var sid=footballSeasonIdForDate(), goals=seasonalMilestones();
+  return '<section class="seasonal-missions"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">'+esc(sid)+' SEASON</span><h3>Season Missions</h3></div><span>Career stays permanent</span></div><div class="seasonal-mission-grid">'+goals.map(function(g){var pct=Math.max(0,Math.min(100,Math.round(100*g.current/g.target))),done=g.current>=g.target;return '<div class="'+(done?'complete':'')+'"><b>'+esc(g.label)+'</b><p>'+esc(g.desc)+'</p><i><em style="width:'+pct+'%"></em></i><small>'+(done?'Complete':Math.min(g.current,g.target)+' / '+g.target)+'</small></div>';}).join('')+'</div></section>';
+}
 function dashboardActionStripHtml() {
   if (!state.name) return '';
   var dailyDone = playedToday();
@@ -4731,6 +4916,101 @@ function dashboardActionStripHtml() {
     '</div>';
 }
 
+function footballDNAData() {
+  var rows = personalizationMasteryRows().filter(function (r) { return r.total >= 3; });
+  var leagues = personalizationLeagueProfile();
+  var rating = getRating();
+  var strongest = rows.slice().sort(function (a,b) { return b.pct-a.pct || b.total-a.total; })[0] || null;
+  var weakest = rows.slice().sort(function (a,b) { return a.pct-b.pct || b.total-a.total; })[0] || null;
+  var nflRows = rows.filter(function(r){ return r.league === 'nfl'; });
+  var cfbRows = rows.filter(function(r){ return r.league === 'cfb'; });
+  function avg(list) {
+    if (!list.length) return null;
+    var weighted=list.reduce(function(s,r){ return s + r.pct*r.total; },0);
+    var total=list.reduce(function(s,r){ return s+r.total; },0);
+    return total ? Math.round(weighted/total) : null;
+  }
+  var nfl = avg(nflRows), cfb = avg(cfbRows), archetype='Five-Tool Football Fan';
+  if (strongest) {
+    var cat=(strongest.category||'').toLowerCase();
+    if (/coverage|scheme|formation|offense|defense|concept/.test(cat)) archetype='Film Junkie';
+    else if (/draft|roster|player|position/.test(cat)) archetype='Roster Sicko';
+    else if (strongest.league==='cfb' && (cfb==null || nfl==null || cfb>=nfl+4)) archetype='College Football Encyclopedia';
+    else if (strongest.league==='nfl' && (cfb==null || nfl==null || nfl>=cfb+4)) archetype='Sunday Historian';
+    else if (/history|champion|super bowl|heisman|award/.test(cat)) archetype='Football Historian';
+  }
+  return {
+    overall: rating ? rating.score : null,
+    nfl: nfl,
+    cfb: cfb,
+    nflPlays: leagues.nfl.plays || 0,
+    cfbPlays: leagues.cfb.plays || 0,
+    strongest: strongest,
+    weakest: weakest,
+    archetype: archetype
+  };
+}
+
+function footballDNATraitLevel(row) {
+  if(!row||row.total<3)return {name:'Unscouted',pct:0};
+  var confidence=Math.min(1,row.total/20), score=Math.round(row.pct*confidence);
+  if(score>=80)return {name:'Elite',pct:score};
+  if(score>=65)return {name:'Strong',pct:score};
+  if(score>=50)return {name:'Developing',pct:score};
+  return {name:'Needs Reps',pct:score};
+}
+function footballDNATraits() {
+  return personalizationMasteryRows().filter(function(r){return r.total>=3;})
+    .slice().sort(function(a,b){return (b.total-a.total)||(b.pct-a.pct);}).slice(0,6)
+    .map(function(r){return {league:r.league,category:r.category,total:r.total,pct:r.pct,level:footballDNATraitLevel(r)};});
+}
+function footballDNACareerStage() {
+  var p=getProgression(), xp=Number(p.careerXp)||0, games=(getPersonalizationState().playEvents||[]).length;
+  if(xp>=6000||games>=250)return 'Franchise Brain';
+  if(xp>=3000||games>=125)return 'Coordinator';
+  if(xp>=1500||games>=60)return 'Veteran Scout';
+  if(xp>=750||games>=30)return 'Position Coach';
+  if(xp>=250||games>=12)return 'Starter';
+  return 'Rookie Scout';
+}
+function footballDNAHtml(compact) {
+  if (!state.name) return '';
+  var d=footballDNAData();
+  var strength=d.strongest ? esc(d.strongest.category)+' · '+d.strongest.pct+'%' : 'Keep playing to reveal';
+  var weak=d.weakest ? esc(d.weakest.category)+' · '+d.weakest.pct+'%' : 'Still learning you';
+  return '<section class="football-dna'+(compact?' compact':'')+'">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOOTBALL DNA</span><h3>'+esc(d.archetype)+'</h3></div><span>Built from your real play</span></div>'+
+    '<div class="football-dna-grid">'+
+      '<div><small>Overall</small><b>'+(d.overall==null?'—':d.overall)+'</b></div>'+
+      '<div><small>NFL mastery</small><b>'+(d.nfl==null?'—':d.nfl+'%')+'</b></div>'+
+      '<div><small>College mastery</small><b>'+(d.cfb==null?'—':d.cfb+'%')+'</b></div>'+
+    '</div>'+
+    '<div class="football-dna-readout"><span><small>Best trait</small><b>'+strength+'</b></span><span><small>Attack next</small><b>'+weak+'</b></span></div>'+
+    '<div class="football-dna-stage"><span>Career identity</span><b>'+esc(footballDNACareerStage())+'</b></div>'+
+    '<div class="football-dna-traits">'+footballDNATraits().map(function(t){return '<div><span>'+esc(t.league.toUpperCase())+'</span><b>'+esc(t.category)+'</b><small>'+esc(t.level.name)+' · '+t.pct+'% over '+t.total+' reps</small><i><em style="width:'+t.level.pct+'%"></em></i></div>';}).join('')+'</div>'+
+  '</section>';
+}
+function homePriorityFeedHtml() {
+  if (!state.name) return dailyChallengeCardHtml();
+  var items=[];
+  function add(priority, html, key) { if (html) items.push({priority:priority,html:html,key:key}); }
+  add(100, playedToday() ? '' : dailyChallengeCardHtml(), 'daily');
+  add(95, liveFootballHomeHtml(), 'live');
+  add(90, friendRivalAlertHtml(), 'rival');
+  add(85, retentionMissionHtml(), 'comeback');
+  add(80, unfinishedBusinessHtml(), 'unfinished');
+  add(75, teamBattleHtml(), 'team-battle');
+  add(70, communityCardHtml(), 'community');
+  add(65, continuePlayingCardHtml(), 'continue');
+  if (playedToday()) add(60, dailyChallengeCardHtml(), 'daily-done');
+  items.sort(function(a,b){return b.priority-a.priority;});
+  var visible=items.slice(0,4);
+  if(!visible.length) return '';
+  return '<section class="home-priority-feed" aria-label="Today on Reads">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">TODAY ON READS</span><h2>Your next moves</h2></div><span>'+visible.length+' live priorities</span></div>'+
+    '<div class="home-priority-stack">'+visible.map(function(x){return '<div class="home-priority-item" data-priority-key="'+esc(x.key)+'">'+x.html+'</div>';}).join('')+'</div>'+
+  '</section>';
+}
 function personalDashboardHtml() {
   if (!state.name) return '';
   var p = getProgression();
@@ -4770,37 +5050,29 @@ function personalDashboardHtml() {
     returnHookHtml() +
     dashboardActionStripHtml() +
     currentSeasonRecapHtml() +
+    seasonalMissionHtml() +
     seasonLeaderboardHtml() +
     '</section>';
 }
 
 function renderHome() {
-  return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
-    '<div class="hero-kicker">Built for people who actually know ball</div>' +
-    '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
+  var homeRec=state.name?scoredModeRecommendations(1)[0]:null;
+  var dailyDone=playedToday();
+  var heroPrimary=dailyDone&&homeRec?homeRec.mode.id:'daily';
+  var heroPrimaryLabel=dailyDone&&homeRec?'Play '+homeRec.mode.title:'Play Today’s Reads';
+  return '<div class="hero personalized-home-2"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
+    '<div class="hero-kicker">'+(state.name?'YOUR FOOTBALL HOME':'Built for people who actually know ball')+'</div>' +
+    '<h1 class="hero-tagline">'+(state.name?(dailyDone?'Daily handled. Here’s your next read.':'Your football day starts here.'):'NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.')+'</h1>' +
     favoriteTeamGreeting() +
-    '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p>' +
-    '<div class="hero-actions"><button class="btn-primary" data-go="quiz">Play NFL Quiz ' + icon('arrowRight') + '</button>' +
-    '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
+    '<p>'+(state.name?'Reads ranks what matters now from your teams, mastery, streak, season and recent play.':'One adaptive Football Rating tracks how good you actually are — across every mode, every device.')+'</p>' +
+    '<div class="hero-actions"><button class="btn-primary" data-go="'+esc(heroPrimary)+'">'+esc(heroPrimaryLabel)+' ' + icon('arrowRight') + '</button>' +
+    '<button class="btn-secondary" data-go="'+(state.name?'profile':'grid')+'">'+(state.name?'View My Football DNA':'Play Immaculate Grid')+'</button></div></div>' +
     teamPickerPromptCardHtml() +
     personalDashboardHtml() +
-    friendRivalAlertHtml() +
-    teamBattleHtml() +
-    liveFootballHomeHtml() +
-    endlessHomeCardHtml() +
-    reengagementCenterHtml() +
-    retentionMissionHtml() +
-    unfinishedBusinessHtml() +
-    communityCardHtml() +
-    dailyChallengeCardHtml() +
-    weeklyDailyRecapHtml(false) +
-    dailyRivalsHtml(false) +
-    dailyStreakRewardsHtml() +
-    continuePlayingCardHtml() +
+    footballDNAHtml(true) +
+    homePriorityFeedHtml() +
     recommendationShelfHtml() +
-    personalizationMasteryHtml() +
-    weeklyPersonalGoalsHtml() +
-    weeklyRetentionGoalHtml() +
+    formatCollectionsHtml() +
     formatDiscoveryHubHtml() +
     discoverGridHtml() +
     '<button class="btn-secondary leaderboard-link" data-go="leaderboard">' + icon('trophy') + ' View Leaderboard</button>' +
@@ -8828,8 +9100,62 @@ function h2hMaybeCountRecord() {
   pushLeaderboard('h2h', { wins: st.wins, losses: st.losses, ties: st.ties, matchesPlayed: st.matchesPlayed });
   h2hMarkCounted(s.code);
 }
+var arenaQueueUnsub = null;
+function stopArenaQueueWatch() {
+  if (arenaQueueUnsub) { arenaQueueUnsub(); arenaQueueUnsub = null; }
+}
+function arenaTier() {
+  var r=getRating();
+  return r ? ratingTierFor(r.score) : {name:'Unranked',pct:0,next:'Rookie',ptsToNext:0};
+}
+function arenaQuickMatchStart() {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  if(!window.__fbSync||!window.__fbSync.findArenaMatch)return;
+  var s=state.h2h||(state.h2h={screen:'menu',mode:'quiz',roundSize:10,listId:null,error:null});
+  s.arenaStatus='searching'; s.error=null; renderAll();
+  var rating=getRating();
+  window.__fbSync.findArenaMatch(rating?rating.score:0).then(function(result){
+    if(!result)return;
+    s.arenaTicket=result.ticketId||activeAuthUid;
+    if(result.status==='matched'&&result.matchCode){arenaAcceptMatch(result.matchCode);return;}
+    stopArenaQueueWatch();
+    arenaQueueUnsub=window.__fbSync.watchArenaTicket(s.arenaTicket,function(ticket){
+      if(!ticket)return;
+      if(ticket.status==='matched'&&ticket.matchCode){stopArenaQueueWatch();arenaAcceptMatch(ticket.matchCode);return;}
+      if(ticket.status==='cancelled'){s.arenaStatus=null;if(state.screen==='h2h')renderAll();}
+    });
+    if(state.screen==='h2h')renderAll();
+  }).catch(function(){
+    s.arenaStatus=null;s.error='Arena matchmaking is unavailable right now.';renderAll();
+  });
+}
+function arenaQuickMatchCancel() {
+  var s=state.h2h;
+  stopArenaQueueWatch();
+  if(s&&s.arenaTicket&&window.__fbSync&&window.__fbSync.cancelArenaTicket)window.__fbSync.cancelArenaTicket(s.arenaTicket).catch(function(){});
+  if(s){s.arenaTicket=null;s.arenaStatus=null;}
+  renderAll();
+}
+function arenaAcceptMatch(code) {
+  var s=state.h2h;
+  if(!s)return;
+  s.arenaStatus='matched';
+  h2hOpenExistingCode(code);
+}
+function arenaPanelHtml() {
+  if(!state.name)return '';
+  var s=state.h2h||{}, tier=arenaTier(), st=state.stats.h2h||{};
+  var record=(st.matchesPlayed||0)?((st.wins||0)+'-'+(st.losses||0)+(st.ties?'-'+st.ties:'')):'0-0';
+  var searching=s.arenaStatus==='searching';
+  return '<section class="arena-panel"><div class="arena-panel-head"><div><span class="dashboard-eyebrow">READS ARENA</span><h3>Ranked Quick Match</h3><p>Matched near your Football Rating. One random Arena format, same challenge for both players.</p></div><div class="arena-tier"><b>'+esc(tier.name)+'</b><small>'+record+' H2H</small></div></div>'+
+    '<div class="arena-mode-pool"><span>NFL Quiz</span><span>CFB Quiz</span><span>NFL Grid</span><span>CFB Grid</span><span>Silhouette</span><span>Speed</span></div>'+
+    (searching?'<div class="arena-searching" aria-live="polite"><span class="loading-spinner"></span><div><b>Finding your matchup…</b><small>Closest available Football Rating gets priority.</small></div><button class="btn-secondary" data-arena-cancel>Cancel</button></div>':
+    '<button class="btn-primary arena-quick-btn" data-arena-quick>'+icon('zap')+' Find Ranked Match</button>')+
+  '</section>';
+}
 function h2hBackToMenu() {
   h2hStopWatch();
+  stopArenaQueueWatch();
   state.h2hActive = null;
   state.h2h = { screen: 'menu', mode: 'quiz', roundSize: 10, listId: null, error: null };
   renderAll();
@@ -9075,24 +9401,26 @@ function renderH2HMenu() {
   if (!state.name) {
     return '<div class="panel">' +
       '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-      '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
-      '<p class="mode-desc">Log in above, then come back here to challenge a friend.</p>' +
+      '<h2 class="panel-title">' + icon('versus') + ' Reads Arena</h2>' +
+      '<p class="mode-desc">Log in above, then come back here to play ranked quick matches or challenge friends.</p>' +
       '</div>';
   }
   var st = state.stats.h2h || {};
   var codes = h2hMyCodes();
-  return '<div class="panel">' +
+  return '<div class="panel arena-shell">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-    '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
-    '<p class="mode-desc">Challenge a specific friend to the same question set and see who scores higher. Your record: ' + (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : '') + '.</p>' +
+    '<h2 class="panel-title">' + icon('versus') + ' Reads Arena</h2>' +
+    '<p class="mode-desc">Ranked quick matches when you want smoke now. Private Head-to-Head when you know exactly who you want.</p>' +
+    arenaPanelHtml() +
     socialChallengeInboxHtml() +
     (state.h2h && state.h2h.intendedOpponent ? '<div class="h2h-target-friend">Challenge for <b>'+esc(state.h2h.intendedOpponent)+'</b>. Pick the mode, create the match, then send them the code.</div>' : '') +
+    '<div class="arena-private-head"><span class="dashboard-eyebrow">PRIVATE MATCHES</span><b>Your record: '+(st.wins||0)+'-'+(st.losses||0)+(st.ties?'-'+st.ties:'')+'</b></div>'+
     '<div class="btn-row">' +
-    '<button class="btn-primary" data-h2h-go-create>Create Match</button>' +
+    '<button class="btn-secondary" data-h2h-go-create>Create Match</button>' +
     '<button class="btn-secondary" data-h2h-go-join>Join Match</button>' +
     '</div>' +
     (codes.length ? '<h3 class="mode-section-title" style="margin-top:20px;">Your matches</h3><div class="h2h-recent-list">' +
-      codes.slice(0, 8).map(function (c) { return '<button class="btn-tiny" data-h2h-open-code="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') +
+      codes.slice(0, 8).map(function (code) { return '<button class="btn-tiny" data-h2h-open-code="' + esc(code) + '">' + esc(code) + '</button>'; }).join('') +
       '</div>' : '') +
     '</div>';
 }
@@ -10205,6 +10533,14 @@ function drawShareCard(ctx, cfg, format) {
 function shareResultCard(mode) {
   var cfg = shareConfigFor(mode);
   if (!cfg) return;
+  if(state.name){
+    var dna=footballDNAData(), career=progressionRankFor(getProgression().careerXp||0), streak=getStreak();
+    var flex=[];
+    if(career&&career.name)flex.push(career.name+' rank');
+    if(streak.count)flex.push(streak.count+'-day streak');
+    if(dna&&dna.archetype)flex.push(dna.archetype);
+    if(flex.length)cfg.shareText=cfg.shareText+' · '+flex.slice(0,2).join(' · ');
+  }
   // Every share path (native share sheet, copy-text, Share to X) reads
   // cfg.shareText — appending the site link once, here, means whoever
   // receives it has something to tap through and play themselves instead
@@ -10932,7 +11268,7 @@ window.__triviaSync = {
   // background. Same "only re-render if you're actually looking at the
   // screen this data feeds" guard as applyLeaderboard above.
   applyPlayCounts: function () {
-    if (state.screen === 'stats') renderAll();
+    if (state.screen === 'stats' || state.screen === 'home') renderAll();
   }
 };
 
@@ -13432,6 +13768,20 @@ var REWARD_BADGES = [
   { id: 'rosterSpecialist', icon: '📋', title: 'Roster Architect', desc: 'Completed five different roster-building Reads formats.', check: function () { return completedFormatFamilyCount('roster') >= 5; } },
   { id: 'sequenceSpecialist', icon: '🛤️', title: 'Connect the Dots', desc: 'Completed five different sequence/path Reads formats.', check: function () { return completedFormatFamilyCount('sequence') >= 5; } }
 ];
+
+REWARD_BADGES = REWARD_BADGES.concat([
+  { id:'teamCommunityRegular', icon:'📣', title:'Home Crowd', desc:'Completed 10 Daily Reads while representing a favorite team.', rarity:'Rare', check:function(st){var f=getFavoriteTeams();return !!(f.nfl||f.cfb)&&(st.daily.completions||0)>=10;} },
+  { id:'balancedBallKnower', icon:'⚖️', title:'Both Sides of the Ball', desc:'Built tracked mastery in both NFL and College football.', rarity:'Epic', check:function(){var d=footballDNAData();return d.nflPlays>=10&&d.cfbPlays>=10;} },
+  { id:'dnaEliteTrait', icon:'🧬', title:'Elite Trait', desc:'Reached an Elite Football DNA trait.', rarity:'Epic', check:function(){return footballDNATraits().some(function(t){return t.level.name==='Elite';});} },
+  { id:'seasonGrinder', icon:'🏆', title:'Season Grinder', desc:'Reached 1,500 XP in one football season.', rarity:'Legendary', check:function(){var p=getProgression(),s=normalizeSeasonProgress(p.seasons&&p.seasons[footballSeasonIdForDate()]);return s.xp>=1500;} }
+]);
+function achievementRarity(b){
+  if(b&&b.rarity)return b.rarity;
+  if(/100|legend|streak30/i.test((b&&b.id)||''))return 'Legendary';
+  if(/50|75|allPro|specialist/i.test((b&&b.id)||''))return 'Epic';
+  if(/25|playmaker|veteran|daily25/i.test((b&&b.id)||''))return 'Rare';
+  return 'Common';
+}
 BADGES = BADGES.concat(REWARD_BADGES);
 
 var PROFILE_COSMETICS = [
@@ -13668,6 +14018,11 @@ function renderProfile() {
   }
 
   html += careerLadderHtml();
+  html += progressionRoadHtml();
+  html += footballDNAHtml(false);
+  html += personalizationMasteryHtml();
+  html += weeklyPersonalGoalsHtml();
+  html += weeklyRetentionGoalHtml();
   html += filmProfileResumeHtml();
   html += seasonTrophyCaseHtml();
   html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">TROPHY CASE</span><h3>Achievements</h3></div><span>' + earned.length + ' / ' + BADGES.length + ' unlocked</span></div>' +
@@ -14019,7 +14374,13 @@ document.addEventListener('click', function (e) {
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
-    '[data-creator-format-pick], ' +
+    '[data-creator-format-pick], [data-creator-format-category], [data-creator-guided-build], [data-creator-preview-mode], ' +
+    '[data-creator-question-edit], [data-creator-question-save], [data-creator-regenerate], [data-creator-open-package], ' +
+    '[data-creator-clone-package], [data-creator-refresh-recent], [data-creator-bulk-generate], [data-creator-save-recipe], ' +
+    '[data-creator-run-recipe], [data-creator-delete-recipe], [data-creator-check-duplicates], [data-creator-replace-question], ' +
+    '[data-creator-toggle-package], [data-creator-select-visible], [data-creator-clear-selection], [data-creator-batch-review], ' +
+    '[data-creator-dashboard-filter], [data-creator-create-collection], [data-creator-delete-collection], [data-creator-add-collection], ' +
+    '[data-creator-fix-issues], [data-creator-preview-surface], [data-creator-restore-version], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -14116,6 +14477,8 @@ document.addEventListener('click', function (e) {
   if (t.dataset.teamPick !== undefined) { var tp = t.dataset.teamPick.split(':'); teamPickerPick(tp[0], tp.slice(1).join(':')); return; }
   if (t.dataset.teamClear !== undefined) { teamPickerClear(t.dataset.teamClear); return; }
   if (t.dataset.copyEmail !== undefined) { copyTextToClipboard(t.dataset.copyEmail, t); return; }
+  if (t.dataset.arenaQuick !== undefined) { arenaQuickMatchStart(); return; }
+  if (t.dataset.arenaCancel !== undefined) { arenaQuickMatchCancel(); return; }
   if (t.dataset.h2hGoCreate !== undefined) { state.h2h.screen = 'create'; state.h2h.error = null; renderAll(); return; }
   if (t.dataset.h2hGoJoin !== undefined) { state.h2h.screen = 'join'; state.h2h.error = null; renderAll(); return; }
   if (t.dataset.h2hBackMenu !== undefined) { h2hBackToMenu(); return; }
@@ -14267,6 +14630,9 @@ document.addEventListener('click', function (e) {
   if (t.dataset.communityLeague !== undefined) { switchCommunityLeague(t.dataset.communityLeague); return; }
   if (t.dataset.communityPost !== undefined) { submitCommunityPost(); return; }
   if (t.dataset.communityPreset !== undefined) { setCommunityPreset(t.dataset.communityPreset); return; }
+  if (t.dataset.communityReact !== undefined) { reactCommunityPost(t.dataset.communityReact); return; }
+  if (t.dataset.communityReplyToggle !== undefined) { toggleCommunityReply(t.dataset.communityReplyToggle); return; }
+  if (t.dataset.communityReplySend !== undefined) { sendCommunityReply(t.dataset.communityReplySend); return; }
   if (t.dataset.profileBadge !== undefined) { selectProfileBadge(t.dataset.profileBadge); return; }
   if (t.dataset.profileCosmetic !== undefined) { selectProfileCosmetic(t.dataset.profileCosmetic); return; }
   if (t.dataset.shareDesign !== undefined) { selectShareDesign(t.dataset.shareDesign); return; }
@@ -14724,6 +15090,36 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
   if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
+  if (t.dataset.creatorFormatCategory !== undefined) { creatorSetFormatCategory(t.dataset.creatorFormatCategory); return; }
+  if (t.dataset.creatorOpenPackage !== undefined) { creatorOpenPackage(t.dataset.creatorOpenPackage); return; }
+  if (t.dataset.creatorClonePackage !== undefined) { creatorClonePackage(t.dataset.creatorClonePackage); return; }
+  if (t.dataset.creatorRefreshRecent !== undefined) { creatorLoadRecent(); return; }
+  if (t.dataset.creatorCheckDuplicates !== undefined) { creatorLoadDuplicateReport(t.dataset.creatorCheckDuplicates); return; }
+  if (t.dataset.creatorReplaceQuestion !== undefined) { creatorReplaceQuestion(parseInt(t.dataset.creatorReplaceQuestion, 10)); return; }
+  if (t.dataset.creatorTogglePackage !== undefined) { creatorTogglePackageSelection(t.dataset.creatorTogglePackage); return; }
+  if (t.dataset.creatorSelectVisible !== undefined) { creatorSelectVisiblePackages(); return; }
+  if (t.dataset.creatorClearSelection !== undefined) { creatorClearPackageSelection(); return; }
+  if (t.dataset.creatorBatchReview !== undefined) { creatorBatchReview(t.dataset.creatorBatchReview); return; }
+  if (t.dataset.creatorDashboardFilter !== undefined) {
+    if (t.dataset.creatorDashboardFilter === 'risk') { state.creator.queueSort='qa-risk'; creatorLoadQueue(''); }
+    else { state.creator.queueSort='priority'; creatorLoadQueue(t.dataset.creatorDashboardFilter); }
+    return;
+  }
+  if (t.dataset.creatorCreateCollection !== undefined) { creatorCreateCollection(); return; }
+  if (t.dataset.creatorDeleteCollection !== undefined) { creatorRemoveCollection(t.dataset.creatorDeleteCollection); return; }
+  if (t.dataset.creatorAddCollection !== undefined) { creatorAddToCollection(t.dataset.creatorAddCollection,t.dataset.creatorPackageId); return; }
+  if (t.dataset.creatorFixIssues !== undefined) { creatorFixFlaggedQuestions(); return; }
+  if (t.dataset.creatorPreviewSurface !== undefined) { state.creator.previewSurface=t.dataset.creatorPreviewSurface; renderAll(); return; }
+  if (t.dataset.creatorRestoreVersion !== undefined) { creatorOpenPackage(t.dataset.creatorRestoreVersion); return; }
+  if (t.dataset.creatorSaveRecipe !== undefined) { creatorSaveRecipe(); return; }
+  if (t.dataset.creatorRunRecipe !== undefined) { creatorRunRecipe(t.dataset.creatorRunRecipe); return; }
+  if (t.dataset.creatorDeleteRecipe !== undefined) { creatorDeleteRecipe(t.dataset.creatorDeleteRecipe); return; }
+  if (t.dataset.creatorBulkGenerate !== undefined) { creatorBulkGenerate(); return; }
+  if (t.dataset.creatorGuidedBuild !== undefined) { creatorGuidedBuild(); return; }
+  if (t.dataset.creatorPreviewMode !== undefined) { creatorTogglePreviewMode(t.dataset.creatorPreviewMode); return; }
+  if (t.dataset.creatorQuestionEdit !== undefined) { creatorEditQuestion(parseInt(t.dataset.creatorQuestionEdit, 10)); return; }
+  if (t.dataset.creatorQuestionSave !== undefined) { creatorSaveQuestionRevision(parseInt(t.dataset.creatorQuestionSave, 10)); return; }
+  if (t.dataset.creatorRegenerate !== undefined) { creatorRegeneratePackage(); return; }
   if (t.dataset.creatorFormatPick !== undefined) { creatorPickFormat(parseInt(t.dataset.creatorFormatPick, 10)); return; }
   if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
@@ -14800,6 +15196,8 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 document.addEventListener('input', function (e) {
+  if (e.target.id === 'creator-format-search') { creatorSetFormatQuery(e.target.value); return; }
+  if (e.target.id === 'creator-queue-search') { if (state.creator) { state.creator.queueSearch = e.target.value; renderAll(); } return; }
   if (e.target.id === 'format-hub-search') { formatHubState.query=e.target.value; if(formatHubState.query.length===1||formatHubState.query.length%4===0)trackFormatEvent('search',null,{length:formatHubState.query.length}); renderAll(); return; }
   if (e.target.id === 'grid-input') { state.grid.input = e.target.value; renderTypeahead('grid-input'); return; }
   if (e.target.id === 'cfb-grid-input') { state.cfbGrid.input = e.target.value; renderTypeahead('cfb-grid-input'); return; }
@@ -14826,6 +15224,10 @@ document.addEventListener('input', function (e) {
 });
 
 document.addEventListener('change', function (e) {
+  if (e.target.dataset && e.target.dataset.creatorGuided !== undefined) { creatorSetGuided(e.target.dataset.creatorGuided, e.target.value); return; }
+  if (e.target.dataset && e.target.dataset.creatorBulk !== undefined) { creatorBulkSet(e.target.dataset.creatorBulk, e.target.value); return; }
+  if (e.target.dataset && e.target.dataset.creatorQueueLeague !== undefined) { if (state.creator) { state.creator.queueLeague = e.target.value; renderAll(); } return; }
+  if (e.target.dataset && e.target.dataset.creatorQueueSort !== undefined) { if (state.creator) { state.creator.queueSort = e.target.value; renderAll(); } return; }
   if (e.target.id === 'quiz-cat') { state.quiz.category = e.target.value; return; }
   if (e.target.id === 'quiz-diff') { state.quiz.difficulty = e.target.value; return; }
   if (e.target.id === 'xso-cat') { state.xso.category = e.target.value; return; }
@@ -15127,13 +15529,10 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_MECHANIC_MODES.commonLink.hash) mechanicPilotCurrentModeKey = 'commonLink';
   else if (location.hash === ENGINE_MECHANIC_MODES.commonLinkCfb.hash) mechanicPilotCurrentModeKey = 'commonLinkCfb';
   if (state.screen === 'creator') {
-    state.creator = {
-      screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
-      requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
-      capabilities: null, error: null,
-    };
+    state.creator = creatorInitialState();
   }
   renderAll();
+  if (state.screen === 'creator' && creatorToken()) { creatorLoadRecipes(); creatorLoadRecent(); }
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode && !pendingSocialChallengeCode) { openOnboarding(); }
 
