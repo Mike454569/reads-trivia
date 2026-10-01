@@ -38,6 +38,11 @@ finally:
     con.close()
 PY
 
+python - <<'PY'
+from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows
+print("Catalog drift repair:", repair_missing_catalog_rows())
+PY
+
 # The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
 # removes duplicate work and lets Fly surface real integration regressions.
