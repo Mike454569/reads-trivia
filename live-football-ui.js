@@ -126,6 +126,28 @@ function liveFootballFinalCardHtml(g, compact) {
     (!compact ? '<button class="btn-tiny live-postgame-btn" data-live-game-challenge="' + esc(g.league + ':' + g.game_id) + '">Play this final</button>' : '') +
     '</article>';
 }
+function liveFootballFavoriteOpenGames() {
+  return liveFootballRows().filter(function(g){
+    return g.status !== 'FINAL' && g.status !== 'CANCELED' && liveFootballFavoriteMatch(g);
+  }).sort(function(a,b){
+    return new Date(a.kickoff||0).getTime()-new Date(b.kickoff||0).getTime();
+  });
+}
+function liveFootballKickoffLabel(g) {
+  if(!g || !g.kickoff) return 'Kickoff TBD';
+  var d=new Date(g.kickoff);
+  if(isNaN(d.getTime())) return 'Kickoff TBD';
+  return d.toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'});
+}
+function liveFootballFavoriteContextHtml() {
+  var games=liveFootballFavoriteOpenGames();
+  if(!games.length) return '';
+  var g=games[0], status=String(g.status||'SCHEDULED').replace(/_/g,' ');
+  return '<div class="live-favorite-context">'+
+    '<div><span class="dashboard-eyebrow">YOUR TEAM · '+esc(status)+'</span><b>'+esc(g.away_team)+' at '+esc(g.home_team)+'</b><small>'+esc(liveFootballKickoffLabel(g))+' · '+esc(g.league)+' Week '+esc(String(g.week))+'</small></div>'+
+    '<button class="btn-tiny" data-live-football-open>Open game day</button>'+
+  '</div>';
+}
 function liveFootballHomeHtml() {
   if (!ENABLE_PICKEM_V01) return '';
   var finals = liveFootballOrderedFinals();
@@ -133,6 +155,7 @@ function liveFootballHomeHtml() {
   return '<section class="live-football-home">' +
     '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">LIVE FOOTBALL</span><h3>What just happened</h3></div>' +
     '<span>' + (newCount ? newCount + ' new final' + (newCount === 1 ? '' : 's') : liveFootballFreshnessText()) + '</span></div>' +
+    liveFootballFavoriteContextHtml() +
     (LIVE_FOOTBALL.loading && !LIVE_FOOTBALL.fetchedAt ? '<div class="live-football-loading">Checking the latest NFL + CFB slates…</div>' :
       finals.length ? '<div class="live-final-grid">' + finals.slice(0,3).map(function (g) { return liveFootballFinalCardHtml(g, true); }).join('') + '</div>' :
       '<p class="mode-desc">No finals are available in the current NFL/CFB slates yet. Reads checks again automatically.</p>') +
