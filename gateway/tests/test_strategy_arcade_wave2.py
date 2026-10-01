@@ -13,12 +13,13 @@ from tools.director_v04 import strategy_arcade as sa
 
 
 def _package(variant: str) -> dict:
-    cats = ("NFL Team Records", "Heisman Winners", "Super Bowl Champions")
+    cats = ("Game Day", "Season & Legacy", "College Chaos")
     rounds = []
     for i in range(30):
         rounds.append({
             "round_index": i,
             "category": cats[i % 3],
+            "bucket": cats[i % 3],
             "prompt": f"Real question {i}?",
             "options": [
                 {"item_id": "A", "label": f"Correct {i}"},
@@ -110,10 +111,10 @@ def test_power_up_50_50_costs_energy_and_hides_two_decoys():
 
 
 def test_category_conquest_targets_real_category():
-    p=_package("CATEGORY_CONQUEST"); _,s=sa.evaluate(p,{},{"action":"Heisman Winners"})
-    assert sa.client_view(p,s)["category"]=="Heisman Winners"
+    p=_package("CATEGORY_CONQUEST"); _,s=sa.evaluate(p,{},{"action":"Season & Legacy"})
+    assert sa.client_view(p,s)["category"]=="Season & Legacy"
     _,s=_answer(p,s)
-    assert "Heisman Winners" in s["captured"]
+    assert "Season & Legacy" in s["captured"]
 
 
 def test_scoreboard_swing_races_to_21():
