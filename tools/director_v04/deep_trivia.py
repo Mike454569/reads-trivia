@@ -55,6 +55,17 @@ _DEEP_CAPABILITIES = (
 # family just because it has several predicates.
 MIN_DISTINCT_CATEGORIES_FOR_12 = 8
 
+def _bucket_for(domain: str) -> str:
+    if domain in {
+        "NFL_GAME_BOXSCORE", "CFB_GAME_BOXSCORE", "NFL_SCORING_PLAY",
+        "NFL_DEFENSIVE_EVENT", "NFL_DRIVE", "CFB_STAT_COMPARISON",
+        "NFL_GAME_LEADER", "CFB_GAME_LEADER",
+    }:
+        return "Game Day"
+    if domain in {"CFB_RANKING", "CFB_UPSET", "CFB_TRANSFER", "CFB_RIVALRY_TRIVIA"}:
+        return "College Chaos"
+    return "Season & Legacy"
+
 
 def _capability(key):
     return registry.CAPABILITY_REGISTRY.get(key)
@@ -129,6 +140,7 @@ def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
             "notes": q.get("notes") or "Source-backed Reads Engine question.",
             "difficulty": q.get("difficulty") or difficulty.title(),
             "depth_source": f"{domain}/{predicate}",
+            "bucket": _bucket_for(domain),
         }
     return None
 
