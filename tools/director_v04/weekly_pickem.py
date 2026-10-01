@@ -251,6 +251,45 @@ def _record_text(wins: int, losses: int, ties: int = 0) -> str:
     return f"{wins}-{losses}" + (f"-{ties}" if ties else "")
 
 
+def _is_current_cfb_week(c, season: int, week) -> bool:
+    if week in _CFB_POSTSEASON_WEEK_TOKENS:
+        return False
+    try:
+        from tools.director_v04 import nl_schedule_bridge
+        current = nl_schedule_bridge.resolve_current_week(c, "CFB", season)
+    except Exception:
+        return False
+    return str(current) == str(week)
+
+
+def _current_cfb_standings_records(c, season: int) -> dict:
+    """Latest real current-season W-L-T from the dedicated CFBD records feed.
+
+    Used only for UPCOMING games in the current Pick'em week. Historical
+    weeks still use game-by-game reconstructed pregame records so browsing
+    old slates never shows a later season record.
+    """
+    try:
+        rows = c.execute(
+            "SELECT school_id,total_wins,total_losses,total_ties,total_games "
+            "FROM cfb_standings WHERE season=? AND school_id IS NOT NULL",
+            (season,),
+        ).fetchall()
+    except Exception:
+        return {}
+    out = {}
+    for r in rows:
+        wins = int(r["total_wins"] or 0)
+        losses = int(r["total_losses"] or 0)
+        ties = int(r["total_ties"] or 0)
+        games = int(r["total_games"] or wins + losses + ties)
+        out[r["school_id"]] = {
+            "record": _record_text(wins, losses, ties),
+            "games": games,
+        }
+    return out
+
+
 def _pregame_record_snapshots(c, variant: str, season: int, target_rows: list) -> dict[str, dict]:
     """Real team records immediately BEFORE each target game's kickoff.
 
@@ -324,9 +363,14 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
         rows = _nfl_slate_rows(c, season, week) if variant == "NFL_WEEKLY_PICKEM" else _cfb_slate_rows(c, season, week)
         record_snapshots = _pregame_record_snapshots(c, variant, season, rows)
         ranks = {}
+        current_cfb_records = {}
+        current_cfb_week = False
         if variant == "CFB_WEEKLY_PICKEM":
             season_type = "postseason" if week in _CFB_POSTSEASON_WEEK_TOKENS else "regular"
             ranks = _ap_top25(c, season, week, season_type)
+            current_cfb_week = season_type == "regular" and _is_current_cfb_week(c, season, week)
+            if current_cfb_week:
+                current_cfb_records = _current_cfb_standings_records(c, season)
         games = []
         for r in rows:
             home_display = _nfl_display(c, r["home_team"], season) if variant == "NFL_WEEKLY_PICKEM" \
@@ -359,10 +403,24 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
             # value actually carry a time component, never assumed by league.
             has_real_time = bool(r["game_time"]) if variant == "NFL_WEEKLY_PICKEM" else len(r["game_date"] or "") > 10
             snapshot = record_snapshots.get(str(r["game_id"]), {})
+            home_record = snapshot.get("home_record")
+            away_record = snapshot.get("away_record")
+            # For an UPCOMING game in the live current CFB week, prefer the
+            # dedicated current-season standings feed when present. This
+            # closes the stale-score-ingestion gap (e.g. a team still shown
+            # 4-0 after a completed loss) without corrupting historical
+            # Pick'em views with today's later season record.
+            if variant == "CFB_WEEKLY_PICKEM" and current_cfb_week and kickoff_dt and kickoff_dt > datetime.now(timezone.utc):
+                h_live = current_cfb_records.get(r["home_team"])
+                a_live = current_cfb_records.get(r["away_team"])
+                if h_live:
+                    home_record = h_live["record"]
+                if a_live:
+                    away_record = a_live["record"]
             games.append({
                 "game_id": r["game_id"], "home_team": r["home_team"], "away_team": r["away_team"],
                 "home_display": home_display, "away_display": away_display,
-                "home_record": snapshot.get("home_record"), "away_record": snapshot.get("away_record"),
+                "home_record": home_record, "away_record": away_record,
                 "home_rank": ranks.get(r["home_team"]), "away_rank": ranks.get(r["away_team"]),
                 "kickoff": kickoff_dt.isoformat() if kickoff_dt else r["game_date"],
                 # The renderer must not localize/reformat a date-only value
@@ -451,20 +509,28 @@ def normalize_slate(slate: str | None) -> str:
 
 
 def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
-    """school_id -> latest real AP Top 25 available for this matchup week.
+    """school_id -> the correct real AP Top 25 snapshot for this slate.
 
-    Schedule week and poll week do not always advance at the same moment.
-    The old exact-week lookup made TOP25 Pick'em empty whenever the next
-    schedule week became current before that same-numbered AP poll landed.
-    Use the latest published real AP poll at or before the requested week;
-    never look ahead and never fabricate a rank.
+    Historical slates stay historical: use the latest real poll at or
+    before that schedule week. The CURRENT regular-season Pick'em slate is
+    different: schedule-week numbers and poll-week numbers do not advance
+    in perfect lockstep, so use the latest published AP poll available for
+    the season rather than forcing an unrelated numeric-week ceiling.
     """
     requested_week = 1 if season_type == "postseason" else int(week)
-    latest = c.execute(
-        "SELECT MAX(week) AS week FROM cfb_rankings "
-        "WHERE season=? AND season_type=? AND poll='AP Top 25' AND week<=?",
-        (season, season_type, requested_week),
-    ).fetchone()
+    current_regular = season_type == "regular" and _is_current_cfb_week(c, season, week)
+    if current_regular:
+        latest = c.execute(
+            "SELECT MAX(week) AS week FROM cfb_rankings "
+            "WHERE season=? AND season_type='regular' AND poll='AP Top 25'",
+            (season,),
+        ).fetchone()
+    else:
+        latest = c.execute(
+            "SELECT MAX(week) AS week FROM cfb_rankings "
+            "WHERE season=? AND season_type=? AND poll='AP Top 25' AND week<=?",
+            (season, season_type, requested_week),
+        ).fetchone()
     rank_week = latest["week"] if latest and latest["week"] is not None else None
     if rank_week is None:
         return {}
@@ -579,7 +645,16 @@ def filter_games_for_slate(games: list[dict], *, slate: str | None, conference: 
     try:
         if slate_norm == "TOP25":
             ranks = _ap_top25(c, season, week, season_type)
-            return [g for g in games if ranks.get(g["home_team"]) or ranks.get(g["away_team"])], meta
+            filtered = [g for g in games if ranks.get(g["home_team"]) or ranks.get(g["away_team"])]
+            # Top 25 is a rankings-first view: No. 1 matchup first, then
+            # No. 2, etc. If both teams are ranked, the better rank is the
+            # primary key and the other rank breaks ties.
+            def rank_key(g):
+                hr = ranks.get(g["home_team"]) or 999
+                ar = ranks.get(g["away_team"]) or 999
+                return (min(hr, ar), max(hr, ar), g.get("kickoff") or "", str(g["game_id"]))
+            filtered.sort(key=rank_key)
+            return filtered, meta
 
         conf_meta = _game_conference_meta(c, game_ids)
 
