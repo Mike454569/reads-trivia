@@ -18,22 +18,51 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Remove known unhealthy duplicate Fly machine
+      - name: Reattach gateway to known-good Engine volume
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
-          BAD_MACHINE="e820d65c36ed58"
+          REGION="iad"
+          GOOD_VOLUME="vol_r7ygxo6owqg5ke9r"
+
           MACHINES_JSON=$(flyctl machines list -a "$APP" --json)
-          if printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; bad='$BAD_MACHINE'; rows=json.load(sys.stdin); raise SystemExit(0 if any(str(r.get('id') or r.get('ID'))==bad for r in rows) else 1)"; then
-            echo "Destroying repeat-failing duplicate Fly machine $BAD_MACHINE"
-            flyctl machine destroy "$BAD_MACHINE" -a "$APP" --force
-          else
-            echo "Known bad machine already absent."
+          ATTACHED=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; v='$GOOD_VOLUME'; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if any((m.get('volume') or m.get('volume_id'))==v for m in (r.get('config') or {}).get('mounts',[]))))")
+
+          if [ -z "$ATTACHED" ]; then
+            TEMPLATE=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+            if [ -z "$TEMPLATE" ]; then
+              echo "No template machine exists to clone." >&2
+              exit 1
+            fi
+            echo "Cloning machine $TEMPLATE onto known-good Engine volume $GOOD_VOLUME"
+            flyctl machine clone "$TEMPLATE" -a "$APP" --region "$REGION" --attach-volume "$GOOD_VOLUME:/data"
+            MACHINES_JSON=$(flyctl machines list -a "$APP" --json)
+            ATTACHED=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; v='$GOOD_VOLUME'; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if any((m.get('volume') or m.get('volume_id'))==v for m in (r.get('config') or {}).get('mounts',[]))))")
           fi
-          REMAINING=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-')]; print(' '.join(ids)); print(len(ids), file=sys.stderr)")
-          echo "Remaining production machines: $REMAINING"
+
+          if [ -z "$ATTACHED" ]; then
+            echo "Failed to attach a machine to known-good Engine volume $GOOD_VOLUME" >&2
+            exit 1
+          fi
+
+          echo "Known-good Engine volume attached to: $ATTACHED"
+          KEEP=$(printf '%s' "$ATTACHED" | awk '{print $1}')
+          ALL_PROD=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
+          for id in $ALL_PROD; do
+            if [ "$id" != "$KEEP" ]; then
+              echo "Destroying blank/duplicate production machine $id"
+              flyctl machine destroy "$id" -a "$APP" --force
+            fi
+          done
+
+          DB_SIZE=$(flyctl ssh console -a "$APP" --machine "$KEEP" -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' | tail -n 1 | tr -dc '0-9')
+          echo "Verified production Engine DB bytes: $DB_SIZE"
+          if [ "${DB_SIZE:-0}" -lt 104857600 ]; then
+            echo "Known-good volume did not expose the populated Reads DB; refusing deploy." >&2
+            exit 1
+          fi
 
       - name: Deploy Reads gateway
         run: flyctl deploy . --config gateway/fly.toml --remote-only
