@@ -49,6 +49,15 @@ _DEEP_CAPABILITIES = (
     ("guess", "CFB_GAME_LEADER", "RUSHING_LEADER", "CFB Game Leaders: Rushing", {}),
     ("guess", "CFB_GAME_LEADER", "PASSING_LEADER", "CFB Game Leaders: Passing", {}),
     ("guess", "CFB_GAME_LEADER", "RECEIVING_LEADER", "CFB Game Leaders: Receiving", {}),
+    ("guess", "CFB_THREE_CLUES_ONE_CHAMPION", "TEAM_SEASON_FROM_THREE_CLUES", "CFB Three-Clue Champions", {}),
+    ("guess", "NFL_OFFENSE_COLLEGE_CURATED", "TEAM_OF_CURRENT_OFFENSE_BY_COLLEGE", "NFL Offense by College", {}),
+    ("guess", "NFL_SB_CHAMPION_OFFENSE_COLLEGE", "TEAM_SEASON_OF_CHAMPIONSHIP_OFFENSE_BY_COLLEGE", "Super Bowl Offense by College", {}),
+    ("guess", "CFB_FILL_THE_COLLEGES", "COLLEGE_OF_POSITION", "CFB Lineup College Fill", {}),
+    ("guess", "CFB_WHO_CHANGED", "CHANGED_POSITION", "CFB Lineup Change Detection", {}),
+    ("guess", "CFB_POSITION_TRAP", "SWAPPED_POSITION_PAIR", "CFB Position Trap", {}),
+    ("guess", "CFB_DUPLICATE_COLLEGE_HUNT", "REPEATED_COLLEGE", "CFB Duplicate College Hunt", {}),
+    ("guess", "CFB_ONE_SCHOOL_MISSING", "MISSING_COLLEGE", "CFB Missing College", {}),
+    ("guess", "CROSS_LEAGUE_HONORS", "ALL_AMERICAN_TO_NFL_DRAFT_TEAM", "All-American to NFL Draft Team", {}),
 )
 
 # Category-level diversity matters more than repeatedly pulling the same boxscore
