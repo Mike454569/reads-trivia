@@ -3148,26 +3148,14 @@ function gameArtStyle(m){
 }
 function gameArtHtml(m, extraClass){
   if(!m)return '';
-  if(!gameArtSpec(m)){
-    return '<span class="reads-game-art reads-game-art-fallback'+(extraClass?' '+extraClass:'')+'" aria-hidden="true">'+
-      '<span class="reads-game-art-r">R</span><b>'+esc(m.title||'Reads Football')+'</b></span>';
-  }
-  return '<span class="reads-game-art'+(extraClass?' '+extraClass:'')+'" style="'+gameArtStyle(m)+'" aria-hidden="true"></span>';
+  return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true">'+
+    '<span class="reads-game-art-vector-mark">'+modeMarkHtml(m,'xl')+'</span></span>';
 }
-var readsGameArtLoading=false;
-function loadReadsGameArt(){
-  if(readsGameArtLoading || typeof fetch!=='function')return;
-  readsGameArtLoading=true;
-  Object.keys(READS_GAME_ART_CHUNKS).forEach(function(sheet){
-    Promise.all(READS_GAME_ART_CHUNKS[sheet].map(function(path){
-      return fetch(path,{cache:'force-cache'}).then(function(r){if(!r.ok)throw new Error('game art '+path);return r.text();});
-    })).then(function(parts){
-      var uri='url("data:image/webp;base64,'+parts.join('').trim()+'")';
-      document.documentElement.style.setProperty('--reads-game-art-'+sheet,uri);
-    }).catch(function(err){ console.warn('Reads game art failed to load',sheet,err); });
-  });
-}
-if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
+/* Raster sprite atlases are intentionally retired from rendered game cards.
+   They looked soft on retina/mobile displays and duplicated the sharper SVG
+   identity system. Keep the loader as a no-op for backward-safe call sites. */
+var readsGameArtLoading=true;
+function loadReadsGameArt(){ return; }
 
 var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
 
@@ -4475,7 +4463,13 @@ function modeLogoSvg(m) {
     '<path class="mode-logo-signature" d="m36 41 5-5"/>'
   ][v];
 
-  return '<svg ' + common + '>' + body + signature + '</svg>';
+  var fingerprintSeed=Math.abs(hashStr((m&&m.id||'reads')+'|vector-fingerprint-v1'));
+  var fx1=9+(fingerprintSeed%7), fy1=9+((fingerprintSeed>>3)%7);
+  var fx2=31+((fingerprintSeed>>6)%8), fy2=31+((fingerprintSeed>>9)%8);
+  var fingerprint=
+    '<path class="mode-logo-fingerprint" d="M'+fx1+' '+(fy1+4)+'l4-4m-4 0 4 4"/>'+
+    '<circle class="mode-logo-fingerprint" cx="'+fx2+'" cy="'+fy2+'" r="'+(1.2+((fingerprintSeed>>12)%3)*.35).toFixed(2)+'"/>';
+  return '<svg ' + common + '>' + body + signature + fingerprint + '</svg>';
 }
 function modeMarkHtml(m, size) {
   var league = modeLeagueFor(m);
