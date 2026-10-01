@@ -195,11 +195,15 @@
 
 # Eighteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
 [functions."trigger-refresh-cfb-rankings"]
-  schedule = "40 17 * * 0"
+  # Pick'em freshness: current-season AP poll only, one metered CFBD call.
+  # Daily prevents a newly published poll from sitting stale until Sunday.
+  schedule = "40 17 * * *"
 
 # Nineteenth dataset -- weekly (Sundays), same 30-minutes-apart stagger.
 [functions."trigger-refresh-cfb-standings"]
-  schedule = "10 18 * * 0"
+  # Pick'em freshness: current-season records only, one metered CFBD call.
+  # Daily keeps displayed W-L records aligned with completed games.
+  schedule = "10 18 * * *"
 
 # Twentieth dataset -- weather, unblocked only after a Patreon Tier 1+
 # upgrade on the underlying CFBD API key (see cfb_weather_refresh.py's own
