@@ -3083,13 +3083,35 @@ var READS_GAME_ART = {
   'Combo Meter':[4,0,3,4,5], 'Checkpoint Rally':[4,1,3,4,5],
   'Escalator':[4,2,3,4,5], 'Power Up':[4,3,3,4,5],
   'Category Conquest':[4,0,4,4,5], 'Scoreboard Swing':[4,1,4,4,5],
-  'Momentum Bar':[4,2,4,4,5], 'Timeout Tokens':[4,3,4,4,5]
+  'Momentum Bar':[4,2,4,4,5], 'Timeout Tokens':[4,3,4,4,5],
+
+  'Perfect Set':[5,0,1,10,5], 'Triple or Take':[5,1,1,10,5],
+  'Connect Four':[5,2,1,10,5], 'Tic-Tac-Toe':[5,3,1,10,5],
+  'Challenge Flag':[5,4,1,10,5], 'Extra Point':[5,5,1,10,5],
+  'Comeback Mode':[5,6,1,10,5], 'Category Draft':[5,7,1,10,5],
+  'Three & Out':[5,8,1,10,5], 'Pick Your Poison':[5,9,1,10,5],
+  'Second Chance Queue':[5,0,2,10,5], 'Coverage Shell':[5,1,2,10,5],
+  'Offense / Defense':[5,2,2,10,5], 'Field Goal Range':[5,3,2,10,5],
+  'Two-Minute Drill':[5,4,2,10,5], 'Category Streak':[5,5,2,10,5],
+  'Perfect Quarter':[5,6,2,10,5], 'Red Zone Ladder':[5,7,2,10,5],
+  'Drive Builder':[5,8,2,10,5], 'Hot Hand Switch':[5,9,2,10,5],
+  'Overtime Shootout':[5,0,3,10,5], 'First Down Chain':[5,1,3,10,5],
+  'Blitz Package':[5,2,3,10,5], 'Zone Control':[5,3,3,10,5],
+  'Play Caller':[5,4,3,10,5], 'Possession Arrow':[5,5,3,10,5],
+  'Sudden Death':[5,6,3,10,5], 'Score Bank':[5,7,3,10,5],
+  'Audible':[5,8,3,10,5], 'Fourth Down Decision':[5,9,3,10,5],
+  'Series Sweep':[5,0,4,10,5], 'Road to 100':[5,1,4,10,5],
+  'Option Eraser':[5,2,4,10,5], 'Route Tree':[5,3,4,10,5],
+  'Turnover Battle':[5,4,4,10,5], 'Category Lockout':[5,5,4,10,5],
+  'Hail Mary':[5,6,4,10,5], 'Moving Target':[5,7,4,10,5],
+  'Draft Order':[5,8,4,10,5], 'Championship Run':[5,9,4,10,5]
 };
 var READS_GAME_ART_CHUNKS = {
   1:['assets/game-art/01-40-0.b64','assets/game-art/01-40-1.b64','assets/game-art/01-40-2.b64'],
   2:['assets/game-art/41-60-0.b64','assets/game-art/41-60-1.b64'],
   3:['assets/game-art/61-80-0.b64','assets/game-art/61-80-1.b64'],
-  4:['assets/game-art/81-100-0.b64','assets/game-art/81-100-1.b64']
+  4:['assets/game-art/81-100-0.b64','assets/game-art/81-100-1.b64'],
+  5:['assets/game-art/strategy-61-100-0.b64','assets/game-art/strategy-61-100-1.b64','assets/game-art/strategy-61-100-2.b64']
 };
 function gameArtSpec(m){ return m && READS_GAME_ART[m.title] || null; }
 function gameArtStyle(m){
@@ -3099,7 +3121,11 @@ function gameArtStyle(m){
   return '--game-art-image:var(--reads-game-art-'+sheet+');--game-art-size-x:'+(cols*100)+'%;--game-art-size-y:'+(rows*100)+'%;--game-art-pos-x:'+px+'%;--game-art-pos-y:'+py+'%;';
 }
 function gameArtHtml(m, extraClass){
-  if(!gameArtSpec(m))return '';
+  if(!m)return '';
+  if(!gameArtSpec(m)){
+    return '<span class="reads-game-art reads-game-art-fallback'+(extraClass?' '+extraClass:'')+'" aria-hidden="true">'+
+      '<span class="reads-game-art-r">R</span><b>'+esc(m.title||'Reads Football')+'</b></span>';
+  }
   return '<span class="reads-game-art'+(extraClass?' '+extraClass:'')+'" style="'+gameArtStyle(m)+'" aria-hidden="true"></span>';
 }
 var readsGameArtLoading=false;
