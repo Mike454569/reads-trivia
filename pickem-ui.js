@@ -75,7 +75,8 @@ function loadPickemSeasonRecord() {
       });
     }
     applyPickemWeeksToRating(s.league, record.season, record.per_week);
-    renderAll();
+    if (state.screen === 'pickem' && s.view) renderPickemPreservingScroll();
+    else renderAll();
   }).catch(function () {
     // Real, non-critical background fetch -- the weekly slate above is
     // still fully playable without a season record, so this fails silently
@@ -119,12 +120,21 @@ function pickemPath(s) {
   return base + '?' + params.join('&');
 }
 
-function loadPickemView() {
+function renderPickemPreservingScroll() {
+  var y = Math.max(0, window.scrollY || window.pageYOffset || 0);
+  renderAll();
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { window.scrollTo(0, y); });
+  });
+}
+
+function loadPickemView(opts) {
   var s = state.pickem;
   if (!s) return;
-  s.screen = 'LOADING';
+  var preserveScroll = !!(opts && opts.preserveScroll && s.view);
+  if (!preserveScroll) s.screen = 'LOADING';
   s.error = null;
-  renderAll();
+  if (!preserveScroll) renderAll();
   enginePilotFetchJson(pickemPath(s)).then(function (result) {
     if (state.pickem !== s) return; // navigated away mid-flight
     s.season = result.season;
@@ -132,12 +142,14 @@ function loadPickemView() {
     if (result.slate) s.slate = result.slate; // echoes the server-resolved default (e.g. FEATURED) back
     s.view = result.view;
     s.screen = 'READY';
-    renderAll();
+    if (preserveScroll) renderPickemPreservingScroll();
+    else renderAll();
   }).catch(function (err) {
     if (state.pickem !== s) return;
     s.error = { code: err && err.code, text: pickemUserFacingError(err) };
     s.screen = 'ERROR';
-    renderAll();
+    if (preserveScroll) renderPickemPreservingScroll();
+    else renderAll();
   });
 }
 
@@ -146,7 +158,7 @@ function changePickemSlate(newSlate, conference) {
   if (!s || s.league !== 'CFB') return;
   s.slate = newSlate;
   s.conference = newSlate === 'CONFERENCE' ? (conference || s.conference || PICKEM_CONFERENCES[0]) : null;
-  loadPickemView();
+  loadPickemView({ preserveScroll: true });
 }
 
 function submitPickemPick(gameId, teamCode) {
@@ -154,7 +166,7 @@ function submitPickemPick(gameId, teamCode) {
   if (!s || s.pendingPickGameId || !s.season || !s.week) return;
   s.pendingPickGameId = gameId;
   s.lastPickError = null;
-  renderAll();
+  renderPickemPreservingScroll();
   enginePilotFetchJson('/v1/public/pickem/' + s.league.toLowerCase() + '/' + s.season + '/' + s.week + '/pick', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -162,13 +174,13 @@ function submitPickemPick(gameId, teamCode) {
   }).then(function () {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
-    loadPickemView();
+    loadPickemView({ preserveScroll: true });
     loadPickemSeasonRecord();
   }).catch(function (err) {
     if (state.pickem !== s) return;
     s.pendingPickGameId = null;
     s.lastPickError = pickemUserFacingError(err);
-    renderAll();
+    renderPickemPreservingScroll();
   });
 }
 

@@ -2220,7 +2220,33 @@ function modeLabelFor(id) {
   var m = LEAGUE_MODES.nfl.concat(LEAGUE_MODES.cfb).find(function (x) { return x.id === id; });
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
+var appNavigationStack = [];
+var appNavigationBackInProgress = false;
+function rememberAppNavigation(nextScreen) {
+  var current = state && state.screen ? state.screen : 'home';
+  if (appNavigationBackInProgress || !current || current === nextScreen) return;
+  var last = appNavigationStack[appNavigationStack.length - 1];
+  var entry = { screen: current, scrollY: Math.max(0, window.scrollY || window.pageYOffset || 0) };
+  if (last && last.screen === entry.screen) appNavigationStack[appNavigationStack.length - 1] = entry;
+  else appNavigationStack.push(entry);
+  if (appNavigationStack.length > 20) appNavigationStack = appNavigationStack.slice(-20);
+}
+function appBackBarHtml() {
+  if (!state || state.screen === 'home') return '';
+  return '<div class="app-backbar"><button class="btn-tiny app-back-button" data-app-back>' +
+    '<span class="app-back-icon">' + icon('arrowRight') + '</span> Back</button></div>';
+}
+function appNavigateBack() {
+  var entry = appNavigationStack.length ? appNavigationStack.pop() : { screen:'home', scrollY:0 };
+  appNavigationBackInProgress = true;
+  goToMode(entry.screen || 'home');
+  appNavigationBackInProgress = false;
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { window.scrollTo(0, Math.max(0, Number(entry.scrollY) || 0)); });
+  });
+}
 function goToMode(mode) {
+  rememberAppNavigation(mode);
   if (isTrackedPlayableFormat(mode)) beginFormatAnalyticsRun(mode,state.screen||'unknown');
   else if (formatAnalyticsActiveRun) {
     trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),to:mode||'unknown'});
@@ -14140,6 +14166,7 @@ function renderAll() {
   var app = document.getElementById('app');
   if (!app) return;
   var html = nameBarHtml();
+  html += appBackBarHtml();
   if (state.screen === 'home') html += renderHome();
   else if (state.screen === 'quiz') html += renderQuizScreen();
   else if (state.screen === 'xso') html += renderXsoScreen();
@@ -14411,7 +14438,7 @@ document.addEventListener('click', function (e) {
     '[data-typeahead-pick], [data-format-hub-league], [data-format-hub-family], [data-format-hub-difficulty], [data-format-hub-new], [data-format-hub-reset], ' +
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
-    '[data-mode-restart], [data-mode-exit], ' +
+    '[data-mode-restart], [data-mode-exit], [data-app-back], ' +
     '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
     '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
     '[data-endless-start], [data-endless-answer], [data-endless-next]');
@@ -14642,6 +14669,7 @@ document.addEventListener('click', function (e) {
     if (taInputId && TYPEAHEAD_CONFIGS[taInputId]) { closeTypeahead(taInputId); TYPEAHEAD_CONFIGS[taInputId].onPick(t.dataset.typeaheadPick); }
     return;
   }
+  if (t.dataset.appBack !== undefined) { appNavigateBack(); return; }
   if (t.dataset.leagueToggle !== undefined) { toggleModeSheet(t.dataset.leagueToggle); return; }
   if (t.id === 'mode-sheet-close' || t.id === 'mode-sheet-backdrop') { closeModeSheet(); return; }
   if (t.dataset.go !== undefined) { closeModeSheet(); goToMode(t.dataset.go); return; }
