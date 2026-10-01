@@ -82,3 +82,19 @@ def test_home_to_game_to_completion_to_share_smoke_wiring_exists():
     assert "shareResultCard(t.dataset.share)" in APP
     # Replay/next remains available in the mechanic shell.
     assert "data-mechanic-next" in ENGINE
+
+
+def test_closeout_dedupes_discovery_impressions_and_syncs_format_badges_immediately():
+    assert "function trackFormatHubImpression(modes)" in APP
+    assert "formatHubLastImpressionSignature" in APP
+    assert "trackFormatHubImpression(modes);" in APP
+    completion=APP[APP.index("function recordPersonalizationCompletion"):APP.index("function personalizationMasteryRows")]
+    assert "syncAchievementUnlocks();" in completion
+    assert "playableMeta&&playableMeta.league" in completion
+
+
+def test_real_db_ci_exports_flyctl_path_before_restore():
+    workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
+    install=workflow[workflow.index("- name: Install flyctl"):workflow.index("- name: Restore real DB")]
+    assert 'echo "$HOME/.fly/bin" >> "$GITHUB_PATH"' in install
+    assert '"$HOME/.fly/bin/flyctl" version' in install
