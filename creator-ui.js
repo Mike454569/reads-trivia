@@ -451,7 +451,7 @@ function creatorToolbarHtml(showBack) {
   return '<div class="creator-topbar">'+
     '<div class="creator-brand"><span class="creator-brand-mark">R</span><div><b>Reads Creator</b><small>Engine Workspace</small></div></div>'+
     '<div class="creator-topnav">'+
-      '<button class="'+(screen===CREATOR_SCREEN.HOME?'active':'')+'" data-creator-nav="home">'+icon('sparkles')+' Create</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.HOME?'active':'')+'" data-creator-nav="home">'+icon('zap')+' Create</button>'+
       '<button class="'+(screen===CREATOR_SCREEN.QUEUE?'active':'')+'" data-creator-nav="queue">'+icon('list')+' Review</button>'+
       '<button class="'+(screen===CREATOR_SCREEN.CAPABILITIES?'active':'')+'" data-creator-nav="capabilities">'+icon('layers')+' Capabilities</button>'+
     '</div>'+
