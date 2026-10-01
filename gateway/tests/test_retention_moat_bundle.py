@@ -77,3 +77,13 @@ def test_reads_arena_quick_match_uses_existing_h2h_pipeline():
     assert "Find Ranked Match" in APP
     assert "h2hOpenExistingCode(code)" in APP
     assert ".arena-panel" in CSS
+
+
+def test_progression_road_unifies_rank_frame_and_share_unlocks():
+    assert "function progressionRoadHtml()" in APP
+    assert "ROAD TO LEGEND" in APP
+    assert "PROFILE_COSMETICS" in APP
+    assert "SHARE_CARD_DESIGNS" in APP
+    profile = APP.split("function renderProfile() {", 1)[1].split("function profileModeCardsHtml()", 1)[0]
+    assert "progressionRoadHtml()" in profile
+    assert ".progression-road" in CSS
