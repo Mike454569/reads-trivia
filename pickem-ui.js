@@ -41,6 +41,7 @@ function pickemUserFacingError(err) {
 function startPickemRound(league) {
   state.pickem = {
     league: league, screen: 'LOADING', season: null, week: null,
+    currentSeason: null, currentWeek: null,
     slate: league === 'CFB' ? 'FEATURED' : 'FULL', conference: null,
     view: null, pendingPickGameId: null, lastPickError: null, error: null,
     seasonRecord: null,
@@ -139,6 +140,8 @@ function loadPickemView(opts) {
     if (state.pickem !== s) return; // navigated away mid-flight
     s.season = result.season;
     s.week = result.week;
+    if (s.currentSeason == null) s.currentSeason = result.season;
+    if (s.currentWeek == null) s.currentWeek = result.week;
     if (result.slate) s.slate = result.slate; // echoes the server-resolved default (e.g. FEATURED) back
     s.view = result.view;
     s.screen = 'READY';
@@ -151,6 +154,40 @@ function loadPickemView(opts) {
     if (preserveScroll) renderPickemPreservingScroll();
     else renderAll();
   });
+}
+
+function pickemNumericWeek(v) {
+  var n = parseInt(String(v), 10);
+  return String(n) === String(v) || /^\d+$/.test(String(v)) ? n : null;
+}
+
+function changePickemWeek(nextWeek) {
+  var s = state.pickem;
+  if (!s || !s.currentSeason) return;
+  var n = parseInt(nextWeek, 10);
+  var max = pickemNumericWeek(s.currentWeek);
+  if (!Number.isFinite(n) || n < 1 || (max != null && n > max)) return;
+  s.season = s.currentSeason;
+  s.week = String(n);
+  s.lastPickError = null;
+  loadPickemView({ preserveScroll: true });
+}
+
+function renderPickemWeekRail(s) {
+  var current = pickemNumericWeek(s.currentWeek);
+  var selected = pickemNumericWeek(s.week);
+  if (current == null || current < 1) return '';
+  var weeks = [];
+  for (var i = 1; i <= current; i++) weeks.push(i);
+  return '<div class="pickem-week-nav">' +
+    '<div class="pickem-week-nav-head"><span>Season Weeks</span><small>Tap any week to review your picks</small></div>' +
+    '<div class="pickem-week-rail">' +
+      weeks.map(function (wk) {
+        var active = wk === selected;
+        var label = wk === current ? 'W' + wk + ' · NOW' : 'W' + wk;
+        return '<button class="pickem-week-chip' + (active ? ' active' : '') + '" data-pickem-week="' + wk + '">' + label + '</button>';
+      }).join('') +
+    '</div></div>';
 }
 
 function changePickemSlate(newSlate, conference) {
@@ -226,6 +263,7 @@ function renderPickemScreen() {
     broadcastMarqueeHtml(s.league + ' · WEEK ' + v.week, 'PICK YOUR WINNERS', v.season + ' SEASON · Picks lock when games start') +
     broadcastScorebugHtml([['PICKED', v.picks_made + '/' + v.game_count], ['CORRECT', v.correct_count], ['GRADED', v.graded_count]]) +
     renderPickemSeasonRecordHtml(s) +
+    renderPickemWeekRail(s) +
     (s.league === 'CFB' ? renderPickemSlateChips(s) : '') +
     (s.lastPickError ? '<div class="quiz-feedback">' + esc(s.lastPickError) + '</div>' : '') +
     (allGraded ? renderPickemCompletionSummary(v) : '') +
