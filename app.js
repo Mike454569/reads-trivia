@@ -1959,6 +1959,23 @@ function renderDailyQuestion() {
       : '') +
     '</div>';
 }
+function dailySocialProofHtml() {
+  if(!state.name) return '';
+  var today=dailyRivalRows('today');
+  var friends=dailyRivalScopeRows(today,'friends');
+  var team=dailyRivalScopeRows(today,'team');
+  var overallRank=dailyRivalMeIndex(today);
+  var friendRank=dailyRivalMeIndex(friends);
+  var teamRank=dailyRivalMeIndex(team);
+  if(!today.length && !friends.length && !team.length) return '';
+  return '<section class="daily-social-proof"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">HOW YOU STACKED UP</span><h3>Today’s room</h3></div><span>Live leaderboard data</span></div>'+
+    '<div class="daily-rivals-rank-strip">'+
+      '<span><b>'+(overallRank?'#'+overallRank:'—')+'</b><small>Reads today</small></span>'+
+      '<span><b>'+(friendRank?'#'+friendRank:'—')+'</b><small>Friends</small></span>'+
+      '<span><b>'+(teamRank?'#'+teamRank:'—')+'</b><small>Your team</small></span>'+
+      '<span><b>'+today.length+'</b><small>Players active</small></span>'+
+    '</div></section>';
+}
 function renderDailySummary() {
   var t = state.daily, pct = Math.round(100 * t.correctCount / t.queue.length);
   var p = getProgression();
@@ -1974,6 +1991,7 @@ function renderDailySummary() {
       var missed = t.missed.some(function (m) { return m._dailyIndex === i || m.question === q.question; });
       return '<span class="' + (missed ? 'missed' : 'hit') + '"><b>' + esc(DAILY_MECHANICS[q._dailyMechanic || 'quick'].label) + '</b><small>' + (missed ? 'Miss' : 'Hit') + '</small></span>';
     }).join('') + '</div>' +
+    dailySocialProofHtml() +
     dailyRivalsHtml(true) +
     dailyStreakRewardsHtml() +
     weeklyDailyRecapHtml(true) +
@@ -3162,6 +3180,36 @@ function formatHubCardHtml(m) {
     '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
     '<div class="format-hub-card-foot"><span>'+esc(family.replace('_',' '))+'</span><span>'+(plays?plays+' played':'New to you')+' '+icon('arrowRight')+'</span></div>'+
     '</button>';
+}
+function formatCollectionModes(predicate, limit) {
+  return allPlayableModesUnique().filter(predicate).sort(function(a,b){
+    var ap=modeTimesPlayed(a.id), bp=modeTimesPlayed(b.id);
+    if(ap!==bp) return ap-bp;
+    return (a.title||'').localeCompare(b.title||'');
+  }).slice(0,limit||5);
+}
+function formatCollectionShelfHtml(title, subtitle, modes) {
+  if(!modes || !modes.length) return '';
+  return '<section class="format-collection"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">PLAYLIST</span><h3>'+esc(title)+'</h3></div><span>'+esc(subtitle)+'</span></div>'+
+    '<div class="format-collection-row">'+modes.map(function(m){
+      return '<button data-go="'+esc(m.id)+'"><span>'+icon(m.icon||'football')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
+    }).join('')+'</div></section>';
+}
+function formatCollectionsHtml() {
+  var all=allPlayableModesUnique();
+  if(!all.length) return '';
+  var fav=getFavoriteTeams(), prefLeague=fav.cfb && !fav.nfl ? 'cfb' : fav.nfl && !fav.cfb ? 'nfl' : null;
+  var newModes=formatCollectionModes(function(m){return modeTimesPlayed(m.id)===0;},5);
+  var quick=formatCollectionModes(function(m){return m.difficulty==='casual' || /quick|speed|blitz|daily|higher|lower/i.test((m.title||'')+' '+(m.id||''));},5);
+  var brutal=formatCollectionModes(function(m){return m.difficulty==='hardcore';},5);
+  var tailored=formatCollectionModes(function(m){return prefLeague ? (m.league===prefLeague || m.league==='mixed') : formatHubRecommendationRows(12).some(function(r){return r.mode.id===m.id;});},5);
+  return '<section class="format-collections" aria-label="Curated game collections">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CURATED FOR YOU</span><h2>Pick a lane</h2></div><span>100 games, less hunting</span></div>'+
+    formatCollectionShelfHtml('New to You','Fresh formats',newModes)+
+    formatCollectionShelfHtml('Quick Hitters','Fast games',quick)+
+    formatCollectionShelfHtml('Think You Know Ball?','Hardcore',brutal)+
+    formatCollectionShelfHtml(prefLeague==='cfb'?'College Sickos':prefLeague==='nfl'?'Sunday Mode':'Because You Play Reads','Personalized',tailored)+
+  '</section>';
 }
 function formatDiscoveryHubHtml() {
   var modes=formatHubFilteredModes(), quick=formatHubQuickPlayMode(), recs=formatHubRecommendationRows(6);
@@ -4731,6 +4779,76 @@ function dashboardActionStripHtml() {
     '</div>';
 }
 
+function footballDNAData() {
+  var rows = personalizationMasteryRows().filter(function (r) { return r.total >= 3; });
+  var leagues = personalizationLeagueProfile();
+  var rating = getRating();
+  var strongest = rows.slice().sort(function (a,b) { return b.pct-a.pct || b.total-a.total; })[0] || null;
+  var weakest = rows.slice().sort(function (a,b) { return a.pct-b.pct || b.total-a.total; })[0] || null;
+  var nflRows = rows.filter(function(r){ return r.league === 'nfl'; });
+  var cfbRows = rows.filter(function(r){ return r.league === 'cfb'; });
+  function avg(list) {
+    if (!list.length) return null;
+    var weighted=list.reduce(function(s,r){ return s + r.pct*r.total; },0);
+    var total=list.reduce(function(s,r){ return s+r.total; },0);
+    return total ? Math.round(weighted/total) : null;
+  }
+  var nfl = avg(nflRows), cfb = avg(cfbRows), archetype='Five-Tool Football Fan';
+  if (strongest) {
+    var cat=(strongest.category||'').toLowerCase();
+    if (/coverage|scheme|formation|offense|defense|concept/.test(cat)) archetype='Film Junkie';
+    else if (/draft|roster|player|position/.test(cat)) archetype='Roster Sicko';
+    else if (strongest.league==='cfb' && (cfb==null || nfl==null || cfb>=nfl+4)) archetype='College Football Encyclopedia';
+    else if (strongest.league==='nfl' && (cfb==null || nfl==null || nfl>=cfb+4)) archetype='Sunday Historian';
+    else if (/history|champion|super bowl|heisman|award/.test(cat)) archetype='Football Historian';
+  }
+  return {
+    overall: rating ? rating.score : null,
+    nfl: nfl,
+    cfb: cfb,
+    nflPlays: leagues.nfl.plays || 0,
+    cfbPlays: leagues.cfb.plays || 0,
+    strongest: strongest,
+    weakest: weakest,
+    archetype: archetype
+  };
+}
+function footballDNAHtml(compact) {
+  if (!state.name) return '';
+  var d=footballDNAData();
+  var strength=d.strongest ? esc(d.strongest.category)+' · '+d.strongest.pct+'%' : 'Keep playing to reveal';
+  var weak=d.weakest ? esc(d.weakest.category)+' · '+d.weakest.pct+'%' : 'Still learning you';
+  return '<section class="football-dna'+(compact?' compact':'')+'">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOOTBALL DNA</span><h3>'+esc(d.archetype)+'</h3></div><span>Built from your real play</span></div>'+
+    '<div class="football-dna-grid">'+
+      '<div><small>Overall</small><b>'+(d.overall==null?'—':d.overall)+'</b></div>'+
+      '<div><small>NFL mastery</small><b>'+(d.nfl==null?'—':d.nfl+'%')+'</b></div>'+
+      '<div><small>College mastery</small><b>'+(d.cfb==null?'—':d.cfb+'%')+'</b></div>'+
+    '</div>'+
+    '<div class="football-dna-readout"><span><small>Best trait</small><b>'+strength+'</b></span><span><small>Attack next</small><b>'+weak+'</b></span></div>'+
+  '</section>';
+}
+function homePriorityFeedHtml() {
+  if (!state.name) return dailyChallengeCardHtml();
+  var items=[];
+  function add(priority, html, key) { if (html) items.push({priority:priority,html:html,key:key}); }
+  add(100, playedToday() ? '' : dailyChallengeCardHtml(), 'daily');
+  add(95, liveFootballHomeHtml(), 'live');
+  add(90, friendRivalAlertHtml(), 'rival');
+  add(85, retentionMissionHtml(), 'comeback');
+  add(80, unfinishedBusinessHtml(), 'unfinished');
+  add(75, teamBattleHtml(), 'team-battle');
+  add(70, communityCardHtml(), 'community');
+  add(65, continuePlayingCardHtml(), 'continue');
+  if (playedToday()) add(60, dailyChallengeCardHtml(), 'daily-done');
+  items.sort(function(a,b){return b.priority-a.priority;});
+  var visible=items.slice(0,4);
+  if(!visible.length) return '';
+  return '<section class="home-priority-feed" aria-label="Today on Reads">'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">TODAY ON READS</span><h2>Your next moves</h2></div><span>'+visible.length+' live priorities</span></div>'+
+    '<div class="home-priority-stack">'+visible.map(function(x){return '<div class="home-priority-item" data-priority-key="'+esc(x.key)+'">'+x.html+'</div>';}).join('')+'</div>'+
+  '</section>';
+}
 function personalDashboardHtml() {
   if (!state.name) return '';
   var p = getProgression();
@@ -4780,27 +4898,13 @@ function renderHome() {
     '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
     favoriteTeamGreeting() +
     '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p>' +
-    '<div class="hero-actions"><button class="btn-primary" data-go="quiz">Play NFL Quiz ' + icon('arrowRight') + '</button>' +
+    '<div class="hero-actions"><button class="btn-primary" data-go="daily">Play Today’s Reads ' + icon('arrowRight') + '</button>' +
     '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
     teamPickerPromptCardHtml() +
     personalDashboardHtml() +
-    friendRivalAlertHtml() +
-    teamBattleHtml() +
-    liveFootballHomeHtml() +
-    endlessHomeCardHtml() +
-    reengagementCenterHtml() +
-    retentionMissionHtml() +
-    unfinishedBusinessHtml() +
-    communityCardHtml() +
-    dailyChallengeCardHtml() +
-    weeklyDailyRecapHtml(false) +
-    dailyRivalsHtml(false) +
-    dailyStreakRewardsHtml() +
-    continuePlayingCardHtml() +
+    homePriorityFeedHtml() +
     recommendationShelfHtml() +
-    personalizationMasteryHtml() +
-    weeklyPersonalGoalsHtml() +
-    weeklyRetentionGoalHtml() +
+    formatCollectionsHtml() +
     formatDiscoveryHubHtml() +
     discoverGridHtml() +
     '<button class="btn-secondary leaderboard-link" data-go="leaderboard">' + icon('trophy') + ' View Leaderboard</button>' +
@@ -13668,6 +13772,10 @@ function renderProfile() {
   }
 
   html += careerLadderHtml();
+  html += footballDNAHtml(false);
+  html += personalizationMasteryHtml();
+  html += weeklyPersonalGoalsHtml();
+  html += weeklyRetentionGoalHtml();
   html += filmProfileResumeHtml();
   html += seasonTrophyCaseHtml();
   html += '<div class="profile-section-head"><div><span class="dashboard-eyebrow">TROPHY CASE</span><h3>Achievements</h3></div><span>' + earned.length + ' / ' + BADGES.length + ' unlocked</span></div>' +
