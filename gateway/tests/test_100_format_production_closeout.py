@@ -113,7 +113,15 @@ def test_real_db_ci_uses_stable_absolute_flyctl_path():
     assert '"$HOME/.fly/bin/flyctl" volumes list' in restore
     assert '"https://api.machines.dev/v1/apps/${FLY_APP}/machines"' in restore
     assert '"https://api.machines.dev/v1/apps/${FLY_APP}/machines/${TEMP_MACHINE_ID}/start"' in restore
+    assert '"skip_launch":True' in restore
     assert '"cmd":["sleep","600"]' in restore
     assert '"mounts":[{"volume":os.environ["TEMP_VOL_ID"],"path":"/data"}]' in restore
     assert '"$HOME/.fly/bin/flyctl" ssh sftp get' in restore
     assert '"$HOME/.fly/bin/flyctl" machine destroy' in cleanup
+
+
+def test_gateway_workflow_cancels_stale_branch_runs():
+    workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
+    assert "concurrency:" in workflow
+    assert "group: gateway-tests-${{ github.ref }}" in workflow
+    assert "cancel-in-progress: true" in workflow
