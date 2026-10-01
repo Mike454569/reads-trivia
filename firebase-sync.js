@@ -413,7 +413,9 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
               var mySlug=usernameSlug(name), oppSlug=usernameSlug(opponent.name||'Reads fan'), players={};
               players[mySlug]={name:name,correctCount:null,total:null,finishedAt:null};
               players[oppSlug]={name:opponent.name||'Reads fan',correctCount:null,total:null,finishedAt:null};
-              tx.set(matchRef,{mode:'quiz',roundSize:10,listId:null,status:'active',arena:true,players:players});
+              var arenaModes=['quiz','cfbQuiz','grid','cfbGrid','silhouette','speed','cfbSpeed'];
+              var arenaMode=arenaModes[Math.floor(Math.random()*arenaModes.length)];
+              tx.set(matchRef,{mode:arenaMode,roundSize:10,listId:null,status:'active',arena:true,players:players});
               tx.set(mineRef,{status:'matched',matchCode:code,opponentName:opponent.name||'Reads fan',updatedAt:serverTimestamp()},{merge:true});
               tx.set(oppRef,{status:'matched',matchCode:code,opponentName:name,updatedAt:serverTimestamp()},{merge:true});
               return {status:'matched',ticketId:uid,matchCode:code,opponentName:opponent.name||'Reads fan'};
