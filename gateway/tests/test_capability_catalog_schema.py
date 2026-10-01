@@ -58,7 +58,9 @@ def test_legacy_capabilities_are_not_marked_human_approved():
     c = engine_bootstrap.connect()
     try:
         bad = c.execute(
-            "SELECT capability_id FROM capability_catalog WHERE human_review_status='APPROVED'"
+            "SELECT capability_id FROM capability_catalog "
+            "WHERE verification_status='LEGACY_PUBLIC_PENDING_REVALIDATION' "
+            "AND human_review_status='APPROVED'"
         ).fetchall()
         legacy_rows = c.execute(
             "SELECT capability_id, verification_status, human_review_status FROM capability_catalog "
