@@ -3163,7 +3163,7 @@ function dailyFormatRotationHtml(compact) {
   return '<section class="daily-format-five'+(compact?' compact':'')+'">'+
     '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s 100-format rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
     '<p class="mode-desc">Five personalized full game formats, rotated daily from the complete Reads catalog. Your Daily Reads streak still comes from the five-minute Daily 5 above.</p>'+
-    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;return '<button class="'+(done?'complete':'')+'" data-go="'+esc(m.id)+'"><span>'+(done?icon('check'):icon(m.icon||'football'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
+    '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;return '<button class="'+(done?'complete':'')+'" data-go="'+esc(m.id)+'"><span class="format-mini-mark">'+(done?'<span class="format-mini-complete">'+icon('check')+'</span>':modeMarkHtml(m,'sm'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
     '</section>';
 }
 
@@ -3220,7 +3220,7 @@ function formatHubQuickPlayMode() {
 function formatHubCardHtml(m) {
   var plays=modeTimesPlayed(m.id), family=formatHubFamily(m);
   return '<button class="format-hub-card" data-go="'+esc(m.id)+'">'+
-    '<div class="format-hub-card-top"><span class="format-hub-icon">'+icon(m.icon||'football')+'</span>'+
+    '<div class="format-hub-card-top"><span class="format-hub-icon">'+modeMarkHtml(m,'md')+'</span>'+
     '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
     '<small>'+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></span></div>'+
     '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
@@ -3239,7 +3239,7 @@ function formatCollectionShelfHtml(title, subtitle, modes) {
   if(!modes || !modes.length) return '';
   return '<section class="format-collection"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">PLAYLIST</span><h3>'+esc(title)+'</h3></div><span>'+esc(subtitle)+'</span></div>'+
     '<div class="format-collection-row">'+modes.map(function(m){
-      return '<button data-go="'+esc(m.id)+'"><span>'+icon(m.icon||'football')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
+      return '<button data-go="'+esc(m.id)+'"><span class="format-mini-mark">'+modeMarkHtml(m,'sm')+'</span><b>'+esc(m.title)+'</b><small>'+esc(formatHubFamily(m).replace('_',' '))+' · '+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></button>';
     }).join('')+'</div></section>';
 }
 function formatCollectionsHtml() {
@@ -3268,7 +3268,7 @@ function formatDiscoveryHubHtml() {
     (quick?'<button class="btn-primary format-hub-quick" data-go="'+esc(quick.id)+'">'+icon('zap')+' Quick Play <small>'+esc(quick.title)+'</small></button>':'')+
     '</div>'+
     (state.name && recs.length?'<div class="format-hub-for-you"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOR YOU</span><h3>Your next six</h3></div><span>Personalized daily</span></div>'+
-      '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span>'+icon(r.mode.icon||'football')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
+      '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span class="format-mini-mark">'+modeMarkHtml(r.mode,'sm')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
     '<div class="format-hub-controls">'+
       '<label class="format-hub-search">'+icon('search')+'<input id="format-hub-search" value="'+esc(formatHubState.query)+'" placeholder="Search 100 formats…" autocomplete="off"></label>'+
       '<div class="format-hub-filter-row" role="group" aria-label="League filter">'+
@@ -4280,11 +4280,40 @@ function modeMarkFamily(m) {
   if (/bracket|gauntlet|elimination|survival/i.test(id) || iconName === 'trophy') return 'tournament';
   return 'trivia';
 }
+var MODE_LOGO_CODE_OVERRIDES = {
+  quiz:'QZ', grid:'3X3', blitz:'BLZ', speed:'SPD', silhouette:'ID', iq:'IQ',
+  legends:'17-0', higherLower:'H/L', playerClues:'WHO',
+  cfbQuiz:'CQ', cfbGrid:'C3', cfbBlitz:'CBZ', cfbSpeed:'CSP', cfbIq:'CIQ',
+  cfbLegends:'12-0', cfbPlayerClues:'CWHO',
+  pickem:'PICK', h2h:'H2H', learn:'FILM', daily:'D5', endless:'END',
+  draft_guess:'DRFT', championship_guess:'CHMP', lineup_guess:'XI'
+};
+function modeLogoCode(m) {
+  if (!m) return 'R';
+  if (MODE_LOGO_CODE_OVERRIDES[m.id]) return MODE_LOGO_CODE_OVERRIDES[m.id];
+  var title = String(m.title || m.id || 'Reads')
+    .replace(/\b(NFL|CFB|College|Football|Mode|Game|The|Of|And|To|A)\b/gi, ' ')
+    .replace(/[^A-Za-z0-9 ]/g, ' ')
+    .trim();
+  var words = title.split(/\s+/).filter(Boolean);
+  if (!words.length) return 'R';
+  if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+  var initials = words.map(function(w){ return w[0]; }).join('').toUpperCase();
+  if (initials.length >= 2 && initials.length <= 4) return initials;
+  return (words[0].slice(0,2) + words[1].slice(0,2)).toUpperCase().slice(0,4);
+}
+function modeLogoVariant(m) {
+  var key = String((m && (m.id || m.title)) || 'reads');
+  return Math.abs(hashStr(key + '|mode-logo-v2')) % 12;
+}
 function modeMarkHtml(m, size) {
   var league = modeLeagueFor(m);
   var family = modeMarkFamily(m);
-  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
-    '<span class="mode-mark-core">' + icon(m.icon || 'football') + '</span>' +
+  var variant = modeLogoVariant(m);
+  var code = modeLogoCode(m);
+  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + ' mode-mark-v' + variant + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
+    '<span class="mode-mark-corner">' + icon(m.icon || 'football') + '</span>' +
+    '<span class="mode-mark-code">' + esc(code) + '</span>' +
     '<span class="mode-mark-stitch"></span>' +
     '</span>';
 }
