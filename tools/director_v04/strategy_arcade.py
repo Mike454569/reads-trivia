@@ -283,9 +283,10 @@ def client_view(package: dict, progress: dict) -> dict:
 
     if variant == "CATEGORY_CONQUEST":
         captured = set(state.get("captured", []))
-        out["board"] = [{"id": c, "label": c, "value": "CAPTURED" if c in captured else "OPEN"} for c in ("NFL Team Records","Heisman Winners","Super Bowl Champions")]
+        categories = ("Game Day", "Season & Legacy", "College Chaos")
+        out["board"] = [{"id": c, "label": c, "value": "CAPTURED" if c in captured else "OPEN"} for c in categories]
         if state.get("target_category") is None:
-            out.update({"phase":"SELECT","actions":[{"id":c,"label":f"Attack {c}"} for c in ("NFL Team Records","Heisman Winners","Super Bowl Champions") if c not in captured]})
+            out.update({"phase":"SELECT","actions":[{"id":c,"label":f"Attack {c}"} for c in categories if c not in captured]})
         else:
             out.update(_question_view(package, state)); out["selected_label"] = state["target_category"]
         return out
@@ -462,13 +463,13 @@ def evaluate(package: dict, progress: dict, submission: dict) -> tuple[dict, dic
         return result,state
 
     if variant == "CATEGORY_CONQUEST":
-        categories=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+        categories=("Game Day","Season & Legacy","College Chaos")
         if state.get("target_category") is None:
             if action not in categories or action in set(state.get("captured",[])): raise ValueError("category unavailable")
             start=state["cursor"]; rounds=package["rounds"]; found=None
             for off in range(len(rounds)):
                 idx=(start+off)%len(rounds)
-                if rounds[idx]["category"]==action: found=idx; break
+                if rounds[idx].get("bucket")==action: found=idx; break
             if found is None: raise ValueError("no real question for category")
             state["cursor"]=found; state["target_category"]=action; return {"action":"select","category":action},state
         result.update(_grade(package,state,submission)); target=state.pop("target_category")
