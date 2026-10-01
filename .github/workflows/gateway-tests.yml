@@ -108,16 +108,28 @@ jobs:
           TEMP_VOL_NAME="ci_fork_${GITHUB_RUN_ID}"
           TEMP_MACHINE_NAME="ci-db-${GITHUB_RUN_ID}"
 
-          # Resolve the volume mounted by the live production Machine.
-          # Volume names are not unique forever on Fly; selecting the first
-          # name match previously picked a stale/empty reads_engine_data.
-          SOURCE_VOLUME_ID=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; rows=json.load(sys.stdin); live=[r for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-')]; mounts=[m for r in live for m in (r.get('config') or {}).get('mounts',[])]; ids=[m.get('volume') or m.get('volume_id') for m in mounts if m.get('volume') or m.get('volume_id')]; print(ids[0] if ids else '')")
+          # Multiple long-lived Fly Machines/volumes can share the same
+          # human-readable volume name. Probe only file metadata (stat) on
+          # each running production Machine and select the Machine whose
+          # mounted Reads DB is genuinely populated; then fork THAT volume.
+          MACHINES_JSON=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json)
+          PROD_MACHINE_IDS=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; rows=json.load(sys.stdin); print(' '.join(str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
+          SOURCE_VOLUME_ID=""
+          for PROD_MACHINE_ID in $PROD_MACHINE_IDS; do
+            DB_SIZE=$("$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$PROD_MACHINE_ID" \
+              -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' 2>/dev/null | tail -n 1 | tr -dc '0-9')
+            DB_SIZE=${DB_SIZE:-0}
+            echo "Production machine $PROD_MACHINE_ID DB bytes: $DB_SIZE"
+            if [ "$DB_SIZE" -gt 104857600 ]; then
+              SOURCE_VOLUME_ID=$(printf '%s' "$MACHINES_JSON" | python3 -c "import json,sys; mid='$PROD_MACHINE_ID'; rows=json.load(sys.stdin); r=next(x for x in rows if str(x.get('id') or x.get('ID'))==mid); mounts=(r.get('config') or {}).get('mounts',[]); ids=[m.get('volume') or m.get('volume_id') for m in mounts if m.get('volume') or m.get('volume_id')]; print(ids[0] if ids else '')")
+              break
+            fi
+          done
           if [ -z "$SOURCE_VOLUME_ID" ]; then
-            echo "Could not resolve a mounted production volume from the live Fly Machine" >&2
+            echo "No running production Machine has a populated Reads DB" >&2
             exit 1
           fi
-          echo "Forking live production-mounted volume $SOURCE_VOLUME_ID into isolated CI copy"
+          echo "Forking verified production volume $SOURCE_VOLUME_ID into isolated CI copy"
 
           TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
             -a "$FLY_APP" --region "$FLY_REGION" --name "$TEMP_VOL_NAME" --json | \
