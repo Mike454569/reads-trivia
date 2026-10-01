@@ -6193,3 +6193,40 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
  .daily-format-five-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:3px}
  .daily-format-five-grid button{flex:0 0 145px;scroll-snap-align:start}
 }
+
+
+/* Retention moat bundle: priority home, Football DNA, curated format shelves */
+.home-priority-feed{margin:var(--space-xl) 0}
+.home-priority-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home-priority-item{min-width:0}
+.home-priority-item>.panel,.home-priority-item>section,.home-priority-item>button{height:100%;margin:0;width:100%}
+.home-priority-item .daily-card,.home-priority-item .community-home-card,.home-priority-item .continue-card{min-height:100%}
+.football-dna{margin:20px 0;padding:18px;border:1px solid rgba(var(--home-glow-rgb),.28);border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(var(--home-glow-rgb),.08),rgba(255,255,255,.015)),var(--bg-card)}
+.football-dna.compact{padding:14px}
+.football-dna-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.football-dna-grid>div{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated)}
+.football-dna-grid small,.football-dna-readout small{display:block;color:var(--text-dim);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.football-dna-grid b{display:block;margin-top:4px;font-family:var(--font-display);font-size:clamp(24px,5vw,38px);line-height:1}
+.football-dna-readout{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.football-dna-readout>span{padding:12px;border-top:1px solid var(--border)}
+.football-dna-readout b{display:block;margin-top:4px;font-size:13px}
+.format-collections{margin:var(--space-xl) 0}
+.format-collection{margin:14px 0 18px}
+.format-collection-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+.format-collection-row button{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:128px;padding:13px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated);color:var(--text);text-align:left;cursor:pointer}
+.format-collection-row button:hover{border-color:var(--home-accent);transform:translateY(-1px)}
+.format-collection-row button>span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(var(--home-glow-rgb),.11);color:var(--home-accent);margin-bottom:10px}
+.format-collection-row b{font-size:13px;line-height:1.2}
+.format-collection-row small{margin-top:auto;padding-top:8px;color:var(--text-dim);font-size:10px;text-transform:capitalize}
+.daily-social-proof{margin:14px 0;padding:14px;border:1px solid rgba(var(--home-glow-rgb),.24);border-radius:var(--radius);background:rgba(var(--home-glow-rgb),.05)}
+@media(max-width:800px){
+ .home-priority-stack{grid-template-columns:1fr}
+ .format-collection-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+ .format-collection-row button{flex:0 0 155px;scroll-snap-align:start}
+}
+@media(max-width:520px){
+ .football-dna-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .football-dna-grid>div{padding:10px 8px}
+ .football-dna-grid b{font-size:22px}
+ .football-dna-readout{grid-template-columns:1fr}
+}
