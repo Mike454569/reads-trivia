@@ -102,6 +102,8 @@ function creatorInitialState() {
     screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
     requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
     capabilities: null, error: null, formatQuery: '', formatCategory: 'All',
+    guidedLeague: 'NFL', guidedTopic: 'General', guidedDifficulty: 'medium', guidedCount: 5,
+    previewMode: 'player', editingQuestionIndex: null,
   };
 }
 
@@ -150,7 +152,7 @@ function creatorGenerate() {
   renderAll();
   creatorFetchJson('/v1/creator/generate', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ request_text: s.requestText, puzzle_count: 5 }),
+    body: JSON.stringify({ request_text: s.requestText, puzzle_count: s.guidedCount || 5, difficulty: s.guidedDifficulty || 'medium' }),
   }).then(function (result) {
     s.generated = result;
     s.screen = CREATOR_SCREEN.PREVIEW;
@@ -242,6 +244,74 @@ function creatorUseExample(text) {
   if (el) el.focus();
 }
 
+function creatorGuidedPrompt() {
+  var s=state.creator||{};
+  var league=s.guidedLeague||'NFL', topic=s.guidedTopic||'General', diff=s.guidedDifficulty||'medium';
+  var topicCopy={
+    'General':'mixed football knowledge', 'Draft':'draft history', 'History':'football history',
+    'Players':'players and careers', 'Teams':'teams and seasons', 'Stats':'player and team statistics',
+    'Awards':'awards and honors', 'Games':'real game results and performances'
+  };
+  return 'Make me a '+league+' trivia game about '+(topicCopy[topic]||topic.toLowerCase())+'. Use '+diff+' difficulty.';
+}
+function creatorGuidedBuild() {
+  var s=state.creator;if(!s)return;
+  s.requestText=creatorGuidedPrompt();
+  creatorCheckFeasibility(s.requestText);
+}
+function creatorSetGuided(field,value) {
+  var s=state.creator;if(!s)return;
+  if(field==='league')s.guidedLeague=value;
+  else if(field==='topic')s.guidedTopic=value;
+  else if(field==='difficulty')s.guidedDifficulty=value;
+  else if(field==='count')s.guidedCount=Math.max(1,Math.min(25,parseInt(value,10)||5));
+  renderAll();
+}
+function creatorTogglePreviewMode(mode){ if(!state.creator)return; state.creator.previewMode=mode==='admin'?'admin':'player'; renderAll(); }
+function creatorEditQuestion(index){ if(!state.creator)return; state.creator.editingQuestionIndex=(state.creator.editingQuestionIndex===index?null:index); renderAll(); }
+function creatorSaveQuestionRevision(index){
+  var s=state.creator,g=s&&s.generated;if(!g||!g.package_id||!g.questions)return;
+  var q=g.questions[index];if(!q)return;
+  var promptEl=document.getElementById('creator-edit-question-'+index);
+  var notesEl=document.getElementById('creator-edit-notes-'+index);
+  var opts=[]; for(var oi=0;oi<(q.options||[]).length;oi++){var el=document.getElementById('creator-edit-option-'+index+'-'+oi);opts.push(el?el.value:q.options[oi]);}
+  var correctEl=document.getElementById('creator-edit-correct-'+index);
+  var replacement={question:promptEl?promptEl.value:q.question,options:opts,correctIndex:correctEl?parseInt(correctEl.value,10):q.correctIndex,notes:notesEl?notesEl.value:(q.notes||''),difficulty:q.difficulty||'medium'};
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/question/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:g.package_id,question_index:index,replacement:replacement})})
+    .then(function(result){s.generated=result;s.editingQuestionIndex=null;s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();})
+    .catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorRegeneratePackage(){
+  var s=state.creator;if(!s||!s.requestText)return;
+  var count=(s.generated&&s.generated.question_count)||s.guidedCount||5;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:s.requestText,puzzle_count:count,difficulty:s.guidedDifficulty||'medium',seed:'creator-refresh-'+Date.now()})})
+    .then(function(result){s.generated=result;s.previewMode='player';s.screen=CREATOR_SCREEN.PREVIEW;renderAll();})
+    .catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+
+function creatorGuidedBuilderHtml(){
+  var s=state.creator||{}; var topics=['General','Draft','History','Players','Teams','Stats','Awards','Games'];
+  return '<section class="creator-guided-card"><div class="creator-compose-head"><div><span class="dashboard-eyebrow">GUIDED BUILDER</span><h2>Build it without writing a prompt</h2></div><span class="creator-step-chip">Fast path</span></div>'+
+    '<div class="creator-guided-grid">'+
+      '<label><span>League</span><select data-creator-guided="league"><option'+(s.guidedLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.guidedLeague==='CFB'?' selected':'')+'>CFB</option><option'+(s.guidedLeague==='Mixed'?' selected':'')+'>Mixed</option></select></label>'+
+      '<label><span>Topic</span><select data-creator-guided="topic">'+topics.map(function(x){return '<option'+(s.guidedTopic===x?' selected':'')+'>'+esc(x)+'</option>';}).join('')+'</select></label>'+
+      '<label><span>Difficulty</span><select data-creator-guided="difficulty"><option value="easy"'+(s.guidedDifficulty==='easy'?' selected':'')+'>Easy</option><option value="medium"'+(s.guidedDifficulty==='medium'?' selected':'')+'>Medium</option><option value="hard"'+(s.guidedDifficulty==='hard'?' selected':'')+'>Hard</option></select></label>'+
+      '<label><span>Questions</span><select data-creator-guided="count">'+[5,10,15,20,25].map(function(n){return '<option value="'+n+'"'+(Number(s.guidedCount)===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></label>'+
+    '</div><div class="creator-guided-preview"><small>Creator will ask:</small><b>'+esc(creatorGuidedPrompt())+'</b></div>'+
+    '<button class="btn-primary" data-creator-guided-build>'+icon('zap')+' Check Guided Build</button></section>';
+}
+
+function creatorQuestionEditorHtml(q,index){
+  return '<div class="creator-question-editor">'+
+    '<label>Question<textarea id="creator-edit-question-'+index+'">'+esc(q.question||'')+'</textarea></label>'+
+    '<div class="creator-edit-options">'+(q.options||[]).map(function(opt,oi){return '<label>Option '+String.fromCharCode(65+oi)+'<input id="creator-edit-option-'+index+'-'+oi+'" value="'+esc(opt)+'"></label>';}).join('')+'</div>'+
+    '<label>Correct answer<select id="creator-edit-correct-'+index+'">'+(q.options||[]).map(function(opt,oi){return '<option value="'+oi+'"'+(oi===q.correctIndex?' selected':'')+'>'+String.fromCharCode(65+oi)+' · '+esc(opt)+'</option>';}).join('')+'</select></label>'+
+    '<label>Notes<textarea id="creator-edit-notes-'+index+'">'+esc(q.notes||'')+'</textarea></label>'+
+    '<div class="btn-row"><button class="btn-primary" data-creator-question-save="'+index+'">Save as New Version</button><button class="btn-secondary" data-creator-question-edit="'+index+'">Cancel</button></div>'+
+    '<small>The original package stays untouched. This creates a new QA-validated package ID.</small></div>';
+}
 // Format Picker pass: the user's own real gap report -- "I want it to
 // give me options when you make a game mode ... without having to use a
 // keyword or sum bs like that." Every entry with a taxonomyId+variant
@@ -600,8 +670,9 @@ function renderCreatorScreen() {
       var items = g.questions || g.puzzles || [];
       var itemCount = (g.question_count != null) ? g.question_count : ((g.puzzle_count != null) ? g.puzzle_count : items.length);
       var itemLabel = g.puzzles ? 'puzzles' : 'questions';
-      html += '<div class="panel">' +
-        '<h2 class="panel-title">Preview -- ' + esc(g.game_title || '') + '</h2>' +
+      html += '<div class="panel creator-preview-shell">' +
+        '<div class="creator-preview-head"><div><span class="dashboard-eyebrow">PLAYER PREVIEW</span><h2 class="panel-title">' + esc(g.game_title || 'Generated Game') + '</h2></div><div class="creator-preview-toggle"><button class="'+(s.previewMode!=='admin'?'active':'')+'" data-creator-preview-mode="player">Player View</button><button class="'+(s.previewMode==='admin'?'active':'')+'" data-creator-preview-mode="admin">Admin View</button></div></div>' +
+        '<div class="btn-row"><button class="btn-secondary" data-creator-regenerate>'+icon('restart')+' Regenerate Fresh Version</button></div>' +
         '<p class="mode-desc">QA: ' + esc(g.qa_status) + ' &middot; ' + itemCount + ' ' + itemLabel + ' &middot; review status: ' + esc(g.review_status) + '</p>';
       if (g.package_id) {
         html += '<div class="btn-row">' +
@@ -632,13 +703,15 @@ function renderCreatorScreen() {
         items.forEach(function (q, i) {
           var payload = creatorQuestionAsPublicPayload(q);
           html += '<div class="creator-preview-question">' +
-            '<div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
-            renderEnginePilotPromptHtml({ payload: payload }) +
+            '<div class="creator-preview-question-head"><div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
+            '<button class="btn-tiny" data-creator-question-edit="' + i + '">' + (s.editingQuestionIndex === i ? 'Close editor' : 'Edit') + '</button></div>' +
+            (s.previewMode === 'admin' ? '<div class="creator-admin-question-meta"><b>Correct:</b> ' + esc(q.options[q.correctIndex] || '') + (q.notes ? '<br><b>Notes:</b> ' + esc(q.notes) : '') + '</div>' : '') +
+            '<div class="creator-player-preview">' + renderEnginePilotPromptHtml({ payload: payload }) +
             '<div class="quiz-options">' + q.options.map(function (opt, oi) {
-              return '<div class="quiz-option' + (oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
+              return '<div class="quiz-option' + (s.previewMode === 'admin' && oi === q.correctIndex ? ' correct' : '') + '" style="cursor:default;">' +
                 String.fromCharCode(65 + oi) + '. ' + esc(opt) + '</div>';
-            }).join('') + '</div>' +
-            (q.notes ? '<div class="quiz-feedback">' + esc(q.notes) + '</div>' : '') +
+            }).join('') + '</div></div>' +
+            (s.editingQuestionIndex === i ? creatorQuestionEditorHtml(q, i) : '') +
             '</div>';
         });
       }
@@ -661,6 +734,7 @@ function renderCreatorScreen() {
       '<div class="creator-compose-footer"><div class="creator-example-row">' + CREATOR_EXAMPLE_PROMPTS.slice(0, 3).map(function (ex) { return '<button data-creator-example="' + esc(ex) + '">' + esc(ex) + '</button>'; }).join('') + '</div>' +
       '<button class="btn-primary creator-check-btn" data-creator-check-feasibility>' + icon('zap') + ' Check & Build</button></div>' +
     '</section>' +
+    creatorGuidedBuilderHtml() +
     '<div class="creator-divider"><span>OR START FROM A PROVEN FORMAT</span></div>' +
     renderCreatorFormatPickerHtml() +
     '</div>';
