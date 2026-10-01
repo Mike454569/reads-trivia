@@ -1,4 +1,5 @@
 name: Deploy gateway to Fly
+# Final deploy nudge after Creator prompt/catalog sync.
 on:
   push:
     branches: [main]
