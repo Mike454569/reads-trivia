@@ -62,6 +62,38 @@ _REPAIRS = {
 }
 
 
+_PRODUCTION_READY_TAXONOMIES = (
+    "MULTIPLE_CHOICE_SINGLE_FACT",
+    "PROGRESSIVE_CLUE_IDENTIFY",
+    "MATCHING",
+    "SORTING_TIMELINE",
+    "HIGHER_LOWER_STREAK",
+    "ELIMINATION_SURVIVAL",
+    "POSITION_LINEUP_GRID",
+    "WEEKLY_PICKEM",
+    "LIVE_WEEKLY_FANTASY_DRAFT",
+)
+
+
+def _repair_mechanic_taxonomy(c) -> list[str]:
+    repaired = []
+    for taxonomy_id in _PRODUCTION_READY_TAXONOMIES:
+        row = c.execute(
+            "SELECT creator_pipeline_supported, template_status FROM mechanic_taxonomy WHERE taxonomy_id=?",
+            (taxonomy_id,),
+        ).fetchone()
+        if row is None:
+            continue
+        if int(row["creator_pipeline_supported"]) != 1 or row["template_status"] != "PRODUCTION_READY":
+            c.execute(
+                "UPDATE mechanic_taxonomy SET creator_pipeline_supported=1, template_status='PRODUCTION_READY' "
+                "WHERE taxonomy_id=?",
+                (taxonomy_id,),
+            )
+            repaired.append(taxonomy_id)
+    return repaired
+
+
 def repair_missing_catalog_rows(conn=None) -> dict:
     own = conn is None
     c = conn or engine.connect()
@@ -99,12 +131,14 @@ def repair_missing_catalog_rows(conn=None) -> dict:
                 [values[k] for k in cols],
             )
             inserted.append(capability_id)
+        taxonomy_repaired = _repair_mechanic_taxonomy(c)
         c.commit()
         from tools.director_v02 import catalog
         availability = catalog.recompute_public_availability(c)
         return {
             "inserted": inserted,
             "inserted_count": len(inserted),
+            "taxonomy_repaired": taxonomy_repaired,
             "public_availability_recomputed": availability,
         }
     finally:
