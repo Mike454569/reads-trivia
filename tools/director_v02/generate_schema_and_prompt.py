@@ -250,38 +250,64 @@ def verify_anthropic_prompt_snapshot_unchanged() -> dict:
 
 
 def verify_anthropic_prompt() -> dict:
+    """Verify Creator translation against catalog truth without confusing
+    anonymous-public routing with Creator capability support.
+
+    The Anthropic translator is an OWNER/Creator surface, so it may
+    intentionally describe cataloged capabilities that are not directly
+    exposed through /v1/public/game. What must never happen is:
+      1. the prompt names a domain/predicate that does not exist in the
+         capability catalog at all, or
+      2. a capability that *is* anonymously public is missing from the
+         prompt enum/body.
+
+    This keeps private-but-valid Creator capabilities available while
+    making public routing a required subset rather than incorrectly forcing
+    exact equality between two different product surfaces.
+    """
     from tools.director_v02.providers import anthropic_provider
 
     prompt = anthropic_provider.SYSTEM_PROMPT
-    catalog_domains, catalog_predicates = catalog_public_domains_and_predicates()
+    all_catalog_domains, all_catalog_predicates = catalog_domains_and_predicates()
+    public_domains, public_predicates = catalog_public_domains_and_predicates()
 
     domain_enum_match = _ENUM_LINE_RE.search(prompt)
     pred_enum_match = _PRED_ENUM_LINE_RE.search(prompt)
     prompt_domains = _extract_quoted_values(domain_enum_match.group(0)) if domain_enum_match else set()
     prompt_predicates = _extract_quoted_values(pred_enum_match.group(0)) if pred_enum_match else set()
 
-    # Presence check: every catalog domain/predicate pair must be mentioned
-    # SOMEWHERE in the prompt body (numbered capability descriptions use
-    # "domain=X" / "relationship_predicate=X" phrasing throughout).
-    missing_domain_mentions = {d for d in catalog_domains if f"domain={d}" not in prompt and d not in prompt_domains}
+    # Every anonymously-public capability must be described somewhere in the
+    # Creator prompt; private-but-cataloged capabilities are allowed too.
+    missing_domain_mentions = {
+        d for d in public_domains
+        if f"domain={d}" not in prompt and d not in prompt_domains
+    }
     missing_predicate_mentions = {
-        p for p in catalog_predicates if f"relationship_predicate={p}" not in prompt and p not in prompt_predicates
+        p for p in public_predicates
+        if f"relationship_predicate={p}" not in prompt and p not in prompt_predicates
     }
 
+    prompt_domains_unknown = prompt_domains - all_catalog_domains
+    prompt_predicates_unknown = prompt_predicates - all_catalog_predicates
+    public_domains_missing = public_domains - prompt_domains
+    public_predicates_missing = public_predicates - prompt_predicates
+
     ok = (
-        prompt_domains == catalog_domains
-        and prompt_predicates == catalog_predicates
+        not prompt_domains_unknown
+        and not prompt_predicates_unknown
+        and not public_domains_missing
+        and not public_predicates_missing
         and not missing_domain_mentions
         and not missing_predicate_mentions
     )
     return {
         "ok": ok,
-        "enum_domains_match": prompt_domains == catalog_domains,
-        "enum_predicates_match": prompt_predicates == catalog_predicates,
-        "prompt_domains_missing_from_catalog": sorted(prompt_domains - catalog_domains),
-        "catalog_domains_missing_from_prompt_enum": sorted(catalog_domains - prompt_domains),
-        "prompt_predicates_missing_from_catalog": sorted(prompt_predicates - catalog_predicates),
-        "catalog_predicates_missing_from_prompt_enum": sorted(catalog_predicates - prompt_predicates),
+        "enum_domains_match": not prompt_domains_unknown and not public_domains_missing,
+        "enum_predicates_match": not prompt_predicates_unknown and not public_predicates_missing,
+        "prompt_domains_missing_from_catalog": sorted(prompt_domains_unknown),
+        "catalog_domains_missing_from_prompt_enum": sorted(public_domains_missing),
+        "prompt_predicates_missing_from_catalog": sorted(prompt_predicates_unknown),
+        "catalog_predicates_missing_from_prompt_enum": sorted(public_predicates_missing),
         "missing_domain_mentions_in_body": sorted(missing_domain_mentions),
         "missing_predicate_mentions_in_body": sorted(missing_predicate_mentions),
     }
