@@ -203,3 +203,42 @@ def test_creator_batch_review_supports_multi_select_approve_and_reject():
 
 def test_creator_direct_route_loads_saved_recipes_and_recent_creations():
     assert "creatorLoadRecipes(); creatorLoadRecent();" in APP
+
+
+def test_creator_command_center_wave_is_wired():
+    assert "function creatorDashboardHtml()" in CREATOR
+    assert "Open Smart Review Queue" in CREATOR
+    assert "function creatorQuestionQaFlags(g)" in CREATOR
+    assert "function creatorFixFlaggedQuestions()" in CREATOR
+    assert "Fix Flagged Questions" in CREATOR
+    assert "function creatorCollectionsHtml()" in CREATOR
+    assert "CREATOR_COLLECTIONS_KEY" in CREATOR
+    assert "function creatorPreviewMatrixHtml()" in CREATOR
+    assert "Daily Reads" in CREATOR
+    assert "Homepage Card" in CREATOR
+    assert "function creatorPublishReadinessHtml(g)" in CREATOR
+    assert "PUBLISH READINESS" in CREATOR
+    assert "function creatorVersionHistoryHtml(g)" in CREATOR
+    assert "data-creator-restore-version" in CREATOR
+    assert "Smart Priority" in CREATOR
+    assert "revision_of" in (ROOT / "gateway" / "services" / "packages.py").read_text(encoding="utf-8")
+    assert "data-creator-dashboard-filter" in APP
+    assert "data-creator-fix-issues" in APP
+    assert "data-creator-preview-surface" in APP
+    assert ".creator-command-center" in CSS
+
+
+def test_creator_bulk_factory_v2_supports_25_and_quality_buckets():
+    assert "[5,10,15,20,25]" in CREATOR
+    assert "Math.min(25" in CREATOR
+    assert "passed · " in CREATOR
+    assert "needs review · " in CREATOR
+    assert "failed · " in CREATOR
+
+
+def test_creator_search_covers_package_status_dates_and_lineage():
+    assert "p.package_id" in CREATOR
+    assert "p.review_status" in CREATOR
+    assert "p.gateway_stored_at" in CREATOR
+    assert "p.reviewed_at" in CREATOR
+    assert "p.revision_of" in CREATOR
