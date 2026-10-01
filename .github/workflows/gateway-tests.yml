@@ -64,9 +64,9 @@ jobs:
           CI_SKIP_DB_TESTS: "1"
         run: python -m pytest gateway/tests -q
 
-  # Full-coverage job: same suite, but against the REAL database, restored
-  # from Fly's own automated daily volume snapshot (a real, reproducible
-  # fixture -- not a fabricated mock that could drift from the real schema).
+  # Full-coverage job: same suite, but against the REAL database, copied
+  # from production via an isolated Fly volume fork (a block-level test copy,
+  # never a fabricated mock and never the live mounted production volume).
   # Needs a FLY_API_TOKEN repo secret this pass could not create (no `gh`
   # CLI / GitHub API write access in this environment) -- see
   # PRODUCTION_STATUS.md's CI section for the exact remaining step. Until
@@ -92,19 +92,10 @@ jobs:
           echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
           "$HOME/.fly/bin/flyctl" version
 
-      # Lineup Concurrency pass: real implementation, not a TODO placeholder
-      # -- but honestly caveated: every flyctl subcommand below was verified
-      # to exist with this exact flag shape via `flyctl <cmd> --help` in the
-      # session that wrote this (recorded so a future reader can re-check),
-      # but the job as a WHOLE has never run end-to-end, because this
-      # environment has no way to set FLY_API_TOKEN as a real repo secret
-      # (no `gh` CLI, no GitHub API write access -- see PRODUCTION_STATUS.md).
-      # Never touches the production volume or its live data: creates a
-      # brand-new, separate, temporary volume FROM a snapshot (an immutable,
-      # already-existing point-in-time copy) and a brand-new temporary
-      # machine -- both destroyed in the cleanup step below regardless of
-      # whether the tests pass, fail, or this step itself fails partway.
-      - name: Restore real DB from latest Fly volume snapshot
+      # Real-DB CI uses a temporary independent volume fork, specifically
+      # intended by Fly for testing/experimentation. The fork and its helper
+      # Machine are always destroyed below, even if copying or tests fail.
+      - name: Fork real DB volume for integration tests
         if: steps.check_token.outputs.has_token == 'true'
         id: restore
         env:
@@ -114,67 +105,29 @@ jobs:
           SOURCE_VOLUME: reads_engine_data
         run: |
           set -euo pipefail
-          TEMP_VOL_NAME="ci_restore_${GITHUB_RUN_ID}"
+          TEMP_VOL_NAME="ci_fork_${GITHUB_RUN_ID}"
+          TEMP_MACHINE_NAME="ci-db-${GITHUB_RUN_ID}"
 
-          SOURCE_VOLUME_JSON=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; vols=json.load(sys.stdin); print(json.dumps(next(v for v in vols if v['name']=='$SOURCE_VOLUME')))")
-          SOURCE_VOLUME_ID=$(printf '%s' "$SOURCE_VOLUME_JSON" | \
+          SOURCE_VOLUME_ID=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; vols=json.load(sys.stdin); print(next(v['id'] for v in vols if v['name']=='$SOURCE_VOLUME'))")
+          echo "Forking production volume $SOURCE_VOLUME_ID into isolated CI copy"
+
+          TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
+            -a "$FLY_APP" --region "$FLY_REGION" --name "$TEMP_VOL_NAME" --json | \
             python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
-          SOURCE_VOLUME_SIZE=$(printf '%s' "$SOURCE_VOLUME_JSON" | \
-            python3 -c "import json,sys; v=json.load(sys.stdin); print(v.get('size_gb') or v.get('sizeGb') or v.get('size') or 30)")
-          echo "Source volume $SOURCE_VOLUME_ID is ${SOURCE_VOLUME_SIZE}GB"
-
-          LATEST_SNAPSHOT_ID=$("$HOME/.fly/bin/flyctl" volumes snapshots list "$SOURCE_VOLUME_ID" -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; snaps=json.load(sys.stdin); print(sorted(snaps, key=lambda s: s['created_at'])[-1]['id'])")
-          echo "Restoring from snapshot $LATEST_SNAPSHOT_ID (volume $SOURCE_VOLUME_ID)"
-
-          TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes create "$TEMP_VOL_NAME" \
-            --snapshot-id "$LATEST_SNAPSHOT_ID" -a "$FLY_APP" --region "$FLY_REGION" \
-            --size "$SOURCE_VOLUME_SIZE" --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
-          # Snapshot-backed volume creation can return while Fly is still
-          # restoring bytes. A Machine cannot safely claim/start with that
-          # volume until the volume reaches the stable "created" state.
-          VOLUME_READY=0
-          for attempt in $(seq 1 180); do
-            VOLUME_STATE=$("$HOME/.fly/bin/flyctl" volumes show "$TEMP_VOL_ID" -a "$FLY_APP" --json | \
-              python3 -c "import json,sys; v=json.load(sys.stdin); print(v.get('state') or v.get('State') or '')")
-            echo "Restore volume state: $VOLUME_STATE (attempt $attempt/180)"
-            if [ "$VOLUME_STATE" = "created" ]; then
-              VOLUME_READY=1
-              break
-            fi
-            if [ "$VOLUME_STATE" = "failed" ]; then
-              echo "Snapshot restore entered failed state" >&2
-              exit 1
-            fi
-            sleep 5
-          done
-          if [ "$VOLUME_READY" != "1" ]; then
-            echo "Snapshot restore did not become ready before timeout" >&2
-            exit 1
-          fi
+          # fly machine run handles the physical host placement required by
+          # Fly volumes. Alpine has no Reads entrypoint, secrets, services, or
+          # production behavior: it only keeps the isolated fork mounted.
+          "$HOME/.fly/bin/flyctl" machine run alpine:3.20 \
+            -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
+            --name "$TEMP_MACHINE_NAME" --entrypoint "tail -f /dev/null" \
+            --memory 256 --detach
 
-          # Create a helper Machine directly through the Machines API instead
-          # of inheriting the production app entrypoint. Its only job is to
-          # keep the restored snapshot mounted long enough for SFTP.
-          TEMP_MACHINE_NAME="ci-restore-${GITHUB_RUN_ID}"
-          PROD_IMAGE_REF=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; rows=json.load(sys.stdin); print(next((r.get('config') or {}).get('image') for r in rows if (r.get('config') or {}).get('image')))")
-          echo "Using deployed production image ref for restore helper"
-          export TEMP_MACHINE_NAME PROD_IMAGE_REF TEMP_VOL_ID FLY_REGION
-          MACHINE_PAYLOAD=$(python3 -c 'import json,os; print(json.dumps({"name":os.environ["TEMP_MACHINE_NAME"],"region":os.environ["FLY_REGION"],"skip_launch":True,"config":{"image":os.environ["PROD_IMAGE_REF"],"auto_destroy":False,"processes":[{"name":"ci-restore","cmd":["sleep","600"]}],"mounts":[{"volume":os.environ["TEMP_VOL_ID"],"path":"/data"}],"guest":{"cpu_kind":"shared","cpus":1,"memory_mb":256}}}))')
-          TEMP_MACHINE_JSON=$(curl -fsS -X POST \
-            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            "https://api.machines.dev/v1/apps/${FLY_APP}/machines" \
-            -d "$MACHINE_PAYLOAD")
-          TEMP_MACHINE_ID=$(printf '%s' "$TEMP_MACHINE_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          TEMP_MACHINE_ID=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; name='$TEMP_MACHINE_NAME'; rows=json.load(sys.stdin); print(next((r.get('id') or r.get('ID')) for r in rows if (r.get('name') or r.get('Name'))==name))")
           echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
-            "https://api.machines.dev/v1/apps/${FLY_APP}/machines/${TEMP_MACHINE_ID}/start" >/dev/null
           "$HOME/.fly/bin/flyctl" machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
 
           mkdir -p "${{ github.workspace }}/Reads_Football_Data_Engine_v4.0"
