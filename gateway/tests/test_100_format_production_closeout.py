@@ -93,8 +93,13 @@ def test_closeout_dedupes_discovery_impressions_and_syncs_format_badges_immediat
     assert "playableMeta&&playableMeta.league" in completion
 
 
-def test_real_db_ci_exports_flyctl_path_before_restore():
+def test_real_db_ci_uses_stable_absolute_flyctl_path():
     workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
     install=workflow[workflow.index("- name: Install flyctl"):workflow.index("- name: Restore real DB")]
-    assert 'echo "$HOME/.fly/bin" >> "$GITHUB_PATH"' in install
+    restore=workflow[workflow.index("- name: Restore real DB"):workflow.index("- name: Install dependencies", workflow.index("- name: Restore real DB"))]
+    cleanup=workflow[workflow.index("- name: Clean up temporary Fly volume and machine"):]
     assert '"$HOME/.fly/bin/flyctl" version' in install
+    assert '"$HOME/.fly/bin/flyctl" volumes list' in restore
+    assert '"$HOME/.fly/bin/flyctl" machine run' in restore
+    assert '"$HOME/.fly/bin/flyctl" ssh sftp get' in restore
+    assert '"$HOME/.fly/bin/flyctl" machine destroy' in cleanup
