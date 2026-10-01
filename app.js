@@ -15420,7 +15420,7 @@ if (HIDDEN_ROUTES[location.hash]) {
     state.creator = creatorInitialState();
   }
   renderAll();
-  if (state.screen === 'creator' && creatorToken()) creatorLoadRecent();
+  if (state.screen === 'creator' && creatorToken()) { creatorLoadRecipes(); creatorLoadRecent(); }
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode && !pendingSocialChallengeCode) { openOnboarding(); }
 
