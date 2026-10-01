@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from tools.director_v04 import category_roulette
 from tools.director_v04 import strategy_arcade as core
 
-PACKAGE_SCHEMA_VERSION="1.0"
+PACKAGE_SCHEMA_VERSION="2.0"
 MECHANIC="STRATEGY_ARCADE"
 _CATEGORIES=("Game Day","Season & Legacy","College Chaos")
 
