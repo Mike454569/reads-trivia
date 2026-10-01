@@ -128,9 +128,9 @@ jobs:
           # CLI / python available), overridden to just idle so this job can
           # SFTP the one file it needs off the mounted volume rather than
           # actually running the Gateway process on this throwaway machine.
-          TEMP_MACHINE_ID=$(flyctl machine run "registry.fly.io/${FLY_APP}:latest" \
+          TEMP_MACHINE_ID=$(flyctl --json machine run "registry.fly.io/${FLY_APP}:latest" \
             -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
-            --command "sleep 300" --detach --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+            --command "sleep 300" --detach | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
           flyctl machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
 
