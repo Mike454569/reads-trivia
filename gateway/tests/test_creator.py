@@ -276,3 +276,42 @@ def test_creator_capabilities_lists_twenty_one_with_real_statuses(client, auth_h
     rivalry = next(c for c in caps if c["relationship_predicate"] == "RIVAL_OF")
     assert rivalry["domain"] == "CFB_RIVALRY"
     assert rivalry["support_status"] == "SUPPORTED_WITH_LIMITATIONS"
+
+
+def test_creator_question_revision_requires_admin(client):
+    r = client.post(
+        "/v1/creator/question/revise",
+        json={"package_id": "GGP:" + "a" * 24, "question_index": 0, "replacement": {"question": "Edited?"}},
+    )
+    assert r.status_code == 401
+
+
+def test_creator_question_revision_creates_new_immutable_package(client, auth_headers):
+    original = client.post(
+        "/v1/creator/generate",
+        json={"request_text": DRAFT_REQUEST, "puzzle_count": 2, "seed": "pytest-creator-revision-base"},
+        headers=auth_headers,
+    ).json()
+    assert original["package_id"]
+    q = original["questions"][0]
+    replacement = {
+        "question": q["question"] + " (reviewed edit)",
+        "options": q["options"],
+        "correctIndex": q["correctIndex"],
+        "notes": q.get("notes", ""),
+        "difficulty": q.get("difficulty", "medium"),
+    }
+    revised = client.post(
+        "/v1/creator/question/revise",
+        json={"package_id": original["package_id"], "question_index": 0, "replacement": replacement},
+        headers=auth_headers,
+    )
+    assert revised.status_code == 200
+    body = revised.json()
+    assert body["package_id"] != original["package_id"]
+    assert body["revision_of"] == original["package_id"]
+    assert body["review_status"] == "GENERATED"
+    assert body["questions"][0]["question"].endswith("(reviewed edit)")
+
+    untouched = client.get(f"/v1/games/{original['package_id']}", headers=auth_headers).json()
+    assert untouched["questions"][0]["question"] == q["question"]
