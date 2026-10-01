@@ -6681,3 +6681,180 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .pickem-team-name{font-size:14px}
   .pickem-at-mark{width:22px;height:22px;font-size:10px}
 }
+
+
+/* Pick'em identity + week-history upgrade */
+.pickem-week-nav{
+  margin:14px 0 10px;
+  padding:12px;
+  border:1px solid #405043;
+  background:#142018;
+  border-radius:4px;
+}
+.pickem-week-nav-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+}
+.pickem-week-nav-head>span{
+  font:700 12px var(--font-display);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#f4f7f1;
+}
+.pickem-week-nav-head>small{
+  color:#96a99b;
+  font-size:10px;
+  text-align:right;
+}
+.pickem-week-rail{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:2px 1px 5px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.pickem-week-rail::-webkit-scrollbar{display:none}
+.pickem-week-chip{
+  flex:0 0 auto;
+  border:1px solid #405043;
+  border-radius:999px;
+  background:#202a21;
+  color:#b9c8bc;
+  padding:7px 11px;
+  font:700 10px var(--font-display);
+  letter-spacing:.045em;
+}
+.pickem-week-chip.active{
+  border-color:#e6b650;
+  background:#332d19;
+  color:#ffe39c;
+  box-shadow:0 0 0 1px rgba(230,182,80,.14) inset;
+}
+
+.pickem-matchup-row{
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+  gap:8px;
+}
+.broadcast-finish--pickem .pickem-team-choice{
+  min-height:154px;
+  gap:8px;
+  padding:16px 8px 13px;
+}
+.pickem-team-mark-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:58px;
+}
+.pickem-football-badge{
+  position:relative;
+  width:82px;
+  height:50px;
+  display:grid;
+  place-items:center;
+  border-radius:52% 48% 52% 48% / 50% 50% 50% 50%;
+  border:2px solid rgba(255,255,255,.48);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -8px 14px rgba(0,0,0,.16);
+  overflow:hidden;
+  isolation:isolate;
+}
+.pickem-football-badge::before{
+  content:'';
+  position:absolute;
+  width:34px;
+  height:10px;
+  top:7px;
+  left:50%;
+  transform:translateX(-50%);
+  opacity:.9;
+  background:
+    linear-gradient(90deg,transparent 0 3px,currentColor 3px 5px,transparent 5px 9px,currentColor 9px 11px,transparent 11px 15px,currentColor 15px 17px,transparent 17px 21px,currentColor 21px 23px,transparent 23px 27px,currentColor 27px 29px,transparent 29px),
+    linear-gradient(currentColor,currentColor) center 4px/34px 2px no-repeat;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.28));
+}
+.pickem-football-badge::after{
+  content:'';
+  position:absolute;
+  inset:4px;
+  border-radius:inherit;
+  border:1px solid rgba(255,255,255,.18);
+  pointer-events:none;
+}
+.pickem-football-code{
+  position:relative;
+  z-index:2;
+  margin-top:9px;
+  font:900 16px/1 var(--font-display);
+  letter-spacing:.03em;
+  text-shadow:0 1px 2px rgba(0,0,0,.45);
+}
+.pickem-rank-chip{
+  position:absolute;
+  right:-9px;
+  top:-7px;
+  min-width:28px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  padding:0 6px;
+  border-radius:999px;
+  background:#f1c75c;
+  border:2px solid #142018;
+  color:#171b14;
+  font:900 11px/1 var(--font-display);
+  box-shadow:0 4px 10px rgba(0,0,0,.28);
+}
+.pickem-team-name{
+  font:700 19px/1.08 var(--font-display);
+  color:#f4f7f1;
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.pickem-team-meta{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  color:#9fb0a2;
+  font:700 10px/1 var(--font-display);
+  letter-spacing:.06em;
+}
+.pickem-team-meta>span:first-child:not(:last-child){
+  color:#e7d6a5;
+}
+.pickem-at-mark{
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:1px solid #526156;
+  background:#1a261d;
+  color:#94a599;
+  font:800 12px var(--font-display);
+}
+@media(max-width:560px){
+  .pickem-week-nav-head{align-items:flex-start;flex-direction:column;gap:3px}
+  .pickem-week-nav-head>small{text-align:left}
+  .broadcast-finish--pickem .pickem-team-choice{min-height:145px;padding:14px 5px 12px}
+  .pickem-football-badge{width:72px;height:44px}
+  .pickem-football-code{font-size:14px;margin-top:8px}
+  .pickem-team-name{font-size:16px}
+  .pickem-team-meta{font-size:9px}
+  .pickem-rank-chip{right:-8px;top:-6px}
+}
+@media(max-width:360px){
+  .pickem-matchup-row{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:4px}
+  .pickem-football-badge{width:64px;height:40px}
+  .pickem-team-name{font-size:14px}
+  .pickem-at-mark{width:21px;height:21px;font-size:10px}
+}
