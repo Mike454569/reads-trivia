@@ -58,6 +58,11 @@ def test_daily_reads_has_deterministic_full_catalog_format_five():
         "function markDailyFormatCompleted(mode)",
         "dailyFormatRotationHtml(false)",
         "dailyFormatRotationHtml(true)",
+        "function dailyMechanicForFormatFamily",
+        "_dailyFormatSourceId",
+        "_dailyFormatSourceTitle",
+        "formatSources:",
+        "formatFamilies:",
     ):
         assert token in APP
     assert ".daily-format-five-grid" in CSS
@@ -68,6 +73,9 @@ def test_format_exploration_achievements_are_persistent_and_syncable():
     assert "formatPlayedIds: formatPlayed" in APP
     for milestone in ("formatExplorer10","formatExplorer25","formatExplorer50","formatExplorer75","formatExplorer100"):
         assert milestone in APP
+    for specialist in ("boardSpecialist","strategySpecialist","survivalSpecialist","identifySpecialist","rosterSpecialist","sequenceSpecialist"):
+        assert specialist in APP
+    assert "function completedFormatFamilyCount" in APP
     assert "rewardState.formatPlayedIds.push(mode)" in APP
 
 
