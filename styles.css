@@ -6244,3 +6244,19 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .community-reply-composer{display:flex;gap:7px;margin-top:3px}
 .community-reply-composer input{min-width:0;flex:1;border:1px solid var(--border);border-radius:10px;background:var(--bg-elevated);color:var(--text);padding:9px 10px;font-size:16px}
 @media(max-width:520px){.community-post-actions button small{display:none}.community-reply{grid-template-columns:1fr}.community-reply-composer{align-items:stretch;flex-direction:column}}
+
+/* Reads Arena 2.0 */
+.arena-panel{margin:18px 0;padding:18px;border:1px solid rgba(var(--home-glow-rgb),.34);border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(var(--home-glow-rgb),.09),rgba(255,255,255,.02)),var(--bg-card)}
+.arena-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.arena-panel-head h3{margin:3px 0 6px;font-family:var(--font-display);font-size:clamp(24px,4vw,36px)}
+.arena-panel-head p{margin:0;max-width:620px;color:var(--text-dim);line-height:1.45;font-size:13px}
+.arena-tier{flex:0 0 auto;min-width:120px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated);text-align:right}
+.arena-tier b,.arena-tier small{display:block}.arena-tier b{font-size:18px}.arena-tier small{margin-top:3px;color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+.arena-mode-pool{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.arena-mode-pool span{padding:5px 8px;border:1px solid var(--border);border-radius:999px;color:var(--text-dim);font-size:10px;font-weight:750}
+.arena-quick-btn{width:100%;justify-content:center;min-height:52px}
+.arena-searching{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elevated)}
+.arena-searching>div{min-width:0;flex:1}.arena-searching b,.arena-searching small{display:block}.arena-searching small{color:var(--text-dim);margin-top:2px}
+.arena-searching .loading-spinner{width:20px;height:20px}
+.arena-private-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--border)}
+@media(max-width:600px){.arena-panel-head{display:grid}.arena-tier{text-align:left;min-width:0}.arena-searching{align-items:flex-start;flex-wrap:wrap}.arena-searching .btn-secondary{width:100%}}
