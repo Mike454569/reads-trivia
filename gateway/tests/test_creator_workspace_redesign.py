@@ -129,3 +129,38 @@ def test_creator_bulk_factory_runs_sequential_real_generation_requests():
 
 def test_creator_bootstrap_uses_canonical_state_initializer():
     assert "state.creator = creatorInitialState();" in APP
+
+
+def test_creator_saved_recipes_are_local_and_reusable():
+    assert "var CREATOR_RECIPES_KEY='reads_creator_recipes_v1'" in CREATOR
+    assert "function creatorSaveRecipe()" in CREATOR
+    assert "function creatorRunRecipe(id)" in CREATOR
+    assert "function creatorDeleteRecipe(id)" in CREATOR
+    assert "localStorage.setItem(CREATOR_RECIPES_KEY" in CREATOR
+    assert "creatorRecipesHtml()" in CREATOR
+    assert 'data-creator-save-recipe' in CREATOR
+    assert 'data-creator-run-recipe' in CREATOR
+
+
+def test_creator_quality_scorecard_uses_real_package_fields():
+    assert "function creatorQualityScorecardHtml(p)" in CREATOR
+    assert "p.qa_status==='PASSED'" in CREATOR
+    assert "p.question_count||p.puzzle_count" in CREATOR
+    assert "p.review_status" in CREATOR
+    assert "p.requested_description" in CREATOR
+    assert "p.package_id" in CREATOR
+    assert ".creator-quality-grid" in CSS
+
+
+def test_creator_review_queue_has_search_filter_and_sort():
+    assert "queueSearch" in CREATOR
+    assert "queueLeague" in CREATOR
+    assert "queueSort" in CREATOR
+    assert "function creatorQueueRows()" in CREATOR
+    assert "function creatorQueueControlsHtml()" in CREATOR
+    assert 'id="creator-queue-search"' in CREATOR
+    assert "data-creator-queue-league" in CREATOR
+    assert "data-creator-queue-sort" in CREATOR
+    assert "state.creator.queueSearch = e.target.value" in APP
+    assert "state.creator.queueLeague = e.target.value" in APP
+    assert "state.creator.queueSort = e.target.value" in APP
