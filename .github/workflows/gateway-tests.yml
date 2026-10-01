@@ -140,6 +140,9 @@ jobs:
             -d "$MACHINE_PAYLOAD")
           TEMP_MACHINE_ID=$(printf '%s' "$TEMP_MACHINE_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            "https://api.machines.dev/v1/apps/${FLY_APP}/machines/${TEMP_MACHINE_ID}/start" >/dev/null
           "$HOME/.fly/bin/flyctl" machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
 
           mkdir -p "${{ github.workspace }}/Reads_Football_Data_Engine_v4.0"
