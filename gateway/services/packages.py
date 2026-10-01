@@ -365,6 +365,8 @@ def list_packages(*, review_status: str | None = None, limit: int = 100) -> list
             "requested_description": record.get("requested_description"),
             "gateway_stored_at": record.get("gateway_stored_at"),
             "reviewed_at": record.get("reviewed_at"),
+            "revision_of": record.get("revision_of"),
+            "revision_note": record.get("revision_note"),
             "capability": {
                 "mechanic": (record.get("parsed_spec") or {}).get("mechanic"),
                 "relationship_predicate": (record.get("parsed_spec") or {}).get("relationship_predicate"),
