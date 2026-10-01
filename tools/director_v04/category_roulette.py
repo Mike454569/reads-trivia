@@ -43,7 +43,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
-from tools.director_v04 import wager_mode  # noqa: E402
+from tools.director_v04 import wager_mode, deep_trivia  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "CATEGORY_ROULETTE"
@@ -58,50 +58,19 @@ def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
-    c = engine_bootstrap.connect()
-    try:
-        safety_result = safety_check(c)
-        record_rows = c.execute(
-            "SELECT season, team_code, wins, losses, ties FROM season_standings "
-            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
-            "AND wins IS NOT NULL AND losses IS NOT NULL"
-        ).fetchall()
-        records_by_season: dict[int, list] = {}
-        for r in record_rows:
-            records_by_season.setdefault(r["season"], []).append(r)
-        heisman_rows = c.execute(
-            "SELECT award_year, player_name, school_name FROM cfb_award_facts "
-            "WHERE verification_status='SOURCE_BACKED_FROM_CFB_MASTER' AND award_name='Heisman Trophy' "
-            "AND player_name IS NOT NULL"
-        ).fetchall()
-        sb_rows = c.execute(
-            "SELECT season, winner_name_raw FROM nfl_championship_events WHERE winner_team_code IS NOT NULL"
-        ).fetchall()
-    finally:
-        c.close()
-
-    rounds = []
-    for i in range(round_count):
-        cat = wager_mode._CATEGORIES[i % len(wager_mode._CATEGORIES)]
-        cat_rng = engine_bootstrap.seeded(f"{seed}-cr-r{i}")
-        if cat == "NFL Team Records":
-            q = wager_mode._nfl_team_record_question(cat_rng, records_by_season)
-        elif cat == "Heisman Winners":
-            q = wager_mode._heisman_question(cat_rng, heisman_rows)
-        else:
-            q = wager_mode._super_bowl_question(cat_rng, sb_rows)
-        if q is None:
-            continue
-        rounds.append({"category": cat, **q})
-
+    rounds = deep_trivia.generate_rounds(f"{seed}-category-roulette", round_count)
     shortfall_reason = None
     if len(rounds) < round_count:
         shortfall_reason = (
-            f"Only {len(rounds)} of {round_count} requested real CATEGORY_ROULETTE rounds could be built "
-            f"with a real, decoy-complete question; exported the maximum available rather than include a "
-            f"fabricated or incomplete question."
+            f"Only {len(rounds)} of {round_count} requested Deep Ball rounds could be built from "
+            f"certified Reads Engine capabilities; exported the maximum available rather than "
+            f"fall back to shallow or fabricated trivia."
         )
-    return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
+    return {
+        "rounds": rounds,
+        "safety": {"deep_ball_capability_count": deep_trivia.capability_count()},
+        "shortfall_reason": shortfall_reason,
+    }
 
 
 _GAME_TITLES = {"CATEGORY_ROULETTE_MIXED": "Category Roulette"}
@@ -117,21 +86,28 @@ def build_package(seed: str, variant: str, round_count: int = 6) -> dict:
     rounds = []
     for i, r in enumerate(result["rounds"]):
         candidates = [r["correct_label"]] + list(r["decoy_labels"])
-        order = list(range(4))
+        order = list(range(len(candidates)))
         engine_bootstrap.seeded(f"{seed}-cr-shuffle-{i}").shuffle(order)
-        item_ids = ["A", "B", "C", "D"]
+        item_ids = [chr(ord("A") + n) for n in range(len(candidates))]
         options = [{"item_id": item_ids[pos], "label": candidates[src]} for pos, src in enumerate(order)]
         correct_pos = order.index(0)
         rounds.append({
-            "round_index": i, "category": r["category"], "prompt": r["prompt"], "options": options,
-            "_answer_item_id": item_ids[correct_pos], "_notes": r["notes"],
+            "round_index": i,
+            "category": r["category"],
+            "bucket": r.get("bucket"),
+            "difficulty": r.get("difficulty"),
+            "depth_source": r.get("depth_source"),
+            "prompt": r["prompt"],
+            "options": options,
+            "_answer_item_id": item_ids[correct_pos],
+            "_notes": r["notes"],
         })
 
     return {
         "package_id": package_id, "package_version": PACKAGE_SCHEMA_VERSION, "mechanic": MECHANIC,
         "domain_variant": variant, "game_title": _GAME_TITLES[variant],
-        "game_instructions": "Each round's real category is shown immediately -- read the real question "
-                              "and tap the correct real answer.",
+        "game_instructions": "Each round pulls from Reads' Deep Ball pool -- game context, player performance, "
+                              "rankings, rivalries, careers and more. Read the category and make the call.",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if valid else "FAILED",
         "rounds": rounds, "round_count": len(rounds),
