@@ -113,6 +113,7 @@ function creatorInitialState() {
 function creatorSubmitToken(token) {
   creatorSetToken((token || '').trim());
   state.creator.screen = CREATOR_SCREEN.HOME;
+  creatorLoadRecipes();
   renderAll();
   creatorLoadRecent();
 }
