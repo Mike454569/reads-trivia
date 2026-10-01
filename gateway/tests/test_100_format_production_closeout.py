@@ -104,26 +104,19 @@ def test_closeout_dedupes_discovery_impressions_and_syncs_format_badges_immediat
     assert "playableMeta&&playableMeta.league" in completion
 
 
-def test_real_db_ci_uses_stable_absolute_flyctl_path():
+def test_real_db_ci_uses_isolated_volume_fork_and_dumb_helper():
     workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
-    install=workflow[workflow.index("- name: Install flyctl"):workflow.index("- name: Restore real DB")]
-    restore=workflow[workflow.index("- name: Restore real DB"):workflow.index("- name: Install dependencies", workflow.index("- name: Restore real DB"))]
+    install=workflow[workflow.index("- name: Install flyctl"):workflow.index("- name: Fork real DB volume")]
+    restore=workflow[workflow.index("- name: Fork real DB volume"):workflow.index("- name: Install dependencies", workflow.index("- name: Fork real DB volume"))]
     cleanup=workflow[workflow.index("- name: Clean up temporary Fly volume and machine"):]
     assert '"$HOME/.fly/bin/flyctl" version' in install
-    assert '"$HOME/.fly/bin/flyctl" volumes list' in restore
-    assert "SOURCE_VOLUME_SIZE=" in restore
-    assert '--size "$SOURCE_VOLUME_SIZE"' in restore
-    assert "seq 1 180" in restore
-    assert '"$HOME/.fly/bin/flyctl" volumes show "$TEMP_VOL_ID"' in restore
-    assert 'if [ "$VOLUME_STATE" = "created" ]' in restore
-    assert '"https://api.machines.dev/v1/apps/${FLY_APP}/machines"' in restore
-    assert '"https://api.machines.dev/v1/apps/${FLY_APP}/machines/${TEMP_MACHINE_ID}/start"' in restore
-    assert '"skip_launch":True' in restore
-    assert '"cmd":["sleep","600"]' in restore
-    assert '"mounts":[{"volume":os.environ["TEMP_VOL_ID"],"path":"/data"}]' in restore
+    assert '"$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID"' in restore
+    assert "alpine:3.20" in restore
+    assert '--volume "${TEMP_VOL_ID}:/data"' in restore
+    assert '--entrypoint "tail -f /dev/null"' in restore
     assert '"$HOME/.fly/bin/flyctl" ssh sftp get' in restore
     assert '"$HOME/.fly/bin/flyctl" machine destroy' in cleanup
-
+    assert '"$HOME/.fly/bin/flyctl" volumes destroy' in cleanup
 
 def test_gateway_workflow_cancels_stale_branch_runs():
     workflow=(ROOT/".github/workflows/gateway-tests.yml").read_text(encoding="utf-8")
