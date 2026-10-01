@@ -199,3 +199,7 @@ def test_creator_batch_review_supports_multi_select_approve_and_reject():
     assert "data-creator-batch-review" in CREATOR
     assert "creatorBatchReview(t.dataset.creatorBatchReview)" in APP
     assert ".creator-batch-bar" in CSS
+
+
+def test_creator_direct_route_loads_saved_recipes_and_recent_creations():
+    assert "creatorLoadRecipes(); creatorLoadRecent();" in APP
