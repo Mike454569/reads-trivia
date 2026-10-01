@@ -7144,3 +7144,80 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   align-items:center;
   justify-content:center;
 }
+
+
+/* Game logo redesign v3 — actual pictograms, not monograms. */
+.mode-mark-art{
+  position:relative;
+  z-index:2;
+  width:31px;
+  height:31px;
+  display:grid;
+  place-items:center;
+}
+.mode-mark-art svg{
+  width:100%;
+  height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.28));
+}
+.mode-mark-lg .mode-mark-art{width:39px;height:39px}
+.mode-mark-sm .mode-mark-art{width:24px;height:24px}
+.mode-logo-signature{
+  opacity:.42;
+  stroke-width:2;
+}
+.mode-mark-nfl .mode-mark-art{
+  color:#f3ce70;
+}
+.mode-mark-cfb .mode-mark-art{
+  color:#f08b71;
+}
+.mode-mark-neutral .mode-mark-art{
+  color:#9ed1b2;
+}
+
+/* Keep the badge as framing, but let the pictogram be the identity. */
+.mode-mark{
+  background:
+    radial-gradient(circle at 33% 24%,rgba(255,255,255,.14),transparent 31%),
+    linear-gradient(145deg,rgba(var(--mark-glow),.19),rgba(12,18,14,.78) 62%);
+  border-color:rgba(var(--mark-glow),.38);
+}
+.mode-mark::before{
+  inset:4px;
+  border-color:rgba(255,255,255,.075);
+}
+.mode-mark::after{
+  opacity:.45;
+}
+.mode-mark-grid,
+.mode-mark-matchup,
+.mode-mark-identity,
+.mode-mark-speed,
+.mode-mark-stats,
+.mode-mark-timeline,
+.mode-mark-tournament,
+.mode-mark-roster,
+.mode-mark-trivia{
+  transform:none;
+}
+.mode-mark-matchup .mode-mark-art{transform:none}
+.mode-mark-speed{clip-path:none}
+.mode-mark-tournament{clip-path:none}
+.mode-mark-grid{border-radius:13px}
+.mode-mark-matchup{border-radius:18px 9px 18px 9px}
+.mode-mark-identity{border-radius:50%}
+.mode-mark-speed{border-radius:10px 18px 10px 18px}
+.mode-mark-stats{border-radius:9px}
+.mode-mark-timeline{border-radius:999px}
+.mode-mark-tournament{border-radius:10px 10px 18px 18px}
+.mode-mark-roster{border-radius:18px}
+.mode-mark-trivia{border-radius:14px}
+
+/* Retire the old text-badge internals from v2. */
+.mode-mark-code,
+.mode-mark-corner,
+.mode-mark-stitch{
+  display:none!important;
+}
