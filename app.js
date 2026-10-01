@@ -14985,6 +14985,7 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
   if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
+  if (t.dataset.creatorFormatCategory !== undefined) { creatorSetFormatCategory(t.dataset.creatorFormatCategory); return; }
   if (t.dataset.creatorFormatPick !== undefined) { creatorPickFormat(parseInt(t.dataset.creatorFormatPick, 10)); return; }
   if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
@@ -15061,6 +15062,7 @@ document.addEventListener('blur', function (e) {
 }, true);
 
 document.addEventListener('input', function (e) {
+  if (e.target.id === 'creator-format-search') { creatorSetFormatQuery(e.target.value); return; }
   if (e.target.id === 'format-hub-search') { formatHubState.query=e.target.value; if(formatHubState.query.length===1||formatHubState.query.length%4===0)trackFormatEvent('search',null,{length:formatHubState.query.length}); renderAll(); return; }
   if (e.target.id === 'grid-input') { state.grid.input = e.target.value; renderTypeahead('grid-input'); return; }
   if (e.target.id === 'cfb-grid-input') { state.cfbGrid.input = e.target.value; renderTypeahead('cfb-grid-input'); return; }
