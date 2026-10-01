@@ -510,6 +510,31 @@ function renderCreatorFormatPickerHtml() {
     }).join('')+'</div>':'<div class="creator-empty-state"><b>No formats match that search.</b><span>Try another term or switch back to All.</span></div>')+
   '</section>';
 }
+function creatorTaxonomyKind(taxonomyId) {
+  var map={
+    MATCHING:'matching',SORTING_TIMELINE:'sorting',HIGHER_LOWER_STREAK:'higher_lower',ELIMINATION_SURVIVAL:'elimination',
+    COMPARISON_BRACKET:'comparison',KNOCKOUT_BRACKET:'knockout_bracket',GRID_CONSTRAINT_BOARD:'grid_constraint',
+    DRIVE_PROGRESSION:'drive_progression',ROSTER_BUILD:'roster_build',RELATIONSHIP_CHAIN:'relationship_chain',
+    BRANCH_STATE:'branch_state',GUESS_THE_SEASON:'guess_the_season',PAIRWISE_COMPARE:'pairwise_compare',
+    PICK_THE_IMPOSTOR:'pick_the_impostor',MISSING_PIECE:'missing_piece',BEFORE_AFTER:'before_after',CAREER_PATH:'career_path',
+    RISK_IT:'risk_it',WAGER_MODE:'wager_mode',LEADERBOARD_CLIMB:'leaderboard_climb',BLIND_RESUME:'blind_resume',
+    DOUBLE_OR_NOTHING:'double_or_nothing',KING_OF_THE_HILL:'king_of_the_hill',FACT_OR_FAKE:'fact_or_fake',
+    GUESS_THE_RANKING:'guess_the_ranking',STAT_TARGET:'stat_target',REVERSE_TRIVIA:'reverse_trivia',THREE_STRIKES:'three_strikes',
+    MYSTERY_ROSTER:'mystery_roster',DRAFT_PICK_LADDER:'draft_pick_ladder',CATEGORY_ROULETTE:'category_roulette',COMMON_LINK:'common_link',
+    STRATEGY_ARCADE:'strategy_arcade'
+  };
+  return map[taxonomyId]||null;
+}
+function creatorDirectPlayerPreviewHtml(rg) {
+  var kind=creatorTaxonomyKind(rg.taxonomy_id);
+  if(!kind || typeof renderMechanicPilotBody!=='function') return '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>';
+  try {
+    var ps={view:rg.view||{},result:null,matchSelection:{},sortOrder:null,sortFormat:'SORT_LIST_DEFAULT',selectedRosterSlot:null,selectedGridCell:null};
+    return '<div class="creator-player-preview creator-player-preview-static">'+renderMechanicPilotBody({kind:kind,title:(rg.view&&rg.view.title)||rg.taxonomy_id},ps)+'</div>';
+  } catch(e) {
+    return '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>';
+  }
+}
 function creatorSupportBadgeHtml(status) {
   var cls = { SUPPORTED: 'good', SUPPORTED_WITH_LIMITATIONS: 'good', UNDERSTOOD_BUT_UNSUPPORTED: 'warn',
     MISSING_DATA: 'warn', UNSAFE: 'bad', UNKNOWN: 'warn' }[status] || 'warn';
@@ -633,8 +658,8 @@ function renderCreatorScreen() {
       '<button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="' + esc(rg.round_id) + '">Approve</button>' +
       '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="' + esc(rg.round_id) + '">Reject</button>' +
       '</div>' +
-      '<div class="creator-queue-row"><pre style="white-space:pre-wrap;word-break:break-word;margin:0;">' +
-      esc(JSON.stringify(rg.view, null, 2)) + '</pre></div>' +
+      '<div class="creator-preview-toggle"><button class="'+(s.previewMode!=='admin'?'active':'')+'" data-creator-preview-mode="player">Player View</button><button class="'+(s.previewMode==='admin'?'active':'')+'" data-creator-preview-mode="admin">Admin JSON</button></div>' +
+      (s.previewMode==='admin' ? '<pre class="creator-json-preview">'+esc(JSON.stringify(rg.view,null,2))+'</pre>' : creatorDirectPlayerPreviewHtml(rg)) +
       '</div>';
     return html2;
   }
