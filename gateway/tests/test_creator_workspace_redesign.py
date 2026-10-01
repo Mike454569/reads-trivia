@@ -202,7 +202,7 @@ def test_creator_batch_review_supports_multi_select_approve_and_reject():
 
 
 def test_creator_direct_route_loads_saved_recipes_and_recent_creations():
-    assert "creatorLoadRecipes(); creatorLoadRecent();" in APP
+    assert "creatorLoadRecipes(); creatorLoadCollections(); creatorLoadRecent();" in APP
 
 
 def test_creator_command_center_wave_is_wired():
