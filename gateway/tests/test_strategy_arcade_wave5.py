@@ -5,10 +5,10 @@ import pytest
 from tools.director_v04 import strategy_arcade_wave5 as w5
 
 def _package(variant:str)->dict:
-    cats=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+    cats=("Game Day","Season & Legacy","College Chaos")
     rounds=[]
     for i in range(48):
-        rounds.append({"round_index":i,"category":cats[i%3],"prompt":f"Real question {i}?",
+        rounds.append({"round_index":i,"category":cats[i%3],"bucket":cats[i%3],"prompt":f"Real question {i}?",
           "options":[{"item_id":"A","label":f"Correct {i}"},{"item_id":"B","label":f"Decoy B {i}"},{"item_id":"C","label":f"Decoy C {i}"},{"item_id":"D","label":f"Decoy D {i}"}],
           "_answer_item_id":"A","_notes":f"Source note {i}"})
     return {"domain_variant":variant,"format_id":variant,"rounds":rounds,"round_count":len(rounds)}
@@ -40,8 +40,8 @@ def test_turnover_battle_resets_drive_yards_only():
     assert s["drive_yards"]==0 and s["total_yards"]==10
 
 def test_category_lockout_scores_selected_category():
-    p=_package("CATEGORY_LOCKOUT"); _,s=w5.evaluate(p,{},{"action":"Heisman Winners"}); _,s=_answer(p,s)
-    assert "Heisman Winners" in s["scored_categories"]
+    p=_package("CATEGORY_LOCKOUT"); _,s=w5.evaluate(p,{},{"action":"Season & Legacy"}); _,s=_answer(p,s)
+    assert "Season & Legacy" in s["scored_categories"]
 
 def test_hail_mary_unlocks_at_exactly_three_of_five():
     p=_package("HAIL_MARY"); s={}
