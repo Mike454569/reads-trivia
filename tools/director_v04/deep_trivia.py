@@ -71,7 +71,12 @@ def _bucket_for(domain: str) -> str:
         "NFL_GAME_LEADER", "CFB_GAME_LEADER",
     }:
         return "Game Day"
-    if domain in {"CFB_RANKING", "CFB_UPSET", "CFB_TRANSFER", "CFB_RIVALRY_TRIVIA"}:
+    if domain in {
+        "CFB_RANKING", "CFB_UPSET", "CFB_TRANSFER", "CFB_RIVALRY_TRIVIA",
+        "CFB_THREE_CLUES_ONE_CHAMPION", "CFB_FILL_THE_COLLEGES",
+        "CFB_WHO_CHANGED", "CFB_POSITION_TRAP", "CFB_DUPLICATE_COLLEGE_HUNT",
+        "CFB_ONE_SCHOOL_MISSING",
+    }:
         return "College Chaos"
     return "Season & Legacy"
 
