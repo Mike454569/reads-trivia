@@ -2183,7 +2183,11 @@ function modeLabelFor(id) {
   return m ? m.title : (EXTRA_MODE_LABELS[id] || 'mode');
 }
 function goToMode(mode) {
-  trackFormatEvent('launch', mode, {from:state.screen||'unknown'});
+  if (isTrackedPlayableFormat(mode)) beginFormatAnalyticsRun(mode,state.screen||'unknown');
+  else if (formatAnalyticsActiveRun) {
+    trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),to:mode||'unknown'});
+    formatAnalyticsActiveRun=null;
+  }
   if (state.screen === 'community' && mode !== 'community') stopCommunityWatch();
   if (state.name) {
     var recNow = scoredModeRecommendations(3).some(function (r) { return r.mode.id === mode; });
@@ -3002,6 +3006,40 @@ function trackFormatEvent(type, mode, meta) {
   rows.push({type:String(type||''),mode:mode||null,at:Date.now(),meta:Object.assign({},meta||{})});
   lsSet(formatAnalyticsKey(), rows.slice(-500));
 }
+var formatAnalyticsActiveRun = null;
+function isTrackedPlayableFormat(mode) {
+  return !!mode && allPlayableModesUnique().some(function(m){return m.id===mode;});
+}
+function beginFormatAnalyticsRun(mode, from) {
+  if (!isTrackedPlayableFormat(mode)) return;
+  var now=Date.now();
+  if (formatAnalyticsActiveRun && formatAnalyticsActiveRun.mode !== mode) {
+    trackFormatEvent('abandon', formatAnalyticsActiveRun.mode, {
+      durationMs:Math.max(0,now-formatAnalyticsActiveRun.startedAt),
+      to:mode
+    });
+  }
+  formatAnalyticsActiveRun={mode:mode,startedAt:now};
+  trackFormatEvent('launch',mode,{from:from||'unknown'});
+}
+function finishFormatAnalyticsRun(mode, meta) {
+  var now=Date.now(), payload=Object.assign({},meta||{});
+  if (formatAnalyticsActiveRun && formatAnalyticsActiveRun.mode===mode) {
+    payload.durationMs=Math.max(0,now-formatAnalyticsActiveRun.startedAt);
+    formatAnalyticsActiveRun=null;
+  }
+  trackFormatEvent('complete',mode,payload);
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', function () {
+    if (!formatAnalyticsActiveRun) return;
+    trackFormatEvent('abandon',formatAnalyticsActiveRun.mode,{
+      durationMs:Math.max(0,Date.now()-formatAnalyticsActiveRun.startedAt),
+      to:'pagehide'
+    });
+    formatAnalyticsActiveRun=null;
+  });
+}
 var formatHubLastImpressionSignature = null;
 function trackFormatHubImpression(modes) {
   var sig=(modes||[]).map(function(m){return m.id;}).join('|')+'::'+
@@ -3011,12 +3049,16 @@ function trackFormatHubImpression(modes) {
   trackFormatEvent('impression',null,{results:(modes||[]).length});
 }
 function formatAnalyticsSummary() {
-  var out={impression:0,search:0,filter:0,launch:0,complete:0,share:0,byMode:{}};
+  var out={impression:0,search:0,filter:0,launch:0,complete:0,abandon:0,share:0,totalDurationMs:0,byMode:{}};
   getFormatAnalyticsEvents().forEach(function(e){
     if(out[e.type]!==undefined) out[e.type]++;
     if(e.mode){
-      out.byMode[e.mode]=out.byMode[e.mode]||{launch:0,complete:0,share:0};
+      out.byMode[e.mode]=out.byMode[e.mode]||{launch:0,complete:0,abandon:0,share:0,totalDurationMs:0};
       if(out.byMode[e.mode][e.type]!==undefined) out.byMode[e.mode][e.type]++;
+      if((e.type==='complete'||e.type==='abandon')&&e.meta&&Number(e.meta.durationMs)>=0){
+        out.byMode[e.mode].totalDurationMs+=Number(e.meta.durationMs)||0;
+        out.totalDurationMs+=Number(e.meta.durationMs)||0;
+      }
     }
   });
   return out;
@@ -4218,7 +4260,7 @@ function completionPctForPersonalization(mode, fields) {
 }
 function recordPersonalizationCompletion(mode, fields) {
   if (!mode) return;
-  trackFormatEvent('complete', mode, {pct:completionPctForPersonalization(mode, fields)});
+  finishFormatAnalyticsRun(mode, {pct:completionPctForPersonalization(mode, fields)});
   markDailyFormatCompleted(mode);
   if (!state.name) return;
   var rewardState=getRewards();
