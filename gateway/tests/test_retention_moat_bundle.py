@@ -110,7 +110,7 @@ def test_live_football_favorite_context_never_invents_scores():
 
 def test_daily_reads_v3_adds_freshness_and_one_more_hooks():
     assert "YOUR DAILY 5 · V3" in APP
-    assert "Daily Reads v3" in APP
+    assert "__dailyReadsV3__" in APP
     assert "function dailyTomorrowPlanHtml()" in APP
     assert "function dailyOneMoreHtml()" in APP
     summary = APP.split("function renderDailySummary() {", 1)[1].split("function renderDailyScreen()", 1)[0]
