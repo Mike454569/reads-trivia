@@ -166,12 +166,26 @@ def pytest_ignore_collect(collection_path, config):
 def pytest_collection_modifyitems(config, items):
     import os as _os
 
-    if _os.environ.get("CI_SKIP_DB_TESTS") != "1":
+    skip_db = _os.environ.get("CI_SKIP_DB_TESTS") == "1"
+    only_db = _os.environ.get("CI_ONLY_DB_TESTS") == "1"
+    if not skip_db and not only_db:
         return
+
     list_path = Path(__file__).with_name(".ci_needs_real_db.txt")
     if not list_path.exists():
         return
     needs_db = {line.strip() for line in list_path.read_text().splitlines() if line.strip()}
+
+    if only_db:
+        selected = []
+        deselected = []
+        for item in items:
+            (selected if item.nodeid in needs_db else deselected).append(item)
+        items[:] = selected
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+        return
+
     skip_marker = pytest.mark.skip(
         reason="needs the real Football Warehouse DB, not available in this CI job "
                "(see PRODUCTION_STATUS.md, CI section)"
