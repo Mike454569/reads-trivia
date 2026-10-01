@@ -160,7 +160,7 @@ function creatorClonePackage(packageId) {
 function creatorBulkPrompt(i) {
   var s=state.creator||{}; var league=s.bulkLeague||'NFL', topic=s.bulkTopic||'General';
   var topicMap={'General':'mixed football knowledge','Draft':'draft history','History':'football history','Players':'players and careers','Teams':'teams and seasons','Stats':'player and team statistics','Awards':'awards and honors','Games':'real game results and performances'};
-  return 'Make me a '+league+' trivia game about '+(topicMap[topic]||topic.toLowerCase())+'. Batch item '+(i+1)+' of '+(s.bulkCount||5)+'.';
+  return 'Make me a '+league+' trivia game about '+(topicMap[topic]||topic.toLowerCase())+'.';
 }
 function creatorBulkSet(field,value) {
   var s=state.creator;if(!s)return;
