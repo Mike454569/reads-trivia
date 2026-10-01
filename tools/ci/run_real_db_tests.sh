@@ -12,6 +12,7 @@ export READS_ENGINE_DIR=/data/engine
 export READS_ENGINE_PACKAGES_DIR=/tmp/ci-packages
 export READS_ENGINE_GAME_STATE_DIR=/tmp/ci-game-state
 export READS_ENGINE_LOG_DIR=/tmp/ci-logs
+export CI_REAL_DB_ONLY=1
 
 python - <<'PY'
 import os
@@ -37,4 +38,4 @@ finally:
     con.close()
 PY
 
-python -m pytest gateway/tests -q
+python -m pytest gateway/tests -q --maxfail=20
