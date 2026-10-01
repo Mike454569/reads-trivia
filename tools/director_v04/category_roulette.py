@@ -45,7 +45,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import wager_mode, deep_trivia  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "1.1"
+PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "CATEGORY_ROULETTE"
 VARIANTS = frozenset({"CATEGORY_ROULETTE_MIXED"})
 
