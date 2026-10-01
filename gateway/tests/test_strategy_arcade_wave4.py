@@ -5,10 +5,10 @@ import pytest
 from tools.director_v04 import strategy_arcade_wave4 as w4
 
 def _package(variant:str)->dict:
-    cats=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+    cats=("Game Day","Season & Legacy","College Chaos")
     rounds=[]
     for i in range(48):
-        rounds.append({"round_index":i,"category":cats[i%3],"prompt":f"Real question {i}?",
+        rounds.append({"round_index":i,"category":cats[i%3],"bucket":cats[i%3],"prompt":f"Real question {i}?",
           "options":[{"item_id":"A","label":f"Correct {i}"},{"item_id":"B","label":f"Decoy B {i}"},{"item_id":"C","label":f"Decoy C {i}"},{"item_id":"D","label":f"Decoy D {i}"}],
           "_answer_item_id":"A","_notes":f"Source note {i}"})
     return {"domain_variant":variant,"format_id":variant,"rounds":rounds,"round_count":len(rounds)}
@@ -31,7 +31,7 @@ def test_drive_builder_requires_distinct_play_types():
     with pytest.raises(ValueError): w4.evaluate(p,s,{"action":"short"})
 
 def test_hot_hand_switch_builds_multiplier():
-    p=_package("HOT_HAND_SWITCH"); _,s=w4.evaluate(p,{},{"action":"NFL Team Records"}); _,s=_answer(p,s)
+    p=_package("HOT_HAND_SWITCH"); _,s=w4.evaluate(p,{},{"action":"Game Day"}); _,s=_answer(p,s)
     assert s["multiplier"]==2 and s["score"]==100
 
 def test_overtime_shootout_scores_player_possession():
@@ -70,8 +70,8 @@ def test_score_bank_can_bank_existing_pot():
     assert s["bank"]==100 and s["pot"]==0
 
 def test_audible_spends_resource_and_switches_category():
-    p=_package("AUDIBLE"); _,s=w4.evaluate(p,{},{"action":"Heisman Winners"})
-    assert s["audibles"]==1 and w4.client_view(p,s)["category"]=="Heisman Winners"
+    p=_package("AUDIBLE"); _,s=w4.evaluate(p,{},{"action":"Season & Legacy"})
+    assert s["audibles"]==1 and w4.client_view(p,s)["category"]=="Season & Legacy"
 
 def test_fourth_down_field_goal_banks_three():
     p=_package("FOURTH_DOWN_DECISION"); s={}
