@@ -1036,6 +1036,11 @@ def creator_format_generate(body: CreatorFormatGenerateRequest, request: Request
     )
 
 
+@app.get("/v1/creator/duplicates/{package_id}")
+def creator_duplicates(package_id: str, request: Request,
+                       _rl=Depends(rate_limit_preview), _admin=Depends(require_admin)):
+    return creator_service.analyze_duplicates(package_id)
+
 @app.get("/v1/creator/queue")
 def creator_queue(request: Request,
                    review_status: Optional[str] = Query(default=None, max_length=20),
