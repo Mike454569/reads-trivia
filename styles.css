@@ -6372,3 +6372,25 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .creator-bulk-progress b{color:var(--text)}
 @media(max-width:900px){.creator-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.creator-recent,.creator-bulk-card{padding:15px}.creator-recent-grid{grid-template-columns:1fr}.creator-recent-card .btn-row{display:grid;grid-template-columns:1fr 1fr}.creator-recent-card .btn-row button{width:100%;justify-content:center}}
+
+
+/* Creator Quality + Publishing prep */
+.creator-recipes{padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--bg-card)}
+.creator-recipe-save{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:12px 0 14px}
+.creator-recipe-save input{min-width:0;border:1px solid var(--border);border-radius:11px;background:var(--bg-elevated);color:var(--text);padding:11px 12px;font-size:14px}
+.creator-recipe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.creator-recipe-grid article{display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid var(--border);border-radius:13px;background:var(--bg-elevated)}
+.creator-recipe-grid article>div:first-child{display:grid;gap:4px}.creator-recipe-grid b{font-size:13px}.creator-recipe-grid small{color:var(--text-dim);font-size:9.5px;line-height:1.35}
+.creator-queue-controls{display:grid;grid-template-columns:minmax(220px,1fr) 140px 150px;gap:8px;margin:12px 0}
+.creator-queue-controls select{border:1px solid var(--border);border-radius:11px;background:var(--bg-elevated);color:var(--text);padding:10px 11px}
+.creator-review-list{display:grid;gap:10px}
+.creator-review-card{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg-card)}
+.creator-review-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.creator-review-card-head>div:first-child{display:grid;gap:4px}.creator-review-card-head b{font-size:14px}.creator-review-card-head small{color:var(--text-dim);font-size:10.5px;line-height:1.4}
+.creator-review-badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}.creator-review-badges>span{padding:5px 7px;border:1px solid var(--border);border-radius:999px;color:var(--text-dim);font-size:8.5px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+.creator-quality{margin:12px 0;padding:11px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elevated)}
+.creator-quality-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.creator-quality-head span{color:var(--text-dim);font-size:9px;font-weight:900;letter-spacing:.09em}.creator-quality-head b{font-family:var(--font-display);font-size:20px}
+.creator-quality-grid{display:flex;flex-wrap:wrap;gap:6px}.creator-quality-grid span{padding:5px 7px;border-radius:8px;font-size:9px;font-weight:800}.creator-quality-grid .pass{background:rgba(78,201,132,.09);color:#8fe2b0}.creator-quality-grid .fail{background:rgba(255,123,123,.09);color:#ffb0b0}
+.creator-review-actions{display:flex;flex-wrap:wrap;gap:7px}
+@media(max-width:850px){.creator-recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.creator-queue-controls{grid-template-columns:1fr 1fr}.creator-queue-controls .creator-search-wrap{grid-column:1/-1}}
+@media(max-width:560px){.creator-recipes{padding:15px}.creator-recipe-save{grid-template-columns:1fr}.creator-recipe-grid{grid-template-columns:1fr}.creator-queue-controls{grid-template-columns:1fr}.creator-queue-controls .creator-search-wrap{grid-column:auto}.creator-review-card-head{display:grid}.creator-review-badges{justify-content:flex-start}.creator-review-actions{display:grid;grid-template-columns:1fr 1fr}.creator-review-actions button{width:100%;justify-content:center}}
