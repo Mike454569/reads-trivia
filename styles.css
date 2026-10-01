@@ -6529,3 +6529,155 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     transform:none;
   }
 }
+
+
+/* Pick'em visual identity upgrade */
+.pickem-matchup-row{
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+  gap:10px;
+  align-items:stretch;
+}
+.pickem-team-choice{
+  min-height:154px!important;
+  padding:16px 10px 14px!important;
+  gap:7px!important;
+  overflow:visible;
+}
+.pickem-team-mark-wrap{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:82px;
+  height:56px;
+  margin-bottom:3px;
+}
+.pickem-football-badge{
+  position:relative;
+  isolation:isolate;
+  width:74px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  border-radius:52% 48% 52% 48% / 58% 58% 42% 42%;
+  border:2px solid rgba(255,255,255,.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.22),
+    inset 0 -10px 18px rgba(0,0,0,.18),
+    0 8px 20px rgba(0,0,0,.28);
+  transform:rotate(-2deg);
+  overflow:hidden;
+}
+.pickem-football-badge::before{
+  content:'';
+  position:absolute;
+  z-index:1;
+  width:28px;
+  height:2px;
+  border-radius:999px;
+  background:currentColor;
+  opacity:.72;
+  box-shadow:0 -1px 0 rgba(0,0,0,.18);
+}
+.pickem-football-badge::after{
+  content:'';
+  position:absolute;
+  z-index:1;
+  width:22px;
+  height:15px;
+  opacity:.72;
+  background:
+    linear-gradient(currentColor,currentColor) center/2px 100% no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 2px/18px 2px no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 7px/18px 2px no-repeat,
+    linear-gradient(90deg,currentColor,currentColor) 2px 12px/18px 2px no-repeat;
+}
+.pickem-football-code{
+  position:relative;
+  z-index:2;
+  padding:2px 5px;
+  border-radius:5px;
+  font:900 14px/1 var(--font-display);
+  letter-spacing:.045em;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  background:rgba(0,0,0,.17);
+  backdrop-filter:blur(1px);
+}
+.pickem-rank-chip{
+  position:absolute;
+  z-index:4;
+  top:-7px;
+  right:-3px;
+  min-width:29px;
+  height:27px;
+  padding:0 6px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#e6b650;
+  color:#142018;
+  border:2px solid #142018;
+  box-shadow:0 4px 10px rgba(0,0,0,.28);
+  font:900 12px/1 var(--font-display);
+}
+.pickem-team-name{
+  max-width:100%;
+  color:#f4f7f1;
+  font:700 18px/1.08 var(--font-display);
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+.pickem-team-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:5px 8px;
+  min-height:18px;
+  color:#aebcaf;
+  font:700 10px/1 var(--font-display);
+  letter-spacing:.08em;
+}
+.pickem-team-meta span:first-child{
+  color:#f1d488;
+  font-size:12px;
+  letter-spacing:.02em;
+}
+.pickem-at-mark{
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid #526254;
+  background:#111c15;
+  color:#9dab9f;
+  font:800 12px/1 var(--font-display);
+}
+.broadcast-finish--pickem .pickem-team-choice.selected{
+  transform:translateY(-2px);
+  box-shadow:inset 0 -4px #e6b650,0 10px 20px rgba(0,0,0,.22);
+}
+.broadcast-finish--pickem .pickem-team-choice.correct .pickem-football-badge{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 0 0 2px #82dba3,0 8px 20px rgba(0,0,0,.28);
+}
+.broadcast-finish--pickem .pickem-team-choice.wrong .pickem-football-badge{
+  filter:saturate(.7) brightness(.85);
+}
+@media(max-width:560px){
+  .pickem-team-choice{
+    min-height:145px!important;
+    padding:14px 7px 12px!important;
+  }
+  .pickem-team-mark-wrap{width:72px;height:52px}
+  .pickem-football-badge{width:66px;height:42px}
+  .pickem-football-code{font-size:12px}
+  .pickem-team-name{font-size:16px}
+  .pickem-rank-chip{top:-5px;right:-2px}
+}
+@media(max-width:360px){
+  .pickem-matchup-row{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:6px}
+  .pickem-team-choice{padding-left:4px!important;padding-right:4px!important}
+  .pickem-football-badge{width:60px;height:39px}
+  .pickem-team-name{font-size:14px}
+  .pickem-at-mark{width:22px;height:22px;font-size:10px}
+}
