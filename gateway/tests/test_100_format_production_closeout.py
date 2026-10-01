@@ -111,6 +111,9 @@ def test_real_db_ci_uses_stable_absolute_flyctl_path():
     cleanup=workflow[workflow.index("- name: Clean up temporary Fly volume and machine"):]
     assert '"$HOME/.fly/bin/flyctl" version' in install
     assert '"$HOME/.fly/bin/flyctl" volumes list' in restore
+    assert "SOURCE_VOLUME_SIZE=" in restore
+    assert '--size "$SOURCE_VOLUME_SIZE"' in restore
+    assert "seq 1 180" in restore
     assert '"$HOME/.fly/bin/flyctl" volumes show "$TEMP_VOL_ID"' in restore
     assert 'if [ "$VOLUME_STATE" = "created" ]' in restore
     assert '"https://api.machines.dev/v1/apps/${FLY_APP}/machines"' in restore
