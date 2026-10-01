@@ -3,6 +3,8 @@ name: Gateway tests
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "17 8 * * *"
   push:
     branches: [main, feature/retention-moat-upgrades]
     paths:
@@ -66,6 +68,35 @@ jobs:
           CI_SKIP_DB_TESTS: "1"
         run: python -m pytest gateway/tests -q
 
+
+  certified-db-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+
+      - name: Build certified lightweight Reads DB
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+        run: |
+          python tools/ci/build_certified_ci_db.py --engine-dir "$READS_ENGINE_DIR"
+          ls -lh "$READS_ENGINE_DIR/reads_football_v4.0.sqlite"
+
+      - name: Run certified DB contract tests
+        env:
+          READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+        run: python -m pytest gateway/tests/test_certified_ci_fixture.py -q
+
+
   # Full-coverage job: same suite, but against the REAL database, copied
   # from production via an isolated Fly volume fork (a block-level test copy,
   # never a fabricated mock and never the live mounted production volume).
@@ -74,6 +105,7 @@ jobs:
   # PRODUCTION_STATUS.md's CI section for the exact remaining step. Until
   # that secret exists, this job is skipped (not failing) rather than red.
   integration-tests-with-real-db:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
