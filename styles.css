@@ -6260,3 +6260,18 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .arena-searching .loading-spinner{width:20px;height:20px}
 .arena-private-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--border)}
 @media(max-width:600px){.arena-panel-head{display:grid}.arena-tier{text-align:left;min-width:0}.arena-searching{align-items:flex-start;flex-wrap:wrap}.arena-searching .btn-secondary{width:100%}}
+
+/* Road to Legend */
+.progression-road{margin:20px 0;padding:18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-card)}
+.progression-road-now{display:grid;grid-template-columns:auto minmax(140px,1fr) auto;gap:14px;align-items:center;margin:14px 0 16px}
+.progression-road-now>div small{display:block;color:var(--text-dim);font-size:9px;font-weight:850;letter-spacing:.09em}
+.progression-road-now>div b{display:block;margin-top:3px;font-size:13px}
+.progression-road-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.progression-road-grid article{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elevated)}
+.progression-road-grid article.next{border-color:rgba(var(--home-glow-rgb),.5);background:rgba(var(--home-glow-rgb),.07)}
+.progression-road-grid span,.progression-road-grid b,.progression-road-grid small{display:block}
+.progression-road-grid span{color:var(--home-accent);font-weight:900;font-size:11px}
+.progression-road-grid b{margin:5px 0;font-size:12px;line-height:1.3}
+.progression-road-grid small{color:var(--text-dim);font-size:9px;text-transform:uppercase;letter-spacing:.07em}
+.progression-road-max{text-align:center;padding:18px;color:var(--text-dim)}
+@media(max-width:700px){.progression-road-now{grid-template-columns:1fr}.progression-road-grid{display:flex;overflow-x:auto}.progression-road-grid article{flex:0 0 175px}}
