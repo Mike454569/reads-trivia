@@ -3,7 +3,7 @@ name: Gateway tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/retention-moat-upgrades]
     paths:
       - "gateway/**"
       - "tools/**"
