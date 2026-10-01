@@ -6467,3 +6467,65 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .seasonal-mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .community-pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Mobile navigation + home stacking hotfix */
+.app-backbar{
+  display:flex;
+  align-items:center;
+  margin:0 0 12px;
+  min-height:36px;
+}
+.app-back-button{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.app-back-icon{
+  display:inline-flex;
+  transform:rotate(180deg);
+}
+.app-back-icon .icon{width:15px;height:15px}
+
+/* Priority cards must size from their own content. The old height:100%
+   rule caused Safari grid rows to reuse/stretch heights while Live Football
+   refreshed asynchronously, which let adjacent cards visually occupy the
+   same space. */
+.home-priority-stack{
+  grid-auto-rows:max-content;
+  align-items:start;
+}
+.home-priority-item{
+  min-width:0;
+  height:auto;
+  min-height:0;
+  align-self:start;
+  position:relative;
+  isolation:isolate;
+}
+.home-priority-item>.panel,
+.home-priority-item>section,
+.home-priority-item>button{
+  height:auto!important;
+  min-height:0;
+  margin:0;
+  width:100%;
+}
+@media(max-width:800px){
+  .home-priority-stack{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .home-priority-item{
+    width:100%;
+    flex:0 0 auto;
+  }
+  .home-priority-item>.panel,
+  .home-priority-item>section,
+  .home-priority-item>button{
+    position:relative;
+    inset:auto;
+    transform:none;
+  }
+}
