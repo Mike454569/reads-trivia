@@ -28,8 +28,12 @@ def test_test_me_generator_has_multiple_question_families_per_diagram_category()
         "run_blocker_id",
         "run_identify_by_blocks",
     )
+    dynamic_front = {"front_db", "front_dl", "front_lb"}
     for variant in expected:
-        assert f"variantKey: '{variant}'" in FIELD
+        if variant in dynamic_front:
+            assert f"key:'{variant}'" in FIELD
+        else:
+            assert f"variantKey: '{variant}'" in FIELD
 
 
 def test_test_me_questions_are_derived_from_existing_diagram_data():
