@@ -315,3 +315,25 @@ def test_creator_question_revision_creates_new_immutable_package(client, auth_he
 
     untouched = client.get(f"/v1/games/{original['package_id']}", headers=auth_headers).json()
     assert untouched["questions"][0]["question"] == q["question"]
+
+
+def test_creator_duplicate_report_requires_admin(client):
+    r = client.get("/v1/creator/duplicates/GGP:" + "a" * 24)
+    assert r.status_code == 401
+
+
+def test_creator_duplicate_report_runs_for_generated_package(client, auth_headers):
+    created = client.post(
+        "/v1/creator/generate",
+        json={"request_text": DRAFT_REQUEST, "puzzle_count": 2, "seed": "pytest-creator-duplicate-report"},
+        headers=auth_headers,
+    )
+    assert created.status_code == 200
+    package_id = created.json()["package_id"]
+    report = client.get(f"/v1/creator/duplicates/{package_id}", headers=auth_headers)
+    assert report.status_code == 200
+    body = report.json()
+    assert body["package_id"] == package_id
+    assert body["question_count"] >= 1
+    assert "flagged_count" in body
+    assert isinstance(body["questions"], list)
