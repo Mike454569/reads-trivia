@@ -7057,3 +7057,90 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .mode-mark-lg .mode-mark-core .icon{width:27px;height:27px}
   .mode-card.featured .mode-icon{min-height:52px}
 }
+
+
+/* Per-game logo identity v2: each mode gets a distinct monogram + signature. */
+.mode-mark{
+  position:relative;
+}
+.mode-mark-corner{
+  position:absolute;
+  top:5px;
+  right:5px;
+  display:grid;
+  place-items:center;
+  width:15px;
+  height:15px;
+  opacity:.72;
+  z-index:3;
+}
+.mode-mark-corner .icon{
+  width:13px;
+  height:13px;
+  stroke-width:2;
+}
+.mode-mark-code{
+  position:relative;
+  z-index:2;
+  display:block;
+  max-width:100%;
+  padding:0 5px;
+  font:900 12px/1 var(--font-display);
+  letter-spacing:.015em;
+  text-align:center;
+  color:currentColor;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  transform:translateY(1px);
+}
+.mode-mark-lg .mode-mark-code{font-size:14px}
+.mode-mark-sm .mode-mark-code{font-size:10px}
+.mode-mark-sm .mode-mark-corner{top:3px;right:3px;width:11px;height:11px}
+.mode-mark-sm .mode-mark-corner .icon{width:10px;height:10px}
+
+/* Twelve deterministic signatures ensure long-tail modes with related
+   mechanics still read as different logos rather than cloned glyphs. */
+.mode-mark-v0{box-shadow:0 8px 18px rgba(0,0,0,.26),inset 3px 0 0 rgba(255,255,255,.10)}
+.mode-mark-v1{border-radius:50% 18% 50% 18%/28% 50% 28% 50%}
+.mode-mark-v2{transform:rotate(-2deg)}
+.mode-mark-v2 .mode-mark-code,.mode-mark-v2 .mode-mark-corner{transform:rotate(2deg)}
+.mode-mark-v3{clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)}
+.mode-mark-v4{clip-path:polygon(50% 0,95% 22%,84% 100%,16% 100%,5% 22%)}
+.mode-mark-v5{border-radius:50%}
+.mode-mark-v6{border-radius:8px 18px 8px 18px}
+.mode-mark-v7{clip-path:polygon(0 0,86% 0,100% 50%,86% 100%,0 100%,10% 50%)}
+.mode-mark-v8::after{transform:rotate(-28deg)}
+.mode-mark-v9{border-bottom-width:3px}
+.mode-mark-v10{border-left-width:3px;border-radius:18px 8px 18px 8px}
+.mode-mark-v11{clip-path:polygon(50% 0,100% 28%,88% 100%,12% 100%,0 28%)}
+
+.format-mini-mark{
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+}
+.format-mini-complete{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:rgba(87,184,114,.12);
+  border:1px solid rgba(87,184,114,.35);
+  color:var(--good);
+}
+.format-mini-complete .icon{width:18px;height:18px}
+
+.daily-format-five-grid>button>span.format-mini-mark,
+.format-collection-row>button>span.format-mini-mark,
+.format-hub-rec-row>button>span.format-mini-mark{
+  width:auto;
+  height:auto;
+  background:none;
+  border:0;
+  border-radius:0;
+}
+.format-hub-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
