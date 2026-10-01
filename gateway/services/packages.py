@@ -205,6 +205,88 @@ def create_question_revision(package_id: str, question_index: int, replacement: 
     return save_package(revised)
 
 
+def _creator_question_texts(record: dict) -> list[str]:
+    questions = record.get("questions") or []
+    if isinstance(questions, list):
+        return [str(q.get("question") or "").strip() for q in questions if isinstance(q, dict) and str(q.get("question") or "").strip()]
+    puzzles = record.get("puzzles") or []
+    out = []
+    if isinstance(puzzles, list):
+        for p in puzzles:
+            if not isinstance(p, dict):
+                continue
+            clues = p.get("clues") or []
+            clue_text = " | ".join(str(x.get("display_text") or "") for x in clues if isinstance(x, dict))
+            if clue_text.strip():
+                out.append(clue_text.strip())
+    return out
+
+
+def _creator_similarity_tokens(text: str) -> set[str]:
+    import re
+    return {tok for tok in re.findall(r"[a-z0-9]+", text.lower()) if len(tok) > 2}
+
+
+def analyze_creator_duplicates(package_id: str, *, recent_limit: int = 100) -> dict:
+    """Compare one package against recent Creator output.
+
+    Uses exact normalized prompt equality plus conservative token Jaccard
+    similarity. This is editorial duplicate intelligence, not a factual
+    correctness score, and never mutates or rejects content automatically.
+    """
+    target = load_package(package_id)
+    if target is None:
+        raise FileNotFoundError(f"no such package: {package_id}")
+    target_texts = _creator_question_texts(target)
+    if not target_texts:
+        return {"package_id": package_id, "question_count": 0, "flagged_count": 0, "questions": []}
+
+    recent = []
+    for summary in list_packages(limit=recent_limit + 1):
+        other_id = summary.get("package_id")
+        if not other_id or other_id == package_id:
+            continue
+        other = load_package(other_id)
+        if other:
+            recent.append((other_id, other))
+        if len(recent) >= recent_limit:
+            break
+
+    rows = []
+    for index, text in enumerate(target_texts):
+        norm = " ".join(text.lower().split())
+        tokens = _creator_similarity_tokens(text)
+        matches = []
+        for other_id, other in recent:
+            for other_index, other_text in enumerate(_creator_question_texts(other)):
+                other_norm = " ".join(other_text.lower().split())
+                other_tokens = _creator_similarity_tokens(other_text)
+                exact = bool(norm and norm == other_norm)
+                union = tokens | other_tokens
+                score = 1.0 if exact else ((len(tokens & other_tokens) / len(union)) if union else 0.0)
+                if exact or score >= 0.72:
+                    matches.append({
+                        "package_id": other_id,
+                        "question_index": other_index,
+                        "similarity": round(score, 3),
+                        "exact": exact,
+                        "question": other_text[:260],
+                    })
+        matches.sort(key=lambda x: (not x["exact"], -x["similarity"]))
+        rows.append({
+            "question_index": index,
+            "question": text[:260],
+            "duplicate_risk": "HIGH" if any(m["exact"] for m in matches) else ("MEDIUM" if matches else "CLEAR"),
+            "matches": matches[:5],
+        })
+    return {
+        "package_id": package_id,
+        "question_count": len(rows),
+        "flagged_count": sum(1 for row in rows if row["duplicate_risk"] != "CLEAR"),
+        "questions": rows,
+    }
+
+
 def load_package(package_id: str) -> dict | None:
     """Returns the stored record, or None if not found. Raises
     PackageIdInvalid for a malformed ID -- callers map that to the same
