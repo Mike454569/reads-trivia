@@ -14278,7 +14278,8 @@ document.addEventListener('click', function (e) {
     '[data-creator-format-pick], [data-creator-format-category], [data-creator-guided-build], [data-creator-preview-mode], ' +
     '[data-creator-question-edit], [data-creator-question-save], [data-creator-regenerate], [data-creator-open-package], ' +
     '[data-creator-clone-package], [data-creator-refresh-recent], [data-creator-bulk-generate], [data-creator-save-recipe], ' +
-    '[data-creator-run-recipe], [data-creator-delete-recipe], ' +
+    '[data-creator-run-recipe], [data-creator-delete-recipe], [data-creator-check-duplicates], [data-creator-replace-question], ' +
+    '[data-creator-toggle-package], [data-creator-select-visible], [data-creator-clear-selection], [data-creator-batch-review], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -14992,6 +14993,12 @@ document.addEventListener('click', function (e) {
   if (t.dataset.creatorOpenPackage !== undefined) { creatorOpenPackage(t.dataset.creatorOpenPackage); return; }
   if (t.dataset.creatorClonePackage !== undefined) { creatorClonePackage(t.dataset.creatorClonePackage); return; }
   if (t.dataset.creatorRefreshRecent !== undefined) { creatorLoadRecent(); return; }
+  if (t.dataset.creatorCheckDuplicates !== undefined) { creatorLoadDuplicateReport(t.dataset.creatorCheckDuplicates); return; }
+  if (t.dataset.creatorReplaceQuestion !== undefined) { creatorReplaceQuestion(parseInt(t.dataset.creatorReplaceQuestion, 10)); return; }
+  if (t.dataset.creatorTogglePackage !== undefined) { creatorTogglePackageSelection(t.dataset.creatorTogglePackage); return; }
+  if (t.dataset.creatorSelectVisible !== undefined) { creatorSelectVisiblePackages(); return; }
+  if (t.dataset.creatorClearSelection !== undefined) { creatorClearPackageSelection(); return; }
+  if (t.dataset.creatorBatchReview !== undefined) { creatorBatchReview(t.dataset.creatorBatchReview); return; }
   if (t.dataset.creatorSaveRecipe !== undefined) { creatorSaveRecipe(); return; }
   if (t.dataset.creatorRunRecipe !== undefined) { creatorRunRecipe(t.dataset.creatorRunRecipe); return; }
   if (t.dataset.creatorDeleteRecipe !== undefined) { creatorDeleteRecipe(t.dataset.creatorDeleteRecipe); return; }
