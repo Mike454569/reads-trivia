@@ -128,6 +128,29 @@ jobs:
             --size 30 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
+          # Snapshot-backed volume creation can return while Fly is still
+          # restoring bytes. A Machine cannot safely claim/start with that
+          # volume until the volume reaches the stable "created" state.
+          VOLUME_READY=0
+          for attempt in $(seq 1 60); do
+            VOLUME_STATE=$("$HOME/.fly/bin/flyctl" volumes show "$TEMP_VOL_ID" -a "$FLY_APP" --json | \
+              python3 -c "import json,sys; v=json.load(sys.stdin); print(v.get('state') or v.get('State') or '')")
+            echo "Restore volume state: $VOLUME_STATE (attempt $attempt/60)"
+            if [ "$VOLUME_STATE" = "created" ]; then
+              VOLUME_READY=1
+              break
+            fi
+            if [ "$VOLUME_STATE" = "failed" ]; then
+              echo "Snapshot restore entered failed state" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          if [ "$VOLUME_READY" != "1" ]; then
+            echo "Snapshot restore did not become ready before timeout" >&2
+            exit 1
+          fi
+
           # Create a helper Machine directly through the Machines API instead
           # of inheriting the production app entrypoint. Its only job is to
           # keep the restored snapshot mounted long enough for SFTP.
