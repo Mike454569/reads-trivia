@@ -76,7 +76,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment, runTransaction, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, collection, onSnapshot, serverTimestamp, increment, runTransaction, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 var FIREBASE_CONFIG = {
   apiKey: "AIzaSyCYqKRGm2LSeTjxx1tpApm37TqBhOf2rIw",
@@ -123,6 +123,9 @@ window.__fbSync = {
   watchSocialChallenges: function () { return function () {}; },
   createSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
   updateSocialChallenge: function () { return Promise.reject(new Error('Not connected')); },
+  findArenaMatch: function () { return Promise.reject(new Error('Not connected')); },
+  watchArenaTicket: function () { return function () {}; },
+  cancelArenaTicket: function () { return Promise.resolve(); },
   signUp: function () { return Promise.reject(new Error('Not connected')); },
   logIn: function () { return Promise.reject(new Error('Not connected')); },
   logOut: function () { /* no-op until Firebase finishes initializing below */ }
@@ -143,6 +146,7 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
     var matchesCol = collection(db, 'games', GAME_ID, 'matches');
     var profilesCol = collection(db, 'games', GAME_ID, 'profiles');
     var socialChallengesCol = collection(db, 'games', GAME_ID, 'socialChallenges');
+    var arenaQueueCol = collection(db, 'games', GAME_ID, 'arenaQueue');
 
     // Not a real email — just a stable, uniqueness-checkable identifier
     // Firebase's email/password provider can key off of, so "username" can
@@ -379,6 +383,51 @@ if (FIREBASE_CONFIG.apiKey === 'PASTE_ME') {
       if (!challengeId || !patch) return Promise.reject(new Error('Invalid challenge update'));
       if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
       return setDoc(doc(socialChallengesCol, challengeId), Object.assign({}, patch, { updatedAt: serverTimestamp() }), { merge: true });
+    };
+
+    function arenaMatchCode() {
+      var chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789', out='A';
+      for(var i=0;i<5;i++) out+=chars[Math.floor(Math.random()*chars.length)];
+      return out;
+    }
+    window.__fbSync.findArenaMatch = function (rating) {
+      if (!auth.currentUser || auth.currentUser.isAnonymous) return Promise.reject(new Error('A Reads account is required'));
+      var uid=auth.currentUser.uid, name=auth.currentUser.displayName||'Reads fan';
+      var mineRef=doc(arenaQueueCol,uid);
+      var numericRating=Math.max(0,Number(rating)||0);
+      return setDoc(mineRef,{uid:uid,name:name,rating:numericRating,status:'waiting',updatedAt:serverTimestamp()},{merge:false})
+        .then(function(){
+          return getDocs(query(arenaQueueCol,where('status','==','waiting'),limit(25)));
+        }).then(function(snap){
+          var candidates=[];
+          snap.forEach(function(d){
+            var x=Object.assign({id:d.id},d.data());
+            if(x.uid!==uid) candidates.push(x);
+          });
+          candidates.sort(function(a,b){return Math.abs((Number(a.rating)||0)-numericRating)-Math.abs((Number(b.rating)||0)-numericRating);});
+          if(!candidates.length) return {status:'waiting',ticketId:uid};
+          var opponent=candidates[0], oppRef=doc(arenaQueueCol,opponent.id), code=arenaMatchCode(), matchRef=doc(matchesCol,code);
+          return runTransaction(db,function(tx){
+            return tx.get(oppRef).then(function(oppSnap){
+              if(!oppSnap.exists() || oppSnap.data().status!=='waiting') throw new Error('Opponent already matched');
+              var mySlug=usernameSlug(name), oppSlug=usernameSlug(opponent.name||'Reads fan'), players={};
+              players[mySlug]={name:name,correctCount:null,total:null,finishedAt:null};
+              players[oppSlug]={name:opponent.name||'Reads fan',correctCount:null,total:null,finishedAt:null};
+              tx.set(matchRef,{mode:'quiz',roundSize:10,listId:null,status:'active',arena:true,players:players});
+              tx.set(mineRef,{status:'matched',matchCode:code,opponentName:opponent.name||'Reads fan',updatedAt:serverTimestamp()},{merge:true});
+              tx.set(oppRef,{status:'matched',matchCode:code,opponentName:name,updatedAt:serverTimestamp()},{merge:true});
+              return {status:'matched',ticketId:uid,matchCode:code,opponentName:opponent.name||'Reads fan'};
+            });
+          }).catch(function(){return {status:'waiting',ticketId:uid};});
+        });
+    };
+    window.__fbSync.watchArenaTicket = function (ticketId, cb) {
+      if(!ticketId || typeof cb!=='function') return function(){};
+      return onSnapshot(doc(arenaQueueCol,ticketId),function(snap){cb(snap.exists()?snap.data():null);},function(){cb(null);});
+    };
+    window.__fbSync.cancelArenaTicket = function (ticketId) {
+      if(!ticketId) return Promise.resolve();
+      return setDoc(doc(arenaQueueCol,ticketId),{status:'cancelled',updatedAt:serverTimestamp()},{merge:true});
     };
 
     // onAuthStateChanged now fires more than once per page load (logging in/
