@@ -106,6 +106,7 @@ function creatorInitialState() {
     previewMode: 'player', editingQuestionIndex: null,
     recent: [], recentLoading: false, bulkCount: 5, bulkRunning: false, bulkResults: [], bulkTopic: 'General', bulkLeague: 'NFL',
     queueSearch: '', queueLeague: 'All', queueSort: 'newest', recipes: [], recipeName: '',
+    duplicateReports: {}, duplicateLoading: {}, selectedPackages: {}, batchReviewRunning: false,
   };
 }
 
@@ -327,6 +328,57 @@ function creatorQueueControlsHtml(){
   return '<div class="creator-queue-controls"><div class="creator-search-wrap">'+icon('search')+'<input id="creator-queue-search" value="'+esc(s.queueSearch||'')+'" placeholder="Search title, request, mechanic…"></div>'+
     '<select data-creator-queue-league><option'+(s.queueLeague==='All'?' selected':'')+'>All</option><option'+(s.queueLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.queueLeague==='CFB'?' selected':'')+'>CFB</option></select>'+
     '<select data-creator-queue-sort><option value="newest"'+(s.queueSort==='newest'?' selected':'')+'>Newest</option><option value="oldest"'+(s.queueSort==='oldest'?' selected':'')+'>Oldest</option><option value="qa-risk"'+(s.queueSort==='qa-risk'?' selected':'')+'>QA Risk</option><option value="status"'+(s.queueSort==='status'?' selected':'')+'>Status</option></select></div>';
+}
+function creatorLoadDuplicateReport(packageId){
+  var s=state.creator;if(!s||!packageId)return;
+  s.duplicateLoading[packageId]=true;renderAll();
+  creatorFetchJson('/v1/creator/duplicates/'+encodeURIComponent(packageId)).then(function(report){
+    if(state.creator!==s)return;s.duplicateReports[packageId]=report;s.duplicateLoading[packageId]=false;renderAll();
+  }).catch(function(){if(state.creator===s){s.duplicateLoading[packageId]=false;renderAll();}});
+}
+function creatorDuplicateReportHtml(packageId){
+  var s=state.creator||{};var report=s.duplicateReports[packageId];
+  if(s.duplicateLoading[packageId])return '<div class="creator-duplicate-box loading"><b>Checking recent content…</b></div>';
+  if(!report)return '<div class="creator-duplicate-box"><div><b>Duplicate Intelligence</b><small>Compare this package against recent Creator output.</small></div><button class="btn-tiny" data-creator-check-duplicates="'+esc(packageId)+'">Scan</button></div>';
+  var flagged=(report.questions||[]).filter(function(q){return q.duplicate_risk!=='CLEAR';});
+  return '<div class="creator-duplicate-box '+(flagged.length?'has-risk':'clear')+'"><div class="creator-duplicate-head"><div><b>Duplicate Intelligence</b><small>'+report.flagged_count+' of '+report.question_count+' questions flagged</small></div><button class="btn-tiny" data-creator-check-duplicates="'+esc(packageId)+'">Rescan</button></div>'+
+    (flagged.length?'<div class="creator-duplicate-list">'+flagged.map(function(q){var m=q.matches&&q.matches[0];return '<div><span>'+esc(q.duplicate_risk)+'</span><b>Q'+(q.question_index+1)+' · '+esc(q.question)+'</b>'+(m?'<small>'+Math.round((m.similarity||0)*100)+'% similar to '+esc(m.package_id)+'</small>':'')+'</div>';}).join('')+'</div>':'<div class="creator-duplicate-clear">✓ No close repeats found in recent Creator output.</div>')+
+  '</div>';
+}
+function creatorReplaceQuestion(index){
+  var s=state.creator,g=s&&s.generated;if(!g||!g.package_id||!Array.isArray(g.questions)||!s.requestText)return;
+  var count=g.question_count||g.questions.length;
+  s.screen=CREATOR_SCREEN.GENERATING;renderAll();
+  creatorFetchJson('/v1/creator/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_text:s.requestText,puzzle_count:count,difficulty:s.guidedDifficulty||'medium',seed:'creator-slot-'+Date.now()+'-'+index})})
+    .then(function(fresh){
+      if(!fresh||!Array.isArray(fresh.questions)||!fresh.questions[index])throw new Error('Fresh replacement question was not available.');
+      var q=fresh.questions[index];
+      return creatorFetchJson('/v1/creator/question/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:g.package_id,question_index:index,replacement:{question:q.question,options:q.options,correctIndex:q.correctIndex,notes:q.notes||'',difficulty:q.difficulty||s.guidedDifficulty||'medium'}})});
+    }).then(function(result){
+      s.generated=result;s.editingQuestionIndex=null;s.previewMode='player';delete s.duplicateReports[g.package_id];s.screen=CREATOR_SCREEN.PREVIEW;renderAll();
+    }).catch(function(err){s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorTogglePackageSelection(packageId){
+  var s=state.creator;if(!s||!packageId)return;
+  if(s.selectedPackages[packageId])delete s.selectedPackages[packageId];else s.selectedPackages[packageId]=true;
+  renderAll();
+}
+function creatorSelectVisiblePackages(){
+  var s=state.creator;if(!s)return;
+  creatorQueueRows().forEach(function(p){if(p.package_id)s.selectedPackages[p.package_id]=true;});renderAll();
+}
+function creatorClearPackageSelection(){var s=state.creator;if(!s)return;s.selectedPackages={};renderAll();}
+function creatorBatchReview(status){
+  var s=state.creator;if(!s||s.batchReviewRunning)return;
+  var ids=Object.keys(s.selectedPackages||{});if(!ids.length)return;
+  s.batchReviewRunning=true;renderAll();
+  var chain=Promise.resolve();
+  ids.forEach(function(id){chain=chain.then(function(){return creatorFetchJson('/v1/creator/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({package_id:id,review_status:status})}).then(function(result){var row=s.queue.find(function(p){return p.package_id===id;});if(row)row.review_status=result.review_status;});});});
+  chain.then(function(){s.batchReviewRunning=false;s.selectedPackages={};creatorLoadQueue(s.queueFilter||'');}).catch(function(err){s.batchReviewRunning=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();});
+}
+function creatorBatchReviewBarHtml(){
+  var s=state.creator||{},n=Object.keys(s.selectedPackages||{}).length;
+  return '<div class="creator-batch-bar"><div><b>'+n+' selected</b><small>Batch review never publishes content; it only updates human review status.</small></div><div class="btn-row"><button class="btn-tiny" data-creator-select-visible>Select Visible</button><button class="btn-tiny" data-creator-clear-selection>Clear</button><button class="btn-primary" data-creator-batch-review="APPROVED"'+(!n||s.batchReviewRunning?' disabled':'')+'>Approve Selected</button><button class="btn-secondary" data-creator-batch-review="REJECTED"'+(!n||s.batchReviewRunning?' disabled':'')+'>Reject Selected</button></div></div>';
 }
 function creatorLoadQueue(filter) {
   var s = state.creator; if (!s) return;
@@ -744,14 +796,16 @@ function renderCreatorScreen() {
     return '<div class="creator-workspace">' + creatorToolbarHtml(false) +
       '<div class="creator-page-head"><div><span class="dashboard-eyebrow">QUALITY CONTROL</span><h2>Review Queue</h2><p>Search, filter, sort and make fast decisions without losing context.</p></div><div class="creator-page-stats"><span><b>'+queueRows.length+'</b>Shown</span><span><b>'+s.queue.length+'</b>Loaded</span></div></div>'+
       creatorQueueControlsHtml()+
+      creatorBatchReviewBarHtml()+
       '<div class="chip-row">' + filters.map(function (f) { return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>'; }).join('') + '</div>' +
       (queueRows.length ? '<div class="creator-review-list">'+queueRows.map(function (p) {
         var pCount = (p.question_count != null) ? p.question_count : (p.puzzle_count != null ? p.puzzle_count : 0);
         var pLabel = (p.question_count == null && p.puzzle_count != null) ? 'puzzles' : 'questions';
-        return '<article class="creator-review-card">' +
-          '<div class="creator-review-card-head"><div><b>' + esc(p.game_title || p.package_id) + '</b><small>'+esc((p.requested_description || '').slice(0, 140))+'</small></div>'+
+        return '<article class="creator-review-card'+(s.selectedPackages[p.package_id]?' selected':'')+'">' +
+          '<div class="creator-review-card-head"><div class="creator-review-title"><button class="creator-select-box '+(s.selectedPackages[p.package_id]?'selected':'')+'" data-creator-toggle-package="'+esc(p.package_id)+'" aria-label="Select package">'+(s.selectedPackages[p.package_id]?'✓':'')+'</button><div><b>' + esc(p.game_title || p.package_id) + '</b><small>'+esc((p.requested_description || '').slice(0, 140))+'</small></div></div>'+
           '<div class="creator-review-badges">'+creatorSupportBadgeHtml(p.review_status||'GENERATED')+'<span>QA '+esc(p.qa_status||'—')+'</span><span>'+pCount+' '+pLabel+'</span></div></div>'+
           creatorQualityScorecardHtml(p)+
+          creatorDuplicateReportHtml(p.package_id)+
           '<div class="creator-review-actions"><button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="'+esc(p.package_id)+'">Approve</button>'+
           '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="'+esc(p.package_id)+'">Reject</button>'+
           '<button class="btn-tiny" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone</button></div></article>';
@@ -841,6 +895,7 @@ function renderCreatorScreen() {
       html += '<div class="panel creator-preview-shell">' +
         '<div class="creator-preview-head"><div><span class="dashboard-eyebrow">PLAYER PREVIEW</span><h2 class="panel-title">' + esc(g.game_title || 'Generated Game') + '</h2></div><div class="creator-preview-toggle"><button class="'+(s.previewMode!=='admin'?'active':'')+'" data-creator-preview-mode="player">Player View</button><button class="'+(s.previewMode==='admin'?'active':'')+'" data-creator-preview-mode="admin">Admin View</button></div></div>' +
         '<div class="btn-row"><button class="btn-secondary" data-creator-regenerate>'+icon('restart')+' Regenerate Fresh Version</button></div>' +
+        creatorDuplicateReportHtml(g.package_id) +
         '<p class="mode-desc">QA: ' + esc(g.qa_status) + ' &middot; ' + itemCount + ' ' + itemLabel + ' &middot; review status: ' + esc(g.review_status) + '</p>';
       if (g.package_id) {
         html += '<div class="btn-row">' +
@@ -872,7 +927,7 @@ function renderCreatorScreen() {
           var payload = creatorQuestionAsPublicPayload(q);
           html += '<div class="creator-preview-question">' +
             '<div class="creator-preview-question-head"><div class="quiz-progress">Question ' + (i + 1) + ' &middot; ' + esc(q.difficulty || '') + '</div>' +
-            '<button class="btn-tiny" data-creator-question-edit="' + i + '">' + (s.editingQuestionIndex === i ? 'Close editor' : 'Edit') + '</button></div>' +
+            '<div class="creator-question-actions"><button class="btn-tiny" data-creator-replace-question="' + i + '">'+icon('restart')+' Replace</button><button class="btn-tiny" data-creator-question-edit="' + i + '">' + (s.editingQuestionIndex === i ? 'Close editor' : 'Edit') + '</button></div></div>' +
             (s.previewMode === 'admin' ? '<div class="creator-admin-question-meta"><b>Correct:</b> ' + esc(q.options[q.correctIndex] || '') + (q.notes ? '<br><b>Notes:</b> ' + esc(q.notes) : '') + '</div>' : '') +
             '<div class="creator-player-preview">' + renderEnginePilotPromptHtml({ payload: payload }) +
             '<div class="quiz-options">' + q.options.map(function (opt, oi) {
