@@ -28,12 +28,15 @@ def test_format_funnel_tracks_discovery_launch_completion_and_share():
         "trackFormatEvent('search'",
         "trackFormatEvent('filter'",
         "trackFormatEvent('launch'",
-        "trackFormatEvent('complete'",
+        "finishFormatAnalyticsRun(",
+        "trackFormatEvent('abandon'",
         "trackFormatEvent('share'",
     ):
         assert token in APP
     assert "formatAnalyticsSummary()" in APP
     assert "rows.slice(-500)" in APP
+    assert "durationMs" in APP
+    assert "formatAnalyticsActiveRun" in APP
 
 
 def test_dynamic_formats_feed_same_completion_pipeline_as_legacy_games():
