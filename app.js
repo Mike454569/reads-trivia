@@ -8993,8 +8993,62 @@ function h2hMaybeCountRecord() {
   pushLeaderboard('h2h', { wins: st.wins, losses: st.losses, ties: st.ties, matchesPlayed: st.matchesPlayed });
   h2hMarkCounted(s.code);
 }
+var arenaQueueUnsub = null;
+function stopArenaQueueWatch() {
+  if (arenaQueueUnsub) { arenaQueueUnsub(); arenaQueueUnsub = null; }
+}
+function arenaTier() {
+  var r=getRating();
+  return r ? ratingTierFor(r.score) : {name:'Unranked',pct:0,next:'Rookie',ptsToNext:0};
+}
+function arenaQuickMatchStart() {
+  if(!activeAuthUid){openAuthModal('login');return;}
+  if(!window.__fbSync||!window.__fbSync.findArenaMatch)return;
+  var s=state.h2h||(state.h2h={screen:'menu',mode:'quiz',roundSize:10,listId:null,error:null});
+  s.arenaStatus='searching'; s.error=null; renderAll();
+  var rating=getRating();
+  window.__fbSync.findArenaMatch(rating?rating.score:0).then(function(result){
+    if(!result)return;
+    s.arenaTicket=result.ticketId||activeAuthUid;
+    if(result.status==='matched'&&result.matchCode){arenaAcceptMatch(result.matchCode);return;}
+    stopArenaQueueWatch();
+    arenaQueueUnsub=window.__fbSync.watchArenaTicket(s.arenaTicket,function(ticket){
+      if(!ticket)return;
+      if(ticket.status==='matched'&&ticket.matchCode){stopArenaQueueWatch();arenaAcceptMatch(ticket.matchCode);return;}
+      if(ticket.status==='cancelled'){s.arenaStatus=null;if(state.screen==='h2h')renderAll();}
+    });
+    if(state.screen==='h2h')renderAll();
+  }).catch(function(){
+    s.arenaStatus=null;s.error='Arena matchmaking is unavailable right now.';renderAll();
+  });
+}
+function arenaQuickMatchCancel() {
+  var s=state.h2h;
+  stopArenaQueueWatch();
+  if(s&&s.arenaTicket&&window.__fbSync&&window.__fbSync.cancelArenaTicket)window.__fbSync.cancelArenaTicket(s.arenaTicket).catch(function(){});
+  if(s){s.arenaTicket=null;s.arenaStatus=null;}
+  renderAll();
+}
+function arenaAcceptMatch(code) {
+  var s=state.h2h;
+  if(!s)return;
+  s.arenaStatus='matched';
+  h2hOpenExistingCode(code);
+}
+function arenaPanelHtml() {
+  if(!state.name)return '';
+  var s=state.h2h||{}, tier=arenaTier(), st=state.stats.h2h||{};
+  var record=(st.matchesPlayed||0)?((st.wins||0)+'-'+(st.losses||0)+(st.ties?'-'+st.ties:'')):'0-0';
+  var searching=s.arenaStatus==='searching';
+  return '<section class="arena-panel"><div class="arena-panel-head"><div><span class="dashboard-eyebrow">READS ARENA</span><h3>Ranked Quick Match</h3><p>Matched near your Football Rating. One random Arena format, same challenge for both players.</p></div><div class="arena-tier"><b>'+esc(tier.name)+'</b><small>'+record+' H2H</small></div></div>'+
+    '<div class="arena-mode-pool"><span>NFL Quiz</span><span>CFB Quiz</span><span>NFL Grid</span><span>CFB Grid</span><span>Silhouette</span><span>Speed</span></div>'+
+    (searching?'<div class="arena-searching" aria-live="polite"><span class="loading-spinner"></span><div><b>Finding your matchup…</b><small>Closest available Football Rating gets priority.</small></div><button class="btn-secondary" data-arena-cancel>Cancel</button></div>':
+    '<button class="btn-primary arena-quick-btn" data-arena-quick>'+icon('zap')+' Find Ranked Match</button>')+
+  '</section>';
+}
 function h2hBackToMenu() {
   h2hStopWatch();
+  stopArenaQueueWatch();
   state.h2hActive = null;
   state.h2h = { screen: 'menu', mode: 'quiz', roundSize: 10, listId: null, error: null };
   renderAll();
@@ -9240,24 +9294,26 @@ function renderH2HMenu() {
   if (!state.name) {
     return '<div class="panel">' +
       '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-      '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
-      '<p class="mode-desc">Log in above, then come back here to challenge a friend.</p>' +
+      '<h2 class="panel-title">' + icon('versus') + ' Reads Arena</h2>' +
+      '<p class="mode-desc">Log in above, then come back here to play ranked quick matches or challenge friends.</p>' +
       '</div>';
   }
   var st = state.stats.h2h || {};
   var codes = h2hMyCodes();
-  return '<div class="panel">' +
+  return '<div class="panel arena-shell">' +
     '<div class="mode-toolbar"><button class="btn-tiny" data-go="home">' + icon('close') + ' Exit to Home</button></div>' +
-    '<h2 class="panel-title">' + icon('versus') + ' Head-to-Head</h2>' +
-    '<p class="mode-desc">Challenge a specific friend to the same question set and see who scores higher. Your record: ' + (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : '') + '.</p>' +
+    '<h2 class="panel-title">' + icon('versus') + ' Reads Arena</h2>' +
+    '<p class="mode-desc">Ranked quick matches when you want smoke now. Private Head-to-Head when you know exactly who you want.</p>' +
+    arenaPanelHtml() +
     socialChallengeInboxHtml() +
     (state.h2h && state.h2h.intendedOpponent ? '<div class="h2h-target-friend">Challenge for <b>'+esc(state.h2h.intendedOpponent)+'</b>. Pick the mode, create the match, then send them the code.</div>' : '') +
+    '<div class="arena-private-head"><span class="dashboard-eyebrow">PRIVATE MATCHES</span><b>Your record: '+(st.wins||0)+'-'+(st.losses||0)+(st.ties?'-'+st.ties:'')+'</b></div>'+
     '<div class="btn-row">' +
-    '<button class="btn-primary" data-h2h-go-create>Create Match</button>' +
+    '<button class="btn-secondary" data-h2h-go-create>Create Match</button>' +
     '<button class="btn-secondary" data-h2h-go-join>Join Match</button>' +
     '</div>' +
     (codes.length ? '<h3 class="mode-section-title" style="margin-top:20px;">Your matches</h3><div class="h2h-recent-list">' +
-      codes.slice(0, 8).map(function (c) { return '<button class="btn-tiny" data-h2h-open-code="' + esc(c) + '">' + esc(c) + '</button>'; }).join('') +
+      codes.slice(0, 8).map(function (code) { return '<button class="btn-tiny" data-h2h-open-code="' + esc(code) + '">' + esc(code) + '</button>'; }).join('') +
       '</div>' : '') +
     '</div>';
 }
@@ -14285,6 +14341,8 @@ document.addEventListener('click', function (e) {
   if (t.dataset.teamPick !== undefined) { var tp = t.dataset.teamPick.split(':'); teamPickerPick(tp[0], tp.slice(1).join(':')); return; }
   if (t.dataset.teamClear !== undefined) { teamPickerClear(t.dataset.teamClear); return; }
   if (t.dataset.copyEmail !== undefined) { copyTextToClipboard(t.dataset.copyEmail, t); return; }
+  if (t.dataset.arenaQuick !== undefined) { arenaQuickMatchStart(); return; }
+  if (t.dataset.arenaCancel !== undefined) { arenaQuickMatchCancel(); return; }
   if (t.dataset.h2hGoCreate !== undefined) { state.h2h.screen = 'create'; state.h2h.error = null; renderAll(); return; }
   if (t.dataset.h2hGoJoin !== undefined) { state.h2h.screen = 'join'; state.h2h.error = null; renderAll(); return; }
   if (t.dataset.h2hBackMenu !== undefined) { h2hBackToMenu(); return; }
