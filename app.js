@@ -3178,6 +3178,7 @@ function formatHubCardHtml(m) {
     '<span class="format-hub-tags"><small>'+esc(m.league==='mixed'?'NFL + CFB':m.league.toUpperCase())+'</small>'+
     '<small>'+esc(MODE_DIFFICULTY_LABEL[m.difficulty]||'Open')+'</small></span></div>'+
     '<strong>'+esc(m.title)+'</strong><p>'+esc(m.desc||'')+'</p>'+
+    socialProofModeHtml(m.id, true)+
     '<div class="format-hub-card-foot"><span>'+esc(family.replace('_',' '))+'</span><span>'+(plays?plays+' played':'New to you')+' '+icon('arrowRight')+'</span></div>'+
     '</button>';
 }
@@ -4195,6 +4196,15 @@ function submitCommunityPost() {
 }
 
 var MODE_DIFFICULTY_LABEL = { casual: 'Casual', competitive: 'Competitive', hardcore: 'Hardcore' };
+function globalModePlayCount(mode) {
+  var counts=(window.__fbSync&&window.__fbSync.playCounts)||{};
+  return Math.max(0,Number(counts[mode])||0);
+}
+function socialProofModeHtml(mode, compact) {
+  var n=globalModePlayCount(mode);
+  if(!n) return '';
+  return '<span class="mode-social-proof'+(compact?' compact':'')+'>'+icon('users')+' '+n.toLocaleString()+' Reads play'+(n===1?'':'s')+'</span>';
+}
 function modeCardHtml(m) {
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
   // played by this player, per the same modeTimesPlayed() signal
@@ -4209,6 +4219,7 @@ function modeCardHtml(m) {
     '<div class="mode-icon">' + icon(m.icon) + '</div>' +
     '<div class="mode-title">' + esc(m.title) + '</div>' +
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
+    socialProofModeHtml(m.id, true) +
     (m.featured ? '<span class="mode-card-play">Play Now' + icon('arrowRight') + '</span>' : '') +
     '</button>';
 }
@@ -11172,7 +11183,7 @@ window.__triviaSync = {
   // background. Same "only re-render if you're actually looking at the
   // screen this data feeds" guard as applyLeaderboard above.
   applyPlayCounts: function () {
-    if (state.screen === 'stats') renderAll();
+    if (state.screen === 'stats' || state.screen === 'home') renderAll();
   }
 };
 
