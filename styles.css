@@ -6275,3 +6275,9 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .progression-road-grid small{color:var(--text-dim);font-size:9px;text-transform:uppercase;letter-spacing:.07em}
 .progression-road-max{text-align:center;padding:18px;color:var(--text-dim)}
 @media(max-width:700px){.progression-road-now{grid-template-columns:1fr}.progression-road-grid{display:flex;overflow-x:auto}.progression-road-grid article{flex:0 0 175px}}
+
+/* Honest social proof from Reads' aggregate play counters */
+.mode-social-proof{display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:var(--text-dim);font-size:10px;font-weight:750}
+.mode-social-proof .icon{width:12px;height:12px}
+.mode-social-proof.compact{font-size:9.5px}
+.format-hub-card>.mode-social-proof{margin-top:auto;padding-top:8px}
