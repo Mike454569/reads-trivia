@@ -163,6 +163,7 @@ function liveFootballHomeHtml() {
     (finals.length ? '<button class="btn-secondary" data-live-challenge-start>Play Postgame 5</button>' : '') + '</div></section>';
 }
 function openLiveFootballHub() {
+  if (typeof rememberAppNavigation === 'function') rememberAppNavigation('liveFootball');
   LIVE_FOOTBALL.challenge = null;
   state.screen = 'liveFootball';
   liveFootballAcknowledgeFinals();
