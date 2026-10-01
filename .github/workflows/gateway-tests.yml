@@ -129,7 +129,10 @@ jobs:
           # SFTP the one file it needs off the mounted volume rather than
           # actually running the Gateway process on this throwaway machine.
           TEMP_MACHINE_NAME="ci-restore-${GITHUB_RUN_ID}"
-          flyctl machine run "registry.fly.io/${FLY_APP}:latest" \
+          PROD_IMAGE_REF=$(flyctl machines list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; rows=json.load(sys.stdin); print(next((r.get('config') or {}).get('image') for r in rows if (r.get('config') or {}).get('image')))")
+          echo "Using deployed production image ref for restore helper"
+          flyctl machine run "$PROD_IMAGE_REF" \
             -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
             --name "$TEMP_MACHINE_NAME" --command "sleep 300" --detach
           TEMP_MACHINE_ID=$(flyctl machines list -a "$FLY_APP" --json | \
