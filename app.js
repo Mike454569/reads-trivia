@@ -14986,6 +14986,11 @@ document.addEventListener('click', function (e) {
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
   if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
   if (t.dataset.creatorFormatCategory !== undefined) { creatorSetFormatCategory(t.dataset.creatorFormatCategory); return; }
+  if (t.dataset.creatorGuidedBuild !== undefined) { creatorGuidedBuild(); return; }
+  if (t.dataset.creatorPreviewMode !== undefined) { creatorTogglePreviewMode(t.dataset.creatorPreviewMode); return; }
+  if (t.dataset.creatorQuestionEdit !== undefined) { creatorEditQuestion(parseInt(t.dataset.creatorQuestionEdit, 10)); return; }
+  if (t.dataset.creatorQuestionSave !== undefined) { creatorSaveQuestionRevision(parseInt(t.dataset.creatorQuestionSave, 10)); return; }
+  if (t.dataset.creatorRegenerate !== undefined) { creatorRegeneratePackage(); return; }
   if (t.dataset.creatorFormatPick !== undefined) { creatorPickFormat(parseInt(t.dataset.creatorFormatPick, 10)); return; }
   if (t.dataset.creatorReview !== undefined) { creatorSetReview(t.dataset.creatorPackageId, t.dataset.creatorReview); return; }
 
@@ -15089,6 +15094,7 @@ document.addEventListener('input', function (e) {
 });
 
 document.addEventListener('change', function (e) {
+  if (e.target.dataset && e.target.dataset.creatorGuided !== undefined) { creatorSetGuided(e.target.dataset.creatorGuided, e.target.value); return; }
   if (e.target.id === 'quiz-cat') { state.quiz.category = e.target.value; return; }
   if (e.target.id === 'quiz-diff') { state.quiz.difficulty = e.target.value; return; }
   if (e.target.id === 'xso-cat') { state.xso.category = e.target.value; return; }
