@@ -14275,7 +14275,9 @@ document.addEventListener('click', function (e) {
     '[data-sixdegrees-start], [data-sixdegrees-retry], [data-sixdegrees-fallback], [data-sixdegrees-reveal], [data-sixdegrees-giveup], [data-sixdegrees-pick-id], ' +
     '#creator-auth-submit, [data-creator-auth-submit], [data-creator-logout], [data-creator-nav], [data-creator-queue-filter], ' +
     '[data-creator-check-feasibility], [data-creator-generate], [data-creator-review], [data-creator-example], ' +
-    '[data-creator-format-pick], ' +
+    '[data-creator-format-pick], [data-creator-format-category], [data-creator-guided-build], [data-creator-preview-mode], ' +
+    '[data-creator-question-edit], [data-creator-question-save], [data-creator-regenerate], [data-creator-open-package], ' +
+    '[data-creator-clone-package], [data-creator-refresh-recent], [data-creator-bulk-generate], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -14986,6 +14988,10 @@ document.addEventListener('click', function (e) {
   if (t.dataset.creatorGenerate !== undefined) { creatorGenerate(); return; }
   if (t.dataset.creatorExample !== undefined) { creatorUseExample(t.dataset.creatorExample); return; }
   if (t.dataset.creatorFormatCategory !== undefined) { creatorSetFormatCategory(t.dataset.creatorFormatCategory); return; }
+  if (t.dataset.creatorOpenPackage !== undefined) { creatorOpenPackage(t.dataset.creatorOpenPackage); return; }
+  if (t.dataset.creatorClonePackage !== undefined) { creatorClonePackage(t.dataset.creatorClonePackage); return; }
+  if (t.dataset.creatorRefreshRecent !== undefined) { creatorLoadRecent(); return; }
+  if (t.dataset.creatorBulkGenerate !== undefined) { creatorBulkGenerate(); return; }
   if (t.dataset.creatorGuidedBuild !== undefined) { creatorGuidedBuild(); return; }
   if (t.dataset.creatorPreviewMode !== undefined) { creatorTogglePreviewMode(t.dataset.creatorPreviewMode); return; }
   if (t.dataset.creatorQuestionEdit !== undefined) { creatorEditQuestion(parseInt(t.dataset.creatorQuestionEdit, 10)); return; }
@@ -15095,6 +15101,7 @@ document.addEventListener('input', function (e) {
 
 document.addEventListener('change', function (e) {
   if (e.target.dataset && e.target.dataset.creatorGuided !== undefined) { creatorSetGuided(e.target.dataset.creatorGuided, e.target.value); return; }
+  if (e.target.dataset && e.target.dataset.creatorBulk !== undefined) { creatorBulkSet(e.target.dataset.creatorBulk, e.target.value); return; }
   if (e.target.id === 'quiz-cat') { state.quiz.category = e.target.value; return; }
   if (e.target.id === 'quiz-diff') { state.quiz.difficulty = e.target.value; return; }
   if (e.target.id === 'xso-cat') { state.xso.category = e.target.value; return; }
@@ -15396,13 +15403,10 @@ if (HIDDEN_ROUTES[location.hash]) {
   else if (location.hash === ENGINE_MECHANIC_MODES.commonLink.hash) mechanicPilotCurrentModeKey = 'commonLink';
   else if (location.hash === ENGINE_MECHANIC_MODES.commonLinkCfb.hash) mechanicPilotCurrentModeKey = 'commonLinkCfb';
   if (state.screen === 'creator') {
-    state.creator = {
-      screen: creatorToken() ? CREATOR_SCREEN.HOME : CREATOR_SCREEN.AUTH,
-      requestText: '', feasibility: null, generated: null, queue: [], queueFilter: '',
-      capabilities: null, error: null,
-    };
+    state.creator = creatorInitialState();
   }
   renderAll();
+  if (state.screen === 'creator' && creatorToken()) creatorLoadRecent();
 } else if (state.name && !getRating()) { startIntroTest(); } else if (!consumePendingSocialChallenge() && !consumePendingLiveJoin()) { renderAll(); }
 if (!HIDDEN_ROUTES[location.hash] && !lsGet(ONBOARD_KEY, false) && !pendingLiveJoinCode && !pendingSocialChallengeCode) { openOnboarding(); }
 
