@@ -140,9 +140,9 @@ jobs:
           # Never trust a hard-coded pathname here: old/stale zero-byte
           # SQLite placeholders can survive on the production volume. Find
           # the largest non-empty SQLite database on the isolated fork,
-          # stage it at a deterministic path, and validate it before pytest.
+          # expose it at a deterministic path with a zero-copy hard link, and validate it before pytest.
           "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" \
-            -C 'sh -lc "set -eu; best=; best_size=0; for f in $(find /data -type f 2>/dev/null); do case \"$f\" in *.sqlite|*.db) size=$(stat -c %s \"$f\" 2>/dev/null || echo 0); echo candidate $size $f; if [ \"$size\" -gt \"$best_size\" ]; then best=\"$f\"; best_size=\"$size\"; fi ;; esac; done; [ \"$best_size\" -gt 104857600 ] || { echo No-large-production-DB-found >&2; exit 1; }; echo Selected $best $best_size bytes; cp \"$best\" /data/ci_reads_real.sqlite; sync"'
+            -C 'sh -lc "set -eu; best=; best_size=0; for f in $(find /data -type f 2>/dev/null); do case \"$f\" in *.sqlite|*.db) size=$(stat -c %s \"$f\" 2>/dev/null || echo 0); echo candidate $size $f; if [ \"$size\" -gt \"$best_size\" ]; then best=\"$f\"; best_size=\"$size\"; fi ;; esac; done; [ \"$best_size\" -gt 104857600 ] || { echo No-large-production-DB-found >&2; exit 1; }; echo Selected $best $best_size bytes; ln \"$best\" /data/ci_reads_real.sqlite; sync"'
 
           mkdir -p "${{ github.workspace }}/Reads_Football_Data_Engine_v4.0"
           LOCAL_DB="${{ github.workspace }}/Reads_Football_Data_Engine_v4.0/reads_football_v4.0.sqlite"
