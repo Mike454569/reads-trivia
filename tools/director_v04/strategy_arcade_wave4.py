@@ -128,7 +128,7 @@ def client_view(package,progress):
         else: out.update(_q(package,s))
         return out
     if v=="AUDIBLE":
-        current=core._round(package,s["cursor"])["category"]; out["status_items"]=[{"label":"AUDIBLES","value":s.get("audibles",2)},{"label":"CURRENT","value":current}]
+        current=core._round(package,s["cursor"]).get("bucket") or _CATEGORIES[0]; out["status_items"]=[{"label":"AUDIBLES","value":s.get("audibles",2)},{"label":"CURRENT","value":current}]
         if s.get("question_index") is None:
             acts=[{"id":"keep","label":"Keep Call"}]
             if s.get("audibles",2)>0: acts += [{"id":c,"label":"Audible to "+c} for c in _CATEGORIES if c!=current]
@@ -271,7 +271,7 @@ def evaluate(package,progress,submission):
     if v=="AUDIBLE":
         s.setdefault("audibles",2)
         if s.get("question_index") is None:
-            current=core._round(package,s["cursor"])["category"]
+            current=core._round(package,s["cursor"]).get("bucket") or _CATEGORIES[0]
             if action=="keep": idx=s["cursor"]
             elif action in _CATEGORIES and action!=current and s["audibles"]>0:
                 s["audibles"]-=1; idx=_find(package,s["cursor"],action)
