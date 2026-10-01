@@ -119,7 +119,7 @@ def test_real_db_ci_uses_isolated_volume_fork_and_dumb_helper():
     assert "run_real_db_tests.sh" in restore
     assert "SSH_READY=0" in restore
     assert "READS_ENGINE_DIR=/data/engine" in runner
-    assert "python -m pytest gateway/tests -q" in runner
+    assert "python -m pytest gateway/tests -x -vv --tb=short" in runner
     assert '"$HOME/.fly/bin/flyctl" machine destroy' in cleanup
     assert '"$HOME/.fly/bin/flyctl" volumes destroy' in cleanup
 
