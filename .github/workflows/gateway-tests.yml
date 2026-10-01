@@ -81,7 +81,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install "$HOME/.fly/bin/flyctl"
+      - name: Install flyctl
         if: steps.check_token.outputs.has_token == 'true'
         run: |
           curl -L https://fly.io/install.sh | sh
@@ -89,8 +89,8 @@ jobs:
           "$HOME/.fly/bin/flyctl" version
 
       # Lineup Concurrency pass: real implementation, not a TODO placeholder
-      # -- but honestly caveated: every "$HOME/.fly/bin/flyctl" subcommand below was verified
-      # to exist with this exact flag shape via `"$HOME/.fly/bin/flyctl" <cmd> --help` in the
+      # -- but honestly caveated: every flyctl subcommand below was verified
+      # to exist with this exact flag shape via `flyctl <cmd> --help` in the
       # session that wrote this (recorded so a future reader can re-check),
       # but the job as a WHOLE has never run end-to-end, because this
       # environment has no way to set FLY_API_TOKEN as a real repo secret
@@ -160,7 +160,7 @@ jobs:
       # Always runs, even if an earlier step failed -- a temporary volume or
       # machine must never be left behind accumulating real Fly cost. Safe
       # to run even if restore never got far enough to set these outputs
-      # (empty values just make the "$HOME/.fly/bin/flyctl" calls no-ops/errors that this
+      # (empty values just make the flyctl calls no-ops/errors that this
       # step ignores with `|| true`, rather than failing the cleanup itself).
       - name: Clean up temporary Fly volume and machine
         if: always() && steps.check_token.outputs.has_token == 'true'
