@@ -6230,3 +6230,17 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
  .football-dna-grid b{font-size:22px}
  .football-dna-readout{grid-template-columns:1fr}
 }
+
+/* Community 2.0 */
+.community-post-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.community-post-actions button{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:6px 9px;border:1px solid var(--border);border-radius:999px;background:var(--bg-elevated);color:var(--text-dim);font-size:11px;cursor:pointer}
+.community-post-actions button.active{border-color:rgba(var(--home-glow-rgb),.55);background:rgba(var(--home-glow-rgb),.12);color:var(--text)}
+.community-post-actions button small{font:inherit}
+.community-post-actions .icon{width:13px;height:13px}
+.community-replies{display:grid;gap:7px;margin-top:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.025)}
+.community-reply{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;font-size:12px}
+.community-reply b{white-space:nowrap}
+.community-reply span{color:var(--text-dim);line-height:1.35}
+.community-reply-composer{display:flex;gap:7px;margin-top:3px}
+.community-reply-composer input{min-width:0;flex:1;border:1px solid var(--border);border-radius:10px;background:var(--bg-elevated);color:var(--text);padding:9px 10px;font-size:16px}
+@media(max-width:520px){.community-post-actions button small{display:none}.community-reply{grid-template-columns:1fr}.community-reply-composer{align-items:stretch;flex-direction:column}}
