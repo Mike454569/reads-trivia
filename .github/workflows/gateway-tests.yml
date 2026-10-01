@@ -108,9 +108,16 @@ jobs:
           TEMP_VOL_NAME="ci_fork_${GITHUB_RUN_ID}"
           TEMP_MACHINE_NAME="ci-db-${GITHUB_RUN_ID}"
 
-          SOURCE_VOLUME_ID=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; vols=json.load(sys.stdin); print(next(v['id'] for v in vols if v['name']=='$SOURCE_VOLUME'))")
-          echo "Forking production volume $SOURCE_VOLUME_ID into isolated CI copy"
+          # Resolve the volume mounted by the live production Machine.
+          # Volume names are not unique forever on Fly; selecting the first
+          # name match previously picked a stale/empty reads_engine_data.
+          SOURCE_VOLUME_ID=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; rows=json.load(sys.stdin); live=[r for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-')]; mounts=[m for r in live for m in (r.get('config') or {}).get('mounts',[])]; ids=[m.get('volume') or m.get('volume_id') for m in mounts if m.get('volume') or m.get('volume_id')]; print(ids[0] if ids else '')")
+          if [ -z "$SOURCE_VOLUME_ID" ]; then
+            echo "Could not resolve a mounted production volume from the live Fly Machine" >&2
+            exit 1
+          fi
+          echo "Forking live production-mounted volume $SOURCE_VOLUME_ID into isolated CI copy"
 
           TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
             -a "$FLY_APP" --region "$FLY_REGION" --name "$TEMP_VOL_NAME" --json | \
