@@ -51,3 +51,29 @@ def test_retention_moat_styles_are_mobile_safe():
     assert ".football-dna-grid" in CSS
     assert ".format-collection-row" in CSS
     assert "@media(max-width:800px)" in CSS
+
+
+def test_community_2_reactions_replies_and_challenges_are_wired():
+    fb = (ROOT / "firebase-sync.js").read_text(encoding="utf-8")
+    assert "reactCommunity: function" in fb
+    assert "replyCommunity: function" in fb
+    assert "window.__fbSync.reactCommunity" in fb
+    assert "window.__fbSync.replyCommunity" in fb
+    assert "function communityReactionCounts(row)" in APP
+    assert "data-community-react" in APP
+    assert "data-community-reply-toggle" in APP
+    assert "data-community-reply-send" in APP
+    assert "data-friend-challenge" in APP
+
+
+def test_reads_arena_quick_match_uses_existing_h2h_pipeline():
+    fb = (ROOT / "firebase-sync.js").read_text(encoding="utf-8")
+    assert "window.__fbSync.findArenaMatch" in fb
+    assert "window.__fbSync.watchArenaTicket" in fb
+    assert "window.__fbSync.cancelArenaTicket" in fb
+    assert "arenaModes=['quiz','cfbQuiz','grid','cfbGrid','silhouette','speed','cfbSpeed']" in fb
+    assert "function arenaQuickMatchStart()" in APP
+    assert "function arenaPanelHtml()" in APP
+    assert "Find Ranked Match" in APP
+    assert "h2hOpenExistingCode(code)" in APP
+    assert ".arena-panel" in CSS
