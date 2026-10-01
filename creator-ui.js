@@ -105,6 +105,7 @@ function creatorInitialState() {
     guidedLeague: 'NFL', guidedTopic: 'General', guidedDifficulty: 'medium', guidedCount: 5,
     previewMode: 'player', editingQuestionIndex: null,
     recent: [], recentLoading: false, bulkCount: 5, bulkRunning: false, bulkResults: [], bulkTopic: 'General', bulkLeague: 'NFL',
+    queueSearch: '', queueLeague: 'All', queueSort: 'newest', recipes: [], recipeName: '',
   };
 }
 
@@ -124,6 +125,7 @@ function creatorLogout() {
 
 function creatorGoHome() {
   var s = state.creator; if (!s) return;
+  creatorLoadRecipes();
   s.screen = CREATOR_SCREEN.HOME; s.error = null;
   renderAll();
   creatorLoadRecent();
@@ -264,6 +266,68 @@ function creatorSetReview(packageId, reviewStatus) {
   });
 }
 
+var CREATOR_RECIPES_KEY='reads_creator_recipes_v1';
+function creatorLoadRecipes(){
+  var s=state.creator;if(!s)return;
+  try{s.recipes=JSON.parse(localStorage.getItem(CREATOR_RECIPES_KEY)||'[]');if(!Array.isArray(s.recipes))s.recipes=[];}catch(e){s.recipes=[];}
+}
+function creatorSaveRecipe(){
+  var s=state.creator;if(!s)return;
+  var name=(document.getElementById('creator-recipe-name')||{}).value||s.recipeName||'';
+  name=String(name).trim().slice(0,50);if(!name)return;
+  var recipe={id:'r'+Date.now(),name:name,league:s.guidedLeague||'NFL',topic:s.guidedTopic||'General',difficulty:s.guidedDifficulty||'medium',count:s.guidedCount||5,requestText:s.requestText||''};
+  s.recipes=(s.recipes||[]).filter(function(r){return r.name.toLowerCase()!==name.toLowerCase();});
+  s.recipes.unshift(recipe);s.recipes=s.recipes.slice(0,20);
+  localStorage.setItem(CREATOR_RECIPES_KEY,JSON.stringify(s.recipes));s.recipeName='';renderAll();
+}
+function creatorRunRecipe(id){
+  var s=state.creator;if(!s)return;var r=(s.recipes||[]).find(function(x){return x.id===id;});if(!r)return;
+  s.guidedLeague=r.league;s.guidedTopic=r.topic;s.guidedDifficulty=r.difficulty;s.guidedCount=r.count;s.requestText=r.requestText||'';
+  renderAll();
+}
+function creatorDeleteRecipe(id){
+  var s=state.creator;if(!s)return;s.recipes=(s.recipes||[]).filter(function(r){return r.id!==id;});
+  localStorage.setItem(CREATOR_RECIPES_KEY,JSON.stringify(s.recipes));renderAll();
+}
+function creatorRecipesHtml(){
+  var s=state.creator||{};var rows=s.recipes||[];
+  return '<section class="creator-recipes"><div class="creator-library-head"><div><span class="dashboard-eyebrow">SAVED RECIPES</span><h3>One-click build setups</h3><p>Save your favorite Creator configurations and reload them instantly.</p></div></div>'+
+    '<div class="creator-recipe-save"><input id="creator-recipe-name" maxlength="50" placeholder="Recipe name, e.g. Alabama Weekly Pack"><button class="btn-primary" data-creator-save-recipe>Save Current Setup</button></div>'+
+    (rows.length?'<div class="creator-recipe-grid">'+rows.map(function(r){return '<article><div><b>'+esc(r.name)+'</b><small>'+esc(r.league)+' · '+esc(r.topic)+' · '+esc(r.difficulty)+' · '+r.count+' questions</small></div><div class="btn-row"><button class="btn-secondary" data-creator-run-recipe="'+esc(r.id)+'">Load</button><button class="btn-tiny" data-creator-delete-recipe="'+esc(r.id)+'">Delete</button></div></article>';}).join('')+'</div>':'<div class="creator-empty-state"><b>No saved recipes yet.</b><span>Save the current Guided Builder setup above.</span></div>')+
+  '</section>';
+}
+function creatorQualityScorecardHtml(p){
+  var checks=[
+    {label:'QA contract',ok:p.qa_status==='PASSED'},
+    {label:'Has content',ok:Number(p.question_count||p.puzzle_count||0)>0},
+    {label:'Review state',ok:['GENERATED','REVIEWED','APPROVED','REJECTED'].indexOf(p.review_status)>=0},
+    {label:'Creator request',ok:!!String(p.requested_description||'').trim()},
+    {label:'Mechanic mapped',ok:!!((p.capability&&p.capability.mechanic)||p.taxonomy_id)},
+    {label:'Stored record',ok:!!p.package_id}
+  ];
+  var passed=checks.filter(function(x){return x.ok;}).length;
+  var pct=Math.round(100*passed/checks.length);
+  return '<div class="creator-quality"><div class="creator-quality-head"><span>QUALITY CHECK</span><b>'+pct+'%</b></div><div class="creator-quality-grid">'+checks.map(function(x){return '<span class="'+(x.ok?'pass':'fail')+'">'+(x.ok?'✓':'!')+' '+esc(x.label)+'</span>';}).join('')+'</div></div>';
+}
+function creatorQueueRows(){
+  var s=state.creator||{},q=String(s.queueSearch||'').toLowerCase(),league=s.queueLeague||'All';
+  var rows=(s.queue||[]).slice().filter(function(p){
+    var hay=[p.game_title,p.requested_description,p.taxonomy_id,p.variant,p.capability&&p.capability.mechanic,p.capability&&p.capability.category].filter(Boolean).join(' ').toLowerCase();
+    if(q && hay.indexOf(q)===-1)return false;
+    if(league!=='All'){var lh=hay.toUpperCase();if(lh.indexOf(league.toUpperCase())===-1)return false;}
+    return true;
+  });
+  if(s.queueSort==='oldest')rows.reverse();
+  else if(s.queueSort==='qa-risk')rows.sort(function(a,b){return (a.qa_status==='PASSED'?1:0)-(b.qa_status==='PASSED'?1:0);});
+  else if(s.queueSort==='status')rows.sort(function(a,b){return String(a.review_status||'').localeCompare(String(b.review_status||''));});
+  return rows;
+}
+function creatorQueueControlsHtml(){
+  var s=state.creator||{};
+  return '<div class="creator-queue-controls"><div class="creator-search-wrap">'+icon('search')+'<input id="creator-queue-search" value="'+esc(s.queueSearch||'')+'" placeholder="Search title, request, mechanic…"></div>'+
+    '<select data-creator-queue-league><option'+(s.queueLeague==='All'?' selected':'')+'>All</option><option'+(s.queueLeague==='NFL'?' selected':'')+'>NFL</option><option'+(s.queueLeague==='CFB'?' selected':'')+'>CFB</option></select>'+
+    '<select data-creator-queue-sort><option value="newest"'+(s.queueSort==='newest'?' selected':'')+'>Newest</option><option value="oldest"'+(s.queueSort==='oldest'?' selected':'')+'>Oldest</option><option value="qa-risk"'+(s.queueSort==='qa-risk'?' selected':'')+'>QA Risk</option><option value="status"'+(s.queueSort==='status'?' selected':'')+'>Status</option></select></div>';
+}
 function creatorLoadQueue(filter) {
   var s = state.creator; if (!s) return;
   s.queueFilter = filter || '';
@@ -676,26 +740,22 @@ function renderCreatorScreen() {
 
   if (s.screen === CREATOR_SCREEN.QUEUE) {
     var filters = ['', 'GENERATED', 'REVIEWED', 'APPROVED', 'REJECTED'];
-    return '<div class="panel">' + creatorToolbarHtml(true) +
-      '<h2 class="panel-title">Review Queue</h2>' +
-      '<div class="chip-row">' + filters.map(function (f) {
-        return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>';
-      }).join('') + '</div>' +
-      (s.queue.length ? s.queue.map(function (p) {
-        // Same real question_count/puzzle_count shape mismatch as the
-        // PREVIEW screen above -- a stored identify_player_from_clues
-        // package's real count lives in puzzle_count, not question_count.
+    var queueRows=creatorQueueRows();
+    return '<div class="creator-workspace">' + creatorToolbarHtml(false) +
+      '<div class="creator-page-head"><div><span class="dashboard-eyebrow">QUALITY CONTROL</span><h2>Review Queue</h2><p>Search, filter, sort and make fast decisions without losing context.</p></div><div class="creator-page-stats"><span><b>'+queueRows.length+'</b>Shown</span><span><b>'+s.queue.length+'</b>Loaded</span></div></div>'+
+      creatorQueueControlsHtml()+
+      '<div class="chip-row">' + filters.map(function (f) { return '<button class="chip-toggle' + (s.queueFilter === f ? ' active' : '') + '" data-creator-queue-filter="' + esc(f) + '">' + esc(f || 'All') + '</button>'; }).join('') + '</div>' +
+      (queueRows.length ? '<div class="creator-review-list">'+queueRows.map(function (p) {
         var pCount = (p.question_count != null) ? p.question_count : (p.puzzle_count != null ? p.puzzle_count : 0);
         var pLabel = (p.question_count == null && p.puzzle_count != null) ? 'puzzles' : 'questions';
-        return '<div class="creator-queue-row">' +
-          '<div><b>' + esc(p.game_title || p.package_id) + '</b> &middot; ' + esc(p.review_status) + ' &middot; QA ' + esc(p.qa_status) +
-          ' &middot; ' + pCount + ' ' + pLabel + '</div>' +
-          '<div class="mode-desc">' + esc((p.requested_description || '').slice(0, 140)) + '</div>' +
-          '<div class="btn-row">' +
-          '<button class="btn-tiny" data-creator-review="APPROVED" data-creator-package-id="' + esc(p.package_id) + '">Approve</button>' +
-          '<button class="btn-tiny" data-creator-review="REJECTED" data-creator-package-id="' + esc(p.package_id) + '">Reject</button>' +
-          '</div></div>';
-      }).join('') : '<p class="mode-desc">No packages yet in this filter.</p>') +
+        return '<article class="creator-review-card">' +
+          '<div class="creator-review-card-head"><div><b>' + esc(p.game_title || p.package_id) + '</b><small>'+esc((p.requested_description || '').slice(0, 140))+'</small></div>'+
+          '<div class="creator-review-badges">'+creatorSupportBadgeHtml(p.review_status||'GENERATED')+'<span>QA '+esc(p.qa_status||'—')+'</span><span>'+pCount+' '+pLabel+'</span></div></div>'+
+          creatorQualityScorecardHtml(p)+
+          '<div class="creator-review-actions"><button class="btn-primary" data-creator-review="APPROVED" data-creator-package-id="'+esc(p.package_id)+'">Approve</button>'+
+          '<button class="btn-secondary" data-creator-review="REJECTED" data-creator-package-id="'+esc(p.package_id)+'">Reject</button>'+
+          '<button class="btn-tiny" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone</button></div></article>';
+      }).join('')+'</div>' : '<div class="creator-empty-state"><b>Nothing matches.</b><span>Try another filter or search term.</span></div>') +
       '</div>';
   }
 
@@ -837,6 +897,7 @@ function renderCreatorScreen() {
       '<div class="creator-hero-stats"><span><b>' + CREATOR_FORMAT_CATALOG.length + '</b>Formats</span><span><b>' + directCount + '</b>Direct</span><span><b>' + guidedCount + '</b>Guided</span></div>' +
     '</section>' +
     creatorRecentHtml() +
+    creatorRecipesHtml() +
     '<section class="creator-compose-card">' +
       '<div class="creator-compose-head"><div><span class="dashboard-eyebrow">DESCRIBE IT</span><h2>What do you want to build?</h2></div><span class="creator-step-chip">1 · Describe</span></div>' +
       '<textarea id="creator-request-input" class="creator-textarea creator-prompt-box" rows="4" placeholder="Example: Give me a game where I rank NFL quarterbacks by career passing touchdowns.">' + esc(s.requestText || '') + '</textarea>' +
