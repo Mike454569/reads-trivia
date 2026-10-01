@@ -6394,3 +6394,18 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .creator-review-actions{display:flex;flex-wrap:wrap;gap:7px}
 @media(max-width:850px){.creator-recipe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.creator-queue-controls{grid-template-columns:1fr 1fr}.creator-queue-controls .creator-search-wrap{grid-column:1/-1}}
 @media(max-width:560px){.creator-recipes{padding:15px}.creator-recipe-save{grid-template-columns:1fr}.creator-recipe-grid{grid-template-columns:1fr}.creator-queue-controls{grid-template-columns:1fr}.creator-queue-controls .creator-search-wrap{grid-column:auto}.creator-review-card-head{display:grid}.creator-review-badges{justify-content:flex-start}.creator-review-actions{display:grid;grid-template-columns:1fr 1fr}.creator-review-actions button{width:100%;justify-content:center}}
+
+
+/* Creator freshness intelligence + batch review */
+.creator-duplicate-box{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elevated)}
+.creator-duplicate-box>div:first-child{display:grid;gap:3px}.creator-duplicate-box b{font-size:11px}.creator-duplicate-box small{color:var(--text-dim);font-size:9.5px}
+.creator-duplicate-box.clear{border-color:rgba(78,201,132,.28)}.creator-duplicate-box.has-risk{border-color:rgba(255,184,77,.34)}
+.creator-duplicate-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%}
+.creator-duplicate-list{display:grid;gap:7px;width:100%;margin-top:8px}.creator-duplicate-list>div{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;padding:8px;border-radius:9px;background:rgba(255,255,255,.025)}.creator-duplicate-list span{grid-row:1/3;padding:4px 6px;border-radius:7px;background:rgba(255,184,77,.1);color:#ffd08a;font-size:8px;font-weight:900;align-self:start}.creator-duplicate-list b{font-size:10.5px;line-height:1.35}.creator-duplicate-list small{grid-column:2}
+.creator-duplicate-clear{color:#8fe2b0;font-size:10.5px;font-weight:800}.creator-question-actions{display:flex;gap:6px}
+.creator-batch-bar{position:sticky;top:76px;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0;padding:10px 12px;border:1px solid rgba(var(--home-glow-rgb),.28);border-radius:13px;background:rgba(15,18,22,.96);backdrop-filter:blur(16px)}
+.creator-batch-bar>div:first-child{display:grid;gap:2px}.creator-batch-bar b{font-size:12px}.creator-batch-bar small{color:var(--text-dim);font-size:9.5px}
+.creator-review-card.selected{border-color:rgba(var(--home-glow-rgb),.55);box-shadow:0 0 0 1px rgba(var(--home-glow-rgb),.12) inset}
+.creator-review-title{display:flex;gap:9px;align-items:flex-start}.creator-review-title>div{display:grid;gap:4px}
+.creator-select-box{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;border:1px solid var(--border);border-radius:7px;background:var(--bg-elevated);color:var(--text);cursor:pointer}.creator-select-box.selected{border-color:var(--home-accent);background:rgba(var(--home-glow-rgb),.13)}
+@media(max-width:680px){.creator-duplicate-box,.creator-batch-bar{align-items:stretch;flex-direction:column}.creator-batch-bar{top:126px}.creator-batch-bar .btn-row{display:grid;grid-template-columns:1fr 1fr}.creator-batch-bar .btn-row button{width:100%;justify-content:center}.creator-duplicate-head{display:grid}.creator-duplicate-list>div{grid-template-columns:1fr}.creator-duplicate-list span{grid-row:auto;justify-self:start}.creator-duplicate-list small{grid-column:auto}}
