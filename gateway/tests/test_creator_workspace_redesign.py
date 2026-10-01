@@ -60,3 +60,46 @@ def test_creator_redesign_is_responsive():
     ]:
         assert selector in CSS
     assert "@media(max-width:620px)" in CSS
+
+
+def test_creator_guided_builder_is_wired_to_real_feasibility_flow():
+    assert "function creatorGuidedPrompt()" in CREATOR
+    assert "function creatorGuidedBuild()" in CREATOR
+    assert "creatorCheckFeasibility(s.requestText)" in CREATOR
+    assert "creator-guided-card" in CREATOR
+    assert 'data-creator-guided="league"' in CREATOR
+    assert 'data-creator-guided="topic"' in CREATOR
+    assert 'data-creator-guided="difficulty"' in CREATOR
+    assert 'data-creator-guided="count"' in CREATOR
+    assert "creatorSetGuided(e.target.dataset.creatorGuided, e.target.value)" in APP
+
+
+def test_creator_player_preview_reuses_real_player_renderers():
+    assert "function creatorDirectPlayerPreviewHtml(rg)" in CREATOR
+    assert "renderMechanicPilotBody" in CREATOR
+    assert "renderEnginePilotPromptHtml" in CREATOR
+    assert 'data-creator-preview-mode="player"' in CREATOR
+    assert 'data-creator-preview-mode="admin"' in CREATOR
+    assert ".creator-player-preview" in CSS
+
+
+def test_creator_question_edits_create_new_immutable_versions():
+    models = (ROOT / "gateway" / "models.py").read_text(encoding="utf-8")
+    service = (ROOT / "gateway" / "services" / "creator.py").read_text(encoding="utf-8")
+    packages = (ROOT / "gateway" / "services" / "packages.py").read_text(encoding="utf-8")
+    gateway = (ROOT / "gateway" / "app.py").read_text(encoding="utf-8")
+    assert "class CreatorQuestionRevisionRequest" in models
+    assert "def create_question_revision(package_id: str, question_index: int, replacement: dict)" in packages
+    assert 'revised["revision_of"] = package_id' in packages
+    assert 'return save_package(revised)' in packages
+    assert "def revise_question(" in service
+    assert '@app.post("/v1/creator/question/revise")' in gateway
+    assert "creatorSaveQuestionRevision" in CREATOR
+    assert "Save as New Version" in CREATOR
+    assert "The original package stays untouched" in CREATOR
+
+
+def test_creator_regenerate_creates_fresh_version_instead_of_mutating():
+    assert "function creatorRegeneratePackage()" in CREATOR
+    assert "creator-refresh-" in CREATOR
+    assert "Regenerate Fresh Version" in CREATOR
