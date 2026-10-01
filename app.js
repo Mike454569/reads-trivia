@@ -4260,6 +4260,34 @@ function socialProofModeHtml(mode, compact) {
   if(!n) return '';
   return '<span class="mode-social-proof'+(compact?' compact':'')+'>'+icon('users')+' '+n.toLocaleString()+' Reads play'+(n===1?'':'s')+'</span>';
 }
+function modeLeagueFor(m) {
+  if (!m) return 'neutral';
+  if (m.league) return m.league;
+  if (LEAGUE_MODES.nfl.some(function(x){ return x.id === m.id; })) return 'nfl';
+  if (LEAGUE_MODES.cfb.some(function(x){ return x.id === m.id; })) return 'cfb';
+  return 'neutral';
+}
+function modeMarkFamily(m) {
+  var id = (m && m.id) || '';
+  var iconName = (m && m.icon) || '';
+  if (/grid/i.test(id) || iconName === 'grid') return 'grid';
+  if (/pickem|gameResult|boxscore/i.test(id) || iconName === 'versus') return 'matchup';
+  if (/clue|who|silhouette|mystery/i.test(id) || iconName === 'search' || iconName === 'mystery') return 'identity';
+  if (/draft|lineup|roster|legend/i.test(id) || iconName === 'users') return 'roster';
+  if (/speed|blitz|timer/i.test(id) || iconName === 'timer' || iconName === 'zap') return 'speed';
+  if (/higher|lower|stat|leader|rank/i.test(id) || iconName === 'barChart') return 'stats';
+  if (/timeline|era|career|before|after/i.test(id) || iconName === 'timeline') return 'timeline';
+  if (/bracket|gauntlet|elimination|survival/i.test(id) || iconName === 'trophy') return 'tournament';
+  return 'trivia';
+}
+function modeMarkHtml(m, size) {
+  var league = modeLeagueFor(m);
+  var family = modeMarkFamily(m);
+  return '<span class="mode-mark mode-mark-' + esc(league) + ' mode-mark-' + esc(family) + (size ? ' mode-mark-' + esc(size) : '') + '" aria-hidden="true">' +
+    '<span class="mode-mark-core">' + icon(m.icon || 'football') + '</span>' +
+    '<span class="mode-mark-stitch"></span>' +
+    '</span>';
+}
 function modeCardHtml(m) {
   // Full Visual + Interactive Redesign pass: a real "NEW" badge (never
   // played by this player, per the same modeTimesPlayed() signal
@@ -4271,7 +4299,7 @@ function modeCardHtml(m) {
   return '<button class="mode-card' + (m.featured ? ' featured' : '') + '" data-go="' + m.id + '">' +
     (m.difficulty ? '<span class="mode-difficulty mode-difficulty-' + m.difficulty + '">' + MODE_DIFFICULTY_LABEL[m.difficulty] + '</span>' : '') +
     (isNew ? '<span class="mode-new-badge">New</span>' : '') +
-    '<div class="mode-icon">' + icon(m.icon) + '</div>' +
+    '<div class="mode-icon">' + modeMarkHtml(m, m.featured ? 'lg' : 'md') + '</div>' +
     '<div class="mode-title">' + esc(m.title) + '</div>' +
     '<div class="mode-desc">' + esc(m.desc) + '</div>' +
     socialProofModeHtml(m.id, true) +
@@ -4344,8 +4372,9 @@ function modeTimesPlayed(id) {
 // size), just one consistent premium row shape instead of every card
 // hand-assembling its own continue-card markup.
 function discoverRowHtml(mode, iconName, title, sublabel, extraClass) {
+  var pseudoMode = { id: mode, icon: iconName, title: title };
   return '<button class="continue-card discover-row' + (extraClass ? ' ' + extraClass : '') + '" data-go="' + esc(mode) + '">' +
-    '<span class="continue-card-icon">' + icon(iconName) + '</span>' +
+    '<span class="continue-card-icon continue-card-mode-mark">' + modeMarkHtml(pseudoMode, 'sm') + '</span>' +
     '<span class="continue-card-text"><span class="continue-card-mode">' + esc(title) + '</span>' +
     '<span class="continue-card-label">' + esc(sublabel) + '</span></span>' +
     icon('arrowRight', 'continue-card-chevron') +
@@ -5124,7 +5153,7 @@ function openModeSheet(league) {
     itemsEl.innerHTML =
       (favTeam ? '<button class="mode-sheet-your-team" data-team-picker-toggle><span class="team-picker-swatch" style="' + teamSwatchStyle(favTeam) + '"></span>Your team: ' + esc(favTeam.name) + (favTeam.chant ? ' — ' + esc(favTeam.chant) : '') + '</button>' : '') +
       LEAGUE_MODES[league].map(function (m) {
-        return '<button class="mode-sheet-item" data-go="' + m.id + '"><span class="msi-icon">' + icon(m.icon) + '</span><span class="msi-text">' + esc(m.title) +
+        return '<button class="mode-sheet-item" data-go="' + m.id + '"><span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text">' + esc(m.title) +
           '<span class="msi-desc">' + esc(m.desc) + '</span></span></button>';
       }).join('');
   }
@@ -12389,7 +12418,7 @@ function filmOpenConcept(kind, id) {
 function learnSectionCardHtml(s) {
   var shortDesc = { footballEncyclopedia: 'An interactive playbook for positions, formations, coverages, routes, and schemes.', coverageClassroom: 'Read the defense, break down assignments, and test yourself with guided reps.', xsoAlmanac: '700 scheme and strategy facts. Make your read, then reveal the answer.' };
   return '<button class="mode-card" data-learn-open="' + s.id + '">' +
-    '<div class="mode-icon">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" />' : icon(s.icon)) + '</div>' +
+    '<div class="mode-icon">' + (s.image ? '<img src="' + esc(s.image) + '" alt="" />' : modeMarkHtml({id:s.id,icon:s.icon,title:s.title,league:'neutral'}, 'md')) + '</div>' +
     '<div class="mode-title">' + esc(s.title) + '</div>' +
     '<div class="mode-desc">' + esc(shortDesc[s.id] || s.desc) + '</div>' + '<span class="film-card-action">Open session →</span>' +
     '</button>';
@@ -14439,7 +14468,7 @@ document.addEventListener('click', function (e) {
     '[data-league-toggle], #mode-sheet-close, #mode-sheet-backdrop, ' +
     '#help-toggle, #onboarding-next, #onboarding-skip, #onboarding-backdrop, [data-onboarding-sample-answer], ' +
     '[data-mode-restart], [data-mode-exit], [data-app-back], ' +
-    '[data-pickem-slate], [data-pickem-conference], [data-pickem-game], [data-pickem-retry], ' +
+    '[data-pickem-slate], [data-pickem-conference], [data-pickem-week], [data-pickem-game], [data-pickem-retry], ' +
     '[data-live-football-open], [data-live-football-refresh], [data-live-game-challenge], [data-live-challenge-start], [data-live-challenge-answer], [data-live-challenge-next], [data-live-challenge-close], ' +
     '[data-endless-start], [data-endless-answer], [data-endless-next]');
   if (!t) return;
@@ -15087,6 +15116,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.sixdegreesFallback !== undefined) { sixDegreesFallback(); return; }
   if (t.dataset.sixdegreesReveal !== undefined) { revealSixDegrees(); return; }
   if (t.dataset.sixdegreesGiveup !== undefined) { giveUpSixDegrees(); return; }
+  if (t.dataset.pickemWeek !== undefined) { changePickemWeek(t.dataset.pickemWeek); return; }
   if (t.dataset.pickemSlate !== undefined) { changePickemSlate(t.dataset.pickemSlate, null); return; }
   if (t.dataset.pickemConference !== undefined) { changePickemSlate('CONFERENCE', t.dataset.pickemConference); return; }
   if (t.dataset.pickemGame !== undefined) { submitPickemPick(t.dataset.pickemGame, t.dataset.pickemTeam); return; }
