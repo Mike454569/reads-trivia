@@ -6436,3 +6436,34 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
 .creator-player-preview.creator-surface-daily{max-width:520px;margin-left:auto;margin-right:auto;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 .creator-player-preview.creator-surface-home{max-width:620px;margin-left:auto;margin-right:auto;border:1px solid var(--border);border-radius:20px;padding:20px}
 @media(max-width:900px){.creator-command-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.creator-collection-grid{grid-template-columns:1fr}}
+
+
+/* Player Retention v3 */
+.daily-tomorrow-plan,.daily-one-more,.seasonal-missions,.community-weekly-pulse{border:1px solid var(--border);border-radius:18px;background:var(--panel);padding:18px;margin:16px 0}
+.daily-tomorrow-plan{display:flex;flex-direction:column;gap:6px}
+.daily-tomorrow-plan small{opacity:.7}
+.daily-one-more{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.daily-one-more h3,.daily-one-more p{margin:3px 0}
+.football-dna-stage{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--border);margin-top:12px}
+.football-dna-stage span{opacity:.7;font-size:.78rem}
+.football-dna-traits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.football-dna-traits>div{border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:5px}
+.football-dna-traits span{font-size:.68rem;opacity:.65}
+.football-dna-traits small{font-size:.72rem;opacity:.72}
+.football-dna-traits i,.seasonal-mission-grid i{display:block;height:5px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.football-dna-traits em,.seasonal-mission-grid em{display:block;height:100%;background:currentColor;border-radius:999px}
+.seasonal-mission-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.seasonal-mission-grid>div{border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.seasonal-mission-grid>div.complete{opacity:.8}
+.seasonal-mission-grid p{margin:0;font-size:.8rem;opacity:.72}
+.community-pulse-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.community-pulse-grid>div{border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.community-pulse-grid b{display:block;font-size:1.3rem}
+.community-pulse-grid small{opacity:.68}
+.personalized-home-2 .hero-kicker{letter-spacing:.16em}
+@media(max-width:900px){
+  .daily-one-more{align-items:stretch;flex-direction:column}
+  .football-dna-traits{grid-template-columns:1fr}
+  .seasonal-mission-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .community-pulse-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
