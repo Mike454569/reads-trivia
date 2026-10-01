@@ -14,7 +14,7 @@ from tools.director_v04 import strategy_arcade as core
 
 PACKAGE_SCHEMA_VERSION="1.0"
 MECHANIC="STRATEGY_ARCADE"
-_CATEGORIES=("NFL Team Records","Heisman Winners","Super Bowl Champions")
+_CATEGORIES=("Game Day","Season & Legacy","College Chaos")
 
 FORMAT_SPECS={
 "OPTION_ERASER":{"title":"Option Eraser","goal":"Clear six questions while managing three eraser tokens.","interaction":"Before a question, play normal or spend one eraser to remove one server-selected wrong option."},
@@ -84,7 +84,7 @@ def client_view(package,progress):
         out["status_items"]=[{"label":c.upper(),"value":"LOCKED" if c in locks else ("SCORED" if c in scored else f"{misses.get(c,0)}/2 MISSES")} for c in _CATEGORIES]
         if s.get("category") is None: out.update({"phase":"SELECT","actions":[{"id":c,"label":c} for c in _CATEGORIES if c not in locks]})
         else:
-            idx=next(i for i,r in enumerate(package["rounds"]) if r["category"]==s["category"])
+            idx=next(i for i,r in enumerate(package["rounds"]) if r.get("bucket")==s["category"])
             tmp=dict(s); tmp["cursor"]=idx; out.update(_q(package,tmp)); out["selected_label"]=s["category"]
         return out
     if v=="HAIL_MARY":
@@ -153,7 +153,7 @@ def evaluate(package,progress,submission):
             if action not in _CATEGORIES or action in locks: raise ValueError("category unavailable")
             s["category"]=action; return {"action":"select"},s
         cat=s.pop("category")
-        idx=next(i for i,r in enumerate(package["rounds"]) if r["category"]==cat)
+        idx=next(i for i,r in enumerate(package["rounds"]) if r.get("bucket")==cat)
         r=core._grade(package,{"cursor":idx},submission)
         if r["correct"]: scored.add(cat)
         else:
