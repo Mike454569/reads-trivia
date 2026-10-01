@@ -12679,6 +12679,30 @@ function f101QuickSummary(node, diagram) {
   var fields = node.fields || {};
   return fields.summary || fields.what_to_identify || fields.core_responsibilities || diagram.notes || diagram.description || '';
 }
+function f101QuestionHistoryKey(canonicalId) {
+  return 'readsF101QuestionHistory__' + slugify(state.name || 'guest') + '__' + String(canonicalId || 'unknown');
+}
+function f101FreshTestQuestion(diagram, category, siblings) {
+  if (!diagram || !FootballField || !FootballField.generateTestMeQuestion) return null;
+  var key = f101QuestionHistoryKey(diagram.id);
+  var history = lsGet(key, []);
+  history = Array.isArray(history) ? history.slice(-8) : [];
+  var seen = {};
+  history.forEach(function (x) { seen[x] = true; });
+  var base = Math.abs(hashStr(String(diagram.id) + '|' + String(category) + '|' + todayStr() + '|' + String(Date.now())));
+  var picked = null, signature = '';
+  for (var i = 0; i < 32; i++) {
+    var q = FootballField.generateTestMeQuestion(diagram, category, siblings, base + (i * 37));
+    if (!q) continue;
+    var sig = String(q.variantKey || 'legacy') + '|' + String(q.question || '');
+    if (!seen[sig]) { picked = q; signature = sig; break; }
+    if (!picked) { picked = q; signature = sig; }
+  }
+  if (!picked) return null;
+  history.push(signature);
+  lsSet(key, history.slice(-8));
+  return picked;
+}
 
 function openEncyclopediaDomain(domainId) {
   state.encyclopedia = state.encyclopedia || {};
@@ -14182,8 +14206,8 @@ document.addEventListener('click', function (e) {
     var tmDiagram = tmBucketData ? tmBucketData[tmId] : null;
     if (tmDiagram && FootballField) {
       var tmSiblings = Object.keys(tmBucketData).map(function (k) { return tmBucketData[k]; });
-      var tmQ = FootballField.generateTestMeQuestion(tmDiagram, tmCategory, tmSiblings, Math.floor(Math.random() * 1000));
-      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, explanation: tmDiagram.notes || tmDiagram.description || '', answeredIndex: -1 };
+      var tmQ = f101FreshTestQuestion(tmDiagram, tmCategory, tmSiblings);
+      if (tmQ) state.f101Quiz = { active: true, canonicalId: tmId, variantKey: tmQ.variantKey || null, question: tmQ.question, options: tmQ.options, correctIndex: tmQ.correctIndex, explanation: tmDiagram.notes || tmDiagram.description || '', answeredIndex: -1 };
     }
     renderAll();
     return;
