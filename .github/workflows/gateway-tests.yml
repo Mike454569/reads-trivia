@@ -124,19 +124,35 @@ jobs:
             --size 30 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
-          # Minimal machine, same app's own image (already has the sqlite3
-          # CLI / python available), overridden to just idle so this job can
-          # SFTP the one file it needs off the mounted volume rather than
-          # actually running the Gateway process on this throwaway machine.
+          # Create a helper Machine directly through the Machines API instead
+          # of inheriting the production app entrypoint. Its only job is to
+          # keep the restored snapshot mounted long enough for SFTP.
           TEMP_MACHINE_NAME="ci-restore-${GITHUB_RUN_ID}"
           PROD_IMAGE_REF=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
             python3 -c "import json,sys; rows=json.load(sys.stdin); print(next((r.get('config') or {}).get('image') for r in rows if (r.get('config') or {}).get('image')))")
           echo "Using deployed production image ref for restore helper"
-          "$HOME/.fly/bin/flyctl" machine run "$PROD_IMAGE_REF" \
-            -a "$FLY_APP" --region "$FLY_REGION" --volume "${TEMP_VOL_ID}:/data" \
-            --name "$TEMP_MACHINE_NAME" --command "sleep 300" --detach
-          TEMP_MACHINE_ID=$("$HOME/.fly/bin/flyctl" machines list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; name='$TEMP_MACHINE_NAME'; rows=json.load(sys.stdin); print(next((r.get('id') or r.get('ID')) for r in rows if (r.get('name') or r.get('Name'))==name))")
+          export TEMP_MACHINE_NAME PROD_IMAGE_REF TEMP_VOL_ID FLY_REGION
+          MACHINE_PAYLOAD=$(python3 - <<'PY'
+import json, os
+print(json.dumps({
+    "name": os.environ["TEMP_MACHINE_NAME"],
+    "region": os.environ["FLY_REGION"],
+    "config": {
+        "image": os.environ["PROD_IMAGE_REF"],
+        "auto_destroy": False,
+        "processes": [{"name": "ci-restore", "cmd": ["sleep", "600"]}],
+        "mounts": [{"volume": os.environ["TEMP_VOL_ID"], "path": "/data"}],
+        "guest": {"cpu_kind": "shared", "cpus": 1, "memory_mb": 256}
+    }
+}))
+PY
+          )
+          TEMP_MACHINE_JSON=$(curl -fsS -X POST \
+            -H "Authorization: Bearer ${FLY_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.machines.dev/v1/apps/${FLY_APP}/machines" \
+            -d "$MACHINE_PAYLOAD")
+          TEMP_MACHINE_ID=$(printf '%s' "$TEMP_MACHINE_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_machine_id=$TEMP_MACHINE_ID" >> "$GITHUB_OUTPUT"
           "$HOME/.fly/bin/flyctl" machine wait "$TEMP_MACHINE_ID" -a "$FLY_APP" --wait-timeout 2m
 
