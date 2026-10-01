@@ -447,13 +447,20 @@ function creatorSupportBadgeHtml(status) {
 }
 
 function creatorToolbarHtml(showBack) {
-  return '<div class="mode-toolbar">' +
-    (showBack ? '<button class="btn-tiny" data-creator-nav="home">&larr; Back</button>' : '') +
-    '<button class="btn-tiny" data-creator-nav="queue">Review Queue</button>' +
-    '<button class="btn-tiny" data-creator-nav="capabilities">Capabilities</button>' +
-    '<button class="btn-tiny" data-creator-logout>Log Out</button>' +
-    '<button class="btn-tiny" data-go="home">' + icon('close') + ' Exit</button>' +
-    '</div>';
+  var screen=(state.creator&&state.creator.screen)||CREATOR_SCREEN.HOME;
+  return '<div class="creator-topbar">'+
+    '<div class="creator-brand"><span class="creator-brand-mark">R</span><div><b>Reads Creator</b><small>Engine Workspace</small></div></div>'+
+    '<div class="creator-topnav">'+
+      '<button class="'+(screen===CREATOR_SCREEN.HOME?'active':'')+'" data-creator-nav="home">'+icon('sparkles')+' Create</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.QUEUE?'active':'')+'" data-creator-nav="queue">'+icon('list')+' Review</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.CAPABILITIES?'active':'')+'" data-creator-nav="capabilities">'+icon('layers')+' Capabilities</button>'+
+    '</div>'+
+    '<div class="creator-top-actions">'+
+      (showBack?'<button class="btn-tiny" data-creator-nav="home">&larr; Creator</button>':'')+
+      '<button class="btn-tiny" data-creator-logout>Log Out</button>'+
+      '<button class="btn-tiny" data-go="home">'+icon('close')+' Exit</button>'+
+    '</div>'+
+  '</div>';
 }
 
 function renderCreatorScreen() {
