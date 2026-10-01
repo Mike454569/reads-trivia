@@ -1888,7 +1888,7 @@ function dailyChallengeCardHtml() {
   var streak = getStreak();
   var streakBit = streak.count > 0 ? icon('flame', 'streak-flame') + ' ' + streak.count + '-day streak' : '';
   var badge = '<span class="daily-flame-badge">' + icon('flame') + '</span>';
-  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5 · V2</div>';
+  var eyebrow = '<div class="daily-card-eyebrow">YOUR DAILY 5 · V3</div>';
   if (already) {
     var r = getDailyResult();
     var label = r.label || ((r.correct || 0) + ' / ' + (r.total || DAILY_SIZE) + ' correct');
@@ -1959,6 +1959,22 @@ function renderDailyQuestion() {
       : '') +
     '</div>';
 }
+
+function dailyTomorrowPlanHtml() {
+  if (!state.name) return '';
+  var recs=scoredModeRecommendations(2), weak=personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(a,b){return a.pct-b.pct;})[0];
+  var fav=primaryFavoriteTeam();
+  var bits=[];
+  if(fav) bits.push('more '+fav.name);
+  if(weak) bits.push('a '+weak.category+' rep');
+  if(recs[0]) bits.push('a '+recs[0].mode.title+'-style look');
+  return '<section class="daily-tomorrow-plan"><span class="dashboard-eyebrow">TOMORROW’S READ</span><b>'+(bits.length?'Reads is lining up '+esc(bits.slice(0,2).join(' + '))+'.':'Your next five will rotate away from today’s mix.')+'</b><small>Daily Reads keeps recent formats and questions on cooldown so the five stay fresh.</small></section>';
+}
+function dailyOneMoreHtml() {
+  var rec=scoredModeRecommendations(1)[0];
+  if(!rec)return '';
+  return '<section class="daily-one-more"><div><span class="dashboard-eyebrow">ONE MORE?</span><h3>'+esc(rec.mode.title)+'</h3><p>'+esc(rec.reason)+'. Keep playing without changing today’s Daily 5 result.</p></div><button class="btn-primary" data-go="'+esc(rec.mode.id)+'">Play Bonus Game</button></section>';
+}
 function dailySocialProofHtml() {
   if(!state.name) return '';
   var today=dailyRivalRows('today');
@@ -1997,6 +2013,8 @@ function renderDailySummary() {
     weeklyDailyRecapHtml(true) +
     quizMissedReviewHtml(t.missed) +
     dailyFormatRotationHtml(false) +
+    dailyTomorrowPlanHtml() +
+    dailyOneMoreHtml() +
     '<div class="btn-row">' +
     '<button class="btn-secondary" data-share="daily">' + icon('share') + ' Share</button>' +
     '<button class="btn-primary" data-go="home">Back to Dashboard</button>' +
@@ -2012,6 +2030,8 @@ function renderDailyScreen() {
         '<div class="summary-note">Streak: ' + getStreak().count + ' day' + (getStreak().count === 1 ? '' : 's') + '. Your next Daily 5 unlocks tomorrow.</div>' +
         weeklyDailyRecapHtml(true) +
         dailyFormatRotationHtml(false) +
+        dailyTomorrowPlanHtml() +
+        dailyOneMoreHtml() +
         '<button class="btn-primary" data-go="home">Back to Dashboard</button></div>';
     }
     return '<div class="panel daily-reads-launch"><h2 class="panel-title">' + icon('flame') + ' Daily Reads v2</h2>' +
@@ -3725,7 +3745,7 @@ function communityCardHtml() {
   return '<button class="community-home-card" data-go="community">' +
     '<span class="community-home-icon">' + favoriteTeamBadgeHtml() + '</span>' +
     '<span class="community-home-copy"><span class="community-home-kicker">YOUR TEAM COMMUNITY</span>' +
-    '<strong>' + esc(team.name) + ' Fans</strong><small>Talk ball with people repping your team.</small></span>' +
+    '<strong>' + esc(team.name) + ' Fans</strong><small>Weekly leaderboard, team challenges, live reactions and fan-to-fan matchups.</small></span>' +
     icon('arrowRight', 'continue-card-chevron') +
     '</button>';
 }
@@ -4057,6 +4077,14 @@ function communityChallengeHtml(league, team) {
     '</section>';
 }
 
+
+function communityWeeklyPulseHtml(league,team){
+  var cutoff=Date.now()-7*86400000, rows=(communityRows||[]).filter(function(r){return communityCreatedAtMs(r)>=cutoff;});
+  var posters={},reactions=0,challenges=0;
+  rows.forEach(function(r){if(r.authorName)posters[slugify(r.authorName)]=true;reactions+=Object.keys(r.reactions||{}).length;if(r.activityKind==='challenge')challenges++;});
+  var dailyRows=dailyRivalScopeRows(dailyRivalRows('week'),'team');
+  return '<section class="community-weekly-pulse"><div class="community-feed-head"><h3>This Week in '+esc(team.name)+'</h3><span>Community v2</span></div><div class="community-pulse-grid"><div><b>'+Object.keys(posters).length+'</b><small>Active fans</small></div><div><b>'+rows.length+'</b><small>Posts + results</small></div><div><b>'+reactions+'</b><small>Reactions</small></div><div><b>'+challenges+'</b><small>Challenges cleared</small></div><div><b>'+dailyRows.length+'</b><small>Daily competitors</small></div></div></section>';
+}
 function renderCommunityScreen() {
   var fav = getFavoriteTeams();
   var hasNfl = !!fav.nfl, hasCfb = !!fav.cfb;
@@ -4100,6 +4128,7 @@ function renderCommunityScreen() {
       (streak.count ? '<span>' + streak.count + '-day streak</span>' : '') +
     '</div>' +
     communityTeamPulseHtml(league, team) +
+    communityWeeklyPulseHtml(league, team) +
     communityBattleHtml(league, team) +
     communityChallengeHtml(league, team) +
     communityDailyRivalsHtml(league, team) +
@@ -4602,14 +4631,16 @@ function adaptiveDifficultyNoteHtml(league) {
   return '<div class="adaptive-difficulty-note">'+icon('target')+' Reads recommends <b>'+esc(personalizedDifficultyTarget(league))+'</b> difficulty from your Football Rating and tracked mastery.</div>';
 }
 function recommendationReasonFor(mode, scoreBits) {
-  if (scoreBits.unplayed) return 'New to you';
-  if (scoreBits.masteryFit) return 'Attack a weak spot';
-  if (scoreBits.weakLeague) return 'Build your weak side';
-  if (scoreBits.favoriteLeague) return 'Fits your teams';
-  if (scoreBits.lowMastery) return 'Room to improve';
-  if (scoreBits.cooldown) return 'Fresh rotation';
-  if (scoreBits.fresh) return 'Keep it fresh';
-  return 'Picked for you';
+  var weak=personalizationMasteryRows().filter(function(r){return r.total>=3;}).sort(function(a,b){return a.pct-b.pct;})[0];
+  var fav=primaryFavoriteTeam();
+  if (scoreBits.unplayed) return 'New format for you';
+  if (scoreBits.masteryFit && weak) return 'Because '+weak.category+' is a weak spot';
+  if (scoreBits.weakLeague) return 'Build your weaker league';
+  if (scoreBits.favoriteLeague && fav) return 'Because you follow '+fav.name;
+  if (scoreBits.lowMastery) return 'Try something harder here';
+  if (scoreBits.cooldown) return 'Back after a cooldown';
+  if (scoreBits.fresh) return 'Fresh from your rotation';
+  return 'Picked from your play history';
 }
 function scoredModeRecommendations(limit) {
   if (!state.name) return [];
@@ -4855,6 +4886,21 @@ function nextAchievementProgress() {
   c.pct = Math.max(0, Math.min(100, Math.round((c.current / c.target) * 100)));
   return c;
 }
+
+function seasonalMilestones() {
+  var p=getProgression(), sid=footballSeasonIdForDate(), s=normalizeSeasonProgress(p.seasons&&p.seasons[sid]), xp=Number(s.xp)||0, games=Number(s.gamesPlayed)||0;
+  return [
+    {label:'Opening Drive',desc:'Earn 250 season XP.',current:xp,target:250},
+    {label:'Every-Down Player',desc:'Play 25 ranked games this season.',current:games,target:25},
+    {label:'All-Conference Push',desc:'Earn 1,500 season XP.',current:xp,target:1500},
+    {label:'Legend Season',desc:'Earn 3,000 season XP.',current:xp,target:3000}
+  ];
+}
+function seasonalMissionHtml() {
+  if(!state.name)return '';
+  var sid=footballSeasonIdForDate(), goals=seasonalMilestones();
+  return '<section class="seasonal-missions"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">'+esc(sid)+' SEASON</span><h3>Season Missions</h3></div><span>Career stays permanent</span></div><div class="seasonal-mission-grid">'+goals.map(function(g){var pct=Math.max(0,Math.min(100,Math.round(100*g.current/g.target))),done=g.current>=g.target;return '<div class="'+(done?'complete':'')+'"><b>'+esc(g.label)+'</b><p>'+esc(g.desc)+'</p><i><em style="width:'+pct+'%"></em></i><small>'+(done?'Complete':Math.min(g.current,g.target)+' / '+g.target)+'</small></div>';}).join('')+'</div></section>';
+}
 function dashboardActionStripHtml() {
   if (!state.name) return '';
   var dailyDone = playedToday();
@@ -4904,6 +4950,29 @@ function footballDNAData() {
     archetype: archetype
   };
 }
+
+function footballDNATraitLevel(row) {
+  if(!row||row.total<3)return {name:'Unscouted',pct:0};
+  var confidence=Math.min(1,row.total/20), score=Math.round(row.pct*confidence);
+  if(score>=80)return {name:'Elite',pct:score};
+  if(score>=65)return {name:'Strong',pct:score};
+  if(score>=50)return {name:'Developing',pct:score};
+  return {name:'Needs Reps',pct:score};
+}
+function footballDNATraits() {
+  return personalizationMasteryRows().filter(function(r){return r.total>=3;})
+    .slice().sort(function(a,b){return (b.total-a.total)||(b.pct-a.pct);}).slice(0,6)
+    .map(function(r){return {league:r.league,category:r.category,total:r.total,pct:r.pct,level:footballDNATraitLevel(r)};});
+}
+function footballDNACareerStage() {
+  var p=getProgression(), xp=Number(p.careerXp)||0, games=(getPersonalizationState().playEvents||[]).length;
+  if(xp>=6000||games>=250)return 'Franchise Brain';
+  if(xp>=3000||games>=125)return 'Coordinator';
+  if(xp>=1500||games>=60)return 'Veteran Scout';
+  if(xp>=750||games>=30)return 'Position Coach';
+  if(xp>=250||games>=12)return 'Starter';
+  return 'Rookie Scout';
+}
 function footballDNAHtml(compact) {
   if (!state.name) return '';
   var d=footballDNAData();
@@ -4917,6 +4986,8 @@ function footballDNAHtml(compact) {
       '<div><small>College mastery</small><b>'+(d.cfb==null?'—':d.cfb+'%')+'</b></div>'+
     '</div>'+
     '<div class="football-dna-readout"><span><small>Best trait</small><b>'+strength+'</b></span><span><small>Attack next</small><b>'+weak+'</b></span></div>'+
+    '<div class="football-dna-stage"><span>Career identity</span><b>'+esc(footballDNACareerStage())+'</b></div>'+
+    '<div class="football-dna-traits">'+footballDNATraits().map(function(t){return '<div><span>'+esc(t.league.toUpperCase())+'</span><b>'+esc(t.category)+'</b><small>'+esc(t.level.name)+' · '+t.pct+'% over '+t.total+' reps</small><i><em style="width:'+t.level.pct+'%"></em></i></div>';}).join('')+'</div>'+
   '</section>';
 }
 function homePriorityFeedHtml() {
@@ -4979,20 +5050,26 @@ function personalDashboardHtml() {
     returnHookHtml() +
     dashboardActionStripHtml() +
     currentSeasonRecapHtml() +
+    seasonalMissionHtml() +
     seasonLeaderboardHtml() +
     '</section>';
 }
 
 function renderHome() {
-  return '<div class="hero"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
-    '<div class="hero-kicker">Built for people who actually know ball</div>' +
-    '<h1 class="hero-tagline">NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.</h1>' +
+  var homeRec=state.name?scoredModeRecommendations(1)[0]:null;
+  var dailyDone=playedToday();
+  var heroPrimary=dailyDone&&homeRec?homeRec.mode.id:'daily';
+  var heroPrimaryLabel=dailyDone&&homeRec?'Play '+homeRec.mode.title:'Play Today’s Reads';
+  return '<div class="hero personalized-home-2"><img src="assets/brand/reads-logo.jpg" alt="Reads" class="hero-logo" />' +
+    '<div class="hero-kicker">'+(state.name?'YOUR FOOTBALL HOME':'Built for people who actually know ball')+'</div>' +
+    '<h1 class="hero-tagline">'+(state.name?(dailyDone?'Daily handled. Here’s your next read.':'Your football day starts here.'):'NFL &amp; College Football trivia, ' + totalModeCount() + ' ways to play.')+'</h1>' +
     favoriteTeamGreeting() +
-    '<p>One adaptive Football Rating tracks how good you actually are — across every mode, every device.</p>' +
-    '<div class="hero-actions"><button class="btn-primary" data-go="daily">Play Today’s Reads ' + icon('arrowRight') + '</button>' +
-    '<button class="btn-secondary" data-go="grid">Play Immaculate Grid</button></div></div>' +
+    '<p>'+(state.name?'Reads ranks what matters now from your teams, mastery, streak, season and recent play.':'One adaptive Football Rating tracks how good you actually are — across every mode, every device.')+'</p>' +
+    '<div class="hero-actions"><button class="btn-primary" data-go="'+esc(heroPrimary)+'">'+esc(heroPrimaryLabel)+' ' + icon('arrowRight') + '</button>' +
+    '<button class="btn-secondary" data-go="'+(state.name?'profile':'grid')+'">'+(state.name?'View My Football DNA':'Play Immaculate Grid')+'</button></div></div>' +
     teamPickerPromptCardHtml() +
     personalDashboardHtml() +
+    footballDNAHtml(true) +
     homePriorityFeedHtml() +
     recommendationShelfHtml() +
     formatCollectionsHtml() +
@@ -10456,6 +10533,14 @@ function drawShareCard(ctx, cfg, format) {
 function shareResultCard(mode) {
   var cfg = shareConfigFor(mode);
   if (!cfg) return;
+  if(state.name){
+    var dna=footballDNAData(), career=progressionRankFor(getProgression().careerXp||0), streak=getStreak();
+    var flex=[];
+    if(career&&career.name)flex.push(career.name+' rank');
+    if(streak.count)flex.push(streak.count+'-day streak');
+    if(dna&&dna.archetype)flex.push(dna.archetype);
+    if(flex.length)cfg.shareText=cfg.shareText+' · '+flex.slice(0,2).join(' · ');
+  }
   // Every share path (native share sheet, copy-text, Share to X) reads
   // cfg.shareText — appending the site link once, here, means whoever
   // receives it has something to tap through and play themselves instead
@@ -13683,6 +13768,20 @@ var REWARD_BADGES = [
   { id: 'rosterSpecialist', icon: '📋', title: 'Roster Architect', desc: 'Completed five different roster-building Reads formats.', check: function () { return completedFormatFamilyCount('roster') >= 5; } },
   { id: 'sequenceSpecialist', icon: '🛤️', title: 'Connect the Dots', desc: 'Completed five different sequence/path Reads formats.', check: function () { return completedFormatFamilyCount('sequence') >= 5; } }
 ];
+
+REWARD_BADGES = REWARD_BADGES.concat([
+  { id:'teamCommunityRegular', icon:'📣', title:'Home Crowd', desc:'Completed 10 Daily Reads while representing a favorite team.', rarity:'Rare', check:function(st){var f=getFavoriteTeams();return !!(f.nfl||f.cfb)&&(st.daily.completions||0)>=10;} },
+  { id:'balancedBallKnower', icon:'⚖️', title:'Both Sides of the Ball', desc:'Built tracked mastery in both NFL and College football.', rarity:'Epic', check:function(){var d=footballDNAData();return d.nflPlays>=10&&d.cfbPlays>=10;} },
+  { id:'dnaEliteTrait', icon:'🧬', title:'Elite Trait', desc:'Reached an Elite Football DNA trait.', rarity:'Epic', check:function(){return footballDNATraits().some(function(t){return t.level.name==='Elite';});} },
+  { id:'seasonGrinder', icon:'🏆', title:'Season Grinder', desc:'Reached 1,500 XP in one football season.', rarity:'Legendary', check:function(){var p=getProgression(),s=normalizeSeasonProgress(p.seasons&&p.seasons[footballSeasonIdForDate()]);return s.xp>=1500;} }
+]);
+function achievementRarity(b){
+  if(b&&b.rarity)return b.rarity;
+  if(/100|legend|streak30/i.test((b&&b.id)||''))return 'Legendary';
+  if(/50|75|allPro|specialist/i.test((b&&b.id)||''))return 'Epic';
+  if(/25|playmaker|veteran|daily25/i.test((b&&b.id)||''))return 'Rare';
+  return 'Common';
+}
 BADGES = BADGES.concat(REWARD_BADGES);
 
 var PROFILE_COSMETICS = [
