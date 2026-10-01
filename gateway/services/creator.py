@@ -624,6 +624,15 @@ def revise_question(*, package_id: str, question_index: int, replacement: dict) 
         raise GatewayError("INVALID_REQUEST", message)
 
 
+def analyze_duplicates(package_id: str) -> dict:
+    try:
+        return packages.analyze_creator_duplicates(package_id)
+    except FileNotFoundError:
+        raise GatewayError("PACKAGE_NOT_FOUND", "No such package.")
+    except packages.PackageIdInvalid:
+        raise GatewayError("PACKAGE_NOT_FOUND", "No such package.")
+
+
 def list_review_queue(review_status: str | None) -> list[dict]:
     return packages.list_packages(review_status=review_status)
 
