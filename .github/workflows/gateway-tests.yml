@@ -1,4 +1,5 @@
 name: Gateway tests
+# CI nudge: retrigger real-DB gate after frontend/art bundle updates.
 
 on:
   push:
