@@ -116,8 +116,13 @@ jobs:
           set -euo pipefail
           TEMP_VOL_NAME="ci_restore_${GITHUB_RUN_ID}"
 
-          SOURCE_VOLUME_ID=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | \
-            python3 -c "import json,sys; vols=json.load(sys.stdin); print(next(v['id'] for v in vols if v['name']=='$SOURCE_VOLUME'))")
+          SOURCE_VOLUME_JSON=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json | \
+            python3 -c "import json,sys; vols=json.load(sys.stdin); print(json.dumps(next(v for v in vols if v['name']=='$SOURCE_VOLUME')))")
+          SOURCE_VOLUME_ID=$(printf '%s' "$SOURCE_VOLUME_JSON" | \
+            python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          SOURCE_VOLUME_SIZE=$(printf '%s' "$SOURCE_VOLUME_JSON" | \
+            python3 -c "import json,sys; v=json.load(sys.stdin); print(v.get('size_gb') or v.get('sizeGb') or v.get('size') or 30)")
+          echo "Source volume $SOURCE_VOLUME_ID is ${SOURCE_VOLUME_SIZE}GB"
 
           LATEST_SNAPSHOT_ID=$("$HOME/.fly/bin/flyctl" volumes snapshots list "$SOURCE_VOLUME_ID" -a "$FLY_APP" --json | \
             python3 -c "import json,sys; snaps=json.load(sys.stdin); print(sorted(snaps, key=lambda s: s['created_at'])[-1]['id'])")
@@ -125,17 +130,17 @@ jobs:
 
           TEMP_VOL_ID=$("$HOME/.fly/bin/flyctl" volumes create "$TEMP_VOL_NAME" \
             --snapshot-id "$LATEST_SNAPSHOT_ID" -a "$FLY_APP" --region "$FLY_REGION" \
-            --size 30 --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+            --size "$SOURCE_VOLUME_SIZE" --yes --json | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "temp_volume_id=$TEMP_VOL_ID" >> "$GITHUB_OUTPUT"
 
           # Snapshot-backed volume creation can return while Fly is still
           # restoring bytes. A Machine cannot safely claim/start with that
           # volume until the volume reaches the stable "created" state.
           VOLUME_READY=0
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 180); do
             VOLUME_STATE=$("$HOME/.fly/bin/flyctl" volumes show "$TEMP_VOL_ID" -a "$FLY_APP" --json | \
               python3 -c "import json,sys; v=json.load(sys.stdin); print(v.get('state') or v.get('State') or '')")
-            echo "Restore volume state: $VOLUME_STATE (attempt $attempt/60)"
+            echo "Restore volume state: $VOLUME_STATE (attempt $attempt/180)"
             if [ "$VOLUME_STATE" = "created" ]; then
               VOLUME_READY=1
               break
