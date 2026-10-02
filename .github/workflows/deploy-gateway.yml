@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.stress_harness --max-facts-per-adapter 5000 --max-players 1000 --out /tmp/v05-stress.json && python3 -c \"import json; from tools.director_v05.stress_certification import assert_certified; r=json.load(open(\\\"/tmp/v05-stress.json\\\")); print(json.dumps(assert_certified(r), indent=2, sort_keys=True))\"'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -c \"from tools.quiz_export import engine as e; from tools.director_v05.performance_indexes import install; c=e.connect(); print(install(c)); c.close()\" && python3 -m tools.director_v05.stress_harness --max-facts-per-adapter 5000 --max-players 1000 --out /tmp/v05-stress.json && python3 -c \"import json; from tools.director_v05.stress_certification import assert_certified; r=json.load(open(\\\"/tmp/v05-stress.json\\\")); print(json.dumps(assert_certified(r), indent=2, sort_keys=True))\"'"
 
       - name: Verify live gateway
         run: |
