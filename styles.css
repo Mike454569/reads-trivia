@@ -667,6 +667,20 @@ body.home-fav-theme main#app {
 .mode-sheet-item:hover, .mode-sheet-item:focus-visible { background: var(--bg-elevated); }
 .mode-sheet-item .msi-icon { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; color: var(--accent); }
 .mode-sheet-item .msi-icon .icon { width: 20px; height: 20px; }
+.mode-sheet-item .msi-icon .mode-sheet-art {
+  display: block;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 5px;
+  aspect-ratio: 1 / 1;
+  background-color: transparent;
+  box-shadow: none;
+}
+.mode-sheet-item.has-art .msi-icon { overflow: hidden; border-radius: 5px; }
 .mode-sheet-item .msi-text { display: block; min-width: 0; }
 .mode-sheet-item .msi-desc { display: block; font-size: 12px; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
 .mode-sheet-your-team {
