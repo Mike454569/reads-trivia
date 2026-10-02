@@ -4436,6 +4436,12 @@ function readsGameIdentitySvg(m) {
 }
 function modeLogoSvg(m) {
   var id = String((m && m.id) || '');
+  var identityKey=(id+' '+String((m&&m.title)||'')).toLowerCase();
+  // User-facing game identity is intentionally a small Reads-branded football
+  // family. Only speed and Higher/Lower retain mechanic-specific symbols.
+  if (!/^(quiz|cfbquiz|grid|cfbgrid|iq|cfbiq|playerclues|cfbplayerclues|pickem|cfbpickem|h2h|learn|daily)$/.test(id.toLowerCase())) {
+    return readsGameIdentitySvg(m);
+  }
   var family = modeMarkFamily(m);
   var v = modeLogoVariant(m);
   var common = 'viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
