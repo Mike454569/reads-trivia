@@ -7,6 +7,7 @@ from collections import defaultdict
 from .distractor_intelligence import Candidate, select_distractors, validate_distractors
 from .entity_labels import resolve_label
 from .lore_answer_uniqueness import filter_ambiguous_distractors
+from .lore_information_gain import calibrate_reveal_order
 
 
 def _tables(conn):
@@ -482,6 +483,7 @@ def attach_deep_lore_options(
     out["rejected_ambiguous_distractors"] = rejected
     out["distractor_pool_size"] = result["pool_size"]
     out["distractor_difficulty_band"] = band
+    out = calibrate_reveal_order(conn, out, difficulty_band=band)
     return out
 
 
