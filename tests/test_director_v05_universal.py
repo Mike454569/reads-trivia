@@ -302,3 +302,41 @@ def test_story_engine_skips_subjects_without_verified_deep_chain():
     assert compile_story_candidates(
         conn,"FUNNY_MOMENTS","WHO_AM_I",chain_provider=lambda *_: [],limit=5
     )==[]
+
+
+def test_distractor_intelligence_prefers_context_and_rejects_corrects():
+    from tools.director_v05.distractor_intelligence import Candidate,select_distractors,validate_distractors
+    correct=Candidate("p1","Alpha",2022,"QB","KC","ROUND_1",10,True)
+    pool=[
+      Candidate("p2","Bravo",2021,"QB","BUF","ROUND_1",12,True),
+      Candidate("p3","Charlie",2022,"QB","KC","ROUND_2",50,True),
+      Candidate("p4","Delta",2010,"WR","NYJ","ROUND_7",220,True),
+      Candidate("p5","Echo",2023,"QB","CIN","ROUND_1",9,True),
+      Candidate("p6","Foxtrot",2022,"QB","BAL","ROUND_1",11,True),
+    ]
+    ds=select_distractors(correct,pool,k=3,forbidden_ids={"p5"})
+    assert len(ds)==3
+    assert "p5" not in {x["entity_id"] for x in ds}
+    assert validate_distractors(correct,ds,all_correct_ids={"p5"}) is None
+    assert ds[0]["entity_id"] in {"p2","p6"}
+
+def test_distractor_intelligence_rejects_same_label_collision():
+    from tools.director_v05.distractor_intelligence import Candidate,select_distractors
+    correct=Candidate("p1","Chris Smith",2022)
+    pool=[Candidate("p2","Chris Smith",2021),Candidate("p3","Other",2021)]
+    ds=select_distractors(correct,pool,k=3)
+    assert all(x["label"]!="Chris Smith" for x in ds)
+
+def test_chain_compiler_fails_closed_without_three_plausible_distractors():
+    import pytest
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.chain_compiler import compile_chain
+    from tools.director_v05.distractor_intelligence import Candidate
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+    ])
+    with pytest.raises(ValueError,match="INSUFFICIENT_PLAUSIBLE_DISTRACTORS"):
+        compile_chain(chain,"MULTIPLE_CHOICE",
+          correct_candidate=Candidate("p1","Alpha",2020),
+          distractor_candidates=[Candidate("p2","Bravo",2020),Candidate("p3","Charlie",2020)])
