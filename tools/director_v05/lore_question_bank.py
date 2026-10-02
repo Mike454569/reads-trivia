@@ -6,6 +6,7 @@ from collections import Counter
 from .lore_chains import discover_lore_chains, compile_lore_chain_variants
 from .lore_distractors import attach_deep_lore_options
 from .lore_rotation import select_rotated_questions, question_lore_profile
+from .lore_mix_policy import enforce_mix_policy
 
 
 def _signature(question):
@@ -112,9 +113,15 @@ def build_lore_question_bank(
         max_sensitive=max_sensitive,
         require_league_balance=True,
     )
-    selected = rotation["selected"]
+    mix = enforce_mix_policy(
+        rotation["selected"],
+        target=target,
+        max_draft_fraction=0.25,
+        min_story_fraction=0.40,
+    )
+    selected = mix["selected"]
 
-    # Recompute final-bank metrics after rotation so reporting reflects what
+    # Recompute final-bank metrics after rotation/mix policy so reporting reflects what
     # was actually selected, not the larger eligible pool.
     final_answers = {str((q.get("answer") or {}).get("id") or "") for q in selected}
     final_signatures = {_signature(q) for q in selected}
@@ -140,6 +147,9 @@ def build_lore_question_bank(
         "league_counts": dict(league_counts),
         "sensitive_count": rotation["sensitive_count"],
         "available_family_counts": rotation["available_family_counts"],
+        "mix_counts": mix["mix_counts"],
+        "draft_fraction": mix["draft_fraction"],
+        "story_fraction": mix["story_fraction"],
         "with_options": bool(with_options),
     }
 
