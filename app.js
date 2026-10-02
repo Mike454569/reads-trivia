@@ -5073,7 +5073,10 @@ function totalModeCount() {
 // pattern the NFL/CFB mode grids already use, so the page reaches real
 // game content much sooner without losing any discoverability.
 function discoverGridHtml() {
-  var cards = [h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
+  // Endless Reads is a core retention mode, not an orphaned implementation.
+  // Keep it visible alongside the other persistent ways-to-play.
+  var endlessCard=(typeof endlessHomeCardHtml==='function')?endlessHomeCardHtml():'';
+  var cards = [endlessCard, h2hCardHtml(), h2hLiveCardHtml(), xsoCardHtml(), learnCardHtml(), friendsCardHtml(), studyCardHtml()]
     .filter(function (html) { return html; });
   if (!cards.length) return '';
   return '<h2 class="mode-section-title">More Ways to Play</h2>' +
