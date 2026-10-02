@@ -71,6 +71,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["advanced_lore"]=advanced_lore_report(c)
             from .lore_chains import lore_chain_report
             population["lore_chains"]=lore_chain_report(c)
+            from .lore_question_bank import bank_report
+            population["lore_question_banks"]=bank_report(c, limit_anchors=75, target=15)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c); c.commit()
