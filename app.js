@@ -3163,6 +3163,17 @@ function loadReadsGameArt(){
   root.style.setProperty('--reads-game-art-2','url("assets/game-art/reads-game-art-41-60.webp")');
   root.style.setProperty('--reads-game-art-3','url("assets/game-art/reads-game-art-61-80.webp")');
   root.style.setProperty('--reads-game-art-4','url("assets/game-art/reads-game-art-81-100.webp")');
+  // Strategy/arcade formats 61-100 use their own approved atlas. This was
+  // accidentally omitted when raster art was restored, forcing those modes
+  // back onto repeated generic marks.
+  Promise.all(READS_GAME_ART_CHUNKS[5].map(function(path){
+    return fetch(path,{cache:'force-cache'}).then(function(resp){
+      if(!resp.ok) throw new Error('strategy game art '+path);
+      return resp.text();
+    });
+  })).then(function(parts){
+    root.style.setProperty('--reads-game-art-5','url("data:image/webp;base64,'+parts.join('').trim()+'")');
+  }).catch(function(err){ console.warn('Reads strategy game art failed to load',err); });
 }
 if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
 
