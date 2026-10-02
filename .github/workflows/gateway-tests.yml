@@ -72,7 +72,7 @@ jobs:
           }
           smoke cfb_pickem "$base/v1/public/pickem/CFB?slate=FULL&client_id=smoketest"
           smoke nfl_pickem "$base/v1/public/pickem/NFL?client_id=smoketest"
-          smoke mechanic "$base/v1/public/mechanics/round?mode=matching_mixed"
+          smoke mechanic "$base/v1/public/mechanics/round?mode=matching_nfl_draft"
 
       - name: Audit distinct game formats
         run: python tools/audit_game_formats.py
