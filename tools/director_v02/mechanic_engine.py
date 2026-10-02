@@ -101,6 +101,9 @@ TAXONOMY_IDS = frozenset({
     # 75-Format Expansion, Wave 1 -- see tools/director_v04/
     # common_link.py's own module docstring.
     "COMMON_LINK", "STRATEGY_ARCADE",
+    # Director v0.5 deep-lore intelligence: Creator/internal-only until
+    # real-DB certification explicitly promotes it to public gameplay.
+    "DEEP_LORE_GUESS",
 })
 
 # 40-Format Expansion pass: real, disclosed yardage-by-difficulty scale for
@@ -149,6 +152,9 @@ VARIANTS: dict[str, dict[str, dict]] = {
     },
     "PROGRESSIVE_CLUE_IDENTIFY": {
         "NFL_PLAYER_FROM_CLUES": {"competition": "NFL"},
+    },
+    "DEEP_LORE_GUESS": {
+        "UNIVERSAL_DEEP_LORE": {"competition": "MIXED"},
     },
     "MULTIPLE_CHOICE_SINGLE_FACT": {},  # driven by (domain, relationship_predicate), see generate_guess_round()
     "POSITION_LINEUP_GRID": {
@@ -2308,7 +2314,7 @@ def _strategy_arcade_evaluate(package: dict, progress: dict, submission: dict) -
 # --- Generic dispatch used by the Gateway routes ---
 
 def client_safe_view(taxonomy_id: str, package: dict, progress: dict) -> dict:
-    if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
+    if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID", "DEEP_LORE_GUESS"):
         return _guess_client_view(package, progress["current_index"])
     if taxonomy_id == "PROGRESSIVE_CLUE_IDENTIFY":
         return _clue_client_view(package, progress["current_index"], progress.get("clues_revealed", 1))
@@ -2391,7 +2397,7 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
     """Returns (result, new_progress). Never mutates `progress` in place --
     callers persist the returned new_progress via game_state.save_state()."""
     progress = dict(progress)
-    if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID"):
+    if taxonomy_id in ("MULTIPLE_CHOICE_SINGLE_FACT", "POSITION_LINEUP_GRID", "DEEP_LORE_GUESS"):
         result = _guess_evaluate(package, progress["current_index"], submission)
         progress["current_index"] += 1
         progress["completed"] = progress["current_index"] >= len(package["questions"])
