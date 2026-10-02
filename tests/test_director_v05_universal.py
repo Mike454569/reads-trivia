@@ -56,3 +56,24 @@ def test_unverified_event_never_reaches_creator():
       "tags":["funny"]
     })
     assert query_events(conn,"FUNNY_MOMENTS")==[]
+
+
+def test_derived_fact_requires_provenance():
+    import sqlite3, pytest
+    from tools.director_v05.derivations import store
+    conn=sqlite3.connect(":memory:")
+    with pytest.raises(ValueError):
+        store(conn,"bust_score","player","p1",88,[])
+
+def test_draft_bust_recipe_composes_with_higher_lower():
+    from tools.director_v05.recipe_compiler import compile_recipe
+    r=compile_recipe("DRAFT_BUSTS","HIGHER_LOWER",league="NFL")
+    assert r["source"]=="derived"
+    assert r["metric"]=="bust_score"
+    assert r["answer_provenance_required"] is True
+
+def test_story_recipe_requires_verified_evidence():
+    from tools.director_v05.recipe_compiler import compile_recipe
+    r=compile_recipe("ABSURD_STORIES","THREE_CLUES",league="NFL")
+    assert r["source"]=="events"
+    assert r["requires_verified_evidence"] is True
