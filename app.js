@@ -3147,15 +3147,24 @@ function gameArtStyle(m){
   return '--game-art-image:var(--reads-game-art-'+sheet+');--game-art-size-x:'+(cols*100)+'%;--game-art-size-y:'+(rows*100)+'%;--game-art-pos-x:'+px+'%;--game-art-pos-y:'+py+'%;';
 }
 function gameArtHtml(m, extraClass){
-  if(!m)return '';
-  return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true">'+
-    '<span class="reads-game-art-vector-mark">'+modeMarkHtml(m,'xl')+'</span></span>';
+  if(!m || !gameArtSpec(m))return '';
+  return '<span class="reads-game-art'+(extraClass?' '+extraClass:'')+'" style="'+gameArtStyle(m)+'" aria-hidden="true"></span>';
 }
-/* Raster sprite atlases are intentionally retired from rendered game cards.
-   They looked soft on retina/mobile displays and duplicated the sharper SVG
-   identity system. Keep the loader as a no-op for backward-safe call sites. */
-var readsGameArtLoading=true;
-function loadReadsGameArt(){ return; }
+/* Reads-owned custom game artwork is the primary visual identity. The four
+   committed WebP atlases cover the 100-format catalog; use them directly so
+   cards and mode navigation show the approved artwork instead of generic
+   generated SVG marks. */
+var readsGameArtLoading=false;
+function loadReadsGameArt(){
+  if(readsGameArtLoading || typeof document==='undefined')return;
+  readsGameArtLoading=true;
+  var root=document.documentElement;
+  root.style.setProperty('--reads-game-art-1','url("assets/game-art/reads-game-art-01-40.webp")');
+  root.style.setProperty('--reads-game-art-2','url("assets/game-art/reads-game-art-41-60.webp")');
+  root.style.setProperty('--reads-game-art-3','url("assets/game-art/reads-game-art-61-80.webp")');
+  root.style.setProperty('--reads-game-art-4','url("assets/game-art/reads-game-art-81-100.webp")');
+}
+if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
 
 var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
 
@@ -5345,10 +5354,10 @@ function openModeSheet(league) {
     itemsEl.innerHTML =
       (favTeam ? '<button class="mode-sheet-your-team" data-team-picker-toggle><span class="team-picker-swatch" style="' + teamSwatchStyle(favTeam) + '"></span>Your team: ' + esc(favTeam.name) + (favTeam.chant ? ' — ' + esc(favTeam.chant) : '') + '</button>' : '') +
       LEAGUE_MODES[league].map(function (m) {
-        // Bottom-sheet rows use one compact identity mark only. Full game art
-        // belongs on discovery cards; injecting it here created a second,
-        // oversized/clipped logo layer behind the row on mobile.
-        return '<button class="mode-sheet-item" data-go="' + m.id + '"><span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text">' + esc(m.title) +
+        var art=gameArtHtml(m,'mode-sheet-art');
+        // One approved custom logo per row. CSS constrains the sprite to the
+        // icon slot so it cannot recreate the old oversized/clipped layer.
+        return '<button class="mode-sheet-item'+(art?' has-art':'')+'" data-go="' + m.id + '"><span class="msi-icon">' + (art||modeMarkHtml(m, 'sm')) + '</span><span class="msi-text">' + esc(m.title) +
           '<span class="msi-desc">' + esc(m.desc) + '</span></span></button>';
       }).join('');
   }
