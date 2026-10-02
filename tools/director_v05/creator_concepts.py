@@ -15,6 +15,17 @@ CONCEPTS = {
  "WEIRD_RECORDS":{"families":("records","culture_story"),"tags":("rare","oddity"),"sensitive":False},
  "COACHING_CHAOS":{"families":("coaching","culture_story"),"tags":("hire","fire","controversy"),"sensitive":False},
  "CONTRACT_CHAOS":{"families":("money","transactions","culture_story"),"tags":("contract","trade","holdout"),"sensitive":False},
+ "BIZARRE_PLAYS":{"families":("games","situational","culture_story"),"tags":("bizarre_play","oddity"),"sensitive":False},
+ "CELEBRATIONS":{"families":("culture_story",),"tags":("celebration","funny"),"sensitive":False},
+ "PRESS_CONFERENCE_MOMENTS":{"families":("culture_story",),"tags":("press_conference","quote","viral"),"sensitive":False},
+ "WEATHER_GAMES":{"families":("games","culture_story"),"tags":("weather","snow","rain","wind","heat"),"sensitive":False},
+ "RULES_AND_PENALTIES":{"families":("games","culture_story"),"tags":("rule","penalty","officiating"),"sensitive":False},
+ "TRADES":{"families":("transactions","roster_career"),"tags":("trade","transaction"),"sensitive":False},
+ "SIGNINGS_RELEASES":{"families":("transactions","roster_career"),"tags":("signing","release","waiver"),"sensitive":False},
+ "RECRUITING_STORIES":{"families":("recruiting","culture_story"),"tags":("recruiting","commitment","flip"),"sensitive":False},
+ "TRANSFER_PORTAL":{"families":("roster_career","culture_story"),"tags":("transfer","portal"),"sensitive":False},
+ "INJURY_HISTORY":{"families":("availability",),"tags":("injury","availability"),"sensitive":True},
+ "HISTORICAL_MILESTONES":{"families":("records","culture_story"),"tags":("history","milestone"),"sensitive":False},
 }
 
 COMPATIBLE_MECHANICS = (
