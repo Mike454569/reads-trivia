@@ -23,6 +23,17 @@ CREATE TABLE IF NOT EXISTS universal_event (
 CREATE INDEX IF NOT EXISTS ix_universal_event_type_date ON universal_event(event_type,event_date);
 CREATE INDEX IF NOT EXISTS ix_universal_event_verify ON universal_event(verification_status,evidence_tier);
 
+CREATE TABLE IF NOT EXISTS universal_event_evidence (
+ event_id TEXT NOT NULL REFERENCES universal_event(event_id) ON DELETE CASCADE,
+ source_url TEXT NOT NULL,
+ publisher TEXT NOT NULL,
+ published_date TEXT,
+ evidence_tier TEXT NOT NULL,
+ supports_fields_json TEXT NOT NULL DEFAULT '[]',
+ PRIMARY KEY(event_id,source_url)
+);
+CREATE INDEX IF NOT EXISTS ix_event_evidence_event ON universal_event_evidence(event_id,evidence_tier);
+
 CREATE TABLE IF NOT EXISTS universal_event_subject (
  event_id TEXT NOT NULL REFERENCES universal_event(event_id) ON DELETE CASCADE,
  subject_type TEXT NOT NULL,
