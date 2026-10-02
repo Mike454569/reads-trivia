@@ -32,6 +32,41 @@ ADAPTERS={
   "columns":("selection_id","season","position_raw","player_id","player_name_raw","honor_level","source_id","verification_status"),
   "where":"is_ap=1","verification":"WIKIPEDIA_STRUCTURED_SECONDARY",
  },
+ "nfl_pro_bowl":{
+  "table":"nfl_pro_bowl_selections","kind":"AWARD","id":"selection_id",
+  "columns":("selection_id","season","position_raw","player_name_raw","tier","source_id","verification_status"),
+  "where":"1=1","verification":"WIKIPEDIA_STRUCTURED_SECONDARY",
+ },
+ "nfl_hof":{
+  "table":"nfl_hof_inductees","kind":"AWARD","id":"hof_id",
+  "columns":("hof_id","class_year","position_raw","inductee_name_raw","source_id","verification_status"),
+  "where":"is_player=1","verification":"WIKIPEDIA_STRUCTURED_SECONDARY",
+ },
+ "nfl_championships":{
+  "table":"season_standings","kind":"CHAMPIONSHIP","id":None,
+  "columns":("season","team_code","wins","losses","ties","playoff_result","source_id","verification_status"),
+  "where":"playoff_result IS NOT NULL","verification":"SOURCE_BACKED",
+ },
+ "nfl_coaching":{
+  "table":"coach_team_seasons","kind":"COACHING","id":None,
+  "columns":("season","team_code","coach_id","coach_name","games_observed","source_id","verification_status"),
+  "where":"1=1","verification":"SOURCE_BACKED",
+ },
+ "nfl_pbp":{
+  "table":"nfl_plays","kind":"PLAY","id":"play_id",
+  "columns":("game_id","play_id","season","week","qtr","down","ydstogo","yardline_100","play_type","play_desc","yards_gained","touchdown","posteam","defteam","passer_player_key","receiver_player_key","rusher_player_key"),
+  "where":"1=1","verification":None,
+ },
+ "cfb_pbp":{
+  "table":"cfb_plays","kind":"PLAY","id":"play_id",
+  "columns":("game_id","play_id","season","week","drive_id","offense_school_id","defense_school_id","play_type","play_text","yards_gained","scoring"),
+  "where":"1=1","verification":None,
+ },
+ "cfb_rivalries":{
+  "table":"cfb_rivalries","kind":"RIVALRY","id":"rivalry_id",
+  "columns":("rivalry_id","matchup","school_a_id","school_a","school_b_id","school_b","nickname","trophy","series_record","fun_fact"),
+  "where":"school_a_id IS NOT NULL AND school_b_id IS NOT NULL","verification":None,
+ },
  "nfl_roster":{
   "table":"canonical_roster_seasons","kind":"ROSTER","id":None,
   "columns":("player_id","season","team_code","source_id","verification_status"),
