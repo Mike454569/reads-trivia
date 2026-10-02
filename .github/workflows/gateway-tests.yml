@@ -10,6 +10,7 @@ on:
     paths:
       - "gateway/**"
       - "tools/**"
+      - "tests/**"
       - ".github/workflows/gateway-tests.yml"
   pull_request:
     paths:
