@@ -68,6 +68,15 @@ DEEP_INTEGRITY_CHECK_INITIAL_DELAY_SECONDS = float(
 DEEP_INTEGRITY_CHECK_INTERVAL_SECONDS = float(
     os.environ.get("READS_ENGINE_DEEP_INTEGRITY_INTERVAL_SECONDS", str(6 * 60 * 60)))  # every 6 hours
 
+# Full PRAGMA quick_check is intentionally OFF on the live serving process.
+# It can take ~166s on the Fly volume and competes directly with gameplay
+# reads. Daily/manual deep integrity runs on an isolated production-volume
+# fork instead; set this explicitly only for a maintenance instance.
+DEEP_INTEGRITY_BACKGROUND_ENABLED = (
+    os.environ.get("READS_ENGINE_DEEP_INTEGRITY_BACKGROUND_ENABLED", "0").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+
 # --- Auth (Part F) -----------------------------------------------------
 ADMIN_TOKEN_ENV_VAR = "READS_ENGINE_ADMIN_TOKEN"
 MIN_ADMIN_TOKEN_LENGTH = 32  # ~192 bits if generated with a decent random source (e.g. `openssl rand -hex 32` -> 64 hex chars)

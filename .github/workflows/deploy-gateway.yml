@@ -88,25 +88,40 @@ jobs:
           fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      - name: Run v0.5 production Engine stress certification
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: Verify live gateway and customer game routes
         run: |
           set -euo pipefail
-          APP="reads-football-gateway"
-          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -c \"from tools.quiz_export import engine as e; from tools.director_v05.performance_indexes import install; c=e.connect(); print(install(c)); c.close()\" && python3 -m tools.director_v05.stress_harness --max-facts-per-adapter 5000 --max-players 1000 --out /tmp/v05-stress.json && python3 -c \"import json; from tools.director_v05.stress_certification import assert_certified; r=json.load(open(\\\"/tmp/v05-stress.json\\\")); print(json.dumps(assert_certified(r), indent=2, sort_keys=True))\"'"
+          base="https://reads-football-gateway.fly.dev"
 
-      - name: Verify live gateway
-        run: |
+          healthy=0
           for attempt in {1..12}; do
-            health=$(curl -fsS --max-time 15 https://reads-football-gateway.fly.dev/v1/health || true)
-            ready=$(curl -fsS --max-time 15 https://reads-football-gateway.fly.dev/v1/ready || true)
+            health=$(curl -fsS --max-time 10 "$base/v1/health" || true)
+            ready=$(curl -fsS --max-time 10 "$base/v1/ready" || true)
             if echo "$health" | grep -q '"status"' && echo "$ready" | grep -q '"status"'; then
-              echo "Gateway health and readiness checks passed."
-              exit 0
+              healthy=1
+              break
             fi
-            sleep 10
+            sleep 5
           done
-          echo "Gateway did not become healthy after deployment."
-          exit 1
+          if [ "$healthy" != "1" ]; then
+            echo "Gateway did not become healthy after deployment." >&2
+            exit 1
+          fi
+
+          smoke() {
+            name="$1"; url="$2"
+            start=$(date +%s%3N)
+            code=$(curl -sS -o "/tmp/$name.json" -w "%{http_code}" --max-time 10 "$url" || true)
+            end=$(date +%s%3N)
+            ms=$((end-start))
+            echo "POST-DEPLOY SMOKE $name status=$code ms=$ms"
+            head -c 1200 "/tmp/$name.json" 2>/dev/null || true
+            echo
+            test "$code" = "200"
+            test "$ms" -lt 10000
+          }
+
+          smoke cfb_pickem "$base/v1/public/pickem/CFB?slate=FULL&client_id=deploysmoke"
+          smoke nfl_pickem "$base/v1/public/pickem/NFL?client_id=deploysmoke"
+          smoke mechanic "$base/v1/public/mechanics/round?mode=matching_nfl_draft"
+          echo "Gateway health + customer gameplay smoke checks passed."

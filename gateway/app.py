@@ -217,10 +217,13 @@ async def lifespan(app: FastAPI):
         print(f"[gateway] WARNING: Engine DB not ready at startup: {readiness['reason']}. "
               f"Service will report itself unready via /v1/ready until this is fixed.", file=sys.stderr)
     print(f"[gateway] CORS allowed origins: {ALLOWED_ORIGINS}", file=sys.stderr)
-    deep_check_task = asyncio.create_task(_run_periodic_deep_integrity_check())
+    deep_check_task = None
+    if config.DEEP_INTEGRITY_BACKGROUND_ENABLED:
+        deep_check_task = asyncio.create_task(_run_periodic_deep_integrity_check())
     yield
     # --- shutdown (Part K) ---
-    deep_check_task.cancel()
+    if deep_check_task is not None:
+        deep_check_task.cancel()
     # No other explicit action needed beyond this log line: package writes
     # are already atomic (temp file + os.replace in
     # gateway/services/packages.py), so a request cut off mid-generation

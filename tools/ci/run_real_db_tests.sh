@@ -38,6 +38,35 @@ finally:
     con.close()
 PY
 
+# Heavy integrity/stress work belongs on this disposable production-volume
+# fork, never on the live serving volume.
+python - <<'PY'
+from tools.quiz_export import engine as e
+result = e.check_engine_readiness_deep()
+print("Isolated deep Engine integrity:", result)
+if not result.get("ready"):
+    raise SystemExit("Deep Engine integrity failed on production-volume fork")
+PY
+
+python - <<'PY'
+from tools.quiz_export import engine as e
+from tools.director_v05.performance_indexes import install
+c=e.connect()
+try:
+    print("Fork performance indexes:", install(c))
+finally:
+    c.close()
+PY
+
+python -m tools.director_v05.stress_harness \
+  --max-facts-per-adapter 5000 --max-players 1000 --out /tmp/v05-stress.json
+python - <<'PY'
+import json
+from tools.director_v05.stress_certification import assert_certified
+result=json.load(open("/tmp/v05-stress.json"))
+print("Fork v0.5 stress certification:", assert_certified(result))
+PY
+
 python - <<'PY'
 from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows
 print("Catalog drift repair:", repair_missing_catalog_rows())
