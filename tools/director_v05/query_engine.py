@@ -22,7 +22,7 @@ def query_events(conn,concept,league=None,start_date=None,end_date=None,subject_
         clauses.append("event_id IN (SELECT event_id FROM universal_event_subject WHERE subject_id=?)")
         args.append(subject_id)
     sql=("SELECT event_id,event_type,league,event_date,title,neutral_summary,source_url,"
-         "source_publisher,source_date,evidence_tier,legal_stage,disposition,sensitive "
+         "source_publisher,source_date,evidence_tier,verification_status,legal_stage,disposition,sensitive "
          "FROM universal_event WHERE "+" AND ".join(clauses)+
          " ORDER BY event_date DESC,event_id LIMIT ?")
     args.append(limit)
