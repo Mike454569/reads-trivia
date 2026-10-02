@@ -4409,35 +4409,30 @@ function modeLogoVariant(m) {
   var key = String((m && (m.id || m.title)) || 'reads');
   return Math.abs(hashStr(key + '|mode-logo-v3')) % 12;
 }
-function uniqueModeGlyphSvg(m) {
-  var key=String((m&&(m.id||m.title))||'reads');
-  var h=Math.abs(hashStr(key+'|reads-unique-glyph-v2'));
+function readsGameIdentitySvg(m) {
+  var id=String((m&&m.id)||'');
+  var title=String((m&&m.title)||'');
+  var key=id+' '+title;
   var common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-  var motifs=[
-    '<circle cx="24" cy="24" r="13"/><path d="M24 11v26M11 24h26"/><circle cx="24" cy="24" r="4"/>',
-    '<path d="M9 35 17 13l7 13 7-17 8 26"/><path d="M12 35h24"/>',
-    '<path d="M10 12h28v24H10z"/><path d="m14 30 8-9 6 5 6-8"/><circle cx="17" cy="17" r="2"/>',
-    '<path d="M8 32c8-14 18-18 32-14"/><path d="m34 12 6 6-7 5"/><circle cx="13" cy="32" r="4"/>',
-    '<path d="M24 7 38 16l-5 20H15l-5-20z"/><path d="m17 22 5 5 10-11"/>',
-    '<path d="M8 15h12v12H8zM28 21h12v12H28z"/><path d="M20 21h8M14 27v8h14"/>',
-    '<circle cx="15" cy="16" r="5"/><circle cx="33" cy="32" r="5"/><path d="M19 19 29 29M10 38 38 10"/>',
-    '<path d="M9 36V12h8v24M20 36V22h8v14M31 36V17h8v19"/><path d="M7 40h34"/>',
-    '<path d="M10 10h28v28H10z"/><path d="M10 20h28M20 10v28"/><circle cx="30" cy="29" r="4"/>',
-    '<path d="M24 8c8 0 14 6 14 14 0 10-14 18-14 18S10 32 10 22c0-8 6-14 14-14z"/><path d="M17 22h14"/>',
-    '<path d="M12 13h24l-3 22H15z"/><path d="M18 18h12M18 24h9M18 30h6"/>',
-    '<path d="M9 25h8l4-12 6 22 4-10h8"/><circle cx="9" cy="25" r="2"/><circle cx="39" cy="25" r="2"/>',
-    '<path d="M8 34 18 14l7 13 7-9 8 16"/><path d="m31 12 1 6 6-1"/>',
-    '<circle cx="24" cy="24" r="15"/><path d="M24 9v8l7 7-7 7v8M9 24h8M31 24h8"/>',
-    '<path d="M10 36h28M14 31h20M18 26h12M22 21h4"/><path d="M24 8v13"/>',
-    '<path d="M8 14h32M8 24h32M8 34h32"/><circle cx="15" cy="14" r="4"/><circle cx="31" cy="24" r="4"/><circle cx="21" cy="34" r="4"/>'
-  ];
-  var body=motifs[h%motifs.length];
-  var badge=(h>>5)%8;
-  var accents=[
-    '<circle cx="39" cy="9" r="2"/>','<path d="m36 7 5 5"/>','<path d="M36 8h6v6"/>','<circle cx="9" cy="39" r="2"/>',
-    '<path d="m7 36 5 5"/>','<path d="M6 34h7v7"/>','<path d="M38 7v7M34 11h8"/>','<path d="M7 8h8"/>'
-  ];
-  return '<svg '+common+'>'+body+accents[badge]+'</svg>';
+  // Keep mechanics that already communicate instantly.
+  if (/higher.?lower/i.test(key)) return '<svg '+common+'><path d="M14 31V13m0 0-6 6m6-6 6 6M34 17v18m0 0-6-6m6 6 6-6"/><path d="M22 24h4"/></svg>';
+  if (/speed|blitz|timer|quick|rapid/i.test(key)) return '<svg '+common+'><path d="M27 6 15 26h9l-4 16 14-23h-9z"/></svg>';
+
+  var v=Math.abs(hashStr((id||title)+'|reads-core-icons-v1'))%5;
+  var reads='<path d="M20 18h8c4 0 6 2 6 5s-2 5-6 5h-8z"/><path d="M27 28l7 8"/>';
+  var body='';
+  if(v===0){ // helmet + Reads R
+    body='<path d="M8 27c0-11 7-18 18-18 8 0 14 4 17 10l-8 5v10H23v-7H8z"/><path d="M35 24h8"/>'+reads;
+  }else if(v===1){ // standalone Reads badge
+    body='<rect x="8" y="8" width="32" height="32" rx="10"/>'+reads;
+  }else if(v===2){ // football + Reads R
+    body='<path d="M10 30c3-12 13-20 28-20 1 14-7 24-20 28-4-1-7-4-8-8z"/><path d="M20 18l10 10M23 16l9 9M18 23l9 9"/>'+reads;
+  }else if(v===3){ // jersey + Reads R
+    body='<path d="m15 10 9 4 9-4 8 8-6 6v15H13V24l-6-6z"/>'+reads;
+  }else{ // trophy
+    body='<path d="M16 9h16v8c0 8-3 13-8 16-5-3-8-8-8-16z"/><path d="M12 12H8c0 8 3 11 9 11M36 12h4c0 8-3 11-9 11M24 33v5M18 40h12"/>';
+  }
+  return '<svg '+common+'>'+body+'</svg>';
 }
 function modeLogoSvg(m) {
   var id = String((m && m.id) || '');
@@ -4502,7 +4497,7 @@ function modeLogoSvg(m) {
     // Do not collapse the long-tail catalog into one generic scroll/card
     // symbol. These are intentionally large-shape variants keyed by the
     // individual game, so adjacent modes remain visibly distinct at 48px.
-    return uniqueModeGlyphSvg(m);
+    return readsGameIdentitySvg(m);
   }
 
   var signature = [
