@@ -183,3 +183,72 @@ def test_chain_compiler_embeds_clue_plan():
     q=compile_chain(chain,"THREE_CLUES",difficulty_band="HARD",current_season=2026)
     assert q["compiler_version"]=="1.1.0"
     assert q["clue_plan"]["difficulty_band"]=="HARD"
+
+
+def _verified_player_chain():
+    from tools.director_v05.chain_engine import Hop, build_chain
+    return build_chain("NFL_PLAYER","p1",[
+        Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+        Hop("ALL_PRO","p1","FIRST_TEAM",2023,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+    ])
+
+
+def test_story_chain_fuses_verified_event_and_career_evidence():
+    from tools.director_v05.story_chain import compile_story_chain
+    event={
+      "event_id":"evt_1","event_type":"MEDIA_EVENT","league":"NFL","event_date":"2024-10-01",
+      "title":"A bizarre verified football moment","neutral_summary":"A documented odd event occurred.",
+      "source_url":"https://example.com/story","source_publisher":"Example","source_date":"2024-10-02",
+      "evidence_tier":"REPUTABLE_MEDIA","verification_status":"VERIFIED",
+      "subjects":[{"subject_type":"player","subject_id":"p1"}],
+    }
+    material=compile_story_chain(event,_verified_player_chain(),"THREE_CLUES")
+    assert material["material_type"]=="STORY_CHAIN"
+    assert material["answer"]["id"]=="p1"
+    assert material["answer_provenance_required"] is True
+    assert len(material["clues"])==3
+    assert material["reveal"]["title"]==event["title"]
+    assert "title" not in material["clues"][-1]
+
+
+def test_story_chain_rejects_unverified_event():
+    import pytest
+    from tools.director_v05.story_chain import compile_story_chain
+    event={
+      "event_id":"evt_2","event_type":"MEDIA_EVENT","league":"NFL",
+      "source_url":"https://example.com/story","source_publisher":"Example",
+      "evidence_tier":"REPUTABLE_MEDIA","verification_status":"PENDING",
+      "subjects":[{"subject_type":"player","subject_id":"p1"}],
+    }
+    with pytest.raises(ValueError,match="VERIFIED"):
+        compile_story_chain(event,_verified_player_chain(),"WHO_AM_I")
+
+
+def test_story_chain_requires_event_subject_to_match_answer():
+    import pytest
+    from tools.director_v05.story_chain import compile_story_chain
+    event={
+      "event_id":"evt_3","event_type":"MEDIA_EVENT","league":"NFL",
+      "source_url":"https://example.com/story","source_publisher":"Example",
+      "evidence_tier":"REPUTABLE_MEDIA","verification_status":"VERIFIED",
+      "subjects":[{"subject_type":"player","subject_id":"different-player"}],
+    }
+    with pytest.raises(ValueError,match="subject does not match"):
+        compile_story_chain(event,_verified_player_chain(),"WHO_AM_I")
+
+
+def test_sensitive_story_chain_preserves_legal_stage_without_inferring_guilt():
+    from tools.director_v05.story_chain import compile_story_chain
+    event={
+      "event_id":"evt_4","event_type":"CHARGE","league":"NFL","event_date":"2024-01-01",
+      "title":"Documented legal event","neutral_summary":"A charge was filed; no disposition is implied.",
+      "source_url":"https://example.com/court","source_publisher":"Example Court",
+      "evidence_tier":"AUTHORITATIVE","verification_status":"VERIFIED",
+      "legal_stage":"CHARGED","sensitive":True,
+      "subjects":[{"subject_type":"player","subject_id":"p1"}],
+    }
+    material=compile_story_chain(event,_verified_player_chain(),"THREE_CLUES")
+    assert material["story"]["legal_stage"]=="CHARGED"
+    assert material["requires_precise_legal_language"] is True
+    assert material["no_guilt_inference"] is True
+    assert material["clues"][-1]["legal_stage"]=="CHARGED"
