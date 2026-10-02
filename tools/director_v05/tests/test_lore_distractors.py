@@ -96,3 +96,30 @@ def test_weak_pool_fails_closed():
               ("p1","Only Player",2020,1,1,"AAA","SOURCE_BACKED"))
     with pytest.raises(ValueError, match="INSUFFICIENT_DEEP_LORE_DISTRACTORS"):
         nfl_lore_distractors(c, "p1", k=3)
+
+
+def test_options_are_not_fixed_to_first_slot_and_are_deterministic():
+    c = _conn()
+    _seed(c)
+    q = {
+        "question_id":"q-shuffle",
+        "question":"Who am I?",
+        "difficulty_band":"HARD",
+        "answer":{"id":"p1","label":"Correct Player","type":"NFL_PLAYER"},
+        "clues":[{"text":"I was drafted in 2020."}],
+    }
+    a = attach_deep_lore_options(c, q)
+    b = attach_deep_lore_options(c, q)
+    assert a["options"] == b["options"]
+    assert sorted(a["options"]) == sorted(["Correct Player"] + [d["label"] for d in a["distractors"]])
+    assert a["options"].count("Correct Player") == 1
+
+
+def test_sicko_uses_closer_distractors_than_casual():
+    c = _conn()
+    _seed(c)
+    casual = nfl_lore_distractors(c, "p1", k=3, difficulty_band="CASUAL")
+    sicko = nfl_lore_distractors(c, "p1", k=3, difficulty_band="SICKO")
+    casual_avg = sum(d["score"] for d in casual["selected"]) / 3
+    sicko_avg = sum(d["score"] for d in sicko["selected"]) / 3
+    assert sicko_avg >= casual_avg
