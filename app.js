@@ -3152,7 +3152,7 @@ function gameArtHtml(m, extraClass){
   // for 20-40 games). Cropping and enlarging a cell on Retina screens makes
   // it visibly blurry. Use the resolution-independent per-game SVG identity
   // for rendered cards; keep atlas metadata only for backward compatibility.
-  return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true"><span class="reads-game-art-vector-mark">'+modeLogoSvg(m)+'</span></span>';
+  return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true"><span class="reads-game-art-vector-mark">'+modeMarkHtml(m,'xl')+'</span></span>';
 }
 /* Reads-owned custom game artwork is the primary visual identity. The four
    committed WebP atlases cover the 100-format catalog; use them directly so
