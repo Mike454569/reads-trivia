@@ -77,3 +77,21 @@ def test_story_recipe_requires_verified_evidence():
     r=compile_recipe("ABSURD_STORIES","THREE_CLUES",league="NFL")
     assert r["source"]=="events"
     assert r["requires_verified_evidence"] is True
+
+
+def test_legacy_bridge_stable_fact_ids():
+    import sqlite3
+    from tools.director_v05.legacy_bridge import iter_facts
+    conn=sqlite3.connect(":memory:"); conn.row_factory=sqlite3.Row
+    conn.execute("CREATE TABLE games(game_id TEXT,season INT,week INT,game_type TEXT,game_date TEXT,away_team TEXT,away_score INT,home_team TEXT,home_score INT,source_id TEXT)")
+    conn.execute("INSERT INTO games VALUES('g1',2025,1,'REG','2025-09-01','A',10,'B',20,'NFLVERSE_DATA')")
+    a=list(iter_facts(conn,"nfl_games")); b=list(iter_facts(conn,"nfl_games"))
+    assert a[0]["fact_id"]==b[0]["fact_id"]
+    assert a[0]["kind"]=="GAME_RESULT"
+
+def test_relationship_traversal_is_allowlisted():
+    import sqlite3, pytest
+    from tools.director_v05.relationships import traverse
+    conn=sqlite3.connect(":memory:")
+    with pytest.raises(ValueError):
+        traverse(conn,"DROP_TABLES","x")
