@@ -5,6 +5,7 @@ from collections import Counter
 
 from .lore_chains import discover_lore_chains, compile_lore_chain_variants
 from .lore_distractors import attach_deep_lore_options
+from .lore_rotation import select_rotated_questions, question_lore_profile
 
 
 def _signature(question):
@@ -24,6 +25,8 @@ def build_lore_question_bank(
     max_per_signature=3,
     with_options=True,
     recent_distractor_ids=(),
+    recent_families=(),
+    max_sensitive=1,
 ):
     """Compile a diverse bank from ranked chains while enforcing session freshness."""
     target = max(1, min(int(target), 500))
@@ -72,9 +75,11 @@ def build_lore_question_bank(
 
     answer_counts = Counter()
     signature_counts = Counter()
-    selected = []
+    eligible = []
     seen_events = set()
 
+    # First enforce hard anti-repeat constraints. Rotation happens only among
+    # questions that are already safe to serve.
     for q in candidates:
         answer_id = str((q.get("answer") or {}).get("id") or "")
         if not answer_id:
@@ -91,17 +96,36 @@ def build_lore_question_bank(
             for h in ((q.get("provenance") or {}).get("chain") or {}).get("hops", [])
             if h.get("object_type") == "EVENT"
         }
-        # Avoid repeating the exact same lore event inside one generated bank.
         if event_ids and event_ids & seen_events:
             continue
 
-        selected.append(q)
+        eligible.append(q)
         answer_counts[answer_id] += 1
         signature_counts[sig] += 1
         seen_events.update(event_ids)
 
-        if len(selected) >= target:
-            break
+    rotation = select_rotated_questions(
+        conn,
+        eligible,
+        target=target,
+        recent_families=recent_families,
+        max_sensitive=max_sensitive,
+        require_league_balance=True,
+    )
+    selected = rotation["selected"]
+
+    # Recompute final-bank metrics after rotation so reporting reflects what
+    # was actually selected, not the larger eligible pool.
+    final_answers = {str((q.get("answer") or {}).get("id") or "") for q in selected}
+    final_signatures = {_signature(q) for q in selected}
+    final_events = set()
+    family_counts = Counter()
+    league_counts = Counter()
+    for q in selected:
+        profile = question_lore_profile(conn, q)
+        family_counts.update(profile["families"])
+        league_counts.update(profile["leagues"])
+        final_events.update(profile["event_ids"])
 
     return {
         "difficulty_band": str(difficulty_band).upper(),
@@ -109,9 +133,13 @@ def build_lore_question_bank(
         "selected": selected,
         "selected_count": len(selected),
         "candidate_count": len(candidates),
-        "unique_answers": len(answer_counts),
-        "unique_clue_signatures": len(signature_counts),
-        "unique_events": len(seen_events),
+        "unique_answers": len(final_answers),
+        "unique_clue_signatures": len(final_signatures),
+        "unique_events": len(final_events),
+        "family_counts": dict(family_counts),
+        "league_counts": dict(league_counts),
+        "sensitive_count": rotation["sensitive_count"],
+        "available_family_counts": rotation["available_family_counts"],
         "with_options": bool(with_options),
     }
 
