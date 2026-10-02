@@ -5365,11 +5365,14 @@ function openModeSheet(league) {
     itemsEl.innerHTML =
       (favTeam ? '<button class="mode-sheet-your-team" data-team-picker-toggle><span class="team-picker-swatch" style="' + teamSwatchStyle(favTeam) + '"></span>Your team: ' + esc(favTeam.name) + (favTeam.chant ? ' — ' + esc(favTeam.chant) : '') + '</button>' : '') +
       LEAGUE_MODES[league].map(function (m) {
-        var art=gameArtHtml(m,'mode-sheet-art');
-        // One approved custom logo per row. CSS constrains the sprite to the
-        // icon slot so it cannot recreate the old oversized/clipped layer.
-        return '<button class="mode-sheet-item'+(art?' has-art':'')+'" data-go="' + m.id + '"><span class="msi-icon">' + (art||modeMarkHtml(m, 'sm')) + '</span><span class="msi-text">' + esc(m.title) +
-          '<span class="msi-desc">' + esc(m.desc) + '</span></span></button>';
+        // The navigation sheet is a picker, not a gallery. Use the unique
+        // mechanic mark here; full custom artwork stays on discovery cards.
+        // This keeps rows legible and prevents tiny atlas crops from becoming
+        // muddy/repetitive navigation icons.
+        var family=formatHubFamily(m).replace(/_/g,' ');
+        var difficulty=MODE_DIFFICULTY_LABEL[m.difficulty]||'Open';
+        return '<button class="mode-sheet-item" data-go="' + m.id + '"><span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text"><span class="msi-title">' + esc(m.title) + '</span>'+
+          '<span class="msi-meta">'+esc(family)+' · '+esc(difficulty)+'</span><span class="msi-desc">' + esc(m.desc) + '</span></span><span class="msi-chevron" aria-hidden="true">›</span></button>';
       }).join('');
   }
   var sheet = document.getElementById('mode-sheet');
