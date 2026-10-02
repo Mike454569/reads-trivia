@@ -3154,32 +3154,10 @@ function gameArtHtml(m, extraClass){
   // for rendered cards; keep atlas metadata only for backward compatibility.
   return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true"><span class="reads-game-art-vector-mark">'+modeMarkHtml(m,'xl')+'</span></span>';
 }
-/* Reads-owned custom game artwork is the primary visual identity. The four
-   committed WebP atlases cover the 100-format catalog; use them directly so
-   cards and mode navigation show the approved artwork instead of generic
-   generated SVG marks. */
-var readsGameArtLoading=false;
-function loadReadsGameArt(){
-  if(readsGameArtLoading || typeof document==='undefined')return;
-  readsGameArtLoading=true;
-  var root=document.documentElement;
-  root.style.setProperty('--reads-game-art-1','url("assets/game-art/reads-game-art-01-40.webp")');
-  root.style.setProperty('--reads-game-art-2','url("assets/game-art/reads-game-art-41-60.webp")');
-  root.style.setProperty('--reads-game-art-3','url("assets/game-art/reads-game-art-61-80.webp")');
-  root.style.setProperty('--reads-game-art-4','url("assets/game-art/reads-game-art-81-100.webp")');
-  // Strategy/arcade formats 61-100 use their own approved atlas. This was
-  // accidentally omitted when raster art was restored, forcing those modes
-  // back onto repeated generic marks.
-  Promise.all(READS_GAME_ART_CHUNKS[5].map(function(path){
-    return fetch(path,{cache:'force-cache'}).then(function(resp){
-      if(!resp.ok) throw new Error('strategy game art '+path);
-      return resp.text();
-    });
-  })).then(function(parts){
-    root.style.setProperty('--reads-game-art-5','url("data:image/webp;base64,'+parts.join('').trim()+'")');
-  }).catch(function(err){ console.warn('Reads strategy game art failed to load',err); });
-}
-if(typeof window!=='undefined') setTimeout(loadReadsGameArt,0);
+/* Game-card identity is vector-only. Legacy raster atlas metadata may remain
+   elsewhere for backward compatibility, but rendered cards do not fetch,
+   decode, or enlarge sprite assets. */
+
 
 var formatHubState = { query: '', league: 'all', difficulty: 'all', family: 'all', newOnly: false };
 
