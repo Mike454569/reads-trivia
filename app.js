@@ -5345,7 +5345,10 @@ function openModeSheet(league) {
     itemsEl.innerHTML =
       (favTeam ? '<button class="mode-sheet-your-team" data-team-picker-toggle><span class="team-picker-swatch" style="' + teamSwatchStyle(favTeam) + '"></span>Your team: ' + esc(favTeam.name) + (favTeam.chant ? ' — ' + esc(favTeam.chant) : '') + '</button>' : '') +
       LEAGUE_MODES[league].map(function (m) {
-        var art=gameArtHtml(m,'mode-sheet-art'); return '<button class="mode-sheet-item'+(art?' has-art':'')+'" data-go="' + m.id + '">'+art+'<span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text">' + esc(m.title) +
+        // Bottom-sheet rows use one compact identity mark only. Full game art
+        // belongs on discovery cards; injecting it here created a second,
+        // oversized/clipped logo layer behind the row on mobile.
+        return '<button class="mode-sheet-item" data-go="' + m.id + '"><span class="msi-icon">' + modeMarkHtml(m, 'sm') + '</span><span class="msi-text">' + esc(m.title) +
           '<span class="msi-desc">' + esc(m.desc) + '</span></span></button>';
       }).join('');
   }
