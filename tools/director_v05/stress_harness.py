@@ -46,11 +46,20 @@ def _draft_context(c,player_id):
     pool=nfl_draft_same_round_era(c,season=r["draft_season"],round_no=r["draft_round"],exclude_player_id=player_id)
     return correct,pool,{player_id}
 
-def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAULT_MAX_PLAYERS):
+def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAULT_MAX_PLAYERS,populate=True):
     c=engine_bootstrap.connect()
     started=time.time()
+    population={}
+    if populate:
+        try:
+            from .populate_existing_lore import populate_existing
+            from .draft_intelligence import derive_nfl_draft_intelligence
+            population["existing"]=populate_existing(c)
+            population["draft_intelligence"]=derive_nfl_draft_intelligence(c)
+        except Exception as exc:
+            population["error"]=type(exc).__name__+":"+str(exc)
     report={
-      "version":"1.0.0","bridge":bridge_report(c),"facts":{},"chains":{},
+      "version":"1.1.0","population":population,"bridge":bridge_report(c),"facts":{},"chains":{},
       "questions":{},"failures":{},"timing":{}
     }
     # Bridge scan: validates every configured adapter can actually yield rows.
