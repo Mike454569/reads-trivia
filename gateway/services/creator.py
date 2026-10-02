@@ -255,6 +255,7 @@ _NEW_TAXONOMY_TITLES = {
     "CATEGORY_ROULETTE": "Category Roulette",
     "COMMON_LINK": "Common Link",
     "STRATEGY_ARCADE": "Strategy Arcade",
+    "DEEP_LORE_GUESS": "Deep Football Lore",
 }
 
 
@@ -370,6 +371,13 @@ def _generate_new_taxonomy(bridged: dict, *, seed: str | None) -> dict:
     elif taxonomy_id == "COMMON_LINK":
         package = mechanic_engine.generate_common_link_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 8), seed=real_seed)
+    elif taxonomy_id == "DEEP_LORE_GUESS":
+        from tools.director_v05 import lore_package
+        package = lore_package.build_package(
+            seed=real_seed,
+            target_count=gen_kwargs.get("round_count", gen_kwargs.get("question_count", 5)),
+            difficulty=gen_kwargs.get("difficulty", "medium"),
+        )
     else:  # STRATEGY_ARCADE
         package = mechanic_engine.generate_strategy_arcade_round(
             variant=variant, round_count=gen_kwargs.get("round_count", 24), seed=real_seed)
