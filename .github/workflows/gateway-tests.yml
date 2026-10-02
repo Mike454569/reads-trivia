@@ -62,6 +62,9 @@ jobs:
         run: |
           python -m pytest gateway/tests/test_100_format_audit.py gateway/tests/test_100_format_discovery_hub.py gateway/tests/test_100_format_production_closeout.py gateway/tests/test_football_101_question_depth.py gateway/tests/test_strategy_arcade_wave2.py gateway/tests/test_strategy_arcade_wave3.py gateway/tests/test_strategy_arcade_wave4.py gateway/tests/test_strategy_arcade_wave5.py -q
 
+      - name: Run universal engine v05 contracts
+        run: python -m pytest tests/test_director_v05_universal.py -q
+
       - name: Run gateway test suite (DB-independent subset)
         env:
           READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
