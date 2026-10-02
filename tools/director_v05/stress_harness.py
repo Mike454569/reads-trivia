@@ -56,6 +56,11 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             from .draft_intelligence import derive_nfl_draft_intelligence
             population["existing"]=populate_existing(c)
             population["draft_intelligence"]=derive_nfl_draft_intelligence(c)
+            try:
+                from .populate_nfl_trades import populate_nfl_trades
+                population["trades"]=populate_nfl_trades(c)
+            except Exception as trade_exc:
+                population["trades_error"]=type(trade_exc).__name__+":"+str(trade_exc)
         except Exception as exc:
             population["error"]=type(exc).__name__+":"+str(exc)
     report={
