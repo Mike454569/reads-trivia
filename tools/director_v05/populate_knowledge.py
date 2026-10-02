@@ -7,6 +7,7 @@ from .draft_intelligence import derive_nfl_draft_intelligence
 from .story_mining import mine_nfl_games
 from .pbp_story_mining import mine_nfl_pbp
 from .game_chaos_mining import mine_nfl_game_chaos
+from .cfb_pbp_story_mining import mine_cfb_pbp
 from .lore_coverage import coverage
 from .lore_trivia import lore_gameplay_report
 from .lore_mechanics import advanced_lore_report
