@@ -104,8 +104,13 @@ _TTT_LINES = ((0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6))
 def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
+    # Startup latency matters more than pre-generating a full theoretical
+    # Connect Four board. Wave 3's own QA contract requires 18 real questions;
+    # every state machine can safely cycle the immutable pool via core._round.
+    # Building 42 Deep Ball questions synchronously made live rounds exceed
+    # the frontend's 10s timeout on production.
     source = category_roulette.build_package(
-        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(42, round_count)
+        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(18, round_count)
     )
     rounds = source.get("rounds") or []
     package_id = "GGP39:" + hashlib.sha256(
