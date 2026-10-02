@@ -315,6 +315,110 @@ def cfb_lore_distractors(
     }
 
 
+def _coach_profile(conn, coach_id):
+    tables = _tables(conn)
+    sid = str(coach_id)
+    era = None
+    team = None
+    numeric = None
+    if "coach_team_seasons" in tables:
+        r = conn.execute(
+            """SELECT team_code,MAX(season) last_season,COUNT(DISTINCT season) seasons
+               FROM coach_team_seasons
+               WHERE coach_id=? AND verification_status='SOURCE_BACKED'
+               GROUP BY team_code
+               ORDER BY seasons DESC,last_season DESC LIMIT 1""",
+            (sid,),
+        ).fetchone()
+        if r:
+            era = r["last_season"]
+            team = r["team_code"]
+            numeric = float(r["seasons"] or 0)
+    return Candidate(
+        sid,
+        resolve_label(conn, "COACH", sid),
+        era,
+        "COACH",
+        team,
+        None,
+        numeric,
+        True,
+    )
+
+
+def _coach_candidate_ids(conn, correct_id, profile, *, limit=1000):
+    tables = _tables(conn)
+    ids = set()
+    if "coach_team_seasons" not in tables:
+        return []
+
+    if profile.era is not None:
+        rows = conn.execute(
+            """SELECT DISTINCT coach_id
+               FROM coach_team_seasons
+               WHERE verification_status='SOURCE_BACKED'
+                 AND coach_id<>?
+                 AND season BETWEEN ? AND ?
+               ORDER BY coach_id
+               LIMIT ?""",
+            (str(correct_id), int(profile.era)-5, int(profile.era)+5, int(limit)),
+        ).fetchall()
+        ids.update(str(r["coach_id"]) for r in rows)
+
+    if profile.team_or_school:
+        rows = conn.execute(
+            """SELECT DISTINCT coach_id
+               FROM coach_team_seasons
+               WHERE verification_status='SOURCE_BACKED'
+                 AND team_code=? AND coach_id<>?
+               ORDER BY season DESC
+               LIMIT ?""",
+            (profile.team_or_school, str(correct_id), int(limit)),
+        ).fetchall()
+        ids.update(str(r["coach_id"]) for r in rows)
+
+    return sorted(ids)
+
+
+def coach_lore_distractors(
+    conn,
+    correct_coach_id,
+    *,
+    all_correct_ids=(),
+    recent_distractor_ids=(),
+    k=3,
+    difficulty_band="HARD",
+):
+    """Select plausible coach distractors from shared team history and era."""
+    correct = _coach_profile(conn, correct_coach_id)
+    pool = []
+    for cid in _coach_candidate_ids(conn, correct_coach_id, correct):
+        candidate = _coach_profile(conn, cid)
+        if candidate.label == candidate.entity_id:
+            continue
+        pool.append(candidate)
+
+    selected = select_distractors(
+        correct,
+        pool,
+        k=max(k, 10),
+        forbidden_ids=all_correct_ids,
+        recent_ids=recent_distractor_ids,
+    )
+    band, selected = _calibrate(selected, k=k, difficulty_band=difficulty_band)
+    problem = validate_distractors(correct, selected, all_correct_ids=all_correct_ids)
+    if problem:
+        raise ValueError(problem)
+    if len(selected) < k:
+        raise ValueError("INSUFFICIENT_DEEP_LORE_DISTRACTORS")
+    return {
+        "correct": correct,
+        "selected": selected,
+        "pool_size": len(pool),
+        "difficulty_band": band,
+    }
+
+
 def _ordered_options(question_id, labels):
     """Deterministically shuffle options so the correct answer has no fixed slot."""
     return sorted(
@@ -338,11 +442,15 @@ def attach_deep_lore_options(
     answer_type = str(answer.get("type") or "")
     answer_id = str(answer.get("id") or "")
 
-    if answer_type not in {"NFL_PLAYER", "CFB_PLAYER"}:
+    if answer_type not in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}:
         raise ValueError("DEEP_LORE_DISTRACTORS_UNSUPPORTED_ANSWER_TYPE")
 
     band = str(difficulty_band or question.get("difficulty_band") or "HARD").upper()
-    fn = nfl_lore_distractors if answer_type == "NFL_PLAYER" else cfb_lore_distractors
+    fn = {
+        "NFL_PLAYER": nfl_lore_distractors,
+        "CFB_PLAYER": cfb_lore_distractors,
+        "COACH": coach_lore_distractors,
+    }[answer_type]
     result = fn(
         conn,
         answer_id,
