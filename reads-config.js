@@ -193,5 +193,9 @@ window.READS_CONFIG = {
   enableEngineSixDegreesChainPilot: true,
   enableEngineChainReactionPilot: true,
   enableEngineChooseYourPathPilot: true,
+,
+  // Filled only from production-size launch certification. Public mechanic
+  // cards/routes fail closed when a mode is absent from this list.
+  publicMechanicLaunchCertifiedModes: []
 
 };
