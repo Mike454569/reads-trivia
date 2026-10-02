@@ -105,7 +105,11 @@ jobs:
   # PRODUCTION_STATUS.md's CI section for the exact remaining step. Until
   # that secret exists, this job is skipped (not failing) rather than red.
   integration-tests-with-real-db:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    # The multi-GB Fly volume fork is a diagnostic full-coverage run, not a
+    # per-push merge/deploy gate. Fly volume forks can fail independently of
+    # application code. Run it explicitly or on the daily schedule; the
+    # certified DB contract job remains the deterministic per-push DB gate.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
