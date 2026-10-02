@@ -44,6 +44,14 @@ def certify(*, seeds_per_band=10, target_count=3):
                     f"shortfall: requested {target_count}, got {package.get('question_count', 0)}"
                 )
 
+            diagnostics = package.get("_diagnostics") or {}
+            draft_fraction = float(diagnostics.get("draft_fraction") or 0.0)
+            story_fraction = float(diagnostics.get("story_fraction") or 0.0)
+            if draft_fraction > 0.25:
+                violations.append(f"draft-heavy mix: {draft_fraction:.3f} > 0.25")
+            if package.get("question_count", 0) >= 3 and story_fraction < 0.40:
+                violations.append(f"story-light mix: {story_fraction:.3f} < 0.40")
+
             for q in package.get("questions") or []:
                 options = q.get("options") or []
                 answer = str(q.get("answer") or "")
