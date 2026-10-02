@@ -32,6 +32,16 @@ ADAPTERS={
   "columns":("selection_id","season","position_raw","player_id","player_name_raw","honor_level","source_id","verification_status"),
   "where":"is_ap=1","verification":"WIKIPEDIA_STRUCTURED_SECONDARY",
  },
+ "nfl_player_game_stats":{
+  "table":"player_game_stats","kind":"GAME_STAT","id":None,
+  "columns":("game_id","player_key","team_code","season","week","pass_yards","rush_yards","receiving_yards","source_id","verification_status"),
+  "where":"1=1","verification":"SOURCE_BACKED",
+ },
+ "cfb_player_game_stats":{
+  "table":"cfb_player_game_stats_real","kind":"GAME_STAT","id":None,
+  "columns":("game_id","cfb_player_id","player_name","school_id","season","passing_yards","rushing_yards","receiving_yards","source_id","verification_status"),
+  "where":"1=1","verification":"SOURCE_BACKED_DERIVED",
+ },
  "nfl_pro_bowl":{
   "table":"nfl_pro_bowl_selections","kind":"AWARD","id":"selection_id",
   "columns":("selection_id","season","position_raw","player_name_raw","tier","source_id","verification_status"),
