@@ -77,6 +77,11 @@ from tools.director_v02.generate_schema_and_prompt import verify_anthropic_promp
 print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
 PY
 
+# 100-format rollout gate: every unique server target used by the 100
+# distinct player-facing formats must produce a playable first state on the
+# production-sized DB fork inside the browser launch budget.
+python -m pytest gateway/tests/test_100_format_real_launch.py -vv --tb=short
+
 # The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
 # removes duplicate work and lets Fly surface real integration regressions.
