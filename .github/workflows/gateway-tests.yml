@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "17 8 * * *"
   push:
-    branches: [main, feature/retention-moat-upgrades]
+    branches: [main, feature/retention-moat-upgrades, fix/live-home-feeds]
     paths:
       - "gateway/**"
       - "tools/**"
@@ -53,6 +53,27 @@ jobs:
       # once, in the Lineup Concurrency pass -- see PRODUCTION_STATUS.md).
       # Verified locally against a simulated fresh checkout (no DB
       # present): 435 passed, 670 skipped, 0 failed.
+      - name: Smoke live customer routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://reads-football-gateway.fly.dev"
+          smoke() {
+            name="$1"; url="$2"
+            start=$(date +%s%3N)
+            code=$(curl -sS -o "/tmp/$name.json" -w "%{http_code}" --max-time 12 "$url" || true)
+            end=$(date +%s%3N)
+            ms=$((end-start))
+            echo "SMOKE $name status=$code ms=$ms"
+            head -c 1200 "/tmp/$name.json" || true
+            echo
+            test "$code" = "200"
+            test "$ms" -lt 10000
+          }
+          smoke cfb_pickem "$base/v1/public/pickem/CFB?slate=FULL&client_id=smoketest"
+          smoke nfl_pickem "$base/v1/public/pickem/NFL?client_id=smoketest"
+          smoke mechanic "$base/v1/public/mechanics/round?mode=matching_mixed"
+
       - name: Audit distinct game formats
         run: python tools/audit_game_formats.py
 
