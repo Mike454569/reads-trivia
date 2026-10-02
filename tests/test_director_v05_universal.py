@@ -340,3 +340,41 @@ def test_chain_compiler_fails_closed_without_three_plausible_distractors():
         compile_chain(chain,"MULTIPLE_CHOICE",
           correct_candidate=Candidate("p1","Alpha",2020),
           distractor_candidates=[Candidate("p2","Bravo",2020),Candidate("p3","Charlie",2020)])
+
+
+def test_question_assembler_blocks_future_leakage():
+    import pytest
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.chain_compiler import compile_chain
+    from tools.director_v05.question_assembler import assemble
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+    ])
+    compiled=compile_chain(chain,"THREE_CLUES")
+    with pytest.raises(ValueError,match="TEMPORAL_LEAKAGE"):
+        assemble(compiled,answer_label="Alpha",labels={"PIT":"Pittsburgh"},as_of_season=2021,retrospective=False)
+
+def test_final_qa_rejects_answer_leakage_and_ambiguity():
+    from tools.director_v05.final_qa import validate_question
+    q={"question_id":"q1","question":"Who am I?","clues":["I played with Alpha."],
+       "answer":{"id":"p1","label":"Alpha","type":"NFL_PLAYER"},"options":[],
+       "provenance":{"provenance_complete":True}}
+    r=validate_question(q,valid_answer_ids={"p1","p2"})
+    assert r["status"]=="FAILED"
+    assert "ANSWER_LEAKAGE" in r["errors"]
+    assert "AMBIGUOUS_FINAL_ANSWER_SET" in r["errors"]
+
+def test_one_call_question_pipeline_returns_playable_contract():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.question_pipeline import build_question
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+    ])
+    q=build_question(chain,"THREE_CLUES",answer_label="Alpha",
+                     labels={"PIT":"Pittsburgh","FIRST_TEAM":"First-Team"},
+                     valid_answer_ids={"p1"})
+    assert q["contract_version"]=="1.0.0"
+    assert q["answer"]["id"]=="p1"
+    assert len(q["clues"])==2
