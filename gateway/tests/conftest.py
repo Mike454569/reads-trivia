@@ -154,6 +154,10 @@ _CI_IMPORT_TIME_DB_MODULES = {
     "test_confidence_pick.py",
     "test_nl_schedule_driven_routing.py",
     "test_weekly_pickem.py",
+    # This module validates the synthetic certified fixture itself. The
+    # certified-db-smoke job builds that fixture and runs the file directly;
+    # the ordinary DB-independent job must not run it against an empty DB.
+    "test_certified_ci_fixture.py",
 }
 
 
