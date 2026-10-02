@@ -181,7 +181,7 @@ def test_chain_compiler_embeds_clue_plan():
       Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
     ])
     q=compile_chain(chain,"THREE_CLUES",difficulty_band="HARD",current_season=2026)
-    assert q["compiler_version"]=="1.1.0"
+    assert q["compiler_version"]=="1.2.0"
     assert q["clue_plan"]["difficulty_band"]=="HARD"
 
 
