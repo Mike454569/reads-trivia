@@ -929,7 +929,7 @@ PUBLIC_MODES: Dict[str, Dict[str, Any]] = {
 # caller might reasonably expect to exist. Kept as literal, hand-verified
 # strings (not derived from the registry) so this file never accidentally
 # expands the public surface just because a new internal capability ships.
-KNOWN_NOT_YET_PUBLIC_MODES = frozenset({"player_from_clues"})
+KNOWN_NOT_YET_PUBLIC_MODES = frozenset({"player_from_clues", "deep_lore_guess"})
 
 assert set(PUBLIC_MODES) == config.PUBLIC_MODE_ALLOWLIST, (
     "PUBLIC_MODES and config.PUBLIC_MODE_ALLOWLIST have drifted apart -- these must name the same modes."
