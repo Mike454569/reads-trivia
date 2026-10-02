@@ -92,11 +92,23 @@ _CFP_ROUND_TO_TOKEN = {
 _TOKEN_TO_CFP_ROUND = {v: k for k, v in _CFP_ROUND_TO_TOKEN.items()}
 
 
-def safety_check(c) -> dict:
+def safety_check(c, *, variant: str | None = None, season: int | None = None) -> dict:
+    """Runtime package safety for only the rows this request can consume.
+
+    Full-history exhaustive provenance remains a CI/deploy certification
+    concern. A weekly public request must not rescan decades of unrelated
+    history on the live Fly volume before showing the player a slate.
+    """
     from tools.quiz_export import safety
+    nfl_where = f"season={int(season)}" if season is not None else None
+    cfb_where = f"season={int(season)}" if season is not None else None
     return {
-        "games": safety.check_source_id_only_safety(c, "games", "NFLVERSE_DATA"),
-        "cfb_games_canonical": safety.check_table_wide_safety(c, "cfb_games_canonical", "SPORTSDATAVERSE_CFB"),
+        "games": safety.check_source_id_only_safety(
+            c, "games", "NFLVERSE_DATA", where_extra=nfl_where
+        ),
+        "cfb_games_canonical": safety.check_table_wide_safety(
+            c, "cfb_games_canonical", "SPORTSDATAVERSE_CFB", where_extra=cfb_where
+        ),
     }
 
 
@@ -371,7 +383,7 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
 
     c = engine_bootstrap.connect()
     try:
-        safety_result = safety_check(c)
+        safety_result = safety_check(c, variant=variant, season=season)
         rows = _nfl_slate_rows(c, season, week) if variant == "NFL_WEEKLY_PICKEM" else _cfb_slate_rows(c, season, week)
         record_snapshots = _pregame_record_snapshots(c, variant, season, rows)
         ranks = {}
