@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from .distractor_intelligence import Candidate, select_distractors, validate_distractors
 from .entity_labels import resolve_label
+from .lore_answer_uniqueness import filter_ambiguous_distractors
 
 
 def _tables(conn):
@@ -154,14 +155,14 @@ def nfl_lore_distractors(
             continue
         pool.append(candidate)
 
-    selected = select_distractors(
+    ranked = select_distractors(
         correct,
         pool,
         k=max(k, 8),
         forbidden_ids=all_correct_ids,
         recent_ids=recent_distractor_ids,
     )
-    band, selected = _calibrate(selected, k=k, difficulty_band=difficulty_band)
+    band, selected = _calibrate(ranked, k=k, difficulty_band=difficulty_band)
     problem = validate_distractors(
         correct,
         selected,
@@ -175,6 +176,7 @@ def nfl_lore_distractors(
         "correct": correct,
         "selected": selected,
         "pool_size": len(pool),
+        "ranked": ranked,
     }
 
 
@@ -312,6 +314,7 @@ def cfb_lore_distractors(
         "selected": selected,
         "pool_size": len(pool),
         "difficulty_band": band,
+        "ranked": ranked,
     }
 
 
@@ -416,6 +419,7 @@ def coach_lore_distractors(
         "selected": selected,
         "pool_size": len(pool),
         "difficulty_band": band,
+        "ranked": ranked,
     }
 
 
@@ -459,16 +463,23 @@ def attach_deep_lore_options(
         k=3,
         difficulty_band=band,
     )
+    unambiguous, rejected = filter_ambiguous_distractors(
+        conn, question, result.get("ranked") or result["selected"], k=8
+    )
+    band, selected = _calibrate(unambiguous, k=3, difficulty_band=band)
+    if len(selected) < 3:
+        raise ValueError("INSUFFICIENT_UNAMBIGUOUS_DEEP_LORE_DISTRACTORS")
     options = _ordered_options(
         question.get("question_id"),
-        [answer["label"]] + [d["label"] for d in result["selected"]],
+        [answer["label"]] + [d["label"] for d in selected],
     )
 
     out = dict(question)
     out["mechanic"] = "MULTIPLE_CHOICE"
     out["question"] = "Who am I?"
     out["options"] = options
-    out["distractors"] = result["selected"]
+    out["distractors"] = selected
+    out["rejected_ambiguous_distractors"] = rejected
     out["distractor_pool_size"] = result["pool_size"]
     out["distractor_difficulty_band"] = band
     return out
