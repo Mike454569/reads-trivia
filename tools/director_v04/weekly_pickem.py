@@ -251,15 +251,25 @@ def _record_text(wins: int, losses: int, ties: int = 0) -> str:
     return f"{wins}-{losses}" + (f"-{ties}" if ties else "")
 
 
-def _is_current_cfb_week(c, season: int, week) -> bool:
-    if week in _CFB_POSTSEASON_WEEK_TOKENS:
+def _is_live_current_cfb_slate(season: int, season_type: str, kickoff_values) -> bool:
+    """Current Pick'em is date-driven, not schedule-week-driven.
+
+    Poll week numbers and schedule week numbers can legitimately drift.
+    Upcoming games in the current regular season should therefore use the
+    newest complete AP poll and the newest current-season record data.
+    Historical slates remain historical.
+    """
+    if season_type != "regular" or int(season) != datetime.now(timezone.utc).year:
         return False
-    try:
-        from tools.director_v04 import nl_schedule_bridge
-        current = nl_schedule_bridge.resolve_current_week(c, "CFB", season)
-    except Exception:
-        return False
-    return str(current) == str(week)
+    now = datetime.now(timezone.utc)
+    for raw in kickoff_values:
+        try:
+            dt = raw if isinstance(raw, datetime) else _cfb_kickoff(raw)
+        except Exception:
+            dt = None
+        if dt is not None and dt > now:
+            return True
+    return False
 
 
 def _current_cfb_standings_records(c, season: int) -> dict:
@@ -369,8 +379,10 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
         current_cfb_week = False
         if variant == "CFB_WEEKLY_PICKEM":
             season_type = "postseason" if week in _CFB_POSTSEASON_WEEK_TOKENS else "regular"
-            ranks = _ap_top25(c, season, week, season_type)
-            current_cfb_week = season_type == "regular" and _is_current_cfb_week(c, season, week)
+            current_cfb_week = _is_live_current_cfb_slate(
+                season, season_type, [r["game_date"] for r in rows]
+            )
+            ranks = _ap_top25(c, season, week, season_type, live_current=current_cfb_week)
             if current_cfb_week:
                 current_cfb_records = _current_cfb_standings_records(c, season)
         games = []
@@ -514,7 +526,7 @@ def normalize_slate(slate: str | None) -> str:
     return upper
 
 
-def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
+def _ap_top25(c, season: int, week, season_type: str, *, live_current: bool | None = None) -> dict[str, int]:
     """school_id -> the correct real AP Top 25 snapshot for this slate.
 
     Historical slates stay historical: use the latest real poll at or
@@ -524,7 +536,7 @@ def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
     the season rather than forcing an unrelated numeric-week ceiling.
     """
     requested_week = 1 if season_type == "postseason" else int(week)
-    current_regular = season_type == "regular" and _is_current_cfb_week(c, season, week)
+    current_regular = bool(live_current) if live_current is not None else False
     # Select the newest COMPLETE AP poll. A refresh can briefly leave a
     # partial newest week in cfb_rankings; MAX(week) alone would then expose
     # that incomplete snapshot to Pick'em and make rankings look wrong.
@@ -656,8 +668,11 @@ def filter_games_for_slate(games: list[dict], *, slate: str | None, conference: 
 
     c = engine_bootstrap.connect()
     try:
+        live_current = _is_live_current_cfb_slate(
+            season, season_type, [g.get("kickoff") for g in games if g.get("kickoff")]
+        )
         if slate_norm == "TOP25":
-            ranks = _ap_top25(c, season, week, season_type)
+            ranks = _ap_top25(c, season, week, season_type, live_current=live_current)
             filtered = [g for g in games if ranks.get(g["home_team"]) or ranks.get(g["away_team"])]
             # Top 25 is a rankings-first view: No. 1 matchup first, then
             # No. 2, etc. If both teams are ranked, the better rank is the
@@ -688,7 +703,7 @@ def filter_games_for_slate(games: list[dict], *, slate: str | None, conference: 
             return filtered, meta
 
         # FEATURED
-        ranks = _ap_top25(c, season, week, season_type)
+        ranks = _ap_top25(c, season, week, season_type, live_current=live_current)
         rivalry_pairs = _rivalry_pairs(c)
         spreads = _betting_spreads(c, game_ids)
     finally:
