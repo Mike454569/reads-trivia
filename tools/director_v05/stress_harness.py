@@ -48,23 +48,24 @@ def _draft_context(c,player_id):
 
 def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAULT_MAX_PLAYERS,populate=True):
     c=engine_bootstrap.connect()
+    c.execute("PRAGMA busy_timeout=30000")
     started=time.time()
     population={}
     if populate:
         try:
             from .populate_existing_lore import populate_existing
             from .draft_intelligence import derive_nfl_draft_intelligence
-            population["existing"]=populate_existing(c)
-            population["draft_intelligence"]=derive_nfl_draft_intelligence(c)
+            population["existing"]=populate_existing(c); c.commit()
+            population["draft_intelligence"]=derive_nfl_draft_intelligence(c); c.commit()
             from .story_mining import mine_nfl_games
-            population["story_mining"]=mine_nfl_games(c)
+            population["story_mining"]=mine_nfl_games(c); c.commit()
             from .pbp_story_mining import mine_nfl_pbp
-            population["pbp_story_mining"]=mine_nfl_pbp(c)
+            population["pbp_story_mining"]=mine_nfl_pbp(c); c.commit()
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
-                population["trades"]=populate_nfl_trades(c)
+                population["trades"]=populate_nfl_trades(c); c.commit()
             except Exception as trade_exc:
                 population["trades_error"]=type(trade_exc).__name__+":"+str(trade_exc)
         except Exception as exc:
