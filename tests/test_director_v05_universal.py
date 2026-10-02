@@ -119,3 +119,27 @@ def test_uniqueness_gate_accepts_distinct_chain():
     u=uniqueness_check(target,[target,other])
     payload={"input_fact_ids":["f1","f2"],"requires_unique_answer":True}
     assert certify_payload(payload,u)["certified"] is True
+
+
+def test_chain_rejects_missing_provenance():
+    import pytest
+    from tools.director_v05.chain_engine import Hop,build_chain
+    with pytest.raises(ValueError):
+        build_chain("NFL_PLAYER","p1",[Hop("A","p1","x"),Hop("B","p1","y")])
+
+def test_chain_quality_rejects_ambiguous_signature():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.chain_quality import eligible_chains,explain_rejection
+    hs=lambda p:[Hop("DRAFTED_BY",p,"PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),Hop("ALL_PRO",p,"FIRST_TEAM",2023,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY")]
+    a=build_chain("NFL_PLAYER","p1",hs("p1")); b=build_chain("NFL_PLAYER","p2",hs("p2"))
+    assert eligible_chains([a,b])==[]
+    assert explain_rejection(a,[a,b])=="AMBIGUOUS_CHAIN"
+
+def test_chain_compiler_preserves_answer_provenance():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.chain_compiler import compile_chain
+    c=build_chain("NFL_PLAYER","p1",[Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),Hop("ALL_PRO","p1","FIRST_TEAM",2023,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY")])
+    q=compile_chain(c,"WHO_AM_I")
+    assert q["answer"]["id"]=="p1"
+    assert q["answer_provenance_required"] is True
+    assert len(q["clues"])==2
