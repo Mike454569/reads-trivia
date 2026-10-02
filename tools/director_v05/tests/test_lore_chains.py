@@ -13,6 +13,10 @@ def _conn():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
     install(c)
+    c.execute("""CREATE TABLE canonical_players(
+        player_id TEXT, display_name TEXT
+    )""")
+    c.execute("INSERT INTO canonical_players VALUES(?,?)", ("p1", "Test Player"))
     c.execute("""CREATE TABLE draft_facts(
         player_key TEXT, draft_team TEXT, draft_season INTEGER,
         source_id TEXT, verification_status TEXT
@@ -34,7 +38,7 @@ def _event(c, eid_suffix, player_id="p1", team_id="AAA"):
         "league": "NFL",
         "event_date": "2022-01-01",
         "title": "Verified oddity " + eid_suffix,
-        "neutral_summary": "Verified unusual football event.",
+        "neutral_summary": "Test Player returned a bizarre broken-play touchdown after the ball changed hands twice.",
         "source_url": "https://example.com/" + eid_suffix,
         "source_publisher": "Example",
         "evidence_tier": "AUTHORITATIVE",
@@ -103,8 +107,29 @@ def test_compiled_deep_chain_has_provenance_and_no_answer_leak():
 
     chains = discover_lore_chains(c, "NFL_PLAYER", "p1", max_depth=5)
     assert chains
-    q = compile_lore_chain_question(chains[0])
+    q = compile_lore_chain_question(c, chains[0])
     assert q["question_family"] == "DEEP_LORE_CHAIN"
+    assert q["question"] == "Who am I?"
+    assert q["answer"]["label"] == "Test Player"
     assert q["provenance"]["provenance_complete"] is True
     combined = " ".join(clue["text"] for clue in q["clues"]).casefold()
     assert q["answer"]["label"].casefold() not in combined
+
+
+def test_deep_lore_copy_uses_real_event_detail_not_engine_jargon():
+    c = _conn()
+    _event(c, "human-copy")
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("p1","AAA",2020,"draft-src","SOURCE_BACKED"))
+    c.execute("INSERT INTO canonical_roster_seasons VALUES(?,?,?,?,?)",
+              ("p1","BBB",2021,"roster-src","SOURCE_BACKED"))
+    c.execute("INSERT INTO nfl_all_pro_selections VALUES(?,?,?,?,?,?)",
+              ("p1","FIRST_TEAM",2023,1,"ap-src","WIKIPEDIA_STRUCTURED_SECONDARY"))
+
+    q = compile_lore_chain_question(c, discover_lore_chains(c, "NFL_PLAYER", "p1", max_depth=5)[0])
+    copy = " ".join([q["question"]] + [clue["text"] for clue in q["clues"]]).casefold()
+    assert "verified chain" not in copy
+    assert "subject of event" not in copy
+    assert "structured fact" not in copy
+    assert "strangest verified moment" not in copy
+    assert "ball changed hands twice" in copy
