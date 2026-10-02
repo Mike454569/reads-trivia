@@ -4432,12 +4432,14 @@ function readsGameIdentitySvg(m) {
   else v=Math.abs(hashStr((id||title)+'|reads-core-icons-v2'))%5;
 
   var body='';
-  if(v===0){ // helmet + full R
+  if(v===0){ // Reads badge
+    body='<rect x="7" y="7" width="34" height="34" rx="11"/>'+readsR;
+  }else if(false){
     body='<path d="M7 28c0-12 7-20 19-20 9 0 15 4 18 11l-9 5v11H24v-7H7z"/><path d="M35 24h9"/>'+readsR;
   }else if(v===1){ // standalone Reads badge + full R
     body='<rect x="7" y="7" width="34" height="34" rx="11"/>'+readsR;
-  }else if(v===2){ // football + unmistakable full R
-    body='<path d="M8 31C11 18 21 9 39 8c1 17-8 28-23 32-5-1-8-4-8-9z"/><path d="M18 17l12 12M22 14l11 11M15 21l11 11"/>'+readsR;
+  }else if(v===2){ // jersey + full R
+    body='<path d="m15 9 9 5 9-5 9 9-7 6v16H13V24l-7-6z"/>'+readsR;
   }else if(v===3){ // jersey + full R
     body='<path d="m15 9 9 5 9-5 9 9-7 6v16H13V24l-7-6z"/>'+readsR;
   }else{ // trophy: clean standalone symbol, no fake branding inside it
