@@ -42,7 +42,7 @@ def _stable_package_id(payload):
     return "GGP39:" + hashlib.sha256(raw.encode()).hexdigest()[:24]
 
 
-def _question_contract(q, *, index):
+def _question_contract(q, *, index, delivery_difficulty):
     options = list(q.get("options") or [])
     answer_label = str((q.get("answer") or {}).get("label") or "")
     if not options or not answer_label:
@@ -63,7 +63,7 @@ def _question_contract(q, *, index):
         "options": options,
         "correctIndex": correct_index,
         "answer": answer_label,
-        "difficulty": str(q.get("difficulty_band") or "HARD").lower(),
+        "difficulty": str(delivery_difficulty).lower(),
         "notes": " ".join(clue_text),
         "visual_template": "DEEP_LORE_THREE_CLUES",
         "visual_payload": {
@@ -121,7 +121,7 @@ def build_package(
             with_options=True,
         )
         questions = [
-            _question_contract(q, index=i)
+            _question_contract(q, index=i, delivery_difficulty=difficulty)
             for i, q in enumerate(bank["selected"])
         ]
     finally:
