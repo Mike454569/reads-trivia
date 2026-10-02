@@ -11476,6 +11476,16 @@ function getClientId() {
 }
 function pushLeaderboard(mode, fields) {
   if (!state.name) return;
+  try {
+    var localActivity = lsGet('readsRecentActivityLocal', []);
+    localActivity.unshift({
+      name: state.name,
+      mode: mode,
+      fields: Object.assign({}, fields || {}),
+      updatedAtMs: Date.now()
+    });
+    lsSet('readsRecentActivityLocal', localActivity.slice(0, 20));
+  } catch (e) { /* local activity is non-critical */ }
   var docId = activeAuthUid ? ('account_' + activeAuthUid + '__' + mode)
     : (slugify(state.name) + '_' + getClientId() + '__' + mode);
   var favTeamsForScore = getFavoriteTeams();
@@ -11664,19 +11674,39 @@ function leaderboardTopOfWeekHtml(mode, rows) {
 // security rules, or write paths. Global across every mode (not scoped to
 // whichever leaderboard tab is open), newest first, capped at 8.
 function recentActivityHtml() {
-  var withTime = state.leaderboardData
+  var cloud = state.leaderboardData
     .map(function (r) { return { row: r, ms: leaderboardTimestampMs(r) }; })
-    .filter(function (x) { return x.ms != null; })
+    .filter(function (x) { return x.ms != null; });
+  var local = (lsGet('readsRecentActivityLocal', []) || []).map(function (x) {
+    var row = { name: x.name, mode: x.mode };
+    var fields = x.fields || {};
+    Object.keys(fields).forEach(function (k) { row[k] = fields[k]; });
+    return { row: row, ms: Number(x.updatedAtMs) || 0 };
+  }).filter(function (x) { return x.ms > 0; });
+  var seen = {};
+  var withTime = cloud.concat(local)
     .sort(function (a, b) { return b.ms - a.ms; })
+    .filter(function (x) {
+      var key = slugify(x.row.name || '') + '|' + String(x.row.mode || '') + '|' + Math.floor(x.ms / 60000);
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    })
     .slice(0, 8);
-  if (!withTime.length) return '';
+  if (!withTime.length) {
+    var syncStatus = window.__fbSync && window.__fbSync.status;
+    var msg = syncStatus === 'offline'
+      ? 'Recent activity is temporarily offline. Your games still save locally and will sync when the connection returns.'
+      : 'No recent plays yet. Finish a game and it will show up here.';
+    return '<div class="leaderboard-activity"><h3 class="mode-section-title">Recent Activity</h3><p class="mode-desc">' + esc(msg) + '</p></div>';
+  }
   return '<div class="leaderboard-activity">' +
     '<h3 class="mode-section-title">Recent Activity</h3>' +
     withTime.map(function (x) {
       var m = LEADERBOARD_MODES.find(function (mm) { return mm.id === x.row.mode; });
       var mainCol = m && m.cols[0];
       var valueBit = mainCol && x.row[mainCol[0]] != null ? ' — ' + esc(mainCol[1]) + ' ' + esc(x.row[mainCol[0]]) : '';
-      return '<div class="leaderboard-activity-row"><b>' + esc(x.row.name) + '</b> played ' + esc(m ? m.label : x.row.mode) + valueBit + ' <span class="leaderboard-activity-time">' + formatRelativeTime(x.ms) + '</span></div>';
+      return '<div class="leaderboard-activity-row"><b>' + esc(x.row.name || 'You') + '</b> played ' + esc(m ? m.label : x.row.mode) + valueBit + ' <span class="leaderboard-activity-time">' + formatRelativeTime(x.ms) + '</span></div>';
     }).join('') +
     '</div>';
 }
