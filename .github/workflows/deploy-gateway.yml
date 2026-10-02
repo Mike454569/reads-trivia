@@ -70,7 +70,22 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Repair live capability catalog drift
         run: |
-          flyctl ssh console -a reads-football-gateway -C "python3 -c \"import sys; sys.path.insert(0,'/app'); from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows; print(repair_missing_catalog_rows())\""
+          # Catalog repair is maintenance, not the deployment health gate.
+          # Retry because a freshly replaced Fly Machine can be running before
+          # SSH is ready; if SSH stays unavailable, live /health + /ready below
+          # remains the authoritative deployment gate.
+          repaired=0
+          for attempt in {1..6}; do
+            if flyctl ssh console -a reads-football-gateway -C "python3 -c \"import sys; sys.path.insert(0,'/app'); from tools.data_refresh.repair_capability_catalog_drift import repair_missing_catalog_rows; print(repair_missing_catalog_rows())\""; then
+              repaired=1
+              break
+            fi
+            echo "Catalog repair SSH not ready (attempt $attempt/6)"
+            sleep 10
+          done
+          if [ "$repaired" != "1" ]; then
+            echo "::warning::Catalog repair could not run over SSH; continuing to authoritative live health/readiness verification."
+          fi
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Verify live gateway
