@@ -7340,3 +7340,60 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .mode-mark-xl .mode-mark-art{width:62px;height:62px}
   .format-collection-art,.daily-format-art{min-height:96px}
 }
+
+
+/* Custom game-art clarity pass.
+   Atlas cells are intentionally compact; do not stretch a single cell into a
+   full-width hero on retina/mobile. Render approved art as a crisp thumbnail
+   identity and let the card typography carry the rest of the surface. */
+.format-hub-card-art,
+.mode-card-art{
+  width:72px;
+  height:72px;
+  min-width:72px;
+  min-height:72px;
+  aspect-ratio:1 / 1;
+  margin:0 0 12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 8px 22px rgba(0,0,0,.28);
+}
+.format-hub-card.has-game-art,
+.mode-card.has-game-art{
+  padding-top:15px;
+}
+.format-hub-card.has-game-art .format-hub-icon,
+.mode-card.has-game-art .mode-icon{
+  display:none;
+}
+.format-collection-art,
+.daily-format-art{
+  width:64px;
+  height:64px;
+  min-width:64px;
+  min-height:64px;
+  min-height:0;
+  aspect-ratio:1 / 1;
+  margin:0 0 10px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.24);
+}
+@media(max-width:640px){
+  .format-hub-card-art,
+  .mode-card-art{
+    width:64px;
+    height:64px;
+    min-width:64px;
+    min-height:64px;
+    margin:0 0 10px;
+    border-radius:14px;
+  }
+  .format-collection-art,
+  .daily-format-art{
+    width:56px;
+    height:56px;
+    min-width:56px;
+    min-height:56px;
+  }
+}
