@@ -65,6 +65,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["game_chaos_mining"]=mine_nfl_game_chaos(c); c.commit()
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
+            from .lore_trivia import lore_gameplay_report
+            population["lore_gameplay"]=lore_gameplay_report(c)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c); c.commit()
