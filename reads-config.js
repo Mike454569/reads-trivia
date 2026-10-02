@@ -73,43 +73,43 @@ window.READS_CONFIG = {
   enableEngineNflGameResultPilot: true,
   enableEngineCfbGameResultPilot: true,
   enableEngineNflGameBoxscorePilot: true,
-  enableEngineMatchingPilot: false,
-  enableEngineSortingPilot: false,
+  enableEngineMatchingPilot: true,
+  enableEngineSortingPilot: true,
   // STAT_LADDER (15-Format Expansion Part 2, format #1) shipped with no
   // client-UI entry point at all -- backend/public-API reachable but not
   // actually playable in the app. Fixed this pass alongside MAP_THE_CAREER
   // (format #9, below), which shares the exact same generic 'sorting' kind.
-  enableEngineStatLadderPilot: false,
-  enableEngineHigherLowerPilot: false,
-  enableEngineEliminationPilot: false,
+  enableEngineStatLadderPilot: true,
+  enableEngineHigherLowerPilot: true,
+  enableEngineEliminationPilot: true,
   // 15-Format Expansion pass (Part 2) -- off by default like its
   // Mechanic Pilot siblings just above, pending the same real canary
   // verification before a public flip.
-  enableEngineGuessTheSeasonPilot: false,
+  enableEngineGuessTheSeasonPilot: true,
   // 15-Format Expansion pass (Part 2), format #3 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineHeadToHeadDuelPilot: false,
+  enableEngineHeadToHeadDuelPilot: true,
   // 15-Format Expansion pass (Part 2), format #4 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineBestOfSevenDuelPilot: false,
+  enableEngineBestOfSevenDuelPilot: true,
   // 15-Format Expansion pass (Part 2), format #5 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEnginePickTheImpostorPilot: false,
+  enableEnginePickTheImpostorPilot: true,
   // 15-Format Expansion pass (Part 2), format #6 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineUniqueOneOutPilot: false,
+  enableEngineUniqueOneOutPilot: true,
   // 15-Format Expansion pass (Part 2), format #7 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineMissingPiecePilot: false,
+  enableEngineMissingPiecePilot: true,
   // 15-Format Expansion pass (Part 2), format #8 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineBeforeAfterPilot: false,
+  enableEngineBeforeAfterPilot: true,
   // 15-Format Expansion pass (Part 2), format #9 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineMapTheCareerPilot: false,
+  enableEngineMapTheCareerPilot: true,
   // 15-Format Expansion pass (Part 2), format #10 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineCareerPathPilot: false,
+  enableEngineCareerPathPilot: true,
   // 15-Format Expansion pass (Part 2), format #11. Flipped ON: backend
   // (public_mechanics.py, live-verified including its new CFB variant),
   // routing (app.js hash resolution + discovery card, added when this was
@@ -118,10 +118,10 @@ window.READS_CONFIG = {
   enableEngineRiskItPilot: true,
   // 15-Format Expansion pass (Part 2), format #12 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineWagerModePilot: false,
+  enableEngineWagerModePilot: true,
   // 15-Format Expansion pass (Part 2), format #14 -- same off-by-default
   // convention as its own sibling pilots above.
-  enableEngineLeaderboardClimbPilot: false,
+  enableEngineLeaderboardClimbPilot: true,
   // 15-Format Expansion pass (Part 2), format #15 (final of 15). Creator
   // "one approval, fully live" pass: flipped ON -- backend (public_
   // mechanics.py), routing (app.js hash resolution + discovery card), and
@@ -178,4 +178,20 @@ window.READS_CONFIG = {
   enableEngineCfbOddCollegeOutPilot: true,
   enableEngineCfbOneSchoolMissingPilot: true,
   enableEngineFranchiseMarathonPilot: true,
+  // 100-format availability closeout: these public mechanic families were
+  // already wired in app.js/engine-game-ui.js and backed by public mechanics,
+  // but production config never declared their flags. Undefined === false in
+  // app.js, which made built formats silently disappear/refuse to launch.
+  enableEngineComparisonPilot: true,
+  enableEngineConnectionGridPilot: true,
+  enableEnginePerfectDrivePilot: true,
+  enableEngineGoalLineStandPilot: true,
+  enableEngineLineupBuilderPilot: true,
+  enableEngineAuctionDraftPilot: true,
+  enableEngineCapChallengePilot: true,
+  enableEngineKnockoutTournamentPilot: true,
+  enableEngineSixDegreesChainPilot: true,
+  enableEngineChainReactionPilot: true,
+  enableEngineChooseYourPathPilot: true,
+
 };
