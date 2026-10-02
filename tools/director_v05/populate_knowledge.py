@@ -24,6 +24,7 @@ def run():
     result["story_mining"]=mine_nfl_games(c)
     result["pbp_story_mining"]=mine_nfl_pbp(c)
     result["game_chaos_mining"]=mine_nfl_game_chaos(c)
+    result["cfb_pbp_lore"]=mine_cfb_pbp(c)
     result["coverage"]=coverage(c)
     result["lore_gameplay"]=lore_gameplay_report(c)
     result["advanced_lore"]=advanced_lore_report(c)
