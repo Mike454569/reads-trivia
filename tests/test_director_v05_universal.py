@@ -143,3 +143,43 @@ def test_chain_compiler_preserves_answer_provenance():
     assert q["answer"]["id"]=="p1"
     assert q["answer_provenance_required"] is True
     assert len(q["clues"])==2
+
+
+def test_progressive_clues_delay_giveaway_hof():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.clue_intelligence import order_progressive_clues
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("HOF","p1","HOF",2028,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("GAME_APPEARANCE","p1","g1",2024,"NFLVERSE_DATA","SOURCE_BACKED"),
+    ])
+    clues=order_progressive_clues(chain,current_season=2026,max_clues=3)
+    assert clues[-1]["relation"]=="HOF"
+
+def test_sicko_planner_is_real_behavior_not_label_only():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.difficulty_planner import plan
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+      Hop("GAME_APPEARANCE","p1","g1",2025,"NFLVERSE_DATA","SOURCE_BACKED"),
+    ])
+    stats={
+      ("DRAFTED_BY","PIT",2020):{"population":1000,"matching":120},
+      ("ALL_PRO","FIRST_TEAM",2024):{"population":1000,"matching":20},
+      ("GAME_APPEARANCE","g1",2025):{"population":1000,"matching":2},
+    }
+    p=plan(chain,"SICKO",stats=stats,current_season=2026)
+    assert p["difficulty_band"]=="SICKO"
+    assert p["clues"][0]["giveaway_risk"]<=0.40
+
+def test_chain_compiler_embeds_clue_plan():
+    from tools.director_v05.chain_engine import Hop,build_chain
+    from tools.director_v05.chain_compiler import compile_chain
+    chain=build_chain("NFL_PLAYER","p1",[
+      Hop("DRAFTED_BY","p1","PIT",2020,"NFLVERSE_DATA","SOURCE_BACKED"),
+      Hop("ALL_PRO","p1","FIRST_TEAM",2024,"WIKIPEDIA_STRUCTURED","WIKIPEDIA_STRUCTURED_SECONDARY"),
+    ])
+    q=compile_chain(chain,"THREE_CLUES",difficulty_band="HARD",current_season=2026)
+    assert q["compiler_version"]=="1.1.0"
+    assert q["clue_plan"]["difficulty_band"]=="HARD"
