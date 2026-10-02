@@ -443,9 +443,15 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
                 # partial one-game snapshot. Never let a less-complete feed
                 # replace the cumulative record reconstructed from concluded
                 # canonical games.
-                if h_live and h_live["games"] >= int(snapshot.get("home_games") or 0):
+                # Canonical concluded games are authoritative when both
+                # sources cover the same number of games. The standings
+                # feed is only allowed to override when it is STRICTLY more
+                # complete, otherwise a stale row (for example 4-0 after a
+                # loss while canonical already says 3-1) can stomp the
+                # correctly reconstructed pregame record.
+                if h_live and h_live["games"] > int(snapshot.get("home_games") or 0):
                     home_record = h_live["record"]
-                if a_live and a_live["games"] >= int(snapshot.get("away_games") or 0):
+                if a_live and a_live["games"] > int(snapshot.get("away_games") or 0):
                     away_record = a_live["record"]
             games.append({
                 "game_id": r["game_id"], "home_team": r["home_team"], "away_team": r["away_team"],
