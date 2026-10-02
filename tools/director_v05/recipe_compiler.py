@@ -21,6 +21,7 @@ def compile_recipe(concept,mechanic,*,league=None,limit=20):
       "league":league,"limit":max(2,min(int(limit),100)),
       "sensitive":bool(spec.get("sensitive")),
       "requires_verified_evidence":bool(spec.get("sensitive")) or source=="events",
+      "chain_enrichment_supported":source=="events" and mechanic in CLUE_MECHANICS,
       "answer_provenance_required":True,
     }
 
