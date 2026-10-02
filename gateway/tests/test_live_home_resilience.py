@@ -13,7 +13,8 @@ def test_live_football_does_not_fail_all_when_one_league_stalls():
 
 def test_home_shows_upcoming_games_when_no_finals_exist():
     src = (ROOT / "live-football-ui.js").read_text(encoding="utf-8")
-    assert "upcoming.length ? '<div class=\"live-final-grid\"'" in src
+    assert "upcoming.length" in src
+    assert "liveFootballUpcomingCardHtml" in src
     assert "Coming up" in src
 
 
