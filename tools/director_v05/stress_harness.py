@@ -56,6 +56,10 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             from .draft_intelligence import derive_nfl_draft_intelligence
             population["existing"]=populate_existing(c)
             population["draft_intelligence"]=derive_nfl_draft_intelligence(c)
+            from .story_mining import mine_nfl_games
+            population["story_mining"]=mine_nfl_games(c)
+            from .lore_coverage import coverage
+            population["coverage"]=coverage(c)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c)
