@@ -25,6 +25,8 @@ def validate_event(event):
     if sensitive and event["evidence_tier"]=="SECONDARY":
         raise ValueError("sensitive events require primary/authoritative/reputable-media evidence")
     if typ in LEGAL_TYPES:
+        if not event.get("allegation_or_offense") and typ not in {"ACQUITTAL","DISMISSAL","INVESTIGATION"}:
+            raise ValueError("legal events require allegation_or_offense")
         stage=_required(event,"legal_stage").upper()
         if stage not in LEGAL_STAGES: raise ValueError("invalid legal stage")
         _required(event,"jurisdiction")
