@@ -39,11 +39,12 @@ def stable_event_id(event):
 
 def upsert_event(conn,event):
     validate_event(event); install(conn)
+    sensitive = bool(event.get("sensitive")) or str(event.get("event_type","")).upper() in LEGAL_TYPES
     eid=event.get("event_id") or stable_event_id(event)
     cols=("event_id","event_type","league","event_date","title","neutral_summary","source_url",
           "source_publisher","source_date","evidence_tier","verification_status","jurisdiction",
           "legal_stage","allegation_or_offense","disposition","disposition_date","sensitive")
-    vals=[eid]+[event.get(k) for k in cols[1:-1]]+[1 if event.get("sensitive") or str(event.get("event_type","")).upper() in LEGAL_TYPES else 0]
+    vals=[eid]+[event.get(k) for k in cols[1:-1]]+[1 if sensitive else 0]
     q="INSERT INTO universal_event("+",".join(cols)+") VALUES("+",".join("?" for _ in cols)+") ON CONFLICT(event_id) DO UPDATE SET "+",".join(c+"=excluded."+c for c in cols[1:])
     conn.execute(q,vals)
     conn.execute("DELETE FROM universal_event_evidence WHERE event_id=?",(eid,))
