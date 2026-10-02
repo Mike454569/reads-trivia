@@ -40,6 +40,7 @@ CLIENT_ROUTE_OVERRIDES: dict[str, str] = {
 # Presentation-specific UI probes for formats that intentionally share one
 # backend with another format.
 UI_PROBE_OVERRIDES: dict[str, tuple[str, str]] = {
+    "DEFAULT_MULTIPLE_CHOICE": ("engine-game-ui.js", "renderEnginePilotPromptHtml"),
     "TIMELINE_RIBBON": ("engine-game-ui.js", "TIMELINE_RIBBON"),
     "HEAD_TO_HEAD": ("engine-game-ui.js", "renderBinaryChoiceHtml"),
     "POSITION_LINEUP": ("engine-game-ui.js", "renderPositionLineup"),
