@@ -21,7 +21,7 @@ async function triggerRefresh(datasetKey) {
   const token = process.env.READS_ENGINE_ADMIN_TOKEN;
   if (!baseUrl || !token) {
     console.error('READS_ENGINE_GATEWAY_BASE_URL/READS_ENGINE_ADMIN_TOKEN not set — see netlify/README.md');
-    return { statusCode: 200, body: 'Refresh trigger not configured, skipped.' };
+    return { statusCode: 503, body: 'Refresh trigger not configured.' };
   }
   try {
     // Priority-Zero Pick'em closeout (P0.12): the admin bearer token alone
@@ -37,10 +37,10 @@ async function triggerRefresh(datasetKey) {
       // Never include the token in a log line — body/status only.
       console.error(`Refresh trigger for ${datasetKey} failed`, res.status, body);
     }
-    return { statusCode: 200, body: JSON.stringify({ httpStatus: res.status, ...body }) };
+    return { statusCode: res.ok ? 200 : res.status, body: JSON.stringify({ httpStatus: res.status, ...body }) };
   } catch (err) {
     console.error(`Refresh trigger for ${datasetKey} threw`, err);
-    return { statusCode: 200, body: JSON.stringify({ error: String(err) }) };
+    return { statusCode: 503, body: JSON.stringify({ error: String(err) }) };
   }
 }
 
