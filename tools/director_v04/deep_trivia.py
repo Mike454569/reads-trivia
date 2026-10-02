@@ -101,7 +101,7 @@ def _difficulty_order(cap: dict, seed: str) -> list[str]:
     return order or ["any"]
 
 
-def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
+def _generate_registered_question(seed: str, entry: tuple, *, max_difficulties: int | None = None) -> dict | None:
     mechanic, domain, predicate, category, filters = entry
     key = (mechanic, domain, predicate)
     cap = _capability(key)
@@ -112,7 +112,10 @@ def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
     if not callable(generate_fn):
         return None
 
-    for difficulty in _difficulty_order(cap, seed):
+    difficulties = _difficulty_order(cap, seed)
+    if max_difficulties is not None:
+        difficulties = difficulties[:max(1, int(max_difficulties))]
+    for difficulty in difficulties:
         validated_spec = {
             "mechanic": mechanic,
             "domain": domain,
@@ -159,8 +162,12 @@ def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
     return None
 
 
-def generate_rounds(seed: str, round_count: int) -> list[dict]:
-    """Generate a diverse deterministic set of hard, source-backed rounds."""
+def generate_rounds(seed: str, round_count: int, *, launch_fast: bool = False) -> list[dict]:
+    """Generate a diverse deterministic set of hard, source-backed rounds.
+
+    launch_fast is for synchronous public game startup: it limits expensive
+    adapter fall-through while preserving source-backed questions.
+    """
     if round_count <= 0:
         return []
 
@@ -176,7 +183,11 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     # question when a format needs more rounds than there are capability
     # families, while still prioritizing breadth first.
     attempt = 0
-    max_attempts = max(round_count * 8, len(entries) * 3)
+    max_attempts = (
+        max(round_count * 4, len(entries))
+        if launch_fast
+        else max(round_count * 8, len(entries) * 3)
+    )
     while len(rounds) < round_count and attempt < max_attempts:
         entry = entries[attempt % len(entries)]
         category = entry[3]
@@ -187,7 +198,8 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
             continue
 
         q = _generate_registered_question(
-            f"{seed}-deep-{attempt}-{entry[1]}-{entry[2]}", entry
+            f"{seed}-deep-{attempt}-{entry[1]}-{entry[2]}", entry,
+            max_difficulties=2 if launch_fast else None,
         )
         attempt += 1
         if not q or q["prompt"] in used_prompts:
