@@ -10,6 +10,7 @@ from .game_chaos_mining import mine_nfl_game_chaos
 from .lore_coverage import coverage
 from .lore_trivia import lore_gameplay_report
 from .lore_mechanics import advanced_lore_report
+from .lore_chains import lore_chain_report
 
 def run():
     c=engine_bootstrap.connect()
@@ -24,6 +25,7 @@ def run():
     result["coverage"]=coverage(c)
     result["lore_gameplay"]=lore_gameplay_report(c)
     result["advanced_lore"]=advanced_lore_report(c)
+    result["lore_chains"]=lore_chain_report(c)
     result["events"]={r["event_type"]:r["n"] for r in c.execute(
       "SELECT event_type,COUNT(*) n FROM universal_event GROUP BY event_type")}
     result["derived"]={r["metric"]:r["n"] for r in c.execute(
