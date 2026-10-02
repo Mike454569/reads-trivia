@@ -21,7 +21,8 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'pkill -f \"python3 -m tools.director_v05.stress_harness\" || true'"
+          flyctl machine start "$MACHINE" -a "$APP" >/dev/null 2>&1 || true
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'pkill -f \"python3 -m tools.director_v05.stress_harness\" || true'" || true
 
       - name: Install v0.5 traversal indexes
         env:
