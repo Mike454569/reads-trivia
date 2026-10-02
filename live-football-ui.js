@@ -65,6 +65,23 @@ function liveFootballFinals() {
 function liveFootballUpcomingCount() {
   return liveFootballRows().filter(function (g) { return g.status !== 'FINAL' && g.status !== 'CANCELED'; }).length;
 }
+
+function liveFootballUpcomingGames() {
+  return liveFootballRows().filter(function (g) {
+    return g.status !== 'FINAL' && g.status !== 'CANCELED';
+  }).sort(function (a,b) {
+    return new Date(a.kickoff || 0).getTime() - new Date(b.kickoff || 0).getTime();
+  });
+}
+function liveFootballUpcomingCardHtml(g) {
+  var status=String(g.status || 'SCHEDULED').replace(/_/g,' ');
+  return '<article class="live-final-card live-upcoming-card">' +
+    '<div class="live-final-top"><span>' + esc(g.league) + ' · WEEK ' + esc(String(g.week)) + '</span><div><b>' + esc(status) + '</b></div></div>' +
+    '<div class="live-final-matchup"><div><span>' + esc(g.away_team) + '</span><strong>' + esc(g.away_record || '') + '</strong></div>' +
+    '<div><span>' + esc(g.home_team) + '</span><strong>' + esc(g.home_record || '') + '</strong></div></div>' +
+    '<div class="live-final-footer"><small>' + esc(liveFootballKickoffLabel(g)) + '</small></div>' +
+    '</article>';
+}
 function liveFootballFavoriteMatch(g) {
   if (!state || !state.name) return false;
   var fav = getFavoriteTeams();
@@ -151,14 +168,17 @@ function liveFootballFavoriteContextHtml() {
 function liveFootballHomeHtml() {
   if (!ENABLE_PICKEM_V01) return '';
   var finals = liveFootballOrderedFinals();
+  var upcoming = liveFootballUpcomingGames();
   var newCount = Number(LIVE_FOOTBALL.newFinalCount) || 0;
   return '<section class="live-football-home">' +
-    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">LIVE FOOTBALL</span><h3>What just happened</h3></div>' +
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">LIVE FOOTBALL</span><h3>' + (finals.length ? 'What just happened' : 'Coming up') + '</h3></div>' +
     '<span>' + (newCount ? newCount + ' new final' + (newCount === 1 ? '' : 's') : liveFootballFreshnessText()) + '</span></div>' +
     liveFootballFavoriteContextHtml() +
     (LIVE_FOOTBALL.loading && !LIVE_FOOTBALL.fetchedAt ? '<div class="live-football-loading">Checking the latest NFL + CFB slates…</div>' :
       finals.length ? '<div class="live-final-grid">' + finals.slice(0,3).map(function (g) { return liveFootballFinalCardHtml(g, true); }).join('') + '</div>' :
-      '<p class="mode-desc">No finals are available in the current NFL/CFB slates yet. Reads checks again automatically.</p>') +
+      upcoming.length ? '<div class="live-final-grid">' + upcoming.slice(0,3).map(liveFootballUpcomingCardHtml).join('') + '</div>' :
+      LIVE_FOOTBALL.error ? '<div class="quiz-feedback">' + esc(LIVE_FOOTBALL.error) + '</div>' :
+      '<p class="mode-desc">No current NFL/CFB games are available yet. Reads checks again automatically.</p>') +
     '<div class="btn-row"><button class="btn-primary" data-live-football-open>Open Live Football</button>' +
     (finals.length ? '<button class="btn-secondary" data-live-challenge-start>Play Postgame 5</button>' : '') + '</div></section>';
 }
