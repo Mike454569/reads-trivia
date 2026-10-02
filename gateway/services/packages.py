@@ -58,7 +58,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.director_v02.package_contract import validate_package_contract  # noqa: E402
 
-PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|1[0-9]|2[0-9]|3[0-8])?:[0-9a-f]{24}$")
+PACKAGE_ID_RE = re.compile(r"^GGP([4-9]|1[0-9]|2[0-9]|3[0-9])?:[0-9a-f]{24}$")
 
 _write_lock = threading.Lock()
 
