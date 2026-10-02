@@ -351,6 +351,8 @@ def compile_lore_chain_question(conn, chain):
         raise ValueError("CHAIN_NOT_GAMEPLAY_ELIGIBLE")
     if chain.depth < 3:
         raise ValueError("CHAIN_TOO_SHALLOW")
+    if chain.anchor_type not in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}:
+        raise ValueError("NATURAL_COPY_UNSUPPORTED_ANCHOR")
 
     clues = order_clues(render_chain_clues(conn, chain), chain.difficulty_score)
     answer = str(chain.anchor_id)
