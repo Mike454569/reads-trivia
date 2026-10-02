@@ -58,6 +58,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["draft_intelligence"]=derive_nfl_draft_intelligence(c)
             from .story_mining import mine_nfl_games
             population["story_mining"]=mine_nfl_games(c)
+            from .pbp_story_mining import mine_nfl_pbp
+            population["pbp_story_mining"]=mine_nfl_pbp(c)
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
             try:
@@ -68,7 +70,7 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
         except Exception as exc:
             population["error"]=type(exc).__name__+":"+str(exc)
     report={
-      "version":"1.1.0","population":population,"bridge":bridge_report(c),"facts":{},"chains":{},
+      "version":"1.2.0","population":population,"bridge":bridge_report(c),"facts":{},"chains":{},
       "questions":{},"failures":{},"timing":{}
     }
     # Bridge scan: validates every configured adapter can actually yield rows.
