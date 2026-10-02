@@ -30,12 +30,54 @@ entirely sidesteps it rather than working around it.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import threading
+import time
 
 from .. import config
 from ..errors import GatewayError
 from . import oplog
 
 _LEAGUE_TO_VARIANT = {"NFL": "NFL_WEEKLY_PICKEM", "CFB": "CFB_WEEKLY_PICKEM"}
+
+# Current Pick'em is read-heavy and deterministic for a given
+# (variant, season, week, slate, conference). Rebuilding the same slate on
+# every browser refresh repeatedly scans a multi-GB production database and
+# can exceed the client's 10s timeout. Keep a tiny short-lived in-process
+# cache; game-status/record refreshes are still picked up quickly.
+_PICKEM_PACKAGE_CACHE = {}
+_PICKEM_PACKAGE_CACHE_LOCK = threading.Lock()
+_PICKEM_PACKAGE_CACHE_TTL_SECONDS = 60.0
+_PICKEM_PACKAGE_CACHE_MAX = 32
+
+
+def _package_cache_key(variant, season, week, slate, conference):
+    return (
+        str(variant), int(season), str(week),
+        str(slate or "FULL").upper(), str(conference or "").strip().lower(),
+    )
+
+
+def _package_cache_get(key):
+    now = time.monotonic()
+    with _PICKEM_PACKAGE_CACHE_LOCK:
+        item = _PICKEM_PACKAGE_CACHE.get(key)
+        if not item:
+            return None
+        created, package = item
+        if now - created > _PICKEM_PACKAGE_CACHE_TTL_SECONDS:
+            _PICKEM_PACKAGE_CACHE.pop(key, None)
+            return None
+        return package
+
+
+def _package_cache_put(key, package):
+    now = time.monotonic()
+    with _PICKEM_PACKAGE_CACHE_LOCK:
+        _PICKEM_PACKAGE_CACHE[key] = (now, package)
+        if len(_PICKEM_PACKAGE_CACHE) > _PICKEM_PACKAGE_CACHE_MAX:
+            oldest = min(_PICKEM_PACKAGE_CACHE.items(), key=lambda kv: kv[1][0])[0]
+            _PICKEM_PACKAGE_CACHE.pop(oldest, None)
+    return package
 
 
 def _current_season() -> int:
@@ -77,6 +119,11 @@ def _build_package(variant: str, season: int, week: str, *, slate: str | None = 
                     conference: str | None = None) -> dict:
     from tools.director_v04 import weekly_pickem
 
+    cache_key = _package_cache_key(variant, season, week, slate, conference)
+    cached = _package_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     # Deterministic, shared seed -- the slate itself isn't secret or
     # per-caller (every real player sees the exact same real games for a
     # given week/slate); only which GAMES appear is real, never who's
@@ -98,7 +145,7 @@ def _build_package(variant: str, season: int, week: str, *, slate: str | None = 
             "NO_ELIGIBLE_GAME",
             package.get("shortfall_reason") or f"No real games found for {variant}, season={season}, week={week!r}.",
         )
-    return package
+    return _package_cache_put(cache_key, package)
 
 
 def get_pickem_view(*, league: str, season, week, client_id: str | None,
