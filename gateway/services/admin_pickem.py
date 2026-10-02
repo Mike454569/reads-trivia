@@ -132,9 +132,18 @@ def _league_pickem_health(league: str) -> dict:
     finally:
         c.close()
 
-    refresh = _refresh_freshness(admin_refresh.refresh_status()[league.lower()]["games"])
+    refresh_state = admin_refresh.refresh_status()[league.lower()]
+    refresh = _refresh_freshness(refresh_state["games"])
+    # CFB Pick'em renders AP rankings and season records beside the games.
+    # Those are player-facing dependencies, not optional enrichment: a
+    # fresh games table with stale rankings/standings is still stale Pick'em.
+    pickem_dependencies = {"games": refresh}
+    if league == "CFB":
+        pickem_dependencies["rankings"] = _refresh_freshness(refresh_state.get("rankings"))
+        pickem_dependencies["standings"] = _refresh_freshness(refresh_state.get("standings"))
     result = {
         "league": league, "season": season, "current_week": week, "refresh": refresh,
+        "dataset_freshness": pickem_dependencies,
         # P0.10: explicit, not implied -- there is no separate slate build/
         # publish step to report a timestamp for; the slate is recomputed
         # from the live tables on every single request (see
@@ -191,6 +200,13 @@ def _league_pickem_health(league: str) -> dict:
         "shortfall_reason": package.get("shortfall_reason"),
     })
     result["status"] = _classify_health(week, refresh, len(game_ids), stale_locked_count)
+    if result["status"] == "HEALTHY" and league == "CFB":
+        deps = result["dataset_freshness"]
+        if any(d.get("last_status") in _FAILED_REFRESH_STATUSES for d in deps.values()):
+            result["status"] = "REFRESH_FAILED"
+        elif any(d.get("age_hours") is None or d.get("age_hours") > _STALE_LOCKED_REFRESH_AGE_HOURS
+                 for d in deps.values()):
+            result["status"] = "STALE"
     return result
 
 
