@@ -95,3 +95,27 @@ def test_relationship_traversal_is_allowlisted():
     conn=sqlite3.connect(":memory:")
     with pytest.raises(ValueError):
         traverse(conn,"DROP_TABLES","x")
+
+
+def test_multihop_rejects_shallow_chain():
+    import pytest
+    from tools.director_v05.multihop import mechanic_payload
+    with pytest.raises(ValueError):
+        mechanic_payload({"subject_type":"player","subject_id":"p1","depth":1,"clues":[{"type":"draft","text":"x","weight":1}],"depth_score":1,"input_fact_ids":["f1"]},"WHO_AM_I")
+
+def test_ambiguity_gate_rejects_collision():
+    from tools.director_v05.ambiguity import uniqueness_check
+    clues=[{"type":"draft","text":"Drafted in round 1."},{"type":"honor","text":"Earned 1 AP All-Pro selection(s)."}]
+    target={"subject_id":"p1","clues":clues}
+    other={"subject_id":"p2","clues":clues}
+    result=uniqueness_check(target,[target,other])
+    assert result["unique"] is False
+    assert result["collisions"]==["p2"]
+
+def test_uniqueness_gate_accepts_distinct_chain():
+    from tools.director_v05.ambiguity import uniqueness_check,certify_payload
+    target={"subject_id":"p1","clues":[{"type":"draft","text":"A"},{"type":"honor","text":"B"}]}
+    other={"subject_id":"p2","clues":[{"type":"draft","text":"C"},{"type":"honor","text":"D"}]}
+    u=uniqueness_check(target,[target,other])
+    payload={"input_fact_ids":["f1","f2"],"requires_unique_answer":True}
+    assert certify_payload(payload,u)["certified"] is True
