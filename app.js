@@ -4413,24 +4413,35 @@ function readsGameIdentitySvg(m) {
   var id=String((m&&m.id)||'');
   var title=String((m&&m.title)||'');
   var key=id+' '+title;
-  var common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-  // Keep mechanics that already communicate instantly.
+  var common='viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   if (/higher.?lower/i.test(key)) return '<svg '+common+'><path d="M14 31V13m0 0-6 6m6-6 6 6M34 17v18m0 0-6-6m6 6 6-6"/><path d="M22 24h4"/></svg>';
   if (/speed|blitz|timer|quick|rapid/i.test(key)) return '<svg '+common+'><path d="M27 6 15 26h9l-4 16 14-23h-9z"/></svg>';
 
-  var v=Math.abs(hashStr((id||title)+'|reads-core-icons-v1'))%5;
-  var reads='<path d="M20 18h8c4 0 6 2 6 5s-2 5-6 5h-8z"/><path d="M27 28l7 8"/>';
+  // A real, complete Reads R. The old mark was two disconnected path
+  // fragments and rendered like a broken leaf/scribble at card size.
+  var readsR='<path d="M19 35V14h9c5 0 8 2.7 8 7s-3 7-8 7h-9M27 28l9 8M19 21h9" stroke-width="3.2"/>';
+
+  // Prefer a meaningful football silhouette from the game's family so
+  // adjacent catalog rows do not repeatedly hash to the same football.
+  var family=(typeof modeMarkFamily==='function')?modeMarkFamily(m):'';
+  var v;
+  if(family==='survival') v=0;
+  else if(family==='board'||family==='stats') v=4;
+  else if(family==='strategy') v=3;
+  else if(family==='roster'||family==='identify') v=1;
+  else v=Math.abs(hashStr((id||title)+'|reads-core-icons-v2'))%5;
+
   var body='';
-  if(v===0){ // helmet + Reads R
-    body='<path d="M8 27c0-11 7-18 18-18 8 0 14 4 17 10l-8 5v10H23v-7H8z"/><path d="M35 24h8"/>'+reads;
-  }else if(v===1){ // standalone Reads badge
-    body='<rect x="8" y="8" width="32" height="32" rx="10"/>'+reads;
-  }else if(v===2){ // football + Reads R
-    body='<path d="M10 30c3-12 13-20 28-20 1 14-7 24-20 28-4-1-7-4-8-8z"/><path d="M20 18l10 10M23 16l9 9M18 23l9 9"/>'+reads;
-  }else if(v===3){ // jersey + Reads R
-    body='<path d="m15 10 9 4 9-4 8 8-6 6v15H13V24l-6-6z"/>'+reads;
-  }else{ // trophy
-    body='<path d="M16 9h16v8c0 8-3 13-8 16-5-3-8-8-8-16z"/><path d="M12 12H8c0 8 3 11 9 11M36 12h4c0 8-3 11-9 11M24 33v5M18 40h12"/>';
+  if(v===0){ // helmet + full R
+    body='<path d="M7 28c0-12 7-20 19-20 9 0 15 4 18 11l-9 5v11H24v-7H7z"/><path d="M35 24h9"/>'+readsR;
+  }else if(v===1){ // standalone Reads badge + full R
+    body='<rect x="7" y="7" width="34" height="34" rx="11"/>'+readsR;
+  }else if(v===2){ // football + unmistakable full R
+    body='<path d="M8 31C11 18 21 9 39 8c1 17-8 28-23 32-5-1-8-4-8-9z"/><path d="M18 17l12 12M22 14l11 11M15 21l11 11"/>'+readsR;
+  }else if(v===3){ // jersey + full R
+    body='<path d="m15 9 9 5 9-5 9 9-7 6v16H13V24l-7-6z"/>'+readsR;
+  }else{ // trophy: clean standalone symbol, no fake branding inside it
+    body='<path d="M16 8h16v9c0 8-3 13-8 16-5-3-8-8-8-16z"/><path d="M12 12H7c0 8 3 12 10 12M36 12h5c0 8-3 12-10 12M24 33v6M17 41h14"/>';
   }
   return '<svg '+common+'>'+body+'</svg>';
 }
