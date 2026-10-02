@@ -261,14 +261,23 @@ _NEW_TAXONOMY_TITLES = {
 
 def _new_taxonomy_feasibility(bridged: dict) -> dict:
     taxonomy_id, variant, format_id = bridged["taxonomy_id"], bridged["variant"], bridged["format"]
+    if taxonomy_id == "DEEP_LORE_GUESS":
+        limitations = [
+            "Creator/internal only until the real production database passes the dedicated "
+            "Deep Lore public-promotion certification policy."
+        ]
+        visual_template = format_id or "DEEP_LORE_THREE_CLUES"
+    else:
+        limitations = ["No frontend renderer built yet for this format -- reachable through the "
+                       "admin Creator API for real package inspection, not yet playable in the app."]
+        visual_template = format_id
     return {
         "support_status": "SUPPORTED",
         "reason": None,
         "capability": {"mechanic": taxonomy_id, "domain": variant, "relationship_predicate": None,
                         "category": _NEW_TAXONOMY_TITLES[taxonomy_id]},
-        "known_limitations": ["No frontend renderer built yet for this format -- reachable through the "
-                               "admin Creator API for real package inspection, not yet playable in the app."],
-        "visual_template": format_id,
+        "known_limitations": limitations,
+        "visual_template": visual_template,
         "format_id": format_id,
         "clarifying_question": None,
         "closest_supported_capability": None,
