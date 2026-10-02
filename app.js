@@ -3147,8 +3147,12 @@ function gameArtStyle(m){
   return '--game-art-image:var(--reads-game-art-'+sheet+');--game-art-size-x:'+(cols*100)+'%;--game-art-size-y:'+(rows*100)+'%;--game-art-pos-x:'+px+'%;--game-art-pos-y:'+py+'%;';
 }
 function gameArtHtml(m, extraClass){
-  if(!m || !gameArtSpec(m))return '';
-  return '<span class="reads-game-art'+(extraClass?' '+extraClass:'')+'" style="'+gameArtStyle(m)+'" aria-hidden="true"></span>';
+  if(!m)return '';
+  // The committed raster atlases are tiny/compressed sprite sheets (~15 KB
+  // for 20-40 games). Cropping and enlarging a cell on Retina screens makes
+  // it visibly blurry. Use the resolution-independent per-game SVG identity
+  // for rendered cards; keep atlas metadata only for backward compatibility.
+  return '<span class="reads-game-art reads-game-art-vector'+(extraClass?' '+extraClass:'')+'" aria-hidden="true"><span class="reads-game-art-vector-mark">'+modeLogoSvg(m)+'</span></span>';
 }
 /* Reads-owned custom game artwork is the primary visual identity. The four
    committed WebP atlases cover the 100-format catalog; use them directly so
