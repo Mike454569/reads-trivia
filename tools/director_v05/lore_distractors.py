@@ -1,6 +1,7 @@
 """Deep-lore distractor pools and profile-aware scoring."""
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 
 from .distractor_intelligence import Candidate, select_distractors, validate_distractors
@@ -125,6 +126,7 @@ def nfl_lore_distractors(
     all_correct_ids=(),
     recent_distractor_ids=(),
     k=3,
+    difficulty_band="HARD",
 ):
     """Select plausible NFL player distractors from era/team/position/draft context."""
     correct = _nfl_profile(conn, correct_player_id)
@@ -139,10 +141,25 @@ def nfl_lore_distractors(
     selected = select_distractors(
         correct,
         pool,
-        k=k,
+        k=max(k, 8),
         forbidden_ids=all_correct_ids,
         recent_ids=recent_distractor_ids,
     )
+    band = str(difficulty_band).upper()
+    if band not in {"CASUAL","HARD","SICKO"}:
+        raise ValueError("UNKNOWN_DISTRACTOR_DIFFICULTY_BAND")
+    if band == "CASUAL":
+        # Easier choices: still plausible, but avoid the three closest lookalikes.
+        chosen = selected[-k:] if len(selected) >= k else selected
+    elif band == "SICKO":
+        chosen = selected[:k]
+    else:
+        # Hard sits between casual and sicko while keeping quality high.
+        start = 1 if len(selected) >= k + 1 else 0
+        chosen = selected[start:start+k]
+        if len(chosen) < k:
+            chosen = selected[:k]
+    selected = chosen
     problem = validate_distractors(
         correct,
         selected,
@@ -159,12 +176,23 @@ def nfl_lore_distractors(
     }
 
 
+def _ordered_options(question_id, labels):
+    """Deterministically shuffle options so the correct answer has no fixed slot."""
+    return sorted(
+        labels,
+        key=lambda label: hashlib.sha256(
+            (str(question_id) + "|" + str(label)).encode()
+        ).hexdigest(),
+    )
+
+
 def attach_deep_lore_options(
     conn,
     question,
     *,
     all_correct_ids=(),
     recent_distractor_ids=(),
+    difficulty_band=None,
 ):
     """Attach plausible four-choice options to supported deep-lore questions."""
     answer = question.get("answer") or {}
@@ -174,14 +202,19 @@ def attach_deep_lore_options(
     if answer_type != "NFL_PLAYER":
         raise ValueError("DEEP_LORE_DISTRACTORS_UNSUPPORTED_ANSWER_TYPE")
 
+    band = str(difficulty_band or question.get("difficulty_band") or "HARD").upper()
     result = nfl_lore_distractors(
         conn,
         answer_id,
         all_correct_ids=set(str(x) for x in all_correct_ids) | {answer_id},
         recent_distractor_ids=recent_distractor_ids,
         k=3,
+        difficulty_band=band,
     )
-    options = [answer["label"]] + [d["label"] for d in result["selected"]]
+    options = _ordered_options(
+        question.get("question_id"),
+        [answer["label"]] + [d["label"] for d in result["selected"]],
+    )
 
     out = dict(question)
     out["mechanic"] = "MULTIPLE_CHOICE"
@@ -189,6 +222,7 @@ def attach_deep_lore_options(
     out["options"] = options
     out["distractors"] = result["selected"]
     out["distractor_pool_size"] = result["pool_size"]
+    out["distractor_difficulty_band"] = band
     return out
 
 
