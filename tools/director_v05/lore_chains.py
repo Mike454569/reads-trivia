@@ -7,7 +7,8 @@ from collections import defaultdict, deque
 
 from .lore_trivia import gameplay_eligibility
 from .entity_labels import resolve_label
-from .lore_phrasing import render_chain_clues, order_clues, question_stem
+from .lore_phrasing import render_chain_clues, question_stem
+from .lore_question_writer import select_clues, variant_id, writer_quality
 
 VERIFIED_RELATION_STATUSES = {
     "SOURCE_BACKED", "SOURCE_BACKED_DERIVED",
@@ -345,7 +346,7 @@ def chain_payload(chain):
     return payload
 
 
-def compile_lore_chain_question(conn, chain):
+def compile_lore_chain_question(conn, chain, *, difficulty_band="HARD", variant=0):
     """Compile a discovered mixed-source chain into human-sounding deep trivia."""
     if not chain.gameplay_eligible or not chain.provenance_complete:
         raise ValueError("CHAIN_NOT_GAMEPLAY_ELIGIBLE")
@@ -354,7 +355,12 @@ def compile_lore_chain_question(conn, chain):
     if chain.anchor_type not in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}:
         raise ValueError("NATURAL_COPY_UNSUPPORTED_ANCHOR")
 
-    clues = order_clues(render_chain_clues(conn, chain), chain.difficulty_score)
+    raw_clues = render_chain_clues(conn, chain)
+    clues = select_clues(raw_clues, difficulty_band, variant=variant)
+    quality = writer_quality(clues)
+    if quality["status"] != "PASSED":
+        raise ValueError("WRITER_QA_FAILED:" + ",".join(quality["errors"]))
+
     answer = str(chain.anchor_id)
     answer_label = resolve_label(conn, chain.anchor_type, answer)
 
@@ -362,11 +368,11 @@ def compile_lore_chain_question(conn, chain):
     if answer_label and answer_label.casefold() in combined:
         raise ValueError("CHAIN_ANSWER_LEAKAGE")
 
-    qid = "qdeep_" + hashlib.sha256((chain.chain_id + "|" + answer).encode()).hexdigest()[:24]
+    qid = variant_id(chain.chain_id, difficulty_band, variant, clues)
     return {
         "contract_version": "1.0.0",
         "question_id": qid,
-        "mechanic": "THREE_CLUES" if len(clues) <= 4 else "PROGRESSIVE_CLUE",
+        "mechanic": "THREE_CLUES",
         "question_family": "DEEP_LORE_CHAIN",
         "question": question_stem(chain.anchor_type),
         "clues": clues,
@@ -375,11 +381,34 @@ def compile_lore_chain_question(conn, chain):
         "depth": chain.depth,
         "rarity_score": chain.rarity_score,
         "difficulty_score": chain.difficulty_score,
+        "difficulty_band": str(difficulty_band).upper(),
+        "variant": int(variant),
+        "writer_quality": quality,
         "provenance": {
             "provenance_complete": chain.provenance_complete,
             "chain": chain_payload(chain),
         },
     }
+
+
+def compile_lore_chain_variants(conn, chain, *, bands=("CASUAL", "HARD", "SICKO"), variants_per_band=2):
+    """Generate multiple deterministic, non-identical presentations of one chain."""
+    out = []
+    seen = set()
+    for band in bands:
+        for variant in range(max(1, int(variants_per_band))):
+            try:
+                question = compile_lore_chain_question(
+                    conn, chain, difficulty_band=band, variant=variant
+                )
+            except ValueError:
+                continue
+            signature = tuple(c["text"] for c in question["clues"])
+            if signature in seen:
+                continue
+            seen.add(signature)
+            out.append(question)
+    return out
 
 
 def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
@@ -410,9 +439,14 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
             if chain.source_diversity >= 2:
                 counts["mixed_source"] += 1
             try:
-                question = compile_lore_chain_question(conn, chain)
-                human_playable += 1
-                counts["human_playable"] += 1
+                variants = compile_lore_chain_variants(conn, chain, variants_per_band=2)
+                if not variants:
+                    raise ValueError("NO_HUMAN_VARIANTS")
+                question = variants[0]
+                human_playable += len(variants)
+                counts["human_playable"] += len(variants)
+                for variant_question in variants:
+                    counts["band_" + variant_question["difficulty_band"]] += 1
                 if len(examples) < 10:
                     examples.append({
                         "chain_id": chain.chain_id,
