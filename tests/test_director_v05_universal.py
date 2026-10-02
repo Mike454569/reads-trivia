@@ -378,3 +378,27 @@ def test_one_call_question_pipeline_returns_playable_contract():
     assert q["contract_version"]=="1.0.0"
     assert q["answer"]["id"]=="p1"
     assert len(q["clues"])==2
+
+
+def test_stress_certification_fails_when_coverage_regresses():
+    from tools.director_v05.stress_certification import certify
+    report={
+      "bridge":{"a":{"status":"READY"}},
+      "facts":{"a":{"status":"ERROR"}},
+      "chains":{"discovered":1,"eligible":0},
+      "questions":{},
+    }
+    result=certify(report,{"min_ready_bridge_adapters":2,"min_discovered_chains":2,
+                           "min_eligible_chains":1,"min_passed_questions":1,"max_bridge_errors":0})
+    assert result["status"]=="FAILED"
+    assert result["checks"]["bridge_errors"]["pass"] is False
+
+def test_stress_certification_passes_good_report():
+    from tools.director_v05.stress_certification import certify
+    report={
+      "bridge":{str(i):{"status":"READY"} for i in range(12)},
+      "facts":{str(i):{"status":"OK"} for i in range(12)},
+      "chains":{"discovered":40,"eligible":20},
+      "questions":{"THREE_CLUES:PASSED":12,"MULTIPLE_CHOICE:PASSED":8},
+    }
+    assert certify(report)["status"]=="PASSED"
