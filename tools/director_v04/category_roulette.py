@@ -54,11 +54,11 @@ def safety_check(c) -> dict:
     return wager_mode.safety_check(c)
 
 
-def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
+def generate_rounds(seed: str, variant: str, round_count: int = 6, *, launch_fast: bool = False) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
-    rounds = deep_trivia.generate_rounds(f"{seed}-category-roulette", round_count)
+    rounds = deep_trivia.generate_rounds(f"{seed}-category-roulette", round_count, launch_fast=launch_fast)
     shortfall_reason = None
     if len(rounds) < round_count:
         shortfall_reason = (
@@ -76,8 +76,8 @@ def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
 _GAME_TITLES = {"CATEGORY_ROULETTE_MIXED": "Category Roulette"}
 
 
-def build_package(seed: str, variant: str, round_count: int = 6) -> dict:
-    result = generate_rounds(seed, variant, round_count=round_count)
+def build_package(seed: str, variant: str, round_count: int = 6, *, launch_fast: bool = False) -> dict:
+    result = generate_rounds(seed, variant, round_count=round_count, launch_fast=launch_fast)
     package_id = "GGP37:" + hashlib.sha256(
         f"CATEGORY_ROULETTE|{variant}|{seed}|{round_count}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
