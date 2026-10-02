@@ -395,8 +395,10 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
     ).fetchall()
 
     counts = defaultdict(int)
+    rejects = defaultdict(int)
     examples = []
     total = 0
+    human_playable = 0
     for row in rows:
         chains = discover_lore_chains(
             conn, row["subject_type"], row["subject_id"],
@@ -407,19 +409,29 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
             counts[f"depth_{chain.depth}"] += 1
             if chain.source_diversity >= 2:
                 counts["mixed_source"] += 1
-            if len(examples) < 10:
-                examples.append({
-                    "chain_id": chain.chain_id,
-                    "anchor_type": chain.anchor_type,
-                    "anchor_id": chain.anchor_id,
-                    "depth": chain.depth,
-                    "rarity_score": chain.rarity_score,
-                    "difficulty_score": chain.difficulty_score,
-                })
+            try:
+                question = compile_lore_chain_question(conn, chain)
+                human_playable += 1
+                counts["human_playable"] += 1
+                if len(examples) < 10:
+                    examples.append({
+                        "chain_id": chain.chain_id,
+                        "anchor_type": chain.anchor_type,
+                        "answer_label": question["answer"]["label"],
+                        "question": question["question"],
+                        "clues": [c["text"] for c in question["clues"]],
+                        "depth": chain.depth,
+                        "rarity_score": chain.rarity_score,
+                        "difficulty_score": chain.difficulty_score,
+                    })
+            except ValueError as exc:
+                rejects[str(exc).split(":")[0]] += 1
 
     return {
         "anchors_scanned": len(rows),
         "playable_chains": total,
+        "human_playable_questions": human_playable,
         "counts": dict(counts),
+        "rejections": dict(rejects),
         "examples": examples,
     }
