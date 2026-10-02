@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import Counter
 
 from .lore_chains import discover_lore_chains, compile_lore_chain_variants
+from .lore_distractors import attach_deep_lore_options
 
 
 def _signature(question):
@@ -21,6 +22,8 @@ def build_lore_question_bank(
     recent_chain_ids=(),
     max_per_answer=1,
     max_per_signature=3,
+    with_options=True,
+    recent_distractor_ids=(),
 ):
     """Compile a diverse bank from ranked chains while enforcing session freshness."""
     target = max(1, min(int(target), 500))
@@ -44,6 +47,16 @@ def build_lore_question_bank(
             for question in variants:
                 if question["question_id"] in recent_q:
                     continue
+                if with_options:
+                    try:
+                        question = attach_deep_lore_options(
+                            conn,
+                            question,
+                            all_correct_ids={anchor_id},
+                            recent_distractor_ids=recent_distractor_ids,
+                        )
+                    except ValueError:
+                        continue
                 candidates.append(question)
 
     # Harder / rarer questions first, but freshness caps decide what survives.
@@ -99,6 +112,7 @@ def build_lore_question_bank(
         "unique_answers": len(answer_counts),
         "unique_clue_signatures": len(signature_counts),
         "unique_events": len(seen_events),
+        "with_options": bool(with_options),
     }
 
 
