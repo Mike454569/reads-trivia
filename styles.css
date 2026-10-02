@@ -7397,3 +7397,101 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
     min-height:56px;
   }
 }
+
+
+/* Mobile mode picker v2 — dense, scannable navigation instead of a wall of
+   oversized artwork and long undifferentiated copy. */
+#mode-sheet-items{
+  padding:8px 12px 18px;
+  overscroll-behavior:contain;
+}
+.mode-sheet-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 18px;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  min-height:76px;
+  padding:12px 6px;
+  border:0;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  border-radius:0;
+  background:transparent;
+  text-align:left;
+}
+.mode-sheet-item:last-child{border-bottom:0}
+.mode-sheet-item:hover,
+.mode-sheet-item:focus-visible{
+  background:rgba(255,255,255,.035);
+  border-radius:12px;
+}
+.mode-sheet-item .msi-icon{
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  margin:0;
+  border:1px solid rgba(217,166,60,.22);
+  border-radius:14px;
+  background:linear-gradient(145deg,rgba(217,166,60,.09),rgba(5,12,18,.55));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+.mode-sheet-item .msi-icon>.mode-mark{
+  width:42px;
+  height:42px;
+  margin:0;
+  border:0;
+  box-shadow:none;
+  background:transparent;
+}
+.mode-sheet-item .msi-icon .mode-mark-art{width:27px;height:27px}
+.mode-sheet-item .msi-text{display:block;min-width:0}
+.mode-sheet-item .msi-title{
+  display:block;
+  color:var(--text);
+  font-size:15px;
+  font-weight:800;
+  line-height:1.2;
+  letter-spacing:-.01em;
+}
+.mode-sheet-item .msi-meta{
+  display:block;
+  margin-top:4px;
+  color:var(--accent);
+  font-size:10px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  opacity:.9;
+}
+.mode-sheet-item .msi-desc{
+  display:-webkit-box;
+  overflow:hidden;
+  margin-top:5px;
+  color:var(--text-dim);
+  font-size:12px;
+  font-weight:400;
+  line-height:1.35;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.mode-sheet-item .msi-chevron{
+  color:var(--text-dim);
+  font-size:25px;
+  font-weight:300;
+  line-height:1;
+  opacity:.7;
+}
+@media(max-width:640px){
+  #mode-sheet-header{padding:15px 18px}
+  #mode-sheet-title{font-size:20px}
+  .mode-sheet-item{
+    grid-template-columns:50px minmax(0,1fr) 16px;
+    min-height:82px;
+    padding:13px 4px;
+  }
+  .mode-sheet-item .msi-icon{width:50px;height:50px}
+  .mode-sheet-item .msi-title{font-size:16px}
+}
