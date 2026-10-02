@@ -4,7 +4,7 @@ from __future__ import annotations
 RELATIONSHIPS={
  "PLAYER_GAME_LOG":{
    "sql":"""SELECT g.player_key AS subject_id,g.game_id AS object_id,g.season,g.week,g.team_code,
-            g.pass_yards,g.rush_yards,g.receiving_yards,g.source_id,g.verification_status
+            g.pass_yards,g.rush_yards,g.rec_yards,g.source_id,g.verification_status
             FROM player_game_stats g WHERE g.player_key=? AND g.verification_status='SOURCE_BACKED'
             ORDER BY g.season,g.week,g.game_id""",
  },
@@ -15,7 +15,7 @@ RELATIONSHIPS={
  },
  "CFB_PLAYER_GAME_LOG":{
    "sql":"""SELECT g.cfb_player_id AS subject_id,g.game_id AS object_id,g.season,g.school_id,
-            g.passing_yards,g.rushing_yards,g.receiving_yards,g.source_id,g.verification_status
+            g.passing_yards,g.rushing_yards,g.rec_yards,g.source_id,g.verification_status
             FROM cfb_player_game_stats_real g WHERE g.cfb_player_id=?
             AND g.verification_status='SOURCE_BACKED_DERIVED' ORDER BY g.season,g.game_id""",
  },
