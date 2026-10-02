@@ -335,6 +335,8 @@ def _pregame_record_snapshots(c, variant: str, season: int, target_rows: list) -
             snapshots[gid] = {
                 "home_record": _record_text(h[0], h[1], h[2]),
                 "away_record": _record_text(a[0], a[1], a[2]),
+                "home_games": sum(h),
+                "away_games": sum(a),
             }
 
         hs, aws = r["home_score"], r["away_score"]
@@ -413,9 +415,13 @@ def generate_slate(seed: str, variant: str, season: int, week) -> dict:
             if variant == "CFB_WEEKLY_PICKEM" and current_cfb_week and kickoff_dt and kickoff_dt > datetime.now(timezone.utc):
                 h_live = current_cfb_records.get(r["home_team"])
                 a_live = current_cfb_records.get(r["away_team"])
-                if h_live:
+                # The dedicated standings feed can lag or arrive as a
+                # partial one-game snapshot. Never let a less-complete feed
+                # replace the cumulative record reconstructed from concluded
+                # canonical games.
+                if h_live and h_live["games"] >= int(snapshot.get("home_games") or 0):
                     home_record = h_live["record"]
-                if a_live:
+                if a_live and a_live["games"] >= int(snapshot.get("away_games") or 0):
                     away_record = a_live["record"]
             games.append({
                 "game_id": r["game_id"], "home_team": r["home_team"], "away_team": r["away_team"],
