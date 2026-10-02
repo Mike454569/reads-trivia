@@ -110,7 +110,7 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
     # Building 42 Deep Ball questions synchronously made live rounds exceed
     # the frontend's 10s timeout on production.
     source = category_roulette.build_package(
-        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(18, round_count)
+        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(18, round_count), launch_fast=True
     )
     rounds = source.get("rounds") or []
     package_id = "GGP39:" + hashlib.sha256(
