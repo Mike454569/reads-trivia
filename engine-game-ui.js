@@ -1916,12 +1916,33 @@ var ENGINE_MECHANIC_MODES = {
   championshipRun: { publicMode: 'championship_run_mixed', hash: '#championshiprunpilot', flagOn: function () { return true; }, title: 'Championship Run', kind: 'strategy_arcade', icon: 'trophy', desc: 'Championship Run strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
 
 };
+
+var PUBLIC_MECHANIC_LAUNCH_CERTIFIED = new Set(
+  (window.READS_CONFIG && Array.isArray(window.READS_CONFIG.publicMechanicLaunchCertifiedModes))
+    ? window.READS_CONFIG.publicMechanicLaunchCertifiedModes
+    : []
+);
+Object.keys(ENGINE_MECHANIC_MODES).forEach(function (modeKey) {
+  var cfg = ENGINE_MECHANIC_MODES[modeKey];
+  var rawFlagOn = cfg.flagOn;
+  cfg.flagOn = function () {
+    return !!rawFlagOn() && PUBLIC_MECHANIC_LAUNCH_CERTIFIED.has(cfg.publicMode);
+  };
+});
+
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
   return ENGINE_MECHANIC_MODES[modeKey] || ENGINE_MECHANIC_MODES.matching;
 }
 function startMechanicPilotRound(modeKey, sourceModeId) {
   if (modeKey) mechanicPilotCurrentModeKey = modeKey;
+  var launchCfg = mechanicPilotModeConfig(mechanicPilotCurrentModeKey);
+  if (!launchCfg.flagOn()) {
+    state.mechanicPilot = null;
+    state.screen = 'home';
+    renderAll();
+    return;
+  }
   state.mechanicPilot = {
     modeKey: mechanicPilotCurrentModeKey, sourceModeId: sourceModeId || null, screen: ENGINE_GAME_SCREEN.LOADING, roundId: null, view: null,
     result: null, error: null, matchSelection: {}, gridActiveCell: null, rosterOpenSlot: null,
