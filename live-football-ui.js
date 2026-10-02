@@ -23,18 +23,23 @@ function liveFootballMaybeRefresh(force) {
   if (!force && LIVE_FOOTBALL.fetchedAt && Date.now() - LIVE_FOOTBALL.fetchedAt < LIVE_FOOTBALL_REFRESH_MS) return;
   LIVE_FOOTBALL.loading = true;
   LIVE_FOOTBALL.error = null;
-  Promise.all([liveFootballFetchLeague('NFL'), liveFootballFetchLeague('CFB')]).then(function (rows) {
-    LIVE_FOOTBALL.nfl = rows[0];
-    LIVE_FOOTBALL.cfb = rows[1];
+
+  var nfl = liveFootballFetchLeague('NFL')
+    .then(function (row) { LIVE_FOOTBALL.nfl = row; return { ok:true, league:'NFL' }; })
+    .catch(function (err) { return { ok:false, league:'NFL', err:err }; });
+  var cfb = liveFootballFetchLeague('CFB')
+    .then(function (row) { LIVE_FOOTBALL.cfb = row; return { ok:true, league:'CFB' }; })
+    .catch(function (err) { return { ok:false, league:'CFB', err:err }; });
+
+  Promise.all([nfl, cfb]).then(function (results) {
     LIVE_FOOTBALL.fetchedAt = Date.now();
     LIVE_FOOTBALL.loading = false;
+    var failed = results.filter(function (x) { return !x.ok; });
+    LIVE_FOOTBALL.error = failed.length
+      ? failed.map(function (x) { return x.league; }).join(' + ') + ' feed temporarily unavailable. Showing the league data that loaded.'
+      : null;
     liveFootballMarkNewFinals();
     if (state && (state.screen === 'home' || state.screen === 'liveFootball')) renderAll();
-    liveFootballScheduleRefresh();
-  }).catch(function (err) {
-    LIVE_FOOTBALL.loading = false;
-    LIVE_FOOTBALL.error = err && err.message ? err.message : 'Latest football results are temporarily unavailable.';
-    if (state && state.screen === 'liveFootball') renderAll();
     liveFootballScheduleRefresh();
   });
 }
