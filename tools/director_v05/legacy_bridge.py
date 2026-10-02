@@ -39,7 +39,7 @@ ADAPTERS={
  },
  "cfb_player_game_stats":{
   "table":"cfb_player_game_stats_real","kind":"GAME_STAT","id":None,
-  "columns":("game_id","cfb_player_id","player_name","school_id","season","passing_yards","rushing_yards","rec_yards","source_id","verification_status"),
+  "columns":("game_id","cfb_player_id","player_name","school_id","season","passing_yards","rushing_yards","receiving_yards","source_id","verification_status"),
   "where":"1=1","verification":"SOURCE_BACKED_DERIVED",
  },
  "nfl_pro_bowl":{
