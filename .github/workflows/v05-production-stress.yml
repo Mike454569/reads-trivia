@@ -1,0 +1,42 @@
+name: v0.5 production stress one-shot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v05-production-stress.yml'
+  workflow_dispatch:
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Stop stale v0.5 stress process
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'pkill -f \"python3 -m tools.director_v05.stress_harness\" || true'"
+
+      - name: Install v0.5 traversal indexes
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c \"import sqlite3; p='/data/engine/reads_football_v4.0.sqlite'; c=sqlite3.connect(p); c.executescript('CREATE INDEX IF NOT EXISTS ix_v05_player_game_stats_player ON player_game_stats(player_key, season, game_id); CREATE INDEX IF NOT EXISTS ix_v05_roster_player ON canonical_roster_seasons(player_id, season, team_code); CREATE INDEX IF NOT EXISTS ix_v05_draft_player ON draft_facts(player_key, draft_season); CREATE INDEX IF NOT EXISTS ix_v05_all_pro_player ON nfl_all_pro_selections(player_id, season); CREATE INDEX IF NOT EXISTS ix_v05_cfb_game_stats_player ON cfb_player_game_stats_real(cfb_player_id, season, game_id); CREATE INDEX IF NOT EXISTS ix_v05_coach_history ON coach_team_seasons(coach_id, season); CREATE INDEX IF NOT EXISTS ix_v05_rank_school ON cfb_rankings(school_id, season, week);'); c.commit(); print('v0.5 indexes installed'); c.close()\""
+
+      - name: Run production v0.5 stress and certification
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); print(next(str(r.get('id') or r.get('ID')) for r in rows if not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))))")
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.stress_harness --max-facts-per-adapter 5000 --max-players 1000 --out /tmp/v05-stress.json && python3 -c \"import json; from tools.director_v05.stress_certification import assert_certified; r=json.load(open(\\\"/tmp/v05-stress.json\\\")); print(json.dumps(assert_certified(r), indent=2, sort_keys=True))\"'"
