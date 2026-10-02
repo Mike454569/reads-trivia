@@ -6,6 +6,8 @@ from dataclasses import dataclass, asdict
 from collections import defaultdict, deque
 
 from .lore_trivia import gameplay_eligibility
+from .entity_labels import resolve_label
+from .lore_phrasing import render_chain_clues, order_clues, question_stem
 
 VERIFIED_RELATION_STATUSES = {
     "SOURCE_BACKED", "SOURCE_BACKED_DERIVED",
@@ -343,36 +345,30 @@ def chain_payload(chain):
     return payload
 
 
-def compile_lore_chain_question(chain):
-    """Compile a discovered mixed-source chain into a deep-trivia clue contract."""
+def compile_lore_chain_question(conn, chain):
+    """Compile a discovered mixed-source chain into human-sounding deep trivia."""
     if not chain.gameplay_eligible or not chain.provenance_complete:
         raise ValueError("CHAIN_NOT_GAMEPLAY_ELIGIBLE")
     if chain.depth < 3:
         raise ValueError("CHAIN_TOO_SHALLOW")
 
-    clues = []
-    for hop in chain.hops:
-        season = f" ({hop.season})" if hop.season is not None else ""
-        clues.append({
-            "relation": hop.relation,
-            "text": hop.relation.replace("_", " ").title() + ": " + hop.object_id + season,
-            "source_kind": hop.source_kind,
-        })
+    clues = order_clues(render_chain_clues(conn, chain), chain.difficulty_score)
+    answer = str(chain.anchor_id)
+    answer_label = resolve_label(conn, chain.anchor_type, answer)
 
-    answer = chain.anchor_id
     combined = " ".join(c["text"] for c in clues).casefold()
-    if answer.casefold() in combined:
+    if answer_label and answer_label.casefold() in combined:
         raise ValueError("CHAIN_ANSWER_LEAKAGE")
 
     qid = "qdeep_" + hashlib.sha256((chain.chain_id + "|" + answer).encode()).hexdigest()[:24]
     return {
         "contract_version": "1.0.0",
         "question_id": qid,
-        "mechanic": "THREE_CLUES" if chain.depth <= 4 else "PROGRESSIVE_CLUE",
+        "mechanic": "THREE_CLUES" if len(clues) <= 4 else "PROGRESSIVE_CLUE",
         "question_family": "DEEP_LORE_CHAIN",
-        "question": "Which football subject connects this verified chain?",
+        "question": question_stem(chain.anchor_type),
         "clues": clues,
-        "answer": {"id": answer, "label": answer, "type": chain.anchor_type},
+        "answer": {"id": answer, "label": answer_label, "type": chain.anchor_type},
         "chain_id": chain.chain_id,
         "depth": chain.depth,
         "rarity_score": chain.rarity_score,
