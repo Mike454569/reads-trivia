@@ -97,6 +97,7 @@ def build_package(
     recent_answer_ids=(),
     recent_chain_ids=(),
     recent_distractor_ids=(),
+    recent_families=(),
 ):
     band = DIFFICULTY_MAP.get(str(difficulty), DIFFICULTY_MAP.get(str(difficulty).lower()))
     if not band:
@@ -118,6 +119,7 @@ def build_package(
             recent_answer_ids=recent_answer_ids,
             recent_chain_ids=recent_chain_ids,
             recent_distractor_ids=recent_distractor_ids,
+            recent_families=recent_families,
             with_options=True,
         )
         questions = [
@@ -166,6 +168,11 @@ def build_package(
             "selected_count": bank["selected_count"],
             "unique_answers": bank["unique_answers"],
             "unique_events": bank["unique_events"],
+            "family_counts": bank.get("family_counts", {}),
+            "league_counts": bank.get("league_counts", {}),
+            "sensitive_count": bank.get("sensitive_count", 0),
+            "available_family_counts": bank.get("available_family_counts", {}),
+            "recent_families": [str(x) for x in recent_families],
             "shortfall_reason": shortfall,
         },
         "shortfall_reason": shortfall,
