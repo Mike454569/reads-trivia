@@ -7495,3 +7495,28 @@ body.home-fav-theme .recommend-card-icon { background: rgba(var(--home-glow-rgb)
   .mode-sheet-item .msi-icon{width:50px;height:50px}
   .mode-sheet-item .msi-title{font-size:16px}
 }
+
+
+/* Vector game-card identity: raster atlas cells are too compressed for
+   Retina card thumbnails. Keep this artwork resolution-independent. */
+.reads-game-art-vector{
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(circle at 30% 20%,rgba(217,166,60,.12),transparent 48%),
+    rgba(5,12,18,.72);
+  color:var(--accent);
+}
+.reads-game-art-vector .reads-game-art-vector-mark{
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+}
+.reads-game-art-vector .reads-game-art-vector-mark>svg{
+  width:68%;
+  height:68%;
+  display:block;
+  overflow:visible;
+  vector-effect:non-scaling-stroke;
+}
