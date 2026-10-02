@@ -525,16 +525,23 @@ def _ap_top25(c, season: int, week, season_type: str) -> dict[str, int]:
     """
     requested_week = 1 if season_type == "postseason" else int(week)
     current_regular = season_type == "regular" and _is_current_cfb_week(c, season, week)
+    # Select the newest COMPLETE AP poll. A refresh can briefly leave a
+    # partial newest week in cfb_rankings; MAX(week) alone would then expose
+    # that incomplete snapshot to Pick'em and make rankings look wrong.
     if current_regular:
         latest = c.execute(
-            "SELECT MAX(week) AS week FROM cfb_rankings "
-            "WHERE season=? AND season_type='regular' AND poll='AP Top 25'",
+            "SELECT week FROM cfb_rankings "
+            "WHERE season=? AND season_type='regular' AND poll='AP Top 25' "
+            "GROUP BY week HAVING COUNT(DISTINCT school_id) >= 25 "
+            "ORDER BY week DESC LIMIT 1",
             (season,),
         ).fetchone()
     else:
         latest = c.execute(
-            "SELECT MAX(week) AS week FROM cfb_rankings "
-            "WHERE season=? AND season_type=? AND poll='AP Top 25' AND week<=?",
+            "SELECT week FROM cfb_rankings "
+            "WHERE season=? AND season_type=? AND poll='AP Top 25' AND week<=? "
+            "GROUP BY week HAVING COUNT(DISTINCT school_id) >= 25 "
+            "ORDER BY week DESC LIMIT 1",
             (season, season_type, requested_week),
         ).fetchone()
     rank_week = latest["week"] if latest and latest["week"] is not None else None
