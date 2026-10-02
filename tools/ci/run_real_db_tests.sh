@@ -48,7 +48,7 @@ from tools.director_v02.generate_schema_and_prompt import verify_anthropic_promp
 print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
 PY
 
-# The sibling pytest job already covers every DB-independent test. Here we
+# Customer-facing rollout gate: every discoverable public mechanic must\n# produce a playable first screen inside the browser launch budget on the\n# production-sized DB fork before the broader integration suite runs.\npython -m pytest gateway/tests/test_public_mechanics_launch_budget.py -vv --tb=short\n\n# The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
 # removes duplicate work and lets Fly surface real integration regressions.
 # Fail fast while this gate is being stabilized so the first failing node is
