@@ -252,3 +252,53 @@ def test_sensitive_story_chain_preserves_legal_stage_without_inferring_guilt():
     assert material["requires_precise_legal_language"] is True
     assert material["no_guilt_inference"] is True
     assert material["clues"][-1]["legal_stage"]=="CHARGED"
+
+
+def test_story_engine_auto_discovers_playable_material_and_suppresses_repeats():
+    import sqlite3
+    from tools.director_v05.event_ingest import upsert_event
+    from tools.director_v05.story_engine import compile_story_candidates
+
+    conn=sqlite3.connect(":memory:")
+    conn.row_factory=sqlite3.Row
+    eid=upsert_event(conn,{
+      "event_type":"MEDIA_EVENT","league":"NFL","event_date":"2024-10-01",
+      "title":"Verified odd football moment","neutral_summary":"A documented odd event occurred.",
+      "source_url":"https://example.com/story","source_publisher":"Example",
+      "source_date":"2024-10-02","evidence_tier":"REPUTABLE_MEDIA",
+      "verification_status":"VERIFIED","tags":["funny","oddity"],
+      "subjects":[{"subject_type":"player","subject_id":"p1"}]
+    })
+
+    def provider(_conn, subject_id):
+        return [_verified_player_chain()] if subject_id=="p1" else []
+
+    rows=compile_story_candidates(conn,"FUNNY_MOMENTS","THREE_CLUES",chain_provider=provider,league="NFL",limit=5)
+    assert len(rows)==1
+    assert rows[0]["story"]["event_id"]==eid
+    assert rows[0]["answer"]["id"]=="p1"
+
+    rows2=compile_story_candidates(
+        conn,"FUNNY_MOMENTS","THREE_CLUES",chain_provider=provider,
+        league="NFL",limit=5,recent_event_ids=[eid]
+    )
+    assert rows2==[]
+
+
+def test_story_engine_skips_subjects_without_verified_deep_chain():
+    import sqlite3
+    from tools.director_v05.event_ingest import upsert_event
+    from tools.director_v05.story_engine import compile_story_candidates
+
+    conn=sqlite3.connect(":memory:")
+    conn.row_factory=sqlite3.Row
+    upsert_event(conn,{
+      "event_type":"MEDIA_EVENT","league":"NFL","event_date":"2024-10-01",
+      "title":"Verified odd football moment","neutral_summary":"A documented odd event occurred.",
+      "source_url":"https://example.com/story","source_publisher":"Example",
+      "evidence_tier":"REPUTABLE_MEDIA","verification_status":"VERIFIED",
+      "tags":["funny"],"subjects":[{"subject_type":"player","subject_id":"p2"}]
+    })
+    assert compile_story_candidates(
+        conn,"FUNNY_MOMENTS","WHO_AM_I",chain_provider=lambda *_: [],limit=5
+    )==[]
