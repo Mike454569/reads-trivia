@@ -402,3 +402,56 @@ def test_stress_certification_passes_good_report():
       "questions":{"THREE_CLUES:PASSED":12,"MULTIPLE_CHOICE:PASSED":8},
     }
     assert certify(report)["status"]=="PASSED"
+
+
+def test_legal_lore_requires_precise_stage_and_allegation():
+    import sqlite3,pytest
+    from tools.director_v05.event_ingest import upsert_event
+    db=sqlite3.connect(":memory:")
+    event={"event_type":"ARREST","title":"Reported arrest","neutral_summary":"A sourced legal event.",
+      "source_url":"https://example.com/report","source_publisher":"Example","evidence_tier":"REPUTABLE_MEDIA",
+      "verification_status":"VERIFIED","jurisdiction":"Example County","legal_stage":"ARRESTED",
+      "subjects":[{"subject_type":"PLAYER","subject_id":"p1"}],"tags":["legal","arrest"]}
+    with pytest.raises(ValueError,match="allegation_or_offense"):
+        upsert_event(db,event)
+    event["allegation_or_offense"]="Example alleged offense"
+    eid=upsert_event(db,event)
+    row=db.execute("SELECT legal_stage,allegation_or_offense FROM universal_event WHERE event_id=?",(eid,)).fetchone()
+    assert row==("ARRESTED","Example alleged offense")
+
+def test_sensitive_lore_rejects_secondary_evidence():
+    import sqlite3,pytest
+    from tools.director_v05.event_ingest import upsert_event
+    db=sqlite3.connect(":memory:")
+    event={"event_type":"LEGAL_EVENT","title":"Legal item","neutral_summary":"Summary",
+      "source_url":"https://example.com/a","source_publisher":"Example","evidence_tier":"AUTHORITATIVE",
+      "verification_status":"VERIFIED","jurisdiction":"Court","legal_stage":"CHARGED",
+      "allegation_or_offense":"Alleged offense","tags":["legal"],
+      "evidence":[{"source_url":"https://example.com/blog","publisher":"Blog","evidence_tier":"SECONDARY"}]}
+    with pytest.raises(ValueError,match="sensitive evidence"):
+        upsert_event(db,event)
+
+def test_lore_compiler_preserves_legal_state():
+    import sqlite3
+    from tools.director_v05.event_ingest import upsert_event
+    from tools.director_v05.lore_compiler import compile_lore
+    db=sqlite3.connect(":memory:")
+    upsert_event(db,{"event_type":"ARREST","league":"NFL","title":"Reported arrest","neutral_summary":"Neutral summary",
+      "source_url":"https://example.com/report","source_publisher":"Example","evidence_tier":"REPUTABLE_MEDIA",
+      "verification_status":"VERIFIED","jurisdiction":"County","legal_stage":"ARRESTED",
+      "allegation_or_offense":"Alleged offense","disposition":"PENDING","tags":["legal"]})
+    item=compile_lore(db,"LEGAL_HISTORY","TRUE_FALSE",league="NFL")[0]
+    assert item["legal_stage"]=="ARRESTED"
+    assert item["disposition"]=="PENDING"
+    assert item["sensitive"] is True
+
+def test_derived_lore_compiler_preserves_formula_provenance():
+    import sqlite3
+    from tools.director_v05.derivations import store
+    from tools.director_v05.lore_compiler import compile_derived
+    db=sqlite3.connect(":memory:")
+    store(db,"bust_score","NFL_PLAYER","p1",77.5,["draft:p1:1","stats:p1"],value_text="Player One")
+    item=compile_derived(db,"DRAFT_BUSTS","HIGHER_LOWER")[0]
+    assert item["metric"]=="bust_score"
+    assert item["formula_version"]=="1.0.0"
+    assert "draft:p1:1" in item["input_fact_ids_json"]
