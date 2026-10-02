@@ -2274,7 +2274,7 @@ def generate_strategy_arcade_round(*, variant: str, seed: str, round_count: int 
     if variant in strategy_arcade_wave4.VARIANTS:
         return strategy_arcade_wave4.build_package(seed, variant, round_count=max(round_count, 36))
     if variant in strategy_arcade_wave3.VARIANTS:
-        return strategy_arcade_wave3.build_package(seed, variant, round_count=max(round_count, 30))
+        return strategy_arcade_wave3.build_package(seed, variant, round_count=max(round_count, 18))
     return strategy_arcade.build_package(seed, variant, round_count=round_count)
 
 
