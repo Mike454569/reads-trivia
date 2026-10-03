@@ -1,0 +1,21 @@
+name: Story Cert Probe
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/story-cert-probe-trigger"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Probe detached Story certification
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'echo STATUS; cat /tmp/reads-story-cert-run/status.txt 2>/dev/null || true; echo META; cat /tmp/reads-story-cert-run/meta.json 2>/dev/null || true; echo LOG; tail -n 80 /tmp/reads-story-cert-run/runner.log 2>/dev/null || true; echo PROCESSES; ps aux | grep -E "run_story_prod_cert_bundle|certify_story_(question_quality|game_reach)" | grep -v grep || true'"
