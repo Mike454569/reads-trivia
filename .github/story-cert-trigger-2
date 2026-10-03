@@ -2,3 +2,5 @@ trigger: 2026-10-03
 purpose: simplified read-only Story Factory production certification
 
 retry: clear-stale-sftp-bundle
+
+retry: detached-runner
