@@ -23,3 +23,5 @@ jobs:
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; hits=[]; prefix=\"tools.director_v05.certify_story_\"; [(hits.append({\"pid\":int(n),\"argv\":a}) or os.kill(int(n),signal.SIGTERM)) for n in os.listdir(\"/proc\") if n.isdigit() for a in [[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]] if len(a)>=3 and os.path.basename(a[0]).startswith(\"python\") and a[1]==\"-m\" and a[2].startswith(prefix)]; print(json.dumps(hits,sort_keys=True))'"
+
+# sweep-again
