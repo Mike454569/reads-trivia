@@ -92,3 +92,46 @@ def test_ggp39_package_id_is_storage_safe(tmp_path, monkeypatch):
     stored = packages.save_package(package)
     assert stored["package_id"].startswith("GGP39:")
     assert packages.load_package(stored["package_id"])["package_id"] == stored["package_id"]
+
+
+
+def test_deep_lore_delivery_blends_ready_story_question(monkeypatch):
+    c = _conn()
+    monkeypatch.setattr(lore_package.engine_bootstrap, "connect", lambda: c)
+
+    story = {
+        "question_id":"qstory-1",
+        "question":"Who am I?",
+        "difficulty_band":"HARD",
+        "answer":{"id":"p-story","label":"Story Player","type":"NFL_PLAYER"},
+        "options":["Story Player","Wrong A","Wrong B","Wrong C"],
+        "clues":[
+            {"text":"I spoke to reporters after a strange game.","reveal_step":1},
+            {"text":"The story came from an NFL media appearance.","reveal_step":2},
+            {"text":"The event became a memorable football moment.","reveal_step":3},
+        ],
+        "question_family":"LORE_IDENTITY",
+        "provenance":{"provenance_complete":True,"chain":{"hops":[]}},
+    }
+    normal = _bank()
+    normal["selected"][0]["answer"]["id"] = "p-normal"
+    monkeypatch.setattr(
+        lore_package,
+        "load_ready_story_questions",
+        lambda *a, **k: [story],
+    )
+    monkeypatch.setattr(
+        lore_package,
+        "build_lore_question_bank",
+        lambda *a, **k: normal,
+    )
+
+    package = lore_package.build_package(
+        seed="story-blend",
+        target_count=2,
+        difficulty="medium",
+    )
+    ids = [q["id"] for q in package["questions"]]
+    assert "qstory-1" in ids
+    assert "qdeep-1" in ids
+    assert package["_diagnostics"]["story_questions_used"] == 1
