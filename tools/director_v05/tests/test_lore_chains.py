@@ -178,3 +178,56 @@ def test_derived_fact_without_evidence_is_not_a_chain_edge():
     edges = [e for e in _structured_edges(c, "NFL_PLAYER", "p1") if e.object_type == "DERIVED_FACT"]
     assert len(edges) == 1
     assert edges[0].source_id == "https://example.com/evidence"
+
+
+
+def test_reverse_team_traversal_is_season_local_and_source_backed():
+    c = _conn()
+    c.execute("INSERT INTO canonical_players VALUES(?,?)", ("p2", "Nearby Player"))
+    c.execute("INSERT INTO canonical_players VALUES(?,?)", ("p3", "Far Player"))
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("p2","AAA",2021,"draft-near","SOURCE_BACKED"))
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("p3","AAA",2010,"draft-far","SOURCE_BACKED"))
+
+    edges = _structured_edges(c, "NFL_TEAM", "AAA", season_hint=2022)
+    drafted = [e for e in edges if e.relation == "DRAFTED_PLAYER"]
+    assert any(e.object_id == "p2" for e in drafted)
+    assert all(e.object_id != "p3" for e in drafted)
+    assert all(e.source_id for e in drafted)
+
+
+def test_reverse_school_traversal_uses_verified_game_logs():
+    c = _conn()
+    c.execute("""CREATE TABLE cfb_player_game_stats_real(
+        cfb_player_id TEXT, school_id TEXT, season INTEGER,
+        passing_yards INTEGER, rushing_yards INTEGER, rec_yards INTEGER,
+        source_id TEXT, verification_status TEXT
+    )""")
+    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
+              ("cp2","ALA",2023,100,20,30,"cfb-near","SOURCE_BACKED_DERIVED"))
+    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
+              ("cp3","ALA",2015,100,20,30,"cfb-far","SOURCE_BACKED_DERIVED"))
+
+    edges = _structured_edges(c, "SCHOOL", "ALA", season_hint=2022)
+    players = [e for e in edges if e.relation == "SCHOOL_PLAYER"]
+    assert any(e.object_id == "cp2" for e in players)
+    assert all(e.object_id != "cp3" for e in players)
+    assert all(e.verification_status == "SOURCE_BACKED_DERIVED" for e in players)
+
+
+def test_cross_player_chain_can_traverse_event_team_to_another_player():
+    c = _conn()
+    c.execute("INSERT INTO canonical_players VALUES(?,?)", ("p2", "Second Player"))
+    _event(c, "cross-player", player_id="p1", team_id="AAA")
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("p2","AAA",2021,"draft-p2","SOURCE_BACKED"))
+    c.execute("INSERT INTO canonical_roster_seasons VALUES(?,?,?,?,?)",
+              ("p2","BBB",2022,"roster-p2","SOURCE_BACKED"))
+
+    chains = discover_lore_chains(c, "NFL_PLAYER", "p1", max_depth=6)
+    assert any(
+        any(h.relation == "DRAFTED_PLAYER" and h.object_id == "p2" for h in chain.hops)
+        for chain in chains
+    )
+    assert all(chain.provenance_complete for chain in chains)
