@@ -13,7 +13,7 @@ RULE_CHANGES = [
         "league":"NFL",
         "event_date":"2026-01-01",
         "title":"NFL allows declared onside kicks at any time",
-        "neutral_summary":"Beginning with the 2026 NFL rules, a kicking team may declare an onside kick at any time during the game.",
+        "neutral_summary":"Under the 2026 NFL rules, a kicking team that is trailing may declare an onside kick at any time during the game.",
         "source_url":"https://operations.nfl.com/rules-officiating/2026-nfl-rulebook",
         "source_publisher":"NFL Football Operations",
         "rule_ref":"6-1-6",
