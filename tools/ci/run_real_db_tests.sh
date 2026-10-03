@@ -23,8 +23,13 @@ size = os.path.getsize(path)
 if size <= 100 * 1024 * 1024:
     raise SystemExit(f"Real DB is unexpectedly small: {size} bytes")
 
-con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+# This is an isolated disposable Fly volume fork, never the live volume.
+# Open normally rather than URI mode=ro so WAL/SHM recovery can occur;
+# read-only SQLite opens can fail on a WAL-backed fork with
+# "attempt to write a readonly database" before a single SELECT executes.
+con = sqlite3.connect(path)
 try:
+    con.execute("PRAGMA query_only=ON")
     row = con.execute(
         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='games'"
     ).fetchone()
