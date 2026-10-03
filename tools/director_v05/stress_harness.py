@@ -69,6 +69,10 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["cfb_weather_lore"]=mine_cfb_weather_lore(c); c.commit()
             from .nfl_contract_lore import mine_nfl_contract_lore
             population["nfl_contract_lore"]=mine_nfl_contract_lore(c); c.commit()
+            from .cfb_recruiting_lore import mine_cfb_recruiting_lore
+            population["cfb_recruiting_lore"]=mine_cfb_recruiting_lore(c); c.commit()
+            from .official_rule_lore import populate_official_rule_lore
+            population["official_rule_lore"]=populate_official_rule_lore(c); c.commit()
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
             from .lore_trivia import lore_gameplay_report
