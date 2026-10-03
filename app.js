@@ -14716,7 +14716,7 @@ document.addEventListener('click', function (e) {
     '[data-creator-run-recipe], [data-creator-delete-recipe], [data-creator-check-duplicates], [data-creator-replace-question], ' +
     '[data-creator-toggle-package], [data-creator-select-visible], [data-creator-clear-selection], [data-creator-batch-review], ' +
     '[data-creator-dashboard-filter], [data-creator-create-collection], [data-creator-delete-collection], [data-creator-add-collection], ' +
-    '[data-creator-fix-issues], [data-creator-preview-surface], [data-creator-restore-version], [data-creator-story-date], [data-creator-story-refresh], [data-creator-story-certify], ' +
+    '[data-creator-fix-issues], [data-creator-preview-surface], [data-creator-restore-version], [data-creator-story-date], [data-creator-story-refresh], [data-creator-story-certify], [data-creator-story-retry], ' +
     '[data-iq-start], [data-iq-answer], ' +
     '[data-legends-start], [data-legends-pick], [data-legends-reroll-team], [data-legends-reroll-year], ' +
     '[data-cfb-legends-start], [data-cfb-legends-pick], [data-cfb-legends-reroll-team], [data-cfb-legends-reroll-year], ' +
@@ -15451,6 +15451,7 @@ document.addEventListener('click', function (e) {
   if (t.dataset.creatorPreviewSurface !== undefined) { state.creator.previewSurface=t.dataset.creatorPreviewSurface; renderAll(); return; }
   if (t.dataset.creatorRestoreVersion !== undefined) { creatorOpenPackage(t.dataset.creatorRestoreVersion); return; }
   if (t.dataset.creatorStoryRefresh !== undefined) { creatorLoadStoryFactory(); return; }
+  if (t.dataset.creatorStoryRetry !== undefined) { creatorRetrySafeStories(); return; }
   if (t.dataset.creatorStoryCertify !== undefined) { creatorRunStoryCertification(); return; }
   if (t.dataset.creatorStoryDate !== undefined) { creatorConfirmStoryDate(t.dataset.creatorStoryDate); return; }
   if (t.dataset.creatorSaveRecipe !== undefined) { creatorSaveRecipe(); return; }
