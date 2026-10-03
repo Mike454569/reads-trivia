@@ -96,6 +96,11 @@ def test_high_confidence_primary_story_promotes_and_generates(monkeypatch):
         "generate_questions_for_event",
         lambda c, candidate_id, event_id, subject: [fake_q],
     )
+    monkeypatch.setattr(
+        factory,
+        "generate_story_formats_for_event",
+        lambda *a, **k: {"generated_count":0,"generated":[],"rejected":[]},
+    )
 
     out = factory.process_candidate(c, row, factory.build_subject_index(c))
     assert out["decision"] == "AUTO_PROMOTED"
