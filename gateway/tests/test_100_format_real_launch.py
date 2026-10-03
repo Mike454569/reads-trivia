@@ -8,7 +8,7 @@ from tools.director_v02.format_launch_matrix import (
 )
 
 
-class _LaunchTimeout(BaseException):
+class _LaunchTimeout(Exception):
     pass
 
 
@@ -58,12 +58,8 @@ def test_every_unique_server_target_used_by_100_formats_launches_on_real_db(monk
                     exclude_game_ids=[],
                     client_id="100-format-cert",
                 )
-                public_payload = payload.get("payload") or {}
-                valid = (
-                    bool(payload.get("game_id"))
-                    and bool(public_payload.get("prompt"))
-                    and bool(public_payload.get("options"))
-                )
+                view = payload.get("payload") or {}
+                valid = bool(payload.get("game_id")) and bool(view.get("prompt")) and bool(view.get("options"))
             else:
                 raise AssertionError(f"unexpected server target type {target_type!r}")
 
