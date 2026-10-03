@@ -169,10 +169,15 @@ jobs:
             fi
           done
           if [ -z "$SOURCE_VOLUME_ID" ]; then
-            echo "No running production Machine has a populated Reads DB" >&2
+            echo "No running production Machine exposed the DB; falling back to the named production volume."
+            VOLUMES_JSON=$("$HOME/.fly/bin/flyctl" volumes list -a "$FLY_APP" --json)
+            SOURCE_VOLUME_ID=$(printf '%s' "$VOLUMES_JSON" | python3 -c "import json,sys; name='$SOURCE_VOLUME'; rows=json.load(sys.stdin); matches=[r for r in rows if str(r.get('name') or r.get('Name') or '')==name and (r.get('id') or r.get('ID'))]; print(str((matches[0].get('id') or matches[0].get('ID'))) if matches else '')")
+          fi
+          if [ -z "$SOURCE_VOLUME_ID" ]; then
+            echo "No Fly volume named $SOURCE_VOLUME is available to fork" >&2
             exit 1
           fi
-          echo "Forking verified production volume $SOURCE_VOLUME_ID into isolated CI copy"
+          echo "Forking production volume $SOURCE_VOLUME_ID into isolated CI copy; the forked DB is validated before tests run."
 
           echo "Forking with an 8-minute hard timeout so Fly cannot pin CI indefinitely"
           FORK_JSON=$(timeout 8m "$HOME/.fly/bin/flyctl" volumes fork "$SOURCE_VOLUME_ID" \
