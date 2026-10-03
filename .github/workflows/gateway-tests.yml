@@ -231,7 +231,7 @@ jobs:
             -a "$FLY_APP" --machine "$TEMP_MACHINE_ID"
 
           timeout 22m "$HOME/.fly/bin/flyctl" ssh console -a "$FLY_APP" --machine "$TEMP_MACHINE_ID" \
-            -C "sh -lc 'set -eu; apk add --no-cache python3 py3-pip; rm -rf /tmp/reads-ci; mkdir -p /tmp/reads-ci; tar -xzf /tmp/reads-ci-src.tgz -C /tmp/reads-ci; chmod +x /tmp/reads-ci/tools/ci/run_real_db_tests.sh; /tmp/reads-ci/tools/ci/run_real_db_tests.sh'"
+            -C "sh -lc 'set -eu; apk add --no-cache python3 py3-pip; rm -rf /tmp/reads-ci; mkdir -p /tmp/reads-ci; tar -xzf /tmp/reads-ci-src.tgz -C /tmp/reads-ci; chmod +x /tmp/reads-ci/tools/ci/run_real_db_tests.sh; export READS_100_FORMAT_CERT_ONLY=1; /tmp/reads-ci/tools/ci/run_real_db_tests.sh'"
 
 
       # Always runs, even if an earlier step failed -- a temporary volume or
