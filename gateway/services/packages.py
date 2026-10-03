@@ -79,7 +79,7 @@ def _safe_filename_for_id(package_id: str) -> Path:
     """The only function in this module allowed to build a filesystem path
     from a package_id. Validates against a strict allowlist regex BEFORE
     any path construction -- `../`, absolute paths, null bytes, or any
-    character outside PACKAGE_ID_RE's fixed GGP(4-9|10-39)?:[0-9a-f]{24}
+    character outside PACKAGE_ID_RE's fixed GGP(4-9|10-41)?:[0-9a-f]{24}
     shape is rejected outright, never sanitized-and-used."""
     if not isinstance(package_id, str) or not PACKAGE_ID_RE.match(package_id):
         raise PackageIdInvalid(f"invalid package_id format: {package_id!r}")
