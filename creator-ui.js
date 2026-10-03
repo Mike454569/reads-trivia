@@ -581,6 +581,17 @@ function creatorStoryFactoryHtml(){
       '</div>'+
       (cert?'<div class="creator-readiness"><div class="creator-quality-head"><span>GAME REACH CERTIFICATION</span><b>'+Number(cert.games_with_story_content||0)+'/'+Number(cert.games_tested||0)+'</b></div><div class="creator-quality-grid"><span class="'+(cert.promotion_ready?'pass':'fail')+'">'+(cert.promotion_ready?'✓':'!')+' Promotion '+(cert.promotion_ready?'ready':'blocked')+'</span><span>'+Math.round(Number(cert.reach_fraction||0)*100)+'% compatible-game reach</span><span>'+Number(cert.ready_story_questions||0)+' ready story questions</span><span>'+Number((cert.errors||[]).length)+' execution errors</span></div></div>':'')+
       '</section>'+
+    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">CORPUS COVERAGE</span><h3>What the factory is actually learning</h3><p>Candidate mix, source concentration and generated mechanic depth.</p></div></div>'+
+      '<div class="creator-quality-grid">'+
+        Object.entries(h.candidate_families||{}).slice(0,6).map(function(x){return '<span><b>'+esc(x[0].replace(/_/g,' '))+'</b> '+Number(x[1])+'</span>';}).join('')+
+      '</div>'+
+      '<div class="creator-quality-grid">'+
+        Object.entries(h.questions_by_mechanic||{}).slice(0,8).map(function(x){return '<span><b>'+esc(x[0].replace(/_/g,' '))+'</b> '+Number(x[1])+' Qs</span>';}).join('')+
+      '</div>'+
+      '<div class="creator-quality-grid">'+
+        Object.entries(h.candidate_domains||{}).slice(0,8).map(function(x){return '<span>'+esc(x[0])+' · '+Number(x[1])+'</span>';}).join('')+
+      '</div>'+
+    '</section>'+
     '<section class="creator-recent"><div class="creator-library-head"><div><span class="dashboard-eyebrow">REVIEW BACKLOG</span><h3>Suggested story reviews</h3><p>Confirm chronology only when the article clearly establishes the real event date.</p></div><span class="creator-format-type">'+rows.length+' loaded</span></div>'+
     (rows.length?'<div class="creator-review-list">'+rows.map(function(item){
       var flags=item.risk_flags||[],terms=item.evidence_terms||[],suggested=item.suggested_event_date||'';
