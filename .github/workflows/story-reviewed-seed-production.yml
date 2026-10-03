@@ -1,0 +1,47 @@
+name: Story Reviewed Seed Production
+
+on:
+  push:
+    branches:
+      - 'story-prod-recovery-*'
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Seed reviewed Story corpus and generate questions
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/reviewed_story_seed_once.py)
+          for attempt in 1 2 3 4; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > story-reviewed-seed.json 2> story-reviewed-seed.err; then
+              test -s story-reviewed-seed.json && break
+            fi
+            echo "reviewed seed attempt $attempt failed"
+            cat story-reviewed-seed.err || true
+            sleep 10
+          done
+          cat story-reviewed-seed.json
+          test -s story-reviewed-seed.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-reviewed-seed-production
+          path: |
+            story-reviewed-seed.json
+            story-reviewed-seed.err
+          if-no-files-found: warn
+          retention-days: 7
