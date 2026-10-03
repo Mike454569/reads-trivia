@@ -60,6 +60,7 @@ from .services import public_game  # noqa: E402
 from .services import public_mechanics  # noqa: E402
 from .services import public_pickem  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
+from .services import story_review as story_review_service  # noqa: E402
 from .services import audit as gateway_audit  # noqa: E402
 from .services import oplog  # noqa: E402
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
@@ -608,7 +609,7 @@ def _refresh_import_guard(fn, *args):
 _REFRESH_DATASET_KEYS = {"nfl", "cfb", "nfl_games", "cfb_games", "nfl_draft", "nfl_player_stats", "nfl_player_game_stats", "nfl_team_game_stats", "cfb_player_stats",
                           "nfl_contracts", "nfl_injuries", "nfl_pbp", "nfl_passer_rating", "cfb_all_america",
                           "cfb_betting_lines", "cfb_games_postseason", "cfb_pbp", "cfb_rankings", "cfb_standings",
-                          "cfb_weather"}
+                          "cfb_weather", "cfb_recruiting", "story_candidates"}
 
 
 @app.post("/v1/admin/refresh/{dataset_key}")
@@ -641,6 +642,24 @@ def admin_refresh_trigger(dataset_key: str, request: Request, background_tasks: 
 @app.get("/v1/admin/refresh/status")
 def admin_refresh_status_route(request: Request, _admin=Depends(require_admin)):
     return _refresh_import_guard(admin_refresh.refresh_status)
+
+
+@app.get("/v1/admin/story-review")
+def admin_story_review_queue(
+    request: Request,
+    limit: int = Query(default=200, ge=1, le=2000),
+    include_sensitive: bool = Query(default=True),
+    _admin=Depends(require_admin),
+):
+    return story_review_service.review_queue(
+        limit=limit,
+        include_sensitive=include_sensitive,
+    )
+
+
+@app.get("/v1/admin/story-review/health")
+def admin_story_review_health(request: Request, _admin=Depends(require_admin)):
+    return story_review_service.factory_health()
 
 
 # --- Reliability-design Phase 2: async Creator jobs -------------------------
