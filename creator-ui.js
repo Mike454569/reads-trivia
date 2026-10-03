@@ -110,7 +110,7 @@ function creatorInitialState() {
     duplicateReports: {}, duplicateLoading: {}, selectedPackages: {}, batchReviewRunning: false,
     collections: [], collectionName: '', previewSurface: 'game', fixingIssues: false,
     storyHealth: null, storyQueue: [], storyLoading: false, storyDateSaving: null,
-    storyCertification: null, storyCertificationLoading: false,
+    storyCertification: null, storyCertificationLoading: false, storyRetryLoading: false,
   };
 }
 
@@ -525,6 +525,18 @@ function creatorLoadStoryFactory() {
   });
 }
 
+function creatorRetrySafeStories(){
+  var s=state.creator;if(!s||s.storyRetryLoading)return;
+  s.storyRetryLoading=true;renderAll();
+  creatorFetchJson('/v1/admin/story-review/retry-safe?limit=50',{method:'POST'}).then(function(){
+    if(state.creator!==s)return;
+    s.storyRetryLoading=false;creatorLoadStoryFactory();
+  }).catch(function(err){
+    if(state.creator!==s)return;
+    s.storyRetryLoading=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();
+  });
+}
+
 function creatorRunStoryCertification(){
   var s=state.creator;if(!s||s.storyCertificationLoading)return;
   s.storyCertificationLoading=true;renderAll();
@@ -568,7 +580,7 @@ function creatorStoryFactoryHtml(){
     ['Review Backlog',(status.REVIEW_REQUIRED||0)+(status.REVIEW_REQUIRED_SENSITIVE||0)]
   ];
   return '<div class="creator-workspace">'+creatorToolbarHtml(false)+
-    '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div>'+
+    '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><div class="btn-row"><button class="btn-secondary" data-creator-story-retry'+(s.storyRetryLoading?' disabled':'')+'>'+(s.storyRetryLoading?'Rechecking…':'Retry 50 Safe Reviews')+'</button><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div></div>'+
     '<div class="creator-command-grid">'+metrics.map(function(m){return '<div><b>'+Number(m[1]||0)+'</b><span>'+esc(m[0])+'</span></div>';}).join('')+'</div>'+
     '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div><button class="btn-secondary" data-creator-story-certify'+(s.storyCertificationLoading?' disabled':'')+'>'+(s.storyCertificationLoading?'Certifying…':'Run Game Reach Certification')+'</button></div>'+
       '<div class="creator-quality-grid">'+
