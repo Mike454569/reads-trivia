@@ -6,6 +6,7 @@ import json
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.story_factory_health import story_factory_health
 from tools.director_v05.story_multiformat import generate_story_formats_for_event
+from tools.director_v05.certify_story_question_quality import certify_story_question_quality
 
 
 def _tables(conn):
@@ -93,6 +94,7 @@ def factory_health():
             }
         else:
             health["review_suggestions"] = {}
+        health["question_quality"] = certify_story_question_quality(c)
         return health
     finally:
         c.close()
@@ -178,3 +180,9 @@ def confirm_event_date(*, candidate_id, event_date):
         }
     finally:
         c.close()
+
+
+
+def game_reach_certification():
+    from tools.director_v05.certify_story_game_reach import certify_story_game_reach
+    return certify_story_game_reach(seed="admin-story-game-reach")
