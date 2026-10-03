@@ -11,6 +11,16 @@ def _q(qid, fmt, event_ids):
     }
 
 
+def _no_story_formats(*a, **k):
+    return {
+        "COMMON_LINK": [],
+        "FACT_OR_FAKE": [],
+        "MATCHING": [],
+        "BEFORE_AFTER": [],
+        "TIMELINE": [],
+    }
+
+
 def test_multiformat_bank_rotates_formats_and_avoids_event_reuse(monkeypatch):
     discovered = {
         "COMMON_LINK": [
@@ -27,6 +37,7 @@ def test_multiformat_bank_rotates_formats_and_avoids_event_reuse(monkeypatch):
         ],
     }
     monkeypatch.setattr(bank, "discover_multiformat_candidates", lambda conn, limit=250: discovered)
+    monkeypatch.setattr(bank, "load_ready_story_formats", _no_story_formats)
 
     out = bank.build_multiformat_bank(None, target=6, max_per_format=2)
     assert out["selected_count"] == 6
@@ -50,6 +61,7 @@ def test_recent_format_moves_later_in_rotation(monkeypatch):
         "TIMELINE":[_q("t1","TIMELINE",["e3"])],
     }
     monkeypatch.setattr(bank, "discover_multiformat_candidates", lambda conn, limit=250: discovered)
+    monkeypatch.setattr(bank, "load_ready_story_formats", _no_story_formats)
     out = bank.build_multiformat_bank(
         None,
         target=2,
@@ -69,8 +81,31 @@ def test_duplicate_event_candidate_is_skipped(monkeypatch):
         "TIMELINE":[],
     }
     monkeypatch.setattr(bank, "discover_multiformat_candidates", lambda conn, limit=250: discovered)
+    monkeypatch.setattr(bank, "load_ready_story_formats", _no_story_formats)
     out = bank.build_multiformat_bank(None, target=2, max_per_format=2)
     ids = [q["question_id"] for q in out["selected"]]
     assert "c1" in ids
     assert "b1" not in ids
     assert "b2" in ids
+
+
+
+def test_story_fact_fake_and_matching_join_format_rotation(monkeypatch):
+    discovered = {
+        "COMMON_LINK": [],
+        "BEFORE_AFTER": [],
+        "TIMELINE": [],
+    }
+    story = {
+        "COMMON_LINK": [],
+        "FACT_OR_FAKE":[_q("f1","EVENT",["e1"])],
+        "MATCHING":[_q("m1","MATCHING",["e2","e3","e4"])],
+        "BEFORE_AFTER":[],
+        "TIMELINE":[],
+    }
+    monkeypatch.setattr(bank, "discover_multiformat_candidates", lambda conn, limit=250: discovered)
+    monkeypatch.setattr(bank, "load_ready_story_formats", lambda *a, **k: story)
+    out = bank.build_multiformat_bank(None, target=2, max_per_format=1)
+    assert [q["question_id"] for q in out["selected"]] == ["f1","m1"]
+    assert out["format_counts"] == {"FACT_OR_FAKE":1,"MATCHING":1}
+    assert out["story_available_counts"]["FACT_OR_FAKE"] == 1
