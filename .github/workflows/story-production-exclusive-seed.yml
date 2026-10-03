@@ -38,37 +38,9 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
-          for sweep in 1 2 3 4 5 6 7 8; do
-            flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 - <<\"PY\"
-import os, signal
-patterns = (
-    "run_story_to_trivia_factory",
-    "reviewed_story_seed_once",
-    "native_story_harvest_once",
-)
-me = os.getpid()
-killed=[]
-for name in os.listdir("/proc"):
-    if not name.isdigit():
-        continue
-    pid=int(name)
-    if pid == me:
-        continue
-    try:
-        raw=open(f"/proc/{pid}/cmdline","rb").read().replace(b"\\x00",b" ").decode("utf-8","ignore")
-    except Exception:
-        continue
-    if "uvicorn" in raw or "gunicorn" in raw:
-        continue
-    if any(p in raw for p in patterns):
-        try:
-            os.kill(pid, signal.SIGTERM)
-            killed.append((pid, raw[:180]))
-        except ProcessLookupError:
-            pass
-print("killed", killed)
-PY'" || true
-            sleep 6
+          for sweep in 1 2 3 4 5 6; do
+            flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; pats=(\\\"run_story_to_trivia_factory\\\",\\\"reviewed_story_seed_once\\\",\\\"native_story_harvest_once\\\"); me=os.getpid(); killed=[]; [(os.kill(int(n),signal.SIGTERM),killed.append(int(n))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and int(n)!=me and all(x not in (open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"ignore\\\")) for x in (\\\"uvicorn\\\",\\\"gunicorn\\\")) and any(p in open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"ignore\\\") for p in pats)]; print(\\\"killed\\\",killed)\"'" || true
+            sleep 5
           done
 
       - name: Seed reviewed Story corpus and generate questions
