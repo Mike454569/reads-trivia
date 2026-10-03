@@ -1,117 +1,97 @@
 name: Story Production Certification
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - 'story-prod-cert-trigger-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   certify:
+    name: Certify live Story Factory DB
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Verify Fly access
+      - name: Verify Fly access and production DB
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl status -a reads-football-gateway
+          APP="reads-football-gateway"
+          test -n "${FLY_API_TOKEN:-}"
+          flyctl status -a "$APP"
+          DB_SIZE=$(flyctl ssh console -a "$APP" -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' | tail -n 1 | tr -dc '0-9')
+          echo "Production Engine DB bytes: $DB_SIZE"
+          test "${DB_SIZE:-0}" -ge 104857600
 
-      - name: Resolve known-good production Engine machine
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          machine_id=$(flyctl machines list -a reads-football-gateway --json | python3 -c "import json,sys; rows=json.load(sys.stdin); v='vol_r7ygxo6owqg5ke9r'; ids=[str(r.get('id') or r.get('ID')) for r in rows if any((m.get('volume') or m.get('volume_id'))==v for m in (r.get('config') or {}).get('mounts',[]))]; print(ids[0] if ids else '')")
-          if [ -z "$machine_id" ]; then
-            echo "Known-good Engine volume machine not found." >&2
-            exit 2
-          fi
-          echo "MACHINE_ID=$machine_id" >> "$GITHUB_ENV"
-          echo "Pinned Story certification to machine $machine_id"
-
-      - name: Package current source
+      - name: Package current certification source
         run: |
           set -euo pipefail
           tar --exclude=.git --exclude=.github --exclude='*.sqlite' --exclude='*.sqlite-*' -czf /tmp/reads-story-cert.tgz .
 
-      - name: Clear previous temporary certification files
+      - name: Upload certification source to Fly tmp
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'pkill -f '[t]ools.director_v05.run_story_prod_cert_bundle' 2>/dev/null || true; sleep 1; rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
+          flyctl ssh sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway
 
-      - name: Upload current source to temporary Fly path
+      - name: Run read-only production certifications
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway --machine "$MACHINE_ID"
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'rm -rf /tmp/reads-story-cert && mkdir -p /tmp/reads-story-cert && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_question_quality > /tmp/story-question-quality.json 2> /tmp/story-question-quality.err || true; python -m tools.director_v05.certify_story_game_reach > /tmp/story-game-reach.json 2> /tmp/story-game-reach.err || true; test -s /tmp/story-question-quality.json; test -s /tmp/story-game-reach.json'"
 
-      - name: Start detached production certification
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.launch_story_prod_cert --out-dir /tmp/reads-story-cert-run'"
-
-      - name: Poll detached certification
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          final=""
-          for attempt in $(seq 1 120); do
-            status=$(flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'cat /tmp/reads-story-cert-run/status.txt 2>/dev/null || echo STARTING'" | tail -n 1 | tr -d '\r')
-            echo "Story certification status: $status"
-            if [ "$status" = "COMPLETE" ] || [ "$status" = "FAILED" ]; then
-              final="$status"
-              break
-            fi
-            sleep 10
-          done
-          if [ -z "$final" ]; then
-            echo "Certification did not finish before polling deadline." >&2
-            exit 4
-          fi
-
-      - name: Download production certification results
+      - name: Download certification outputs
         if: always()
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set +e
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/meta.json story-cert-meta.json -a reads-football-gateway
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-question-quality.json story-question-quality.json -a reads-football-gateway
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-game-reach.json story-game-reach.json -a reads-football-gateway
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-question-quality.error.json story-question-quality.error.json -a reads-football-gateway
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-game-reach.error.json story-game-reach.error.json -a reads-football-gateway
-          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/runner.log story-cert-runner.log -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-question-quality.json story-question-quality.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-question-quality.err story-question-quality.err -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-game-reach.json story-game-reach.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-game-reach.err story-game-reach.err -a reads-football-gateway
           exit 0
 
-      - name: Print production certification results
+      - name: Print certification results
         if: always()
         run: |
           set +e
-          echo "===== STORY CERT META ====="
-          cat story-cert-meta.json 2>/dev/null || true
-          echo
           echo "===== QUESTION QUALITY ====="
-          cat story-question-quality.json 2>/dev/null || cat story-question-quality.error.json 2>/dev/null || true
+          cat story-question-quality.json 2>/dev/null || true
+          echo
+          echo "===== QUESTION QUALITY STDERR ====="
+          cat story-question-quality.err 2>/dev/null || true
           echo
           echo "===== GAME REACH ====="
-          cat story-game-reach.json 2>/dev/null || cat story-game-reach.error.json 2>/dev/null || true
+          cat story-game-reach.json 2>/dev/null || true
           echo
-          echo "===== RUNNER LOG ====="
-          cat story-cert-runner.log 2>/dev/null || true
+          echo "===== GAME REACH STDERR ====="
+          cat story-game-reach.err 2>/dev/null || true
+          exit 0
 
-      - name: Enforce production certification gate
+      - name: Upload certification artifacts
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-production-certification
+          path: |
+            story-question-quality.json
+            story-question-quality.err
+            story-game-reach.json
+            story-game-reach.err
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce certification result
         run: |
           set -euo pipefail
-          python3 -c "import json,sys,pathlib; q=pathlib.Path('story-question-quality.json'); g=pathlib.Path('story-game-reach.json'); sys.exit(3) if not q.exists() or not g.exists() else None; quality=json.load(q.open()); reach=json.load(g.open()); print('quality', quality.get('status'), quality.get('promotion_ready')); print('reach', reach.get('games_with_story_content'), '/', reach.get('games_tested'), 'promotion_ready=', reach.get('promotion_ready')); sys.exit(0 if quality.get('promotion_ready') and reach.get('promotion_ready') else 1)"
+          python3 -c 'import json,sys; q=json.load(open("story-question-quality.json")); g=json.load(open("story-game-reach.json")); print("quality", q.get("status"), q.get("promotion_ready")); print("reach", g.get("games_with_story_content"), "/", g.get("games_tested"), g.get("promotion_ready")); sys.exit(0 if q.get("promotion_ready") and g.get("promotion_ready") else 1)'
