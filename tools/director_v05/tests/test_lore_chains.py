@@ -3,6 +3,7 @@ import pytest
 
 from tools.director_v05.event_ingest import upsert_event
 from tools.director_v05.lore_chains import (
+    _structured_edges,
     compile_lore_chain_question,
     discover_lore_chains,
 )
@@ -133,3 +134,47 @@ def test_deep_lore_copy_uses_real_event_detail_not_engine_jargon():
     assert "structured fact" not in copy
     assert "strangest verified moment" not in copy
     assert "ball changed hands twice" in copy
+
+
+
+def test_cfb_school_edges_use_real_game_log_source_ids():
+    c = _conn()
+    c.execute("""CREATE TABLE cfb_player_game_stats_real(
+        cfb_player_id TEXT, school_id TEXT, season INTEGER,
+        passing_yards INTEGER, rushing_yards INTEGER, rec_yards INTEGER,
+        source_id TEXT, verification_status TEXT
+    )""")
+    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
+              ("cp1","ALA",2022,100,50,25,"cfb-src-a","SOURCE_BACKED_DERIVED"))
+    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
+              ("cp1","TEX",2023,200,30,40,"cfb-src-b","SOURCE_BACKED_DERIVED"))
+
+    edges = _structured_edges(c, "CFB_PLAYER", "cp1")
+    assert [(e.relation,e.object_id) for e in edges] == [
+        ("STARTED_AT","ALA"),
+        ("TRANSFERRED_TO","TEX"),
+    ]
+    assert all(e.source_id and e.source_id.startswith("cfb-src") for e in edges)
+    assert all(e.verification_status == "SOURCE_BACKED_DERIVED" for e in edges)
+
+
+def test_derived_fact_without_evidence_is_not_a_chain_edge():
+    c = _conn()
+    c.execute(
+        """INSERT INTO universal_derived_fact(
+           derived_id,metric,subject_type,subject_id,value_num,value_text,
+           formula_version,input_fact_ids_json,eligible_for_gameplay)
+           VALUES(?,?,?,?,?,?,?,?,?)""",
+        ("d1","STEAL_SCORE","NFL_PLAYER","p1",9.0,None,"v1","[]",1),
+    )
+    assert not [e for e in _structured_edges(c, "NFL_PLAYER", "p1") if e.object_type == "DERIVED_FACT"]
+
+    c.execute(
+        """INSERT INTO universal_fact_evidence(
+           fact_id,source_url,publisher,published_date,evidence_tier)
+           VALUES(?,?,?,?,?)""",
+        ("d1","https://example.com/evidence","Example",None,"AUTHORITATIVE"),
+    )
+    edges = [e for e in _structured_edges(c, "NFL_PLAYER", "p1") if e.object_type == "DERIVED_FACT"]
+    assert len(edges) == 1
+    assert edges[0].source_id == "https://example.com/evidence"
