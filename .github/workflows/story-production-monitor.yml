@@ -15,23 +15,21 @@ jobs:
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Stop only certification processes and probe SQLite writer
+      - name: Stop only certification readers
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; hits=[]; needles=(\"tools.director_v05.certify_story_\",\"tools.director_v05.run_story_prod_cert_bundle\"); me=os.getpid();
-          
-          for n in [x for x in os.listdir(\"/proc\") if x.isdigit() and int(x)!=me]:
-          
-              try:
-                  a=[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]
-                  cmd=\" \".join(a)
-                  if any(k in cmd for k in needles): hits.append({\"pid\":int(n),\"argv\":a}); os.kill(int(n),signal.SIGTERM)
-              except Exception: pass
-          
-          print(json.dumps(hits,sort_keys=True))'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; me=os.getpid(); rows=[]; names=(\"tools.director_v05.certify_story_\",\"tools.director_v05.run_story_prod_cert_bundle\"); procs=[(int(n),[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]) for n in os.listdir(\"/proc\") if n.isdigit() and int(n)!=me]; targets=[(pid,a) for pid,a in procs if any(k in \" \".join(a) for k in names)]; [os.kill(pid,signal.SIGTERM) for pid,a in targets]; print(json.dumps([{\"pid\":pid,\"argv\":a} for pid,a in targets],sort_keys=True))'"
+
+      - name: Probe production SQLite writer
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           sleep 2
           flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -c \"from tools.quiz_export import engine as e; c=e.connect(); c.execute(\\\"BEGIN IMMEDIATE\\\"); print(\\\"WRITE_LOCK_ACQUIRED\\\"); c.rollback(); c.close()\"'"
