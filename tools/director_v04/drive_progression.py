@@ -125,6 +125,28 @@ def build_package(seed: str, variant: str, *, mode: str, domain: str | None = No
         production_safety = underlying.get("production_safety") if isinstance(underlying, dict) else None
         capability_fingerprint = f"{domain}|{relationship_predicate}"
         underlying_capability = {"domain": domain, "relationship_predicate": relationship_predicate}
+    # Story Factory integration: replace a bounded slice of generic drive
+    # questions with verified story-backed MCQs. The drive mechanic stays the
+    # same; only the football knowledge source becomes deeper and more varied.
+    try:
+        c_story = engine_bootstrap.connect()
+        try:
+            story_questions = load_story_mcqs(
+                c_story,
+                limit=max(1, min(3, question_count // 4 or 1)),
+            )
+        finally:
+            c_story.close()
+    except Exception:
+        story_questions = []
+
+    story_inserted = 0
+    if story_questions and questions:
+        positions = list(range(2, len(questions), 4))
+        for pos, story_q in zip(positions, story_questions):
+            questions[pos] = to_generation_question(story_q)
+            story_inserted += 1
+
     package_id = "GGP12:" + hashlib.sha256(
         f"DRIVE|{variant}|{mode}|{capability_fingerprint}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
@@ -150,5 +172,8 @@ def build_package(seed: str, variant: str, *, mode: str, domain: str | None = No
         "underlying_capability": underlying_capability,
         "production_safety": production_safety,
         "shortfall_reason": shortfall_reason,
-        "review_status": "UNREVIEWED", "_diagnostics": {"seed": seed},
+        "review_status": "UNREVIEWED", "_diagnostics": {
+            "seed": seed,
+            "story_questions_used": story_inserted,
+        },
     }
