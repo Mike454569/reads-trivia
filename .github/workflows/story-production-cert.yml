@@ -90,38 +90,38 @@ jobs:
             echo '### Question quality' >> "$GITHUB_STEP_SUMMARY"
             echo '```json' >> "$GITHUB_STEP_SUMMARY"
             python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-import json
-p=json.load(open("story-question-quality.json"))
-print(json.dumps({
-  "status":p.get("status"),
-  "question_count":p.get("question_count"),
-  "passed":p.get("passed"),
-  "failed":p.get("failed"),
-  "pass_rate":p.get("pass_rate"),
-  "promotion_ready":p.get("promotion_ready"),
-  "failure_reasons":p.get("failure_reasons"),
-}, indent=2, sort_keys=True))
-PY
+            import json
+            p=json.load(open("story-question-quality.json"))
+            print(json.dumps({
+              "status":p.get("status"),
+              "question_count":p.get("question_count"),
+              "passed":p.get("passed"),
+              "failed":p.get("failed"),
+              "pass_rate":p.get("pass_rate"),
+              "promotion_ready":p.get("promotion_ready"),
+              "failure_reasons":p.get("failure_reasons"),
+            }, indent=2, sort_keys=True))
+            PY
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ -s story-game-reach.json ]; then
             echo '### Game reach' >> "$GITHUB_STEP_SUMMARY"
             echo '```json' >> "$GITHUB_STEP_SUMMARY"
             python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-import json
-p=json.load(open("story-game-reach.json"))
-print(json.dumps({
-  "promotion_ready":p.get("promotion_ready"),
-  "corpus_ready":p.get("corpus_ready"),
-  "league_ready":p.get("league_ready"),
-  "league_balance":p.get("league_balance"),
-  "ready_story_questions":p.get("ready_story_questions"),
-  "games_tested":p.get("games_tested"),
-  "games_with_story_content":p.get("games_with_story_content"),
-  "reach_fraction":p.get("reach_fraction"),
-  "errors":p.get("errors"),
-}, indent=2, sort_keys=True))
-PY
+            import json
+            p=json.load(open("story-game-reach.json"))
+            print(json.dumps({
+              "promotion_ready":p.get("promotion_ready"),
+              "corpus_ready":p.get("corpus_ready"),
+              "league_ready":p.get("league_ready"),
+              "league_balance":p.get("league_balance"),
+              "ready_story_questions":p.get("ready_story_questions"),
+              "games_tested":p.get("games_tested"),
+              "games_with_story_content":p.get("games_with_story_content"),
+              "reach_fraction":p.get("reach_fraction"),
+              "errors":p.get("errors"),
+            }, indent=2, sort_keys=True))
+            PY
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
@@ -147,16 +147,16 @@ PY
         run: |
           set -euo pipefail
           python - <<'PY'
-import json, pathlib, sys
-q=pathlib.Path("story-question-quality.json")
-g=pathlib.Path("story-game-reach.json")
-if not q.exists() or not g.exists():
-    print("Certification output missing.")
-    sys.exit(3)
-quality=json.load(q.open())
-reach=json.load(g.open())
-print("Question quality:", quality.get("status"), "promotion_ready=", quality.get("promotion_ready"))
-print("Game reach promotion_ready=", reach.get("promotion_ready"))
-if not quality.get("promotion_ready") or not reach.get("promotion_ready"):
-    sys.exit(1)
-PY
+          import json, pathlib, sys
+          q=pathlib.Path("story-question-quality.json")
+          g=pathlib.Path("story-game-reach.json")
+          if not q.exists() or not g.exists():
+              print("Certification output missing.")
+              sys.exit(3)
+          quality=json.load(q.open())
+          reach=json.load(g.open())
+          print("Question quality:", quality.get("status"), "promotion_ready=", quality.get("promotion_ready"))
+          print("Game reach promotion_ready=", reach.get("promotion_ready"))
+          if not quality.get("promotion_ready") or not reach.get("promotion_ready"):
+              sys.exit(1)
+          PY
