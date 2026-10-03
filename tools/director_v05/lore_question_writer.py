@@ -22,6 +22,9 @@ RELATION_VALUE = {
     "STARTED_AT": 5.0,
     "COACHED": 5.5,
     "ROSTERED_BY": 4.5,
+    "DRAFTED_PLAYER": 5.5,
+    "ROSTERED_PLAYER": 4.5,
+    "SCHOOL_PLAYER": 5.0,
     "RANKED": 5.0,
 }
 
@@ -62,9 +65,9 @@ def _semantic_key(clue):
     text = str(clue.get("text") or "").casefold()
     if relation in {"ALL_PRO", "PRO_BOWL"}:
         return "HONOR"
-    if relation in {"ROSTERED_BY", "DRAFTED_BY"}:
+    if relation in {"ROSTERED_BY", "DRAFTED_BY", "DRAFTED_PLAYER", "ROSTERED_PLAYER"}:
         return "NFL_TEAM_HISTORY"
-    if relation in {"STARTED_AT", "TRANSFERRED_TO"}:
+    if relation in {"STARTED_AT", "TRANSFERRED_TO", "SCHOOL_PLAYER"}:
         return "CFB_PATH"
     if relation.startswith("DERIVED_"):
         return "DERIVED"
