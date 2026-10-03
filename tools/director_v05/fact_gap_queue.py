@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .lore_coverage import coverage
+from .fact_source_status import source_status_for_family
 
 GAMEPLAY_UNLOCKS = {
     "TRANSFER": ["Deep Lore", "Career Path", "Common Link", "Before/After"],
@@ -43,6 +44,7 @@ def fact_gap_queue(conn):
         unlocks = GAMEPLAY_UNLOCKS.get(family, ["Deep Lore"])
         weight = WEIGHTS.get(family, 1.0)
         score = round(gap * weight * (1 + 0.1 * len(unlocks)), 2)
+        source = source_status_for_family(family)
         queue.append({
             "family": family,
             "verified": item["verified"],
@@ -51,10 +53,16 @@ def fact_gap_queue(conn):
             "coverage": item["coverage"],
             "gameplay_unlocks": unlocks,
             "priority_score": score,
+            "source_status": source["status"],
+            "source": source["source"],
+            "refresh": source["refresh"],
         })
     queue.sort(key=lambda x: (-x["priority_score"], x["family"]))
     return {
         "remaining_families": len(queue),
         "queue": queue,
         "top_five": queue[:5],
+        "auto_source_ready": [x for x in queue if x["source_status"] == "AUTO_SOURCE_READY"],
+        "partial_source": [x for x in queue if x["source_status"] == "PARTIAL_SOURCE"],
+        "new_source_needed": [x for x in queue if x["source_status"] == "NEW_SOURCE_NEEDED"],
     }
