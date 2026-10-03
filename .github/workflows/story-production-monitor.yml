@@ -1,4 +1,4 @@
-name: Story Recovery Writer Cleanup
+name: Story Seed Progress Monitor
 
 on:
   push:
@@ -9,13 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  cleanup:
+  monitor:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Kill only redundant Story recovery writers
+      - name: Read seed progress
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -23,4 +22,4 @@ jobs:
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; needle=\\\"run_story_to_trivia_factory(limit=150)\\\"; ms=[]; [(ms.append((int(n),open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"replace\\\")))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and os.path.exists(\\\"/proc/\\\"+n+\\\"/cmdline\\\")]; pids=[p for p,c in ms if needle in c]; print(\\\"matching_recovery_pids\\\",pids); [os.kill(p,signal.SIGTERM) for p in pids]\"'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; c=e.connect(); c.execute(\\\"PRAGMA busy_timeout=30000\\\"); out={}; out[\\\"reviewed_events\\\"]=c.execute(\\\"select count(*) from universal_event where event_id like \\\\"reviewed_%\\\\"\\\").fetchone()[0]; out[\\\"story_questions\\\"]=c.execute(\\\"select count(*) from story_generated_questions\\\").fetchone()[0] if c.execute(\\\"select 1 from sqlite_master where type=\\\\\\\"table\\\\\\\" and name=\\\\\\\"story_generated_questions\\\\\\\"\\\").fetchone() else 0; out[\\\"enriched\\\"]=c.execute(\\\"select count(*) from football_story_enrichment\\\").fetchone()[0] if c.execute(\\\"select 1 from sqlite_master where type=\\\\\\\"table\\\\\\\" and name=\\\\\\\"football_story_enrichment\\\\\\\"\\\").fetchone() else 0; print(json.dumps(out,sort_keys=True)); c.close()\"'"
