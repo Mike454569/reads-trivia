@@ -40,7 +40,7 @@ VARIANTS=frozenset(FORMAT_SPECS)
 
 def build_package(seed:str,variant:str,round_count:int=36)->dict:
     if variant not in VARIANTS: raise ValueError(f"unknown Wave 4 variant {variant!r}")
-    src=category_roulette.build_package(f"{seed}-strategy-wave4-{variant}","CATEGORY_ROULETTE_MIXED",round_count=max(42,round_count))
+    src=category_roulette.build_package(f"{seed}-strategy-wave4-{variant}","CATEGORY_ROULETTE_MIXED",round_count=max(18,round_count))
     rounds=src.get("rounds") or []
     pid="GGP40:"+hashlib.sha256(f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()).hexdigest()[:24]
     return {"package_id":pid,"package_version":PACKAGE_SCHEMA_VERSION,"mechanic":MECHANIC,
