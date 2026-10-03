@@ -668,6 +668,15 @@ def admin_story_review_certification(request: Request, _admin=Depends(require_ad
     return story_review_service.game_reach_certification()
 
 
+@app.post("/v1/admin/story-review/retry-safe")
+def admin_story_review_retry_safe(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=250),
+    _admin=Depends(require_admin),
+):
+    return story_review_service.retry_safe_promotions(limit=limit)
+
+
 @app.post("/v1/admin/story-review/{candidate_id}/event-date")
 def admin_story_review_confirm_event_date(
     candidate_id: str,
