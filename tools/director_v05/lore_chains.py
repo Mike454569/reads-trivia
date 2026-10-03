@@ -185,42 +185,54 @@ def _structured_edges(conn, subject_type, subject_id):
                     "STRUCTURED_FACT", r["source_id"], r["verification_status"],
                 ))
 
-        if "universal_derived_fact" in tables:
+        if "universal_derived_fact" in tables and "universal_fact_evidence" in tables:
             rows = conn.execute(
-                """SELECT derived_id,metric,value_num,formula_version
-                   FROM universal_derived_fact
-                   WHERE subject_type='NFL_PLAYER' AND subject_id=?
-                     AND eligible_for_gameplay=1
-                   ORDER BY metric,derived_id""",
+                """SELECT d.derived_id,d.metric,d.value_num,d.formula_version,
+                          e.source_url,e.evidence_tier
+                   FROM universal_derived_fact d
+                   JOIN universal_fact_evidence e ON e.fact_id=d.derived_id
+                   WHERE d.subject_type='NFL_PLAYER' AND d.subject_id=?
+                     AND d.eligible_for_gameplay=1
+                   ORDER BY d.metric,d.derived_id,e.source_url""",
                 (sid,),
             ).fetchall()
+            seen_derived = set()
             for r in rows:
+                did = str(r["derived_id"])
+                if did in seen_derived:
+                    continue
+                seen_derived.add(did)
                 out.append(LoreHop(
                     "DERIVED_" + str(r["metric"]).upper(),
-                    "NFL_PLAYER", sid, "DERIVED_FACT", str(r["derived_id"]),
-                    None, "DERIVED_FACT", str(r["formula_version"]), "SOURCE_BACKED_DERIVED",
+                    "NFL_PLAYER", sid, "DERIVED_FACT", did,
+                    None, "DERIVED_FACT", str(r["source_url"]), "SOURCE_BACKED_DERIVED",
                 ))
 
     elif subject_type == "CFB_PLAYER":
-        if "cfb_transfer_summary" in tables:
-            row = conn.execute(
-                """SELECT first_school_id,last_school_id,first_season,last_season
-                   FROM cfb_transfer_summary
-                   WHERE cfb_player_id=? AND transfer_count>0 LIMIT 1""",
+        # Build school-history edges from the verified game-log table itself.
+        # This avoids treating a derived transfer-summary table name as if it
+        # were evidence. Every emitted hop carries a real source_id from an
+        # underlying SOURCE_BACKED_DERIVED row.
+        if "cfb_player_game_stats_real" in tables:
+            rows = conn.execute(
+                """SELECT school_id,MIN(season) first_season,MAX(season) last_season,
+                          MIN(source_id) source_id
+                   FROM cfb_player_game_stats_real
+                   WHERE cfb_player_id=?
+                     AND verification_status='SOURCE_BACKED_DERIVED'
+                     AND school_id IS NOT NULL AND source_id IS NOT NULL
+                   GROUP BY school_id
+                   ORDER BY first_season,school_id""",
                 (sid,),
-            ).fetchone()
-            if row:
-                if row["first_school_id"]:
+            ).fetchall()
+            if rows:
+                for index, r in enumerate(rows):
+                    relation = "STARTED_AT" if index == 0 else "TRANSFERRED_TO"
                     out.append(LoreHop(
-                        "STARTED_AT", "CFB_PLAYER", sid, "SCHOOL", str(row["first_school_id"]),
-                        int(row["first_season"]) if row["first_season"] is not None else None,
-                        "STRUCTURED_FACT", "cfb_transfer_summary", "SOURCE_BACKED_DERIVED",
-                    ))
-                if row["last_school_id"]:
-                    out.append(LoreHop(
-                        "TRANSFERRED_TO", "CFB_PLAYER", sid, "SCHOOL", str(row["last_school_id"]),
-                        int(row["last_season"]) if row["last_season"] is not None else None,
-                        "STRUCTURED_FACT", "cfb_transfer_summary", "SOURCE_BACKED_DERIVED",
+                        relation,
+                        "CFB_PLAYER", sid, "SCHOOL", str(r["school_id"]),
+                        int(r["first_season"]) if r["first_season"] is not None else None,
+                        "STRUCTURED_FACT", str(r["source_id"]), "SOURCE_BACKED_DERIVED",
                     ))
 
     elif subject_type == "COACH":
