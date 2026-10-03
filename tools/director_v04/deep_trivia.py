@@ -17,6 +17,8 @@ from __future__ import annotations
 import hashlib
 
 from tools.director_v02 import registry
+from tools.quiz_export import engine as engine_bootstrap
+from tools.director_v04.story_arcade_adapter import load_story_mcqs, to_deep_round
 
 # (mechanic, domain, predicate, player-facing category, optional filters)
 _DEEP_CAPABILITIES = (
@@ -164,13 +166,42 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     if round_count <= 0:
         return []
 
-    rng = __import__("tools.quiz_export.engine", fromlist=["seeded"]).seeded(seed + "-deep-pool")
+    rng = engine_bootstrap.seeded(seed + "-deep-pool")
     entries = list(_DEEP_CAPABILITIES)
     rng.shuffle(entries)
 
     rounds: list[dict] = []
     used_prompts: set[str] = set()
     used_categories: dict[str, int] = {}
+
+    # Story Factory integration: reserve a bounded share for verified
+    # story-backed questions. This shared pool feeds multiple arcade shells
+    # (Wager, Category Roulette, Strategy Arcade), so one integration point
+    # expands lore breadth across several games without duplicating logic.
+    story_rounds = []
+    try:
+        c = engine_bootstrap.connect()
+        try:
+            story_questions = load_story_mcqs(
+                c,
+                limit=max(1, min(4, round_count // 3 or 1)),
+            )
+        finally:
+            c.close()
+        story_rounds = [to_deep_round(q) for q in story_questions]
+        rng.shuffle(story_rounds)
+    except Exception:
+        story_rounds = []
+
+    story_cap = max(1, min(len(story_rounds), round_count // 3 or 1))
+    for q in story_rounds[:story_cap]:
+        if q["prompt"] in used_prompts:
+            continue
+        rounds.append(q)
+        used_prompts.add(q["prompt"])
+        used_categories[q["category"]] = used_categories.get(q["category"], 0) + 1
+        if len(rounds) >= round_count:
+            return rounds
 
     # Multiple passes let a capability produce a different deterministic
     # question when a format needs more rounds than there are capability
