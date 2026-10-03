@@ -45,7 +45,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && nohup python3 -m tools.director_v05.run_story_prod_cert_bundle --out-dir /tmp/reads-story-cert-run >/tmp/reads-story-cert-run/runner.log 2>&1 </dev/null &'"
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.launch_story_prod_cert --out-dir /tmp/reads-story-cert-run'"
 
       - name: Poll detached certification
         env:
