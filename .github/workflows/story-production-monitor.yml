@@ -25,3 +25,5 @@ jobs:
           flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; from tools.director_v05.story_factory_health import story_factory_health; c=e.connect(); print(json.dumps(story_factory_health(c),sort_keys=True)); c.close()\"'"
 
 # recount-after-native-harvest
+
+# monitor-recovery-progress
