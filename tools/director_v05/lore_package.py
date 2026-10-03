@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from tools.quiz_export import engine as engine_bootstrap
 
 from .lore_question_bank import build_lore_question_bank
+from .story_question_pool import load_ready_story_questions
 
 DIFFICULTY_MAP = {
     "easy": "CASUAL",
@@ -110,21 +111,54 @@ def build_package(
         rng = random.Random(str(seed))
         rng.shuffle(anchors)
 
+        story_cap = max(1, min(int(target_count) // 3 or 1, 5))
+        story_ready = load_ready_story_questions(
+            conn,
+            recent_question_ids=recent_question_ids,
+            recent_answer_ids=recent_answer_ids,
+            limit=story_cap,
+        )
+        rng.shuffle(story_ready)
+
+        story_qids = {str(q.get("question_id") or "") for q in story_ready}
+        story_answers = {
+            str((q.get("answer") or {}).get("id") or "")
+            for q in story_ready
+        }
+
         bank = build_lore_question_bank(
             conn,
             anchors,
             difficulty_band=band,
-            target=max(1, int(target_count)),
-            recent_question_ids=recent_question_ids,
-            recent_answer_ids=recent_answer_ids,
+            target=max(1, int(target_count) + story_cap),
+            recent_question_ids=set(str(x) for x in recent_question_ids) | story_qids,
+            recent_answer_ids=set(str(x) for x in recent_answer_ids) | story_answers,
             recent_chain_ids=recent_chain_ids,
             recent_distractor_ids=recent_distractor_ids,
             recent_families=recent_families,
             with_options=True,
         )
+
+        combined = []
+        seen_qids = set()
+        seen_answers = set()
+        for q in story_ready + list(bank["selected"]):
+            qid = str(q.get("question_id") or "")
+            aid = str((q.get("answer") or {}).get("id") or "")
+            if not qid or qid in seen_qids:
+                continue
+            if aid and aid in seen_answers:
+                continue
+            combined.append(q)
+            seen_qids.add(qid)
+            if aid:
+                seen_answers.add(aid)
+            if len(combined) >= int(target_count):
+                break
+
         questions = [
             _question_contract(q, index=i, delivery_difficulty=difficulty)
-            for i, q in enumerate(bank["selected"])
+            for i, q in enumerate(combined)
         ]
     finally:
         conn.close()
@@ -165,6 +199,11 @@ def build_package(
             "seed": str(seed),
             "difficulty_band": band,
             "candidate_count": bank["candidate_count"],
+            "story_ready_available": len(story_ready),
+            "story_questions_used": sum(
+                1 for q in combined
+                if str(q.get("question_id") or "") in story_qids
+            ),
             "selected_count": bank["selected_count"],
             "unique_answers": bank["unique_answers"],
             "unique_events": bank["unique_events"],
