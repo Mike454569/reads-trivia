@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
-          for sweep in 1 2 3 4 5 6; do
+          for sweep in 1; do
             flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; pats=(\\\"run_story_to_trivia_factory\\\",\\\"reviewed_story_seed_once\\\",\\\"native_story_harvest_once\\\",\\\"base64.\\\"+\\\"b64decode\\\"); me=os.getpid(); killed=[]; [(os.kill(int(n),signal.SIGTERM),killed.append(int(n))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and int(n)!=me and all(x not in (open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"ignore\\\")) for x in (\\\"uvicorn\\\",\\\"gunicorn\\\")) and any(p in open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"ignore\\\") for p in pats)]; print(\\\"killed\\\",killed)\"'" || true
             sleep 5
           done
