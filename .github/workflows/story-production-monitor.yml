@@ -1,4 +1,4 @@
-name: Story Source Connectivity Check
+name: Stop Story Harvest Reader
 
 on:
   push:
@@ -9,17 +9,17 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  stop:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Test exact live GDELT fetch
+      - name: Stop only old GDELT harvest Python process
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json,traceback; from tools.director_v05.story_candidate_harvest import _fetch; q=\\\"(\\\\\\\"press conference\\\\\\\") (NFL OR \\\\\\\"college football\\\\\\\") domainis:nfl.com\\\"; print(json.dumps(_fetch(q,max_records=2,timespan=\\\"1y\\\",timeout=10),sort_keys=True)[:12000])\"'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; hits=[]; needle=\"run_story_candidate_harvest\"; [(hits.append({\"pid\":int(n),\"argv\":a}) or os.kill(int(n),signal.SIGTERM)) for n in os.listdir(\"/proc\") if n.isdigit() for a in [[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]] if len(a)>=3 and os.path.basename(a[0]).startswith(\"python\") and a[1]==\"-c\" and needle in a[2]]; print(json.dumps(hits,sort_keys=True))'"
