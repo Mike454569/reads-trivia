@@ -110,6 +110,7 @@ function creatorInitialState() {
     duplicateReports: {}, duplicateLoading: {}, selectedPackages: {}, batchReviewRunning: false,
     collections: [], collectionName: '', previewSurface: 'game', fixingIssues: false,
     storyHealth: null, storyQueue: [], storyLoading: false, storyDateSaving: null,
+    storyCertification: null, storyCertificationLoading: false,
   };
 }
 
@@ -524,6 +525,18 @@ function creatorLoadStoryFactory() {
   });
 }
 
+function creatorRunStoryCertification(){
+  var s=state.creator;if(!s||s.storyCertificationLoading)return;
+  s.storyCertificationLoading=true;renderAll();
+  creatorFetchJson('/v1/admin/story-review/certification').then(function(result){
+    if(state.creator!==s)return;
+    s.storyCertification=result||{};s.storyCertificationLoading=false;renderAll();
+  }).catch(function(err){
+    if(state.creator!==s)return;
+    s.storyCertificationLoading=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();
+  });
+}
+
 function creatorConfirmStoryDate(candidateId){
   var s=state.creator;if(!s||!candidateId||s.storyDateSaving)return;
   var el=document.getElementById('creator-story-date-'+candidateId);
@@ -545,7 +558,7 @@ function creatorConfirmStoryDate(candidateId){
 function creatorStoryFactoryHtml(){
   var s=state.creator||{},h=s.storyHealth||{},rows=s.storyQueue||[];
   if(s.storyLoading)return '<div class="creator-workspace">'+creatorToolbarHtml(false)+'<div class="loading-panel"><div class="loading-spinner"></div><div class="loading-text">Loading Story Factory…</div></div></div>';
-  var status=h.candidate_status||{},decisions=h.promotion_decisions||{},qStatus=h.questions_by_status||{};
+  var status=h.candidate_status||{},decisions=h.promotion_decisions||{},qStatus=h.questions_by_status||{},quality=h.question_quality||{},cert=s.storyCertification||null;
   var metrics=[
     ['Candidates',h.candidate_total||0],
     ['Promoted',h.promoted_events||0],
@@ -557,13 +570,17 @@ function creatorStoryFactoryHtml(){
   return '<div class="creator-workspace">'+creatorToolbarHtml(false)+
     '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div>'+
     '<div class="creator-command-grid">'+metrics.map(function(m){return '<div><b>'+Number(m[1]||0)+'</b><span>'+esc(m[0])+'</span></div>';}).join('')+'</div>'+
-    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div></div>'+
+    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div><button class="btn-secondary" data-creator-story-certify'+(s.storyCertificationLoading?' disabled':'')+'>'+(s.storyCertificationLoading?'Certifying…':'Run Game Reach Certification')+'</button></div>'+
       '<div class="creator-quality-grid">'+
         '<span class="pass">Promotion rate '+Math.round(Number(h.promotion_rate||0)*100)+'%</span>'+
         '<span class="pass">'+Number(h.questions_per_promoted_event||0).toFixed(2)+' questions / promoted event</span>'+
+        '<span class="'+(quality.status==='PASSED'?'pass':(quality.status==='FAILED'?'fail':''))+'">Question QA '+esc(quality.status||'NO DATA')+' · '+Math.round(Number(quality.pass_rate||0)*100)+'%</span>'+
         '<span>Auto-promoted '+Number(decisions.AUTO_PROMOTED||0)+'</span>'+
         '<span>Suggested reviews '+Number((h.review_suggestions||{}).SUGGESTED_ONLY||0)+'</span>'+
-      '</div></section>'+
+        '<span>NFL '+Number((h.league_balance||{}).NFL||0)+' · CFB '+Number((h.league_balance||{}).CFB||0)+'</span>'+
+      '</div>'+
+      (cert?'<div class="creator-readiness"><div class="creator-quality-head"><span>GAME REACH CERTIFICATION</span><b>'+Number(cert.games_with_story_content||0)+'/'+Number(cert.games_tested||0)+'</b></div><div class="creator-quality-grid"><span class="'+(cert.promotion_ready?'pass':'fail')+'">'+(cert.promotion_ready?'✓':'!')+' Promotion '+(cert.promotion_ready?'ready':'blocked')+'</span><span>'+Math.round(Number(cert.reach_fraction||0)*100)+'% compatible-game reach</span><span>'+Number(cert.ready_story_questions||0)+' ready story questions</span><span>'+Number((cert.errors||[]).length)+' execution errors</span></div></div>':'')+
+      '</section>'+
     '<section class="creator-recent"><div class="creator-library-head"><div><span class="dashboard-eyebrow">REVIEW BACKLOG</span><h3>Suggested story reviews</h3><p>Confirm chronology only when the article clearly establishes the real event date.</p></div><span class="creator-format-type">'+rows.length+' loaded</span></div>'+
     (rows.length?'<div class="creator-review-list">'+rows.map(function(item){
       var flags=item.risk_flags||[],terms=item.evidence_terms||[],suggested=item.suggested_event_date||'';
