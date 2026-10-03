@@ -62,6 +62,17 @@ def mine_cfb_pbp(conn, limit_games=None):
 
         seen = set()
         for play in plays:
+            play_subject_rows = []
+            if "cfb_play_player_subjects" in _tables(conn):
+                play_subject_rows = conn.execute(
+                    """SELECT cfb_player_id,role
+                       FROM cfb_play_player_subjects
+                       WHERE game_id=? AND play_id=?
+                         AND source_id='SPORTSDATAVERSE_CFB'
+                         AND verification_status='SOURCE_BACKED'
+                       ORDER BY cfb_player_id,role""",
+                    (game_id, str(play.get("play_id"))),
+                ).fetchall()
             for key, event_type, tags, summary in classify_cfb_play(play):
                 if key in seen:
                     continue
@@ -78,6 +89,12 @@ def mine_cfb_pbp(conn, limit_games=None):
                         "subject_type": "SCHOOL",
                         "subject_id": str(play["defense_school_id"]),
                         "role": "defense",
+                    })
+                for ps in play_subject_rows:
+                    subjects.append({
+                        "subject_type": "CFB_PLAYER",
+                        "subject_id": str(ps["cfb_player_id"]),
+                        "role": str(ps["role"]).casefold(),
                     })
                 upsert_event(conn, {
                     "event_type": event_type,
