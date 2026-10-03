@@ -113,6 +113,39 @@ def build_lore_question_bank(
     )
     selected = mix["selected"]
 
+    # Final option pass: recent_distractor_ids is only a ranking penalty in
+    # distractor_intelligence, so it does NOT guarantee session uniqueness.
+    # Re-attach options to the actually selected bank and hard-forbid every
+    # distractor already used in this bank.
+    if with_options and selected:
+        all_answer_ids = {
+            str((q.get("answer") or {}).get("id") or "")
+            for q in selected
+        }
+        used_distractors = {str(x) for x in recent_distractor_ids}
+        rebuilt = []
+        for q in selected:
+            try:
+                enriched = attach_deep_lore_options(
+                    conn,
+                    q,
+                    all_correct_ids=all_answer_ids | used_distractors,
+                    recent_distractor_ids=used_distractors,
+                    difficulty_band=difficulty_band,
+                )
+            except ValueError:
+                continue
+            ids = {
+                str(d.get("entity_id"))
+                for d in (enriched.get("distractors") or [])
+                if d.get("entity_id") is not None
+            }
+            if ids & used_distractors:
+                continue
+            used_distractors.update(ids)
+            rebuilt.append(enriched)
+        selected = rebuilt
+
     # Recompute final-bank metrics after rotation/mix policy so reporting reflects what
     # was actually selected, not the larger eligible pool.
     final_answers = {str((q.get("answer") or {}).get("id") or "") for q in selected}
@@ -120,11 +153,18 @@ def build_lore_question_bank(
     final_events = set()
     family_counts = Counter()
     league_counts = Counter()
+    final_mix_counts = Counter()
+    final_sensitive_count = 0
     for q in selected:
         profile = question_lore_profile(conn, q)
         family_counts.update(profile["families"])
         league_counts.update(profile["leagues"])
         final_events.update(profile["event_ids"])
+        final_mix_counts.update(__import__(
+            "tools.director_v05.lore_mix_policy",
+            fromlist=["question_mix_tags"],
+        ).question_mix_tags(q))
+        final_sensitive_count += int(profile["sensitive"])
 
     return {
         "difficulty_band": str(difficulty_band).upper(),
@@ -137,11 +177,11 @@ def build_lore_question_bank(
         "unique_events": len(final_events),
         "family_counts": dict(family_counts),
         "league_counts": dict(league_counts),
-        "sensitive_count": rotation["sensitive_count"],
+        "sensitive_count": final_sensitive_count,
         "available_family_counts": rotation["available_family_counts"],
-        "mix_counts": mix["mix_counts"],
-        "draft_fraction": mix["draft_fraction"],
-        "story_fraction": mix["story_fraction"],
+        "mix_counts": dict(final_mix_counts),
+        "draft_fraction": round(final_mix_counts.get("DRAFT", 0) / max(1, len(selected)), 4),
+        "story_fraction": round(final_mix_counts.get("STORY", 0) / max(1, len(selected)), 4),
         "with_options": bool(with_options),
     }
 
