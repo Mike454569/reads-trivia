@@ -47,7 +47,8 @@ from .models import (AdminPickemGameStatusRequest, CreatorConceptsRequest, Creat
                       MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
                       PublicMechanicSubmitRequest, PublicPickemSubmitRequest,
-                      PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest)
+                      PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest,
+                      StoryEventDateReviewRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
 from .services import creator as creator_service  # noqa: E402
 from .services import generation, packages, game_state  # noqa: E402
@@ -660,6 +661,22 @@ def admin_story_review_queue(
 @app.get("/v1/admin/story-review/health")
 def admin_story_review_health(request: Request, _admin=Depends(require_admin)):
     return story_review_service.factory_health()
+
+
+@app.post("/v1/admin/story-review/{candidate_id}/event-date")
+def admin_story_review_confirm_event_date(
+    candidate_id: str,
+    body: StoryEventDateReviewRequest,
+    request: Request,
+    _admin=Depends(require_admin),
+):
+    try:
+        return story_review_service.confirm_event_date(
+            candidate_id=candidate_id,
+            event_date=body.event_date,
+        )
+    except ValueError as exc:
+        raise GatewayError("INVALID_REQUEST", str(exc))
 
 
 # --- Reliability-design Phase 2: async Creator jobs -------------------------
