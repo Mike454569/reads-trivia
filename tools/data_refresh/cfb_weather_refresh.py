@@ -52,7 +52,8 @@ def _ensure_schema(c) -> None:
         ("game_indoors", "INTEGER"), ("temperature", "REAL"), ("dew_point", "REAL"),
         ("humidity", "REAL"), ("precipitation", "REAL"), ("snowfall", "REAL"),
         ("wind_direction", "REAL"), ("wind_speed", "REAL"), ("pressure", "REAL"),
-        ("weather_condition", "TEXT"),
+        ("weather_condition", "TEXT"), ("weather_source_id", "TEXT"),
+        ("weather_verification_status", "TEXT"),
     ]:
         if name not in cols:
             c.execute(f"ALTER TABLE cfb_games_canonical ADD COLUMN {name} {decl}")
@@ -93,11 +94,12 @@ def run_cfb_weather_refresh(seasons: list[int] | None = None) -> dict:
                     c.execute(
                         "UPDATE cfb_games_canonical SET game_indoors=?, temperature=?, dew_point=?, "
                         "humidity=?, precipitation=?, snowfall=?, wind_direction=?, wind_speed=?, "
-                        "pressure=?, weather_condition=? WHERE game_id=?",
+                        "pressure=?, weather_condition=?, weather_source_id=?, "
+                        "weather_verification_status=? WHERE game_id=?",
                         (1 if g.get("gameIndoors") else 0, g.get("temperature"), g.get("dewPoint"),
                          g.get("humidity"), g.get("precipitation"), g.get("snowfall"),
                          g.get("windDirection"), g.get("windSpeed"), g.get("pressure"),
-                         g.get("weatherCondition"), game_id),
+                         g.get("weatherCondition"), SOURCE_ID, "SOURCE_BACKED", game_id),
                     )
                     total_matched += 1
                 time.sleep(0.5)
