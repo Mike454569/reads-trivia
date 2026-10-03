@@ -303,7 +303,7 @@ def _stat_fact_for_subject(conn, subject):
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if "cfb_player_game_stats_real" in tables:
             row = conn.execute(
-                """SELECT season,MAX(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(receiving_yards,0)) total
+                """SELECT season,MAX(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(rec_yards,0)) total
                    FROM cfb_player_game_stats_real
                    WHERE cfb_player_id=? AND verification_status='SOURCE_BACKED_DERIVED'
                    GROUP BY season ORDER BY total DESC,season DESC LIMIT 1""",
