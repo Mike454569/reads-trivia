@@ -132,7 +132,7 @@ def _ensure_schema(c):
     """)
     c.execute("CREATE INDEX IF NOT EXISTS ix_story_generated_candidate ON story_generated_questions(candidate_id,status)")
     c.execute("CREATE INDEX IF NOT EXISTS ix_story_enrichment_decision ON football_story_enrichment(decision,family)")
-    c.commit()
+    _commit_with_retry(c)
 
 
 def _norm(text):
@@ -321,7 +321,7 @@ def _store_enrichment(c, candidate, *, article=None, subject=None, family=None,
             str(candidate["candidate_id"]),
         ),
     )
-    c.commit()
+    _commit_with_retry(c)
 
 
 def _persist_question(c, candidate_id, event_id, subject, question):
