@@ -38,6 +38,10 @@ finally:
     con.close()
 PY
 
+# Final 100-format rollout certification. Run before heavier maintenance
+# checks so exact launch failures are visible immediately.
+python -m pytest gateway/tests/test_100_format_real_launch.py -vv -s --tb=short
+
 # Heavy integrity/stress work belongs on this disposable production-volume
 # fork, never on the live serving volume.
 python - <<'PY'
@@ -76,10 +80,6 @@ python - <<'PY'
 from tools.director_v02.generate_schema_and_prompt import verify_anthropic_prompt
 print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
 PY
-
-# Final 100-format rollout certification. Run before heavier maintenance
-# checks so exact launch failures are visible immediately.
-python -m pytest gateway/tests/test_100_format_real_launch.py -vv -s --tb=short
 
 # The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
