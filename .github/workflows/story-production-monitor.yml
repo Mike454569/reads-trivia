@@ -1,4 +1,4 @@
-name: Story Recovery Writer Cleanup
+name: Story Seed Worker Cleanup
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Kill only actual Story recovery Python workers
+      - name: Kill only temporary reviewed-seed Python worker
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -22,8 +22,4 @@ jobs:
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; a=\\\"run_story_to_trivia_factory(limit=150)\\\"; b=\\\"from tools.quiz_export import engine as e\\\"; rows=[]; [(rows.append((int(n),open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"replace\\\")))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and os.path.exists(\\\"/proc/\\\"+n+\\\"/cmdline\\\")]; pids=[p for p,c in rows if a in c and b in c]; print(\\\"recovery_worker_pids\\\",pids); [os.kill(p,signal.SIGTERM) for p in pids]\"'"
-
-# cleanup-wave-3
-
-# cleanup-wave-4
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; rows=[]; [(rows.append((int(n),open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"replace\\\")))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and os.path.exists(\\\"/proc/\\\"+n+\\\"/cmdline\\\")]; pids=[p for p,c in rows if \\\"exec(base64.b64decode\\\" in c and \\\"seed_check_once\\\" not in c]; print(\\\"seed_worker_pids\\\",pids); [os.kill(p,signal.SIGTERM) for p in pids]\"'" || true
