@@ -93,6 +93,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["fact_gap_queue"]=fact_gap_queue(c)
             from .certify_story_question_quality import certify_story_question_quality
             population["story_question_quality"]=certify_story_question_quality(c)
+            from .certify_story_game_reach import certify_story_game_reach
+            population["story_game_reach"]=certify_story_game_reach(seed="stress-story-game-reach")
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c); c.commit()
