@@ -1,7 +1,8 @@
 """Admin-triggerable bulk football-story candidate harvest.
 
-This refresh only fills REVIEW_REQUIRED candidate rows. It never promotes
-candidate metadata into universal lore.
+This refresh runs the complete safe funnel: bulk candidate harvest, triage,
+strict article/identity/evidence promotion, and immediate question generation.
+Sensitive candidates remain review-only and are never auto-promoted.
 """
 from __future__ import annotations
 
