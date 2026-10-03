@@ -18,7 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Verify Fly access and production DB
+      - name: Resolve live Fly machine
+        id: flymachine
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -26,8 +27,29 @@ jobs:
           APP="reads-football-gateway"
           test -n "${FLY_API_TOKEN:-}"
           flyctl status -a "$APP"
-          DB_SIZE=$(flyctl ssh console -a "$APP" -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' | tail -n 1 | tr -dc '0-9')
-          echo "Production Engine DB bytes: $DB_SIZE"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+          echo "Resolved live machine: $MACHINE"
+
+      - name: Verify production DB over retrying SSH
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          DB_SIZE=""
+          for attempt in 1 2 3 4 5 6; do
+            DB_SIZE=$(flyctl ssh console -a "$APP" --machine "$MACHINE" -C 'sh -lc "stat -c %s /data/engine/reads_football_v4.0.sqlite 2>/dev/null || echo 0"' 2>/tmp/fly-ssh.err | tail -n 1 | tr -dc '0-9' || true)
+            if [ "${DB_SIZE:-0}" -ge 104857600 ] 2>/dev/null; then
+              break
+            fi
+            echo "Fly SSH/DB probe attempt $attempt failed or returned DB_SIZE=${DB_SIZE:-0}"
+            cat /tmp/fly-ssh.err || true
+            sleep 5
+          done
+          echo "Production Engine DB bytes: ${DB_SIZE:-0}"
           test "${DB_SIZE:-0}" -ge 104857600
 
       - name: Run read-only production certifications
@@ -35,8 +57,23 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_question_quality'" > story-question-quality.json
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_game_reach'" > story-game-reach.json
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          run_remote() {
+            output="$1"
+            module="$2"
+            for attempt in 1 2 3 4 5 6; do
+              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m $module'" > "$output" 2> "$output.err"; then
+                test -s "$output" && return 0
+              fi
+              echo "Certification SSH attempt $attempt failed for $module"
+              cat "$output.err" || true
+              sleep 5
+            done
+            return 1
+          }
+          run_remote story-question-quality.json tools.director_v05.certify_story_question_quality
+          run_remote story-game-reach.json tools.director_v05.certify_story_game_reach
 
       - name: Print certification results
         if: always()
