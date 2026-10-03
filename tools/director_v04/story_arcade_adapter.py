@@ -14,9 +14,11 @@ def load_story_mcqs(conn, *, limit=50, league=None):
     rows = conn.execute(
         """SELECT g.question_json,g.subject_type,g.event_id,u.league
            FROM story_generated_questions g
-           LEFT JOIN universal_event u ON u.event_id=g.event_id
+           JOIN universal_event u ON u.event_id=g.event_id
            WHERE g.status='READY_FOR_BANK'
              AND g.mechanic='MULTIPLE_CHOICE'
+             AND u.verification_status='VERIFIED'
+             AND u.sensitive=0
            ORDER BY g.created_at DESC,g.question_id
            LIMIT ?""",
         (max(1, min(int(limit) * 5, 500)),),
@@ -34,14 +36,8 @@ def load_story_mcqs(conn, *, limit=50, league=None):
         label = str(answer.get("label") or "")
         if options.count(label) != 1:
             continue
-        subject_type = str(answer.get("type") or row["subject_type"] or "")
-        event_league = str(row["league"] or "").upper() or None
-        inferred = event_league or (
-            "CFB" if subject_type == "CFB_PLAYER" else (
-                "NFL" if subject_type in {"NFL_PLAYER","NFL_TEAM"} else None
-            )
-        )
-        if league and inferred != str(league).upper():
+        event_league = str(row["league"] or "").upper()
+        if league and event_league != str(league).upper():
             continue
         out.append(q)
         if len(out) >= int(limit):
