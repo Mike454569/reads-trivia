@@ -16,6 +16,8 @@ import datetime as dt
 import hashlib
 import json
 import re
+import sqlite3
+import time
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -27,6 +29,41 @@ from .lore_mechanics import compile_progressive_identity
 from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
 from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
+
+WRITE_BUSY_TIMEOUT_MS = 120_000
+WRITE_COMMIT_ATTEMPTS = 8
+WRITE_COMMIT_BACKOFF_SECONDS = 1.5
+
+
+def _prepare_write_connection(c):
+    c.execute(f"PRAGMA busy_timeout={WRITE_BUSY_TIMEOUT_MS}")
+    return c
+
+
+def _commit_with_retry(c, *, attempts=WRITE_COMMIT_ATTEMPTS):
+    """Commit a Story Factory write without dying on transient readers.
+
+    Production uses SQLite journal_mode=delete, so long-lived read
+    transactions can temporarily block writers even when no refresh is marked
+    RUNNING. A locked/busy commit is retryable; all other OperationalError
+    values still fail immediately.
+    """
+    last = None
+    for attempt in range(1, int(attempts) + 1):
+        try:
+            c.commit()
+            return
+        except sqlite3.OperationalError as exc:
+            msg = str(exc).casefold()
+            if "locked" not in msg and "busy" not in msg:
+                raise
+            last = exc
+            if attempt >= int(attempts):
+                raise
+            time.sleep(WRITE_COMMIT_BACKOFF_SECONDS * attempt)
+    if last:
+        raise last
+
 
 AUTO_FAMILIES = {
     "PRESS_CONFERENCE": "PRESS_CONFERENCE",
@@ -360,7 +397,7 @@ def generate_questions_for_event(c, candidate_id, event_id, subject, *, max_ques
 
     for q in generated:
         _persist_question(c, candidate_id, event_id, subject, q)
-    c.commit()
+    _commit_with_retry(c)
     return generated
 
 
@@ -473,7 +510,7 @@ def process_candidate(c, candidate, subject_index):
 
 
 def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
-    c = engine_bootstrap.connect()
+    c = _prepare_write_connection(engine_bootstrap.connect())
     _ensure_schema(c)
     subject_index = build_subject_index(c)
 
