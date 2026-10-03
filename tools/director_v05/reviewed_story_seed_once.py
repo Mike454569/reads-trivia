@@ -1,11 +1,13 @@
-"""One-off production seed from the manually reviewed Story Factory corpus."""
+"""Fast one-off production seed from the manually reviewed Story corpus."""
 from __future__ import annotations
 import json
 
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.reviewed_story_corpus import REVIEWED_CORPUS, ingest_reviewed_corpus
-from tools.director_v05.story_to_trivia_factory import _ensure_schema, generate_questions_for_event
-from tools.director_v05.story_multiformat import generate_story_formats_for_event
+from tools.director_v05.story_to_trivia_factory import _ensure_schema, _persist_question
+from tools.director_v05.lore_mechanics import compile_progressive_identity, compile_fact_or_fake
+from tools.director_v05.lore_distractors import attach_deep_lore_options
+
 
 def main():
     c = engine_bootstrap.connect()
@@ -13,14 +15,14 @@ def main():
     _ensure_schema(c)
 
     result = ingest_reviewed_corpus(c)
-    generated_identity = 0
-    generated_formats = 0
+    generated_mcq = 0
+    generated_fact_fake = 0
     per_event = []
 
     for story in REVIEWED_CORPUS:
         eid = story["event_id"]
         event = c.execute(
-            "SELECT event_id FROM universal_event WHERE event_id=?",
+            "SELECT event_id,sensitive FROM universal_event WHERE event_id=?",
             (eid,),
         ).fetchone()
         if not event:
@@ -43,42 +45,53 @@ def main():
             "entity_type": str(subject["subject_type"]),
             "entity_id": str(subject["subject_id"]),
         }
+        event_counts = {"mcq": 0, "fact_fake": 0}
+        errors = []
 
-        qs = generate_questions_for_event(
-            c,
-            "reviewed-seed:" + eid,
-            eid,
-            subject_obj,
-            max_questions=4,
-        )
-        fmts = generate_story_formats_for_event(
-            c,
-            candidate_id="reviewed-seed:" + eid,
-            event_id=eid,
-            subject_type=subject_obj["entity_type"],
-            subject_id=subject_obj["entity_id"],
-            max_formats=8,
-        )
-        generated_identity += len(qs)
-        generated_formats += int(fmts.get("generated_count") or 0)
+        try:
+            q = compile_progressive_identity(c, eid)
+            q = attach_deep_lore_options(c, q, difficulty_band="HARD")
+            _persist_question(c, "reviewed-seed:" + eid, eid, subject_obj, q)
+            generated_mcq += 1
+            event_counts["mcq"] += 1
+        except ValueError as exc:
+            errors.append("MCQ:" + str(exc))
+
+        if not int(event["sensitive"] or 0):
+            for fake in (False, True):
+                try:
+                    q = compile_fact_or_fake(c, eid, fake=fake)
+                    _persist_question(c, "reviewed-seed:" + eid, eid, subject_obj, q)
+                    generated_fact_fake += 1
+                    event_counts["fact_fake"] += 1
+                except ValueError as exc:
+                    errors.append(("FAKE:" if fake else "FACT:") + str(exc))
+
+        c.commit()
         per_event.append({
             "event_id": eid,
             "status": "SEEDED",
-            "identity_questions": len(qs),
-            "format_questions": int(fmts.get("generated_count") or 0),
+            "generated": event_counts,
+            "errors": errors,
         })
 
     ready = c.execute(
-        "SELECT status,COUNT(*) n FROM story_generated_questions GROUP BY status"
+        "SELECT status,mechanic,COUNT(*) n FROM story_generated_questions GROUP BY status,mechanic"
     ).fetchall()
     c.close()
+
     print(json.dumps({
         "ingest": result,
-        "generated_identity": generated_identity,
-        "generated_formats": generated_formats,
-        "question_status": {str(r["status"]): int(r["n"]) for r in ready},
+        "generated_mcq": generated_mcq,
+        "generated_fact_fake": generated_fact_fake,
+        "generated_total": generated_mcq + generated_fact_fake,
+        "question_status": [
+            {"status": str(r["status"]), "mechanic": str(r["mechanic"]), "count": int(r["n"])}
+            for r in ready
+        ],
         "events": per_event,
     }, sort_keys=True))
+
 
 if __name__ == "__main__":
     main()
