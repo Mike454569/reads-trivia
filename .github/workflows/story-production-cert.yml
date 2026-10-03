@@ -44,7 +44,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'pkill -f tools.director_v05.run_story_prod_cert_bundle 2>/dev/null || true; sleep 1; rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'pkill -f '[t]ools.director_v05.run_story_prod_cert_bundle' 2>/dev/null || true; sleep 1; rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
 
       - name: Upload current source to temporary Fly path
         env:
