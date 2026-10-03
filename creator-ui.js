@@ -609,8 +609,9 @@ function creatorStoryFactoryHtml(){
         (flags.length?'<div class="creator-qa-flags has-risk"><div><b>Risk flags</b><small>'+esc(flags.join(' · '))+'</small></div></div>':'')+
         (terms.length?'<small>Evidence signals: '+esc(terms.slice(0,8).join(' · '))+'</small>':'')+
         '<div class="btn-row"><a class="btn-tiny" href="'+esc(item.source_url)+'" target="_blank" rel="noopener">Open Source</a>'+
-        (!sensitive?'<input class="creator-input" id="creator-story-date-'+esc(item.candidate_id)+'" value="'+esc(suggested)+'" placeholder="YYYY-MM-DD" maxlength="10">'+
-        '<button class="btn-primary" data-creator-story-date="'+esc(item.candidate_id)+'"'+(s.storyDateSaving===item.candidate_id?' disabled':'')+'>'+(s.storyDateSaving===item.candidate_id?'Saving…':'Confirm Event Date')+'</button>':'<span class="mode-desc">Sensitive review stays manual-only.</span>')+
+        (!sensitive && item.status==='PROMOTED'?'<input class="creator-input" id="creator-story-date-'+esc(item.candidate_id)+'" value="'+esc(suggested)+'" placeholder="YYYY-MM-DD" maxlength="10">'+
+        '<button class="btn-primary" data-creator-story-date="'+esc(item.candidate_id)+'"'+(s.storyDateSaving===item.candidate_id?' disabled':'')+'>'+(s.storyDateSaving===item.candidate_id?'Saving…':'Confirm Event Date')+'</button>':
+        sensitive?'<span class="mode-desc">Sensitive review stays manual-only.</span>':'<span class="mode-desc">Needs source/subject promotion review before chronology can be confirmed.</span>')+
         '</div></article>';
     }).join('')+'</div>':'<div class="creator-empty-state"><b>No stories need review right now.</b><span>The next scheduled harvest will refill this queue.</span></div>')+
     '</section></div>';
