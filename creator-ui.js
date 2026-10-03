@@ -39,6 +39,7 @@ var CREATOR_SCREEN = {
   GENERATING: 'generating',
   PREVIEW: 'preview',
   QUEUE: 'queue',
+  STORIES: 'stories',
   CAPABILITIES: 'capabilities',
   ERROR: 'error',
 };
@@ -108,6 +109,7 @@ function creatorInitialState() {
     queueSearch: '', queueLeague: 'All', queueSort: 'priority', recipes: [], recipeName: '',
     duplicateReports: {}, duplicateLoading: {}, selectedPackages: {}, batchReviewRunning: false,
     collections: [], collectionName: '', previewSurface: 'game', fixingIssues: false,
+    storyHealth: null, storyQueue: [], storyLoading: false, storyDateSaving: null,
   };
 }
 
@@ -505,6 +507,87 @@ function creatorLoadQueue(filter) {
   });
 }
 
+function creatorLoadStoryFactory() {
+  var s=state.creator;if(!s)return;
+  s.screen=CREATOR_SCREEN.STORIES;s.storyLoading=true;renderAll();
+  Promise.all([
+    creatorFetchJson('/v1/admin/story-review/health'),
+    creatorFetchJson('/v1/admin/story-review?limit=200&include_sensitive=true')
+  ]).then(function(results){
+    if(state.creator!==s)return;
+    s.storyHealth=results[0]||{};
+    s.storyQueue=(results[1]&&results[1].items)||[];
+    s.storyLoading=false;renderAll();
+  }).catch(function(err){
+    if(state.creator!==s)return;
+    s.storyLoading=false;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();
+  });
+}
+
+function creatorConfirmStoryDate(candidateId){
+  var s=state.creator;if(!s||!candidateId||s.storyDateSaving)return;
+  var el=document.getElementById('creator-story-date-'+candidateId);
+  var value=String((el&&el.value)||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;
+  s.storyDateSaving=candidateId;renderAll();
+  creatorFetchJson('/v1/admin/story-review/'+encodeURIComponent(candidateId)+'/event-date',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({event_date:value})
+  }).then(function(){
+    if(state.creator!==s)return;
+    s.storyDateSaving=null;creatorLoadStoryFactory();
+  }).catch(function(err){
+    if(state.creator!==s)return;
+    s.storyDateSaving=null;s.error=creatorUserFacingError(err);s.screen=CREATOR_SCREEN.ERROR;renderAll();
+  });
+}
+
+function creatorStoryFactoryHtml(){
+  var s=state.creator||{},h=s.storyHealth||{},rows=s.storyQueue||[];
+  if(s.storyLoading)return '<div class="creator-workspace">'+creatorToolbarHtml(false)+'<div class="loading-panel"><div class="loading-spinner"></div><div class="loading-text">Loading Story Factory…</div></div></div>';
+  var status=h.candidate_status||{},decisions=h.promotion_decisions||{},qStatus=h.questions_by_status||{};
+  var metrics=[
+    ['Candidates',h.candidate_total||0],
+    ['Promoted',h.promoted_events||0],
+    ['Generated Qs',h.generated_question_total||0],
+    ['Deep Lore Ready',h.ready_for_bank||0],
+    ['Format Ready',h.ready_for_format_bank||0],
+    ['Review Backlog',(status.REVIEW_REQUIRED||0)+(status.REVIEW_REQUIRED_SENSITIVE||0)]
+  ];
+  return '<div class="creator-workspace">'+creatorToolbarHtml(false)+
+    '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div>'+
+    '<div class="creator-command-grid">'+metrics.map(function(m){return '<div><b>'+Number(m[1]||0)+'</b><span>'+esc(m[0])+'</span></div>';}).join('')+'</div>'+
+    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div></div>'+
+      '<div class="creator-quality-grid">'+
+        '<span class="pass">Promotion rate '+Math.round(Number(h.promotion_rate||0)*100)+'%</span>'+
+        '<span class="pass">'+Number(h.questions_per_promoted_event||0).toFixed(2)+' questions / promoted event</span>'+
+        '<span>Auto-promoted '+Number(decisions.AUTO_PROMOTED||0)+'</span>'+
+        '<span>Suggested reviews '+Number((h.review_suggestions||{}).SUGGESTED_ONLY||0)+'</span>'+
+      '</div></section>'+
+    '<section class="creator-recent"><div class="creator-library-head"><div><span class="dashboard-eyebrow">REVIEW BACKLOG</span><h3>Suggested story reviews</h3><p>Confirm chronology only when the article clearly establishes the real event date.</p></div><span class="creator-format-type">'+rows.length+' loaded</span></div>'+
+    (rows.length?'<div class="creator-review-list">'+rows.map(function(item){
+      var flags=item.risk_flags||[],terms=item.evidence_terms||[],suggested=item.suggested_event_date||'';
+      var sensitive=Number(item.sensitive_hint||0)===1;
+      return '<article class="creator-review-card">'+
+        '<div class="creator-review-card-head"><div><b>'+esc(item.title||item.candidate_id)+'</b><small>'+esc(item.domain||'')+' · '+esc(item.family_hint||'')+'</small></div>'+
+        '<div class="creator-review-badges"><span>'+esc(item.evidence_tier_hint||'')+'</span>'+(sensitive?'<span class="creator-badge creator-badge-bad">SENSITIVE</span>':'')+
+        (item.suggestion_confidence!=null?'<span>'+Number(item.suggestion_confidence)+'% confidence</span>':'')+'</div></div>'+
+        '<div class="creator-quality-grid">'+
+          '<span><b>Subject:</b> '+esc(item.suggested_subject_label||'Needs review')+'</span>'+
+          '<span><b>Type:</b> '+esc(item.suggested_event_type||'Needs review')+'</span>'+
+          '<span><b>League:</b> '+esc(item.suggested_league||'Needs review')+'</span>'+
+          '<span><b>Publication:</b> '+esc(item.publication_date||'—')+'</span>'+
+        '</div>'+
+        (flags.length?'<div class="creator-qa-flags has-risk"><div><b>Risk flags</b><small>'+esc(flags.join(' · '))+'</small></div></div>':'')+
+        (terms.length?'<small>Evidence signals: '+esc(terms.slice(0,8).join(' · '))+'</small>':'')+
+        '<div class="btn-row"><a class="btn-tiny" href="'+esc(item.source_url)+'" target="_blank" rel="noopener">Open Source</a>'+
+        (!sensitive?'<input class="creator-input" id="creator-story-date-'+esc(item.candidate_id)+'" value="'+esc(suggested)+'" placeholder="YYYY-MM-DD" maxlength="10">'+
+        '<button class="btn-primary" data-creator-story-date="'+esc(item.candidate_id)+'"'+(s.storyDateSaving===item.candidate_id?' disabled':'')+'>'+(s.storyDateSaving===item.candidate_id?'Saving…':'Confirm Event Date')+'</button>':'<span class="mode-desc">Sensitive review stays manual-only.</span>')+
+        '</div></article>';
+    }).join('')+'</div>':'<div class="creator-empty-state"><b>No stories need review right now.</b><span>The next scheduled harvest will refill this queue.</span></div>')+
+    '</section></div>';
+}
+
 function creatorLoadCapabilities() {
   var s = state.creator; if (!s) return;
   s.screen = CREATOR_SCREEN.CAPABILITIES;
@@ -856,6 +939,7 @@ function creatorToolbarHtml(showBack) {
     '<div class="creator-topnav">'+
       '<button class="'+(screen===CREATOR_SCREEN.HOME?'active':'')+'" data-creator-nav="home">'+icon('zap')+' Create</button>'+
       '<button class="'+(screen===CREATOR_SCREEN.QUEUE?'active':'')+'" data-creator-nav="queue">'+icon('list')+' Review</button>'+
+      '<button class="'+(screen===CREATOR_SCREEN.STORIES?'active':'')+'" data-creator-nav="stories">'+icon('zap')+' Story Factory</button>'+
       '<button class="'+(screen===CREATOR_SCREEN.CAPABILITIES?'active':'')+'" data-creator-nav="capabilities">'+icon('layers')+' Capabilities</button>'+
     '</div>'+
     '<div class="creator-top-actions">'+
@@ -920,6 +1004,10 @@ function renderCreatorScreen() {
           '<button class="btn-tiny" data-creator-open-package="'+esc(p.package_id)+'">Open</button><button class="btn-tiny" data-creator-clone-package="'+esc(p.package_id)+'">Clone</button></div></article>';
       }).join('')+'</div>' : '<div class="creator-empty-state"><b>Nothing matches.</b><span>Try another filter or search term.</span></div>') +
       '</div>';
+  }
+
+  if (s.screen === CREATOR_SCREEN.STORIES) {
+    return creatorStoryFactoryHtml();
   }
 
   if (s.screen === CREATOR_SCREEN.CAPABILITIES) {
