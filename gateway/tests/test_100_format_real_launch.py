@@ -65,20 +65,22 @@ def test_every_unique_server_target_used_by_100_formats_launches_on_real_db(monk
             elapsed = time.monotonic() - started
             if not valid:
                 failures.append(f"{target_type}:{target_id}: invalid playable payload")
-            timings.append((elapsed, target_type, target_id, "PASS" if valid else "INVALID"))
+            status = "PASS" if valid else "INVALID"
+            timings.append((elapsed, target_type, target_id, status))
+            print(f"FORMAT-LAUNCH {status:7s} {elapsed:7.3f}s {target_type}:{target_id}", flush=True)
         except _LaunchTimeout:
             elapsed = time.monotonic() - started
             failures.append(f"{target_type}:{target_id}: exceeded 8.0s launch budget")
             timings.append((elapsed, target_type, target_id, "TIMEOUT"))
+            print(f"FORMAT-LAUNCH TIMEOUT {elapsed:7.3f}s {target_type}:{target_id}", flush=True)
         except Exception as exc:
             elapsed = time.monotonic() - started
             failures.append(f"{target_type}:{target_id}: {type(exc).__name__}: {exc}")
             timings.append((elapsed, target_type, target_id, "ERROR"))
+            print(f"FORMAT-LAUNCH ERROR   {elapsed:7.3f}s {target_type}:{target_id} :: {type(exc).__name__}: {exc}", flush=True)
         finally:
             signal.setitimer(signal.ITIMER_REAL, 0)
 
-    print(f"100-FORMAT SERVER TARGETS: {len(targets)}")
-    for elapsed, kind, mode, status in sorted(timings, reverse=True):
-        print(f"FORMAT-LAUNCH {status:7s} {elapsed:7.3f}s {kind}:{mode}")
+    print(f"100-FORMAT SERVER TARGETS: {len(targets)}", flush=True)
 
     assert not failures, "100-format real launch failures:\n" + "\n".join(failures)
