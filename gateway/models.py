@@ -349,3 +349,19 @@ class ErrorBody(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+class StoryEventDateReviewRequest(BaseModel):
+    """Confirm a reviewed real-world event date for an already promoted story.
+
+    This does not approve candidates, subjects, legal stages, or source claims.
+    It only replaces the chronology field that automatic promotion deliberately
+    leaves blank until a human verifies it.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    event_date: str = Field(
+        min_length=10,
+        max_length=10,
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+    )
