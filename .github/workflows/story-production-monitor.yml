@@ -1,4 +1,4 @@
-name: Stop Story Harvest Reader
+name: Story Production DB FD Scan
 
 on:
   push:
@@ -9,17 +9,17 @@ permissions:
   contents: read
 
 jobs:
-  stop:
+  scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Stop only old GDELT harvest Python process
+      - name: Scan live processes with DB file descriptors
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; hits=[]; needle=\"run_story_candidate_harvest\"; [(hits.append({\"pid\":int(n),\"argv\":a}) or os.kill(int(n),signal.SIGTERM)) for n in os.listdir(\"/proc\") if n.isdigit() for a in [[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]] if len(a)>=3 and os.path.basename(a[0]).startswith(\"python\") and a[1]==\"-c\" and needle in a[2]]; print(json.dumps(hits,sort_keys=True))'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import base64; exec(base64.b64decode(\"CmltcG9ydCBvcywganNvbgpkYiA9ICIvZGF0YS9lbmdpbmUvcmVhZHNfZm9vdGJhbGxfdjQuMC5zcWxpdGUiCm91dCA9IFtdCmZvciBuIGluIG9zLmxpc3RkaXIoIi9wcm9jIik6CiAgICBpZiBub3Qgbi5pc2RpZ2l0KCk6CiAgICAgICAgY29udGludWUKICAgIHRyeToKICAgICAgICBhcmd2ID0gWwogICAgICAgICAgICB4LmRlY29kZSgidXRmLTgiLCAicmVwbGFjZSIpCiAgICAgICAgICAgIGZvciB4IGluIG9wZW4oZiIvcHJvYy97bn0vY21kbGluZSIsICJyYiIpLnJlYWQoKS5zcGxpdChiIlwwIikKICAgICAgICAgICAgaWYgeAogICAgICAgIF0KICAgICAgICBoaXRzID0gW10KICAgICAgICBmb3IgZmQgaW4gb3MubGlzdGRpcihmIi9wcm9jL3tufS9mZCIpOgogICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICB0YXJnZXQgPSBvcy5yZWFkbGluayhmIi9wcm9jL3tufS9mZC97ZmR9IikKICAgICAgICAgICAgZXhjZXB0IEV4Y2VwdGlvbjoKICAgICAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgICAgIGlmIHRhcmdldC5zdGFydHN3aXRoKGRiKToKICAgICAgICAgICAgICAgIGhpdHMuYXBwZW5kKHsiZmQiOiBmZCwgInRhcmdldCI6IHRhcmdldH0pCiAgICAgICAgaWYgaGl0czoKICAgICAgICAgICAgb3V0LmFwcGVuZCh7InBpZCI6IGludChuKSwgImFyZ3YiOiBhcmd2LCAiZmRzIjogaGl0c30pCiAgICBleGNlcHQgRXhjZXB0aW9uOgogICAgICAgIHBhc3MKcHJpbnQoanNvbi5kdW1wcyhvdXQsIHNvcnRfa2V5cz1UcnVlKSkK\"))'"
