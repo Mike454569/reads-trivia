@@ -21,6 +21,12 @@ def story_factory_health(conn):
         "ready_for_format_bank": 0,
         "promotion_rate": 0.0,
         "questions_per_promoted_event": 0.0,
+        "candidate_families": {},
+        "candidate_domains": {},
+        "promoted_by_family": {},
+        "league_balance": {},
+        "review_backlog": 0,
+        "sensitive_backlog": 0,
     }
 
     if "football_story_candidates" in tables:
@@ -31,6 +37,20 @@ def story_factory_health(conn):
         ).fetchall()
         out["candidate_status"] = {str(r["status"]): int(r["n"]) for r in rows}
         out["candidate_total"] = sum(out["candidate_status"].values())
+        fam = conn.execute(
+            """SELECT family_hint,COUNT(*) n
+               FROM football_story_candidates
+               GROUP BY family_hint ORDER BY n DESC"""
+        ).fetchall()
+        dom = conn.execute(
+            """SELECT domain,COUNT(*) n
+               FROM football_story_candidates
+               GROUP BY domain ORDER BY n DESC"""
+        ).fetchall()
+        out["candidate_families"] = {str(r["family_hint"]): int(r["n"]) for r in fam}
+        out["candidate_domains"] = {str(r["domain"]): int(r["n"]) for r in dom}
+        out["review_backlog"] = int(out["candidate_status"].get("REVIEW_REQUIRED", 0))
+        out["sensitive_backlog"] = int(out["candidate_status"].get("REVIEW_REQUIRED_SENSITIVE", 0))
 
     if "football_story_enrichment" in tables:
         rows = conn.execute(
@@ -43,6 +63,22 @@ def story_factory_health(conn):
         out["promoted_events"] = int(
             out["promotion_decisions"].get("AUTO_PROMOTED", 0)
         )
+        promoted = conn.execute(
+            """SELECT c.family_hint,COUNT(*) n
+               FROM football_story_enrichment e
+               JOIN football_story_candidates c ON c.candidate_id=e.candidate_id
+               WHERE e.decision='AUTO_PROMOTED'
+               GROUP BY c.family_hint ORDER BY n DESC"""
+        ).fetchall()
+        leagues = conn.execute(
+            """SELECT u.league,COUNT(DISTINCT e.promoted_event_id) n
+               FROM football_story_enrichment e
+               JOIN universal_event u ON u.event_id=e.promoted_event_id
+               WHERE e.decision='AUTO_PROMOTED'
+               GROUP BY u.league ORDER BY n DESC"""
+        ).fetchall()
+        out["promoted_by_family"] = {str(r["family_hint"]): int(r["n"]) for r in promoted}
+        out["league_balance"] = {str(r["league"]): int(r["n"]) for r in leagues}
 
     if "story_generated_questions" in tables:
         rows = conn.execute(
