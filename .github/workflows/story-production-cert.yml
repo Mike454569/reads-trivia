@@ -8,7 +8,7 @@ on:
 jobs:
   certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -26,12 +26,12 @@ jobs:
           set -euo pipefail
           tar --exclude=.git --exclude=.github --exclude='*.sqlite' --exclude='*.sqlite-*' -czf /tmp/reads-story-cert.tgz .
 
-      - name: Clear previous temporary certification bundle
+      - name: Clear previous temporary certification files
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "rm -f /tmp/reads-story-cert.tgz"
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
 
       - name: Upload current source to temporary Fly path
         env:
@@ -40,9 +40,65 @@ jobs:
           set -euo pipefail
           flyctl sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway
 
-      - name: Run read-only Story Factory production certification
+      - name: Start detached production certification
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'rm -rf /tmp/reads-story-cert && mkdir -p /tmp/reads-story-cert && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && echo STORY_QUESTION_QUALITY_BEGIN && python3 -m tools.director_v05.certify_story_question_quality && echo STORY_QUESTION_QUALITY_END && echo STORY_GAME_REACH_BEGIN && python3 -m tools.director_v05.certify_story_game_reach && echo STORY_GAME_REACH_END'"
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && nohup python3 -m tools.director_v05.run_story_prod_cert_bundle --out-dir /tmp/reads-story-cert-run >/tmp/reads-story-cert-run/runner.log 2>&1 </dev/null &'"
+
+      - name: Poll detached certification
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          final=""
+          for attempt in $(seq 1 120); do
+            status=$(flyctl ssh console -a reads-football-gateway -C "sh -lc 'cat /tmp/reads-story-cert-run/status.txt 2>/dev/null || echo STARTING'" | tail -n 1 | tr -d '\r')
+            echo "Story certification status: $status"
+            if [ "$status" = "COMPLETE" ] || [ "$status" = "FAILED" ]; then
+              final="$status"
+              break
+            fi
+            sleep 10
+          done
+          if [ -z "$final" ]; then
+            echo "Certification did not finish before polling deadline." >&2
+            exit 4
+          fi
+
+      - name: Download production certification results
+        if: always()
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set +e
+          flyctl ssh sftp get /tmp/reads-story-cert-run/meta.json story-cert-meta.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/reads-story-cert-run/story-question-quality.json story-question-quality.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/reads-story-cert-run/story-game-reach.json story-game-reach.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/reads-story-cert-run/story-question-quality.error.json story-question-quality.error.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/reads-story-cert-run/story-game-reach.error.json story-game-reach.error.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/reads-story-cert-run/runner.log story-cert-runner.log -a reads-football-gateway
+          exit 0
+
+      - name: Print production certification results
+        if: always()
+        run: |
+          set +e
+          echo "===== STORY CERT META ====="
+          cat story-cert-meta.json 2>/dev/null || true
+          echo
+          echo "===== QUESTION QUALITY ====="
+          cat story-question-quality.json 2>/dev/null || cat story-question-quality.error.json 2>/dev/null || true
+          echo
+          echo "===== GAME REACH ====="
+          cat story-game-reach.json 2>/dev/null || cat story-game-reach.error.json 2>/dev/null || true
+          echo
+          echo "===== RUNNER LOG ====="
+          cat story-cert-runner.log 2>/dev/null || true
+
+      - name: Enforce production certification gate
+        if: always()
+        run: |
+          set -euo pipefail
+          python3 -c "import json,sys,pathlib; q=pathlib.Path('story-question-quality.json'); g=pathlib.Path('story-game-reach.json'); sys.exit(3) if not q.exists() or not g.exists() else None; quality=json.load(q.open()); reach=json.load(g.open()); print('quality', quality.get('status'), quality.get('promotion_ready')); print('reach', reach.get('games_with_story_content'), '/', reach.get('games_tested'), 'promotion_ready=', reach.get('promotion_ready')); sys.exit(0 if quality.get('promotion_ready') and reach.get('promotion_ready') else 1)"
