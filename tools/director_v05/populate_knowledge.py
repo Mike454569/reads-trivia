@@ -15,6 +15,8 @@ from .lore_chains import lore_chain_report
 from .lore_question_bank import bank_report
 from .lore_format_bank import build_multiformat_bank
 from .lore_label_audit import label_coverage_report
+from .cfb_weather_lore import mine_cfb_weather_lore
+from .nfl_contract_lore import mine_nfl_contract_lore
 
 def run():
     c=engine_bootstrap.connect()
@@ -27,6 +29,8 @@ def run():
     result["pbp_story_mining"]=mine_nfl_pbp(c)
     result["game_chaos_mining"]=mine_nfl_game_chaos(c)
     result["cfb_pbp_lore"]=mine_cfb_pbp(c)
+    result["cfb_weather_lore"]=mine_cfb_weather_lore(c)
+    result["nfl_contract_lore"]=mine_nfl_contract_lore(c)
     result["coverage"]=coverage(c)
     result["lore_gameplay"]=lore_gameplay_report(c)
     result["advanced_lore"]=advanced_lore_report(c)
