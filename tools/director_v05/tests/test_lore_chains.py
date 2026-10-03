@@ -273,3 +273,35 @@ def test_deep_chain_can_cross_from_player_event_team_to_coach():
             node = (hop.object_type, hop.object_id)
             assert node not in visited
             visited.add(node)
+
+
+
+def test_unresolved_answer_label_fails_closed():
+    c = _conn()
+    _event(c, "unresolved-answer", player_id="missing-player", team_id="AAA")
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("missing-player","AAA",2020,"draft-src","SOURCE_BACKED"))
+    c.execute("INSERT INTO canonical_roster_seasons VALUES(?,?,?,?,?)",
+              ("missing-player","BBB",2021,"roster-src","SOURCE_BACKED"))
+    chains = discover_lore_chains(c, "NFL_PLAYER", "missing-player", max_depth=5)
+    if chains:
+        with pytest.raises(ValueError, match="UNRESOLVED_ENTITY_LABEL"):
+            compile_lore_chain_question(c, chains[0])
+
+
+def test_cross_player_clue_requires_human_secondary_label():
+    c = _conn()
+    _event(c, "unresolved-secondary", player_id="p1", team_id="AAA")
+    c.execute("INSERT INTO draft_facts VALUES(?,?,?,?,?)",
+              ("unknown-p2","AAA",2021,"draft-p2","SOURCE_BACKED"))
+    c.execute("INSERT INTO canonical_roster_seasons VALUES(?,?,?,?,?)",
+              ("unknown-p2","BBB",2022,"roster-p2","SOURCE_BACKED"))
+
+    chains = discover_lore_chains(c, "NFL_PLAYER", "p1", max_depth=6)
+    cross = [
+        ch for ch in chains
+        if any(h.object_id == "unknown-p2" for h in ch.hops)
+    ]
+    for chain in cross:
+        with pytest.raises(ValueError, match="UNRESOLVED_ENTITY_LABEL"):
+            compile_lore_chain_question(c, chain)
