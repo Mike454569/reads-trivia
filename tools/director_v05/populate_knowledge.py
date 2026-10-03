@@ -17,6 +17,7 @@ from .lore_format_bank import build_multiformat_bank
 from .lore_label_audit import label_coverage_report
 from .cfb_weather_lore import mine_cfb_weather_lore
 from .nfl_contract_lore import mine_nfl_contract_lore
+from .fact_gap_queue import fact_gap_queue
 
 def run():
     c=engine_bootstrap.connect()
@@ -38,6 +39,7 @@ def run():
     result["lore_question_banks"]=bank_report(c, limit_anchors=75, target=15)
     result["lore_multiformat"]=build_multiformat_bank(c, target=12, discovery_limit=250)
     result["lore_label_coverage"]=label_coverage_report(c)
+    result["fact_gap_queue"]=fact_gap_queue(c)
     result["events"]={r["event_type"]:r["n"] for r in c.execute(
       "SELECT event_type,COUNT(*) n FROM universal_event GROUP BY event_type")}
     result["derived"]={r["metric"]:r["n"] for r in c.execute(
