@@ -39,7 +39,10 @@ def review_queue(*, limit=200, include_sensitive=True):
                 s.confidence suggestion_confidence,s.risk_flags_json,s.evidence_terms_json
             """
 
-        statuses = ["REVIEW_REQUIRED"]
+        # Include promoted stories too: they may be fully verified for normal
+        # trivia but still need a human-confirmed event date before chronology
+        # formats can unlock.
+        statuses = ["REVIEW_REQUIRED", "PROMOTED"]
         if include_sensitive:
             statuses.append("REVIEW_REQUIRED_SENSITIVE")
         placeholders = ",".join("?" for _ in statuses)
