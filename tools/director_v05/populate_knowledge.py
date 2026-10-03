@@ -20,6 +20,7 @@ from .nfl_contract_lore import mine_nfl_contract_lore
 from .fact_gap_queue import fact_gap_queue
 from .cfb_recruiting_lore import mine_cfb_recruiting_lore
 from .official_rule_lore import populate_official_rule_lore
+from .reviewed_story_corpus import ingest_reviewed_corpus
 
 def run():
     c=engine_bootstrap.connect()
@@ -36,6 +37,7 @@ def run():
     result["nfl_contract_lore"]=mine_nfl_contract_lore(c)
     result["cfb_recruiting_lore"]=mine_cfb_recruiting_lore(c)
     result["official_rule_lore"]=populate_official_rule_lore(c)
+    result["reviewed_story_corpus"]=ingest_reviewed_corpus(c)
     result["coverage"]=coverage(c)
     result["lore_gameplay"]=lore_gameplay_report(c)
     result["advanced_lore"]=advanced_lore_report(c)
