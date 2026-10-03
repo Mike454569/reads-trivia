@@ -62,11 +62,28 @@ def calibrate_reveal_order(conn, question, *, difficulty_band=None):
         # Most discriminating first.
         enriched.sort(key=lambda c: (-c["information_gain"], c["_original_index"]))
     elif band == "SICKO":
-        # Least discriminating first, reveal the giveaway last.
+        # Least discriminating first, reveal the giveaway last. Sicko is the
+        # purest "make them sweat" ordering.
         enriched.sort(key=lambda c: (c["information_gain"], c["_original_index"]))
     elif band == "HARD":
-        # Start murky, then ramp toward the strongest clue.
-        enriched.sort(key=lambda c: (c["information_gain"], c["_original_index"]))
+        # Hard should not be identical to Sicko. Open with a moderately useful
+        # clue, dip once into the murkier clue, then finish with the strongest
+        # discriminator. This preserves a difficult ramp without making the
+        # first reveal maximally unhelpful.
+        ascending = sorted(
+            enriched,
+            key=lambda c: (c["information_gain"], c["_original_index"]),
+        )
+        if len(ascending) >= 3:
+            middle = len(ascending) // 2
+            opener = ascending[middle]
+            weakest = ascending[0]
+            strongest = ascending[-1]
+            used = {id(opener), id(weakest), id(strongest)}
+            remainder = [c for c in ascending if id(c) not in used]
+            enriched = [opener, weakest] + remainder + [strongest]
+        else:
+            enriched = ascending
     else:
         raise ValueError("UNKNOWN_REVEAL_DIFFICULTY_BAND")
 
