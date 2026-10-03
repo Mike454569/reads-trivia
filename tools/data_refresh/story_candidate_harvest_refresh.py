@@ -8,6 +8,7 @@ from __future__ import annotations
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.story_candidate_harvest import harvest_story_candidates
 from tools.director_v05.story_candidate_triage import triage_candidates
+from tools.director_v05.story_to_trivia_factory import run_story_to_trivia_factory
 from . import safety
 
 LEAGUE = "MIXED"
@@ -24,6 +25,7 @@ def run_story_candidate_harvest():
     try:
         harvested = harvest_story_candidates()
         triaged = triage_candidates()
+        factory = run_story_to_trivia_factory(limit=100)
         accepted = int(harvested.get("metrics",{}).get("accepted_candidates",0))
         c = engine_bootstrap.connect()
         safety.finish_run(
@@ -38,6 +40,12 @@ def run_story_candidate_harvest():
                 "family_totals": harvested.get("family_totals",{}),
                 "triage_status_counts": triaged.get("status_counts",{}),
                 "query_failures": harvested.get("metrics",{}).get("query_failures",0),
+                "story_factory": {
+                    "processed_candidates": factory.get("processed_candidates",0),
+                    "decisions": factory.get("decisions",{}),
+                    "generated_questions_this_run": factory.get("generated_questions_this_run",0),
+                    "ready_question_total": factory.get("ready_question_total",0),
+                },
             },
         )
         c.close()
@@ -46,6 +54,7 @@ def run_story_candidate_harvest():
             "run_id":run_id,
             "harvest":harvested,
             "triage":triaged,
+            "story_factory":factory,
         }
     except Exception as exc:
         c = engine_bootstrap.connect()
