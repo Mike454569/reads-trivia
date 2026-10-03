@@ -109,6 +109,9 @@ def select_rotated_questions(
     max_per_family=None,
     max_sensitive=1,
     require_league_balance=True,
+    max_per_answer=1,
+    max_per_signature=3,
+    no_repeat_events=True,
 ):
     """Greedy diversity scheduler with explicit family and sensitive-content caps."""
     target = max(1, int(target))
@@ -132,6 +135,9 @@ def select_rotated_questions(
     selected = []
     family_counts = Counter()
     league_counts = Counter()
+    answer_counts = Counter()
+    signature_counts = Counter()
+    selected_events = set()
     sensitive_count = 0
     remaining = list(prepared)
 
@@ -144,6 +150,20 @@ def select_rotated_questions(
                 family_counts[f] >= max_per_family for f in profile["families"]
             ):
                 continue
+
+            answer_id = str((q.get("answer") or {}).get("id") or "")
+            if not answer_id or answer_counts[answer_id] >= max_per_answer:
+                continue
+            signature = tuple(sorted(
+                str(c.get("relation") or "")
+                for c in (q.get("clues") or [])
+            ))
+            if signature_counts[signature] >= max_per_signature:
+                continue
+            event_ids = set(profile.get("event_ids") or [])
+            if no_repeat_events and event_ids and event_ids & selected_events:
+                continue
+
             score = rotation_score(
                 q,
                 profile,
@@ -158,6 +178,14 @@ def select_rotated_questions(
             break
         _, _, chosen, profile = max(ranked, key=lambda x: (x[0], x[1]))
         selected.append(chosen)
+        answer_id = str((chosen.get("answer") or {}).get("id") or "")
+        signature = tuple(sorted(
+            str(c.get("relation") or "")
+            for c in (chosen.get("clues") or [])
+        ))
+        answer_counts[answer_id] += 1
+        signature_counts[signature] += 1
+        selected_events.update(profile.get("event_ids") or [])
         for family in profile["families"]:
             family_counts[family] += 1
         for league in profile["leagues"]:
@@ -174,4 +202,7 @@ def select_rotated_questions(
         "available_family_counts": dict(all_families),
         "max_per_family": max_per_family,
         "max_sensitive": max_sensitive,
+        "answer_counts": dict(answer_counts),
+        "signature_counts": {str(k): v for k, v in signature_counts.items()},
+        "selected_event_count": len(selected_events),
     }
