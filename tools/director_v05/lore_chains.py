@@ -565,6 +565,9 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
     examples = []
     total = 0
     human_playable = 0
+    relation_counts = defaultdict(int)
+    anchor_type_counts = defaultdict(int)
+    cross_entity_chains = 0
     for row in rows:
         chains = discover_lore_chains(
             conn, row["subject_type"], row["subject_id"],
@@ -573,6 +576,11 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
         total += len(chains)
         for chain in chains:
             counts[f"depth_{chain.depth}"] += 1
+            anchor_type_counts[chain.anchor_type] += 1
+            for hop in chain.hops:
+                relation_counts[hop.relation] += 1
+            if any(h.relation in {"DRAFTED_PLAYER","ROSTERED_PLAYER","SCHOOL_PLAYER","TEAM_COACH"} for h in chain.hops):
+                cross_entity_chains += 1
             if chain.source_diversity >= 2:
                 counts["mixed_source"] += 1
             try:
@@ -604,5 +612,13 @@ def lore_chain_report(conn, *, limit_anchors=250, max_depth=5):
         "human_playable_questions": human_playable,
         "counts": dict(counts),
         "rejections": dict(rejects),
+        "relation_counts": dict(relation_counts),
+        "anchor_type_counts": dict(anchor_type_counts),
+        "cross_entity_chains": cross_entity_chains,
+        "human_playable_rate": round(human_playable / max(1, total), 4),
+        "label_rejections": sum(
+            n for reason, n in rejects.items()
+            if reason.startswith("UNRESOLVED_ENTITY_LABEL")
+        ),
         "examples": examples,
     }
