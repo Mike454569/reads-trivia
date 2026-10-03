@@ -6,7 +6,7 @@ from collections import Counter
 from .lore_chains import discover_lore_chains, compile_lore_chain_variants
 from .lore_distractors import attach_deep_lore_options
 from .lore_rotation import select_rotated_questions, question_lore_profile
-from .lore_mix_policy import enforce_mix_policy
+from .lore_mix_policy import enforce_mix_policy, question_mix_tags
 
 
 def _signature(question):
@@ -160,10 +160,7 @@ def build_lore_question_bank(
         family_counts.update(profile["families"])
         league_counts.update(profile["leagues"])
         final_events.update(profile["event_ids"])
-        final_mix_counts.update(__import__(
-            "tools.director_v05.lore_mix_policy",
-            fromlist=["question_mix_tags"],
-        ).question_mix_tags(q))
+        final_mix_counts.update(question_mix_tags(q))
         final_sensitive_count += int(profile["sensitive"])
 
     return {
