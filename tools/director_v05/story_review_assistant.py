@@ -257,7 +257,9 @@ def run_review_assistant(*, limit=250, include_sensitive=True):
     _ensure_schema(c)
     subject_index = build_subject_index(c)
 
-    statuses = ["REVIEW_REQUIRED"]
+    # Promoted non-sensitive stories are included so the assistant can
+    # suggest a real event date for chronology review after auto-promotion.
+    statuses = ["REVIEW_REQUIRED", "PROMOTED"]
     if include_sensitive:
         statuses.append("REVIEW_REQUIRED_SENSITIVE")
     placeholders = ",".join("?" for _ in statuses)
