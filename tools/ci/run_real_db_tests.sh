@@ -38,6 +38,17 @@ finally:
     con.close()
 PY
 
+
+# FIRST priority on the isolated production-volume fork: certify the exact
+# player-facing 100-format rollout before any unrelated deep/stress suite can
+# consume the helper's SSH time budget. -s streams each per-target result.
+python -m pytest -s gateway/tests/test_100_format_real_launch.py -vv --tb=short
+
+if [ "${READS_100_FORMAT_CERT_ONLY:-0}" = "1" ]; then
+  echo "100-format certification-only run complete."
+  exit 0
+fi
+
 # Heavy integrity/stress work belongs on this disposable production-volume
 # fork, never on the live serving volume.
 python - <<'PY'
@@ -76,11 +87,6 @@ python - <<'PY'
 from tools.director_v02.generate_schema_and_prompt import verify_anthropic_prompt
 print("Anthropic prompt/catalog diff:", verify_anthropic_prompt())
 PY
-
-# 100-format rollout gate: every unique server target used by the 100
-# distinct player-facing formats must produce a playable first state on the
-# production-sized DB fork inside the browser launch budget.
-python -m pytest gateway/tests/test_100_format_real_launch.py -vv --tb=short
 
 # The sibling pytest job already covers every DB-independent test. Here we
 # select only node IDs empirically proven to need the real warehouse, which
