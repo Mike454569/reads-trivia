@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict
 from collections import defaultdict, deque
 
 from .lore_trivia import gameplay_eligibility
-from .entity_labels import resolve_label
+from .entity_labels import resolve_label, resolve_required_label
 from .lore_phrasing import render_chain_clues, question_stem
 from .lore_question_writer import select_clues, variant_id, writer_quality
 
@@ -499,7 +499,7 @@ def compile_lore_chain_question(conn, chain, *, difficulty_band="HARD", variant=
         raise ValueError("WRITER_QA_FAILED:" + ",".join(quality["errors"]))
 
     answer = str(chain.anchor_id)
-    answer_label = resolve_label(conn, chain.anchor_type, answer)
+    answer_label = resolve_required_label(conn, chain.anchor_type, answer)
 
     combined = " ".join(c["text"] for c in clues).casefold()
     if answer_label and answer_label.casefold() in combined:
