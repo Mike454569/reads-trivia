@@ -23,24 +23,4 @@ jobs:
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 - <<\"PY\"
-import os, signal
-matches=[]
-needle="run_story_to_trivia_factory(limit=150)"
-for name in os.listdir("/proc"):
-    if not name.isdigit():
-        continue
-    try:
-        cmd=open(f"/proc/{name}/cmdline","rb").read().replace(b"\\x00",b" ").decode("utf-8","replace")
-    except Exception:
-        continue
-    if needle in cmd:
-        matches.append((int(name),cmd))
-print("matching_recovery_pids", [pid for pid,_ in matches])
-for pid,_ in matches:
-    try:
-        os.kill(pid, signal.SIGTERM)
-        print("terminated",pid)
-    except ProcessLookupError:
-        pass
-PY'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,signal; needle=\\\"run_story_to_trivia_factory(limit=150)\\\"; ms=[]; [(ms.append((int(n),open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"replace\\\")))) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and os.path.exists(\\\"/proc/\\\"+n+\\\"/cmdline\\\")]; pids=[p for p,c in ms if needle in c]; print(\\\"matching_recovery_pids\\\",pids); [os.kill(p,signal.SIGTERM) for p in pids]\"'"
