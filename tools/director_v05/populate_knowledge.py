@@ -13,6 +13,7 @@ from .lore_trivia import lore_gameplay_report
 from .lore_mechanics import advanced_lore_report
 from .lore_chains import lore_chain_report
 from .lore_question_bank import bank_report
+from .lore_format_bank import build_multiformat_bank
 
 def run():
     c=engine_bootstrap.connect()
@@ -30,6 +31,7 @@ def run():
     result["advanced_lore"]=advanced_lore_report(c)
     result["lore_chains"]=lore_chain_report(c)
     result["lore_question_banks"]=bank_report(c, limit_anchors=75, target=15)
+    result["lore_multiformat"]=build_multiformat_bank(c, target=12, discovery_limit=250)
     result["events"]={r["event_type"]:r["n"] for r in c.execute(
       "SELECT event_type,COUNT(*) n FROM universal_event GROUP BY event_type")}
     result["derived"]={r["metric"]:r["n"] for r in c.execute(
