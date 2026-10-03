@@ -49,6 +49,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
 from tools.director_v04 import risk_it  # noqa: E402
+from tools.director_v04.story_arcade_adapter import load_story_mcqs, to_team_question  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "1.1"
 MECHANIC = "DOUBLE_OR_NOTHING"
@@ -103,6 +104,21 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
     finally:
         c.close()
 
+    story_questions = []
+    try:
+        c_story = engine_bootstrap.connect()
+        try:
+            story_questions = load_story_mcqs(
+                c_story,
+                limit=max(1, min(3, round_count // 3 or 1)),
+                league="CFB" if is_cfb else "NFL",
+            )
+        finally:
+            c_story.close()
+    except Exception:
+        story_questions = []
+    story_index = 0
+
     rounds = []
     for i in range(round_count):
         tier = _tier_for_index(i)
@@ -117,6 +133,9 @@ def generate_rounds(seed: str, variant: str, round_count: int = 8) -> dict:
                                      rows_by_tier_season[tier])
             if q is not None:
                 break
+        if story_questions and tier == "HIGH" and i % 3 == 2:
+            q = to_team_question(story_questions[story_index % len(story_questions)])
+            story_index += 1
         if q is None:
             break
         rounds.append({"tier": tier, "prompt": q["prompt"], "correct_team": q["correct_team"],
@@ -165,5 +184,11 @@ def build_package(seed: str, variant: str, round_count: int = 8) -> dict:
         "qa_status": "PASSED" if valid else "FAILED",
         "rounds": rounds, "round_count": len(rounds), "base_points": BASE_POINTS,
         "production_safety": result["safety"], "shortfall_reason": result["shortfall_reason"],
-        "review_status": "UNREVIEWED", "_diagnostics": {"seed": seed},
+        "review_status": "UNREVIEWED", "_diagnostics": {
+            "seed": seed,
+            "story_rounds": sum(
+                1 for r in rounds
+                if (r.get("_notes") or "").startswith("Verified story-backed")
+            ),
+        },
     }
