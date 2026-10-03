@@ -1,9 +1,7 @@
 name: Story Production Exclusive Seed
 
 on:
-  push:
-    branches:
-      - 'story-prod-single-writer-*'
+  workflow_dispatch:
 
 permissions:
   contents: read
