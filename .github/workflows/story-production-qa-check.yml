@@ -1,0 +1,38 @@
+name: Story Production QA Check
+
+on:
+  push:
+    branches:
+      - 'story-prod-qacheck-*'
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Validate live Story questions
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/story_prod_qa_once.py)
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > story-prod-qa.json 2> story-prod-qa.err
+          cat story-prod-qa.json
+          test -s story-prod-qa.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-production-qa
+          path: |
+            story-prod-qa.json
+            story-prod-qa.err
+          if-no-files-found: warn
+          retention-days: 7
