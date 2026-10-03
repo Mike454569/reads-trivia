@@ -212,6 +212,19 @@
 [functions."trigger-refresh-cfb-weather"]
   schedule = "40 18 * * 0"
 
+# Twenty-first dataset -- current recruiting class. One credentialed CFBD
+# request per scheduled run; weekly is ample because commitments/rankings do
+# not need game-score cadence. Staggered 30 minutes after weather.
+[functions."trigger-refresh-cfb-recruiting"]
+  schedule = "10 19 * * 0"
+
+# Story Factory continuous ingestion. Each daily run can harvest thousands of
+# indexed candidates, triage them, enrich a bounded high-priority slice,
+# generate questions, and prepare review suggestions. Sensitive/legal stories
+# stay manual-only. Sunday remains 30 minutes after recruiting.
+[functions."trigger-refresh-story-candidates"]
+  schedule = "40 19 * * *"
+
 
 # Live Football Layer v1: late-window settlement passes. These reuse the
 # existing heavy games refresh, so keep them to ONE extra run per league
