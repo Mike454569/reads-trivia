@@ -289,6 +289,18 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
         log = {}
     if "identity_bridge_status" in log:
         summary["identity_bridge_status"] = log["identity_bridge_status"]
+    if isinstance(log.get("story_factory"), dict):
+        sf = log["story_factory"]
+        summary["story_factory"] = {
+            "processed_candidates": int(sf.get("processed_candidates") or 0),
+            "generated_questions_this_run": int(sf.get("generated_questions_this_run") or 0),
+            "ready_question_total": int(sf.get("ready_question_total") or 0),
+            "decisions": {
+                str(k): int(v)
+                for k, v in (sf.get("decisions") or {}).items()
+                if isinstance(v, (int, float))
+            },
+        }
     return summary
 
 
