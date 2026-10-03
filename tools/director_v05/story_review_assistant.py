@@ -267,6 +267,7 @@ def run_review_assistant(*, limit=250, include_sensitive=True):
         f"""SELECT * FROM football_story_candidates
             WHERE status IN ({placeholders})
             ORDER BY
+              CASE status WHEN 'PROMOTED' THEN 0 WHEN 'REVIEW_REQUIRED' THEN 1 ELSE 2 END,
               CASE evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
               seen_date DESC,candidate_id
             LIMIT ?""",
