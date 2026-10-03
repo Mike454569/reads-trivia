@@ -69,3 +69,13 @@ def resolve_label(conn, entity_type, entity_id):
 
     # Stable codes/IDs remain preferable to guessed names.
     return entity_id
+
+
+
+def resolve_required_label(conn, entity_type, entity_id):
+    """Return a real user-facing label or fail closed on an unresolved ID/code."""
+    value = resolve_label(conn, entity_type, entity_id)
+    raw = str(entity_id)
+    if not value or str(value).strip() == raw.strip():
+        raise ValueError("UNRESOLVED_ENTITY_LABEL:" + str(entity_type) + ":" + raw)
+    return str(value).strip()
