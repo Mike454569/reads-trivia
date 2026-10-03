@@ -582,7 +582,7 @@ function creatorStoryFactoryHtml(){
   return '<div class="creator-workspace">'+creatorToolbarHtml(false)+
     '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><div class="btn-row"><button class="btn-secondary" data-creator-story-retry'+(s.storyRetryLoading?' disabled':'')+'>'+(s.storyRetryLoading?'Rechecking…':'Retry 50 Safe Reviews')+'</button><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div></div>'+
     '<div class="creator-command-grid">'+metrics.map(function(m){return '<div><b>'+Number(m[1]||0)+'</b><span>'+esc(m[0])+'</span></div>';}).join('')+'</div>'+
-    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div><button class="btn-secondary" data-creator-story-certify'+(s.storyCertificationLoading?' disabled':'')+'>'+(s.storyCertificationLoading?'Certifying…':'Run Game Reach Certification')+'</button></div>'+
+    '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">FUNNEL</span><h3>Factory health</h3></div><button class="btn-secondary" data-creator-story-certify'+(s.storyCertificationLoading?' disabled':'')+'>'+(s.storyCertificationLoading?'Certifying…':'Run Production Certification')+'</button></div>'+
       '<div class="creator-quality-grid">'+
         '<span class="pass">Promotion rate '+Math.round(Number(h.promotion_rate||0)*100)+'%</span>'+
         '<span class="pass">'+Number(h.questions_per_promoted_event||0).toFixed(2)+' questions / promoted event</span>'+
