@@ -10,3 +10,5 @@ print(json.dumps({
     "enriched": count("select count(*) from football_story_enrichment"),
 }, sort_keys=True))
 c.close()
+
+# fast-question-progress-check
