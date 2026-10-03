@@ -83,6 +83,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["lore_multiformat"]=build_multiformat_bank(c, target=12, discovery_limit=250)
             from .lore_label_audit import label_coverage_report
             population["lore_label_coverage"]=label_coverage_report(c)
+            from .fact_gap_queue import fact_gap_queue
+            population["fact_gap_queue"]=fact_gap_queue(c)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c); c.commit()
