@@ -116,7 +116,7 @@ def _event_subject_edges(conn, event_id):
     return out
 
 
-def _structured_edges(conn, subject_type, subject_id):
+def _structured_edges(conn, subject_type, subject_id, *, season_hint=None):
     """Expose only source-backed structured relationships for graph traversal."""
     sid = str(subject_id)
     tables = _tables(conn)
@@ -251,7 +251,102 @@ def _structured_edges(conn, subject_type, subject_id):
                     "STRUCTURED_FACT", r["source_id"], r["verification_status"],
                 ))
 
+    elif subject_type == "NFL_TEAM":
+        # Controlled reverse traversal: team -> nearby drafted/rostered players.
+        # Season proximity keeps fanout useful instead of exploding across an
+        # entire franchise history.
+        if "draft_facts" in tables:
+            if season_hint is not None:
+                rows = conn.execute(
+                    """SELECT player_key,draft_season,source_id,verification_status
+                       FROM draft_facts
+                       WHERE draft_team=? AND verification_status='SOURCE_BACKED'
+                         AND player_key IS NOT NULL
+                         AND draft_season BETWEEN ? AND ?
+                       ORDER BY ABS(draft_season-?),draft_pick_overall,player_key
+                       LIMIT 10""",
+                    (sid, int(season_hint)-3, int(season_hint)+3, int(season_hint)),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT player_key,draft_season,source_id,verification_status
+                       FROM draft_facts
+                       WHERE draft_team=? AND verification_status='SOURCE_BACKED'
+                         AND player_key IS NOT NULL
+                       ORDER BY draft_season DESC,draft_pick_overall,player_key
+                       LIMIT 8""",
+                    (sid,),
+                ).fetchall()
+            for r in rows:
+                out.append(LoreHop(
+                    "DRAFTED_PLAYER", "NFL_TEAM", sid, "NFL_PLAYER", str(r["player_key"]),
+                    int(r["draft_season"]) if r["draft_season"] is not None else None,
+                    "STRUCTURED_FACT", r["source_id"], r["verification_status"],
+                ))
+
+        if "canonical_roster_seasons" in tables:
+            if season_hint is not None:
+                rows = conn.execute(
+                    """SELECT player_id,season,source_id,verification_status
+                       FROM canonical_roster_seasons
+                       WHERE team_code=? AND verification_status='SOURCE_BACKED'
+                         AND player_id IS NOT NULL
+                         AND season BETWEEN ? AND ?
+                       ORDER BY ABS(season-?),season,player_id
+                       LIMIT 12""",
+                    (sid, int(season_hint)-1, int(season_hint)+1, int(season_hint)),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT player_id,season,source_id,verification_status
+                       FROM canonical_roster_seasons
+                       WHERE team_code=? AND verification_status='SOURCE_BACKED'
+                         AND player_id IS NOT NULL
+                       ORDER BY season DESC,player_id
+                       LIMIT 10""",
+                    (sid,),
+                ).fetchall()
+            for r in rows:
+                out.append(LoreHop(
+                    "ROSTERED_PLAYER", "NFL_TEAM", sid, "NFL_PLAYER", str(r["player_id"]),
+                    int(r["season"]) if r["season"] is not None else None,
+                    "STRUCTURED_FACT", r["source_id"], r["verification_status"],
+                ))
+
     elif subject_type == "SCHOOL":
+        # Controlled reverse traversal: school -> nearby players with verified
+        # game-log rows, plus the existing ranking-history edges below.
+        if "cfb_player_game_stats_real" in tables:
+            if season_hint is not None:
+                rows = conn.execute(
+                    """SELECT cfb_player_id,MIN(season) season,MIN(source_id) source_id
+                       FROM cfb_player_game_stats_real
+                       WHERE school_id=? AND verification_status='SOURCE_BACKED_DERIVED'
+                         AND cfb_player_id IS NOT NULL AND source_id IS NOT NULL
+                         AND season BETWEEN ? AND ?
+                       GROUP BY cfb_player_id
+                       ORDER BY ABS(MIN(season)-?),cfb_player_id
+                       LIMIT 12""",
+                    (sid, int(season_hint)-2, int(season_hint)+2, int(season_hint)),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT cfb_player_id,MAX(season) season,MIN(source_id) source_id
+                       FROM cfb_player_game_stats_real
+                       WHERE school_id=? AND verification_status='SOURCE_BACKED_DERIVED'
+                         AND cfb_player_id IS NOT NULL AND source_id IS NOT NULL
+                       GROUP BY cfb_player_id
+                       ORDER BY MAX(season) DESC,cfb_player_id
+                       LIMIT 10""",
+                    (sid,),
+                ).fetchall()
+            for r in rows:
+                out.append(LoreHop(
+                    "SCHOOL_PLAYER", "SCHOOL", sid, "CFB_PLAYER", str(r["cfb_player_id"]),
+                    int(r["season"]) if r["season"] is not None else None,
+                    "STRUCTURED_FACT", str(r["source_id"]), "SOURCE_BACKED_DERIVED",
+                ))
+
         if "cfb_rankings" in tables:
             rows = conn.execute(
                 """SELECT rank,season,source_id,verification_status
@@ -270,11 +365,11 @@ def _structured_edges(conn, subject_type, subject_id):
     return out
 
 
-def _neighbors(conn, node_type, node_id):
+def _neighbors(conn, node_type, node_id, *, season_hint=None):
     if node_type == "EVENT":
         return _event_subject_edges(conn, node_id)
     out = _event_edges(conn, node_type, node_id)
-    out.extend(_structured_edges(conn, node_type, node_id))
+    out.extend(_structured_edges(conn, node_type, node_id, season_hint=season_hint))
     return out
 
 
@@ -312,7 +407,8 @@ def discover_lore_chains(conn, anchor_type, anchor_id, *, max_depth=5, max_chain
         if len(hops) >= max_depth:
             continue
 
-        for hop in _neighbors(conn, node_type, node_id):
+        season_hint = hops[-1].season if hops else None
+        for hop in _neighbors(conn, node_type, node_id, season_hint=season_hint):
             next_node = (hop.object_type, str(hop.object_id))
             if next_node in visited:
                 continue
