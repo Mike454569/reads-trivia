@@ -30,36 +30,13 @@ jobs:
           echo "Production Engine DB bytes: $DB_SIZE"
           test "${DB_SIZE:-0}" -ge 104857600
 
-      - name: Package current certification source
-        run: |
-          set -euo pipefail
-          tar --exclude=.git --exclude=.github --exclude='*.sqlite' --exclude='*.sqlite-*' -czf /tmp/reads-story-cert.tgz .
-
-      - name: Upload certification source to Fly tmp
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          flyctl ssh sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway
-
       - name: Run read-only production certifications
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'rm -rf /tmp/reads-story-cert && mkdir -p /tmp/reads-story-cert && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_question_quality > /tmp/story-question-quality.json 2> /tmp/story-question-quality.err || true; python -m tools.director_v05.certify_story_game_reach > /tmp/story-game-reach.json 2> /tmp/story-game-reach.err || true; test -s /tmp/story-question-quality.json; test -s /tmp/story-game-reach.json'"
-
-      - name: Download certification outputs
-        if: always()
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          set +e
-          flyctl ssh sftp get /tmp/story-question-quality.json story-question-quality.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/story-question-quality.err story-question-quality.err -a reads-football-gateway
-          flyctl ssh sftp get /tmp/story-game-reach.json story-game-reach.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/story-game-reach.err story-game-reach.err -a reads-football-gateway
-          exit 0
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_question_quality'" > story-question-quality.json
+          flyctl ssh console -a reads-football-gateway -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_game_reach'" > story-game-reach.json
 
       - name: Print certification results
         if: always()
@@ -68,14 +45,8 @@ jobs:
           echo "===== QUESTION QUALITY ====="
           cat story-question-quality.json 2>/dev/null || true
           echo
-          echo "===== QUESTION QUALITY STDERR ====="
-          cat story-question-quality.err 2>/dev/null || true
-          echo
           echo "===== GAME REACH ====="
           cat story-game-reach.json 2>/dev/null || true
-          echo
-          echo "===== GAME REACH STDERR ====="
-          cat story-game-reach.err 2>/dev/null || true
           exit 0
 
       - name: Upload certification artifacts
