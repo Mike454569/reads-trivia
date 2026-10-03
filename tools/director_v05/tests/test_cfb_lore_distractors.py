@@ -19,8 +19,8 @@ def _conn():
     )""")
     c.execute("""CREATE TABLE cfb_player_game_stats_real(
         cfb_player_id TEXT, player_name TEXT, school_id TEXT, season INTEGER,
-        passing_yards INTEGER, rushing_yards INTEGER, receiving_yards INTEGER,
-        verification_status TEXT
+        passing_yards INTEGER, rushing_yards INTEGER, rec_yards INTEGER,
+        source_id TEXT, verification_status TEXT
     )""")
     return c
 
@@ -37,8 +37,8 @@ def _seed(c):
         c.execute("INSERT INTO cfb_players_canonical VALUES(?,?)",(pid,name))
         c.execute("INSERT INTO cfb_transfer_summary VALUES(?,?,?,?,?,?)",
                   (pid,first,last,first_s,last_s,tc))
-        c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
-                  (pid,name,last,last_s,peak,0,0,"SOURCE_BACKED_DERIVED"))
+        c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?,?)",
+                  (pid,name,last,last_s,peak,0,0,"cfb-src","SOURCE_BACKED_DERIVED"))
 
 
 def test_cfb_lore_distractors_use_school_and_era_context():
@@ -86,7 +86,7 @@ def test_cfb_thin_pool_fails_closed():
     c.execute("INSERT INTO cfb_players_canonical VALUES(?,?)",("p1","Only College Guy"))
     c.execute("INSERT INTO cfb_transfer_summary VALUES(?,?,?,?,?,?)",
               ("p1","ALA","ALA",2023,2024,0))
-    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?)",
-              ("p1","Only College Guy","ALA",2024,100,0,0,"SOURCE_BACKED_DERIVED"))
+    c.execute("INSERT INTO cfb_player_game_stats_real VALUES(?,?,?,?,?,?,?,?,?)",
+              ("p1","Only College Guy","ALA",2024,100,0,0,"cfb-src","SOURCE_BACKED_DERIVED"))
     with pytest.raises(ValueError, match="INSUFFICIENT_DEEP_LORE_DISTRACTORS"):
         cfb_lore_distractors(c, "p1", k=3)
