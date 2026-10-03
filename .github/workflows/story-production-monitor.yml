@@ -1,4 +1,4 @@
-name: Story Production Cert Process Diagnostic
+name: Stop Story Certification Readers
 
 on:
   push:
@@ -9,17 +9,17 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  stop-readers:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Find live certification process
+      - name: Stop only Story certification Python readers
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'for d in /proc/[0-9]*; do cmd=$(tr \"\\000\" \" \" < \"$d/cmdline\" 2>/dev/null || true); case \"$cmd\" in *certify_story*) echo \"${d##*/} $cmd\";; esac; done'"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "python3 -c 'import os,signal,json; hits=[]; prefix=\"tools.director_v05.certify_story_\"; [(hits.append({\"pid\":int(n),\"argv\":a}) or os.kill(int(n),signal.SIGTERM)) for n in os.listdir(\"/proc\") if n.isdigit() for a in [[x.decode(\"utf-8\",\"replace\") for x in open(\"/proc/\"+n+\"/cmdline\",\"rb\").read().split(b\"\\0\") if x]] if len(a)>=3 and os.path.basename(a[0]).startswith(\"python\") and a[1]==\"-m\" and a[2].startswith(prefix)]; print(json.dumps(hits,sort_keys=True))'"
