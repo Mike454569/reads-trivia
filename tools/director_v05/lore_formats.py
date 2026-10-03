@@ -7,6 +7,7 @@ import random
 from .entity_labels import resolve_label
 from .lore_mechanics import compile_common_link, compile_timeline
 from .lore_trivia import _season, gameplay_eligibility
+from .lore_format_qa import validate_multiformat_question
 
 
 def _qid(kind, parts):
@@ -71,7 +72,7 @@ def compile_common_link_mcq(conn, subject_type, subject_id, *, seed="lore-common
     rng = random.Random(str(seed) + "|" + str(subject_type) + "|" + str(subject_id))
     rng.shuffle(options)
 
-    return {
+    out = {
         "question_id": _qid("COMMON_LINK_MCQ", [subject_type, subject_id] + base["event_ids"]),
         "mechanic": "MULTIPLE_CHOICE",
         "question_family": "LORE_COMMON_LINK",
@@ -82,6 +83,11 @@ def compile_common_link_mcq(conn, subject_type, subject_id, *, seed="lore-common
         "event_ids": base["event_ids"],
         "provenance": base["provenance"],
     }
+    qa = validate_multiformat_question(out)
+    if qa["status"] != "PASSED":
+        raise ValueError("MULTIFORMAT_QA_FAILED:" + ",".join(qa["errors"]))
+    out["qa"] = qa
+    return out
 
 
 def compile_before_after(conn, first_event_id, second_event_id):
@@ -101,7 +107,7 @@ def compile_before_after(conn, first_event_id, second_event_id):
     if not earlier_title or not later_title:
         raise ValueError("BEFORE_AFTER_MISSING_EVENT_TITLE")
 
-    return {
+    out = {
         "question_id": _qid("BEFORE_AFTER", [earlier["event_id"], later["event_id"]]),
         "mechanic": "MULTIPLE_CHOICE",
         "question_family": "LORE_BEFORE_AFTER",
@@ -122,6 +128,11 @@ def compile_before_after(conn, first_event_id, second_event_id):
             "event_ids": [str(earlier["event_id"]), str(later["event_id"])],
         },
     }
+    qa = validate_multiformat_question(out)
+    if qa["status"] != "PASSED":
+        raise ValueError("MULTIFORMAT_QA_FAILED:" + ",".join(qa["errors"]))
+    out["qa"] = qa
+    return out
 
 
 def compile_timeline_round(conn, event_ids):
@@ -134,7 +145,7 @@ def compile_timeline_round(conn, event_ids):
             raise ValueError("TIMELINE_MISSING_HUMAN_LABEL")
         items.append({"id": item["id"], "label": label})
 
-    return {
+    out = {
         "question_id": base["question_id"],
         "mechanic": "SORTING_TIMELINE",
         "question_family": "LORE_TIMELINE",
@@ -144,6 +155,11 @@ def compile_timeline_round(conn, event_ids):
         "explanation": base["explanation"],
         "provenance": base["provenance"],
     }
+    qa = validate_multiformat_question(out)
+    if qa["status"] != "PASSED":
+        raise ValueError("MULTIFORMAT_QA_FAILED:" + ",".join(qa["errors"]))
+    out["qa"] = qa
+    return out
 
 
 def discover_multiformat_candidates(conn, *, limit=200):
