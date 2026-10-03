@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 
-from .entity_labels import resolve_label
+from .entity_labels import resolve_label, resolve_required_label
 
 
 def _event_detail(conn, event_id):
@@ -88,7 +88,9 @@ def question_stem(anchor_type):
 def render_hop(conn, hop, *, anchor_type=None, answer_label=None):
     """Render one graph hop as a concrete football clue."""
     relation = str(hop.relation)
-    obj_label = resolve_label(conn, hop.object_type, hop.object_id)
+    obj_label = resolve_required_label(conn, hop.object_type, hop.object_id) if hop.object_type in {
+        "NFL_PLAYER", "CFB_PLAYER", "COACH", "NFL_TEAM", "SCHOOL"
+    } else resolve_label(conn, hop.object_type, hop.object_id)
     season = _season_phrase(hop.season)
 
     if relation == "DRAFTED_BY":
@@ -103,16 +105,16 @@ def render_hop(conn, hop, *, anchor_type=None, answer_label=None):
     if relation == "COACHED":
         return "I coached " + obj_label + season + "."
     if relation == "DRAFTED_PLAYER":
-        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        subject_label = resolve_required_label(conn, hop.subject_type, hop.subject_id)
         return subject_label + " also drafted " + obj_label + season + "."
     if relation == "ROSTERED_PLAYER":
-        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        subject_label = resolve_required_label(conn, hop.subject_type, hop.subject_id)
         return obj_label + " was also on " + subject_label + "'s roster" + season + "."
     if relation == "TEAM_COACH":
-        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        subject_label = resolve_required_label(conn, hop.subject_type, hop.subject_id)
         return obj_label + " also coached " + subject_label + season + "."
     if relation == "SCHOOL_PLAYER":
-        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        subject_label = resolve_required_label(conn, hop.subject_type, hop.subject_id)
         return obj_label + " also played at " + subject_label + season + "."
     if relation == "STARTED_AT":
         return "I started my college career at " + obj_label + season + "."
