@@ -93,7 +93,7 @@ def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
     source = category_roulette.build_package(
-        f"{seed}-strategy-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(24, round_count)
+        f"{seed}-strategy-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(12, round_count)
     )
     rounds = source.get("rounds") or []
     package_id = "GGP38:" + hashlib.sha256(
