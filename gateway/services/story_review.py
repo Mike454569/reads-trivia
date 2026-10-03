@@ -7,6 +7,8 @@ from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.story_factory_health import story_factory_health
 from tools.director_v05.story_multiformat import generate_story_formats_for_event
 from tools.director_v05.certify_story_question_quality import certify_story_question_quality
+from tools.director_v05.story_subject_match import build_subject_index
+from tools.director_v05.story_to_trivia_factory import process_candidate, _ensure_schema as ensure_story_factory_schema
 
 
 def _tables(conn):
@@ -189,3 +191,46 @@ def confirm_event_date(*, candidate_id, event_date):
 def game_reach_certification():
     from tools.director_v05.certify_story_game_reach import certify_story_game_reach
     return certify_story_game_reach(seed="admin-story-game-reach")
+
+
+
+def retry_safe_promotions(*, limit=50):
+    """Re-run strict auto-promotion gates for non-sensitive review backlog.
+
+    This is not a manual override. It cannot lower confidence thresholds,
+    bypass canonical identity matching, or promote sensitive/legal candidates.
+    """
+    c = engine_bootstrap.connect()
+    try:
+        ensure_story_factory_schema(c)
+        rows = c.execute(
+            """SELECT * FROM football_story_candidates
+               WHERE status='REVIEW_REQUIRED'
+                 AND COALESCE(sensitive_hint,0)=0
+               ORDER BY
+                 CASE evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
+                 seen_date DESC,candidate_id
+               LIMIT ?""",
+            (max(1, min(int(limit), 250)),),
+        ).fetchall()
+        subject_index = build_subject_index(c)
+        counts = {}
+        promoted = []
+        for row in rows:
+            result = process_candidate(c, row, subject_index)
+            decision = str(result.get("decision") or "UNKNOWN")
+            counts[decision] = counts.get(decision, 0) + 1
+            if decision == "AUTO_PROMOTED":
+                promoted.append({
+                    "candidate_id": str(row["candidate_id"]),
+                    "event_id": result.get("event_id"),
+                    "generated_questions": int(result.get("generated") or 0),
+                })
+        return {
+            "processed": len(rows),
+            "decisions": counts,
+            "promoted": promoted,
+            "promoted_count": len(promoted),
+        }
+    finally:
+        c.close()
