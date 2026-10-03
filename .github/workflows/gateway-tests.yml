@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "17 8 * * *"
   push:
-    branches: [main, feature/retention-moat-upgrades]
+    branches: [main, feature/retention-moat-upgrades, fix/100-format-final-closeout]
     paths:
       - "gateway/**"
       - "tools/**"
@@ -113,7 +113,7 @@ jobs:
     # per-push merge/deploy gate. Fly volume forks can fail independently of
     # application code. Run it explicitly or on the daily schedule; the
     # certified DB contract job remains the deterministic per-push DB gate.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/fix/100-format-final-closeout')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
