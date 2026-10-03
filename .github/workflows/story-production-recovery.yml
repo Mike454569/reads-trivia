@@ -1,0 +1,45 @@
+name: Story Production Recovery
+
+on:
+  push:
+    branches:
+      - 'story-prod-recovery-*'
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Process existing Story Factory candidates
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          for attempt in 1 2 3 4; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; orig=e.connect; e.connect=lambda:(lambda c:(c.execute(\\\"PRAGMA busy_timeout=120000\\\"),c)[1])(orig()); from tools.director_v05.story_to_trivia_factory import run_story_to_trivia_factory; print(json.dumps(run_story_to_trivia_factory(limit=150),sort_keys=True))\"'" > story-recovery.json 2> story-recovery.err; then
+              test -s story-recovery.json && break
+            fi
+            echo "recovery attempt $attempt failed"
+            cat story-recovery.err || true
+            sleep 10
+          done
+          cat story-recovery.json
+          test -s story-recovery.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-production-recovery
+          path: |
+            story-recovery.json
+            story-recovery.err
+          if-no-files-found: warn
+          retention-days: 7
