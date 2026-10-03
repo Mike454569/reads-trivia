@@ -383,14 +383,14 @@ def coach_lore_distractors(
             continue
         pool.append(candidate)
 
-    selected = select_distractors(
+    ranked = select_distractors(
         correct,
         pool,
         k=max(k, 10),
         forbidden_ids=all_correct_ids,
         recent_ids=recent_distractor_ids,
     )
-    band, selected = _calibrate(selected, k=k, difficulty_band=difficulty_band)
+    band, selected = _calibrate(ranked, k=k, difficulty_band=difficulty_band)
     problem = validate_distractors(correct, selected, all_correct_ids=all_correct_ids)
     if problem:
         raise ValueError(problem)
