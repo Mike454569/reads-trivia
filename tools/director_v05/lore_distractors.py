@@ -205,7 +205,7 @@ def _cfb_profile(conn, player_id):
     if "cfb_player_game_stats_real" in tables:
         r = conn.execute(
             """SELECT season,school_id,
-                      MAX(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(receiving_yards,0)) peak
+                      MAX(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(rec_yards,0)) peak
                FROM cfb_player_game_stats_real
                WHERE cfb_player_id=? AND verification_status='SOURCE_BACKED_DERIVED'
                GROUP BY season,school_id
@@ -293,14 +293,14 @@ def cfb_lore_distractors(
             continue
         pool.append(candidate)
 
-    selected = select_distractors(
+    ranked = select_distractors(
         correct,
         pool,
         k=max(k, 10),
         forbidden_ids=all_correct_ids,
         recent_ids=recent_distractor_ids,
     )
-    band, selected = _calibrate(selected, k=k, difficulty_band=difficulty_band)
+    band, selected = _calibrate(ranked, k=k, difficulty_band=difficulty_band)
     problem = validate_distractors(
         correct,
         selected,
