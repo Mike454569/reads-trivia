@@ -26,6 +26,7 @@ from .lore_distractors import attach_deep_lore_options
 from .lore_mechanics import compile_progressive_identity
 from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
+from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
 
 AUTO_FAMILIES = {
     "PRESS_CONFERENCE": "PRESS_CONFERENCE",
@@ -446,17 +447,27 @@ def process_candidate(c, candidate, subject_index):
         event_id,
         subject,
     )
+    formats = generate_story_formats_for_event(
+        c,
+        candidate_id=candidate["candidate_id"],
+        event_id=event_id,
+        subject_type=subject["entity_type"],
+        subject_id=subject["entity_id"],
+    )
     _store_enrichment(
         c, candidate, article=article, subject=subject, family=family,
         score=score, evidence_terms=evidence_terms,
         decision="AUTO_PROMOTED",
         event_id=event_id,
-        generated=len(questions),
+        generated=len(questions) + int(formats.get("generated_count") or 0),
     )
     return {
         "decision":"AUTO_PROMOTED",
         "event_id":event_id,
-        "generated":len(questions),
+        "generated":len(questions) + int(formats.get("generated_count") or 0),
+        "identity_questions":len(questions),
+        "format_questions":int(formats.get("generated_count") or 0),
+        "format_rejections":formats.get("rejected", []),
         "score":score,
     }
 
@@ -494,6 +505,8 @@ def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
                 "confidence": result.get("score"),
             })
 
+    matching = generate_story_matching_round(c, limit=4)
+
     queue = c.execute(
         """SELECT status,COUNT(*) n FROM football_story_candidates
            GROUP BY status ORDER BY status"""
@@ -510,6 +523,8 @@ def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
         "generated_questions_this_run": generated_questions,
         "ready_question_total": int(ready),
         "queue_status": {str(r["status"]): int(r["n"]) for r in queue},
+        "matching_round_generated": bool(matching.get("generated")),
+        "matching_round_reason": matching.get("reason"),
         "examples": examples,
     }
 
