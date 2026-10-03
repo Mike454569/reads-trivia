@@ -65,6 +65,10 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["game_chaos_mining"]=mine_nfl_game_chaos(c); c.commit()
             from .cfb_pbp_story_mining import mine_cfb_pbp
             population["cfb_pbp_lore"]=mine_cfb_pbp(c); c.commit()
+            from .cfb_weather_lore import mine_cfb_weather_lore
+            population["cfb_weather_lore"]=mine_cfb_weather_lore(c); c.commit()
+            from .nfl_contract_lore import mine_nfl_contract_lore
+            population["nfl_contract_lore"]=mine_nfl_contract_lore(c); c.commit()
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
             from .lore_trivia import lore_gameplay_report
