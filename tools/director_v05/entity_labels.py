@@ -42,6 +42,7 @@ def resolve_label(conn, entity_type, entity_id):
             ("draft_facts", "player_key", ("player_name",)),
         ],
         "CFB_PLAYER": [
+            ("canonical_cfb_players", "cfb_player_id", ("display_name", "player_name", "name")),
             ("cfb_players_canonical", "cfb_player_id", ("display_name", "player_name", "name")),
             ("cfb_transfer_summary", "cfb_player_id", ("display_name",)),
             ("cfb_player_game_stats_real", "cfb_player_id", ("player_name",)),
@@ -51,10 +52,13 @@ def resolve_label(conn, entity_type, entity_id):
             ("coach_team_seasons", "coach_id", ("coach_name",)),
         ],
         "SCHOOL": [
+            ("schools", "school_id", ("school_name", "display_name", "name")),
+            ("school_aliases", "school_id", ("alias_name", "school_name", "display_name", "name")),
             ("cfb_schools", "school_id", ("school_name", "display_name", "name")),
             ("cfb_rankings", "school_id", ("school_name_raw",)),
         ],
         "NFL_TEAM": [
+            ("team_aliases", "team_code", ("full_name", "team_name", "display_name", "name")),
             ("nfl_teams", "team_code", ("team_name", "display_name", "name", "full_name")),
             ("teams", "team_code", ("team_name", "display_name", "name", "full_name")),
         ],
