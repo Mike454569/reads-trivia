@@ -8,3 +8,5 @@ retry: detached-runner
 retry: python-detached-launcher
 
 retry: authoritative-single-run
+
+retry: pinned-known-good-machine
