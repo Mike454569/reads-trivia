@@ -10,3 +10,5 @@ retry: python-detached-launcher
 retry: authoritative-single-run
 
 retry: pinned-known-good-machine
+
+retry: self-safe-cleanup
