@@ -300,6 +300,44 @@ def _build_tier_question_nfl_receiving(rng, rows_by_season: dict) -> dict | None
 
 
 def _build_rows_by_tier_season(c, tier_ranges: dict, rows_for_tier) -> dict[str, dict[int, list]]:
+    """Build LOW/MEDIUM/HIGH pools without repeating full ranking scans.
+
+    The stat-backed row helpers use a RANK() window over an entire season
+    table. Calling each helper once per tier repeated the same expensive
+    window three times per category (and Three Strikes builds three
+    categories, so nine full scans before screen one). For the six known
+    stat helpers, fetch the full 1..max_rank result once and partition it
+    in memory. Non-stat/legacy helpers retain the old generic path.
+    """
+    stat_helper_meta = {
+        _rows_for_tier_nfl_passing: ("NFL", "pass_yards"),
+        _rows_for_tier_nfl_rushing: ("NFL", "rush_yards"),
+        _rows_for_tier_nfl_receiving: ("NFL", "rec_yards"),
+        _rows_for_tier_cfb_passing: ("CFB", "passing_yards"),
+        _rows_for_tier_cfb_rushing: ("CFB", "rushing_yards"),
+        _rows_for_tier_cfb_receiving: ("CFB", "receiving_yards"),
+    }
+
+    meta = stat_helper_meta.get(rows_for_tier)
+    if meta:
+        league, stat_column = meta
+        max_rank = max(hi for _tier, (_lo, hi) in tier_ranges.items())
+        if league == "NFL":
+            rows = _rows_for_tier_nfl_stat(c, 1, max_rank, stat_column)
+        else:
+            rows = _rows_for_tier_cfb_stat(c, 1, max_rank, stat_column)
+
+        rows_by_tier_season: dict[str, dict[int, list]] = {
+            tier: {} for tier in tier_ranges
+        }
+        for r in rows:
+            rank = int(r["draft_pick_overall"])
+            for tier, (lo, hi) in tier_ranges.items():
+                if lo <= rank <= hi:
+                    rows_by_tier_season[tier].setdefault(r["draft_season"], []).append(r)
+                    break
+        return rows_by_tier_season
+
     rows_by_tier_season: dict[str, dict[int, list]] = {}
     for tier, (lo, hi) in tier_ranges.items():
         by_season: dict[int, list] = {}
