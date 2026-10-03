@@ -1,0 +1,45 @@
+name: Story Fast Question Seed
+
+on:
+  push:
+    branches:
+      - 'story-prod-fastquestions-*'
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Compile reviewed Story questions on production DB
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/reviewed_fast_question_seed.py)
+          for attempt in 1 2 3 4; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > fast-question-seed.json 2> fast-question-seed.err; then
+              cat fast-question-seed.json
+              test -s fast-question-seed.json
+              exit 0
+            fi
+            cat fast-question-seed.err || true
+            sleep 8
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-fast-question-seed
+          path: |
+            fast-question-seed.json
+            fast-question-seed.err
+          if-no-files-found: warn
+          retention-days: 7
