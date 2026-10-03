@@ -6,3 +6,5 @@ retry: clear-stale-sftp-bundle
 retry: detached-runner
 
 retry: python-detached-launcher
+
+retry: authoritative-single-run
