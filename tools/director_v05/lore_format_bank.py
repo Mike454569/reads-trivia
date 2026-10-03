@@ -4,9 +4,10 @@ from __future__ import annotations
 from collections import Counter
 
 from .lore_formats import discover_multiformat_candidates
+from .story_format_pool import load_ready_story_formats
 
 
-DEFAULT_FORMAT_ORDER = ("COMMON_LINK", "BEFORE_AFTER", "TIMELINE")
+DEFAULT_FORMAT_ORDER = ("COMMON_LINK", "FACT_OR_FAKE", "MATCHING", "BEFORE_AFTER", "TIMELINE")
 
 
 def _event_ids(question):
@@ -36,13 +37,25 @@ def build_multiformat_bank(
     recent_formats = [str(x).upper() for x in recent_formats]
 
     discovered = discover_multiformat_candidates(conn, limit=discovery_limit)
-    pools = {
-        key: [
-            q for q in discovered.get(key, [])
-            if str(q.get("question_id")) not in recent_q
-        ]
-        for key in DEFAULT_FORMAT_ORDER
-    }
+    story_formats = load_ready_story_formats(
+        conn,
+        recent_question_ids=recent_q,
+        limit_per_format=max_per_format * 4,
+    )
+
+    combined_available = {}
+    pools = {}
+    for key in DEFAULT_FORMAT_ORDER:
+        merged = []
+        seen = set()
+        for q in list(story_formats.get(key, [])) + list(discovered.get(key, [])):
+            qid = str(q.get("question_id") or "")
+            if not qid or qid in recent_q or qid in seen:
+                continue
+            seen.add(qid)
+            merged.append(q)
+        pools[key] = merged
+        combined_available[key] = len(merged)
 
     selected = []
     counts = Counter()
@@ -79,7 +92,10 @@ def build_multiformat_bank(
         "selected": selected,
         "selected_count": len(selected),
         "format_counts": dict(counts),
-        "available_counts": {k: len(v) for k, v in discovered.items()},
+        "available_counts": combined_available,
+        "story_available_counts": {
+            k: len(v) for k, v in story_formats.items()
+        },
         "unique_events": len(seen_events),
         "max_per_format": max_per_format,
     }
