@@ -316,6 +316,16 @@ def generate_questions_for_event(c, candidate_id, event_id, subject, *, max_ques
     try:
         q = compile_progressive_identity(c, event_id)
         if q["answer"]["label"] and q["answer"]["label"] != q["answer"]["id"]:
+            try:
+                q = attach_deep_lore_options(
+                    c,
+                    q,
+                    difficulty_band="HARD",
+                )
+            except ValueError:
+                # Keep the progressive artifact for a future Progressive Clue
+                # renderer even when a safe four-choice set is unavailable.
+                pass
             generated.append(q)
     except ValueError:
         pass
