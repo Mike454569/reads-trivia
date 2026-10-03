@@ -284,6 +284,35 @@ def _structured_edges(conn, subject_type, subject_id, *, season_hint=None):
                     "STRUCTURED_FACT", r["source_id"], r["verification_status"],
                 ))
 
+        if "coach_team_seasons" in tables:
+            if season_hint is not None:
+                rows = conn.execute(
+                    """SELECT coach_id,season,source_id,verification_status
+                       FROM coach_team_seasons
+                       WHERE team_code=? AND verification_status='SOURCE_BACKED'
+                         AND coach_id IS NOT NULL
+                         AND season BETWEEN ? AND ?
+                       ORDER BY ABS(season-?),season,coach_id
+                       LIMIT 6""",
+                    (sid, int(season_hint)-2, int(season_hint)+2, int(season_hint)),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """SELECT coach_id,season,source_id,verification_status
+                       FROM coach_team_seasons
+                       WHERE team_code=? AND verification_status='SOURCE_BACKED'
+                         AND coach_id IS NOT NULL
+                       ORDER BY season DESC,coach_id
+                       LIMIT 6""",
+                    (sid,),
+                ).fetchall()
+            for r in rows:
+                out.append(LoreHop(
+                    "TEAM_COACH", "NFL_TEAM", sid, "COACH", str(r["coach_id"]),
+                    int(r["season"]) if r["season"] is not None else None,
+                    "STRUCTURED_FACT", r["source_id"], r["verification_status"],
+                ))
+
         if "canonical_roster_seasons" in tables:
             if season_hint is not None:
                 rows = conn.execute(
