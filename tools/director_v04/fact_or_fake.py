@@ -50,6 +50,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
+from tools.director_v05.story_format_pool import load_ready_story_formats  # noqa: E402
 from tools.director_v04 import risk_it  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
 
@@ -307,6 +308,31 @@ def generate_rounds(seed: str, variant: str, round_count: int = 10) -> dict:
     finally:
         c.close()
 
+    # Blend verified story-backed Fact/Fake statements into the dedicated
+    # mode at a bounded share. Sensitive lore never reaches this pool.
+    try:
+        c_story = engine_bootstrap.connect()
+        try:
+            story_formats = load_ready_story_formats(
+                c_story,
+                limit_per_format=max(1, min(4, round_count // 3 or 1)),
+            )
+        finally:
+            c_story.close()
+        story_fof = list(story_formats.get("FACT_OR_FAKE", []))
+    except Exception:
+        story_fof = []
+
+    if story_fof and rounds:
+        replace_positions = list(range(2, len(rounds), 3))
+        for pos, q in zip(replace_positions, story_fof):
+            rounds[pos] = {
+                "statement": q["question"],
+                "is_true": str((q.get("answer") or {}).get("id")) == "FACT",
+                "notes": "Verified story-backed Reads lore statement.",
+                "_story_question_id": q.get("question_id"),
+            }
+
     shortfall_reason = None
     if len(rounds) < round_count:
         shortfall_reason = (
@@ -339,5 +365,11 @@ def build_package(seed: str, variant: str, round_count: int = 10) -> dict:
         "qa_status": "PASSED" if valid else "FAILED",
         "rounds": rounds, "round_count": len(rounds),
         "production_safety": result["safety"], "shortfall_reason": result["shortfall_reason"],
-        "review_status": "UNREVIEWED", "_diagnostics": {"seed": seed},
+        "review_status": "UNREVIEWED", "_diagnostics": {
+            "seed": seed,
+            "story_rounds": sum(
+                1 for r in result["rounds"]
+                if r.get("_story_question_id")
+            ),
+        },
     }
