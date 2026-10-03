@@ -58,6 +58,7 @@ from __future__ import annotations
 import hashlib
 import sys
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -264,22 +265,29 @@ def _record_text(wins: int, losses: int, ties: int = 0) -> str:
 
 
 def _is_live_current_cfb_slate(season: int, season_type: str, kickoff_values) -> bool:
-    """Current Pick'em is date-driven, not schedule-week-driven.
+    """Current Pick'em is calendar-date-driven for CFB.
 
-    Poll week numbers and schedule week numbers can legitimately drift.
-    Upcoming games in the current regular season should therefore use the
-    newest complete AP poll and the newest current-season record data.
-    Historical slates remain historical.
+    cfb_games_canonical guarantees a real game_date but not always a real
+    kickoff time. Treating that date as 00:00 UTC makes Saturday games look
+    "past" from the prior US evening onward, which disables the current
+    standings feed and falls back to reconstructed records too early.
+
+    Keep a current-season regular slate current while any target game's real
+    calendar date is today or later in US Central time.
     """
-    if season_type != "regular" or int(season) != datetime.now(timezone.utc).year:
+    now_central = datetime.now(ZoneInfo("America/Chicago"))
+    if season_type != "regular" or int(season) != now_central.year:
         return False
-    now = datetime.now(timezone.utc)
+    today = now_central.date()
     for raw in kickoff_values:
         try:
-            dt = raw if isinstance(raw, datetime) else _cfb_kickoff(raw)
+            if isinstance(raw, datetime):
+                game_date = raw.astimezone(ZoneInfo("America/Chicago")).date()
+            else:
+                game_date = datetime.fromisoformat(str(raw)[:10]).date()
         except Exception:
-            dt = None
-        if dt is not None and dt > now:
+            continue
+        if game_date >= today:
             return True
     return False
 
