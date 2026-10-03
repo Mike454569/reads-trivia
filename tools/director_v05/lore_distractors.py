@@ -189,35 +189,28 @@ def _cfb_profile(conn, player_id):
     tier = None
     numeric = None
 
-    if "cfb_transfer_summary" in tables:
-        r = conn.execute(
-            """SELECT first_school_id,last_school_id,first_season,last_season,transfer_count
-               FROM cfb_transfer_summary
-               WHERE cfb_player_id=? LIMIT 1""",
-            (sid,),
-        ).fetchone()
-        if r:
-            era = r["last_season"] or r["first_season"]
-            school = r["last_school_id"] or r["first_school_id"]
-            if r["transfer_count"] is not None:
-                tier = "TRANSFERS_" + str(int(r["transfer_count"]))
-
     if "cfb_player_game_stats_real" in tables:
-        r = conn.execute(
+        rows = conn.execute(
             """SELECT season,school_id,
                       MAX(COALESCE(passing_yards,0)+COALESCE(rushing_yards,0)+COALESCE(rec_yards,0)) peak
                FROM cfb_player_game_stats_real
                WHERE cfb_player_id=? AND verification_status='SOURCE_BACKED_DERIVED'
                GROUP BY season,school_id
-               ORDER BY peak DESC,season DESC LIMIT 1""",
+               ORDER BY season,school_id""",
             (sid,),
-        ).fetchone()
-        if r:
-            if era is None:
-                era = r["season"]
-            if school is None:
-                school = r["school_id"]
-            numeric = float(r["peak"] or 0)
+        ).fetchall()
+        if rows:
+            era = max(r["season"] for r in rows if r["season"] is not None)
+            # Use the latest school as the profile anchor; transfer-like career
+            # shape is derived from distinct verified schools, not a summary table.
+            latest = sorted(
+                [r for r in rows if r["season"] is not None],
+                key=lambda r: (r["season"], str(r["school_id"])),
+            )[-1]
+            school = latest["school_id"]
+            distinct_schools = {str(r["school_id"]) for r in rows if r["school_id"] is not None}
+            tier = "SCHOOLS_" + str(len(distinct_schools))
+            numeric = float(max(float(r["peak"] or 0) for r in rows))
 
     return Candidate(
         sid,
@@ -257,18 +250,6 @@ def _cfb_candidate_ids(conn, correct_id, profile, *, limit=1500):
                ORDER BY season DESC
                LIMIT ?""",
             (profile.team_or_school, str(correct_id), int(limit)),
-        ).fetchall()
-        ids.update(str(r["cfb_player_id"]) for r in rows)
-
-    if "cfb_transfer_summary" in tables and profile.team_or_school:
-        rows = conn.execute(
-            """SELECT DISTINCT cfb_player_id
-               FROM cfb_transfer_summary
-               WHERE cfb_player_id<>?
-                 AND (first_school_id=? OR last_school_id=?)
-               ORDER BY cfb_player_id
-               LIMIT ?""",
-            (str(correct_id), profile.team_or_school, profile.team_or_school, int(limit)),
         ).fetchall()
         ids.update(str(r["cfb_player_id"]) for r in rows)
 
