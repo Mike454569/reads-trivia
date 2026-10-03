@@ -108,6 +108,9 @@ def render_hop(conn, hop, *, anchor_type=None, answer_label=None):
     if relation == "ROSTERED_PLAYER":
         subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
         return obj_label + " was also on " + subject_label + "'s roster" + season + "."
+    if relation == "TEAM_COACH":
+        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        return obj_label + " also coached " + subject_label + season + "."
     if relation == "SCHOOL_PLAYER":
         subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
         return obj_label + " also played at " + subject_label + season + "."
