@@ -1,0 +1,70 @@
+name: Story Production Exclusive Enrichment
+
+on:
+  push:
+    branches:
+      - 'story-prod-single-writer-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: story-production-exclusive-writer
+  cancel-in-progress: true
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Process next 20 production story candidates
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; orig=e.connect; e.connect=lambda:(lambda c:(c.execute(\\\"PRAGMA busy_timeout=120000\\\"),c)[1])(orig()); from tools.director_v05.story_to_trivia_factory import run_story_to_trivia_factory; print(json.dumps(run_story_to_trivia_factory(limit=20),sort_keys=True))\"'" > story-enrichment.json 2> story-enrichment.err; then
+              test -s story-enrichment.json && break
+            fi
+            echo "enrichment attempt $attempt failed"
+            cat story-enrichment.err || true
+            sleep 10
+          done
+          cat story-enrichment.json
+          test -s story-enrichment.json
+
+      - name: Read live Story health and QA
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; from tools.director_v05.story_factory_health import story_factory_health; from tools.director_v05.certify_story_question_quality import certify_story_question_quality; c=e.connect(); print(json.dumps({\\\"health\\\":story_factory_health(c),\\\"quality\\\":certify_story_question_quality(c)},sort_keys=True)); c.close()\"'" > story-enrichment-health.json
+          cat story-enrichment-health.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-production-exclusive-enrichment
+          path: |
+            story-enrichment.json
+            story-enrichment.err
+            story-enrichment-health.json
+          if-no-files-found: warn
+          retention-days: 7
