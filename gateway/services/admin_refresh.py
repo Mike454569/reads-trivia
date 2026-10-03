@@ -295,9 +295,21 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
             "processed_candidates": int(sf.get("processed_candidates") or 0),
             "generated_questions_this_run": int(sf.get("generated_questions_this_run") or 0),
             "ready_question_total": int(sf.get("ready_question_total") or 0),
+            "matching_round_generated": bool(sf.get("matching_round_generated")),
             "decisions": {
                 str(k): int(v)
                 for k, v in (sf.get("decisions") or {}).items()
+                if isinstance(v, (int, float))
+            },
+        }
+    if isinstance(log.get("review_assistant"), dict):
+        ra = log["review_assistant"]
+        summary["review_assistant"] = {
+            "processed": int(ra.get("processed") or 0),
+            "suggestion_total": int(ra.get("suggestion_total") or 0),
+            "status_counts": {
+                str(k): int(v)
+                for k, v in (ra.get("status_counts") or {}).items()
                 if isinstance(v, (int, float))
             },
         }
