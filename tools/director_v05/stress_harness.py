@@ -73,6 +73,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["cfb_recruiting_lore"]=mine_cfb_recruiting_lore(c); c.commit()
             from .official_rule_lore import populate_official_rule_lore
             population["official_rule_lore"]=populate_official_rule_lore(c); c.commit()
+            from .reviewed_story_corpus import ingest_reviewed_corpus
+            population["reviewed_story_corpus"]=ingest_reviewed_corpus(c); c.commit()
             from .lore_coverage import coverage
             population["coverage"]=coverage(c)
             from .lore_trivia import lore_gameplay_report
