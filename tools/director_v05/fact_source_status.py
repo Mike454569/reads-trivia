@@ -49,23 +49,23 @@ FAMILY_SOURCES = {
         "refresh": None,
     },
     "RECRUITING": {
-        "status": "NEW_SOURCE_NEEDED",
-        "source": None,
-        "refresh": None,
+        "status": "AUTO_SOURCE_READY",
+        "source": "cfb_recruits / CFBD_API_LIVE",
+        "refresh": "cfb_recruiting",
     },
     "PRESS_CONFERENCE": {
-        "status": "NEW_SOURCE_NEEDED",
-        "source": None,
+        "status": "PARTIAL_SOURCE",
+        "source": "reviewed-media ingestion lane; requires reviewed primary/reputable-media URLs",
         "refresh": None,
     },
     "OFF_FIELD_ODDITY": {
-        "status": "NEW_SOURCE_NEEDED",
-        "source": None,
+        "status": "PARTIAL_SOURCE",
+        "source": "reviewed-media ingestion lane; requires reviewed primary/reputable-media URLs",
         "refresh": None,
     },
     "RULE_ODDITY": {
-        "status": "NEW_SOURCE_NEEDED",
-        "source": None,
+        "status": "AUTO_SOURCE_READY",
+        "source": "official NFL Football Operations + NCAA rule-change corpus",
         "refresh": None,
     },
     "MASCOT_FAN_MOMENT": {
