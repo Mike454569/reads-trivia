@@ -133,6 +133,69 @@ def _resolve_school(c, name: str) -> str | None:
     return row["school_id"] if row else None
 
 
+def _ensure_play_subject_schema(c) -> None:
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS cfb_play_player_subjects (
+            game_id TEXT NOT NULL,
+            play_id TEXT NOT NULL,
+            cfb_player_id TEXT NOT NULL,
+            player_name TEXT,
+            role TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            source_id TEXT NOT NULL,
+            verification_status TEXT NOT NULL,
+            PRIMARY KEY(game_id,play_id,cfb_player_id,role)
+        )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS ix_cfb_play_subject_play ON cfb_play_player_subjects(game_id,play_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS ix_cfb_play_subject_player ON cfb_play_player_subjects(cfb_player_id,season)")
+    c.commit()
+
+
+_PLAYER_ROLE_FIELDS = (
+    ("completion_player_id", "completion_player", "PASS_OR_RECEIVE"),
+    ("reception_player_id", "reception_player", "PASS_OR_RECEIVE"),
+    ("touchdown_player_id", "touchdown_player", "TOUCHDOWN"),
+    ("interception_thrown_player_id", "interception_thrown_player", "PASSER"),
+    ("rush_player_id", "rush_player", "RUSHER"),
+    ("interception_player_id", "interception_player", "DEFENDER"),
+    ("sack_player_id", "sack_player", "DEFENDER"),
+    ("fumble_forced_player_id", "fumble_forced_player", "DEFENDER"),
+    ("fumble_recovered_player_id", "fumble_recovered_player", "RECOVERY"),
+    ("pass_breakup_player_id", "pass_breakup_player", "DEFENDER"),
+    ("field_goal_attempt_player_id", "field_goal_attempt_player", "KICKER"),
+    ("field_goal_made_player_id", "field_goal_made_player", "KICKER"),
+)
+
+
+def _extract_play_subjects(path: Path, season: int, known_cfb_players: set[str]) -> list[tuple]:
+    """Preserve player/play identity already present in the same verified cfbfastR source."""
+    out = []
+    seen = set()
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            game_id = str(row.get("game_id") or "").strip()
+            play_id = str(row.get("play_id") or "").strip()
+            if not game_id or not play_id:
+                continue
+            for id_field, name_field, role in _PLAYER_ROLE_FIELDS:
+                raw = row.get(id_field)
+                if raw in (None, "", "NA"):
+                    continue
+                cfb_player_id = f"ESPN_CFB:{raw}"
+                if cfb_player_id not in known_cfb_players:
+                    continue
+                key = (game_id, play_id, cfb_player_id, role)
+                if key in seen:
+                    continue
+                seen.add(key)
+                out.append((
+                    game_id, play_id, cfb_player_id, row.get(name_field) or None,
+                    role, int(season), SOURCE_ID, "SOURCE_BACKED",
+                ))
+    return out
+
+
 def _aggregate_one_season(path: Path) -> dict[str, dict]:
     """Returns {cfb_player_id: {stat_field: value, "player_name":..., "team":...}}.
     Pure function of one season's real CSV -- no DB access, easy to test in
@@ -239,6 +302,7 @@ def run_cfb_player_season_stats_refresh() -> dict:
 
     try:
         c = engine_bootstrap.connect()
+        _ensure_play_subject_schema(c)
         school_cache: dict[str, str | None] = {}
         known_cfb_players = {
             r["cfb_player_id"] for r in c.execute("SELECT cfb_player_id FROM canonical_cfb_players")
@@ -264,6 +328,15 @@ def run_cfb_player_season_stats_refresh() -> dict:
             total_downloaded += 1
 
             season_stats = _aggregate_one_season(path)
+            play_subjects = _extract_play_subjects(path, season, known_cfb_players)
+            c.execute("DELETE FROM cfb_play_player_subjects WHERE season=? AND source_id=?", (season, SOURCE_ID))
+            if play_subjects:
+                c.executemany(
+                    """INSERT INTO cfb_play_player_subjects(
+                       game_id,play_id,cfb_player_id,player_name,role,season,source_id,verification_status)
+                       VALUES(?,?,?,?,?,?,?,?)""",
+                    play_subjects,
+                )
             for pid, s in season_stats.items():
                 team = s["team"]
                 if team not in school_cache:
@@ -354,7 +427,8 @@ def run_cfb_player_season_stats_refresh() -> dict:
             rows_rejected=total_rejected, no_op=no_op,
             detail={"seasons_imported": seasons_imported, "seasons_not_yet_published": seasons_not_published,
                     "rows_unresolved_school": total_unresolved_school,
-                    "rows_unresolved_identity": total_unresolved_identity},
+                    "rows_unresolved_identity": total_unresolved_identity,
+                    "play_subject_rows": c.execute("SELECT COUNT(*) FROM cfb_play_player_subjects WHERE source_id=?", (SOURCE_ID,)).fetchone()[0]},
         )
         c.close()
         return {
