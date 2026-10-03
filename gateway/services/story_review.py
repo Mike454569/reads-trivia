@@ -5,6 +5,7 @@ import json
 
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.story_factory_health import story_factory_health
+from tools.director_v05.story_multiformat import generate_story_formats_for_event
 
 
 def _tables(conn):
@@ -93,5 +94,87 @@ def factory_health():
         else:
             health["review_suggestions"] = {}
         return health
+    finally:
+        c.close()
+
+
+
+def confirm_event_date(*, candidate_id, event_date):
+    import datetime as dt
+
+    try:
+        parsed = dt.date.fromisoformat(str(event_date))
+    except ValueError as exc:
+        raise ValueError("INVALID_EVENT_DATE") from exc
+
+    c = engine_bootstrap.connect()
+    try:
+        tables = _tables(c)
+        required = {
+            "football_story_enrichment",
+            "universal_event",
+            "story_generated_questions",
+        }
+        if not required <= tables:
+            raise ValueError("STORY_REVIEW_TABLES_MISSING")
+
+        row = c.execute(
+            """SELECT candidate_id,decision,promoted_event_id,subject_type,subject_id
+               FROM football_story_enrichment
+               WHERE candidate_id=?""",
+            (str(candidate_id),),
+        ).fetchone()
+        if not row:
+            raise ValueError("UNKNOWN_STORY_CANDIDATE")
+        if str(row["decision"]) != "AUTO_PROMOTED":
+            raise ValueError("STORY_NOT_AUTO_PROMOTED")
+        if not row["promoted_event_id"]:
+            raise ValueError("STORY_HAS_NO_PROMOTED_EVENT")
+
+        event = c.execute(
+            """SELECT event_id,event_date,sensitive
+               FROM universal_event
+               WHERE event_id=?""",
+            (str(row["promoted_event_id"]),),
+        ).fetchone()
+        if not event:
+            raise ValueError("PROMOTED_EVENT_MISSING")
+        if int(event["sensitive"] or 0):
+            raise ValueError("SENSITIVE_EVENT_DATE_REVIEW_REQUIRES_SEPARATE_WORKFLOW")
+
+        existing = str(event["event_date"] or "").strip()
+        if existing and existing != parsed.isoformat():
+            raise ValueError("EVENT_DATE_ALREADY_CONFIRMED_DIFFERENTLY")
+
+        c.execute(
+            """UPDATE universal_event
+               SET event_date=?,updated_at=datetime('now')
+               WHERE event_id=?""",
+            (parsed.isoformat(), str(row["promoted_event_id"])),
+        )
+
+        if "story_review_suggestions" in tables:
+            c.execute(
+                """UPDATE story_review_suggestions
+                   SET status='DATE_CONFIRMED'
+                   WHERE candidate_id=?""",
+                (str(candidate_id),),
+            )
+        c.commit()
+
+        formats = generate_story_formats_for_event(
+            c,
+            candidate_id=str(candidate_id),
+            event_id=str(row["promoted_event_id"]),
+            subject_type=str(row["subject_type"]),
+            subject_id=str(row["subject_id"]),
+        )
+        return {
+            "candidate_id": str(candidate_id),
+            "event_id": str(row["promoted_event_id"]),
+            "event_date": parsed.isoformat(),
+            "format_questions_generated": int(formats.get("generated_count") or 0),
+            "format_rejections": formats.get("rejected", []),
+        }
     finally:
         c.close()
