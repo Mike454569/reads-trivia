@@ -21,6 +21,7 @@ from .fact_gap_queue import fact_gap_queue
 from .cfb_recruiting_lore import mine_cfb_recruiting_lore
 from .official_rule_lore import populate_official_rule_lore
 from .reviewed_story_corpus import ingest_reviewed_corpus
+from .certify_story_question_quality import certify_story_question_quality
 
 def run():
     c=engine_bootstrap.connect()
@@ -46,6 +47,7 @@ def run():
     result["lore_multiformat"]=build_multiformat_bank(c, target=12, discovery_limit=250)
     result["lore_label_coverage"]=label_coverage_report(c)
     result["fact_gap_queue"]=fact_gap_queue(c)
+    result["story_question_quality"]=certify_story_question_quality(c)
     result["events"]={r["event_type"]:r["n"] for r in c.execute(
       "SELECT event_type,COUNT(*) n FROM universal_event GROUP BY event_type")}
     result["derived"]={r["metric"]:r["n"] for r in c.execute(
