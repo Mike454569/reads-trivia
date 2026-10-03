@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Read reviewed seed counts
         env:
@@ -22,21 +23,9 @@ jobs:
           APP="reads-football-gateway"
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/seed_check_once.py)
           for attempt in 1 2 3 4 5; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 - <<\"PY\"
-import json, sqlite3
-p="/data/engine/reads_football_v4.0.sqlite"
-c=sqlite3.connect("file:"+p+"?mode=ro", uri=True, timeout=5)
-def has(name):
-    return c.execute("select 1 from sqlite_master where type='table' and name=?",(name,)).fetchone() is not None
-out={}
-out["reviewed_events"]=c.execute("select count(*) from universal_event where event_id like 'reviewed_%'").fetchone()[0]
-out["story_questions"]=c.execute("select count(*) from story_generated_questions").fetchone()[0] if has("story_generated_questions") else 0
-out["reviewed_seed_questions"]=c.execute("select count(*) from story_generated_questions where candidate_id like 'reviewed-seed:%'").fetchone()[0] if has("story_generated_questions") else 0
-out["enriched"]=c.execute("select count(*) from football_story_enrichment").fetchone()[0] if has("football_story_enrichment") else 0
-print(json.dumps(out,sort_keys=True))
-c.close()
-PY'" > seed-check.json 2> seed-check.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > seed-check.json 2> seed-check.err; then
               cat seed-check.json
               test -s seed-check.json
               exit 0
