@@ -1,0 +1,163 @@
+name: Story Production Certification (Read Only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/story-production-cert.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    name: Certify live Story Factory DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: reads-football-gateway
+
+    steps:
+      - name: Checkout certification source
+        uses: actions/checkout@v4
+
+      - name: Require Fly token
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "FLY_API_TOKEN is not configured for this repository." >&2
+            exit 2
+          fi
+
+      - name: Install flyctl
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L https://fly.io/install.sh | sh
+          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+
+      - name: Package current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar             --exclude=.git             --exclude=.github             --exclude='*.sqlite'             --exclude='*.sqlite-*'             -czf /tmp/reads-story-cert.tgz .
+
+      - name: Upload source to temporary Fly path
+        shell: bash
+        run: |
+          set -euo pipefail
+          fly ssh sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a "$FLY_APP"
+
+      - name: Run production DB certifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          fly ssh console -a "$FLY_APP" -C "/bin/sh -lc '
+            rm -rf /tmp/reads-story-cert &&
+            mkdir -p /tmp/reads-story-cert &&
+            tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert &&
+            cd /tmp/reads-story-cert &&
+            export PYTHONPATH=/tmp/reads-story-cert &&
+            export READS_ENGINE_DIR=/data/engine &&
+            python -m tools.director_v05.certify_story_question_quality > /tmp/story-question-quality.json 2> /tmp/story-question-quality.err;
+            echo $? > /tmp/story-question-quality.exit;
+            python -m tools.director_v05.certify_story_game_reach > /tmp/story-game-reach.json 2> /tmp/story-game-reach.err;
+            echo $? > /tmp/story-game-reach.exit;
+            true
+          '"
+
+      - name: Download certification outputs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          fly ssh sftp get /tmp/story-question-quality.json story-question-quality.json -a "$FLY_APP"
+          fly ssh sftp get /tmp/story-question-quality.err story-question-quality.err -a "$FLY_APP"
+          fly ssh sftp get /tmp/story-question-quality.exit story-question-quality.exit -a "$FLY_APP"
+          fly ssh sftp get /tmp/story-game-reach.json story-game-reach.json -a "$FLY_APP"
+          fly ssh sftp get /tmp/story-game-reach.err story-game-reach.err -a "$FLY_APP"
+          fly ssh sftp get /tmp/story-game-reach.exit story-game-reach.exit -a "$FLY_APP"
+          exit 0
+
+      - name: Summarize certification
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          echo "## Story Production Certification" >> "$GITHUB_STEP_SUMMARY"
+          if [ -s story-question-quality.json ]; then
+            echo '### Question quality' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+import json
+p=json.load(open("story-question-quality.json"))
+print(json.dumps({
+  "status":p.get("status"),
+  "question_count":p.get("question_count"),
+  "passed":p.get("passed"),
+  "failed":p.get("failed"),
+  "pass_rate":p.get("pass_rate"),
+  "promotion_ready":p.get("promotion_ready"),
+  "failure_reasons":p.get("failure_reasons"),
+}, indent=2, sort_keys=True))
+PY
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -s story-game-reach.json ]; then
+            echo '### Game reach' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+import json
+p=json.load(open("story-game-reach.json"))
+print(json.dumps({
+  "promotion_ready":p.get("promotion_ready"),
+  "corpus_ready":p.get("corpus_ready"),
+  "league_ready":p.get("league_ready"),
+  "league_balance":p.get("league_balance"),
+  "ready_story_questions":p.get("ready_story_questions"),
+  "games_tested":p.get("games_tested"),
+  "games_with_story_content":p.get("games_with_story_content"),
+  "reach_fraction":p.get("reach_fraction"),
+  "errors":p.get("errors"),
+}, indent=2, sort_keys=True))
+PY
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Upload certification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-production-certification
+          path: |
+            story-question-quality.json
+            story-question-quality.err
+            story-question-quality.exit
+            story-game-reach.json
+            story-game-reach.err
+            story-game-reach.exit
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce certification gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+import json, pathlib, sys
+q=pathlib.Path("story-question-quality.json")
+g=pathlib.Path("story-game-reach.json")
+if not q.exists() or not g.exists():
+    print("Certification output missing.")
+    sys.exit(3)
+quality=json.load(q.open())
+reach=json.load(g.open())
+print("Question quality:", quality.get("status"), "promotion_ready=", quality.get("promotion_ready"))
+print("Game reach promotion_ready=", reach.get("promotion_ready"))
+if not quality.get("promotion_ready") or not reach.get("promotion_ready"):
+    sys.exit(1)
+PY
