@@ -21,6 +21,19 @@ jobs:
           set -euo pipefail
           flyctl status -a reads-football-gateway
 
+      - name: Resolve known-good production Engine machine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          machine_id=$(flyctl machines list -a reads-football-gateway --json | python3 -c "import json,sys; rows=json.load(sys.stdin); v='vol_r7ygxo6owqg5ke9r'; ids=[str(r.get('id') or r.get('ID')) for r in rows if any((m.get('volume') or m.get('volume_id'))==v for m in (r.get('config') or {}).get('mounts',[]))]; print(ids[0] if ids else '')")
+          if [ -z "$machine_id" ]; then
+            echo "Known-good Engine volume machine not found." >&2
+            exit 2
+          fi
+          echo "MACHINE_ID=$machine_id" >> "$GITHUB_ENV"
+          echo "Pinned Story certification to machine $machine_id"
+
       - name: Package current source
         run: |
           set -euo pipefail
@@ -31,21 +44,21 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'pkill -f tools.director_v05.run_story_prod_cert_bundle 2>/dev/null || true; sleep 1; rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'pkill -f tools.director_v05.run_story_prod_cert_bundle 2>/dev/null || true; sleep 1; rm -f /tmp/reads-story-cert.tgz; rm -rf /tmp/reads-story-cert /tmp/reads-story-cert-run'"
 
       - name: Upload current source to temporary Fly path
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway
+          flyctl sftp put /tmp/reads-story-cert.tgz /tmp/reads-story-cert.tgz -a reads-football-gateway --machine "$MACHINE_ID"
 
       - name: Start detached production certification
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          flyctl ssh console -a reads-football-gateway -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.launch_story_prod_cert --out-dir /tmp/reads-story-cert-run'"
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'mkdir -p /tmp/reads-story-cert /tmp/reads-story-cert-run && tar -xzf /tmp/reads-story-cert.tgz -C /tmp/reads-story-cert && cd /tmp/reads-story-cert && export PYTHONPATH=/tmp/reads-story-cert && export READS_ENGINE_DIR=/data/engine && python3 -m tools.director_v05.launch_story_prod_cert --out-dir /tmp/reads-story-cert-run'"
 
       - name: Poll detached certification
         env:
@@ -54,7 +67,7 @@ jobs:
           set -euo pipefail
           final=""
           for attempt in $(seq 1 120); do
-            status=$(flyctl ssh console -a reads-football-gateway -C "sh -lc 'cat /tmp/reads-story-cert-run/status.txt 2>/dev/null || echo STARTING'" | tail -n 1 | tr -d '\r')
+            status=$(flyctl ssh console -a reads-football-gateway --machine "$MACHINE_ID" -C "sh -lc 'cat /tmp/reads-story-cert-run/status.txt 2>/dev/null || echo STARTING'" | tail -n 1 | tr -d '\r')
             echo "Story certification status: $status"
             if [ "$status" = "COMPLETE" ] || [ "$status" = "FAILED" ]; then
               final="$status"
@@ -73,12 +86,12 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set +e
-          flyctl ssh sftp get /tmp/reads-story-cert-run/meta.json story-cert-meta.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/reads-story-cert-run/story-question-quality.json story-question-quality.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/reads-story-cert-run/story-game-reach.json story-game-reach.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/reads-story-cert-run/story-question-quality.error.json story-question-quality.error.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/reads-story-cert-run/story-game-reach.error.json story-game-reach.error.json -a reads-football-gateway
-          flyctl ssh sftp get /tmp/reads-story-cert-run/runner.log story-cert-runner.log -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/meta.json story-cert-meta.json -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-question-quality.json story-question-quality.json -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-game-reach.json story-game-reach.json -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-question-quality.error.json story-question-quality.error.json -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/story-game-reach.error.json story-game-reach.error.json -a reads-football-gateway
+          flyctl ssh sftp get --machine "$MACHINE_ID" /tmp/reads-story-cert-run/runner.log story-cert-runner.log -a reads-football-gateway
           exit 0
 
       - name: Print production certification results
