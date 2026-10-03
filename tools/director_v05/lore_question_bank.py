@@ -74,44 +74,36 @@ def build_lore_question_bank(
         reverse=True,
     )
 
-    answer_counts = Counter()
-    signature_counts = Counter()
     eligible = []
-    seen_events = set()
+    seen_question_ids = set()
 
-    # First enforce hard anti-repeat constraints. Rotation happens only among
-    # questions that are already safe to serve.
+    # Do not consume answer/signature/event freshness here. Those caps belong
+    # to the actual scheduler selection, otherwise a high-ranked candidate
+    # that never makes the bank can poison later choices.
     for q in candidates:
         answer_id = str((q.get("answer") or {}).get("id") or "")
         if not answer_id:
             continue
-        if answer_counts[answer_id] >= max_per_answer:
+        qid = str(q.get("question_id") or "")
+        if not qid or qid in seen_question_ids:
             continue
-
-        sig = _signature(q)
-        if signature_counts[sig] >= max_per_signature:
-            continue
-
-        event_ids = {
-            str(h.get("object_id"))
-            for h in ((q.get("provenance") or {}).get("chain") or {}).get("hops", [])
-            if h.get("object_type") == "EVENT"
-        }
-        if event_ids and event_ids & seen_events:
-            continue
-
+        seen_question_ids.add(qid)
         eligible.append(q)
-        answer_counts[answer_id] += 1
-        signature_counts[sig] += 1
-        seen_events.update(event_ids)
 
+    # Give mix policy a real bench to choose from. Passing exactly target
+    # rotated questions made a 40% story floor impossible whenever rotation
+    # happened to return too few story candidates.
+    rotation_target = min(len(eligible), max(target, target * 3))
     rotation = select_rotated_questions(
         conn,
         eligible,
-        target=target,
+        target=rotation_target,
         recent_families=recent_families,
         max_sensitive=max_sensitive,
         require_league_balance=True,
+        max_per_answer=max_per_answer,
+        max_per_signature=max_per_signature,
+        no_repeat_events=True,
     )
     mix = enforce_mix_policy(
         rotation["selected"],
