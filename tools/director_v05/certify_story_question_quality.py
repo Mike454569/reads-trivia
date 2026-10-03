@@ -69,6 +69,27 @@ def _validate_mcq(q):
     return errors
 
 
+def _validate_progressive(q):
+    errors = []
+    answer = q.get("answer") or {}
+    aid = str(answer.get("id") or "")
+    label = str(answer.get("label") or "").strip()
+    clues = list(q.get("clues") or [])
+    if len(clues) < 3:
+        errors.append("PROGRESSIVE_NEEDS_THREE_CLUES")
+    texts = [
+        str(c.get("text") if isinstance(c, dict) else c).strip()
+        for c in clues
+    ]
+    if any(not x for x in texts):
+        errors.append("PROGRESSIVE_BLANK_CLUE")
+    if len({x.casefold() for x in texts}) != len(texts):
+        errors.append("PROGRESSIVE_DUPLICATE_CLUES")
+    if not label or label == aid:
+        errors.append("PROGRESSIVE_UNRESOLVED_ANSWER_LABEL")
+    return errors
+
+
 def _validate_fact_fake(q):
     errors = []
     aid = str((q.get("answer") or {}).get("id") or "")
@@ -110,6 +131,8 @@ def validate_story_question(conn, row):
 
     if mechanic == "MULTIPLE_CHOICE":
         errors.extend(_validate_mcq(q))
+    elif mechanic == "PROGRESSIVE_CLUE":
+        errors.extend(_validate_progressive(q))
     elif mechanic == "FACT_OR_FAKE":
         errors.extend(_validate_fact_fake(q))
     elif mechanic == "MATCHING":
