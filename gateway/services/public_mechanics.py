@@ -574,7 +574,7 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "title": "Three Strikes",
         "instructions": "Answer real questions of rising real difficulty -- a wrong answer costs a strike. "
                          "Survive 3 strikes and the run ends.",
-        "kind": "three_strikes", "gen_kwargs": {"round_count": 12},
+        "kind": "three_strikes", "gen_kwargs": {"round_count": 8},
     },
     # CFB retrofit pass -- reuses risk_it.py's own new real CFB tiering,
     # see three_strikes.py's own module docstring.
