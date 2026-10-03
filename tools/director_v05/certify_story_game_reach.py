@@ -23,6 +23,7 @@ from tools.director_v04 import (
 from tools.director_v02 import mechanic_engine
 from tools.director_v05 import lore_package
 from tools.director_v05.story_factory_health import story_factory_health
+from tools.director_v05.certify_story_question_quality import certify_story_question_quality
 
 
 def _story_round_count(package):
@@ -74,6 +75,7 @@ def certify_story_game_reach(*, seed="story-reach-cert"):
     c = engine_bootstrap.connect()
     try:
         health = story_factory_health(c)
+        quality = certify_story_question_quality(c)
     finally:
         c.close()
 
@@ -131,11 +133,17 @@ def certify_story_game_reach(*, seed="story-reach-cert"):
     # reach failure. Report it distinctly so the real bottleneck is obvious.
     ready_questions = int(health.get("ready_for_bank") or 0)
     corpus_ready = ready_questions > 0
+    leagues = health.get("league_balance") or {}
+    league_ready = int(leagues.get("NFL") or 0) > 0 and int(leagues.get("CFB") or 0) > 0
+    quality_ready = bool(quality.get("promotion_ready"))
 
     return {
         "certification": "STORY_GAME_REACH",
         "corpus_ready": corpus_ready,
         "ready_story_questions": ready_questions,
+        "league_ready": league_ready,
+        "league_balance": leagues,
+        "question_quality": quality,
         "games_tested": len(results),
         "games_with_story_content": len(reached),
         "reach_fraction": round(len(reached) / max(1, len(results)), 4),
@@ -144,8 +152,10 @@ def certify_story_game_reach(*, seed="story-reach-cert"):
         "factory_health": health,
         "promotion_ready": (
             corpus_ready
+            and league_ready
+            and quality_ready
             and not errors
-            and len(reached) >= max(8, len(results) // 2)
+            and len(reached) >= max(20, (len(results) * 2) // 3)
         ),
     }
 
