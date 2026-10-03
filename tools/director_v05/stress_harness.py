@@ -75,6 +75,8 @@ def run(*,max_facts_per_adapter=DEFAULT_MAX_FACTS_PER_ADAPTER,max_players=DEFAUL
             population["lore_chains"]=lore_chain_report(c)
             from .lore_question_bank import bank_report
             population["lore_question_banks"]=bank_report(c, limit_anchors=75, target=15)
+            from .lore_format_bank import build_multiformat_bank
+            population["lore_multiformat"]=build_multiformat_bank(c, target=12, discovery_limit=250)
             try:
                 from .populate_nfl_trades import populate_nfl_trades
                 population["trades"]=populate_nfl_trades(c); c.commit()
