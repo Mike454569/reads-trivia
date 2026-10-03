@@ -18,7 +18,10 @@ from tools.director_v04 import (
     strategy_arcade,
     three_strikes,
     wager_mode,
+    drive_progression,
 )
+from tools.director_v02 import mechanic_engine
+from tools.director_v05 import lore_package
 from tools.director_v05.story_factory_health import story_factory_health
 
 
@@ -34,6 +37,9 @@ def _story_round_count(package):
             if str(tier.get("_notes") or "").startswith("Verified story-backed"):
                 count += 1
     diag = package.get("_diagnostics") or {}
+    for q in package.get("questions") or []:
+        if str(q.get("id") or "").startswith(("qstory", "qlore")) and q.get("source") == "STORY_FACTORY":
+            count += 1
     count = max(
         count,
         int(diag.get("story_rounds") or 0),
@@ -82,6 +88,29 @@ def certify_story_game_reach(*, seed="story-reach-cert"):
         ("Double or Nothing CFB", lambda: double_or_nothing.build_package(seed+"-don-cfb", "CFB_SEASON_PASSING_DOUBLE_OR_NOTHING", round_count=9)),
         ("Fact or Fake NFL", lambda: fact_or_fake.build_package(seed+"-fof-nfl", "NFL_DRAFT_FACT_OR_FAKE", round_count=12)),
         ("Fact or Fake CFB", lambda: fact_or_fake.build_package(seed+"-fof-cfb", "CFB_GAME_RESULT_FACT_OR_FAKE", round_count=12)),
+        ("Perfect Drive NFL", lambda: drive_progression.build_package(
+            seed+"-drive-nfl", "NFL_DRAFT_PERFECT_DRIVE", mode="YARDAGE",
+            question_pools=mechanic_engine.VARIANTS["DRIVE_PROGRESSION"]["NFL_DRAFT_PERFECT_DRIVE"]["question_pools"],
+            question_count=12,
+        )),
+        ("Perfect Drive CFB", lambda: drive_progression.build_package(
+            seed+"-drive-cfb", "CFB_HEISMAN_PERFECT_DRIVE", mode="YARDAGE",
+            question_pools=mechanic_engine.VARIANTS["DRIVE_PROGRESSION"]["CFB_HEISMAN_PERFECT_DRIVE"]["question_pools"],
+            question_count=12,
+        )),
+        ("Goal Line Stand NFL", lambda: drive_progression.build_package(
+            seed+"-gls-nfl", "NFL_DRAFT_GOAL_LINE_STAND", mode="DOWNS",
+            question_pools=mechanic_engine.VARIANTS["DRIVE_PROGRESSION"]["NFL_DRAFT_GOAL_LINE_STAND"]["question_pools"],
+            question_count=12,
+        )),
+        ("Goal Line Stand CFB", lambda: drive_progression.build_package(
+            seed+"-gls-cfb", "CFB_HEISMAN_GOAL_LINE_STAND", mode="DOWNS",
+            question_pools=mechanic_engine.VARIANTS["DRIVE_PROGRESSION"]["CFB_HEISMAN_GOAL_LINE_STAND"]["question_pools"],
+            question_count=12,
+        )),
+        ("Deep Lore", lambda: lore_package.build_package(
+            seed=seed+"-deep-lore", target_count=9, difficulty="hard"
+        )),
     ]
 
     # All Strategy Arcade variants share Category Roulette -> Deep Ball as
