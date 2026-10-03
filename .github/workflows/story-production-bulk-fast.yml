@@ -1,0 +1,50 @@
+name: Story Production Bulk Fast
+
+on:
+  push:
+    branches:
+      - 'story-prod-bulkfast-*'
+
+concurrency:
+  group: story-production-writer
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bulk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Process next high-confidence Story batch
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/story_bulk_fast_once.py)
+          for attempt in 1 2 3 4 5; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > story-bulk-fast.json 2> story-bulk-fast.err; then
+              cat story-bulk-fast.json
+              test -s story-bulk-fast.json
+              exit 0
+            fi
+            echo "bulk attempt $attempt failed"
+            cat story-bulk-fast.err || true
+            sleep 5
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-production-bulk-fast
+          path: |
+            story-bulk-fast.json
+            story-bulk-fast.err
+          if-no-files-found: warn
+          retention-days: 7
