@@ -6,6 +6,7 @@ universal_event. Auto-promoted article publication dates are never substituted.
 from __future__ import annotations
 
 import json
+from itertools import combinations
 
 from .lore_formats import (
     compile_before_after,
@@ -115,12 +116,12 @@ def generate_story_formats_for_event(
             except ValueError as exc:
                 rejected.append({"format":"BEFORE_AFTER","reason":str(exc)})
 
-        timeline_ids = [event_id] + dated[:6]
-        if len(timeline_ids) >= 4:
-            # Try small deterministic windows until unique-season QA passes.
+        if len(dated) >= 3:
+            # Every attempted timeline must contain the promoted story.
+            # Try deterministic 3-event companions until unique-season QA passes.
             built = False
-            for i in range(0, len(timeline_ids) - 3):
-                ids = timeline_ids[i:i+4]
+            for companions in combinations(dated[:7], 3):
+                ids = [event_id, *companions]
                 try:
                     q = compile_timeline_round(conn, ids)
                     _persist(
