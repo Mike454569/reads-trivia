@@ -1,6 +1,7 @@
 """Mine source-backed NFL contract rows into universal CONTRACT lore."""
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 
 from .entity_labels import resolve_required_label
@@ -72,7 +73,11 @@ def mine_nfl_contract_lore(conn, *, limit_rows=None, min_value=1_000_000):
         if team:
             subjects.append({"subject_type":"NFL_TEAM","subject_id":team,"role":"team"})
 
+        event_id = "evt_contract_" + hashlib.sha256(
+            ("NFLVERSE_DATA|" + str(row["contract_id"])).encode()
+        ).hexdigest()[:20]
         upsert_event(conn, {
+            "event_id": event_id,
             "event_type": "CONTRACT",
             "league": "NFL",
             "event_date": str(row["year_signed"]) + "-01-01",
