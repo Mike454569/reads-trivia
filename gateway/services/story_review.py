@@ -189,8 +189,8 @@ def confirm_event_date(*, candidate_id, event_date):
 
 
 def game_reach_certification():
-    from tools.director_v05.certify_story_game_reach import certify_story_game_reach
-    return certify_story_game_reach(seed="admin-story-game-reach")
+    from tools.director_v05.certify_story_production import certify_story_production
+    return certify_story_production()
 
 
 
