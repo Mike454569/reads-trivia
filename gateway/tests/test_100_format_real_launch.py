@@ -8,7 +8,7 @@ from tools.director_v02.format_launch_matrix import (
 )
 
 
-class _LaunchTimeout(Exception):
+class _LaunchTimeout(BaseException):
     pass
 
 
