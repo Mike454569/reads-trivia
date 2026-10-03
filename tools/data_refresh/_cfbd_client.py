@@ -10,12 +10,12 @@ raises `RuntimeError` immediately; every caller in this module family treats
 that as a real, honest "this domain is unavailable" condition -- never a
 crash, never a silent skip.
 
-Real, confirmed-live constraint found before building: the `/games/weather`
-endpoint requires a paid Patreon Tier 1+ subscription (confirmed via a real
-401 with an explicit message, not assumed) -- CFB weather stays a real,
-disclosed gap, not attempted here. Every other endpoint this module family
-uses (games, rankings, records, lines, plays) was confirmed reachable on
-the free tier before any importer was written.
+Real access constraint: the `/games/weather` endpoint requires a paid
+Patreon Tier 1+ subscription. The production account was later upgraded and
+the weather refresh was implemented, so weather is no longer treated as an
+unimplemented gap. Recruiting uses the same credentialed CFBD client via
+`/recruiting/players`; callers still fail cleanly when credentials or
+account access are unavailable.
 """
 from __future__ import annotations
 
