@@ -66,7 +66,14 @@ def test_every_unique_server_target_used_by_100_formats_launches_on_real_db(monk
             elapsed = time.monotonic() - started
             if not valid:
                 failures.append(f"{target_type}:{target_id}: invalid playable payload")
-            status = "PASS" if valid else "INVALID"
+                status = "INVALID"
+            elif elapsed > 8.0:
+                failures.append(
+                    f"{target_type}:{target_id}: returned in {elapsed:.3f}s, over 8.0s launch budget"
+                )
+                status = "SLOW"
+            else:
+                status = "PASS"
             timings.append((elapsed, target_type, target_id, status))
             print(f"FORMAT-LAUNCH {status:7s} {elapsed:7.3f}s {target_type}:{target_id}", flush=True)
         except _LaunchTimeout:
