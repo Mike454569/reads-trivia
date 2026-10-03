@@ -24,9 +24,17 @@ jobs:
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
           SCRIPT_B64=$(base64 -w0 tools/director_v05/story_prod_qa_once.py)
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > story-prod-qa.json 2> story-prod-qa.err
-          cat story-prod-qa.json
-          test -s story-prod-qa.json
+          for attempt in 1 2 3 4 5 6; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import base64; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"))\"'" > story-prod-qa.json 2> story-prod-qa.err; then
+              cat story-prod-qa.json
+              test -s story-prod-qa.json
+              exit 0
+            fi
+            echo "QA SSH attempt $attempt failed"
+            cat story-prod-qa.err || true
+            sleep 4
+          done
+          exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
