@@ -70,7 +70,7 @@ def _runners():
         cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_recruiting_refresh, cfb_refresh,
         cfb_standings_refresh, cfb_weather_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
-        nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh,
+        nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh, story_candidate_harvest_refresh,
     )
 
     return {
@@ -147,6 +147,8 @@ def _runners():
                          "CFB", cfb_weather_refresh.DATASET),
         "cfb_recruiting": (cfb_recruiting_refresh, cfb_recruiting_refresh.run_cfb_recruiting_refresh,
                             "CFB", cfb_recruiting_refresh.DATASET),
+        "story_candidates": (story_candidate_harvest_refresh, story_candidate_harvest_refresh.run_story_candidate_harvest,
+                              "MIXED", story_candidate_harvest_refresh.DATASET),
     }
 
 
@@ -293,6 +295,7 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
 def refresh_status() -> dict:
     runners = _runners()
     return {
+        "story_candidates": _safe_run_summary(runners["story_candidates"][0].last_run_status()),
         "nfl": {
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
