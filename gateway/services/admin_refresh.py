@@ -67,7 +67,7 @@ def _runners():
     run_fn, league label, real dataset_name stored in refresh_runs)."""
     from tools.data_refresh import (
         cfb_all_america_import, cfb_betting_lines_refresh, cfb_games_postseason_refresh, cfb_games_refresh,
-        cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_refresh,
+        cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_recruiting_refresh, cfb_refresh,
         cfb_standings_refresh, cfb_weather_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
         nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh,
@@ -145,6 +145,8 @@ def _runners():
         # docstring for the real, confirmed-live sequence this took).
         "cfb_weather": (cfb_weather_refresh, cfb_weather_refresh.run_cfb_weather_refresh,
                          "CFB", cfb_weather_refresh.DATASET),
+        "cfb_recruiting": (cfb_recruiting_refresh, cfb_recruiting_refresh.run_cfb_recruiting_refresh,
+                            "CFB", cfb_recruiting_refresh.DATASET),
     }
 
 
@@ -314,5 +316,6 @@ def refresh_status() -> dict:
             "rankings": _safe_run_summary(runners["cfb_rankings"][0].last_run_status()),
             "standings": _safe_run_summary(runners["cfb_standings"][0].last_run_status()),
             "weather": _safe_run_summary(runners["cfb_weather"][0].last_run_status()),
+            "recruiting": _safe_run_summary(runners["cfb_recruiting"][0].last_run_status()),
         },
     }
