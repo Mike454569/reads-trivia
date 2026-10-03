@@ -326,6 +326,15 @@ def _store_enrichment(c, candidate, *, article=None, subject=None, family=None,
 
 def _persist_question(c, candidate_id, event_id, subject, question):
     now = dt.datetime.now(dt.timezone.utc).isoformat()
+    mechanic = str(question.get("mechanic") or "")
+    options = list(question.get("options") or [])
+    status = (
+        "READY_FOR_BANK"
+        if mechanic == "MULTIPLE_CHOICE"
+        and len(options) == 4
+        and len({str(x).casefold().strip() for x in options}) == 4
+        else "READY_FOR_FORMAT_BANK"
+    )
     c.execute(
         """INSERT OR REPLACE INTO story_generated_questions(
            question_id,candidate_id,event_id,subject_type,subject_id,mechanic,
@@ -337,16 +346,19 @@ def _persist_question(c, candidate_id, event_id, subject, question):
             str(event_id),
             str(subject["entity_type"]),
             str(subject["entity_id"]),
-            str(question.get("mechanic") or ""),
+            mechanic,
             str(question.get("difficulty_band") or "") or None,
             json.dumps(question, sort_keys=True, ensure_ascii=False),
-            "READY_FOR_BANK",
+            status,
             now,
         ),
     )
 
 
-def generate_questions_for_event(c, candidate_id, event_id, subject, *, max_questions=4):
+def generate_questions_for_event(
+    c, candidate_id, event_id, subject, *, max_questions=4,
+    include_deep_chains=True,
+):
     generated = []
 
     # Story-first question. This is valuable even when the graph is still too
@@ -368,27 +380,29 @@ def generate_questions_for_event(c, candidate_id, event_id, subject, *, max_ques
     except ValueError:
         pass
 
-    # Deep mixed-source questions when the rest of the Engine provides enough
-    # surrounding history. Add real distractors before storage.
-    try:
-        chains = discover_lore_chains(
-            c,
-            subject["entity_type"],
-            subject["entity_id"],
-            max_depth=6,
-            max_chains=12,
-        )
-        for chain in chains:
-            if len(generated) >= int(max_questions):
-                break
-            try:
-                q = compile_lore_chain_question(c, chain, difficulty_band="HARD", variant=0)
-                q = attach_deep_lore_options(c, q, difficulty_band="HARD")
-                generated.append(q)
-            except ValueError:
-                continue
-    except ValueError:
-        pass
+    # Deep mixed-source questions are an enrichment layer, not a prerequisite
+    # for making a verified story playable. Bulk production can disable this
+    # expensive graph crawl and backfill it later.
+    if include_deep_chains:
+        try:
+            chains = discover_lore_chains(
+                c,
+                subject["entity_type"],
+                subject["entity_id"],
+                max_depth=6,
+                max_chains=12,
+            )
+            for chain in chains:
+                if len(generated) >= int(max_questions):
+                    break
+                try:
+                    q = compile_lore_chain_question(c, chain, difficulty_band="HARD", variant=0)
+                    q = attach_deep_lore_options(c, q, difficulty_band="HARD")
+                    generated.append(q)
+                except ValueError:
+                    continue
+        except ValueError:
+            pass
 
     unique = {}
     for q in generated:
@@ -401,7 +415,7 @@ def generate_questions_for_event(c, candidate_id, event_id, subject, *, max_ques
     return generated
 
 
-def process_candidate(c, candidate, subject_index):
+def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
     family = str(candidate["family_hint"])
     if int(candidate["sensitive_hint"] or 0):
         _store_enrichment(
@@ -483,6 +497,7 @@ def process_candidate(c, candidate, subject_index):
         candidate["candidate_id"],
         event_id,
         subject,
+        include_deep_chains=include_deep_chains,
     )
     formats = generate_story_formats_for_event(
         c,
@@ -509,7 +524,9 @@ def process_candidate(c, candidate, subject_index):
     }
 
 
-def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
+def run_story_to_trivia_factory(
+    *, limit=MAX_ARTICLE_FETCHES_DEFAULT, include_deep_chains=True
+):
     c = _prepare_write_connection(engine_bootstrap.connect())
     _ensure_schema(c)
     subject_index = build_subject_index(c)
@@ -530,7 +547,12 @@ def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
     examples = []
 
     for row in rows:
-        result = process_candidate(c, row, subject_index)
+        result = process_candidate(
+            c,
+            row,
+            subject_index,
+            include_deep_chains=include_deep_chains,
+        )
         counts[result["decision"]] += 1
         generated_questions += int(result.get("generated") or 0)
         if result["decision"] == "AUTO_PROMOTED" and len(examples) < 10:
@@ -562,6 +584,7 @@ def run_story_to_trivia_factory(*, limit=MAX_ARTICLE_FETCHES_DEFAULT):
         "queue_status": {str(r["status"]): int(r["n"]) for r in queue},
         "matching_round_generated": bool(matching.get("generated")),
         "matching_round_reason": matching.get("reason"),
+        "include_deep_chains": bool(include_deep_chains),
         "examples": examples,
     }
 
@@ -570,9 +593,14 @@ def main():
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=MAX_ARTICLE_FETCHES_DEFAULT)
+    ap.add_argument("--fast", action="store_true",
+                    help="skip expensive deep-chain enrichment; keep story-first questions")
     args = ap.parse_args()
     print(json.dumps(
-        run_story_to_trivia_factory(limit=args.limit),
+        run_story_to_trivia_factory(
+            limit=args.limit,
+            include_deep_chains=not args.fast,
+        ),
         indent=2,
         sort_keys=True,
     ))
