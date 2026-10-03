@@ -5,6 +5,7 @@ Prevents structurally rich domains (especially draft) from dominating mixed triv
 from __future__ import annotations
 
 from collections import Counter
+import math
 
 DRAFT_RELATIONS = {"DRAFTED_BY", "DERIVED_DRAFT VALUE", "DERIVED_BUST SCORE", "DERIVED_STEAL SCORE"}
 CAREER_RELATIONS = {"ROSTERED_BY", "COACHED", "STARTED_AT", "TRANSFERRED_TO"}
@@ -39,8 +40,11 @@ def enforce_mix_policy(
 ):
     """Greedily retain quality order while enforcing mixed-trivia composition."""
     target = max(1, int(target))
-    max_draft = max(1, int(target * float(max_draft_fraction)))
-    min_story = min(target, max(1, int(round(target * float(min_story_fraction)))))
+    # Fraction caps/floors must remain mathematically true even for tiny
+    # packages. Example: target=3 with a 25% draft cap permits 0 draft
+    # questions; allowing 1 would actually be 33.3% and fail certification.
+    max_draft = max(0, int(math.floor(target * float(max_draft_fraction))))
+    min_story = min(target, max(1, int(math.ceil(target * float(min_story_fraction)))))
 
     selected = []
     draft_count = 0
