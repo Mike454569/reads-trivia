@@ -102,6 +102,15 @@ def render_hop(conn, hop, *, anchor_type=None, answer_label=None):
         return "I made the Pro Bowl" + season + "."
     if relation == "COACHED":
         return "I coached " + obj_label + season + "."
+    if relation == "DRAFTED_PLAYER":
+        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        return subject_label + " also drafted " + obj_label + season + "."
+    if relation == "ROSTERED_PLAYER":
+        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        return obj_label + " was also on " + subject_label + "'s roster" + season + "."
+    if relation == "SCHOOL_PLAYER":
+        subject_label = resolve_label(conn, hop.subject_type, hop.subject_id)
+        return obj_label + " also played at " + subject_label + season + "."
     if relation == "STARTED_AT":
         return "I started my college career at " + obj_label + season + "."
     if relation == "TRANSFERRED_TO":
