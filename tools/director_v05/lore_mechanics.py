@@ -7,6 +7,8 @@ from collections import defaultdict
 from .lore_trivia import (
     _evidence, _safe_clues, _season, _subjects, gameplay_eligibility,
 )
+from .entity_labels import resolve_label
+from .lore_phrasing import _event_detail
 
 IDENTITY_TYPES = {"NFL_PLAYER", "CFB_PLAYER", "COACH"}
 COMMON_LINK_TYPES = {"NFL_PLAYER", "CFB_PLAYER", "COACH", "NFL_TEAM", "SCHOOL"}
@@ -73,7 +75,7 @@ def compile_progressive_identity(conn, event_id):
         "clues": [{"step": i + 1, "text": clue} for i, clue in enumerate(ordered)],
         "answer": {
             "id": identity["subject_id"],
-            "label": identity["subject_id"],
+            "label": resolve_label(conn, identity["subject_type"], identity["subject_id"]),
             "type": identity["subject_type"],
         },
         "event_id": event_id,
@@ -83,10 +85,15 @@ def compile_progressive_identity(conn, event_id):
 
 
 def compile_fact_or_fake(conn, event_id, *, fake=False):
-    """Emit a sourced statement. Fake variants alter a structural fact, never legal wording."""
+    """Emit a sourced statement for non-sensitive lore only.
+
+    Sensitive/legal/injury/discipline events are intentionally excluded from this
+    mechanic entirely. Even a technically true one-line statement can become
+    misleading when stripped from its full context.
+    """
     event, gate = _event(conn, event_id)
-    if gate["sensitive"] and fake:
-        raise ValueError("NO_FAKE_VARIANTS_FOR_SENSITIVE_LORE")
+    if gate["sensitive"]:
+        raise ValueError("SENSITIVE_LORE_EXCLUDED_FROM_FACT_OR_FAKE")
 
     clues = _safe_clues(event)
     if len(clues) < 2:
@@ -185,7 +192,7 @@ def compile_matching(conn, event_ids):
             "event_id": event_id,
             "prompt": clues[0],
             "answer_id": subject_id,
-            "answer_label": subject_id,
+            "answer_label": resolve_label(conn, subject_type, subject_id),
             "answer_type": subject_type,
         })
 
@@ -239,15 +246,31 @@ def compile_common_link(conn, subject_type, subject_id, *, min_events=3, limit=5
     if len(clues) < min_events:
         raise ValueError("INSUFFICIENT_COMMON_LINK_EVENTS")
 
+    # The requested subject must be the only subject shared by every chosen
+    # event. Otherwise the clue set has more than one technically correct link.
+    shared = None
+    for event_id in event_ids:
+        event_subjects = {
+            (str(x["subject_type"]), str(x["subject_id"]))
+            for x in _subjects(conn, event_id)
+            if x["subject_type"] in COMMON_LINK_TYPES
+        }
+        shared = event_subjects if shared is None else (shared & event_subjects)
+    target = (subject_type, subject_id)
+    if not shared or target not in shared:
+        raise ValueError("COMMON_LINK_TARGET_NOT_SHARED")
+    if shared != {target}:
+        raise ValueError("AMBIGUOUS_COMMON_LINK")
+
     qid = _qid("COMMON_LINK", [subject_type, subject_id] + event_ids)
     return {
         "contract_version": "1.0.0",
         "question_id": qid,
         "mechanic": "COMMON_LINK",
         "question_family": "LORE_COMMON_LINK",
-        "question": "What football subject connects all of these verified events?",
+        "question": "What connects all of these football stories?",
         "clues": clues,
-        "answer": {"id": subject_id, "label": subject_id, "type": subject_type},
+        "answer": {"id": subject_id, "label": resolve_label(conn, subject_type, subject_id), "type": subject_type},
         "event_ids": event_ids,
         "provenance": _prov(conn, event_ids),
     }
@@ -309,16 +332,22 @@ def compile_mixed_lore_stat(conn, event_id):
     lore = _safe_clues(event)
     if not lore:
         raise ValueError("INSUFFICIENT_LORE_CLUES")
-    clues = [lore[0], stat["text"]]
+    season = _season(event.get("event_date"))
+    context = "This story happened in the " + str(season) + " season." if season else (
+        "This story comes from " + str(event.get("league") or "football") + "."
+    )
+    clues = [stat["text"], context, lore[0]]
+    if len({c.casefold() for c in clues}) < 3:
+        raise ValueError("INSUFFICIENT_DISTINCT_MIXED_CLUES")
     qid = _qid("MIXED_LORE_STAT", [event_id, identity["subject_id"], stat["kind"]] + clues)
     return {
         "contract_version": "1.0.0",
         "question_id": qid,
         "mechanic": "THREE_CLUES",
         "question_family": "MIXED_LORE_STAT",
-        "question": "Which football player matches both the verified story and the structured football fact?",
+        "question": "Who am I?",
         "clues": clues,
-        "answer": {"id": identity["subject_id"], "label": identity["subject_id"], "type": identity["subject_type"]},
+        "answer": {"id": identity["subject_id"], "label": resolve_label(conn, identity["subject_type"], identity["subject_id"]), "type": identity["subject_type"]},
         "event_id": event_id,
         "structured_fact_kind": stat["kind"],
         "provenance": _prov(conn, [event_id]),
