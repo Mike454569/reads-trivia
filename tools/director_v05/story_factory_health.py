@@ -17,6 +17,8 @@ def story_factory_health(conn):
         "generated_question_total": 0,
         "ready_for_bank": 0,
         "questions_by_mechanic": {},
+        "questions_by_status": {},
+        "ready_for_format_bank": 0,
         "promotion_rate": 0.0,
         "questions_per_promoted_event": 0.0,
     }
@@ -49,19 +51,26 @@ def story_factory_health(conn):
                GROUP BY mechanic,status"""
         ).fetchall()
         by_mechanic = {}
+        by_status = {}
         total = 0
         ready = 0
+        ready_format = 0
         for r in rows:
             n = int(r["n"])
             total += n
-            by_mechanic[str(r["mechanic"])] = (
-                by_mechanic.get(str(r["mechanic"]), 0) + n
-            )
-            if str(r["status"]) == "READY_FOR_BANK":
+            mechanic = str(r["mechanic"])
+            status = str(r["status"])
+            by_mechanic[mechanic] = by_mechanic.get(mechanic, 0) + n
+            by_status[status] = by_status.get(status, 0) + n
+            if status == "READY_FOR_BANK":
                 ready += n
+            if status == "READY_FOR_FORMAT_BANK":
+                ready_format += n
         out["generated_question_total"] = total
         out["ready_for_bank"] = ready
+        out["ready_for_format_bank"] = ready_format
         out["questions_by_mechanic"] = by_mechanic
+        out["questions_by_status"] = by_status
 
     if out["enriched_total"]:
         out["promotion_rate"] = round(
