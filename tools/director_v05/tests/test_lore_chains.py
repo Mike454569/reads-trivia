@@ -231,3 +231,45 @@ def test_cross_player_chain_can_traverse_event_team_to_another_player():
         for chain in chains
     )
     assert all(chain.provenance_complete for chain in chains)
+
+
+
+def test_team_to_coach_reverse_edge_is_season_local():
+    c = _conn()
+    c.execute("""CREATE TABLE coach_team_seasons(
+        coach_id TEXT, team_code TEXT, season INTEGER,
+        source_id TEXT, verification_status TEXT
+    )""")
+    c.execute("INSERT INTO coach_team_seasons VALUES(?,?,?,?,?)",
+              ("c1","AAA",2022,"coach-near","SOURCE_BACKED"))
+    c.execute("INSERT INTO coach_team_seasons VALUES(?,?,?,?,?)",
+              ("c2","AAA",2010,"coach-far","SOURCE_BACKED"))
+
+    edges = _structured_edges(c, "NFL_TEAM", "AAA", season_hint=2022)
+    coaches = [e for e in edges if e.relation == "TEAM_COACH"]
+    assert any(e.object_id == "c1" for e in coaches)
+    assert all(e.object_id != "c2" for e in coaches)
+    assert all(e.source_id for e in coaches)
+
+
+def test_deep_chain_can_cross_from_player_event_team_to_coach():
+    c = _conn()
+    c.execute("""CREATE TABLE coach_team_seasons(
+        coach_id TEXT, team_code TEXT, season INTEGER,
+        source_id TEXT, verification_status TEXT
+    )""")
+    _event(c, "coach-cross", player_id="p1", team_id="AAA")
+    c.execute("INSERT INTO coach_team_seasons VALUES(?,?,?,?,?)",
+              ("c1","AAA",2022,"coach-src","SOURCE_BACKED"))
+
+    chains = discover_lore_chains(c, "NFL_PLAYER", "p1", max_depth=6)
+    assert any(
+        any(h.relation == "TEAM_COACH" and h.object_id == "c1" for h in chain.hops)
+        for chain in chains
+    )
+    for chain in chains:
+        visited = {(chain.anchor_type, chain.anchor_id)}
+        for hop in chain.hops:
+            node = (hop.object_type, hop.object_id)
+            assert node not in visited
+            visited.add(node)
