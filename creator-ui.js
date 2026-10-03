@@ -591,7 +591,16 @@ function creatorStoryFactoryHtml(){
         '<span>Suggested reviews '+Number((h.review_suggestions||{}).SUGGESTED_ONLY||0)+'</span>'+
         '<span>NFL '+Number((h.league_balance||{}).NFL||0)+' · CFB '+Number((h.league_balance||{}).CFB||0)+'</span>'+
       '</div>'+
-      (cert?'<div class="creator-readiness"><div class="creator-quality-head"><span>GAME REACH CERTIFICATION</span><b>'+Number(cert.games_with_story_content||0)+'/'+Number(cert.games_tested||0)+'</b></div><div class="creator-quality-grid"><span class="'+(cert.promotion_ready?'pass':'fail')+'">'+(cert.promotion_ready?'✓':'!')+' Promotion '+(cert.promotion_ready?'ready':'blocked')+'</span><span>'+Math.round(Number(cert.reach_fraction||0)*100)+'% compatible-game reach</span><span>'+Number(cert.ready_story_questions||0)+' ready story questions</span><span>'+Number((cert.errors||[]).length)+' execution errors</span></div></div>':'')+
+      (cert?(function(){
+        var gr=cert.game_reach||{},rq=cert.top_priority||[];
+        return '<div class="creator-readiness"><div class="creator-quality-head"><span>PRODUCTION CERTIFICATION</span><b>'+esc(cert.status||'UNKNOWN')+'</b></div>'+
+          '<div class="creator-quality-grid"><span class="'+(cert.status==='PASSED'?'pass':'fail')+'">'+(cert.status==='PASSED'?'✓':'!')+' '+esc(cert.status||'UNKNOWN')+'</span>'+
+          '<span>'+Number(gr.games_with_story_content||0)+'/'+Number(gr.games_tested||0)+' games reached</span>'+
+          '<span>'+Math.round(Number(gr.reach_fraction||0)*100)+'% compatible-game reach</span>'+
+          '<span>'+Number((gr.errors||[]).length)+' execution errors</span></div>'+
+          (rq.length?'<div class="creator-qa-flags has-risk"><div><b>Top fixes</b><small>'+rq.slice(0,4).map(function(x){return esc(x.title)+': '+esc(String(x.metric==null?'':x.metric));}).join(' · ')+'</small></div></div>':'')+
+          '</div>';
+      })():'')+
       '</section>'+
     '<section class="creator-command-center"><div class="creator-library-head"><div><span class="dashboard-eyebrow">CORPUS COVERAGE</span><h3>What the factory is actually learning</h3><p>Candidate mix, source concentration and generated mechanic depth.</p></div></div>'+
       '<div class="creator-quality-grid">'+
