@@ -185,17 +185,41 @@ def _evidence_tier(domain):
     return "PRIMARY" if str(domain) in PRIMARY_DOMAINS else "REPUTABLE_MEDIA"
 
 
+def _infer_league(article, subject):
+    if subject["entity_type"] == "NFL_PLAYER":
+        return "NFL"
+    if subject["entity_type"] == "CFB_PLAYER":
+        return "CFB"
+    copy = (
+        str(article.get("headline") or "") + " "
+        + str(article.get("description") or "") + " "
+        + str(article.get("text") or "")
+    ).casefold()
+    nfl_hits = sum(term in copy for term in (" nfl ", "super bowl", "national football league"))
+    cfb_hits = sum(term in copy for term in ("college football", " ncaa ", "fbs", "cfp", "bowl game"))
+    if nfl_hits > cfb_hits and nfl_hits > 0:
+        return "NFL"
+    if cfb_hits > nfl_hits and cfb_hits > 0:
+        return "CFB"
+    return None
+
+
 def _build_event(candidate, article, subject, evidence_terms):
     family = str(candidate["family_hint"])
     event_type = AUTO_FAMILIES[family]
+    league = _infer_league(article, subject)
+    if not league:
+        raise ValueError("AMBIGUOUS_STORY_LEAGUE")
     eid = "evt_story_" + hashlib.sha256(
         (str(candidate["candidate_id"]) + "|" + str(article["final_url"])).encode()
     ).hexdigest()[:24]
     return {
         "event_id": eid,
         "event_type": event_type,
-        "league": "CFB" if subject["entity_type"] == "CFB_PLAYER" else "NFL",
-        "event_date": _event_date(candidate, article),
+        "league": league,
+        # Article publication time is provenance, not automatically the date
+        # the described football event happened. Never fabricate chronology.
+        "event_date": None,
         "title": _norm(article.get("headline") or candidate["title"])[:240],
         "neutral_summary": _neutral_summary(candidate, article, subject["label"]),
         "source_url": article["final_url"],
@@ -395,7 +419,16 @@ def process_candidate(c, candidate, subject_index):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
-    event = _build_event(candidate, article, subject, evidence_terms)
+    try:
+        event = _build_event(candidate, article, subject, evidence_terms)
+    except ValueError as exc:
+        _store_enrichment(
+            c, candidate, article=article, subject=subject, family=family,
+            score=score, evidence_terms=evidence_terms,
+            decision="REVIEW_REQUIRED",
+            reason=str(exc),
+        )
+        return {"decision":"REVIEW_REQUIRED","generated":0}
     event_id = upsert_event(c, event)
     questions = generate_questions_for_event(
         c,
