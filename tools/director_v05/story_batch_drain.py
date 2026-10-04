@@ -29,9 +29,12 @@ def drain_story_queue(
     totals = Counter()
     claimed_total = 0
     generated_total = 0
+    no_promotion_streak = 0
+    stop_reason = None
 
     for batch_number in range(1, max(1, int(max_batches)) + 1):
         if time.monotonic() - started >= max(30, int(time_budget_seconds)):
+            stop_reason = "TIME_BUDGET"
             break
 
         result = process_story_batch(
@@ -57,15 +60,35 @@ def drain_story_queue(
 
         # Queue exhausted or no currently claimable work.
         if claimed == 0:
+            stop_reason = "QUEUE_EMPTY_OR_UNCLAIMABLE"
+            break
+
+        done_this_batch = int((result.get("counts") or {}).get("DONE") or 0)
+        if done_this_batch > 0:
+            no_promotion_streak = 0
+        else:
+            no_promotion_streak += 1
+
+        # If three consecutive micro-batches produce no auto-promotions,
+        # stop and release the global refresh guard. Those candidates were
+        # still checkpointed into REVIEW/RETRY states; continuing to hammer
+        # external articles in the same run has sharply diminishing value.
+        if no_promotion_streak >= 3:
+            stop_reason = "NO_PROMOTION_STREAK"
             break
 
     final_ledger = runs[-1]["ledger"] if runs else {}
+    if stop_reason is None:
+        stop_reason = "MAX_BATCHES"
     return {
         "micro_batches_run": len(runs),
         "claimed_total": claimed_total,
         "counts": dict(totals),
         "generated_from_checkpointed_batches": generated_total,
         "final_ledger": final_ledger,
+        "ledger": final_ledger,
+        "stop_reason": stop_reason,
+        "no_promotion_streak": no_promotion_streak,
         "elapsed_seconds": round(time.monotonic() - started, 3),
         "include_deep_chains": bool(include_deep_chains),
         "runs": runs,
