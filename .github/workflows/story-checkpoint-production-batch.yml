@@ -29,7 +29,7 @@ jobs:
           test -n "$MACHINE"
           SCRIPT_B64=$(base64 -w0 tools/director_v05/story_batch_processor.py)
           for attempt in 1 2 3 4 5; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; ns={\\\"__name__\\\":\\\"story_batch_processor_embedded\\\"}; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"),ns); import json; print(json.dumps(ns[\\\"process_story_batch\\\"](batch_size=5,max_attempts=3,stale_minutes=30,include_deep_chains=False),sort_keys=True))\"'" > checkpoint-batch.json 2> checkpoint-batch.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; ns={\\\"__name__\\\":\\\"tools.director_v05.story_batch_processor\\\",\\\"__package__\\\":\\\"tools.director_v05\\\"}; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"),ns); import json; print(json.dumps(ns[\\\"process_story_batch\\\"](batch_size=5,max_attempts=3,stale_minutes=30,include_deep_chains=False),sort_keys=True))\"'" > checkpoint-batch.json 2> checkpoint-batch.err; then
               cat checkpoint-batch.json
               test -s checkpoint-batch.json
               exit 0
