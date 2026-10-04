@@ -9,7 +9,7 @@ from __future__ import annotations
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v05.story_candidate_harvest import harvest_story_candidates
 from tools.director_v05.story_candidate_triage import triage_candidates
-from tools.director_v05.story_to_trivia_factory import run_story_to_trivia_factory
+from tools.director_v05.story_batch_processor import process_story_batch
 from tools.director_v05.story_review_assistant import run_review_assistant
 from . import safety
 
@@ -27,7 +27,12 @@ def run_story_candidate_harvest():
     try:
         harvested = harvest_story_candidates()
         triaged = triage_candidates()
-        factory = run_story_to_trivia_factory(limit=100)
+        factory = process_story_batch(
+            batch_size=5,
+            max_attempts=3,
+            stale_minutes=30,
+            include_deep_chains=False,
+        )
         review_assistant = run_review_assistant(limit=250, include_sensitive=True)
         accepted = int(harvested.get("metrics",{}).get("accepted_candidates",0))
         c = engine_bootstrap.connect()
@@ -44,11 +49,12 @@ def run_story_candidate_harvest():
                 "triage_status_counts": triaged.get("status_counts",{}),
                 "query_failures": harvested.get("metrics",{}).get("query_failures",0),
                 "story_factory": {
-                    "processed_candidates": factory.get("processed_candidates",0),
-                    "decisions": factory.get("decisions",{}),
-                    "generated_questions_this_run": factory.get("generated_questions_this_run",0),
-                    "ready_question_total": factory.get("ready_question_total",0),
-                    "matching_round_generated": factory.get("matching_round_generated",False),
+                    "claimed": factory.get("claimed",0),
+                    "reclaimed_stale": factory.get("reclaimed_stale",0),
+                    "counts": factory.get("counts",{}),
+                    "ledger": factory.get("ledger",{}),
+                    "generated_from_checkpointed_batches":
+                        factory.get("generated_from_checkpointed_batches",0),
                 },
                 "review_assistant": {
                     "processed": review_assistant.get("processed",0),
