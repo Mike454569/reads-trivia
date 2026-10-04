@@ -1,5 +1,12 @@
 import sqlite3
 import datetime as dt
+import sys
+import types
+
+fake_engine = types.ModuleType("tools.quiz_export.engine")
+fake_engine.connect = lambda: None
+fake_engine.ENGINE_DIR = None
+sys.modules.setdefault("tools.quiz_export.engine", fake_engine)
 
 from tools.director_v05 import story_batch_processor as batch
 from tools.director_v05.story_candidate_harvest import _ensure_schema as ensure_candidates
