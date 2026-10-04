@@ -1,0 +1,50 @@
+name: Story Checkpoint Production Batch
+
+on:
+  push:
+    branches:
+      - 'story-checkpoint-prod-run-*'
+
+concurrency:
+  group: story-production-checkpoint-writer
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Run checkpointed five-story production batch
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and str(r.get('state') or '').lower()=='started' and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/story_batch_processor.py)
+          for attempt in 1 2 3 4 5; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64; ns={\\\"__name__\\\":\\\"story_batch_processor_embedded\\\"}; exec(base64.b64decode(\\\"$SCRIPT_B64\\\"),ns); import json; print(json.dumps(ns[\\\"process_story_batch\\\"](batch_size=5,max_attempts=3,stale_minutes=30,include_deep_chains=False),sort_keys=True))\"'" > checkpoint-batch.json 2> checkpoint-batch.err; then
+              cat checkpoint-batch.json
+              test -s checkpoint-batch.json
+              exit 0
+            fi
+            echo "checkpoint batch SSH attempt $attempt failed"
+            cat checkpoint-batch.err || true
+            sleep 4
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-checkpoint-production-batch
+          path: |
+            checkpoint-batch.json
+            checkpoint-batch.err
+          if-no-files-found: warn
+          retention-days: 7
