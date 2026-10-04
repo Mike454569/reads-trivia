@@ -39,6 +39,7 @@ from __future__ import annotations
 import re
 import sys
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -247,7 +248,7 @@ def weeks_concluded_so_far(c, league: str, season: int) -> list[str]:
     be graded against. Deliberately reuses real_week_candidates() (the
     same real data resolve_current_week() itself is built from) rather
     than a second, independent "what counts as a real week" query."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     candidates = real_week_candidates(c, league, season)
     concluded = [cand for cand in candidates if cand[2][:10] < today]
     concluded.sort(key=lambda cand: cand[1])
@@ -271,7 +272,7 @@ def resolve_current_week(c, league: str, season: int) -> str | None:
     every game_type, and returns the real game_type CODE (not the numeric
     week) for a postseason week, matching what weekly_pickem.py's own
     _nfl_slate_rows() / _NFL_POSTSEASON_WEEK_CODES already expect."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
     if league == "NFL":
         # Real bug fix, found live against the real 2026 season: this
         # branch used to test only first_date (earliest-first_date-not-
