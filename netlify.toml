@@ -226,6 +226,12 @@
   schedule = "40 19 * * *"
 
 # CFB-specific Story Factory expansion. Kept four hours behind the mixed
+# Story run so the Gateway global one-refresh-at-a-time guard has headroom
+# and these two harvests never compete for the production SQLite writer.
+[functions."trigger-refresh-cfb-story-candidates"]
+  schedule = "40 23 * * *"
+
+# CFB-specific Story Factory expansion. Kept four hours behind the mixed
 # Story run so the Gateway's global one-refresh-at-a-time guard has plenty
 # of headroom and these harvests do not fight over SQLite.
 [functions."trigger-refresh-cfb-story-candidates"]
