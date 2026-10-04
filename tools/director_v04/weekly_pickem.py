@@ -58,6 +58,7 @@ from __future__ import annotations
 import hashlib
 import sys
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -264,25 +265,30 @@ def _record_text(wins: int, losses: int, ties: int = 0) -> str:
 
 
 def _is_live_current_cfb_slate(season: int, season_type: str, kickoff_values) -> bool:
-    """Current Pick'em is date-driven, not schedule-week-driven.
+    """Keep current CFB Pick'em current through the real US game day.
 
-    Poll week numbers and schedule week numbers can legitimately drift.
-    Upcoming games in the current regular season should therefore use the
-    newest complete AP poll and the newest current-season record data.
-    Historical slates remain historical.
+    CFB schedule rows can be date-only. Treating those as 00:00 UTC made a
+    Saturday/Sunday slate become "historical" hours before the games were
+    actually over in the US, which disabled current standings and newest AP
+    rankings. Calendar-date comparison in US Central is the safe rule when
+    a trustworthy kickoff time is unavailable.
     """
-    if season_type != "regular" or int(season) != datetime.now(timezone.utc).year:
+    now_central = datetime.now(ZoneInfo("America/Chicago"))
+    if season_type != "regular" or int(season) != now_central.year:
         return False
-    now = datetime.now(timezone.utc)
+    today = now_central.date()
     for raw in kickoff_values:
         try:
-            dt = raw if isinstance(raw, datetime) else _cfb_kickoff(raw)
+            if isinstance(raw, datetime):
+                dt = raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
+                game_date = dt.astimezone(ZoneInfo("America/Chicago")).date()
+            else:
+                game_date = datetime.fromisoformat(str(raw)[:10]).date()
         except Exception:
-            dt = None
-        if dt is not None and dt > now:
+            continue
+        if game_date >= today:
             return True
     return False
-
 
 def _current_cfb_standings_records(c, season: int) -> dict:
     """Latest real current-season W-L-T from the dedicated CFBD records feed.
