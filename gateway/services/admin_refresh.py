@@ -72,6 +72,7 @@ def _runners():
         nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
         nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh, story_candidate_harvest_refresh,
+        story_batch_process_refresh,
     )
 
     return {
@@ -155,6 +156,12 @@ def _runners():
             cfb_story_candidate_harvest_refresh.run_cfb_story_candidate_harvest,
             "CFB",
             cfb_story_candidate_harvest_refresh.DATASET,
+        ),
+        "story_process": (
+            story_batch_process_refresh,
+            story_batch_process_refresh.run_story_batch_process,
+            "MIXED",
+            story_batch_process_refresh.DATASET,
         ),
     }
 
@@ -299,8 +306,9 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
     if isinstance(log.get("story_factory"), dict):
         sf = log["story_factory"]
         summary["story_factory"] = {
-            "claimed": int(sf.get("claimed") or 0),
+            "claimed": int(sf.get("claimed") or sf.get("claimed_total") or 0),
             "reclaimed_stale": int(sf.get("reclaimed_stale") or 0),
+            "micro_batches_run": int(sf.get("micro_batches_run") or 0),
             "generated_from_checkpointed_batches":
                 int(sf.get("generated_from_checkpointed_batches") or 0),
             "batch_size": int(sf.get("batch_size") or 0),
@@ -335,6 +343,9 @@ def refresh_status() -> dict:
         "story_candidates": _safe_run_summary(runners["story_candidates"][0].last_run_status()),
         "cfb_story_candidates": _safe_run_summary(
             runners["cfb_story_candidates"][0].last_run_status()
+        ),
+        "story_process": _safe_run_summary(
+            runners["story_process"][0].last_run_status()
         ),
         "nfl": {
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
