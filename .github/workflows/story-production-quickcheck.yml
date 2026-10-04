@@ -1,0 +1,45 @@
+name: Story Production Quickcheck
+
+on:
+  push:
+    branches:
+      - 'story-prod-cert-trigger-*'
+
+permissions:
+  contents: read
+
+jobs:
+  quickcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Read live Story Factory health
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          for attempt in 1 2 3 4 5 6; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -c \"import json; from tools.quiz_export import engine as e; from tools.director_v05.story_factory_health import story_factory_health; from tools.director_v05.certify_story_question_quality import certify_story_question_quality; c=e.connect(); out={\\\"health\\\":story_factory_health(c),\\\"quality\\\":certify_story_question_quality(c)}; print(json.dumps(out,sort_keys=True)); c.close()\"'" > story-quickcheck.json 2> story-quickcheck.err; then
+              test -s story-quickcheck.json && break
+            fi
+            echo "quickcheck attempt $attempt failed"
+            cat story-quickcheck.err || true
+            sleep 5
+          done
+          cat story-quickcheck.json
+          test -s story-quickcheck.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-production-quickcheck
+          path: |
+            story-quickcheck.json
+            story-quickcheck.err
+          if-no-files-found: warn
+          retention-days: 7
