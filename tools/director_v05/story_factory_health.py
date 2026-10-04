@@ -27,6 +27,8 @@ def story_factory_health(conn):
         "league_balance": {},
         "review_backlog": 0,
         "sensitive_backlog": 0,
+        "processing_ledger": {},
+        "checkpointed_generated": 0,
     }
 
     if "football_story_candidates" in tables:
@@ -79,6 +81,22 @@ def story_factory_health(conn):
         ).fetchall()
         out["promoted_by_family"] = {str(r["family_hint"]): int(r["n"]) for r in promoted}
         out["league_balance"] = {str(r["league"]): int(r["n"]) for r in leagues}
+
+    if "story_candidate_processing" in tables:
+        rows = conn.execute(
+            """SELECT state,COUNT(*) n
+               FROM story_candidate_processing
+               GROUP BY state"""
+        ).fetchall()
+        out["processing_ledger"] = {
+            str(r["state"]): int(r["n"]) for r in rows
+        }
+        out["checkpointed_generated"] = int(
+            conn.execute(
+                "SELECT COALESCE(SUM(generated_question_count),0) "
+                "FROM story_candidate_processing"
+            ).fetchone()[0]
+        )
 
     if "story_generated_questions" in tables:
         rows = conn.execute(
