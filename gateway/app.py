@@ -610,7 +610,7 @@ def _refresh_import_guard(fn, *args):
 _REFRESH_DATASET_KEYS = {"nfl", "cfb", "nfl_games", "cfb_games", "nfl_draft", "nfl_player_stats", "nfl_player_game_stats", "nfl_team_game_stats", "cfb_player_stats",
                           "nfl_contracts", "nfl_injuries", "nfl_pbp", "nfl_passer_rating", "cfb_all_america",
                           "cfb_betting_lines", "cfb_games_postseason", "cfb_pbp", "cfb_rankings", "cfb_standings",
-                          "cfb_weather", "cfb_recruiting", "story_candidates"}
+                          "cfb_weather", "cfb_recruiting", "story_candidates", "cfb_story_candidates"}
 
 
 @app.post("/v1/admin/refresh/{dataset_key}")
