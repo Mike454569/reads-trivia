@@ -68,3 +68,63 @@ def test_drain_respects_max_batches(monkeypatch):
     )
     assert out["micro_batches_run"] == 2
     assert out["claimed_total"] == 10
+
+
+
+def test_drain_stops_after_three_batches_without_promotions(monkeypatch):
+    calls = []
+
+    def fake_process(**kwargs):
+        calls.append(kwargs)
+        return {
+            "claimed": 5,
+            "counts": {"REVIEW_REQUIRED": 5},
+            "reclaimed_stale": 0,
+            "ledger": {"PENDING": 100, "REVIEW_REQUIRED": len(calls) * 5},
+            "generated_from_checkpointed_batches": 0,
+        }
+
+    monkeypatch.setattr(drain, "process_story_batch", fake_process)
+
+    out = drain.drain_story_queue(
+        batch_size=5,
+        max_batches=10,
+        time_budget_seconds=900,
+    )
+    assert out["micro_batches_run"] == 3
+    assert out["claimed_total"] == 15
+    assert out["stop_reason"] == "NO_PROMOTION_STREAK"
+    assert out["no_promotion_streak"] == 3
+    assert out["ledger"] == out["final_ledger"]
+
+
+def test_drain_resets_no_promotion_streak_after_done(monkeypatch):
+    results = iter([
+        {
+            "claimed": 5,
+            "counts": {"REVIEW_REQUIRED": 5},
+            "reclaimed_stale": 0,
+            "ledger": {"PENDING": 20},
+            "generated_from_checkpointed_batches": 0,
+        },
+        {
+            "claimed": 5,
+            "counts": {"DONE": 1, "REVIEW_REQUIRED": 4},
+            "reclaimed_stale": 0,
+            "ledger": {"PENDING": 15, "DONE": 1},
+            "generated_from_checkpointed_batches": 3,
+        },
+        {
+            "claimed": 0,
+            "counts": {},
+            "reclaimed_stale": 0,
+            "ledger": {"DONE": 1, "REVIEW_REQUIRED": 4},
+            "generated_from_checkpointed_batches": 3,
+        },
+    ])
+    monkeypatch.setattr(drain, "process_story_batch", lambda **kwargs: next(results))
+
+    out = drain.drain_story_queue(max_batches=10)
+    assert out["micro_batches_run"] == 3
+    assert out["stop_reason"] == "QUEUE_EMPTY_OR_UNCLAIMABLE"
+    assert out["no_promotion_streak"] == 0
