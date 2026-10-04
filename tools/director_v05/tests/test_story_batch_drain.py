@@ -1,3 +1,11 @@
+import sys
+import types
+
+fake_engine = types.ModuleType("tools.quiz_export.engine")
+fake_engine.connect = lambda: None
+fake_engine.ENGINE_DIR = None
+sys.modules.setdefault("tools.quiz_export.engine", fake_engine)
+
 from tools.director_v05 import story_batch_drain as drain
 
 
