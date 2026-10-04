@@ -22,7 +22,21 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f gateway/requirements.txt ]; then pip install -r gateway/requirements.txt; fi
           pip install pytest
+      - name: Create Engine import shim for pure unit tests
+        run: |
+          mkdir -p /tmp/reads-test-engine
+          cat > /tmp/reads-test-engine/game_factory.py <<'PY'
+          import random
+          def connect():
+              raise RuntimeError("unit test must monkeypatch engine connect")
+          def seeded(seed):
+              return random.Random(str(seed))
+          def band(score):
+              return "medium"
+          PY
       - name: Run Story checkpoint and CFB harvest tests
+        env:
+          READS_ENGINE_DIR: /tmp/reads-test-engine
         run: |
           python -m pytest -q \
             tools/director_v05/tests/test_story_batch_processor.py \
