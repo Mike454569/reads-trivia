@@ -1,0 +1,43 @@
+name: Story Checkpoint Production Test
+
+on:
+  push:
+    branches:
+      - 'story-checkpoint-prodtest-*'
+
+concurrency:
+  group: story-production-checkpoint-writer
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Run 3-candidate checkpointed production batch
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and str(r.get('state') or '').lower()=='started' and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          FACTORY_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          BATCH_B64=$(base64 -w0 tools/director_v05/story_batch_processor.py)
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64,sys,types,json,tools.director_v05; pkg=\\\"tools.director_v05\\\"; fm=types.ModuleType(pkg+\\\".story_to_trivia_factory\\\"); fm.__package__=pkg; fm.__file__=\\\"<checkpoint-factory>\\\"; sys.modules[pkg+\\\".story_to_trivia_factory\\\"]=fm; exec(base64.b64decode(\\\"$FACTORY_B64\\\"),fm.__dict__); bm=types.ModuleType(pkg+\\\".story_batch_processor\\\"); bm.__package__=pkg; bm.__file__=\\\"<checkpoint-batch>\\\"; sys.modules[pkg+\\\".story_batch_processor\\\"]=bm; exec(base64.b64decode(\\\"$BATCH_B64\\\"),bm.__dict__); print(json.dumps(bm.process_story_batch(batch_size=3,max_attempts=3,stale_minutes=30,include_deep_chains=False),sort_keys=True))\"'" > checkpoint-batch.json 2> checkpoint-batch.err
+          cat checkpoint-batch.json
+          test -s checkpoint-batch.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-checkpoint-production-test
+          path: |
+            checkpoint-batch.json
+            checkpoint-batch.err
+          if-no-files-found: warn
+          retention-days: 7
