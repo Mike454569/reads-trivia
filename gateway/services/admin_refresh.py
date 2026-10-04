@@ -68,7 +68,8 @@ def _runners():
     from tools.data_refresh import (
         cfb_all_america_import, cfb_betting_lines_refresh, cfb_games_postseason_refresh, cfb_games_refresh,
         cfb_pbp_refresh, cfb_player_season_stats_refresh, cfb_rankings_refresh, cfb_recruiting_refresh, cfb_refresh,
-        cfb_standings_refresh, cfb_weather_refresh, nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
+        cfb_standings_refresh, cfb_weather_refresh, cfb_story_candidate_harvest_refresh,
+        nfl_contracts_refresh, nfl_draft_refresh, nfl_games_refresh,
         nfl_injuries_refresh, nfl_passer_rating_compute, nfl_pbp_refresh, nfl_player_game_stats_refresh,
         nfl_player_stats_refresh, nfl_refresh, nfl_team_game_stats_refresh, story_candidate_harvest_refresh,
     )
@@ -149,6 +150,12 @@ def _runners():
                             "CFB", cfb_recruiting_refresh.DATASET),
         "story_candidates": (story_candidate_harvest_refresh, story_candidate_harvest_refresh.run_story_candidate_harvest,
                               "MIXED", story_candidate_harvest_refresh.DATASET),
+        "cfb_story_candidates": (
+            cfb_story_candidate_harvest_refresh,
+            cfb_story_candidate_harvest_refresh.run_cfb_story_candidate_harvest,
+            "CFB",
+            cfb_story_candidate_harvest_refresh.DATASET,
+        ),
     }
 
 
@@ -292,13 +299,19 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
     if isinstance(log.get("story_factory"), dict):
         sf = log["story_factory"]
         summary["story_factory"] = {
-            "processed_candidates": int(sf.get("processed_candidates") or 0),
-            "generated_questions_this_run": int(sf.get("generated_questions_this_run") or 0),
-            "ready_question_total": int(sf.get("ready_question_total") or 0),
-            "matching_round_generated": bool(sf.get("matching_round_generated")),
-            "decisions": {
+            "claimed": int(sf.get("claimed") or 0),
+            "reclaimed_stale": int(sf.get("reclaimed_stale") or 0),
+            "generated_from_checkpointed_batches":
+                int(sf.get("generated_from_checkpointed_batches") or 0),
+            "batch_size": int(sf.get("batch_size") or 0),
+            "counts": {
                 str(k): int(v)
-                for k, v in (sf.get("decisions") or {}).items()
+                for k, v in (sf.get("counts") or {}).items()
+                if isinstance(v, (int, float))
+            },
+            "ledger": {
+                str(k): int(v)
+                for k, v in (sf.get("ledger") or {}).items()
                 if isinstance(v, (int, float))
             },
         }
@@ -320,6 +333,9 @@ def refresh_status() -> dict:
     runners = _runners()
     return {
         "story_candidates": _safe_run_summary(runners["story_candidates"][0].last_run_status()),
+        "cfb_story_candidates": _safe_run_summary(
+            runners["cfb_story_candidates"][0].last_run_status()
+        ),
         "nfl": {
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
