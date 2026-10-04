@@ -570,14 +570,16 @@ function creatorConfirmStoryDate(candidateId){
 function creatorStoryFactoryHtml(){
   var s=state.creator||{},h=s.storyHealth||{},rows=s.storyQueue||[];
   if(s.storyLoading)return '<div class="creator-workspace">'+creatorToolbarHtml(false)+'<div class="loading-panel"><div class="loading-spinner"></div><div class="loading-text">Loading Story Factory…</div></div></div>';
-  var status=h.candidate_status||{},decisions=h.promotion_decisions||{},qStatus=h.questions_by_status||{},quality=h.question_quality||{},cert=s.storyCertification||null;
+  var status=h.candidate_status||{},decisions=h.promotion_decisions||{},qStatus=h.questions_by_status||{},ledger=h.processing_ledger||{},quality=h.question_quality||{},cert=s.storyCertification||null;
   var metrics=[
     ['Candidates',h.candidate_total||0],
     ['Promoted',h.promoted_events||0],
     ['Generated Qs',h.generated_question_total||0],
     ['Deep Lore Ready',h.ready_for_bank||0],
     ['Format Ready',h.ready_for_format_bank||0],
-    ['Review Backlog',(status.REVIEW_REQUIRED||0)+(status.REVIEW_REQUIRED_SENSITIVE||0)]
+    ['Review Backlog',(status.REVIEW_REQUIRED||0)+(status.REVIEW_REQUIRED_SENSITIVE||0)],
+    ['Queue Pending',ledger.PENDING||0],
+    ['Retryable',ledger.FAILED_RETRYABLE||0]
   ];
   return '<div class="creator-workspace">'+creatorToolbarHtml(false)+
     '<div class="creator-page-head"><div><span class="dashboard-eyebrow">STORY FACTORY</span><h2>Football Lore Pipeline</h2><p>Harvest → verify → promote → generate → review. Sensitive/legal stories remain manual-only.</p></div><div class="btn-row"><button class="btn-secondary" data-creator-story-retry'+(s.storyRetryLoading?' disabled':'')+'>'+(s.storyRetryLoading?'Rechecking…':'Retry 50 Safe Reviews')+'</button><button class="btn-tiny" data-creator-story-refresh>Refresh</button></div></div>'+
@@ -590,6 +592,14 @@ function creatorStoryFactoryHtml(){
         '<span>Auto-promoted '+Number(decisions.AUTO_PROMOTED||0)+'</span>'+
         '<span>Suggested reviews '+Number((h.review_suggestions||{}).SUGGESTED_ONLY||0)+'</span>'+
         '<span>NFL '+Number((h.league_balance||{}).NFL||0)+' · CFB '+Number((h.league_balance||{}).CFB||0)+'</span>'+
+      '</div>'+
+      '<div class="creator-quality-grid">'+
+        '<span><b>Checkpoint queue:</b> pending '+Number(ledger.PENDING||0)+'</span>'+
+        '<span>processing '+Number(ledger.PROCESSING||0)+'</span>'+
+        '<span class="pass">done '+Number(ledger.DONE||0)+'</span>'+
+        '<span>review '+Number(ledger.REVIEW_REQUIRED||0)+'</span>'+
+        '<span class="'+(Number(ledger.FAILED_RETRYABLE||0)?'fail':'')+'">retry '+Number(ledger.FAILED_RETRYABLE||0)+'</span>'+
+        '<span class="'+(Number(ledger.FAILED_FINAL||0)?'fail':'')+'">final fail '+Number(ledger.FAILED_FINAL||0)+'</span>'+
       '</div>'+
       (cert?(function(){
         var gr=cert.game_reach||{},rq=cert.top_priority||[];
