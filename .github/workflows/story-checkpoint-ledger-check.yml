@@ -1,0 +1,25 @@
+name: Story Checkpoint Ledger Check
+
+on:
+  push:
+    branches:
+      - 'story-checkpoint-ledger-check-*'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Read checkpoint ledger
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and str(r.get('state') or '').lower()=='started' and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import sqlite3,json; p=\\\"/data/engine/reads_football_v4.0.sqlite\\\"; c=sqlite3.connect(\\\"file:\\\"+p+\\\"?mode=ro\\\",uri=True,timeout=10); c.row_factory=sqlite3.Row; ex=c.execute(\\\"select 1 from sqlite_master where type=\\\\\\\"table\\\\\\\" and name=\\\\\\\"story_candidate_processing\\\\\\\"\\\").fetchone(); out={}; out[\\\"ledger\\\"]={str(r[0]):int(r[1]) for r in c.execute(\\\"select state,count(*) from story_candidate_processing group by state\\\").fetchall()} if ex else {}; out[\\\"generated\\\"]=int(c.execute(\\\"select coalesce(sum(generated_question_count),0) from story_candidate_processing\\\").fetchone()[0]) if ex else 0; print(json.dumps(out,sort_keys=True)); c.close()\"'"
