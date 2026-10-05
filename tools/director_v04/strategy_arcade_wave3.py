@@ -110,7 +110,7 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
     # Building 42 Deep Ball questions synchronously made live rounds exceed
     # the frontend's 10s timeout on production.
     rounds = core.build_fast_round_pool(
-        f"{seed}-strategy-wave3-{variant}", max(18, round_count)
+        f"{seed}-strategy-wave3-{variant}", round_count
     )
     package_id = "GGP39:" + hashlib.sha256(
         f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
@@ -121,11 +121,11 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
         "game_title": FORMAT_SPECS[variant]["title"],
         "game_instructions": FORMAT_SPECS[variant]["interaction"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "qa_status": "PASSED" if len(rounds) >= 18 else "FAILED",
+        "qa_status": "PASSED" if len(rounds) >= round_count else "FAILED",
         "rounds": rounds, "round_count": len(rounds),
         "production_safety": {"launch_pool": "verified_direct_sql"},
-        "shortfall_reason": None if len(rounds) >= 18 else
-            f"Only {len(rounds)} real mixed-trivia questions were available; Wave 3 requires at least 18.",
+        "shortfall_reason": None if len(rounds) >= round_count else
+            f"Only {len(rounds)} real mixed-trivia questions were available; Wave 3 requested {round_count}.",
         "review_status": "UNREVIEWED",
         "_diagnostics": {"seed": seed, "launch_pool": "verified_direct_sql"},
     }
