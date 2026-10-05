@@ -155,7 +155,7 @@ def confirm_event_date(*, candidate_id, event_date):
 
         c.execute(
             """UPDATE universal_event
-               SET event_date=?,updated_at=datetime('now')
+               SET event_date=?
                WHERE event_id=?""",
             (parsed.isoformat(), str(row["promoted_event_id"])),
         )
