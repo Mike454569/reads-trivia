@@ -1,0 +1,32 @@
+name: Browser launch diagnostic
+on:
+  push:
+    branches: [diag/browser-launch]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe browser-origin game launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://reads-football-gateway.fly.dev"
+          for mode in matching_nfl_draft perfect_drive_nfl bingo_blitz_mixed championship_run_mixed; do
+            echo "=== $mode ==="
+            curl -sS -D "/tmp/$mode.headers" -o "/tmp/$mode.json" --max-time 15 \
+              -H "Origin: https://reads.football" \
+              "$base/v1/public/mechanics/round?mode=$mode"
+            cat "/tmp/$mode.headers"
+            head -c 600 "/tmp/$mode.json"
+            echo
+            grep -i '^access-control-allow-origin: https://reads.football' "/tmp/$mode.headers"
+          done
+          echo "=== preflight submit ==="
+          curl -sS -D /tmp/options.headers -o /tmp/options.body -X OPTIONS --max-time 15 \
+            -H "Origin: https://reads.football" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: content-type" \
+            "$base/v1/public/mechanics/round/test-round/submit"
+          cat /tmp/options.headers
+          cat /tmp/options.body
+          grep -i '^access-control-allow-origin: https://reads.football' /tmp/options.headers
