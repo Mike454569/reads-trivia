@@ -13,6 +13,23 @@ FORMAT_KEY_BY_FAMILY = {
 }
 
 
+def _player_facing_fact_fake(q):
+    """Reject stale Story Factory rows that expose internal metadata."""
+    text = " ".join(str(q.get("question") or "").split()).strip()
+    if not text:
+        return False
+    lowered = text.casefold()
+    blocked = (
+        "classified as a ",
+        "verified football event occurred in",
+        "event type",
+        "taxonomy",
+    )
+    if any(token in lowered for token in blocked):
+        return False
+    return True
+
+
 def load_ready_story_formats(
     conn,
     *,
@@ -58,6 +75,8 @@ def load_ready_story_formats(
         if not key:
             continue
 
+        if key == "FACT_OR_FAKE" and not _player_facing_fact_fake(q):
+            continue
         if len(out[key]) >= int(limit_per_format):
             continue
         out[key].append(q)
