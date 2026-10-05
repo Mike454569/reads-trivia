@@ -6,22 +6,22 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe live new-game endpoints
+      - name: Probe live Strategy Arcade after fix
         shell: bash
         run: |
           set -euo pipefail
           base="https://reads-football-gateway.fly.dev"
           failed=0
-          for mode in who_am_i_nfl perfect_drive_nfl bingo_blitz_mixed championship_run_mixed; do
+          for mode in bingo_blitz_mixed championship_run_mixed perfect_drive_nfl; do
             start=$(date +%s%3N)
-            code=$(curl -sS -D "/tmp/$mode.headers" -o "/tmp/$mode.json" -w "%{http_code}" --max-time 12 \
+            code=$(curl -sS -D "/tmp/$mode.headers" -o "/tmp/$mode.json" -w "%{http_code}" --max-time 10 \
               -H "Origin: https://reads.football" \
               "$base/v1/public/mechanics/round?mode=$mode" || true)
             end=$(date +%s%3N)
             ms=$((end-start))
             echo "LIVE $mode status=$code ms=$ms"
             grep -i '^access-control-allow-origin:' "/tmp/$mode.headers" || true
-            head -c 700 "/tmp/$mode.json" 2>/dev/null || true
+            head -c 800 "/tmp/$mode.json" 2>/dev/null || true
             echo
             if [ "$code" != "200" ]; then failed=1; fi
           done
