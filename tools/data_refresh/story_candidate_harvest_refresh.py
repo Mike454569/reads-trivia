@@ -27,6 +27,10 @@ def run_story_candidate_harvest():
     try:
         harvested = harvest_story_candidates()
         triaged = triage_candidates()
+        # One small seed batch proves newly harvested candidates are
+        # immediately processable. The scheduled story_process worker owns
+        # sustained queue draining so harvest jobs never become long-running
+        # competing writers.
         factory = process_story_batch(
             batch_size=5,
             max_attempts=3,
