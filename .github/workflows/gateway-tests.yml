@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "17 8 * * *"
   push:
-    branches: [main, feature/retention-moat-upgrades, fix/fast-strategy-launch-pool]
+    branches: [main, feature/retention-moat-upgrades]
     paths:
       - "gateway/**"
       - "tools/**"
