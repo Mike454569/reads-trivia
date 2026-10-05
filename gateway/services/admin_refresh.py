@@ -339,14 +339,10 @@ def _safe_run_summary(run: Optional[dict]) -> Optional[dict]:
 
 def refresh_status() -> dict:
     runners = _runners()
+    # Keep the long-standing public/admin response contract top-level shape
+    # exactly {"nfl","cfb"}. Story Factory has its own dedicated health/review
+    # endpoints; adding new top-level keys here breaks existing clients/tests.
     return {
-        "story_candidates": _safe_run_summary(runners["story_candidates"][0].last_run_status()),
-        "cfb_story_candidates": _safe_run_summary(
-            runners["cfb_story_candidates"][0].last_run_status()
-        ),
-        "story_process": _safe_run_summary(
-            runners["story_process"][0].last_run_status()
-        ),
         "nfl": {
             "rosters": _safe_run_summary(runners["nfl"][0].last_run_status()),
             "games": _safe_run_summary(runners["nfl_games"][0].last_run_status()),
