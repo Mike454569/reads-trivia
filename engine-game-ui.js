@@ -450,7 +450,7 @@ function enginePilotModeConfig(modeKey) {
 // struggling Gateway is exactly the failure mode Part 16 warns about; the
 // existing "Try Again" button is the retry mechanism, explicit and
 // user-triggered, never silent or automatic.
-var ENGINE_PILOT_FETCH_TIMEOUT_MS = 10000;
+var ENGINE_PILOT_FETCH_TIMEOUT_MS = 30000;
 function enginePilotFetchJson(path, options) {
   var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   var timeoutId = controller ? setTimeout(function () { controller.abort(); }, ENGINE_PILOT_FETCH_TIMEOUT_MS) : null;
