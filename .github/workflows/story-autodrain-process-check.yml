@@ -1,0 +1,25 @@
+name: Story Autodrain Process Check
+
+on:
+  push:
+    branches:
+      - 'story-autodrain-process-check-*'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Inspect live Story autodrain process
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and str(r.get('state') or '').lower()=='started' and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'python3 -c \"import os,json; out=[]; [(out.append({\\\"pid\\\":int(n),\\\"cmd\\\":open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read().replace(b\\\"\\\\x00\\\",b\\\" \\\").decode(\\\"utf-8\\\",\\\"replace\\\")[:1000]})) for n in os.listdir(\\\"/proc\\\") if n.isdigit() and os.path.exists(\\\"/proc/\\\"+n+\\\"/cmdline\\\") and (b\\\"story_batch_drain\\\" in open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read() or b\\\"drain_story_queue\\\" in open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read() or b\\\"process_story_batch\\\" in open(\\\"/proc/\\\"+n+\\\"/cmdline\\\",\\\"rb\\\").read())]; print(json.dumps(out,sort_keys=True))\"'"
