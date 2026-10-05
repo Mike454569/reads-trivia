@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections import defaultdict
 
 from .lore_trivia import (
@@ -50,11 +51,47 @@ def _identity_subject(subjects):
     return {"subject_type": typ, "subject_id": sid}
 
 
+def _identity_safe_clue(text, *, answer_label, answer_type):
+    """Redact an identity answer from a clue without inventing facts."""
+    clue = str(text or "").strip()
+    label = str(answer_label or "").strip()
+    if not clue or not label:
+        return clue
+    if label.casefold() not in clue.casefold():
+        return clue
+
+    replacement = {
+        "NFL_PLAYER": "This player",
+        "CFB_PLAYER": "This player",
+        "COACH": "This coach",
+    }.get(str(answer_type), "This person")
+    clue = re.sub(re.escape(label), replacement, clue, flags=re.I)
+    clue = re.sub(r"\b(This (?:player|coach|person))\s+was\s+the\s+subject\s+of\s+",
+                  r"\1 was featured in ", clue, flags=re.I)
+    return " ".join(clue.split()).strip()
+
+
 def compile_progressive_identity(conn, event_id):
     """Turn one event into a progressive Who Am I / Three Clues contract."""
     event, gate = _event(conn, event_id)
     identity = _identity_subject(_subjects(conn, event_id))
-    clues = _safe_clues(event)
+    answer_label = resolve_label(
+        conn, identity["subject_type"], identity["subject_id"]
+    )
+    clues = [
+        _identity_safe_clue(
+            clue,
+            answer_label=answer_label,
+            answer_type=identity["subject_type"],
+        )
+        for clue in _safe_clues(event)
+    ]
+    clues = [clue for clue in clues if clue]
+    if any(
+        str(answer_label).casefold() in str(clue).casefold()
+        for clue in clues
+    ):
+        raise ValueError("IDENTITY_CLUE_LEAKS_ANSWER")
     if len(clues) < 3:
         raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
 
@@ -75,7 +112,7 @@ def compile_progressive_identity(conn, event_id):
         "clues": [{"step": i + 1, "text": clue} for i, clue in enumerate(ordered)],
         "answer": {
             "id": identity["subject_id"],
-            "label": resolve_label(conn, identity["subject_type"], identity["subject_id"]),
+            "label": answer_label,
             "type": identity["subject_type"],
         },
         "event_id": event_id,
