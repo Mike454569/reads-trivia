@@ -2277,12 +2277,17 @@ def _roster_build_free_select_evaluate(package: dict, progress: dict, submission
 
 def generate_strategy_arcade_round(*, variant: str, seed: str, round_count: int = 24) -> dict:
     from tools.director_v04 import strategy_arcade, strategy_arcade_wave3, strategy_arcade_wave4, strategy_arcade_wave5
+    # Public launch latency is controlled by the caller. Older Wave 3/4/5
+    # wiring silently expanded a requested six-question launch into 18-36
+    # questions, making mobile taps wait long enough to time out. All strategy
+    # state machines cycle their immutable question pool safely, so respect
+    # the server-chosen launch size here instead of inflating it.
     if variant in strategy_arcade_wave5.VARIANTS:
-        return strategy_arcade_wave5.build_package(seed, variant, round_count=max(round_count, 36))
+        return strategy_arcade_wave5.build_package(seed, variant, round_count=round_count)
     if variant in strategy_arcade_wave4.VARIANTS:
-        return strategy_arcade_wave4.build_package(seed, variant, round_count=max(round_count, 36))
+        return strategy_arcade_wave4.build_package(seed, variant, round_count=round_count)
     if variant in strategy_arcade_wave3.VARIANTS:
-        return strategy_arcade_wave3.build_package(seed, variant, round_count=max(round_count, 18))
+        return strategy_arcade_wave3.build_package(seed, variant, round_count=round_count)
     return strategy_arcade.build_package(seed, variant, round_count=round_count)
 
 
