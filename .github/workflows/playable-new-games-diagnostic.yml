@@ -5,6 +5,9 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      READS_ENGINE_DIR: Reads_Football_Data_Engine_v4.0
+      PYTHONPATH: .:Reads_Football_Data_Engine_v4.0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
