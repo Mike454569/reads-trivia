@@ -144,7 +144,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
                WHERE candidate_id=?""",
             [(now, now, now, cid) for cid in ids],
         )
-    c.commit()
+    _commit_with_retry(c)
 
     if not ids:
         return []
