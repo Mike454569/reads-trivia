@@ -13,6 +13,7 @@ import hashlib
 from datetime import datetime, timezone
 
 from tools.director_v04 import category_roulette, deep_trivia
+from tools.quiz_export import engine as engine_bootstrap
 
 PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "STRATEGY_ARCADE"
@@ -96,7 +97,7 @@ def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
     # question pool from verified warehouse rows in one SQLite session,
     # rather than running a full Director pipeline once per question.
     raw_rounds = deep_trivia.generate_fast_arcade_rounds(
-        f"{seed}-strategy-{variant}", max(12, round_count)
+        f"{seed}-strategy-{variant}", round_count
     )
     rounds = []
     for i, r in enumerate(raw_rounds):
@@ -128,12 +129,12 @@ def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
         "game_title": FORMAT_SPECS[variant]["title"],
         "game_instructions": FORMAT_SPECS[variant]["interaction"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "qa_status": "PASSED" if len(rounds) >= 12 else "FAILED",
+        "qa_status": "PASSED" if len(rounds) >= round_count else "FAILED",
         "rounds": rounds,
         "round_count": len(rounds),
         "production_safety": {"launch_pool": "verified_direct_sql"},
-        "shortfall_reason": None if len(rounds) >= 12 else (
-            f"Only {len(rounds)} real mixed-trivia questions were available; Strategy Arcade requires at least 12."
+        "shortfall_reason": None if len(rounds) >= round_count else (
+            f"Only {len(rounds)} real mixed-trivia questions were available; this format requested {round_count}."
         ),
         "review_status": "UNREVIEWED",
         "_diagnostics": {"seed": seed, "launch_pool": "verified_direct_sql"},
