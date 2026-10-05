@@ -14,24 +14,11 @@ jobs:
           failed=0
           for n in 1 2 3; do
             start=$(date +%s%3N)
-            code=$(curl -sS -D "/tmp/who$n.headers" -o "/tmp/who$n.json" -w "%{http_code}" --max-time 10 \
-              -H "Origin: https://reads.football" \
-              "$base/v1/public/mechanics/round?mode=who_am_i_nfl" || true)
+            code=$(curl -sS -o "/tmp/who$n.json" -w "%{http_code}" --max-time 10 -H "Origin: https://reads.football" "$base/v1/public/mechanics/round?mode=who_am_i_nfl" || true)
             end=$(date +%s%3N)
             ms=$((end-start))
             echo "WHOAMI run=$n status=$code ms=$ms"
-            python3 - "$n" <<'PY'
-import json,sys
-n=sys.argv[1]
-try:
-    d=json.load(open(f"/tmp/who{n}.json"))
-    v=d.get("view") or {}
-    clues=v.get("clues") or []
-    print("FIRST_CLUE:", clues[0].get("display_text") if clues else None)
-    print("ROUND_COUNT:", v.get("round_count"))
-except Exception as e:
-    print("PARSE_ERROR",e)
-PY
+            python3 -c "import json; d=json.load(open('/tmp/who$n.json')); v=d.get('view') or {}; clues=v.get('clues') or []; print('FIRST_CLUE:', clues[0].get('display_text') if clues else None); print('ROUND_COUNT:', v.get('round_count'))" || true
             if [ "$code" != "200" ]; then failed=1; fi
           done
           exit "$failed"
