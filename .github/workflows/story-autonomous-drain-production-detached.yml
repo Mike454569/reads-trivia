@@ -1,0 +1,111 @@
+name: Story Autonomous Drain Production Detached
+
+on:
+  push:
+    branches:
+      - 'story-autodrain-prod-run-*'
+
+concurrency:
+  group: story-production-autodrain-v5
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Start production machine and wait for SSH
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          STATE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; mid='$MACHINE'; rows=json.load(sys.stdin); print(next((str(r.get('state') or '') for r in rows if str(r.get('id') or r.get('ID'))==mid),''))")
+          if [ "$STATE" != "started" ]; then
+            flyctl machine start "$MACHINE" -a "$APP"
+          fi
+          SSH_READY=0
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo STORY_SSH_READY'" > ssh-probe.out 2> ssh-probe.err; then
+              if grep -q STORY_SSH_READY ssh-probe.out; then SSH_READY=1; break; fi
+            fi
+            sleep 5
+          done
+          [ "$SSH_READY" = "1" ]
+          echo "MACHINE=$MACHINE" >> "$GITHUB_ENV"
+
+      - name: Upload current Story worker source
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          flyctl ssh sftp put tools/director_v05/story_batch_processor.py /tmp/story_batch_processor.py -a reads-football-gateway
+          flyctl ssh sftp put tools/director_v05/story_batch_drain.py /tmp/story_batch_drain.py -a reads-football-gateway
+          flyctl ssh sftp put tools/director_v05/story_autodrain_remote_runner.py /tmp/story_autodrain_remote_runner.py -a reads-football-gateway
+
+      - name: Launch detached Story drain
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'rm -f /tmp/story-autodrain-result.json /tmp/story-autodrain-run.err /tmp/story-autodrain.exit; nohup sh -lc \"export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine; python3 /tmp/story_autodrain_remote_runner.py > /tmp/story-autodrain-result.json 2> /tmp/story-autodrain-run.err; echo \\\$? > /tmp/story-autodrain.exit\" >/dev/null 2>&1 & echo STORY_DRAIN_LAUNCHED'"
+          
+      - name: Poll detached Story drain
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          COMPLETE=0
+          for i in $(seq 1 120); do
+            if flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'if [ -s /tmp/story-autodrain.exit ]; then echo DONE:$(cat /tmp/story-autodrain.exit); else echo RUNNING; fi'" > poll.out 2> poll.err; then
+              cat poll.out
+              if grep -q '^DONE:' poll.out; then COMPLETE=1; break; fi
+            else
+              cat poll.err || true
+            fi
+            sleep 5
+          done
+          [ "$COMPLETE" = "1" ]
+
+      - name: Download detached Story results
+        if: always()
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set +e
+          flyctl ssh sftp get /tmp/story-autodrain-result.json story-autodrain.json -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-autodrain-run.err story-autodrain.err -a reads-football-gateway
+          flyctl ssh sftp get /tmp/story-autodrain.exit story-autodrain.exit -a reads-football-gateway
+          cat story-autodrain.json 2>/dev/null || true
+          cat story-autodrain.err 2>/dev/null || true
+          exit 0
+
+      - name: Enforce detached drain result
+        run: |
+          set -euo pipefail
+          test -s story-autodrain.exit
+          test "$(tr -d '\r\n ' < story-autodrain.exit)" = "0"
+          python3 -c 'import json; p=json.load(open("story-autodrain.json")); assert p.get("ok") is True; print(json.dumps(p["result"],indent=2,sort_keys=True))'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-autonomous-drain-production-detached
+          path: |
+            story-autodrain.json
+            story-autodrain.err
+            story-autodrain.exit
+            ssh-probe.out
+            ssh-probe.err
+            poll.out
+            poll.err
+          if-no-files-found: warn
+          retention-days: 7
