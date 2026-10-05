@@ -20,7 +20,7 @@ from collections import Counter
 from urllib.parse import urlparse
 
 from tools.quiz_export import engine as engine_bootstrap
-from .story_to_trivia_factory import _prepare_write_connection, _commit_with_retry
+from .story_write_utils import _prepare_write_connection, _commit_with_retry
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 
