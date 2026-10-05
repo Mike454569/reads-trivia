@@ -19,10 +19,15 @@ def run_story_batch_process():
     c.close()
 
     try:
+        # Gameplay-first production bound: this runs inside the SAME single-
+        # CPU, 1GB Gateway machine that serves public rounds. A previous
+        # 10-batch / 15-minute drain made Fly readiness degrade until the
+        # proxy stopped routing game traffic. Process one tiny checkpointed
+        # slice per trigger; the durable queue can drain over multiple runs.
         result = drain_story_queue(
-            batch_size=5,
-            max_batches=10,
-            time_budget_seconds=900,
+            batch_size=1,
+            max_batches=1,
+            time_budget_seconds=45,
             include_deep_chains=False,
         )
         c = engine_bootstrap.connect()
