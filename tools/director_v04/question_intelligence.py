@@ -201,6 +201,32 @@ def select_smart_distractors(correct: Any, candidates: Iterable[Any], *, count: 
     return [label for _, label in ranked[:max(0, int(count))]]
 
 
+TIER_TARGETS = {
+    "casual": 42,
+    "competitive": 58,
+    "sicko": 73,
+    "impossible": 88,
+}
+
+
+def rank_for_tier(questions: Iterable[dict], tier: str) -> list[dict]:
+    """Rank questions by closeness to a requested player-facing tier.
+
+    This is selection only: no question is mutated and no certified answer is
+    changed. Ties prefer the higher-quality question.
+    """
+    wanted = str(tier or "competitive").strip().lower()
+    target = TIER_TARGETS.get(wanted, TIER_TARGETS["competitive"])
+    scored = []
+    for q in questions:
+        if not isinstance(q, dict):
+            continue
+        meta = q.get("question_intelligence") or score_question(q)
+        scored.append((abs(int(meta["score"]) - target), -int(meta["score"]), q))
+    scored.sort(key=lambda row: (row[0], row[1], question_fingerprint(row[2])))
+    return [q for _, _, q in scored]
+
+
 def annotate_package(package: dict) -> dict:
     """Attach intelligence metadata without altering certified truth."""
     questions = package.get("questions")
