@@ -231,9 +231,6 @@
 [functions."trigger-refresh-cfb-story-candidates"]
   schedule = "40 23 * * *"
 
-# CFB-specific Story Factory expansion. Kept four hours behind the mixed
-# Story run so the Gateway's global one-refresh-at-a-time guard has plenty
-# of headroom and these harvests do not fight over SQLite.
 # Checkpointed Story Factory processor. Runs independently of harvests so the
 # existing queue drains throughout the day. The Gateway global refresh guard
 # prevents overlap with any heavier Engine refresh.
