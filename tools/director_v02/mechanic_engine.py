@@ -532,9 +532,11 @@ def _guess_evaluate(package: dict, index: int, submission: dict) -> dict:
 
 # --- PROGRESSIVE_CLUE_IDENTIFY ---
 
-def generate_clue_round(*, target_count: int, seed: str) -> dict:
+def generate_clue_round(*, target_count: int, seed: str, stop_after_target: bool = False) -> dict:
     from tools.director_v04 import player_from_clues
-    return player_from_clues.build_package(seed, target_count=target_count)
+    return player_from_clues.build_package(
+        seed, target_count=target_count, stop_after_target=stop_after_target
+    )
 
 
 def _clue_client_view(package: dict, index: int, clues_revealed: int) -> dict:
