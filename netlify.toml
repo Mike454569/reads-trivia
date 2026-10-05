@@ -235,7 +235,7 @@
 # existing queue drains throughout the day. The Gateway global refresh guard
 # prevents overlap with any heavier Engine refresh.
 [functions."trigger-refresh-story-process"]
-  schedule = "20 */2 * * *"
+  schedule = "20 * * * *"
 
 
 # Live Football Layer v1: late-window settlement passes. These reuse the
