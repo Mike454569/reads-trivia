@@ -13,7 +13,7 @@ jobs:
   certify:
     name: Certify live Story Factory DB
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -75,6 +75,27 @@ jobs:
           run_remote story-question-quality.json tools.director_v05.certify_story_question_quality
           run_remote story-game-reach.json tools.director_v05.certify_story_game_reach
 
+      - name: Run production-volume queue certification on shadow DB
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          SHADOW="/tmp/reads-story-volume-cert-engine"
+          cleanup() {
+            flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'rm -rf $SHADOW'" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          # Copy Engine modules and take a SQLite-consistent online backup.
+          # All queue mutations below happen only inside this disposable copy.
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'rm -rf $SHADOW && mkdir -p $SHADOW && cp /data/engine/*.py $SHADOW/ && python -c \"import sqlite3; src=sqlite3.connect(\\\"file:/data/engine/reads_football_v4.0.sqlite?mode=ro\\\", uri=True); dst=sqlite3.connect(\\\"$SHADOW/reads_football_v4.0.sqlite\\\"); src.backup(dst); dst.close(); src.close()\"'"
+
+          # 20 x 5-candidate micro-batches exercises the real claim/checkpoint/
+          # retry path at production shape while keeping runtime bounded.
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=$SHADOW && python -m tools.director_v05.certify_story_volume --batch-size 5 --max-batches 20 --time-budget-seconds 1200 --min-claimed 25'" > story-volume-cert.json 2> story-volume-cert.err
+
       - name: Print certification results
         if: always()
         run: |
@@ -84,6 +105,9 @@ jobs:
           echo
           echo "===== GAME REACH ====="
           cat story-game-reach.json 2>/dev/null || true
+          echo
+          echo "===== PRODUCTION VOLUME ====="
+          cat story-volume-cert.json 2>/dev/null || true
           exit 0
 
       - name: Upload certification artifacts
@@ -96,10 +120,12 @@ jobs:
             story-question-quality.err
             story-game-reach.json
             story-game-reach.err
+            story-volume-cert.json
+            story-volume-cert.err
           if-no-files-found: warn
           retention-days: 7
 
       - name: Enforce certification result
         run: |
           set -euo pipefail
-          python3 -c 'import json,sys; q=json.load(open("story-question-quality.json")); g=json.load(open("story-game-reach.json")); print("quality", q.get("status"), q.get("promotion_ready")); print("reach", g.get("games_with_story_content"), "/", g.get("games_tested"), g.get("promotion_ready")); sys.exit(0 if q.get("promotion_ready") and g.get("promotion_ready") else 1)'
+          python3 -c 'import json,sys; q=json.load(open("story-question-quality.json")); g=json.load(open("story-game-reach.json")); v=json.load(open("story-volume-cert.json")); print("quality", q.get("status"), q.get("promotion_ready")); print("reach", g.get("games_with_story_content"), "/", g.get("games_tested"), g.get("promotion_ready")); print("volume", v.get("status"), "claimed", v.get("claimed_total"), "generated_delta", v.get("generated_delta"), v.get("promotion_ready")); sys.exit(0 if q.get("promotion_ready") and g.get("promotion_ready") and v.get("promotion_ready") else 1)'
