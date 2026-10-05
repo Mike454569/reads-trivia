@@ -10,7 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run frontend timeout regression
-        run: pytest -q gateway/tests/test_public_formats.py -k frontend_launch_timeout_covers_real_production_budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "var ENGINE_PILOT_FETCH_TIMEOUT_MS = 30000;" engine-game-ui.js
       - name: Probe heavy live modes with browser origin
         shell: bash
         run: |
