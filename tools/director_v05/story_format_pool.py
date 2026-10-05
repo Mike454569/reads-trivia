@@ -13,6 +13,20 @@ FORMAT_KEY_BY_FAMILY = {
 }
 
 
+def _player_facing_fact_fake(q):
+    """Reject stale persisted questions that expose internal metadata."""
+    text = " ".join(str(q.get("question") or "").split()).strip().casefold()
+    if not text:
+        return False
+    blocked = (
+        "classified as a ",
+        "verified football event occurred in",
+        "event type",
+        "taxonomy",
+    )
+    return not any(token in text for token in blocked)
+
+
 def load_ready_story_formats(
     conn,
     *,
@@ -58,6 +72,8 @@ def load_ready_story_formats(
         if not key:
             continue
 
+        if key == "FACT_OR_FAKE" and not _player_facing_fact_fake(q):
+            continue
         if len(out[key]) >= int(limit_per_format):
             continue
         out[key].append(q)
