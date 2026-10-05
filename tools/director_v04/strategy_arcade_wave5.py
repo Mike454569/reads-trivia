@@ -30,14 +30,14 @@ VARIANTS=frozenset(FORMAT_SPECS)
 
 def build_package(seed:str,variant:str,round_count:int=36)->dict:
     if variant not in VARIANTS: raise ValueError(f"unknown Wave 5 variant {variant!r}")
-    rounds=core.build_fast_round_pool(f"{seed}-strategy-wave5-{variant}", max(18,round_count))
+    rounds=core.build_fast_round_pool(f"{seed}-strategy-wave5-{variant}", round_count)
     pid="GGP41:"+hashlib.sha256(f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()).hexdigest()[:24]
     return {"package_id":pid,"package_version":PACKAGE_SCHEMA_VERSION,"mechanic":MECHANIC,
       "domain_variant":variant,"format_id":variant,"game_title":FORMAT_SPECS[variant]["title"],
       "game_instructions":FORMAT_SPECS[variant]["interaction"],"generated_at":datetime.now(timezone.utc).isoformat(),
-      "qa_status":"PASSED" if len(rounds)>=18 else "FAILED","rounds":rounds,"round_count":len(rounds),
+      "qa_status":"PASSED" if len(rounds)>=round_count else "FAILED","rounds":rounds,"round_count":len(rounds),
       "production_safety":{"launch_pool":"verified_direct_sql"},
-      "shortfall_reason":None if len(rounds)>=18 else f"Only {len(rounds)} real mixed questions available; Wave 5 needs 18.",
+      "shortfall_reason":None if len(rounds)>=round_count else f"Only {len(rounds)} real mixed questions available; Wave 5 requested {round_count}.",
       "review_status":"UNREVIEWED","_diagnostics":{"seed":seed,"launch_pool":"verified_direct_sql"}}
 
 def _s(progress):
