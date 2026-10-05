@@ -624,15 +624,12 @@ function loadNextEnginePilotQuestion() {
   s.screen = ENGINE_GAME_SCREEN.LOADING;
   s.error = null;
   renderAll();
-  var url = '/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode);
+  var query = '&client_id=' + encodeURIComponent(getClientId());
   // Cross-Mode Repetition pass: getClientId() (app.js, already the exact
   // helper Pick'em's pickem-ui.js reuses) lets the Gateway recognize the
-  // same real board/entity across DIFFERENT engine-pilot modes played back
-  // to back in this browser -- see public_game.py's own module comment.
-  // Sent on every mode, not just the ones that share the 595-board pool:
-  // harmless for a mode with no entity_key (recent_entities check is a
-  // no-op for it), and keeps this one call site mode-agnostic.
-  url += '&client_id=' + encodeURIComponent(getClientId());
+  // same real board/entity across DIFFERENT engine-backed modes played back
+  // to back in this browser. The unified facade forwards these question-
+  // mode hints only to the certified question generator.
   if (cfg.sequential) {
     // Real progression (Franchise Marathon / Era Gauntlet): stage_index
     // addresses a specific real position in an intentionally-ordered
@@ -640,15 +637,15 @@ function loadNextEnginePilotQuestion() {
     // is meaningless here (see get_public_game()'s own docstring for why
     // target_count=1 + exclude-based retry could never advance a
     // sequential mode before this pass).
-    url += '&stage=' + s.stageIndex;
+    query += '&stage=' + s.stageIndex;
   } else {
     var exclude = s.seenGameIds.slice(-20).join(',');
-    if (exclude) url += '&exclude=' + encodeURIComponent(exclude);
+    if (exclude) query += '&exclude=' + encodeURIComponent(exclude);
   }
   if (cfg.needsFilterValue && s.filterValue) {
-    url += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
+    query += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
   }
-  unifiedFormatStart(cfg.apiMode, url.slice(url.indexOf('&')))
+  unifiedFormatStart(cfg.apiMode, query)
     .then(function (round) {
       var game = unifiedQuestionRoundToLegacyGame(round);
       if (state.enginePilot !== s) return; // player navigated away while this was in flight
