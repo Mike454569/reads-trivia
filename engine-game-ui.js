@@ -490,39 +490,6 @@ function enginePilotFetchJson(path, options) {
   });
 }
 
-// Unified 100-format network facade. Both the legacy question shell and
-// the stateful mechanic shell call these helpers; the browser no longer
-// decides which Gateway service family owns a mode.
-function unifiedFormatStart(mode, extraQuery) {
-  var url = '/v1/public/formats/round?mode=' + encodeURIComponent(mode);
-  if (extraQuery) url += extraQuery;
-  return enginePilotFetchJson(url);
-}
-function unifiedFormatSubmit(roundId, submission) {
-  return enginePilotFetchJson('/v1/public/formats/round/' + encodeURIComponent(roundId) + '/submit', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ submission: submission || {} }),
-  });
-}
-function unifiedQuestionRoundToLegacyGame(round) {
-  var v = (round && round.view) || {};
-  return {
-    game_id: round.round_id,
-    mode: round.mode,
-    competition: round.competition,
-    difficulty: v.difficulty,
-    title: round.title,
-    instructions: round.instructions,
-    payload: {
-      prompt: v.prompt,
-      options: Array.isArray(v.options) ? v.options : [],
-      visual_template: v.visual_template,
-      visual_payload: v.visual_payload,
-    },
-    metadata: round.metadata || {},
-  };
-}
-
 // Player-facing quality guardrails for two generator defects that should
 // never survive to the screen, even if an older Gateway release or cached
 // package is briefly served during deployment.
@@ -624,12 +591,15 @@ function loadNextEnginePilotQuestion() {
   s.screen = ENGINE_GAME_SCREEN.LOADING;
   s.error = null;
   renderAll();
-  var query = '&client_id=' + encodeURIComponent(getClientId());
+  var url = '/v1/public/game?mode=' + encodeURIComponent(cfg.apiMode);
   // Cross-Mode Repetition pass: getClientId() (app.js, already the exact
   // helper Pick'em's pickem-ui.js reuses) lets the Gateway recognize the
-  // same real board/entity across DIFFERENT engine-backed modes played back
-  // to back in this browser. The unified facade forwards these question-
-  // mode hints only to the certified question generator.
+  // same real board/entity across DIFFERENT engine-pilot modes played back
+  // to back in this browser -- see public_game.py's own module comment.
+  // Sent on every mode, not just the ones that share the 595-board pool:
+  // harmless for a mode with no entity_key (recent_entities check is a
+  // no-op for it), and keeps this one call site mode-agnostic.
+  url += '&client_id=' + encodeURIComponent(getClientId());
   if (cfg.sequential) {
     // Real progression (Franchise Marathon / Era Gauntlet): stage_index
     // addresses a specific real position in an intentionally-ordered
@@ -637,17 +607,16 @@ function loadNextEnginePilotQuestion() {
     // is meaningless here (see get_public_game()'s own docstring for why
     // target_count=1 + exclude-based retry could never advance a
     // sequential mode before this pass).
-    query += '&stage=' + s.stageIndex;
+    url += '&stage=' + s.stageIndex;
   } else {
     var exclude = s.seenGameIds.slice(-20).join(',');
-    if (exclude) query += '&exclude=' + encodeURIComponent(exclude);
+    if (exclude) url += '&exclude=' + encodeURIComponent(exclude);
   }
   if (cfg.needsFilterValue && s.filterValue) {
-    query += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
+    url += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
   }
-  unifiedFormatStart(cfg.apiMode, query)
-    .then(function (round) {
-      var game = unifiedQuestionRoundToLegacyGame(round);
+  enginePilotFetchJson(url)
+    .then(function (game) {
       if (state.enginePilot !== s) return; // player navigated away while this was in flight
       // SEQUENCE_COMPLETE is a well-defined 200 (see gateway/errors.py) --
       // enginePilotFetchJson only ever throws on a non-2xx status, so this
@@ -710,8 +679,10 @@ function _submitEnginePilotAnswer(optionIndex) {
   var chosenLabel = game.payload.options[optionIndex];
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
-  unifiedFormatSubmit(game.game_id, { answer: chosenLabel }).then(function (data) {
-    var result = data.result;
+  enginePilotFetchJson('/v1/public/game/answer', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game_id: game.game_id, answer: chosenLabel }),
+  }).then(function (result) {
     if (state.enginePilot !== s) return;
     s.answerResult = result;
     s.seenGameIds.push(game.game_id);
@@ -1998,7 +1969,7 @@ function loadMechanicPilotRound() {
   s.screen = ENGINE_GAME_SCREEN.LOADING; s.error = null; s.result = null; s.matchSelection = {};
   s.gridActiveCell = null; s.rosterOpenSlot = null;
   renderAll();
-  unifiedFormatStart(cfg.publicMode)
+  enginePilotFetchJson('/v1/public/mechanics/round?mode=' + encodeURIComponent(cfg.publicMode))
     .then(function (data) {
       if (state.mechanicPilot !== s) return;
       s.roundId = data.round_id; s.view = data.view;
@@ -2018,7 +1989,10 @@ function submitMechanicPilotAction(submission) {
   s.lastSubmission = submission;
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
-  unifiedFormatSubmit(s.roundId, submission).then(function (data) {
+  enginePilotFetchJson('/v1/public/mechanics/round/' + encodeURIComponent(s.roundId) + '/submit', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ submission: submission }),
+  }).then(function (data) {
     if (state.mechanicPilot !== s) return;
     s.result = data.result; s.view = data.view; s.matchSelection = {};
     s.gridActiveCell = null; s.rosterOpenSlot = null;
