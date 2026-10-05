@@ -182,9 +182,16 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     try:
         c = engine_bootstrap.connect()
         try:
+            # Strategy/arcade launch speed: verified READY_FOR_BANK story
+            # MCQs are fetched in one indexed DB query, while each fallback
+            # capability below invokes a full certified generation pipeline.
+            # Fill up to two-thirds of the opening pool from the fast verified
+            # source, then keep the remaining third for broader capability
+            # diversity. This preserves depth without making a player wait on
+            # 8-12 serial generation passes before the first screen.
             story_questions = load_story_mcqs(
                 c,
-                limit=max(1, min(4, round_count // 3 or 1)),
+                limit=max(1, min(round_count, (round_count * 2 + 2) // 3)),
             )
         finally:
             c.close()
@@ -193,7 +200,7 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     except Exception:
         story_rounds = []
 
-    story_cap = max(1, min(len(story_rounds), round_count // 3 or 1))
+    story_cap = max(1, min(len(story_rounds), (round_count * 2 + 2) // 3))
     for q in story_rounds[:story_cap]:
         if q["prompt"] in used_prompts:
             continue
