@@ -1,4 +1,4 @@
-name: Strategy Arcade launch verification # rerun
+name: Strategy Arcade launch verification # rerun2
 on:
   push:
     branches: [fix/strategy-arcade-live-launch]
@@ -36,14 +36,20 @@ jobs:
               rounds = []
               for i in range(count):
                   rounds.append({
+                      "round_index": i,
                       "category": f"Category {i}",
                       "bucket": buckets[i % 3],
                       "difficulty": "Medium",
                       "depth_source": "test",
                       "prompt": f"Question {i}?",
-                      "correct_label": f"Correct {i}",
-                      "decoy_labels": [f"Wrong {i}-1", f"Wrong {i}-2", f"Wrong {i}-3"],
-                      "notes": "verified test fixture",
+                      "options": [
+                          {"item_id": "A", "label": f"Correct {i}"},
+                          {"item_id": "B", "label": f"Wrong {i}-1"},
+                          {"item_id": "C", "label": f"Wrong {i}-2"},
+                          {"item_id": "D", "label": f"Wrong {i}-3"},
+                      ],
+                      "_answer_item_id": "A",
+                      "_notes": "verified test fixture",
                   })
               return rounds
 
