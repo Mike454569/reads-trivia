@@ -57,6 +57,25 @@ def test_fact_or_fake_mutates_only_safe_structural_fact():
     assert q["mutation"]["shown"] == "2022"
 
 
+def test_undated_story_cannot_fabricate_metadata_fake():
+    c = _conn()
+    eid = upsert_event(c, {
+        "event_id": "story-undated",
+        "event_type": "OFF_FIELD_ODDITY",
+        "league": "NFL",
+        "event_date": None,
+        "title": "Documented story",
+        "neutral_summary": "A player was the subject of a documented off-field football story.",
+        "source_url": "https://example.com/story-undated",
+        "source_publisher": "Example",
+        "evidence_tier": "AUTHORITATIVE",
+        "verification_status": "VERIFIED",
+        "subjects": [{"subject_type": "NFL_PLAYER", "subject_id": "p1", "role": "subject"}],
+    })
+    with pytest.raises(ValueError, match="NO_PLAYER_FACING_FAKE_MUTATION"):
+        compile_fact_or_fake(c, eid, fake=True)
+
+
 def test_sensitive_legal_lore_cannot_generate_fake_variant():
     c = _conn()
     eid = _event(
