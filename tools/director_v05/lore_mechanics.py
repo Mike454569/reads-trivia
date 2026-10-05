@@ -137,20 +137,14 @@ def compile_fact_or_fake(conn, event_id, *, fake=False):
         raise ValueError("INSUFFICIENT_LORE_CLUES")
 
     season = _season(event.get("event_date"))
-    typ = str(event.get("event_type") or "")
     if fake:
-        if season:
-            wrong = str(int(season) + 1)
-            statement = "This verified football event occurred in the " + wrong + " season."
-            mutation = {"field": "season", "actual": season, "shown": wrong}
-        elif typ:
-            statement = "This event was classified as a Trade."
-            mutation = {"field": "event_type", "actual": typ, "shown": "TRADE"}
-            if typ == "TRADE":
-                statement = "This event was classified as a Contract."
-                mutation["shown"] = "CONTRACT"
-        else:
-            raise ValueError("NO_SAFE_FAKE_MUTATION")
+        # Internal event taxonomy is provenance, not trivia copy. Only build
+        # a fake when we can mutate a real player-facing football fact.
+        if not season:
+            raise ValueError("NO_PLAYER_FACING_FAKE_MUTATION")
+        wrong = str(int(season) + 1)
+        statement = "This documented football event happened in the " + wrong + " season."
+        mutation = {"field": "season", "actual": season, "shown": wrong}
         answer = False
     else:
         statement = clues[0]
