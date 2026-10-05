@@ -31,9 +31,12 @@ def run_story_batch_process():
             run_id,
             status="SUCCESS",
             rows_downloaded=0,
-            rows_imported=int(result.get("claimed_total") or 0),
-            rows_rejected=int(
-                (result.get("counts") or {}).get("REVIEW_REQUIRED", 0)
+            rows_imported=int(
+                (result.get("counts") or {}).get("DONE", 0)
+            ),
+            rows_rejected=(
+                int((result.get("counts") or {}).get("REVIEW_REQUIRED", 0))
+                + int((result.get("counts") or {}).get("FAILED_FINAL", 0))
             ),
             no_op=(int(result.get("claimed_total") or 0) == 0),
             detail={"story_factory": result},
