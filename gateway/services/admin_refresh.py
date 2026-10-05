@@ -366,6 +366,5 @@ def refresh_status() -> dict:
             "rankings": _safe_run_summary(runners["cfb_rankings"][0].last_run_status()),
             "standings": _safe_run_summary(runners["cfb_standings"][0].last_run_status()),
             "weather": _safe_run_summary(runners["cfb_weather"][0].last_run_status()),
-            "recruiting": _safe_run_summary(runners["cfb_recruiting"][0].last_run_status()),
         },
     }
