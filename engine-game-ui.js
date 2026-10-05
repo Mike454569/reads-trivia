@@ -2025,7 +2025,7 @@ function submitMechanicPilotAction(submission) {
     // MYSTERY_ROSTER's own "reveal" step is the same real navigation
     // shape: revealing another real clue is not itself a graded answer --
     // only the subsequent "guess" action is (see mystery_roster.py).
-    if (data.result && (data.result.revealed === true || data.result.action === 'select' || data.result.action === 'deselect' ||
+    if (data.result && (data.result.revealed === true || data.result.retry_with_more_clue === true || data.result.action === 'select' || data.result.action === 'deselect' ||
         data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
         data.result.action === 'reveal' || data.result.action === 'skip' || data.result.action === 'vault' ||
         data.result.action === 'accept' ||
