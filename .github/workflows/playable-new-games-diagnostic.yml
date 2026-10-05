@@ -1,0 +1,41 @@
+name: Playable new games diagnostic
+on:
+  push:
+    branches: [fix/playable-new-games-and-whoami]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: JavaScript syntax
+        run: |
+          node --check app.js
+          node --check engine-game-ui.js
+      - name: Python syntax and registry wiring
+        run: |
+          python -m py_compile gateway/services/public_mechanics.py
+          python - <<'PY'
+          from gateway.services.public_mechanics import PUBLIC_MECHANIC_MODES
+          w = PUBLIC_MECHANIC_MODES["who_am_i_nfl"]
+          assert w["taxonomy_id"] == "PROGRESSIVE_CLUE_IDENTIFY"
+          assert w["variant"] == "NFL_PLAYER_FROM_CLUES"
+          assert w["gen_kwargs"]["target_count"] == 5
+          assert PUBLIC_MECHANIC_MODES["perfect_drive_nfl"]["gen_kwargs"]["question_count"] == 5
+          assert PUBLIC_MECHANIC_MODES["perfect_drive_cfb"]["gen_kwargs"]["question_count"] == 5
+          strategy = [v for v in PUBLIC_MECHANIC_MODES.values() if v.get("kind") == "strategy_arcade"]
+          assert strategy and all(v["gen_kwargs"]["round_count"] == 6 for v in strategy)
+          print("registry wiring OK", len(strategy))
+          PY
+      - name: Frontend Who Am I wiring
+        run: |
+          grep -q "publicMode: 'who_am_i_nfl'" engine-game-ui.js
+          grep -q "kind: 'progressive_clue'" engine-game-ui.js
+          grep -q "startMechanicPilotRound('whoAmI', mode)" app.js
+          grep -q "data-mechanic-clue-reveal" app.js
+          grep -q "data-mechanic-clue-submit" app.js
+      - name: 100-format mapping audit
+        run: |
+          python -m pytest gateway/tests/test_100_format_real_launch.py::test_all_100_formats_are_mapped_before_real_launch -q
