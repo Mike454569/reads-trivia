@@ -90,15 +90,9 @@ _BINGO_LINES = (
 _TERRITORY_VALUES = (1, 2, 3, 2, 3, 1)
 
 
-def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
-    if variant not in VARIANTS:
-        raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
-    # Launch path must be fast and deterministic: build the opening
-    # question pool from verified warehouse rows in one SQLite session,
-    # rather than running a full Director pipeline once per question.
-    raw_rounds = deep_trivia.generate_fast_arcade_rounds(
-        f"{seed}-strategy-{variant}", round_count
-    )
+def build_fast_round_pool(seed: str, round_count: int) -> list[dict]:
+    """Build client-safe-shaped private rounds from the fast verified pool."""
+    raw_rounds = deep_trivia.generate_fast_arcade_rounds(seed, round_count)
     rounds = []
     for i, r in enumerate(raw_rounds):
         candidates = [r["correct_label"]] + list(r["decoy_labels"])
@@ -117,6 +111,16 @@ def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
             "_answer_item_id": item_ids[order.index(0)],
             "_notes": r["notes"],
         })
+    return rounds
+
+
+def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
+    if variant not in VARIANTS:
+        raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
+    # Launch path must be fast and deterministic: build the opening
+    # question pool from verified warehouse rows in one SQLite session,
+    # rather than running a full Director pipeline once per question.
+    rounds = build_fast_round_pool(f"{seed}-strategy-{variant}", round_count)
     package_id = "GGP38:" + hashlib.sha256(
         f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
