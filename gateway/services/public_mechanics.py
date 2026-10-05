@@ -73,7 +73,7 @@ PUBLIC_MECHANIC_MODES: dict[str, dict[str, Any]] = {
         "competition": "NFL", "taxonomy_id": "PROGRESSIVE_CLUE_IDENTIFY", "variant": "NFL_PLAYER_FROM_CLUES",
         "title": "Who Am I?",
         "instructions": "Reveal verified clues about a real NFL player and identify him with as few clues as possible.",
-        "kind": "progressive_clue", "gen_kwargs": {"target_count": 5},
+        "kind": "progressive_clue", "gen_kwargs": {"target_count": 5, "stop_after_target": True},
     },
     "matching_nfl_draft": {
         "competition": "NFL", "taxonomy_id": "MATCHING", "variant": "NFL_DRAFT_CLASS_MATCH",
