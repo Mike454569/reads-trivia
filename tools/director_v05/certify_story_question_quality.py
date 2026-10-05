@@ -66,6 +66,13 @@ def _validate_mcq(q):
     clues = q.get("clues") or []
     if q.get("question_family") == "LORE_IDENTITY" and len(clues) < 3:
         errors.append("IDENTITY_NEEDS_THREE_CLUES")
+    if q.get("question_family") == "LORE_IDENTITY" and label:
+        clue_texts = [
+            str(c.get("text") if isinstance(c, dict) else c)
+            for c in clues
+        ]
+        if any(label.casefold() in text.casefold() for text in clue_texts):
+            errors.append("IDENTITY_ANSWER_LEAKAGE")
     return errors
 
 
@@ -81,6 +88,8 @@ def _validate_progressive(q):
         str(c.get("text") if isinstance(c, dict) else c).strip()
         for c in clues
     ]
+    if label and any(label.casefold() in text.casefold() for text in texts):
+        errors.append("PROGRESSIVE_ANSWER_LEAKAGE")
     if any(not x for x in texts):
         errors.append("PROGRESSIVE_BLANK_CLUE")
     if len({x.casefold() for x in texts}) != len(texts):
