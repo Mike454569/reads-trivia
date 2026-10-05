@@ -32,6 +32,7 @@ jobs:
           sd=qi.score_question(deep,source="cross_table")
           print("scores",sb,ss,sd)
           assert sb["score"] < 50
+          assert ss["score"] < 50
           assert sd["score"] >= 68
           assert sd["score"] > ss["score"]
 
