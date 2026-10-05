@@ -11,7 +11,7 @@ jobs:
         run: |
           set -euo pipefail
           base="https://reads-football-gateway.fly.dev"
-          modes=(matching_nfl_draft perfect_drive_nfl risk_it_nfl fact_or_fake_nfl)
+          modes=(matching_nfl_draft perfect_drive_nfl connection_grid_nfl lineup_builder_nfl auction_draft_nfl cap_challenge_nfl knockout_tournament_nfl six_degrees_cfb_nfl choose_your_path_nfl)
           failed=0
           for mode in "${modes[@]}"; do
             start=$(date +%s%3N)
