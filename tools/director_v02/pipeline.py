@@ -28,6 +28,7 @@ import time
 from . import audit_log  # noqa: E402
 from . import translator as translator_mod  # noqa: E402
 from . import validator as validator_mod  # noqa: E402
+from tools.director_v04 import question_intelligence  # noqa: E402
 
 ID_START = 610000  # default fallback only -- each capability's own
                     # `pipeline_id_start` (registry.py) takes precedence.
@@ -190,6 +191,12 @@ def run(request_text: str | None = None, *, spec: dict | None = None, provider: 
         freeze_timestamp=freeze_timestamp,
     )
     engine_generation_latency_ms = (time.perf_counter() - t1) * 1000
+
+    # Question Intelligence annotates every generated question at the shared
+    # Director boundary. It never rewrites certified answers/options; it only
+    # adds deterministic quality/difficulty/fingerprint metadata so public
+    # games, Creator and audits can reason about depth and repeats uniformly.
+    question_intelligence.annotate_package(package)
 
     # Attached generically here (not inside any one generate_fn) so every
     # package gets these two fields the same way regardless of mechanic.
