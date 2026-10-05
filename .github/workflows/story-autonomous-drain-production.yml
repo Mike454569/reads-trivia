@@ -1,0 +1,51 @@
+name: Story Autonomous Drain Production
+
+on:
+  push:
+    branches:
+      - 'story-autodrain-prod-run-*'
+
+concurrency:
+  group: story-production-autodrain
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Run current checkpointed drain against production
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if (r.get('id') or r.get('ID')) and str(r.get('state') or '').lower()=='started' and not str(r.get('name','')).startswith('ci-')]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          BP=$(base64 -w0 tools/director_v05/story_batch_processor.py)
+          DR=$(base64 -w0 tools/director_v05/story_batch_drain.py)
+          for attempt in 1 2 3 4; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python3 -c \"import base64,types,sys,json; bp=types.ModuleType(\\\"tools.director_v05.story_batch_processor\\\"); bp.__package__=\\\"tools.director_v05\\\"; exec(base64.b64decode(\\\"$BP\\\"),bp.__dict__); sys.modules[\\\"tools.director_v05.story_batch_processor\\\"]=bp; dr=types.ModuleType(\\\"tools.director_v05.story_batch_drain\\\"); dr.__package__=\\\"tools.director_v05\\\"; exec(base64.b64decode(\\\"$DR\\\"),dr.__dict__); print(json.dumps(dr.drain_story_queue(batch_size=5,max_batches=10,time_budget_seconds=900,include_deep_chains=False),sort_keys=True))\"'" > story-autodrain.json 2> story-autodrain.err; then
+              cat story-autodrain.json
+              test -s story-autodrain.json
+              exit 0
+            fi
+            echo "autodrain SSH attempt $attempt failed"
+            cat story-autodrain.err || true
+            sleep 5
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: story-autonomous-drain-production
+          path: |
+            story-autodrain.json
+            story-autodrain.err
+          if-no-files-found: warn
+          retention-days: 7
