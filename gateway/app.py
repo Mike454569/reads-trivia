@@ -46,7 +46,7 @@ from .models import (AdminPickemGameStatusRequest, CreatorConceptsRequest, Creat
                       GenerateRequest, GridBoardRequest, GridValidateRequest,
                       MechanicRoundRequest, MechanicSubmitRequest, PreviewRequest,
                       PublicAnswerRequest, PublicCoachConnectionsMoveRequest, PublicCoachConnectionsRevealRequest,
-                      PublicMechanicSubmitRequest, PublicPickemSubmitRequest,
+                      PublicMechanicSubmitRequest, PublicFormatSubmitRequest, PublicPickemSubmitRequest,
                       PublicSixDegreesAnswerRequest, PublicSixDegreesRevealRequest,
                       StoryEventDateReviewRequest)
 from .ratelimit import SlidingWindowRateLimiter  # noqa: E402
@@ -58,6 +58,7 @@ from .services import admin_refresh  # noqa: E402
 from .services import admin_pickem  # noqa: E402
 from .services import public_coach_connections  # noqa: E402
 from .services import public_game  # noqa: E402
+from .services import public_formats  # noqa: E402
 from .services import public_mechanics  # noqa: E402
 from .services import public_pickem  # noqa: E402
 from .services import public_six_degrees  # noqa: E402
@@ -1335,6 +1336,47 @@ def rate_limit_public_mechanic_round(request: Request) -> None:
 
 def rate_limit_public_mechanic_submit(request: Request) -> None:
     _rate_limit(public_mechanic_submit_limiter, request)
+
+
+@app.get("/v1/public/formats")
+def public_formats_modes():
+    return {"modes": public_formats.list_public_formats()}
+
+
+@app.get("/v1/public/formats/round")
+def public_formats_start_round(
+    request: Request,
+    mode: str = Query(..., min_length=1, max_length=64),
+    difficulty: Optional[str] = Query(default=None),
+    seed: Optional[str] = Query(default=None, min_length=1, max_length=config.MAX_SEED_LENGTH),
+    exclude: Optional[str] = Query(default=None, max_length=2000),
+    stage: Optional[int] = Query(default=None, ge=0, le=99),
+    franchise: Optional[str] = Query(default=None, min_length=1, max_length=64),
+    client_id: Optional[str] = Query(default=None, min_length=6, max_length=64),
+    _rl=Depends(rate_limit_public_game),
+):
+    if difficulty is not None and difficulty not in config.ALLOWED_DIFFICULTIES:
+        raise GatewayError("INVALID_REQUEST", f"difficulty must be one of {sorted(config.ALLOWED_DIFFICULTIES)}.")
+    exclude_ids = [x for x in (exclude.split(",") if exclude else []) if x][:50]
+    return public_formats.start_public_format(
+        mode=mode,
+        difficulty=difficulty,
+        seed=seed,
+        exclude_game_ids=exclude_ids,
+        stage_index=stage,
+        filter_value=franchise,
+        client_id=client_id,
+    )
+
+
+@app.post("/v1/public/formats/round/{round_id}/submit")
+def public_formats_submit_round(
+    round_id: str,
+    body: PublicFormatSubmitRequest,
+    request: Request,
+    _rl=Depends(rate_limit_public_answer),
+):
+    return public_formats.submit_public_format(round_id=round_id, submission=body.submission)
 
 
 @app.get("/v1/public/mechanics/modes")
