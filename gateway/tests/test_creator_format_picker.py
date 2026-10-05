@@ -77,6 +77,7 @@ CREATOR_FORMAT_CATALOG_DIRECT = [
     ("Draft Pick Ladder", "DRAFT_PICK_LADDER", "NFL_DRAFT_PICK_LADDER"),
     ("Category Roulette", "CATEGORY_ROULETTE", "CATEGORY_ROULETTE_MIXED"),
     ("Common Link", "COMMON_LINK", "NFL_DRAFT_COMMON_LINK"),
+    ("Deep Football Lore", "DEEP_LORE_GUESS", "UNIVERSAL_DEEP_LORE"),
     ("Bingo Blitz", "STRATEGY_ARCADE", "BINGO_BLITZ"),
     ("Territory Takeover", "STRATEGY_ARCADE", "TERRITORY_TAKEOVER"),
     ("Exact Ten", "STRATEGY_ARCADE", "EXACT_TEN"),
