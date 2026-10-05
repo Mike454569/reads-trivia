@@ -1,0 +1,17 @@
+name: Production story pool count
+on:
+  push:
+    branches: [diag/story-pool-count]
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Count certified story MCQs
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; rows=json.load(sys.stdin); print(next(str(r.get("id") or r.get("ID")) for r in rows if str(r.get("state","")).lower()=="started" and not str(r.get("name","")).startswith("ci-")))')
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "python -c \"import sqlite3; c=sqlite3.connect('/data/engine/reads_football_v4.0.sqlite'); print(c.execute(\\\"SELECT COUNT(*) FROM story_generated_questions g JOIN universal_event u ON u.event_id=g.event_id WHERE g.status='READY_FOR_BANK' AND g.mechanic='MULTIPLE_CHOICE' AND u.verification_status='VERIFIED' AND u.sensitive=0\\\").fetchone()[0])\""
