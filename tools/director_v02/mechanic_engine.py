@@ -2403,11 +2403,18 @@ def evaluate_submission(taxonomy_id: str, package: dict, progress: dict, submiss
         progress["completed"] = progress["current_index"] >= len(package["questions"])
         return result, progress
     if taxonomy_id == "PROGRESSIVE_CLUE_IDENTIFY":
+        puzzle = package["puzzles"][progress["current_index"]]
         if submission.get("action") == "reveal_next_clue":
-            puzzle = package["puzzles"][progress["current_index"]]
             progress["clues_revealed"] = min(len(puzzle["clues"]), progress.get("clues_revealed", 1) + 1)
             return {"revealed": True}, progress
         result = _clue_evaluate(package, progress["current_index"], progress.get("clues_revealed", 1), submission)
+        # Match the player-facing Who Am I flow: a wrong guess reveals the
+        # next verified clue while one remains instead of throwing the
+        # player into an unrelated new mystery immediately.
+        if not result["correct"] and progress.get("clues_revealed", 1) < len(puzzle["clues"]):
+            progress["clues_revealed"] = progress.get("clues_revealed", 1) + 1
+            result["retry_with_more_clue"] = True
+            return result, progress
         progress["current_index"] += 1
         progress["clues_revealed"] = 1
         progress["completed"] = progress["current_index"] >= len(package["puzzles"])
