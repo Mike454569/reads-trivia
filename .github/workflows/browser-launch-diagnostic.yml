@@ -6,7 +6,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe live Who Am I depth and latency
+      - name: Probe first Who Am I launch after prewarm deploy
         shell: bash
         run: |
           set -euo pipefail
