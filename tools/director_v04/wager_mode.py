@@ -44,6 +44,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
+from tools.director_v04 import deep_trivia  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "WAGER_MODE"
@@ -167,62 +168,21 @@ def generate_rounds(seed: str, variant: str, round_count: int = 5) -> dict:
     c = engine_bootstrap.connect()
     try:
         safety_result = safety_check(c)
-        record_rows = c.execute(
-            "SELECT season, team_code, wins, losses, ties FROM season_standings "
-            "WHERE verification_status='SOURCE_BACKED' AND source_id='NFLVERSE_DATA' "
-            "AND wins IS NOT NULL AND losses IS NOT NULL"
-        ).fetchall()
-        records_by_season: dict[int, list] = {}
-        for r in record_rows:
-            records_by_season.setdefault(r["season"], []).append(r)
-        heisman_rows = c.execute(
-            "SELECT award_year, player_name, school_name FROM cfb_award_facts "
-            "WHERE verification_status='SOURCE_BACKED_FROM_CFB_MASTER' AND award_name='Heisman Trophy' "
-            "AND player_name IS NOT NULL"
-        ).fetchall()
-        sb_rows = c.execute(
-            "SELECT season, winner_name_raw FROM nfl_championship_events WHERE winner_team_code IS NOT NULL"
-        ).fetchall()
     finally:
         c.close()
 
-    rounds = []
-    for i in range(round_count):
-        # Cycles through all 3 real categories in a real, deterministic
-        # (seed-dependent) rotation rather than a fully independent random
-        # pick each round -- guarantees round_count >= 3 sessions see
-        # every real category at least once, never all-one-category by chance.
-        cat = _CATEGORIES[i % len(_CATEGORIES)]
-        cat_rng = engine_bootstrap.seeded(f"{seed}-r{i}")
-        if cat == "NFL Team Records":
-            q = _nfl_team_record_question(cat_rng, records_by_season)
-        elif cat == "Heisman Winners":
-            q = _heisman_question(cat_rng, heisman_rows)
-        else:
-            q = _super_bowl_question(cat_rng, sb_rows)
-        if q is None:
-            continue
-        bucket = {
-            "NFL Team Records": "Game Day",
-            "Heisman Winners": "College Chaos",
-            "Super Bowl Champions": "Season & Legacy",
-        }[cat]
-        depth_source = {
-            "NFL Team Records": "season_standings",
-            "Heisman Winners": "cfb_award_facts",
-            "Super Bowl Champions": "nfl_championship_events",
-        }[cat]
-        rounds.append({"category": cat, "bucket": bucket, "difficulty": "Any",
-                       "depth_source": depth_source, **q})
-
+    rounds = deep_trivia.generate_rounds(f"{seed}-wager", round_count)
     shortfall_reason = None
     if len(rounds) < round_count:
         shortfall_reason = (
-            f"Only {len(rounds)} of {round_count} requested real WAGER_MODE rounds could be built with a "
-            f"real, decoy-complete question; exported the maximum available rather than include a "
-            f"fabricated or incomplete question."
+            f"Only {len(rounds)} of {round_count} requested real WAGER_MODE "
+            "Deep Ball rounds could be built from certified real data."
         )
-    return {"rounds": rounds, "safety": safety_result, "shortfall_reason": shortfall_reason}
+    return {
+        "rounds": rounds,
+        "safety": safety_result,
+        "shortfall_reason": shortfall_reason,
+    }
 
 
 _GAME_TITLES = {"WAGER_MODE_MIXED": "Wager Mode"}
