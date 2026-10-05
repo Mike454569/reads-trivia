@@ -436,7 +436,6 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
                 break
 
     return rounds
-s
 
 def capability_count() -> int:
     return len(_DEEP_CAPABILITIES)
