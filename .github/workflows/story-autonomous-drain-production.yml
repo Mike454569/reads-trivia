@@ -6,7 +6,7 @@ on:
       - 'story-autodrain-prod-run-*'
 
 concurrency:
-  group: story-production-autodrain
+  group: story-production-autodrain-v2
   cancel-in-progress: false
 
 permissions:
