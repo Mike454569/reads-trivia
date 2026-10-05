@@ -98,3 +98,17 @@ def test_quality_cert_rejects_identity_answer_leakage():
     out=certify_story_question_quality(c)
     assert out["failed"]==1
     assert "PROGRESSIVE_ANSWER_LEAKAGE" in out["failure_reasons"]
+
+
+def test_quality_cert_rejects_internal_event_metadata_fact_fake():
+    c=_conn();_event(c,"e1")
+    q={
+        "question_id":"q-meta","mechanic":"FACT_OR_FAKE","question_family":"LORE_EVENT",
+        "question":"This event was classified as a Trade.",
+        "answer":{"id":"FAKE","label":"Fake","type":"BOOLEAN"},
+        "event_id":"e1","provenance":{"event_ids":["e1"]},
+    }
+    _insert(c,q,"e1","READY_FOR_FORMAT_BANK")
+    out=certify_story_question_quality(c)
+    assert out["failed"]==1
+    assert "FACT_FAKE_INTERNAL_METADATA_COPY" in out["failure_reasons"]
