@@ -124,4 +124,8 @@ jobs:
           smoke cfb_pickem "$base/v1/public/pickem/CFB?slate=FULL&client_id=deploysmoke"
           smoke nfl_pickem "$base/v1/public/pickem/NFL?client_id=deploysmoke"
           smoke mechanic "$base/v1/public/mechanics/round?mode=matching_nfl_draft"
+          # Unified frontend contract -- this is the route the 100-format
+          # engine UI now uses. A deploy is not healthy if this path hangs
+          # even when the legacy mechanic route still works.
+          smoke unified_format "$base/v1/public/formats/round?mode=matching_nfl_draft"
           echo "Gateway health + customer gameplay smoke checks passed."
