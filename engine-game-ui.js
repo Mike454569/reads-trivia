@@ -490,6 +490,39 @@ function enginePilotFetchJson(path, options) {
   });
 }
 
+// Unified 100-format network facade. Both the legacy question shell and
+// the stateful mechanic shell call these helpers; the browser no longer
+// decides which Gateway service family owns a mode.
+function unifiedFormatStart(mode, extraQuery) {
+  var url = '/v1/public/formats/round?mode=' + encodeURIComponent(mode);
+  if (extraQuery) url += extraQuery;
+  return enginePilotFetchJson(url);
+}
+function unifiedFormatSubmit(roundId, submission) {
+  return enginePilotFetchJson('/v1/public/formats/round/' + encodeURIComponent(roundId) + '/submit', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ submission: submission || {} }),
+  });
+}
+function unifiedQuestionRoundToLegacyGame(round) {
+  var v = (round && round.view) || {};
+  return {
+    game_id: round.round_id,
+    mode: round.mode,
+    competition: round.competition,
+    difficulty: v.difficulty,
+    title: round.title,
+    instructions: round.instructions,
+    payload: {
+      prompt: v.prompt,
+      options: Array.isArray(v.options) ? v.options : [],
+      visual_template: v.visual_template,
+      visual_payload: v.visual_payload,
+    },
+    metadata: round.metadata || {},
+  };
+}
+
 // Player-facing quality guardrails for two generator defects that should
 // never survive to the screen, even if an older Gateway release or cached
 // package is briefly served during deployment.
@@ -615,8 +648,9 @@ function loadNextEnginePilotQuestion() {
   if (cfg.needsFilterValue && s.filterValue) {
     url += '&' + (cfg.filterParamName || 'filter_value') + '=' + encodeURIComponent(s.filterValue);
   }
-  enginePilotFetchJson(url)
-    .then(function (game) {
+  unifiedFormatStart(cfg.apiMode, url.slice(url.indexOf('&')))
+    .then(function (round) {
+      var game = unifiedQuestionRoundToLegacyGame(round);
       if (state.enginePilot !== s) return; // player navigated away while this was in flight
       // SEQUENCE_COMPLETE is a well-defined 200 (see gateway/errors.py) --
       // enginePilotFetchJson only ever throws on a non-2xx status, so this
@@ -679,10 +713,8 @@ function _submitEnginePilotAnswer(optionIndex) {
   var chosenLabel = game.payload.options[optionIndex];
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
-  enginePilotFetchJson('/v1/public/game/answer', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: game.game_id, answer: chosenLabel }),
-  }).then(function (result) {
+  unifiedFormatSubmit(game.game_id, { answer: chosenLabel }).then(function (data) {
+    var result = data.result;
     if (state.enginePilot !== s) return;
     s.answerResult = result;
     s.seenGameIds.push(game.game_id);
@@ -1969,7 +2001,7 @@ function loadMechanicPilotRound() {
   s.screen = ENGINE_GAME_SCREEN.LOADING; s.error = null; s.result = null; s.matchSelection = {};
   s.gridActiveCell = null; s.rosterOpenSlot = null;
   renderAll();
-  enginePilotFetchJson('/v1/public/mechanics/round?mode=' + encodeURIComponent(cfg.publicMode))
+  unifiedFormatStart(cfg.publicMode)
     .then(function (data) {
       if (state.mechanicPilot !== s) return;
       s.roundId = data.round_id; s.view = data.view;
@@ -1989,10 +2021,7 @@ function submitMechanicPilotAction(submission) {
   s.lastSubmission = submission;
   s.screen = ENGINE_GAME_SCREEN.SUBMITTING;
   renderAll();
-  enginePilotFetchJson('/v1/public/mechanics/round/' + encodeURIComponent(s.roundId) + '/submit', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ submission: submission }),
-  }).then(function (data) {
+  unifiedFormatSubmit(s.roundId, submission).then(function (data) {
     if (state.mechanicPilot !== s) return;
     s.result = data.result; s.view = data.view; s.matchSelection = {};
     s.gridActiveCell = null; s.rosterOpenSlot = null;
