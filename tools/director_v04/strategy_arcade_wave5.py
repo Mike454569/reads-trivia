@@ -198,9 +198,16 @@ def evaluate(package,progress,submission):
         return r,s
     if v=="CHAMPIONSHIP_RUN":
         req=(1,2,2,3); miss_limit=(2,2,2,2); stage=s.get("stage",0)
+        # Both counters must exist before either branch below reads them.
+        # Previously the first wrong answer created only stage_wrong and then
+        # read s["stage_correct"], while a non-clinching correct answer could
+        # create only stage_correct and then read s["stage_wrong"]. Both paths
+        # raised KeyError and surfaced to players as INVALID_REQUEST.
+        s.setdefault("stage_correct",0)
+        s.setdefault("stage_wrong",0)
         r=core._grade(package,s,submission)
-        if r["correct"]: s["stage_correct"]=s.get("stage_correct",0)+1
-        else: s["stage_wrong"]=s.get("stage_wrong",0)+1
+        if r["correct"]: s["stage_correct"]+=1
+        else: s["stage_wrong"]+=1
         _adv(s,r["correct"])
         if s["stage_correct"]>=req[stage]:
             s["stage"]=stage+1; s["stage_correct"]=0; s["stage_wrong"]=0
