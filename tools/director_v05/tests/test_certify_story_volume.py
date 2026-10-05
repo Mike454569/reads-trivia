@@ -53,3 +53,5 @@ def test_story_factory_and_harvesters_share_neutral_write_helpers():
     assert mixed._prepare_write_connection is write_utils._prepare_write_connection
     assert cfb._prepare_write_connection is write_utils._prepare_write_connection
     assert factory._prepare_write_connection is write_utils._prepare_write_connection
+
+# CI synchronization marker: Story volume certification.
