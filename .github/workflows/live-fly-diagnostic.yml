@@ -1,0 +1,23 @@
+name: Live Fly diagnostic
+
+on:
+  push:
+    branches: [fix/gameplay-launch-and-factfake]
+    paths:
+      - ".github/workflows/live-fly-diagnostic.yml"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Inspect Fly production machine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -x
+          flyctl status -a reads-football-gateway || true
+          flyctl machines list -a reads-football-gateway || true
+          flyctl checks list -a reads-football-gateway || true
+          flyctl logs -a reads-football-gateway --no-tail || true
