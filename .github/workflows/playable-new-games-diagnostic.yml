@@ -27,7 +27,7 @@ jobs:
           assert PUBLIC_MECHANIC_MODES["perfect_drive_cfb"]["gen_kwargs"]["question_count"] == 5
           strategy = [v for v in PUBLIC_MECHANIC_MODES.values() if v.get("kind") == "strategy_arcade"]
           assert strategy and all(v["gen_kwargs"]["round_count"] == 6 for v in strategy)
-          print("registry wiring OK", len(strategy))
+          print("registry wiring OK", len(strategy), "strategy modes")
           PY
       - name: Frontend Who Am I wiring
         run: |
