@@ -43,7 +43,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import engine as engine_bootstrap  # noqa: E402
-from tools.director_v04 import wager_mode  # noqa: E402
+from tools.director_v04 import wager_mode, deep_trivia  # noqa: E402
 
 PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "CATEGORY_ROULETTE"
@@ -58,13 +58,21 @@ def generate_rounds(seed: str, variant: str, round_count: int = 6) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
 
-    result = wager_mode.generate_rounds(
-        f"{seed}-category-roulette", "WAGER_MODE_MIXED", round_count=round_count
+    c = engine_bootstrap.connect()
+    try:
+        safety = wager_mode.safety_check(c)
+    finally:
+        c.close()
+    rounds = deep_trivia.generate_rounds(
+        f"{seed}-category-roulette", round_count
     )
     return {
-        "rounds": result.get("rounds") or [],
-        "safety": result.get("safety") or {},
-        "shortfall_reason": result.get("shortfall_reason"),
+        "rounds": rounds,
+        "safety": safety,
+        "shortfall_reason": None if len(rounds) == round_count else (
+            f"Only {len(rounds)} of {round_count} requested Deep Ball rounds "
+            "could be built from certified real data."
+        ),
     }
 
 
