@@ -15,7 +15,10 @@ from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
 
-from .story_to_trivia_factory import _prepare_write_connection, _commit_with_retry
+from .story_sqlite import (
+    prepare_write_connection as _prepare_write_connection,
+    commit_with_retry as _commit_with_retry,
+)
 from .story_candidate_harvest import (
     _articles,
     _candidate_id,
