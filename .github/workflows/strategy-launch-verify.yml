@@ -1,0 +1,24 @@
+name: Strategy launch verify
+on:
+  push:
+    branches: [fix/strategy-launch-live]
+    paths:
+      - ".github/workflows/strategy-launch-verify.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run strategy arcade contracts
+        run: |
+          python -m py_compile tools/director_v04/strategy_arcade.py tools/director_v04/deep_trivia.py
+          python -m pytest -q \
+            gateway/tests/test_strategy_arcade_package_ids.py \
+            gateway/tests/test_strategy_arcade_wave2.py \
+            gateway/tests/test_strategy_arcade_wave3.py \
+            gateway/tests/test_strategy_arcade_wave4.py \
+            gateway/tests/test_strategy_arcade_wave5.py \
+            gateway/tests/test_100_format_launch_matrix.py
