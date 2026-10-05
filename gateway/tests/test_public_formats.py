@@ -109,11 +109,11 @@ def test_question_submit_requires_answer(monkeypatch):
     assert exc.value.code == "INVALID_REQUEST"
 
 
-def test_engine_ui_uses_only_unified_format_network_contract():
+def test_engine_ui_uses_certified_direct_public_routes():
     source = (ROOT / "engine-game-ui.js").read_text(encoding="utf-8")
-    assert "/v1/public/formats/round" in source
-    assert "enginePilotFetchJson('/v1/public/game" not in source
-    assert "enginePilotFetchJson('/v1/public/mechanics/round" not in source
+    assert "enginePilotFetchJson('/v1/public/game" in source
+    assert "enginePilotFetchJson('/v1/public/mechanics/round" in source
+    assert "/v1/public/formats/round" not in source
 
 
 def test_all_100_format_server_targets_are_owned_by_unified_facade():
