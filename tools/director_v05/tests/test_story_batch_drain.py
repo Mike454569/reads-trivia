@@ -4,6 +4,12 @@ import types
 fake_engine = types.ModuleType("tools.quiz_export.engine")
 fake_engine.connect = lambda: None
 fake_engine.ENGINE_DIR = None
+# Keep the stub compatible with other Story/Deep Ball modules collected in
+# the same pytest process. This test never writes to DATA_DIR; the attribute
+# merely prevents unrelated adapter imports from failing at collection time.
+from pathlib import Path
+fake_engine.DATA_DIR = Path(".")
+fake_engine.seeded = lambda seed: __import__("random").Random(seed)
 sys.modules.setdefault("tools.quiz_export.engine", fake_engine)
 
 from tools.director_v05 import story_batch_drain as drain
