@@ -220,6 +220,23 @@ async def lifespan(app: FastAPI):
         print(f"[gateway] WARNING: Engine DB not ready at startup: {readiness['reason']}. "
               f"Service will report itself unready via /v1/ready until this is fixed.", file=sys.stderr)
     print(f"[gateway] CORS allowed origins: {ALLOWED_ORIGINS}", file=sys.stderr)
+
+    # Who Am I uses a comprehensive source-backed identity universe. Build
+    # and cache it once during deploy/startup so the first real player does
+    # not hit a 10s cold-request timeout. This is bounded process-local work
+    # and does not mutate the Engine DB.
+    try:
+        from tools.director_v04 import player_from_clues
+        t0 = time.perf_counter()
+        whoami_cache = player_from_clues.warm_generation_cache()
+        print(f"[gateway] Who Am I cache warm ({time.perf_counter() - t0:.1f}s, "
+              f"universe={whoami_cache.get('universe_size')})", file=sys.stderr)
+    except Exception as e:
+        # Never make the whole Gateway unavailable because an optional game
+        # cache could not prewarm; the route can still build it lazily.
+        print(f"[gateway] WARNING: Who Am I cache prewarm failed: {type(e).__name__}: {e}",
+              file=sys.stderr)
+
     deep_check_task = None
     if config.DEEP_INTEGRITY_BACKGROUND_ENABLED:
         deep_check_task = asyncio.create_task(_run_periodic_deep_integrity_check())
