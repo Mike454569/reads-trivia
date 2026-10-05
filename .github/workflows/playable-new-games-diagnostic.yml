@@ -38,4 +38,12 @@ jobs:
           grep -q "data-mechanic-clue-submit" app.js
       - name: 100-format mapping audit
         run: |
-          python -m pytest gateway/tests/test_100_format_real_launch.py::test_all_100_formats_are_mapped_before_real_launch -q
+          python - <<'PY'
+          from tools.director_v02.format_launch_matrix import validate_format_launch_matrix
+          result = validate_format_launch_matrix()
+          assert result["distinct_format_count"] == 100
+          assert result["resolved_launch_count"] == 100, result["unresolved"]
+          assert result["ui_proven_count"] == 100, result["missing_ui_proof"]
+          assert result["mobile_unverified"] == []
+          print("100-format mapping OK")
+          PY
