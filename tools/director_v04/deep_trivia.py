@@ -19,6 +19,7 @@ import hashlib
 from tools.director_v02 import registry
 from tools.quiz_export import engine as engine_bootstrap
 from tools.director_v04.story_arcade_adapter import load_story_mcqs, to_deep_round
+from tools.director_v04 import question_intelligence
 
 # (mechanic, domain, predicate, player-facing category, optional filters)
 _DEEP_CAPABILITIES = (
@@ -148,7 +149,7 @@ def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
             continue
         if len(options) < 2:
             continue
-        return {
+        out = {
             "category": category,
             "prompt": q["question"],
             "correct_label": options[correct_index],
@@ -158,6 +159,12 @@ def _generate_registered_question(seed: str, entry: tuple) -> dict | None:
             "depth_source": f"{domain}/{predicate}",
             "bucket": _bucket_for(domain),
         }
+        ok, meta = question_intelligence.quality_gate(out, min_score=48, source=out["depth_source"])
+        if not ok:
+            continue
+        out["question_intelligence"] = meta
+        out["difficulty_tier"] = meta["tier"]
+        return out
     return None
 
 
@@ -204,6 +211,11 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     for q in story_rounds[:story_cap]:
         if q["prompt"] in used_prompts:
             continue
+        ok, meta = question_intelligence.quality_gate(q, min_score=52, source=q.get("depth_source"))
+        if not ok:
+            continue
+        q["question_intelligence"] = meta
+        q["difficulty_tier"] = meta["tier"]
         rounds.append(q)
         used_prompts.add(q["prompt"])
         used_categories[q["category"]] = used_categories.get(q["category"], 0) + 1
@@ -312,11 +324,19 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
     rng.shuffle(playoff_rows)
     rng.shuffle(champion_rows)
 
+    used_semantic: set[str] = set()
+
     def add_round(q: dict | None) -> None:
         if not q or q["prompt"] in used_prompts or len(rounds) >= round_count:
             return
+        ok, meta = question_intelligence.quality_gate(q, min_score=46, source=q.get("depth_source"))
+        if not ok or meta["semantic_fingerprint"] in used_semantic:
+            return
+        q["question_intelligence"] = meta
+        q["difficulty_tier"] = meta["tier"]
         rounds.append(q)
         used_prompts.add(q["prompt"])
+        used_semantic.add(meta["semantic_fingerprint"])
 
     # Keep small public launch pools balanced. The old implementation filled
     # from Heisman first and returned as soon as round_count was reached,
@@ -335,10 +355,11 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         if added >= quotas[0]:
             break
         correct = str(r["school_name"])
-        decoys = [x for x in school_names if x != correct]
+        decoys = question_intelligence.select_smart_distractors(
+            correct, school_names, count=3, seed=f"{seed}|heisman|{r['award_year']}|{r['player_name']}"
+        )
         if len(decoys) < 3:
             continue
-        rng.shuffle(decoys)
         before = len(rounds)
         add_round({
             "category": "Heisman Winners",
@@ -368,8 +389,10 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         correct = outcome_labels.get(code)
         if not correct:
             continue
-        decoys = [label for key, label in outcome_labels.items() if key != code]
-        rng.shuffle(decoys)
+        decoys = question_intelligence.select_smart_distractors(
+            correct, [label for key, label in outcome_labels.items() if key != code],
+            count=3, seed=f"{seed}|playoff|{r['season']}|{r['team_code']}"
+        )
         ties = int(r["ties"] or 0)
         record = f"{r['wins']}-{r['losses']}" + (f"-{ties}" if ties else "")
         before = len(rounds)
@@ -395,10 +418,11 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         if added >= quotas[2]:
             break
         correct = str(r["winner_name_raw"])
-        decoys = [x for x in winners if x != correct]
+        decoys = question_intelligence.select_smart_distractors(
+            correct, winners, count=3, seed=f"{seed}|champion|{r['season']}"
+        )
         if len(decoys) < 3:
             continue
-        rng.shuffle(decoys)
         before = len(rounds)
         add_round({
             "category": "Super Bowl Champions",
@@ -419,9 +443,10 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         leftovers = []
         for r in heisman_rows:
             correct = str(r["school_name"])
-            decoys = [x for x in school_names if x != correct]
+            decoys = question_intelligence.select_smart_distractors(
+                correct, school_names, count=3, seed=f"{seed}|leftover|{r['award_year']}|{r['player_name']}"
+            )
             if len(decoys) >= 3:
-                rng.shuffle(decoys)
                 leftovers.append({
                     "category": "Heisman Winners",
                     "prompt": f"Which school did {r['award_year']} Heisman winner {r['player_name']} play for?",
