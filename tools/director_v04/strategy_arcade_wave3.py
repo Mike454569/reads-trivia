@@ -109,10 +109,9 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
     # every state machine can safely cycle the immutable pool via core._round.
     # Building 42 Deep Ball questions synchronously made live rounds exceed
     # the frontend's 10s timeout on production.
-    source = category_roulette.build_package(
-        f"{seed}-strategy-wave3-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(18, round_count)
+    rounds = core.build_fast_round_pool(
+        f"{seed}-strategy-wave3-{variant}", max(18, round_count)
     )
-    rounds = source.get("rounds") or []
     package_id = "GGP39:" + hashlib.sha256(
         f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
@@ -124,11 +123,11 @@ def build_package(seed: str, variant: str, round_count: int = 30) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "qa_status": "PASSED" if len(rounds) >= 18 else "FAILED",
         "rounds": rounds, "round_count": len(rounds),
-        "production_safety": source.get("production_safety"),
+        "production_safety": {"launch_pool": "verified_direct_sql"},
         "shortfall_reason": None if len(rounds) >= 18 else
             f"Only {len(rounds)} real mixed-trivia questions were available; Wave 3 requires at least 18.",
         "review_status": "UNREVIEWED",
-        "_diagnostics": {"seed": seed, "source_package_id": source.get("package_id")},
+        "_diagnostics": {"seed": seed, "launch_pool": "verified_direct_sql"},
     }
 
 
