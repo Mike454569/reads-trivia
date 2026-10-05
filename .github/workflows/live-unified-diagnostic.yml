@@ -1,0 +1,38 @@
+name: Live unified format diagnostic
+
+on:
+  push:
+    branches: [fix/gameplay-launch-and-factfake]
+    paths:
+      - ".github/workflows/live-unified-diagnostic.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe live unified format launches
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://reads-football-gateway.fly.dev"
+          modes=(
+            matching_nfl_draft
+            fact_or_fake_nfl
+            perfect_drive_nfl
+            risk_it_nfl
+            bingo_blitz_mixed
+            connect_four_mixed
+            championship_run_mixed
+          )
+          failed=0
+          for mode in "${modes[@]}"; do
+            start=$(date +%s%3N)
+            code=$(curl -sS -o "/tmp/${mode}.json" -w "%{http_code}" --max-time 15 "$base/v1/public/formats/round?mode=$mode" || true)
+            end=$(date +%s%3N)
+            ms=$((end-start))
+            echo "UNIFIED-LIVE $mode status=$code ms=$ms"
+            head -c 600 "/tmp/${mode}.json" 2>/dev/null || true
+            echo
+            if [ "$code" != "200" ]; then failed=1; fi
+          done
+          exit "$failed"
