@@ -114,3 +114,15 @@ def test_engine_ui_uses_only_unified_format_network_contract():
     assert "/v1/public/formats/round" in source
     assert "enginePilotFetchJson('/v1/public/game" not in source
     assert "enginePilotFetchJson('/v1/public/mechanics/round" not in source
+
+
+def test_all_100_format_server_targets_are_owned_by_unified_facade():
+    from tools.director_v02.format_launch_matrix import unique_server_targets
+
+    missing = []
+    for target_type, target_id in unique_server_targets():
+        if target_type == "mechanic" and target_id not in public_mechanics.PUBLIC_MECHANIC_MODES:
+            missing.append((target_type, target_id))
+        elif target_type == "public_game" and target_id not in public_game.PUBLIC_MODES:
+            missing.append((target_type, target_id))
+    assert not missing, missing
