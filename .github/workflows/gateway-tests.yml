@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "17 8 * * *"
   push:
-    branches: [main, feature/retention-moat-upgrades]
+    branches: [main, feature/retention-moat-upgrades, engine/story-volume-cert-v3]
     paths:
       - "gateway/**"
       - "tools/**"
