@@ -20,6 +20,7 @@ from collections import Counter
 from urllib.parse import urlparse
 
 from tools.quiz_export import engine as engine_bootstrap
+from .story_to_trivia_factory import _prepare_write_connection, _commit_with_retry
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 
@@ -108,7 +109,7 @@ def _ensure_schema(c):
         "CREATE INDEX IF NOT EXISTS ix_story_candidates_domain "
         "ON football_story_candidates(domain,seen_date)"
     )
-    c.commit()
+    _commit_with_retry(c)
 
 
 def _candidate_id(url):
@@ -177,7 +178,7 @@ def harvest_story_candidates(
     timespan="1y",
     sleep_seconds=0.35,
 ):
-    c = engine_bootstrap.connect()
+    c = _prepare_write_connection(engine_bootstrap.connect())
     _ensure_schema(c)
 
     now = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -262,7 +263,7 @@ def harvest_story_candidates(
                         )
                         metrics["accepted_candidates"] += 1
 
-                    c.commit()
+                    _commit_with_retry(c)
                     if sleep_seconds:
                         time.sleep(float(sleep_seconds))
     finally:
