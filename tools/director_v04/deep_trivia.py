@@ -260,24 +260,10 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
 
     c = engine_bootstrap.connect()
     try:
-        # Deep, verified story questions are the best first choice and cost
-        # one indexed DB read rather than one full Director pass per question.
-        try:
-            story_questions = load_story_mcqs(
-                c, limit=max(1, min(round_count // 2, 6))
-            )
-        except Exception:
-            story_questions = []
-        story_rounds = [to_deep_round(q) for q in story_questions]
-        rng.shuffle(story_rounds)
-        for q in story_rounds:
-            if q["prompt"] in used_prompts:
-                continue
-            rounds.append(q)
-            used_prompts.add(q["prompt"])
-            if len(rounds) >= round_count:
-                return rounds
-
+        # Synchronous tap-to-play must stay launch-safe. Story Factory rows
+        # remain available to authoring/deeper pools, but the live arcade
+        # opener intentionally starts from the lightweight certified tables
+        # below so a slow story query can never block the first screen.
         # Fetch the three lightweight certified pools once. These tables are
         # already part of the Gateway's public safety contract elsewhere.
         try:
