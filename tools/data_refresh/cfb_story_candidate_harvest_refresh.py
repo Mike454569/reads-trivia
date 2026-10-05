@@ -23,6 +23,8 @@ def run_cfb_story_candidate_harvest():
     try:
         harvested = harvest_cfb_story_candidates()
         triaged = triage_candidates()
+        # Keep CFB harvest bounded to one seed batch. The independent
+        # story_process schedule owns sustained queue draining.
         factory = process_story_batch(
             batch_size=5,
             max_attempts=3,
