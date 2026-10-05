@@ -297,6 +297,20 @@ class PublicMechanicSubmitRequest(BaseModel):
     submission: Dict[str, Any] = Field(default_factory=dict)
 
 
+class PublicFormatSubmitRequest(BaseModel):
+    """POST /v1/public/formats/round/{round_id}/submit.
+
+    One frontend contract for both question packages and stateful mechanic
+    rounds. The facade routes by server-owned round state, never by a
+    client-supplied backend discriminator. Question rounds submit
+    {"answer": "<visible option label>"}; mechanic rounds submit the same
+    mechanic-specific mapping their certified evaluator already validates.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    submission: Dict[str, Any] = Field(default_factory=dict)
+
+
 class PublicPickemSubmitRequest(BaseModel):
     """POST /v1/public/pickem/{league}/{season}/{week}/pick (Dynamic Weekly
     Pick'em pass). `client_id` is the lightweight, unauthenticated
