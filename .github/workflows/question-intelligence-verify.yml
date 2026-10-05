@@ -42,6 +42,9 @@ jobs:
           d=qi.select_smart_distractors("Ohio State",["Ohio","Oregon","Michigan State","Alabama","Ohio State"],count=3,seed="x")
           print("distractors",d)
           assert len(d)==3 and len(set(d))==3 and "Ohio State" not in d
+
+          ranked=qi.rank_for_tier([bad,shallow,deep],"sicko")
+          assert ranked and ranked[0] is deep
           PY
       - name: Director package annotation
         run: |
