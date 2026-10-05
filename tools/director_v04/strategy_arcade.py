@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime, timezone
 
-from tools.director_v04 import category_roulette
+from tools.director_v04 import category_roulette, deep_trivia
 
 PACKAGE_SCHEMA_VERSION = "2.0"
 MECHANIC = "STRATEGY_ARCADE"
@@ -92,10 +92,30 @@ _TERRITORY_VALUES = (1, 2, 3, 2, 3, 1)
 def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
     if variant not in VARIANTS:
         raise ValueError(f"variant must be one of {sorted(VARIANTS)}, got {variant!r}")
-    source = category_roulette.build_package(
-        f"{seed}-strategy-{variant}", "CATEGORY_ROULETTE_MIXED", round_count=max(12, round_count)
+    # Launch path must be fast and deterministic: build the opening
+    # question pool from verified warehouse rows in one SQLite session,
+    # rather than running a full Director pipeline once per question.
+    raw_rounds = deep_trivia.generate_fast_arcade_rounds(
+        f"{seed}-strategy-{variant}", max(12, round_count)
     )
-    rounds = source.get("rounds") or []
+    rounds = []
+    for i, r in enumerate(raw_rounds):
+        candidates = [r["correct_label"]] + list(r["decoy_labels"])
+        order = list(range(len(candidates)))
+        engine_bootstrap.seeded(f"{seed}-strategy-shuffle-{i}").shuffle(order)
+        item_ids = [chr(ord("A") + n) for n in range(len(candidates))]
+        options = [{"item_id": item_ids[pos], "label": candidates[src]} for pos, src in enumerate(order)]
+        rounds.append({
+            "round_index": i,
+            "category": r["category"],
+            "bucket": r.get("bucket"),
+            "difficulty": r.get("difficulty"),
+            "depth_source": r.get("depth_source"),
+            "prompt": r["prompt"],
+            "options": options,
+            "_answer_item_id": item_ids[order.index(0)],
+            "_notes": r["notes"],
+        })
     package_id = "GGP38:" + hashlib.sha256(
         f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()
     ).hexdigest()[:24]
@@ -111,12 +131,12 @@ def build_package(seed: str, variant: str, round_count: int = 24) -> dict:
         "qa_status": "PASSED" if len(rounds) >= 12 else "FAILED",
         "rounds": rounds,
         "round_count": len(rounds),
-        "production_safety": source.get("production_safety"),
+        "production_safety": {"launch_pool": "verified_direct_sql"},
         "shortfall_reason": None if len(rounds) >= 12 else (
             f"Only {len(rounds)} real mixed-trivia questions were available; Strategy Arcade requires at least 12."
         ),
         "review_status": "UNREVIEWED",
-        "_diagnostics": {"seed": seed, "source_package_id": source.get("package_id")},
+        "_diagnostics": {"seed": seed, "launch_pool": "verified_direct_sql"},
     }
 
 
