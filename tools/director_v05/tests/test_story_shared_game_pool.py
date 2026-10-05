@@ -1,5 +1,15 @@
 import json
 import sqlite3
+import sys
+import types
+from pathlib import Path
+
+fake_engine = types.ModuleType("tools.quiz_export.engine")
+fake_engine.connect = lambda: None
+fake_engine.ENGINE_DIR = None
+fake_engine.DATA_DIR = Path(".")
+fake_engine.seeded = lambda seed: __import__("random").Random(seed)
+sys.modules.setdefault("tools.quiz_export.engine", fake_engine)
 
 from tools.director_v04 import deep_trivia
 from tools.director_v05.event_ingest import upsert_event
