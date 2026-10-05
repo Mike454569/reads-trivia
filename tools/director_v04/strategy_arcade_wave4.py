@@ -40,16 +40,15 @@ VARIANTS=frozenset(FORMAT_SPECS)
 
 def build_package(seed:str,variant:str,round_count:int=36)->dict:
     if variant not in VARIANTS: raise ValueError(f"unknown Wave 4 variant {variant!r}")
-    src=category_roulette.build_package(f"{seed}-strategy-wave4-{variant}","CATEGORY_ROULETTE_MIXED",round_count=max(18,round_count))
-    rounds=src.get("rounds") or []
+    rounds=core.build_fast_round_pool(f"{seed}-strategy-wave4-{variant}", max(18,round_count))
     pid="GGP40:"+hashlib.sha256(f"{MECHANIC}|{variant}|{seed}|{PACKAGE_SCHEMA_VERSION}".encode()).hexdigest()[:24]
     return {"package_id":pid,"package_version":PACKAGE_SCHEMA_VERSION,"mechanic":MECHANIC,
             "domain_variant":variant,"format_id":variant,"game_title":FORMAT_SPECS[variant]["title"],
             "game_instructions":FORMAT_SPECS[variant]["interaction"],"generated_at":datetime.now(timezone.utc).isoformat(),
             "qa_status":"PASSED" if len(rounds)>=18 else "FAILED","rounds":rounds,"round_count":len(rounds),
-            "production_safety":src.get("production_safety"),
+            "production_safety":{"launch_pool":"verified_direct_sql"},
             "shortfall_reason":None if len(rounds)>=18 else f"Only {len(rounds)} real mixed questions available; Wave 4 needs 18.",
-            "review_status":"UNREVIEWED","_diagnostics":{"seed":seed,"source_package_id":src.get("package_id")}}
+            "review_status":"UNREVIEWED","_diagnostics":{"seed":seed,"launch_pool":"verified_direct_sql"}}
 
 def _s(progress):
     s=core._base_state(progress); s.setdefault("score",0); return s
