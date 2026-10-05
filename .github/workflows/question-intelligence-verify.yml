@@ -18,6 +18,9 @@ jobs:
         run: |
           python -m py_compile tools/director_v04/question_intelligence.py
           python -m py_compile tools/director_v04/deep_trivia.py
+          python -m py_compile tools/director_v04/strategy_arcade.py
+          python -m py_compile tools/director_v04/wager_mode.py
+          python -m py_compile tools/director_v04/category_roulette.py
           python -m py_compile tools/director_v02/pipeline.py
       - name: Intelligence unit checks
         run: |
