@@ -318,14 +318,28 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         rounds.append(q)
         used_prompts.add(q["prompt"])
 
-    # Build several distinct Heisman-school questions from one fetched list.
+    # Keep small public launch pools balanced. The old implementation filled
+    # from Heisman first and returned as soon as round_count was reached,
+    # which meant a six-question Strategy Arcade session could contain only
+    # one bucket. Several state machines explicitly need all three strategy
+    # buckets, so reserve capacity for each lightweight certified source.
+    per_source = max(1, round_count // 3)
+    remainder = max(0, round_count - (per_source * 3))
+    quotas = [per_source, per_source, per_source]
+    for i in range(remainder):
+        quotas[i % 3] += 1
+
     school_names = sorted({str(r["school_name"]) for r in heisman_rows if r["school_name"]})
+    added = 0
     for r in heisman_rows:
+        if added >= quotas[0]:
+            break
         correct = str(r["school_name"])
         decoys = [x for x in school_names if x != correct]
         if len(decoys) < 3:
-            break
+            continue
         rng.shuffle(decoys)
+        before = len(rounds)
         add_round({
             "category": "Heisman Winners",
             "prompt": f"Which school did {r['award_year']} Heisman winner {r['player_name']} play for?",
@@ -336,11 +350,9 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
             "depth_source": "cfb_award_facts",
             "bucket": "College Chaos",
         })
-        if len(rounds) >= round_count:
-            return rounds
+        if len(rounds) > before:
+            added += 1
 
-    # NFL postseason outcome questions use the closed, real outcome set, so
-    # distractors never require another DB query or generation pass.
     outcome_labels = {
         "WonSB": "Won the Super Bowl",
         "LostSB": "Lost the Super Bowl",
@@ -348,7 +360,10 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         "LostDV": "Lost in the Divisional Round",
         "LostWC": "Lost in the Wild Card Round",
     }
+    added = 0
     for r in playoff_rows:
+        if added >= quotas[1]:
+            break
         code = str(r["playoff_result"] or "")
         correct = outcome_labels.get(code)
         if not correct:
@@ -357,6 +372,7 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
         rng.shuffle(decoys)
         ties = int(r["ties"] or 0)
         record = f"{r['wins']}-{r['losses']}" + (f"-{ties}" if ties else "")
+        before = len(rounds)
         add_round({
             "category": "NFL Playoff History",
             "prompt": f"How did {r['team_code']} finish the {r['season']} NFL season?",
@@ -365,20 +381,25 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
             "notes": f"{r['team_code']} finished {record} in {r['season']} and {correct.lower()}.",
             "difficulty": "Medium",
             "depth_source": "season_standings/playoff_result",
-            "bucket": "Season & Legacy",
+            # Strategy Arcade's Game Day bucket is an interaction category,
+            # not provenance. Postseason result questions are the lightweight
+            # NFL on-field source in the launch pool.
+            "bucket": "Game Day",
         })
-        if len(rounds) >= round_count:
-            return rounds
+        if len(rounds) > before:
+            added += 1
 
-    # Super Bowl champion questions add another real NFL category from the
-    # structured championship table, again with no per-question generation.
     winners = sorted({str(r["winner_name_raw"]) for r in champion_rows if r["winner_name_raw"]})
+    added = 0
     for r in champion_rows:
+        if added >= quotas[2]:
+            break
         correct = str(r["winner_name_raw"])
         decoys = [x for x in winners if x != correct]
         if len(decoys) < 3:
-            break
+            continue
         rng.shuffle(decoys)
+        before = len(rounds)
         add_round({
             "category": "Super Bowl Champions",
             "prompt": f"Which team won the Super Bowl following the {r['season']} NFL season?",
@@ -389,8 +410,30 @@ def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
             "depth_source": "nfl_championship_events",
             "bucket": "Season & Legacy",
         })
-        if len(rounds) >= round_count:
-            return rounds
+        if len(rounds) > before:
+            added += 1
+
+    # If one certified source is sparse on an older fixture, top off from the
+    # remaining source rows without re-entering the expensive Director path.
+    if len(rounds) < round_count:
+        leftovers = []
+        for r in heisman_rows:
+            correct = str(r["school_name"])
+            decoys = [x for x in school_names if x != correct]
+            if len(decoys) >= 3:
+                rng.shuffle(decoys)
+                leftovers.append({
+                    "category": "Heisman Winners",
+                    "prompt": f"Which school did {r['award_year']} Heisman winner {r['player_name']} play for?",
+                    "correct_label": correct, "decoy_labels": decoys[:3],
+                    "notes": f"Verified Heisman winner: {r['player_name']} — {correct}.",
+                    "difficulty": "Medium", "depth_source": "cfb_award_facts", "bucket": "College Chaos",
+                })
+        rng.shuffle(leftovers)
+        for q in leftovers:
+            add_round(q)
+            if len(rounds) >= round_count:
+                break
 
     return rounds
 
