@@ -2754,6 +2754,15 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
 // startEnginePilotRound(). Gated the same way every other engine card is:
 // present in this array only when its own flagOn() is true.
 if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
+  // Production Who Am I now uses the real progressive-clue Engine path.
+  // Reuses the existing playerClues card id so the player sees one game,
+  // not a duplicate static-vs-engine pair.
+  if (ENGINE_MECHANIC_MODES.whoAmI && ENGINE_MECHANIC_MODES.whoAmI.flagOn()) {
+    ENGINE_DISCOVERY_ENTRIES.push({
+      id: 'playerClues', icon: 'mystery', title: 'Who Am I?',
+      desc: ENGINE_MECHANIC_MODES.whoAmI.desc, mechanicMode: 'whoAmI', league: 'nfl', difficulty: 'competitive', featured: true,
+    });
+  }
   // Same real gap as blindResume et al. below, just never swept before now
   // because the flag was off: no discovery card meant no real player could
   // ever find RISK_IT even once enabled.
@@ -14698,7 +14707,7 @@ document.addEventListener('click', function (e) {
     '[data-mechanic-hl-guess], [data-elim-guess], [data-mechanic-comparison-match], [data-mechanic-sort-format], ' +
     '[data-mechanic-grid-cell], [data-mechanic-grid-submit], [data-mechanic-grid-cancel], [data-mechanic-drive-answer], ' +
     '[data-mechanic-roster-pick], [data-mechanic-roster-slot], [data-mechanic-roster-candidate], ' +
-    '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], ' +
+    '[data-mechanic-roster-deselect], [data-mechanic-roster-submit-lineup], [data-mechanic-chain-submit], [data-mechanic-clue-reveal], [data-mechanic-clue-submit], ' +
     '[data-mechanic-branch-choice], [data-mechanic-branch-answer], [data-mechanic-season-submit], ' +
     '[data-mechanic-duel-choice], [data-mechanic-impostor-pick], [data-mechanic-missing-piece-pick], ' +
     '[data-mechanic-career-path-pick], [data-mechanic-risk-tier], [data-mechanic-risk-answer], ' +
@@ -15205,6 +15214,17 @@ document.addEventListener('click', function (e) {
   }
   if (t.dataset.mechanicRosterSubmitLineup !== undefined) {
     submitMechanicPilotAction({ action: 'submit_lineup' });
+    return;
+  }
+  if (t.dataset.mechanicClueReveal !== undefined) {
+    submitMechanicPilotAction({ action: 'reveal_next_clue' });
+    return;
+  }
+  if (t.dataset.mechanicClueSubmit !== undefined) {
+    var clueInputEl = document.getElementById('mechanic-clue-input');
+    var clueGuess = clueInputEl ? clueInputEl.value.trim() : '';
+    if (!clueGuess) return;
+    submitMechanicPilotAction({ guess_name: clueGuess });
     return;
   }
   if (t.dataset.mechanicChainSubmit !== undefined) {
