@@ -1,0 +1,69 @@
+name: Strategy Arcade launch verification
+on:
+  push:
+    branches: [fix/strategy-arcade-live-launch]
+    paths:
+      - ".github/workflows/strategy-arcade-launch-verify.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax
+        run: |
+          python -m py_compile tools/director_v02/mechanic_engine.py
+          python -m py_compile tools/director_v04/deep_trivia.py
+          python -m py_compile tools/director_v04/strategy_arcade.py
+          python -m py_compile tools/director_v04/strategy_arcade_wave3.py
+          python -m py_compile tools/director_v04/strategy_arcade_wave4.py
+          python -m py_compile tools/director_v04/strategy_arcade_wave5.py
+      - name: Verify every Strategy Arcade variant launches from six rounds
+        run: |
+          python - <<'PY'
+          from tools.director_v02 import mechanic_engine
+          from tools.director_v04 import strategy_arcade as core
+          from tools.director_v04 import strategy_arcade_wave3 as w3
+          from tools.director_v04 import strategy_arcade_wave4 as w4
+          from tools.director_v04 import strategy_arcade_wave5 as w5
+
+          def fake_pool(seed, count):
+              buckets = ("Game Day", "Season & Legacy", "College Chaos")
+              rounds = []
+              for i in range(count):
+                  rounds.append({
+                      "category": f"Category {i}",
+                      "bucket": buckets[i % 3],
+                      "difficulty": "Medium",
+                      "depth_source": "test",
+                      "prompt": f"Question {i}?",
+                      "correct_label": f"Correct {i}",
+                      "decoy_labels": [f"Wrong {i}-1", f"Wrong {i}-2", f"Wrong {i}-3"],
+                      "notes": "verified test fixture",
+                  })
+              return rounds
+
+          core.build_fast_round_pool = fake_pool
+          failures = []
+          variants = list(core.VARIANTS) + list(w3.VARIANTS) + list(w4.VARIANTS) + list(w5.VARIANTS)
+          for variant in variants:
+              try:
+                  package = mechanic_engine.generate_strategy_arcade_round(variant=variant, seed="launch-test", round_count=6)
+                  assert package["qa_status"] == "PASSED", (variant, package.get("shortfall_reason"))
+                  assert len(package["rounds"]) == 6, (variant, len(package["rounds"]))
+                  view = mechanic_engine.client_safe_view("STRATEGY_ARCADE", package, mechanic_engine.initial_progress("STRATEGY_ARCADE"))
+                  assert view.get("phase"), (variant, view)
+              except Exception as exc:
+                  failures.append((variant, type(exc).__name__, str(exc)))
+          print("variants", len(variants))
+          print("failures", failures)
+          assert not failures
+          PY
+      - name: Verify forced wave expansion is gone
+        run: |
+          ! grep -q "max(round_count, 36)" tools/director_v02/mechanic_engine.py
+          ! grep -q "max(round_count, 18)" tools/director_v02/mechanic_engine.py
+          ! grep -q "max(18,round_count)" tools/director_v04/strategy_arcade_wave4.py
+          ! grep -q "max(18,round_count)" tools/director_v04/strategy_arcade_wave5.py
