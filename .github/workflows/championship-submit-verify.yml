@@ -1,0 +1,48 @@
+name: Championship Run submit verification
+on:
+  push:
+    branches: [fix/strategy-submit-state]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Championship Run answer transitions
+        run: |
+          python -m py_compile tools/director_v04/strategy_arcade_wave5.py
+          python - <<'PY'
+          from tools.director_v04 import strategy_arcade_wave5 as w5
+          def package():
+              rounds=[]
+              for i in range(6):
+                  rounds.append({
+                      "category":"Test",
+                      "prompt":f"Q{i}",
+                      "options":[
+                          {"item_id":"A","label":"Right"},
+                          {"item_id":"B","label":"Wrong"},
+                      ],
+                      "_answer_item_id":"A",
+                      "_notes":"test",
+                      "bucket":"Game Day",
+                  })
+              return {"domain_variant":"CHAMPIONSHIP_RUN","rounds":rounds}
+          # First answer wrong used to KeyError on stage_correct.
+          r,s=w5.evaluate(package(),{},{"choice_item_id":"B"})
+          assert r["correct"] is False
+          assert s["stage_correct"] == 0 and s["stage_wrong"] == 1
+          assert not s.get("completed")
+          # Later-stage non-clinching correct used to KeyError on stage_wrong.
+          progress={"stage":1,"stage_correct":0,"stage_wrong":0,"cursor":1,
+                    "correct_total":1,"wrong_total":0,"completed":False,"ended":False,"score":0}
+          r,s=w5.evaluate(package(),progress,{"choice_item_id":"A"})
+          assert r["correct"] is True
+          assert s["stage"] == 1 and s["stage_correct"] == 1 and s["stage_wrong"] == 0
+          assert not s.get("completed")
+          print("Championship Run submit transitions OK")
+          PY
