@@ -126,3 +126,15 @@ def test_all_100_format_server_targets_are_owned_by_unified_facade():
         elif target_type == "public_game" and target_id not in public_game.PUBLIC_MODES:
             missing.append((target_type, target_id))
     assert not missing, missing
+
+
+def test_frontend_launch_timeout_covers_real_production_budget():
+    """The browser must not abort valid heavy mechanic generation prematurely.
+
+    Live production probes have observed valid new-game launches taking more
+    than 15 seconds on the Fly volume, so the client-side safety timeout must
+    stay at or above 30 seconds unless generation is first made reliably faster.
+    """
+    from pathlib import Path
+    ui = Path("engine-game-ui.js").read_text(encoding="utf-8")
+    assert "var ENGINE_PILOT_FETCH_TIMEOUT_MS = 30000;" in ui
