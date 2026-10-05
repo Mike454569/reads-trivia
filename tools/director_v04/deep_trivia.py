@@ -237,5 +237,176 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
     return rounds
 
 
+
+def generate_fast_arcade_rounds(seed: str, round_count: int) -> list[dict]:
+    """Build a launch-safe mixed NFL/CFB pool without Director generation.
+
+    Public Strategy Arcade modes need their first screen immediately. The
+    normal Deep Ball generator intentionally runs full adapter/QA pipelines
+    per question, which is excellent for authoring but too expensive on the
+    production Fly volume for a synchronous tap-to-play path. This function
+    uses only already-verified rows from the production warehouse plus
+    READY_FOR_BANK story MCQs, all through one SQLite connection.
+
+    The returned shape is identical to generate_rounds(), so Strategy Arcade
+    keeps the same state machine/rendering and server-authoritative grading.
+    """
+    if round_count <= 0:
+        return []
+
+    rng = engine_bootstrap.seeded(seed + "-fast-arcade")
+    rounds: list[dict] = []
+    used_prompts: set[str] = set()
+
+    c = engine_bootstrap.connect()
+    try:
+        # Deep, verified story questions are the best first choice and cost
+        # one indexed DB read rather than one full Director pass per question.
+        try:
+            story_questions = load_story_mcqs(
+                c, limit=max(1, min(round_count // 2, 6))
+            )
+        except Exception:
+            story_questions = []
+        story_rounds = [to_deep_round(q) for q in story_questions]
+        rng.shuffle(story_rounds)
+        for q in story_rounds:
+            if q["prompt"] in used_prompts:
+                continue
+            rounds.append(q)
+            used_prompts.add(q["prompt"])
+            if len(rounds) >= round_count:
+                return rounds
+
+        # Fetch the three lightweight certified pools once. These tables are
+        # already part of the Gateway's public safety contract elsewhere.
+        try:
+            heisman_rows = list(c.execute(
+                "SELECT award_year,player_name,school_name "
+                "FROM cfb_award_facts "
+                "WHERE verification_status='SOURCE_BACKED_FROM_CFB_MASTER' "
+                "AND award_name='Heisman Trophy' "
+                "AND player_name IS NOT NULL AND school_name IS NOT NULL"
+            ).fetchall())
+        except Exception:
+            heisman_rows = []
+
+        try:
+            playoff_rows = list(c.execute(
+                "SELECT season,team_code,wins,losses,ties,playoff_result "
+                "FROM season_standings "
+                "WHERE verification_status='SOURCE_BACKED' "
+                "AND source_id='NFLVERSE_DATA' "
+                "AND playoff_result IS NOT NULL "
+                "AND wins IS NOT NULL AND losses IS NOT NULL"
+            ).fetchall())
+        except Exception:
+            playoff_rows = []
+
+        try:
+            champion_rows = list(c.execute(
+                "SELECT season,winner_name_raw "
+                "FROM nfl_championship_events "
+                "WHERE verification_status='WIKIPEDIA_STRUCTURED_SECONDARY' "
+                "AND winner_name_raw IS NOT NULL"
+            ).fetchall())
+        except Exception:
+            # Older certified fixtures may not carry verification_status.
+            try:
+                champion_rows = list(c.execute(
+                    "SELECT season,winner_name_raw FROM nfl_championship_events "
+                    "WHERE winner_name_raw IS NOT NULL"
+                ).fetchall())
+            except Exception:
+                champion_rows = []
+    finally:
+        c.close()
+
+    rng.shuffle(heisman_rows)
+    rng.shuffle(playoff_rows)
+    rng.shuffle(champion_rows)
+
+    def add_round(q: dict | None) -> None:
+        if not q or q["prompt"] in used_prompts or len(rounds) >= round_count:
+            return
+        rounds.append(q)
+        used_prompts.add(q["prompt"])
+
+    # Build several distinct Heisman-school questions from one fetched list.
+    school_names = sorted({str(r["school_name"]) for r in heisman_rows if r["school_name"]})
+    for r in heisman_rows:
+        correct = str(r["school_name"])
+        decoys = [x for x in school_names if x != correct]
+        if len(decoys) < 3:
+            break
+        rng.shuffle(decoys)
+        add_round({
+            "category": "Heisman Winners",
+            "prompt": f"Which school did {r['award_year']} Heisman winner {r['player_name']} play for?",
+            "correct_label": correct,
+            "decoy_labels": decoys[:3],
+            "notes": f"Verified Heisman winner: {r['player_name']} — {correct}.",
+            "difficulty": "Medium",
+            "depth_source": "cfb_award_facts",
+            "bucket": "College Chaos",
+        })
+        if len(rounds) >= round_count:
+            return rounds
+
+    # NFL postseason outcome questions use the closed, real outcome set, so
+    # distractors never require another DB query or generation pass.
+    outcome_labels = {
+        "WonSB": "Won the Super Bowl",
+        "LostSB": "Lost the Super Bowl",
+        "LostCC": "Lost in the Conference Championship",
+        "LostDV": "Lost in the Divisional Round",
+        "LostWC": "Lost in the Wild Card Round",
+    }
+    for r in playoff_rows:
+        code = str(r["playoff_result"] or "")
+        correct = outcome_labels.get(code)
+        if not correct:
+            continue
+        decoys = [label for key, label in outcome_labels.items() if key != code]
+        rng.shuffle(decoys)
+        ties = int(r["ties"] or 0)
+        record = f"{r['wins']}-{r['losses']}" + (f"-{ties}" if ties else "")
+        add_round({
+            "category": "NFL Playoff History",
+            "prompt": f"How did {r['team_code']} finish the {r['season']} NFL season?",
+            "correct_label": correct,
+            "decoy_labels": decoys[:3],
+            "notes": f"{r['team_code']} finished {record} in {r['season']} and {correct.lower()}.",
+            "difficulty": "Medium",
+            "depth_source": "season_standings/playoff_result",
+            "bucket": "Season & Legacy",
+        })
+        if len(rounds) >= round_count:
+            return rounds
+
+    # Super Bowl champion questions add another real NFL category from the
+    # structured championship table, again with no per-question generation.
+    winners = sorted({str(r["winner_name_raw"]) for r in champion_rows if r["winner_name_raw"]})
+    for r in champion_rows:
+        correct = str(r["winner_name_raw"])
+        decoys = [x for x in winners if x != correct]
+        if len(decoys) < 3:
+            break
+        rng.shuffle(decoys)
+        add_round({
+            "category": "Super Bowl Champions",
+            "prompt": f"Which team won the Super Bowl following the {r['season']} NFL season?",
+            "correct_label": correct,
+            "decoy_labels": decoys[:3],
+            "notes": f"Verified {r['season']} season Super Bowl champion: {correct}.",
+            "difficulty": "Medium",
+            "depth_source": "nfl_championship_events",
+            "bucket": "Season & Legacy",
+        })
+        if len(rounds) >= round_count:
+            return rounds
+
+    return rounds
+
 def capability_count() -> int:
     return len(_DEEP_CAPABILITIES)
