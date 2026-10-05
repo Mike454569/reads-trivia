@@ -822,6 +822,7 @@ var CREATOR_FORMAT_CATALOG = [
   { category: 'Matching & Sorting', title: 'Draft Pick Ladder', desc: 'A real player is named -- guess their real overall draft pick number.', taxonomyId: 'DRAFT_PICK_LADDER', variant: 'NFL_DRAFT_PICK_LADDER' },
   { category: 'Mixed Trivia', title: 'Category Roulette', desc: 'Each round’s real category is shown immediately -- answer the real question.', taxonomyId: 'CATEGORY_ROULETTE', variant: 'CATEGORY_ROULETTE_MIXED' },
   { category: 'Story & Path', title: 'Common Link', desc: '3 real players are named -- guess what real fact connects them.', taxonomyId: 'COMMON_LINK', variant: 'NFL_DRAFT_COMMON_LINK' },
+  { category: 'Story & Path', title: 'Deep Football Lore', desc: 'Three deep source-backed clues from Reads’ universal football knowledge graph.', taxonomyId: 'DEEP_LORE_GUESS', variant: 'UNIVERSAL_DEEP_LORE' },
   { category: 'Story & Path', title: 'Common Link (CFB)', desc: '3 real college players are named -- guess what real fact connects them.', taxonomyId: 'COMMON_LINK', variant: 'CFB_SEASON_COMMON_LINK' },
   { category: 'Story & Path', title: 'Before & After', desc: 'Which real team did this real player play for FIRST?', taxonomyId: 'BEFORE_AFTER', variant: 'NFL_TEAM_CHANGE_BEFORE_AFTER' },
   { category: 'Story & Path', title: 'Guess the Season', desc: 'Identify the real season from real clues.', taxonomyId: 'GUESS_THE_SEASON', variant: 'NFL_SUPER_BOWL_SEASON' },
