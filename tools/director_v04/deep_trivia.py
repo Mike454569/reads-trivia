@@ -179,6 +179,7 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
 
     rounds: list[dict] = []
     used_prompts: set[str] = set()
+    used_semantic: set[str] = set()
     used_categories: dict[str, int] = {}
 
     # Story Factory integration: reserve a bounded share for verified
@@ -214,10 +215,13 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
         ok, meta = question_intelligence.quality_gate(q, min_score=52, source=q.get("depth_source"))
         if not ok:
             continue
+        if meta["semantic_fingerprint"] in used_semantic:
+            continue
         q["question_intelligence"] = meta
         q["difficulty_tier"] = meta["tier"]
         rounds.append(q)
         used_prompts.add(q["prompt"])
+        used_semantic.add(meta["semantic_fingerprint"])
         used_categories[q["category"]] = used_categories.get(q["category"], 0) + 1
         if len(rounds) >= round_count:
             return rounds
@@ -242,7 +246,11 @@ def generate_rounds(seed: str, round_count: int) -> list[dict]:
         attempt += 1
         if not q or q["prompt"] in used_prompts:
             continue
+        meta = q.get("question_intelligence") or question_intelligence.score_question(q, source=q.get("depth_source"))
+        if meta["semantic_fingerprint"] in used_semantic:
+            continue
         used_prompts.add(q["prompt"])
+        used_semantic.add(meta["semantic_fingerprint"])
         used_categories[category] = used_categories.get(category, 0) + 1
         rounds.append(q)
 
