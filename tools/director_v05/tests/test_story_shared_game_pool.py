@@ -1,5 +1,7 @@
 import json
 import sqlite3
+import sys
+import types
 from pathlib import Path
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -10,6 +12,13 @@ if not hasattr(engine_bootstrap, "ENGINE_DIR"):
     engine_bootstrap.ENGINE_DIR = None
 if not hasattr(engine_bootstrap, "seeded"):
     engine_bootstrap.seeded = lambda seed: __import__("random").Random(seed)
+
+# This test exercises the Story-first early return in deep_trivia. Loading the
+# full Director registry drags in legacy production-only modules that are
+# irrelevant to this contract and unavailable in isolated CI.
+fake_registry = types.ModuleType("tools.director_v02.registry")
+fake_registry.CAPABILITY_REGISTRY = {}
+sys.modules["tools.director_v02.registry"] = fake_registry
 
 from tools.director_v04 import deep_trivia
 from tools.director_v05.event_ingest import upsert_event
