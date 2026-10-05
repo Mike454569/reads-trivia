@@ -104,8 +104,17 @@ def _validate_fact_fake(q):
     aid = str((q.get("answer") or {}).get("id") or "")
     if aid not in {"FACT", "FAKE"}:
         errors.append("FACT_FAKE_BAD_ANSWER")
-    if not str(q.get("question") or "").strip():
+    statement = str(q.get("question") or "").strip()
+    if not statement:
         errors.append("FACT_FAKE_BLANK_STATEMENT")
+    lowered = statement.casefold()
+    if any(token in lowered for token in (
+        "classified as a ",
+        "verified football event occurred in",
+        "event type",
+        "taxonomy",
+    )):
+        errors.append("FACT_FAKE_INTERNAL_METADATA_COPY")
     return errors
 
 
