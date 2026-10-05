@@ -1,0 +1,46 @@
+name: Strategy submit diagnostic
+on:
+  push:
+    branches: [diag/strategy-submit]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start and submit live Strategy Arcade rounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://reads-football-gateway.fly.dev"
+          for mode in bingo_blitz_mixed championship_run_mixed connect_four_mixed road_to_100_mixed; do
+            echo "=== $mode START ==="
+            curl -sS -D "/tmp/$mode.start.h" -o "/tmp/$mode.start.json" --max-time 12 \
+              -H "Origin: https://reads.football" \
+              "$base/v1/public/mechanics/round?mode=$mode"
+            python - "$mode" <<'PY'
+import json,sys
+mode=sys.argv[1]
+d=json.load(open(f"/tmp/{mode}.start.json"))
+rid=d["round_id"]; v=d["view"]
+print("round_id",rid,"phase",v.get("phase"),"title",v.get("title"))
+out={"round_id":rid}
+if v.get("phase")=="QUESTION" and v.get("options"):
+    out["submission"]={"choice_item_id":v["options"][0]["item_id"]}
+elif v.get("phase")=="SELECT" and v.get("actions"):
+    out["submission"]={"action":v["actions"][0]["id"]}
+else:
+    out["submission"]={}
+json.dump(out,open(f"/tmp/{mode}.submit-input.json","w"))
+print("submission",out["submission"])
+PY
+            rid=$(python -c "import json;print(json.load(open('/tmp/$mode.submit-input.json'))['round_id'])")
+            sub=$(python -c "import json;print(json.dumps({'submission':json.load(open('/tmp/$mode.submit-input.json'))['submission']}))")
+            echo "=== $mode SUBMIT ==="
+            code=$(curl -sS -D "/tmp/$mode.submit.h" -o "/tmp/$mode.submit.json" -w "%{http_code}" --max-time 12 \
+              -H "Origin: https://reads.football" -H "Content-Type: application/json" \
+              -X POST --data "$sub" \
+              "$base/v1/public/mechanics/round/$rid/submit" || true)
+            echo "status=$code"
+            cat "/tmp/$mode.submit.h"
+            cat "/tmp/$mode.submit.json"
+            echo
+          done
