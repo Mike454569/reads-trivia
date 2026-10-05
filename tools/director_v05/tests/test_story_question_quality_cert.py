@@ -78,3 +78,23 @@ def test_quality_cert_rejects_sensitive_fact_fake():
     out=certify_story_question_quality(c)
     assert out["failed"]==1
     assert any(k.startswith("SENSITIVE_FACT_FAKE") for k in out["failure_reasons"])
+
+
+
+def test_quality_cert_rejects_identity_answer_leakage():
+    c=_conn();_event(c,"e1")
+    q={
+        "question_id":"q-leak","mechanic":"PROGRESSIVE_CLUE","question_family":"LORE_IDENTITY",
+        "question":"Who am I?",
+        "clues":[
+            {"text":"League: NFL."},
+            {"text":"Player One was featured in a documented media appearance."},
+            {"text":"This player discussed an unusual football moment."},
+        ],
+        "answer":{"id":"p1","label":"Player One","type":"NFL_PLAYER"},
+        "event_id":"e1","provenance":{"event_ids":["e1"]},
+    }
+    _insert(c,q,"e1","READY_FOR_FORMAT_BANK")
+    out=certify_story_question_quality(c)
+    assert out["failed"]==1
+    assert "PROGRESSIVE_ANSWER_LEAKAGE" in out["failure_reasons"]
