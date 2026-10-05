@@ -2266,6 +2266,18 @@ function goToMode(mode) {
   // place to reset it -- covers the whole app instead of patching each
   // mode's own start function individually.
   window.scrollTo(0, 0);
+  // Who Am I keeps its existing playerClues card/id, but production now
+  // routes it into the live progressive-clue Engine instead of the stale
+  // static package loaded by the legacy screen below.
+  if (mode === 'playerClues' && typeof ENGINE_MECHANIC_MODES !== 'undefined' &&
+      ENGINE_MECHANIC_MODES.whoAmI && ENGINE_MECHANIC_MODES.whoAmI.flagOn()) {
+    beginProgressSession(mode);
+    lsSet('nflTriviaLastMode', mode);
+    if (window.__fbSync && window.__fbSync.logPlay) window.__fbSync.logPlay(mode);
+    startMechanicPilotRound('whoAmI', mode);
+    return;
+  }
+
   // v1.6, Part C6: engine-backed discovery cards (ENGINE_DISCOVERY_ENTRIES,
   // only ever present when their flag is on) route into the shared engine
   // shell instead of the normal local-data-file path below -- they have no
@@ -2754,15 +2766,6 @@ if (typeof ENGINE_PILOT_MODES !== 'undefined') {
 // startEnginePilotRound(). Gated the same way every other engine card is:
 // present in this array only when its own flagOn() is true.
 if (typeof ENGINE_MECHANIC_MODES !== 'undefined') {
-  // Production Who Am I now uses the real progressive-clue Engine path.
-  // Reuses the existing playerClues card id so the player sees one game,
-  // not a duplicate static-vs-engine pair.
-  if (ENGINE_MECHANIC_MODES.whoAmI && ENGINE_MECHANIC_MODES.whoAmI.flagOn()) {
-    ENGINE_DISCOVERY_ENTRIES.push({
-      id: 'playerClues', icon: 'mystery', title: 'Who Am I?',
-      desc: ENGINE_MECHANIC_MODES.whoAmI.desc, mechanicMode: 'whoAmI', league: 'nfl', difficulty: 'competitive', featured: true,
-    });
-  }
   // Same real gap as blindResume et al. below, just never swept before now
   // because the flag was off: no discovery card meant no real player could
   // ever find RISK_IT even once enabled.
