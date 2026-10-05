@@ -45,11 +45,11 @@ def test_story_factory_and_harvesters_share_neutral_write_helpers():
     from tools.director_v05 import story_candidate_harvest as mixed
     from tools.director_v05 import cfb_story_candidate_harvest as cfb
     from tools.director_v05 import story_to_trivia_factory as factory
-    from tools.director_v05 import story_write_utils as write_utils
+    from tools.director_v05 import story_sqlite as write_utils
 
-    assert mixed._commit_with_retry is write_utils._commit_with_retry
-    assert cfb._commit_with_retry is write_utils._commit_with_retry
-    assert factory._commit_with_retry is write_utils._commit_with_retry
-    assert mixed._prepare_write_connection is write_utils._prepare_write_connection
-    assert cfb._prepare_write_connection is write_utils._prepare_write_connection
-    assert factory._prepare_write_connection is write_utils._prepare_write_connection
+    assert mixed._commit_with_retry is write_utils.commit_with_retry
+    assert cfb._commit_with_retry is write_utils.commit_with_retry
+    assert factory._commit_with_retry is write_utils.commit_with_retry
+    assert mixed._prepare_write_connection is write_utils.prepare_write_connection
+    assert cfb._prepare_write_connection is write_utils.prepare_write_connection
+    assert factory._prepare_write_connection is write_utils.prepare_write_connection
