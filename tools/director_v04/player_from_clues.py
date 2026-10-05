@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import threading
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,41 @@ CATEGORY = "Player From Clues"
 ID_START = 620000
 MIN_CLUES = 3
 MAX_CLUES = 5
+
+# Building the full source-backed player universe/index is intentionally
+# comprehensive and can take several seconds on a cold Fly volume. It is
+# immutable for the lifetime of one Gateway process, so cache it in memory
+# and prewarm it at boot instead of making the first player pay that cost.
+_GENERATION_CONTEXT_LOCK = threading.Lock()
+_GENERATION_CONTEXT_CACHE = None
+
+
+def _generation_context():
+    global _GENERATION_CONTEXT_CACHE
+    if _GENERATION_CONTEXT_CACHE is not None:
+        return _GENERATION_CONTEXT_CACHE
+    with _GENERATION_CONTEXT_LOCK:
+        if _GENERATION_CONTEXT_CACHE is not None:
+            return _GENERATION_CONTEXT_CACHE
+        c = engine.connect()
+        try:
+            safety_result = safety_check(c)
+            facts, indexes, universe_ids = build_universe(c)
+        finally:
+            c.close()
+        _GENERATION_CONTEXT_CACHE = (safety_result, facts, indexes, universe_ids)
+        return _GENERATION_CONTEXT_CACHE
+
+
+def warm_generation_cache() -> dict:
+    safety_result, facts, _indexes, universe_ids = _generation_context()
+    return {
+        "ready": True,
+        "universe_size": len(universe_ids),
+        "safety_domains": sorted(safety_result),
+        "fact_count": len(facts),
+    }
+
 
 # Deterministic, fact-preserving templates -- NEVER LLM-generated (Part D).
 # Each lambda only ever inserts an already-verified `value`; it cannot
@@ -389,10 +425,7 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
 
 def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START,
                   stop_after_target: bool = False) -> dict:
-    c = engine.connect()
-    safety_result = safety_check(c)
-    facts, indexes, universe_ids = build_universe(c)
-    c.close()
+    safety_result, facts, indexes, universe_ids = _generation_context()
 
     order = sorted(universe_ids)  # deterministic base order before seeding
     rng = engine.seeded(seed)
