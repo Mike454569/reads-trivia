@@ -110,7 +110,7 @@ def score_question(question: dict, *, source: str | None = None) -> dict:
     if properish:
         reasons.append("named-entity context")
 
-    if any(p in low for p in _GENERIC_PATTERNS):
+    if any(p in low for p in _GENERIC_PATTERNS) or re.search(r"^what was .+\brecord\b.*\b(?:19|20)\d{2}\b", low):
         score -= 28; reasons.append("generic/metadata wording")
     if low.startswith("this event") or low.startswith("this player") or low.startswith("this team"):
         score -= 8; reasons.append("vague subject")
@@ -222,7 +222,12 @@ def rank_for_tier(questions: Iterable[dict], tier: str) -> list[dict]:
         if not isinstance(q, dict):
             continue
         meta = q.get("question_intelligence") or score_question(q)
-        scored.append((abs(int(meta["score"]) - target), -int(meta["score"]), q))
+        score = int(meta["score"])
+        # Asking for Sicko/Impossible should not silently fall down to an
+        # easier question merely because it is numerically close to the
+        # threshold. Undershooting the requested challenge is penalized.
+        distance = abs(score - target) * (2 if score < target else 1)
+        scored.append((distance, -score, q))
     scored.sort(key=lambda row: (row[0], row[1], question_fingerprint(row[2])))
     return [q for _, _, q in scored]
 
