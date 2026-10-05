@@ -1218,6 +1218,14 @@ function renderEnginePilotScreen() {
    server-text discipline), and the same .panel/.btn-primary/.btn-secondary/
    .quiz-feedback CSS classes -- no parallel visual language. */
 var ENGINE_MECHANIC_MODES = {
+  whoAmI: {
+    publicMode: 'who_am_i_nfl', hash: '#whoamiengine',
+    flagOn: function () { return ENABLE_PLAYER_FROM_CLUES_V01; },
+    title: 'Who Am I?', kind: 'progressive_clue', icon: 'mystery',
+    desc: 'Reveal verified clues about a real NFL player and identify him with as few clues as possible.',
+    fallbackLabel: 'Back Home',
+    fallback: function () { state.mechanicPilot = null; state.screen = 'home'; },
+  },
   matching: {
     publicMode: 'matching_nfl_draft', hash: '#matchingpilot',
     flagOn: function () { return ENABLE_ENGINE_MATCHING_PILOT_V01; },
@@ -2017,7 +2025,7 @@ function submitMechanicPilotAction(submission) {
     // MYSTERY_ROSTER's own "reveal" step is the same real navigation
     // shape: revealing another real clue is not itself a graded answer --
     // only the subsequent "guess" action is (see mystery_roster.py).
-    if (data.result && (data.result.action === 'select' || data.result.action === 'deselect' ||
+    if (data.result && (data.result.revealed === true || data.result.action === 'select' || data.result.action === 'deselect' ||
         data.result.action === 'choose_tier' || data.result.action === 'place_wager' ||
         data.result.action === 'reveal' || data.result.action === 'skip' || data.result.action === 'vault' ||
         data.result.action === 'accept' ||
@@ -2067,7 +2075,8 @@ function mechanicPilotAdvance() {
 function finishMechanicPilotSession(cfg, s) {
   var r = s.result || {}, v = s.view || {};
   var pct = null;
-  if (cfg.kind === 'matching' && r.total_pairs) pct = 100 * r.correct_count / r.total_pairs;
+  if (cfg.kind === 'progressive_clue' && r.correct !== undefined) pct = r.correct ? 100 : 0;
+  else if (cfg.kind === 'matching' && r.total_pairs) pct = 100 * r.correct_count / r.total_pairs;
   else if (cfg.kind === 'sorting' && r.total_items) pct = 100 * r.correct_positions / r.total_items;
   else if (cfg.kind === 'higher_lower') pct = Math.min(100, (v.streak != null ? v.streak : (r.streak || 0)) * 10);
   else if (cfg.kind === 'elimination') pct = Math.min(100, (v.survived_count != null ? v.survived_count : (r.survived_count || 0)) * 10);
@@ -2139,6 +2148,9 @@ function renderMechanicPilotCompleteSummary(cfg, s) {
     return '<p class="mode-desc"><strong>' + esc(v.result_label || 'Complete') + '</strong>' +
       ((v.correct_total || v.wrong_total) ? ' · ' + (v.correct_total || 0) + ' correct, ' + (v.wrong_total || 0) + ' missed.' : '') +
       '</p>';
+  }
+  if (cfg.kind === 'progressive_clue') {
+    return '<p class="mode-desc">' + (r.canonical_answer ? (r.correct ? 'Identified ' : 'Answer: ') + esc(r.canonical_answer) + '.' : '') + '</p>';
   }
   if (cfg.kind === 'matching') {
     return '<p class="mode-desc">' + (r.correct_count != null ? r.correct_count + ' of ' + r.total_pairs + ' matched correctly.' : '') + '</p>';
@@ -2485,7 +2497,10 @@ function renderMechanicPilotFeedback(cfg, s) {
   var r = s.result || {};
   var wasCorrect = r.all_correct === true || r.exact_match === true || r.correct === true;
   var headline, detail;
-  if (cfg.kind === 'matching') {
+  if (cfg.kind === 'progressive_clue') {
+    headline = wasCorrect ? 'That’s him!' : 'Not quite.';
+    detail = r.canonical_answer ? 'Answer: ' + esc(r.canonical_answer) + '.' : '';
+  } else if (cfg.kind === 'matching') {
     headline = wasCorrect ? 'All matched correctly!' : 'Not quite.';
     detail = r.correct_count + ' of ' + r.total_pairs + ' matched correctly.';
   } else if (cfg.kind === 'sorting') {
@@ -2756,6 +2771,7 @@ function renderMechanicPilotBody(cfg, s) {
       '<div class="stadium-picks-count">PICKS MADE <strong>' + (v.picks_made || 0) + ' / ' + (v.total_matchups || 0) + '</strong></div>' +
       renderBracketTreeBody(v, s);
   }
+  if (cfg.kind === 'progressive_clue') return renderProgressiveClueBody(v, s);
   if (cfg.kind === 'grid_constraint') return renderConnectionGridBody(v, s);
   if (cfg.kind === 'drive_progression') return renderDriveProgressionBody(v, s);
   if (cfg.kind === 'roster_build') return renderRosterBuildBody(v, s);
@@ -2795,6 +2811,20 @@ function renderMechanicPilotBody(cfg, s) {
    .status-line/.chip-toggle) wherever the shape allows, adding only the
    handful of genuinely new classes each format's shape requires
    (.grid-board/.drive-meter/.roster-slot/.chain-node -- see reads.css). */
+
+function renderProgressiveClueBody(v, s) {
+  var clues = v.clues || [];
+  return stadiumRoundBar('WHO AM I?', (v.round_index || 0) + 1, v.round_count || 1) +
+    '<div class="whoami-clues">' + clues.map(function (cl, i) {
+      return '<div class="whoami-clue' + (i === clues.length - 1 ? ' whoami-clue-latest' : '') + '">' +
+        '<span class="whoami-clue-num">' + (i + 1) + '</span>' +
+        '<span class="whoami-clue-text">' + esc(cl.display_text || '') + '</span></div>';
+    }).join('') + '</div>' +
+    '<div class="stadium-entry"><input type="text" class="learn-filter-input" id="mechanic-clue-input" ' +
+      'placeholder="Type the player name" autocomplete="off">' +
+      '<button class="btn-primary" data-mechanic-clue-submit>Guess</button></div>' +
+    (v.can_reveal_more ? '<div class="btn-row"><button class="btn-secondary" data-mechanic-clue-reveal>Reveal another clue</button></div>' : '');
+}
 
 // CONNECTION_GRID: tap a cell to make it "active," type a real name, submit.
 // Never renders a precomputed valid-answer list -- the server's view only
