@@ -37,19 +37,19 @@ MAX_CLUES = 5
 # Each lambda only ever inserts an already-verified `value`; it cannot
 # introduce any fact not already present in that value.
 CLUE_TEMPLATES = {
-    "draft_year": lambda v: f"This player was drafted in {v}.",
-    "draft_round": lambda v: f"This player was drafted in round {v}.",
-    "draft_pick_overall": lambda v: f"This player was selected with the #{v} overall pick.",
-    "position": lambda v: f"This player's position at the time of the draft was {v}.",
-    "drafting_franchise": lambda v: f"This player was drafted by the {v}.",
-    "team_history": lambda v: f"At another point in his career, this player played for the {v}.",
-    "career_span": lambda v: f"This player's NFL career (by recorded roster seasons) spanned {v[0]} to {v[1]}.",
-    "college": lambda v: f"This player attended {v} before entering the NFL draft.",
+    "draft_year": lambda v: f"He entered the NFL in the {v} draft.",
+    "draft_round": lambda v: f"He came off the board in Round {v}.",
+    "draft_pick_overall": lambda v: f"He was the No. {v} overall pick.",
+    "position": lambda v: f"He played {v}.",
+    "drafting_franchise": lambda v: f"The {v} drafted him.",
+    "team_history": lambda v: f"He later spent part of his NFL career with the {v}.",
+    "career_span": lambda v: f"His recorded NFL career stretched from {v[0]} through {v[1]}.",
+    "college": lambda v: f"He played college football at {v}.",
     "postseason_participation": lambda v: (
-        "This player was on an NFL team's active roster during a playoff run at some point in his career."
+        "He was on an active NFL roster during at least one playoff run."
     ),
     "won_super_bowl": lambda v: (
-        "This player was on the active roster of a team that won the Super Bowl at some point in his career."
+        "He was on an active roster for a Super Bowl-winning team."
     ),
 }
 
@@ -266,6 +266,9 @@ def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
 # still allow it there if it's genuinely the only real clue this player
 # has (never fail a puzzle over a variety preference).
 OPENING_CLUE_VARIETY_EXCLUDE = frozenset({"postseason_participation"})
+OPENING_CLUE_PREFERRED = frozenset({
+    "team_history", "college", "career_span", "drafting_franchise", "won_super_bowl",
+})
 
 
 def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
@@ -292,7 +295,11 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
             varied = [o for o in step_options if o[0] not in OPENING_CLUE_VARIETY_EXCLUDE]
             if varied:
                 step_options = varied
-        # Broadest still-narrowing clue first; deterministic alphabetical tie-break, no RNG.
+            richer = [o for o in step_options if o[0] in OPENING_CLUE_PREFERRED]
+            if richer:
+                step_options = richer
+        # Broadest still-narrowing clue first inside the player-facing
+        # opening-quality preference; deterministic alphabetical tie-break.
         step_options.sort(key=lambda x: (-len(x[3]), x[0]))
         ct, v, _cset, new_set = step_options[0]
         display_text = CLUE_TEMPLATES[ct](v)
@@ -380,7 +387,8 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
     return issues
 
 
-def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -> dict:
+def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START,
+                  stop_after_target: bool = False) -> dict:
     c = engine.connect()
     safety_result = safety_check(c)
     facts, indexes, universe_ids = build_universe(c)
@@ -419,6 +427,8 @@ def generate_pack(seed: str, target_count: int = 25, id_start: int = ID_START) -
         puzzle["qa_status"] = "PASSED"
         accepted.append(puzzle)
         guard.record(sequence_signature, pid)
+        if stop_after_target and len(accepted) >= target_count:
+            break
 
     exported = accepted[:target_count]
     shortfall_reason = None
@@ -480,12 +490,14 @@ def _engine_version_fingerprint(c) -> dict:
 
 
 def build_package(seed: str, target_count: int = 25, id_start: int = ID_START,
-                   requested_description: str | None = None, freeze_timestamp: str | None = None) -> dict:
+                   requested_description: str | None = None, freeze_timestamp: str | None = None,
+                   stop_after_target: bool = False) -> dict:
     """Wraps generate_pack()'s raw output in the full GeneratedGamePackage
     shape used by every other capability in this project, adapted for this
     mechanic's answer/clue model (no options/correctIndex -- see
     PLAYER_FROM_CLUES_MECHANIC_SPEC.md, Part G)."""
-    pack = generate_pack(seed, target_count=target_count, id_start=id_start)
+    pack = generate_pack(seed, target_count=target_count, id_start=id_start,
+                         stop_after_target=stop_after_target)
 
     c = engine.connect()
     engine_version_fingerprint = _engine_version_fingerprint(c)
