@@ -1,4 +1,4 @@
-name: Strategy Arcade launch verification
+name: Strategy Arcade launch verification # rerun
 on:
   push:
     branches: [fix/strategy-arcade-live-launch]
