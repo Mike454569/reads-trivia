@@ -69,6 +69,15 @@ LOW_SIGNAL = (
     "power rankings", "prediction", "pick against the spread",
 )
 
+# Any candidate containing these terms is review-only even if a broad safe
+# search family discovered it. Query-family labels are hints, never a safety
+# authority.
+SENSITIVE_TITLE_TERMS = (
+    "arrest", "arrested", "charged", "charge", "indicted", "convicted",
+    "court", "lawsuit", "investigation", "suspended", "suspension",
+    "discipline", "domestic violence", "assault", "dui", "dwi",
+)
+
 SOURCE_WEIGHT = {
     "PRIMARY": 25,
     "REPUTABLE_MEDIA": 15,
@@ -126,13 +135,16 @@ def triage_candidates(*, minimum_priority_score=30):
         sig = _title_signature(row["title"])
         score = _score(row)
 
-        if any(term in _norm_title(row["title"]) for term in LOW_SIGNAL):
+        normalized_title = _norm_title(row["title"])
+        sensitive_copy = any(term in normalized_title for term in SENSITIVE_TITLE_TERMS)
+
+        if any(term in normalized_title for term in LOW_SIGNAL):
             status = "REJECT_LOW_SIGNAL"
             counts[status] += 1
         elif sig in signatures:
             status = "REJECT_NEAR_DUPLICATE"
             counts[status] += 1
-        elif int(row["sensitive_hint"] or 0):
+        elif int(row["sensitive_hint"] or 0) or sensitive_copy:
             status = "REVIEW_REQUIRED_SENSITIVE"
             signatures[sig] = cid
             counts[status] += 1
