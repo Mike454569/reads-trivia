@@ -77,7 +77,7 @@ def grow_structured_corpus(*, pbp_game_limit=None, row_limit=None):
     try:
         results["existing"] = populate_existing(c)
         results["nfl_trades"] = populate_nfl_trades(c)
-        results["nfl_game_stories"] = mine_nfl_games(c, limit_games=pbp_game_limit)
+        results["nfl_game_stories"] = mine_nfl_games(c, limit=pbp_game_limit)
         results["nfl_pbp"] = mine_nfl_pbp(c, limit_games=pbp_game_limit)
         results["nfl_game_chaos"] = mine_nfl_game_chaos(c, limit_games=pbp_game_limit)
         results["cfb_pbp"] = mine_cfb_pbp(c, limit_games=pbp_game_limit)
