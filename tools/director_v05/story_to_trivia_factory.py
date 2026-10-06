@@ -40,12 +40,20 @@ AUTO_FAMILIES = {
     "PRESS_CONFERENCE": "PRESS_CONFERENCE",
     "OFF_FIELD_ODDITY": "OFF_FIELD_ODDITY",
     "CELEBRATION_FAN": "CELEBRATION",
+    "DRAFT_CHAOS": "HISTORICAL_MILESTONE",
+    "COMEBACK_RETURN": "COMEBACK",
+    "TRADE_CHAOS": "TRADE",
+    "BUST_REDEMPTION": "HISTORICAL_MILESTONE",
+    "GAME_ODDITY": "ON_FIELD_ODDITY",
+    "COACHING_ODDITY": "COACHING_MOVE",
+    "RIVALRY_ODDITY": "ON_FIELD_ODDITY",
+    "RULE_ODDITY": "RULE_ODDITY",
 }
 
 FAMILY_TERMS = {
     "PRESS_CONFERENCE": (
         "press conference", "news conference", "postgame", "media availability",
-        "reporters", "asked", "said", "media session", "locker room",
+        "reporters", "asked", "said", "media session", "locker room", "quote",
     ),
     "OFF_FIELD_ODDITY": (
         "hard knocks", "off-field", "training camp", "bizarre", "weird",
@@ -53,7 +61,35 @@ FAMILY_TERMS = {
     ),
     "CELEBRATION_FAN": (
         "celebration", "celebrated", "dance", "taunt", "mascot", "fan",
-        "crowd", "sideline",
+        "crowd", "sideline", "end zone",
+    ),
+    "DRAFT_CHAOS": (
+        "draft", "trade up", "trade down", "draft-day", "draft day", "slide",
+        "surprise pick", "unexpected pick", "mr. irrelevant", "mr irrelevant",
+    ),
+    "COMEBACK_RETURN": (
+        "comeback", "retirement", "came out of retirement", "returned",
+        "unretired", "career comeback", "return to football",
+    ),
+    "TRADE_CHAOS": (
+        "trade", "traded", "blockbuster", "trade request", "trade deadline",
+    ),
+    "BUST_REDEMPTION": (
+        "draft bust", "bust", "career turnaround", "late bloomer", "revival",
+        "breakout", "redeemed", "redemption",
+    ),
+    "GAME_ODDITY": (
+        "weird play", "bizarre play", "strange play", "unusual touchdown",
+        "rare play", "crazy ending", "accidental touchdown", "odd play",
+    ),
+    "COACHING_ODDITY": (
+        "coach", "rant", "fired", "sideline", "celebration", "prank", "quote",
+    ),
+    "RIVALRY_ODDITY": (
+        "rivalry", "prank", "trophy", "tradition", "crazy ending",
+    ),
+    "RULE_ODDITY": (
+        "rule", "penalty", "targeting", "kickoff", "loophole", "officiating",
     ),
 }
 
@@ -155,6 +191,14 @@ def _neutral_summary(candidate, article, subject_label):
         "PRESS_CONFERENCE": "media appearance",
         "OFF_FIELD_ODDITY": "off-field football story",
         "CELEBRATION_FAN": "football celebration or fan story",
+        "DRAFT_CHAOS": "draft-day football story",
+        "COMEBACK_RETURN": "football comeback or return story",
+        "TRADE_CHAOS": "football trade story",
+        "BUST_REDEMPTION": "career arc or draft-outcome story",
+        "GAME_ODDITY": "unusual on-field football story",
+        "COACHING_ODDITY": "coaching story",
+        "RIVALRY_ODDITY": "rivalry football story",
+        "RULE_ODDITY": "football rules story",
     }.get(family, "football story")
     if topic:
         return f"{subject_label} was the subject of a documented {family_label} concerning {topic}."
