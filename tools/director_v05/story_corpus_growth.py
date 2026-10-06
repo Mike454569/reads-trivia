@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -33,6 +34,7 @@ from .story_candidate_harvest import (
 )
 from .story_candidate_triage import triage_candidates
 from .story_batch_drain import drain_story_queue
+from .story_sqlite import prepare_write_connection
 
 
 # Rotate expensive news-index search families across three runs. Structured
@@ -69,23 +71,73 @@ def _story_question_count(conn):
     ).fetchone()[0])
 
 
-def grow_structured_corpus(*, pbp_game_limit=None, row_limit=None):
-    c = engine_bootstrap.connect()
-    c.execute("PRAGMA busy_timeout=30000")
+def _run_structured_miner(conn, name, fn):
+    """Run one idempotent miner without letting a transient source/DB failure
+    block every other corpus source.
+
+    The production report keeps the error visible. Lock/busy failures are
+    expected to be retried by a later scheduled pass rather than hammering the
+    live customer DB in one process.
+    """
+    try:
+        return fn()
+    except sqlite3.OperationalError as exc:
+        msg=str(exc).casefold()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        if "locked" in msg or "busy" in msg:
+            return {"skipped": True, "reason": "SQLITE_BUSY", "error": str(exc)}
+        return {"skipped": True, "reason": "SQLITE_OPERATIONAL_ERROR", "error": str(exc)}
+    except MemoryError as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return {"skipped": True, "reason": "MEMORY_PRESSURE", "error": str(exc)}
+    except Exception as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return {"skipped": True, "reason": type(exc).__name__, "error": str(exc)}
+
+
+def grow_structured_corpus(*, pbp_game_limit=None, row_limit=None, include_heavy_pbp=False):
+    # Use the Story Factory's 120s busy timeout. Each miner is isolated so a
+    # temporarily locked table/source can be retried next run while other
+    # sources and the external queue still make progress.
+    c = prepare_write_connection(engine_bootstrap.connect())
     before = _event_count(c)
     results = {}
     try:
-        results["existing"] = populate_existing(c)
-        results["nfl_trades"] = populate_nfl_trades(c)
-        results["nfl_game_stories"] = mine_nfl_games(c, limit=pbp_game_limit)
-        results["nfl_pbp"] = mine_nfl_pbp(c, limit_games=pbp_game_limit)
-        results["nfl_game_chaos"] = mine_nfl_game_chaos(c, limit_games=pbp_game_limit)
-        results["cfb_pbp"] = mine_cfb_pbp(c, limit_games=pbp_game_limit)
-        results["cfb_weather"] = mine_cfb_weather_lore(c, limit_games=pbp_game_limit)
-        results["nfl_contracts"] = mine_nfl_contract_lore(c, limit_rows=row_limit)
-        results["cfb_recruiting"] = mine_cfb_recruiting_lore(c, limit_rows=row_limit)
-        results["official_rules"] = populate_official_rule_lore(c)
-        results["reviewed_corpus"] = ingest_reviewed_corpus(c)
+        miners = [
+            ("existing", lambda: populate_existing(c)),
+            ("nfl_trades", lambda: populate_nfl_trades(c)),
+            ("nfl_game_stories", lambda: mine_nfl_games(c, limit=pbp_game_limit)),
+            ("cfb_weather", lambda: mine_cfb_weather_lore(c, limit_games=pbp_game_limit)),
+            ("nfl_contracts", lambda: mine_nfl_contract_lore(c, limit_rows=row_limit)),
+            ("cfb_recruiting", lambda: mine_cfb_recruiting_lore(c, limit_rows=row_limit)),
+            ("official_rules", lambda: populate_official_rule_lore(c)),
+            ("reviewed_corpus", lambda: ingest_reviewed_corpus(c)),
+        ]
+        # The PBP miners materialize large play tables in memory. They are
+        # valuable for offline/shadow population but are deliberately disabled
+        # in the live scheduled growth job to protect the gateway process.
+        if include_heavy_pbp:
+            miners.extend([
+                ("nfl_pbp", lambda: mine_nfl_pbp(c, limit_games=pbp_game_limit)),
+                ("nfl_game_chaos", lambda: mine_nfl_game_chaos(c, limit_games=pbp_game_limit)),
+                ("cfb_pbp", lambda: mine_cfb_pbp(c, limit_games=pbp_game_limit)),
+            ])
+        else:
+            results["nfl_pbp"] = {"skipped": True, "reason": "LIVE_HEAVY_MINER_DISABLED"}
+            results["nfl_game_chaos"] = {"skipped": True, "reason": "LIVE_HEAVY_MINER_DISABLED"}
+            results["cfb_pbp"] = {"skipped": True, "reason": "LIVE_HEAVY_MINER_DISABLED"}
+
+        for name, fn in miners:
+            results[name] = _run_structured_miner(c, name, fn)
         after = _event_count(c)
     finally:
         c.close()
@@ -93,6 +145,7 @@ def grow_structured_corpus(*, pbp_game_limit=None, row_limit=None):
         "before_verified_events": before,
         "after_verified_events": after,
         "verified_event_delta": after - before,
+        "include_heavy_pbp": bool(include_heavy_pbp),
         "miners": results,
     }
 
@@ -147,6 +200,7 @@ def run_growth(
     timespan="1y",
     pbp_game_limit=None,
     row_limit=None,
+    include_heavy_pbp=False,
     drain_batch_size=10,
     drain_max_batches=12,
     drain_time_budget_seconds=1200,
@@ -165,6 +219,7 @@ def run_growth(
         result["structured"] = grow_structured_corpus(
             pbp_game_limit=pbp_game_limit,
             row_limit=row_limit,
+            include_heavy_pbp=include_heavy_pbp,
         )
     if external:
         result["external"] = grow_external_story_queue(
@@ -210,6 +265,7 @@ def main():
     ap.add_argument("--timespan", default="1y")
     ap.add_argument("--pbp-game-limit", type=int)
     ap.add_argument("--row-limit", type=int)
+    ap.add_argument("--heavy-pbp", action="store_true")
     ap.add_argument("--drain-batch-size", type=int, default=10)
     ap.add_argument("--drain-max-batches", type=int, default=12)
     ap.add_argument("--drain-time-budget-seconds", type=int, default=1200)
@@ -225,6 +281,7 @@ def main():
         timespan=args.timespan,
         pbp_game_limit=args.pbp_game_limit,
         row_limit=args.row_limit,
+        include_heavy_pbp=args.heavy_pbp,
         drain_batch_size=args.drain_batch_size,
         drain_max_batches=args.drain_max_batches,
         drain_time_budget_seconds=args.drain_time_budget_seconds,
