@@ -9,54 +9,84 @@ from collections import Counter
 from tools.quiz_export import engine as engine_bootstrap
 
 HIGH_SIGNAL = {
-    "PRESS_CONFERENCE": (
-        "press conference", "postgame", "news conference", "media availability",
-        "locker room", "asked about", "coach said", "viral quote", "memorable quote",
+    "BIZARRE_MOMENT": (
+        "bizarre play", "weird play", "strangest play", "unusual touchdown",
+        "crazy ending", "rare play", "accidental touchdown",
     ),
-    "OFF_FIELD_ODDITY": (
-        "hard knocks", "bizarre", "weird", "unusual", "viral", "funny",
-        "training camp", "costume", "prank", "sideline", "strange story",
+    "DRAFT_BUST": (
+        "draft bust", "first round bust", "first-round bust", "failed draft pick",
+        "draft disaster", "draft day mistake", "historic draft miss",
     ),
-    "CELEBRATION_FAN": (
-        "celebration", "touchdown celebration", "mascot", "fan", "taunt",
-        "dance", "crowd", "end zone",
+    "TRADE_ODDITY": (
+        "weird trade", "shocking trade", "blockbuster trade", "trade request",
+        "draft day trade", "draft-day trade", "trade deadline",
     ),
-    "DRAFT_CHAOS": (
-        "draft", "trade up", "trade down", "draft-day", "slide", "surprise pick",
-        "unexpected pick", "mr irrelevant",
+    "DISCIPLINE_LEGAL": (
+        "suspended", "suspension", "discipline", "fine", "fined", "arrested",
+        "arrest", "charged", "charge", "investigation",
     ),
     "COMEBACK_RETURN": (
         "comeback", "retirement", "came out of retirement", "returned to football",
         "unretired", "career comeback",
     ),
-    "TRADE_CHAOS": (
-        "trade", "blockbuster", "trade request", "trade deadline", "traded",
+    "SIDELINE_INCIDENT": (
+        "sideline incident", "sideline argument", "sideline altercation",
+        "sideline confrontation", "sideline penalty", "bench incident",
     ),
-    "BUST_REDEMPTION": (
-        "draft bust", "first round bust", "first-round bust", "career turnaround",
-        "late bloomer", "career revival", "breakout",
+    "COACHING_MELTDOWN": (
+        "coach rant", "coach meltdown", "postgame rant", "press conference",
+        "viral quote", "memorable quote", "coach said",
     ),
-    "GAME_ODDITY": (
-        "weird play", "bizarre play", "strangest play", "unusual touchdown",
-        "rare play", "crazy ending", "accidental touchdown", "forgot the rules",
+    "CELEBRATION_CONTROVERSY": (
+        "touchdown celebration", "celebration penalty", "taunting penalty",
+        "end zone celebration", "celebration fine", "sideline celebration",
     ),
-    "COACHING_ODDITY": (
-        "coach quote", "coach rant", "coach fired", "sideline incident",
-        "coach celebration", "coach prank",
+    "RECRUITING_CHAOS": (
+        "recruiting controversy", "recruiting flip", "signing day",
+        "recruiting saga", "commitment flip", "recruiting surprise",
     ),
-    "RIVALRY_ODDITY": (
-        "rivalry prank", "rivalry trophy", "rivalry tradition", "rivalry game",
-        "crazy ending",
+    "RECORD_ODDITY": (
+        "record breaking", "record-breaking", "first player ever",
+        "rare record", "strange record", "bizarre record",
     ),
-    "DISCIPLINE_LEGAL": (
-        "suspended", "suspension", "arrested", "arrest", "charged", "charge",
-        "investigation", "discipline", "fine", "fined",
+    "INFAMOUS_MISTAKE": (
+        "infamous mistake", "costly mistake", "forgot the rules", "wrong way",
+        "botched play", "historic blunder",
+    ),
+    "OFF_FIELD_ODDITY": (
+        "hard knocks", "bizarre", "weird", "unusual", "viral", "funny",
+        "training camp", "costume", "prank", "strange story",
+    ),
+    "RIVALRY_INCIDENT": (
+        "rivalry incident", "rivalry prank", "rivalry trophy", "rivalry fight",
+        "rivalry controversy", "crazy ending",
+    ),
+    "TRANSFER_NIL_CHAOS": (
+        "transfer portal", "nil controversy", "nil deal", "transfer flip",
+        "portal commitment", "portal chaos",
+    ),
+    "PLAYOFF_FORGOTTEN": (
+        "forgotten playoff", "forgotten playoff moment", "forgotten bowl",
+        "playoff upset", "wild card", "college football playoff",
+    ),
+    "PRESS_CONFERENCE": (
+        "press conference", "postgame", "news conference", "media availability",
+        "locker room", "asked about", "coach said", "viral quote", "memorable quote",
     ),
     "RULE_ODDITY": (
         "rule change", "rules change", "unusual rule", "obscure rule",
         "penalty rule", "approved rule", "targeting", "kickoff rule",
         "rare penalty", "rule loophole",
     ),
+
+    # Legacy family names already present in the corpus.
+    "CELEBRATION_FAN": ("celebration", "touchdown celebration", "mascot", "fan", "taunt", "dance", "crowd", "end zone"),
+    "DRAFT_CHAOS": ("draft", "trade up", "trade down", "draft-day", "slide", "surprise pick", "unexpected pick", "mr irrelevant"),
+    "TRADE_CHAOS": ("trade", "blockbuster", "trade request", "trade deadline", "traded"),
+    "BUST_REDEMPTION": ("draft bust", "first round bust", "first-round bust", "career turnaround", "late bloomer", "career revival", "breakout"),
+    "GAME_ODDITY": ("weird play", "bizarre play", "strangest play", "unusual touchdown", "rare play", "crazy ending", "accidental touchdown", "forgot the rules"),
+    "COACHING_ODDITY": ("coach quote", "coach rant", "coach fired", "sideline incident", "coach celebration", "coach prank"),
+    "RIVALRY_ODDITY": ("rivalry prank", "rivalry trophy", "rivalry tradition", "rivalry game", "crazy ending"),
 }
 
 FOOTBALL_ANCHORS = (

@@ -39,35 +39,73 @@ CFB_DOMAINS = (
 )
 
 CFB_QUERY_FAMILIES = {
-    "PRESS_CONFERENCE": (
-        '"college football" "press conference"',
-        '"college football" postgame coach',
-        '"college football" postgame quarterback',
-        '"college football" "media availability"',
-        '"college football" reporters coach',
+    "BIZARRE_MOMENT": (
+        '"college football" bizarre play', '"college football" weird play',
+        '"college football" crazy ending', '"college football" rare play',
     ),
-    "OFF_FIELD_ODDITY": (
-        '"college football" bizarre',
-        '"college football" unusual story',
-        '"college football" funny player',
-        '"college football" viral player',
-        '"college football" training camp unusual',
+    "DRAFT_BUST": (
+        '"college football player" "draft bust"', '"NFL Draft" "college star" bust',
+        '"high draft pick" college football disappointment',
     ),
-    "CELEBRATION_FAN": (
-        '"college football" celebration',
-        '"college football" mascot',
-        '"college football" fan unusual',
-        '"college football" sideline celebration',
-    ),
-    "RULE_ODDITY": (
-        '"college football" rule change',
-        '"college football" unusual rule',
-        '"NCAA football" rule change',
+    "TRADE_ODDITY": (
+        '"college football" unusual player trade', '"college football" coach trade unusual',
     ),
     "DISCIPLINE_LEGAL": (
-        '"college football" suspension player',
-        '"college football" arrest player',
-        '"college football" discipline player',
+        '"college football" suspension player', '"college football" discipline player',
+        '"college football" fine player', '"college football" arrest player',
+    ),
+    "COMEBACK_RETURN": (
+        '"college football" comeback player', '"returned to college football" player',
+        '"came out of retirement" college football coach',
+    ),
+    "SIDELINE_INCIDENT": (
+        '"college football" sideline incident', '"college football" sideline argument',
+        '"college football" sideline altercation',
+    ),
+    "COACHING_MELTDOWN": (
+        '"college football" coach rant', '"college football" coach meltdown',
+        '"college football" viral coach quote', '"college football" postgame rant',
+    ),
+    "CELEBRATION_CONTROVERSY": (
+        '"college football" celebration penalty', '"college football" taunting celebration',
+        '"college football" end zone celebration controversy',
+    ),
+    "RECRUITING_CHAOS": (
+        '"college football" recruiting flip', '"college football" signing day chaos',
+        '"college football" recruiting controversy', '"college football" commitment flip',
+    ),
+    "RECORD_ODDITY": (
+        '"college football" bizarre record', '"college football" rare record',
+        '"college football" record-breaking unusual',
+    ),
+    "INFAMOUS_MISTAKE": (
+        '"college football" infamous mistake', '"college football" botched play',
+        '"college football" historic blunder', '"college football" forgot the rules',
+    ),
+    "OFF_FIELD_ODDITY": (
+        '"college football" bizarre', '"college football" unusual story',
+        '"college football" funny player', '"college football" viral player',
+        '"college football" training camp unusual',
+    ),
+    "RIVALRY_INCIDENT": (
+        '"college football" rivalry incident', '"college football" rivalry prank',
+        '"college football" rivalry fight', '"college football" rivalry controversy',
+    ),
+    "TRANSFER_NIL_CHAOS": (
+        '"college football" transfer portal chaos', '"college football" transfer surprise',
+        '"college football" NIL controversy', '"college football" NIL deal unusual',
+    ),
+    "PLAYOFF_FORGOTTEN": (
+        '"college football playoff" forgotten moment', '"forgotten bowl game" college football',
+        '"college football" forgotten playoff upset',
+    ),
+    "PRESS_CONFERENCE": (
+        '"college football" "press conference"', '"college football" postgame coach',
+        '"college football" postgame quarterback', '"college football" "media availability"',
+    ),
+    "RULE_ODDITY": (
+        '"college football" rule change', '"college football" unusual rule',
+        '"NCAA football" rule change',
     ),
 }
 

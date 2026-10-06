@@ -39,14 +39,16 @@ from .story_batch_drain import drain_story_queue
 # miners still run every time and are idempotent.
 FAMILY_GROUPS = {
     "A": (
-        "DRAFT_CHAOS", "TRADE_CHAOS", "BUST_REDEMPTION", "COMEBACK_RETURN",
+        "BIZARRE_MOMENT", "DRAFT_BUST", "TRADE_ODDITY",
+        "COMEBACK_RETURN", "INFAMOUS_MISTAKE",
     ),
     "B": (
-        "GAME_ODDITY", "RIVALRY_ODDITY", "COACHING_ODDITY", "RULE_ODDITY",
+        "SIDELINE_INCIDENT", "COACHING_MELTDOWN", "CELEBRATION_CONTROVERSY",
+        "RECORD_ODDITY", "RIVALRY_INCIDENT",
     ),
     "C": (
-        "PRESS_CONFERENCE", "OFF_FIELD_ODDITY", "CELEBRATION_FAN",
-        "DISCIPLINE_LEGAL",
+        "RECRUITING_CHAOS", "TRANSFER_NIL_CHAOS", "PLAYOFF_FORGOTTEN",
+        "OFF_FIELD_ODDITY", "DISCIPLINE_LEGAL",
     ),
 }
 

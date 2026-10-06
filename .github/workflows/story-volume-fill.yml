@@ -113,6 +113,26 @@ jobs:
           set -euo pipefail
           python3 -c "import json; rows=[json.load(open('story-volume-'+g+'.json')) for g in 'ABC']; before=rows[0].get('before') or {}; after=rows[-1].get('after') or {}; print('START',before); print('END',after); print('TOTAL_DELTA',{'verified_events':int(after.get('verified_events',0))-int(before.get('verified_events',0)),'ready_story_questions':int(after.get('ready_story_questions',0))-int(before.get('ready_story_questions',0))}); [print('GROUP',g,'delta',r.get('delta'),'accepted',((((r.get('external') or {}).get('harvest') or {}).get('metrics') or {}).get('accepted_candidates',0)),'claimed',(((r.get('external') or {}).get('drain') or {}).get('claimed_total',0))) for g,r in zip('ABC',rows)]"
 
+      - name: Certify Story corpus hard numbers
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_corpus_v3 --min-verified-story-events 3000 --min-playable-story-questions 20000 --min-each-league 1'" > story-volume-cert-v3.json 2>> story-volume-fill.err; then
+              success=1
+              break
+            fi
+            echo "Volume certification SSH attempt $attempt failed" >> story-volume-fill.err
+            sleep 8
+          done
+          test "$success" = "1"
+          python3 -c "import json; r=json.load(open('story-volume-cert-v3.json')); print('STORY_VOLUME_V3',{'status':r.get('status'),'verified_story_events':r.get('verified_story_events'),'playable_story_questions':r.get('playable_story_questions'),'nfl_vs_cfb':r.get('nfl_vs_cfb'),'duplicates_rejected':r.get('duplicates_rejected'),'sensitive_review_held':r.get('sensitive_review_held'),'weak_copy_rejects':r.get('weak_copy_rejects'),'source_domains':((r.get('source_coverage') or {}).get('domain_count')),'missing_required_families':r.get('missing_required_families')})"
+
       - name: Upload volume reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -124,6 +144,7 @@ jobs:
             story-volume-B.json
             story-volume-C.json
             story-volume-CFB.txt
+            story-volume-cert-v3.json
             story-volume-fill.err
           if-no-files-found: warn
           retention-days: 14

@@ -24,8 +24,10 @@ def load_ready_story_questions(
     rows = conn.execute(
         """SELECT question_json
            FROM story_generated_questions
-           WHERE status='READY_FOR_BANK'
-           ORDER BY created_at DESC,question_id
+           WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')
+           ORDER BY
+             CASE status WHEN 'READY_FOR_BANK' THEN 0 ELSE 1 END,
+             created_at DESC,question_id
            LIMIT ?""",
         (max(1, min(int(limit) * 5, 500)),),
     ).fetchall()
@@ -43,9 +45,9 @@ def load_ready_story_questions(
         aid = str(answer.get("id") or "")
         options = list(q.get("options") or [])
 
-        # Public Deep Lore package currently uses the four-choice guess
-        # renderer. Progressive-only story artifacts remain available to
-        # future Progressive Clue delivery but are not forced into this mode.
+        # Normal four-choice game shells may now draw from both bank statuses.
+        # The renderer contract below still rejects incompatible Timeline,
+        # Matching, binary, or progressive artifacts instead of coercing them.
         if q.get("mechanic") != "MULTIPLE_CHOICE":
             continue
         if not qid or qid in recent_q or not aid or aid in recent_a:
