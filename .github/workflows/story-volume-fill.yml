@@ -25,7 +25,7 @@ concurrency:
 jobs:
   fill:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -42,6 +42,17 @@ jobs:
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Drain existing safe backlog aggressively
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-fill.err
+          python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_DRAIN',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
 
       - name: Grow structured corpus once
         env:
@@ -77,7 +88,7 @@ jobs:
             echo "=== GROUP $GROUP ==="
             success=0
             for attempt in 1 2 3; do
-              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 10 --drain-max-batches 20 --drain-time-budget-seconds 1500'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
+              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
                 success=1
                 break
               fi
@@ -98,7 +109,7 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           success=0
           for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.cfb_story_candidate_harvest --timespan 5y --school-limit 80 --school-query-limit 120 && python -m tools.director_v05.story_candidate_triage --limit 1000 && python -m tools.director_v05.story_batch_drain --batch-size 10 --max-batches 20 --time-budget-seconds 1500'" > story-volume-CFB.txt 2>> story-volume-fill.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.cfb_story_candidate_harvest --timespan 5y --school-limit 80 --school-query-limit 120 && python -m tools.director_v05.story_candidate_triage --limit 1000 && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-CFB.txt 2>> story-volume-fill.err; then
               success=1
               break
             fi
@@ -119,6 +130,7 @@ jobs:
         with:
           name: story-volume-fill
           path: |
+            story-volume-backlog-drain.json
             story-volume-structured.json
             story-volume-A.json
             story-volume-B.json
