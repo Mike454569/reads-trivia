@@ -11,15 +11,42 @@ from tools.quiz_export import engine as engine_bootstrap
 HIGH_SIGNAL = {
     "PRESS_CONFERENCE": (
         "press conference", "postgame", "news conference", "media availability",
-        "locker room", "asked about", "coach said",
+        "locker room", "asked about", "coach said", "viral quote", "memorable quote",
     ),
     "OFF_FIELD_ODDITY": (
         "hard knocks", "bizarre", "weird", "unusual", "viral", "funny",
-        "training camp", "costume", "prank", "sideline",
+        "training camp", "costume", "prank", "sideline", "strange story",
     ),
     "CELEBRATION_FAN": (
         "celebration", "touchdown celebration", "mascot", "fan", "taunt",
-        "dance", "crowd",
+        "dance", "crowd", "end zone",
+    ),
+    "DRAFT_CHAOS": (
+        "draft", "trade up", "trade down", "draft-day", "slide", "surprise pick",
+        "unexpected pick", "mr irrelevant",
+    ),
+    "COMEBACK_RETURN": (
+        "comeback", "retirement", "came out of retirement", "returned to football",
+        "unretired", "career comeback",
+    ),
+    "TRADE_CHAOS": (
+        "trade", "blockbuster", "trade request", "trade deadline", "traded",
+    ),
+    "BUST_REDEMPTION": (
+        "draft bust", "first round bust", "first-round bust", "career turnaround",
+        "late bloomer", "career revival", "breakout",
+    ),
+    "GAME_ODDITY": (
+        "weird play", "bizarre play", "strangest play", "unusual touchdown",
+        "rare play", "crazy ending", "accidental touchdown", "forgot the rules",
+    ),
+    "COACHING_ODDITY": (
+        "coach quote", "coach rant", "coach fired", "sideline incident",
+        "coach celebration", "coach prank",
+    ),
+    "RIVALRY_ODDITY": (
+        "rivalry prank", "rivalry trophy", "rivalry tradition", "rivalry game",
+        "crazy ending",
     ),
     "DISCIPLINE_LEGAL": (
         "suspended", "suspension", "arrested", "arrest", "charged", "charge",
@@ -28,6 +55,7 @@ HIGH_SIGNAL = {
     "RULE_ODDITY": (
         "rule change", "rules change", "unusual rule", "obscure rule",
         "penalty rule", "approved rule", "targeting", "kickoff rule",
+        "rare penalty", "rule loophole",
     ),
 }
 
