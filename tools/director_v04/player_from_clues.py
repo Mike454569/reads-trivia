@@ -26,8 +26,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from tools.quiz_export import duplicates, engine, safety  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
+from tools.director_v04 import question_intelligence  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "0.4"
+PACKAGE_SCHEMA_VERSION = "0.5"
 MECHANIC = "identify_player_from_clues"
 CATEGORY = "Player From Clues"
 ID_START = 620000
@@ -73,24 +74,45 @@ def warm_generation_cache() -> dict:
 # Each lambda only ever inserts an already-verified `value`; it cannot
 # introduce any fact not already present in that value.
 CLUE_TEMPLATES = {
-    "draft_year": lambda v: f"He entered the NFL in the {v} draft.",
-    "draft_round": lambda v: f"He came off the board in Round {v}.",
-    "draft_pick_overall": lambda v: f"He was the No. {v} overall pick.",
-    "position": lambda v: f"He played {v}.",
-    "drafting_franchise": lambda v: f"The {v} drafted him.",
-    "team_history": lambda v: f"He later spent part of his NFL career with the {v}.",
-    "career_span": lambda v: f"His recorded NFL career stretched from {v[0]} through {v[1]}.",
-    "college": lambda v: f"He played college football at {v}.",
-    "postseason_participation": lambda v: (
-        "He was on an active NFL roster during at least one playoff run."
-    ),
-    "won_super_bowl": lambda v: (
-        "He was on an active roster for a Super Bowl-winning team."
-    ),
+    "draft_year": lambda v: f"He was drafted into the NFL in {v}.",
+    "draft_round": lambda v: f"His name was called in Round {v}.",
+    "draft_pick_overall": lambda v: f"He was selected with the No. {v} overall pick.",
+    "position": lambda v: f"His listed NFL position was {v}.",
+    "drafting_franchise": lambda v: f"The {v} were the team that drafted him.",
+    "team_history": lambda v: f"At one point in his NFL career, he suited up for the {v}.",
+    "career_span": lambda v: f"His recorded NFL career ran from {v[0]} through {v[1]}.",
+    "college": lambda v: f"He played his college football at {v}.",
+    "postseason_participation": lambda v: "He reached the NFL postseason as an active roster player.",
+    "won_super_bowl": lambda v: "He was on an active roster for a Super Bowl champion.",
 }
 
-# Provenance metadata per clue type -- constant per type, attached to every
-# clue instance of that type (see PLAYER_FROM_CLUES_MECHANIC_SPEC.md).
+# V2 composite clues combine two independently verified facts. They are not
+# synthetic facts: the candidate set is the intersection of both source-backed
+# atomic facts, and QA independently recomputes that same intersection.
+COMPOSITE_CLUES = {
+    "college_position": {
+        "components": ("college", "position"),
+        "template": lambda v: f"He played {v[1]} and came into the league from {v[0]}.",
+    },
+    "draft_year_round": {
+        "components": ("draft_year", "draft_round"),
+        "template": lambda v: f"He entered the NFL in the {v[0]} draft and was taken in Round {v[1]}.",
+    },
+    "draft_team_year": {
+        "components": ("drafting_franchise", "draft_year"),
+        "template": lambda v: f"The {v[0]} drafted him in {v[1]}.",
+    },
+    "college_career_span": {
+        "components": ("college", "career_span"),
+        "template": lambda v: f"He played at {v[0]} before an NFL career that ran from {v[1][0]} through {v[1][1]}.",
+    },
+    "team_super_bowl": {
+        "components": ("team_history", "won_super_bowl"),
+        "template": lambda v: f"He spent part of his NFL career with the {v[0]} and was on an active roster for a Super Bowl champion.",
+    },
+}
+
+# Provenance metadata per atomic clue type.
 CLUE_SOURCE_META = {
     "draft_year": {"table": "draft_facts", "field": "draft_season", "source_id": "NFLVERSE_DATA", "verification_status": "SOURCE_BACKED"},
     "draft_round": {"table": "draft_facts", "field": "draft_round", "source_id": "NFLVERSE_DATA", "verification_status": "SOURCE_BACKED"},
@@ -103,6 +125,25 @@ CLUE_SOURCE_META = {
     "postseason_participation": {"table": "canonical_roster_seasons+season_standings", "field": "playoff_result IS NOT NULL (derived join on team_code+season, games>0)", "source_id": "NFLVERSE_DATA", "verification_status": "SOURCE_BACKED"},
     "won_super_bowl": {"table": "canonical_roster_seasons+season_standings", "field": "playoff_result='WonSB' (derived join on team_code+season, games>0)", "source_id": "NFLVERSE_DATA", "verification_status": "SOURCE_BACKED"},
 }
+
+
+def _clue_components(clue_type: str) -> tuple[str, ...]:
+    spec = COMPOSITE_CLUES.get(clue_type)
+    return tuple(spec["components"]) if spec else (clue_type,)
+
+
+def _source_meta_for(clue_type: str):
+    components = _clue_components(clue_type)
+    if len(components) == 1:
+        return CLUE_SOURCE_META[components[0]]
+    return {"composite": True, "components": [CLUE_SOURCE_META[x] for x in components]}
+
+
+def _display_text_for(clue_type: str, value):
+    if clue_type in COMPOSITE_CLUES:
+        return COMPOSITE_CLUES[clue_type]["template"](value)
+    return CLUE_TEMPLATES[clue_type](value)
+
 
 QA_CHECKS_PERFORMED = [
     # Absolute Final Closeout fix: this cited a stale number. 4,506 is
@@ -271,9 +312,17 @@ def build_universe(c):
     return facts, indexes, universe_ids
 
 
+def _atomic_candidate_set(pid: str, clue_type: str, value, indexes: dict):
+    cset = indexes.get(clue_type, {}).get(value)
+    if not cset or pid not in cset:
+        return None
+    return cset
+
+
 def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
     f = facts[pid]
     out = []
+    atomic = {}
     for ct, value_index in indexes.items():
         v = f.get(ct)
         if ct in ("postseason_participation", "won_super_bowl"):
@@ -284,72 +333,156 @@ def _candidate_clues_for_player(pid: str, facts: dict, indexes: dict) -> list:
             continue
         cset = value_index.get(v)
         if not cset or pid not in cset:
-            continue  # defensive -- should be unreachable given how indexes are built
+            continue
+        atomic[ct] = (v, cset)
         out.append((ct, v, cset))
+
+    for composite_type, spec in COMPOSITE_CLUES.items():
+        components = tuple(spec["components"])
+        if not all(ct in atomic for ct in components):
+            continue
+        values = tuple(atomic[ct][0] for ct in components)
+        csets = [atomic[ct][1] for ct in components]
+        combined = set(csets[0])
+        for cs in csets[1:]:
+            combined &= cs
+        if pid in combined and combined:
+            out.append((composite_type, values, frozenset(combined)))
     return out
 
 
-# Product Growth + Real User Testing pass: a real, measured repetition
-# defect -- postseason_participation is close enough to a 50/50 split
-# across the whole real player universe that it was the single BROADEST
-# (least selective) available clue for the vast majority of real players,
-# so "broadest still-narrowing clue first" picked it as the OPENING clue
-# 476 of 600 times (79%) in the real, live NFL export -- nearly every
-# puzzle opened with the exact same sentence. The underlying fairness
-# principle (broadest-first, never open with something too identifying)
-# is sound and left untouched for every other clue slot; this only keeps
-# this one specific type out of the OPENING slot, with a safe fallback to
-# still allow it there if it's genuinely the only real clue this player
-# has (never fail a puzzle over a variety preference).
-OPENING_CLUE_VARIETY_EXCLUDE = frozenset({"postseason_participation"})
-OPENING_CLUE_PREFERRED = frozenset({
-    "team_history", "college", "career_span", "drafting_franchise", "won_super_bowl",
+def _candidate_set_for_clue(pid: str, clue_type: str, value, indexes: dict):
+    components = _clue_components(clue_type)
+    if len(components) == 1:
+        return _atomic_candidate_set(pid, components[0], value, indexes)
+    values = tuple(value)
+    sets = []
+    for ct, v in zip(components, values):
+        cs = _atomic_candidate_set(pid, ct, v, indexes)
+        if not cs:
+            return None
+        sets.append(cs)
+    combined = set(sets[0])
+    for cs in sets[1:]:
+        combined &= cs
+    return frozenset(combined)
+
+
+# Who Am I v2 player-facing roles. These do not alter truth; they only decide
+# which verified narrowing clue belongs at which point of the reveal ladder.
+OPENING_CLUE_VARIETY_EXCLUDE = frozenset({
+    "postseason_participation", "position", "draft_pick_overall", "draft_round",
 })
+OPENING_CLUE_PREFERRED = frozenset({
+    "college_position", "college_career_span", "team_history", "college",
+    "career_span", "drafting_franchise", "won_super_bowl",
+})
+MIDDLE_CLUE_PREFERRED = frozenset({
+    "draft_year_round", "draft_team_year", "college_position",
+    "college_career_span", "team_super_bowl", "career_span",
+})
+LATE_CLUE_PREFERRED = frozenset({
+    "draft_pick_overall", "draft_team_year", "draft_year_round",
+    "drafting_franchise", "college", "team_history",
+})
+# Ideal fraction of the current candidate pool remaining after each clue.
+# Broad first, progressively sharper later.
+_CLUE_STAGE_TARGET_RATIO = (0.48, 0.24, 0.10, 0.035, 0.0)
+
+
+def _clue_role_bonus(clue_type: str, clue_index: int) -> int:
+    if clue_index == 0:
+        return 30 if clue_type in OPENING_CLUE_PREFERRED else 0
+    if clue_index >= 3:
+        return 22 if clue_type in LATE_CLUE_PREFERRED else 0
+    return 18 if clue_type in MIDDLE_CLUE_PREFERRED else 0
+
+
+def _clue_human_quality(clue_type: str, display_text: str, before: int, after: int, clue_index: int) -> dict:
+    reduction = 1.0 - (after / max(1, before))
+    target_ratio = _CLUE_STAGE_TARGET_RATIO[min(clue_index, len(_CLUE_STAGE_TARGET_RATIO)-1)]
+    actual_ratio = after / max(1, before)
+    stage_fit = max(0.0, 1.0 - abs(actual_ratio - target_ratio))
+    score = 45 + int(30 * stage_fit) + _clue_role_bonus(clue_type, clue_index)
+    if clue_type == "position":
+        score -= 25
+    if clue_type == "postseason_participation":
+        score -= 18
+    if clue_type in COMPOSITE_CLUES:
+        score += 10
+    if reduction < 0.05:
+        score -= 15
+    score = max(0, min(100, score))
+    return {
+        "score": score,
+        "stage": "opening" if clue_index == 0 else ("giveaway" if after == 1 else "narrowing"),
+        "information_gain": round(reduction, 4),
+        "candidate_ratio_after": round(actual_ratio, 4),
+        "composite": clue_type in COMPOSITE_CLUES,
+        "text_fingerprint": question_intelligence.semantic_fingerprint({"question": display_text}),
+    }
 
 
 def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
-    """Returns (puzzle_dict, None) or (None, rejection_reason_str). Never
-    raises for an ordinary player who simply doesn't have enough safe,
-    narrowing clue data -- that's a normal, counted rejection."""
+    """Build a human-first progressive clue ladder from verified facts."""
     f = facts[pid]
     running = universe_ids
     pool = _candidate_clues_for_player(pid, facts, indexes)
     selected: list = []
-    used_types: set = set()
+    used_components: set[str] = set()
 
     while len(selected) < MAX_CLUES:
         step_options = []
         for ct, v, cset in pool:
-            if ct in used_types:
+            components = set(_clue_components(ct))
+            if components & used_components:
                 continue
             new_set = running & cset
-            if len(new_set) < len(running):  # must actually narrow -- rejects "true but useless" clues (Part E)
-                step_options.append((ct, v, cset, new_set))
+            if len(new_set) >= len(running):
+                continue
+            display_text = _display_text_for(ct, v)
+            if f["display_name"] and f["display_name"].lower() in display_text.lower():
+                continue
+            quality = _clue_human_quality(ct, display_text, len(running), len(new_set), len(selected))
+            step_options.append((quality["score"], ct, v, cset, new_set, display_text, quality))
+
         if not step_options:
             break
+
         if len(selected) == 0:
-            varied = [o for o in step_options if o[0] not in OPENING_CLUE_VARIETY_EXCLUDE]
+            varied = [o for o in step_options if o[1] not in OPENING_CLUE_VARIETY_EXCLUDE]
             if varied:
                 step_options = varied
-            richer = [o for o in step_options if o[0] in OPENING_CLUE_PREFERRED]
-            if richer:
-                step_options = richer
-        # Broadest still-narrowing clue first inside the player-facing
-        # opening-quality preference; deterministic alphabetical tie-break.
-        step_options.sort(key=lambda x: (-len(x[3]), x[0]))
-        ct, v, _cset, new_set = step_options[0]
-        display_text = CLUE_TEMPLATES[ct](v)
-        if f["display_name"] and f["display_name"].lower() in display_text.lower():
-            pool = [c for c in pool if c[0] != ct]  # name-leakage -- drop this clue type, try the next best
-            continue
+
+        # Do not end the puzzle before the minimum reveal count when another
+        # legitimate narrowing clue is available.
+        if len(selected) + 1 < MIN_CLUES:
+            non_terminal = [o for o in step_options if len(o[4]) > 1]
+            if non_terminal:
+                step_options = non_terminal
+
+        # Human quality first; if tied, prefer the broader clue early and the
+        # sharper clue late. Final alphabetical tie-break keeps determinism.
+        if len(selected) < 2:
+            step_options.sort(key=lambda x: (-x[0], -len(x[4]), x[1]))
+        else:
+            step_options.sort(key=lambda x: (-x[0], len(x[4]), x[1]))
+
+        _score, ct, v, _cset, new_set, display_text, quality = step_options[0]
         selected.append({
-            "clue_index": len(selected), "clue_type": ct, "value": v, "display_text": display_text,
-            "source": CLUE_SOURCE_META[ct],
-            "candidates_before": len(running), "candidates_after": len(new_set),
+            "clue_index": len(selected),
+            "clue_type": ct,
+            "components": list(_clue_components(ct)),
+            "value": v,
+            "display_text": display_text,
+            "source": _source_meta_for(ct),
+            "candidates_before": len(running),
+            "candidates_after": len(new_set),
+            "clue_intelligence": quality,
         })
-        used_types.add(ct)
+        used_components.update(_clue_components(ct))
         running = new_set
-        if len(running) == 1:
+        if len(running) == 1 and len(selected) >= MIN_CLUES:
             break
 
     if len(selected) < MIN_CLUES:
@@ -357,20 +490,26 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
     if len(running) != 1:
         return None, f"AMBIGUOUS_FINAL_SET_SIZE_{len(running)}"
     if next(iter(running)) != pid:
-        return None, "UNIQUENESS_MISMATCH"  # should be unreachable; a real bug if ever hit
+        return None, "UNIQUENESS_MISMATCH"
 
+    # Ladder score rewards progressive narrowing and human-readable clue mix.
+    clue_scores = [cl["clue_intelligence"]["score"] for cl in selected]
     puzzle = {
         "answer": {"answer_type": "player", "player_id": pid, "display_name": f["display_name"]},
         "clues": selected,
         "final_candidate_count": len(running),
+        "who_am_i_v2": {
+            "version": 2,
+            "ladder_score": round(sum(clue_scores) / len(clue_scores), 1),
+            "composite_clue_count": sum(1 for cl in selected if cl["clue_intelligence"]["composite"]),
+            "opening_candidate_count": selected[0]["candidates_after"],
+        },
     }
     return puzzle, None
 
 
 def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> list:
-    """Independent re-verification pass -- does NOT trust build_puzzle()'s
-    own bookkeeping. Re-derives every claim from `indexes` fresh. Returns a
-    list of issue strings; empty means the puzzle passes."""
+    """Independently re-derive every atomic/composite clue and ladder step."""
     issues = []
     target = puzzle["answer"]["player_id"]
     if target not in universe_ids:
@@ -382,17 +521,21 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         issues.append(f"CLUE_COUNT_OUT_OF_BOUNDS_{len(clues)}")
 
     seen_types = set()
-    seen_pairs = set()
+    seen_components = set()
     running = universe_ids
+    previous_after = len(universe_ids)
+
     for i, clue in enumerate(clues):
         ct, v = clue["clue_type"], clue["value"]
+        components = tuple(clue.get("components") or _clue_components(ct))
         if ct in seen_types:
             issues.append(f"DUPLICATE_CLUE_TYPE_{ct}")
         seen_types.add(ct)
-        v_key = v if not isinstance(v, list) else tuple(v)
-        seen_pairs.add((ct, v_key))
+        if seen_components & set(components):
+            issues.append(f"REPEATED_FACT_COMPONENT_AT_{i}")
+        seen_components.update(components)
 
-        expected_source = CLUE_SOURCE_META.get(ct)
+        expected_source = _source_meta_for(ct)
         if expected_source != clue.get("source"):
             issues.append(f"SOURCE_METADATA_MISMATCH_{ct}")
 
@@ -400,7 +543,7 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         if display_name and display_name.lower() in clue["display_text"].lower():
             issues.append(f"NAME_LEAKAGE_{ct}")
 
-        cset = indexes.get(ct, {}).get(v)
+        cset = _candidate_set_for_clue(target, ct, v, indexes)
         if not cset or target not in cset:
             issues.append(f"CLUE_NOT_TRUE_FOR_TARGET_{ct}")
             continue
@@ -410,15 +553,32 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         new_running = running & cset
         if len(new_running) != clue["candidates_after"]:
             issues.append(f"CANDIDATES_AFTER_MISMATCH_AT_{i}")
-        if len(new_running) > len(running):
-            issues.append(f"NON_MONOTONIC_NARROWING_AT_{i}")
+        if len(new_running) >= len(running):
+            issues.append(f"CLUE_DID_NOT_NARROW_AT_{i}")
+        if i and clue["candidates_before"] != previous_after:
+            issues.append(f"LADDER_BREAK_AT_{i}")
+
+        intelligence = clue.get("clue_intelligence") or {}
+        if intelligence.get("score") is None:
+            issues.append(f"MISSING_CLUE_INTELLIGENCE_AT_{i}")
+        if ct == "position" and i == 0:
+            issues.append("WEAK_POSITION_OPENING")
+        if ct == "postseason_participation" and i == 0:
+            issues.append("REPETITIVE_POSTSEASON_OPENING")
+
         running = new_running
+        previous_after = len(running)
 
     if clues and clues[0]["candidates_before"] != len(universe_ids):
         issues.append("FIRST_CLUE_DOES_NOT_START_FROM_FULL_UNIVERSE")
-
     if len(running) != 1 or (running and next(iter(running)) != target):
         issues.append("FINAL_SET_NOT_UNIQUE_TARGET")
+
+    v2 = puzzle.get("who_am_i_v2") or {}
+    if v2.get("version") != 2:
+        issues.append("MISSING_WHO_AM_I_V2_METADATA")
+    if clues and v2.get("ladder_score") is None:
+        issues.append("MISSING_LADDER_SCORE")
 
     return issues
 
@@ -548,7 +708,7 @@ def build_package(seed: str, target_count: int = 25, id_start: int = ID_START,
         "package_version": PACKAGE_SCHEMA_VERSION,
         "mechanic": MECHANIC,
         "requested_description": description,
-        "game_title": "Player From Clues",
+        "game_title": "Who Am I?",
         "game_instructions": (
             "You'll see a sequence of verified clues about one NFL player, revealed one at a "
             "time and narrowing from broad to specific. Identify the player."
