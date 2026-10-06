@@ -75,3 +75,17 @@ def test_shared_deep_trivia_pool_can_be_filled_by_story_factory(monkeypatch):
     assert rounds[0]["category"] == "Football Lore"
     assert rounds[0]["depth_source"] == "STORY_FACTORY"
     assert rounds[0]["prompt"] == "Who am I?"
+
+
+def test_shared_pool_can_use_compatible_format_bank_mcq(monkeypatch):
+    c = _conn()
+    c.execute(
+        "UPDATE story_generated_questions SET status='READY_FOR_FORMAT_BANK' "
+        "WHERE question_id='qstory-1'"
+    )
+    c.commit()
+    monkeypatch.setattr(deep_trivia.engine_bootstrap, "connect", lambda: c)
+    rounds = deep_trivia.generate_rounds("story-format-bank-shared", 1)
+    assert len(rounds) == 1
+    assert rounds[0]["depth_source"] == "STORY_FACTORY"
+    assert rounds[0]["prompt"] == "Who am I?"
