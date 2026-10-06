@@ -9,11 +9,11 @@ on:
       max_records_per_query:
         description: "Max GDELT rows per query"
         required: false
-        default: "125"
+        default: "250"
       timespan:
         description: "GDELT lookback window"
         required: false
-        default: "3y"
+        default: "5y"
 
 permissions:
   contents: read
@@ -71,8 +71,8 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
-          MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
-          TIMESPAN="${{ inputs.timespan || '3y' }}"
+          MAX_RECORDS="${{ inputs.max_records_per_query || '250' }}"
+          TIMESPAN="${{ inputs.timespan || '5y' }}"
           for GROUP in A B C; do
             echo "=== GROUP $GROUP ==="
             success=0
