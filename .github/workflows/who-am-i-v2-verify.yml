@@ -1,4 +1,4 @@
-name: Who Am I v2 verification
+name: Who Am I v2 verification # schema rerun
 on:
   push:
     branches: [engine/who-am-i-v2]
