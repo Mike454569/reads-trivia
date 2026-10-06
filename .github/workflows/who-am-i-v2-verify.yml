@@ -1,0 +1,29 @@
+name: Who Am I v2 verification
+on:
+  push:
+    branches: [engine/who-am-i-v2]
+    paths:
+      - ".github/workflows/who-am-i-v2-verify.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+      - name: Syntax
+        run: python -m py_compile tools/director_v04/player_from_clues.py
+      - name: Who Am I v2 tests
+        run: python -m pytest tools/director_v04/tests/test_who_am_i_v2.py -q
+      - name: Existing progressive clue regressions
+        env:
+          CI_SKIP_DB_TESTS: "1"
+        run: |
+          python -m pytest gateway/tests -q -k "clue or progressive or who_am_i"
