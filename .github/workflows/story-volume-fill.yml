@@ -28,7 +28,7 @@ jobs:
   backlog:
     name: 1 - Drain safe backlog
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -46,7 +46,8 @@ jobs:
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
-      - name: Drain existing safe backlog aggressively
+      - name: Resume backlog briefly without blocking growth
+        continue-on-error: true
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -54,17 +55,11 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
-          success=0
-          for attempt in 1 2 3 4; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-backlog.err; then
-              success=1
-              break
-            fi
-            echo "Backlog drain attempt $attempt failed" >> story-volume-backlog.err
-            sleep 10
-          done
-          test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_DRAIN',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
+          if timeout --signal=TERM 14m flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 15 --time-budget-seconds 600'" > story-volume-backlog-drain.json 2> story-volume-backlog.err; then
+            python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_RESUME',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
+          else
+            echo "Backlog resume did not finish cleanly; continuing to family growth because backlog work is checkpointed in the live DB." | tee -a story-volume-backlog.err
+          fi
 
       - name: Upload backlog report
         if: always()
