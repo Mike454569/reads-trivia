@@ -18,14 +18,17 @@ on:
 permissions:
   contents: read
 
+# Never let a second trigger kill a healthy production fill. Stages are intentionally
+# split into separate jobs so successful work is preserved and failed jobs can be rerun.
 concurrency:
   group: story-corpus-growth-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  fill:
+  backlog:
+    name: 1 - Drain safe backlog
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -53,17 +56,49 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           success=0
           for attempt in 1 2 3 4; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-fill.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-backlog.err; then
               success=1
               break
             fi
-            echo "Backlog drain attempt $attempt failed" >> story-volume-fill.err
+            echo "Backlog drain attempt $attempt failed" >> story-volume-backlog.err
             sleep 10
           done
           test "$success" = "1"
           python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_DRAIN',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
 
-      - name: Grow external A B C sequentially on live DB
+      - name: Upload backlog report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-backlog
+          path: |
+            story-volume-backlog-drain.json
+            story-volume-backlog.err
+          if-no-files-found: warn
+          retention-days: 14
+
+  group_a:
+    name: 2 - Harvest family group A
+    needs: backlog
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Grow external family group A
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -73,20 +108,157 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          for GROUP in A B C; do
-            echo "=== GROUP $GROUP ==="
-            success=0
-            for attempt in 1 2 3; do
-              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
-                success=1
-                break
-              fi
-              echo "Group $GROUP SSH attempt $attempt failed" >> story-volume-fill.err
-              sleep 8
-            done
-            test "$success" = "1"
-            python3 -c "import json; g='$GROUP'; r=json.load(open('story-volume-'+g+'.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print(json.dumps({'group':g,'before':r.get('before'),'after':r.get('after'),'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{}),'event_type_totals':r.get('event_type_totals',{})},sort_keys=True))"
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group A --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-A.json 2> story-volume-A.err; then
+              success=1
+              break
+            fi
+            echo "Group A SSH attempt $attempt failed" >> story-volume-A.err
+            sleep 8
           done
+          test "$success" = "1"
+          python3 -c "import json; r=json.load(open('story-volume-A.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_A',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+
+      - name: Upload group A report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-A
+          path: |
+            story-volume-A.json
+            story-volume-A.err
+          if-no-files-found: warn
+          retention-days: 14
+
+  group_b:
+    name: 3 - Harvest family group B
+    needs: group_a
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Grow external family group B
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
+          TIMESPAN="${{ inputs.timespan || '3y' }}"
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group B --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-B.json 2> story-volume-B.err; then
+              success=1
+              break
+            fi
+            echo "Group B SSH attempt $attempt failed" >> story-volume-B.err
+            sleep 8
+          done
+          test "$success" = "1"
+          python3 -c "import json; r=json.load(open('story-volume-B.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_B',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+
+      - name: Upload group B report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-B
+          path: |
+            story-volume-B.json
+            story-volume-B.err
+          if-no-files-found: warn
+          retention-days: 14
+
+  group_c:
+    name: 4 - Harvest family group C
+    needs: group_b
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Grow external family group C
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
+          TIMESPAN="${{ inputs.timespan || '3y' }}"
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group C --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-C.json 2> story-volume-C.err; then
+              success=1
+              break
+            fi
+            echo "Group C SSH attempt $attempt failed" >> story-volume-C.err
+            sleep 8
+          done
+          test "$success" = "1"
+          python3 -c "import json; r=json.load(open('story-volume-C.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_C',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+
+      - name: Upload group C report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-C
+          path: |
+            story-volume-C.json
+            story-volume-C.err
+          if-no-files-found: warn
+          retention-days: 14
+
+  cfb:
+    name: 5 - Dedicated CFB harvest
+    needs: group_c
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
       - name: Grow dedicated CFB story corpus
         env:
@@ -98,20 +270,47 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           success=0
           for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.cfb_story_candidate_harvest --timespan 5y --school-limit 80 --school-query-limit 120 && python -m tools.director_v05.story_candidate_triage --limit 1000 && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-CFB.txt 2>> story-volume-fill.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.cfb_story_candidate_harvest --timespan 5y --school-limit 80 --school-query-limit 120 && python -m tools.director_v05.story_candidate_triage --limit 1000 && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-CFB.txt 2> story-volume-CFB.err; then
               success=1
               break
             fi
-            echo "CFB growth SSH attempt $attempt failed" >> story-volume-fill.err
+            echo "CFB growth SSH attempt $attempt failed" >> story-volume-CFB.err
             sleep 8
           done
           test "$success" = "1"
           tail -n 120 story-volume-CFB.txt
 
-      - name: Summarize volume fill
+      - name: Upload CFB report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-CFB
+          path: |
+            story-volume-CFB.txt
+            story-volume-CFB.err
+          if-no-files-found: warn
+          retention-days: 14
+
+  certify:
+    name: 6 - Certify Story corpus
+    needs: cfb
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           set -euo pipefail
-          python3 -c "import json; rows=[json.load(open('story-volume-'+g+'.json')) for g in 'ABC']; before=rows[0].get('before') or {}; after=rows[-1].get('after') or {}; print('START',before); print('END',after); print('TOTAL_DELTA',{'verified_events':int(after.get('verified_events',0))-int(before.get('verified_events',0)),'ready_story_questions':int(after.get('ready_story_questions',0))-int(before.get('ready_story_questions',0))}); [print('GROUP',g,'delta',r.get('delta'),'accepted',((((r.get('external') or {}).get('harvest') or {}).get('metrics') or {}).get('accepted_candidates',0)),'claimed',(((r.get('external') or {}).get('drain') or {}).get('claimed_total',0))) for g,r in zip('ABC',rows)]"
+          APP="reads-football-gateway"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
       - name: Certify Story corpus hard numbers
         env:
@@ -123,28 +322,23 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           success=0
           for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_corpus_v3 --min-verified-story-events 3000 --min-playable-story-questions 20000 --min-each-league 1'" > story-volume-cert-v3.json 2>> story-volume-fill.err; then
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.certify_story_corpus_v3 --min-verified-story-events 3000 --min-playable-story-questions 20000 --min-each-league 1'" > story-volume-cert-v3.json 2> story-volume-cert.err; then
               success=1
               break
             fi
-            echo "Volume certification SSH attempt $attempt failed" >> story-volume-fill.err
+            echo "Volume certification SSH attempt $attempt failed" >> story-volume-cert.err
             sleep 8
           done
           test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-cert-v3.json')); print('STORY_VOLUME_V3',{'status':r.get('status'),'verified_story_events':r.get('verified_story_events'),'playable_story_questions':r.get('playable_story_questions'),'nfl_vs_cfb':r.get('nfl_vs_cfb'),'duplicates_rejected':r.get('duplicates_rejected'),'sensitive_review_held':r.get('sensitive_review_held'),'weak_copy_rejects':r.get('weak_copy_rejects'),'source_domains':((r.get('source_coverage') or {}).get('domain_count')),'missing_required_families':r.get('missing_required_families')})"
+          python3 -c "import json; r=json.load(open('story-volume-cert-v3.json')); print('STORY_VOLUME_V3',{'status':r.get('status'),'verified_story_events':r.get('verified_story_events'),'playable_story_questions':r.get('playable_story_questions'),'questions_per_mechanic':r.get('questions_per_mechanic'),'nfl_vs_cfb':r.get('nfl_vs_cfb'),'duplicates_rejected':r.get('duplicates_rejected'),'sensitive_review_held':r.get('sensitive_review_held'),'weak_copy_rejects':r.get('weak_copy_rejects'),'source_domains':((r.get('source_coverage') or {}).get('domain_count')),'missing_required_families':r.get('missing_required_families')})"
 
-      - name: Upload volume reports
+      - name: Upload final certification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: story-volume-fill
+          name: story-volume-cert-v3
           path: |
-            story-volume-backlog-drain.json
-            story-volume-A.json
-            story-volume-B.json
-            story-volume-C.json
-            story-volume-CFB.txt
             story-volume-cert-v3.json
-            story-volume-fill.err
+            story-volume-cert.err
           if-no-files-found: warn
           retention-days: 14
