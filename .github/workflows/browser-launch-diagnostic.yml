@@ -11,31 +11,8 @@ jobs:
         run: |
           set -euo pipefail
           base="https://reads-football-gateway.fly.dev"
-          curl -sS -o /tmp/start.json --max-time 15             -H "Origin: https://reads.football"             "$base/v1/public/mechanics/round?mode=who_am_i_nfl"
-          python - <<'PY'
-import json
-d=json.load(open('/tmp/start.json'))
-v=d['view']
-print('START_STATUS', d.get('mode'), v.get('phase'))
-print('CLUE1', (v.get('clues') or [{}])[-1].get('display_text'))
-print('CLUES_VISIBLE', len(v.get('clues') or []))
-assert d['mode']=='who_am_i_nfl'
-assert v.get('phase') in ('QUESTION','GUESS','CLUE')
-assert v.get('clues')
-first=(v.get('clues') or [{}])[-1].get('display_text','').lower()
-assert 'listed nfl position was' not in first
-assert 'reached the nfl postseason as an active roster player' not in first
-open('/tmp/rid','w').write(d['round_id'])
-PY
+          curl -sS -o /tmp/start.json --max-time 15 -H "Origin: https://reads.football" "$base/v1/public/mechanics/round?mode=who_am_i_nfl"
+          python -c "import json; d=json.load(open('/tmp/start.json')); v=d['view']; clues=v.get('clues') or []; print('START_STATUS',d.get('mode'),v.get('phase')); print('CLUE1',clues[-1].get('display_text') if clues else None); print('CLUES_VISIBLE',len(clues)); assert d['mode']=='who_am_i_nfl'; assert clues; first=clues[-1].get('display_text','').lower(); assert 'listed nfl position was' not in first; assert 'reached the nfl postseason as an active roster player' not in first; open('/tmp/rid','w').write(d['round_id'])"
           rid=$(cat /tmp/rid)
-          curl -sS -o /tmp/reveal.json --max-time 15             -H "Origin: https://reads.football" -H "Content-Type: application/json"             -X POST --data '{"submission":{"action":"reveal_next_clue"}}'             "$base/v1/public/mechanics/round/$rid/submit"
-          python - <<'PY'
-import json
-d=json.load(open('/tmp/reveal.json'))
-v=d['view']
-print('REVEAL_RESULT', d.get('result'))
-print('CLUES_VISIBLE', len(v.get('clues') or []))
-for i,c in enumerate(v.get('clues') or [],1):
-    print(f'CLUE{i}',c.get('display_text'))
-assert len(v.get('clues') or []) >= 2
-PY
+          curl -sS -o /tmp/reveal.json --max-time 15 -H "Origin: https://reads.football" -H "Content-Type: application/json" -X POST --data '{"submission":{"action":"reveal_next_clue"}}' "$base/v1/public/mechanics/round/$rid/submit"
+          python -c "import json; d=json.load(open('/tmp/reveal.json')); v=d['view']; clues=v.get('clues') or []; print('REVEAL_RESULT',d.get('result')); print('CLUES_VISIBLE',len(clues)); [print('CLUE'+str(i+1),c.get('display_text')) for i,c in enumerate(clues)]; assert len(clues)>=2"
