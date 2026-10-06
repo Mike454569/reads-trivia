@@ -28,7 +28,7 @@ from tools.quiz_export import duplicates, engine, safety  # noqa: E402
 from tools.quiz_export.adapters.draft import resolve_franchise  # noqa: E402
 from tools.director_v04 import question_intelligence  # noqa: E402
 
-PACKAGE_SCHEMA_VERSION = "0.4"
+PACKAGE_SCHEMA_VERSION = "0.5"
 MECHANIC = "identify_player_from_clues"
 CATEGORY = "Player From Clues"
 ID_START = 620000
@@ -708,7 +708,7 @@ def build_package(seed: str, target_count: int = 25, id_start: int = ID_START,
         "package_version": PACKAGE_SCHEMA_VERSION,
         "mechanic": MECHANIC,
         "requested_description": description,
-        "game_title": "Player From Clues",
+        "game_title": "Who Am I?",
         "game_instructions": (
             "You'll see a sequence of verified clues about one NFL player, revealed one at a "
             "time and narrowing from broad to specific. Identify the player."
