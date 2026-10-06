@@ -89,3 +89,21 @@ def test_non_sensitive_expanded_family_can_reach_priority(monkeypatch,tmp_path):
     ).fetchone()
     assert row["status"]=="REVIEW_PRIORITY"
     check.close()
+
+
+def test_structured_miner_isolates_sqlite_lock():
+    from tools.director_v05.story_corpus_growth import _run_structured_miner
+    c=sqlite3.connect(":memory:")
+    def locked():
+        raise sqlite3.OperationalError("database is locked")
+    out=_run_structured_miner(c,"locked",locked)
+    assert out["skipped"] is True
+    assert out["reason"]=="SQLITE_BUSY"
+    c.close()
+
+
+def test_live_structured_growth_disables_heavy_pbp_by_default():
+    import inspect
+    from tools.director_v05.story_corpus_growth import grow_structured_corpus
+    sig=inspect.signature(grow_structured_corpus)
+    assert sig.parameters["include_heavy_pbp"].default is False

@@ -7,6 +7,7 @@ import re
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
+from .story_sqlite import prepare_write_connection, commit_with_retry
 
 HIGH_SIGNAL = {
     "BIZARRE_MOMENT": (
@@ -149,7 +150,7 @@ def _score(row):
 
 
 def triage_candidates(*, minimum_priority_score=30):
-    c = engine_bootstrap.connect()
+    c = prepare_write_connection(engine_bootstrap.connect())
     rows = c.execute(
         """SELECT * FROM football_story_candidates
            WHERE status IN ('REVIEW_REQUIRED','REVIEW_PRIORITY')
@@ -197,7 +198,7 @@ def triage_candidates(*, minimum_priority_score=30):
            SET status=?,review_notes=? WHERE candidate_id=?""",
         updates,
     )
-    c.commit()
+    commit_with_retry(c)
 
     family_counts = c.execute(
         """SELECT family_hint,status,COUNT(*) n
