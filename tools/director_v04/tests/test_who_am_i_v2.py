@@ -56,6 +56,8 @@ def test_who_am_i_v2_builds_human_first_composite_ladder():
     assert all(clue["candidates_after"] < clue["candidates_before"] for clue in puzzle["clues"])
     assert all("clue_intelligence" in clue for clue in puzzle["clues"])
     assert any(clue["clue_intelligence"]["composite"] for clue in puzzle["clues"])
+    assert puzzle["clues"][1]["clue_intelligence"]["composite"] is True
+    assert puzzle["clues"][1]["clue_type"] not in {"draft_round", "draft_year", "position"}
     assert pfc.validate_puzzle_qa(puzzle, universe, indexes) == []
 
 
