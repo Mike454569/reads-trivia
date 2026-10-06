@@ -94,7 +94,7 @@ def test_high_confidence_primary_story_promotes_and_generates(monkeypatch):
     monkeypatch.setattr(
         factory,
         "generate_questions_for_event",
-        lambda c, candidate_id, event_id, subject: [fake_q],
+        lambda c, candidate_id, event_id, subject, **kwargs: [fake_q],
     )
     monkeypatch.setattr(
         factory,

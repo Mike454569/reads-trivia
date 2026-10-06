@@ -29,6 +29,7 @@ from .lore_mechanics import compile_progressive_identity
 from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
 from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
+from .story_factory_v2 import prepare_story_question
 from .story_sqlite import (
     prepare_write_connection as _prepare_write_connection,
     commit_with_retry as _commit_with_retry,
@@ -376,6 +377,10 @@ def generate_questions_for_event(
 
     unique = {}
     for q in generated:
+        try:
+            q = prepare_story_question(q)
+        except ValueError:
+            continue
         unique[str(q["question_id"])] = q
     generated = list(unique.values())[:max(1, int(max_questions))]
 

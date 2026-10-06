@@ -14,6 +14,7 @@ from .lore_formats import (
     compile_timeline_round,
 )
 from .lore_mechanics import compile_fact_or_fake, compile_matching
+from .story_factory_v2 import prepare_story_question, stable_question_id
 
 
 def _tables(conn):
@@ -23,6 +24,7 @@ def _tables(conn):
 def _persist(conn, candidate_id, event_id, subject_type, subject_id, question, *, status):
     if "story_generated_questions" not in _tables(conn):
         raise ValueError("STORY_QUESTION_TABLE_MISSING")
+    question = prepare_story_question(question)
     import datetime as dt
     now = dt.datetime.now(dt.timezone.utc).isoformat()
     conn.execute(
@@ -59,6 +61,85 @@ def _dated_subject_events(conn, subject_type, subject_id, *, exclude=(), limit=1
         (str(subject_type), str(subject_id)),
     ).fetchall()
     return [str(r["event_id"]) for r in rows if str(r["event_id"]) not in exclude][:int(limit)]
+
+
+def _event_display(conn, event_id):
+    row = conn.execute(
+        """SELECT event_id,event_date,title,neutral_summary,league
+           FROM universal_event
+           WHERE event_id=? AND verification_status='VERIFIED' AND sensitive=0""",
+        (str(event_id),),
+    ).fetchone()
+    if not row:
+        raise ValueError("STORY_EVENT_NOT_PLAYABLE")
+    label = " ".join(str(row["neutral_summary"] or row["title"] or event_id).split()).strip()
+    if not label:
+        raise ValueError("STORY_EVENT_NO_PLAYER_FACING_COPY")
+    return {
+        "event_id": str(row["event_id"]),
+        "event_date": str(row["event_date"] or ""),
+        "label": label,
+        "league": str(row["league"] or ""),
+    }
+
+
+def compile_what_happened_next(conn, subject_type, subject_id, anchor_event_id):
+    """Ask for the immediate next verified dated event for one subject.
+
+    This never infers missing history: "next" is only among the verified,
+    dated events in the stored subject timeline and the question says so.
+    """
+    rows = conn.execute(
+        """SELECT e.event_id,e.event_date
+           FROM universal_event e
+           JOIN universal_event_subject s ON s.event_id=e.event_id
+           WHERE s.subject_type=? AND s.subject_id=?
+             AND e.verification_status='VERIFIED'
+             AND e.sensitive=0
+             AND e.event_date IS NOT NULL
+           ORDER BY e.event_date,e.event_id""",
+        (str(subject_type), str(subject_id)),
+    ).fetchall()
+    ids = [str(r["event_id"]) for r in rows]
+    if str(anchor_event_id) not in ids:
+        raise ValueError("WHAT_NEXT_ANCHOR_NOT_IN_DATED_SUBJECT_TIMELINE")
+    idx = ids.index(str(anchor_event_id))
+    if idx >= len(ids) - 1:
+        raise ValueError("WHAT_NEXT_ANCHOR_HAS_NO_LATER_EVENT")
+
+    correct_id = ids[idx + 1]
+    # Need three distinct real distractors from this same subject's verified
+    # timeline. Prefer later/earlier events nearest the anchor.
+    distractor_ids = [eid for eid in ids if eid not in {str(anchor_event_id), correct_id}]
+    if len(distractor_ids) < 3:
+        raise ValueError("WHAT_NEXT_NEEDS_FOUR_DATED_SUBJECT_EVENTS")
+    distractor_ids.sort(key=lambda eid: abs(ids.index(eid) - idx))
+    option_ids = [correct_id, *distractor_ids[:3]]
+
+    anchor = _event_display(conn, anchor_event_id)
+    displays = {eid: _event_display(conn, eid) for eid in option_ids}
+    options = [displays[eid]["label"] for eid in option_ids]
+    answer = displays[correct_id]["label"]
+    if len(set(x.casefold() for x in options)) != 4:
+        raise ValueError("WHAT_NEXT_OPTIONS_NOT_UNIQUE")
+
+    q = {
+        "contract_version": "2.0.0",
+        "question_id": stable_question_id(
+            "WHAT_HAPPENED_NEXT", [subject_type, subject_id, anchor_event_id, correct_id, *option_ids]
+        ),
+        "mechanic": "MULTIPLE_CHOICE",
+        "question_family": "STORY_WHAT_HAPPENED_NEXT",
+        "question": "After this verified football story, which of these verified stories involving the same subject happened next?",
+        "context_clues": [anchor["label"]],
+        "options": options,
+        "answer": {"id": correct_id, "label": answer, "type": "EVENT"},
+        "event_id": str(anchor_event_id),
+        "event_ids": [str(anchor_event_id), *option_ids],
+        "difficulty_band": "HARD",
+        "explanation": "The answer is the next dated verified event for this subject among the stored story timeline.",
+    }
+    return prepare_story_question(q, min_score=42)
 
 
 def generate_story_formats_for_event(
@@ -104,6 +185,15 @@ def generate_story_formats_for_event(
 
     # A reviewed event date unlocks chronology formats containing this story.
     if story_is_dated:
+        try:
+            q = compile_what_happened_next(conn, subject_type, subject_id, event_id)
+            _persist(
+                conn, candidate_id, event_id, subject_type, subject_id, q,
+                status="READY_FOR_BANK",
+            )
+            generated.append(q)
+        except ValueError as exc:
+            rejected.append({"format":"WHAT_HAPPENED_NEXT","reason":str(exc)})
         for other in dated:
             try:
                 q = compile_before_after(conn, event_id, other)
