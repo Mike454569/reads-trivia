@@ -67,7 +67,6 @@ QUERY_FAMILIES = {
         'football mascot',
         'football fan unusual',
         '"sideline celebration"',
-        'NFL celebration fined',
         '"end zone" celebration football',
         '"fan incident" football',
     ),
