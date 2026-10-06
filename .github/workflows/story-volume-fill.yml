@@ -43,7 +43,27 @@ jobs:
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
-      - name: Grow A B C sequentially on live DB
+      - name: Grow structured corpus once
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --structured-only'" > story-volume-structured.json 2> story-volume-fill.err; then
+              success=1
+              break
+            fi
+            echo "Structured growth SSH attempt $attempt failed" >> story-volume-fill.err
+            sleep 8
+          done
+          test "$success" = "1"
+          python3 -c "import json; r=json.load(open('story-volume-structured.json')); print('STRUCTURED',r.get('delta'),r.get('event_type_totals',{}))"
+
+      - name: Grow external A B C sequentially on live DB
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -53,12 +73,11 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          rm -f story-volume-fill.err
           for GROUP in A B C; do
             echo "=== GROUP $GROUP ==="
             success=0
             for attempt in 1 2 3; do
-              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 10 --drain-max-batches 20 --drain-time-budget-seconds 1500'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
+              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 10 --drain-max-batches 20 --drain-time-budget-seconds 1500'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
                 success=1
                 break
               fi
@@ -80,6 +99,7 @@ jobs:
         with:
           name: story-volume-fill
           path: |
+            story-volume-structured.json
             story-volume-A.json
             story-volume-B.json
             story-volume-C.json
