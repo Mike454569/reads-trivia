@@ -1,0 +1,120 @@
+name: Story Volume Fill
+
+on:
+  push:
+    branches:
+      - "story-volume-fill-trigger-*"
+  workflow_dispatch:
+    inputs:
+      max_records_per_query:
+        description: "Max GDELT rows per query"
+        required: false
+        default: "125"
+      timespan:
+        description: "GDELT lookback window"
+        required: false
+        default: "3y"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: story-corpus-growth-production
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          test -n "${FLY_API_TOKEN:-}"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Grow A B C sequentially on live DB
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
+          TIMESPAN="${{ inputs.timespan || '3y' }}"
+          rm -f story-volume-fill.jsonl story-volume-fill.err
+          for GROUP in A B C; do
+            echo "=== GROUP $GROUP ==="
+            success=0
+            for attempt in 1 2 3; do
+              if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 10 --drain-max-batches 20 --drain-time-budget-seconds 1500'" > "story-volume-$GROUP.json" 2>> story-volume-fill.err; then
+                success=1
+                break
+              fi
+              echo "Group $GROUP SSH attempt $attempt failed" >> story-volume-fill.err
+              sleep 8
+            done
+            test "$success" = "1"
+            python3 - "$GROUP" <<'PY'
+import json,sys
+g=sys.argv[1]
+r=json.load(open(f"story-volume-{g}.json"))
+print(json.dumps({
+    "group":g,
+    "before":r.get("before"),
+    "after":r.get("after"),
+    "delta":r.get("delta"),
+    "families":(r.get("external") or {}).get("families"),
+    "accepted_candidates":((r.get("external") or {}).get("harvest") or {}).get("metrics",{}).get("accepted_candidates",0),
+    "claimed":((r.get("external") or {}).get("drain") or {}).get("claimed_total",0),
+    "drain_counts":((r.get("external") or {}).get("drain") or {}).get("counts",{}),
+    "event_type_totals":r.get("event_type_totals",{}),
+},sort_keys=True))
+PY
+          done
+
+      - name: Summarize volume fill
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+import json
+rows=[]
+for g in "ABC":
+    r=json.load(open(f"story-volume-{g}.json"))
+    rows.append(r)
+before=rows[0].get("before") or {}
+after=rows[-1].get("after") or {}
+print("START",before)
+print("END",after)
+print("TOTAL_DELTA",{
+    "verified_events":int(after.get("verified_events",0))-int(before.get("verified_events",0)),
+    "ready_story_questions":int(after.get("ready_story_questions",0))-int(before.get("ready_story_questions",0)),
+})
+for g,r in zip("ABC",rows):
+    ext=r.get("external") or {}
+    print("GROUP",g,"delta",r.get("delta"),"accepted",((ext.get("harvest") or {}).get("metrics") or {}).get("accepted_candidates",0),"claimed",(ext.get("drain") or {}).get("claimed_total",0))
+PY
+
+      - name: Upload volume reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-volume-fill
+          path: |
+            story-volume-A.json
+            story-volume-B.json
+            story-volume-C.json
+            story-volume-fill.err
+          if-no-files-found: warn
+          retention-days: 14
