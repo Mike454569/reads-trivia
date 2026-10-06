@@ -53,7 +53,7 @@ jobs:
           MACHINE="${{ steps.flymachine.outputs.machine }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          rm -f story-volume-fill.jsonl story-volume-fill.err
+          rm -f story-volume-fill.err
           for GROUP in A B C; do
             echo "=== GROUP $GROUP ==="
             success=0
@@ -66,45 +66,13 @@ jobs:
               sleep 8
             done
             test "$success" = "1"
-            python3 - "$GROUP" <<'PY'
-import json,sys
-g=sys.argv[1]
-r=json.load(open(f"story-volume-{g}.json"))
-print(json.dumps({
-    "group":g,
-    "before":r.get("before"),
-    "after":r.get("after"),
-    "delta":r.get("delta"),
-    "families":(r.get("external") or {}).get("families"),
-    "accepted_candidates":((r.get("external") or {}).get("harvest") or {}).get("metrics",{}).get("accepted_candidates",0),
-    "claimed":((r.get("external") or {}).get("drain") or {}).get("claimed_total",0),
-    "drain_counts":((r.get("external") or {}).get("drain") or {}).get("counts",{}),
-    "event_type_totals":r.get("event_type_totals",{}),
-},sort_keys=True))
-PY
+            python3 -c "import json; g='$GROUP'; r=json.load(open('story-volume-'+g+'.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print(json.dumps({'group':g,'before':r.get('before'),'after':r.get('after'),'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{}),'event_type_totals':r.get('event_type_totals',{})},sort_keys=True))"
           done
 
       - name: Summarize volume fill
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-import json
-rows=[]
-for g in "ABC":
-    r=json.load(open(f"story-volume-{g}.json"))
-    rows.append(r)
-before=rows[0].get("before") or {}
-after=rows[-1].get("after") or {}
-print("START",before)
-print("END",after)
-print("TOTAL_DELTA",{
-    "verified_events":int(after.get("verified_events",0))-int(before.get("verified_events",0)),
-    "ready_story_questions":int(after.get("ready_story_questions",0))-int(before.get("ready_story_questions",0)),
-})
-for g,r in zip("ABC",rows):
-    ext=r.get("external") or {}
-    print("GROUP",g,"delta",r.get("delta"),"accepted",((ext.get("harvest") or {}).get("metrics") or {}).get("accepted_candidates",0),"claimed",(ext.get("drain") or {}).get("claimed_total",0))
-PY
+          python3 -c "import json; rows=[json.load(open('story-volume-'+g+'.json')) for g in 'ABC']; before=rows[0].get('before') or {}; after=rows[-1].get('after') or {}; print('START',before); print('END',after); print('TOTAL_DELTA',{'verified_events':int(after.get('verified_events',0))-int(before.get('verified_events',0)),'ready_story_questions':int(after.get('ready_story_questions',0))-int(before.get('ready_story_questions',0))}); [print('GROUP',g,'delta',r.get('delta'),'accepted',((((r.get('external') or {}).get('harvest') or {}).get('metrics') or {}).get('accepted_candidates',0)),'claimed',(((r.get('external') or {}).get('drain') or {}).get('claimed_total',0))) for g,r in zip('ABC',rows)]"
 
       - name: Upload volume reports
         if: always()
