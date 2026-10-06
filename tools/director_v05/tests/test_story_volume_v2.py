@@ -16,9 +16,11 @@ def _candidate_conn(path):
 def test_growth_family_groups_cover_expanded_safe_and_sensitive_families():
     covered={x for values in FAMILY_GROUPS.values() for x in values}
     required={
-        "DRAFT_CHAOS","TRADE_CHAOS","BUST_REDEMPTION","COMEBACK_RETURN",
-        "GAME_ODDITY","RIVALRY_ODDITY","COACHING_ODDITY","RULE_ODDITY",
-        "PRESS_CONFERENCE","OFF_FIELD_ODDITY","CELEBRATION_FAN","DISCIPLINE_LEGAL",
+        "BIZARRE_MOMENT","DRAFT_BUST","TRADE_ODDITY","DISCIPLINE_LEGAL",
+        "COMEBACK_RETURN","SIDELINE_INCIDENT","COACHING_MELTDOWN",
+        "CELEBRATION_CONTROVERSY","RECRUITING_CHAOS","RECORD_ODDITY",
+        "INFAMOUS_MISTAKE","OFF_FIELD_ODDITY","RIVALRY_INCIDENT",
+        "TRANSFER_NIL_CHAOS","PLAYOFF_FORGOTTEN",
     }
     assert required <= covered
     assert covered <= set(harvest.QUERY_FAMILIES)
