@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: story-corpus-growth-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   fill:
