@@ -1,0 +1,14 @@
+trigger: 2026-10-03
+purpose: simplified read-only Story Factory production certification
+
+retry: clear-stale-sftp-bundle
+
+retry: detached-runner
+
+retry: python-detached-launcher
+
+retry: authoritative-single-run
+
+retry: pinned-known-good-machine
+
+retry: self-safe-cleanup
