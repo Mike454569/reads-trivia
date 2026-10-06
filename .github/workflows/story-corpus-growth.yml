@@ -1,0 +1,124 @@
+name: Story Corpus Growth
+
+on:
+  workflow_dispatch:
+    inputs:
+      family_group:
+        description: "External story family group"
+        type: choice
+        required: true
+        default: A
+        options: [A, B, C]
+      max_records_per_query:
+        description: "Max GDELT rows per query"
+        required: false
+        default: "75"
+  schedule:
+    - cron: "37 9 * * *"
+  push:
+    branches:
+      - "story-corpus-growth-trigger-*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: story-corpus-growth-production
+  cancel-in-progress: false
+
+jobs:
+  grow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Resolve family group
+        id: group
+        shell: bash
+        run: |
+          set -euo pipefail
+          GROUP=""
+          MAX_RECORDS="75"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            GROUP="${{ inputs.family_group }}"
+            MAX_RECORDS="${{ inputs.max_records_per_query }}"
+          elif [[ "${GITHUB_REF_NAME}" =~ -([ABC])$ ]]; then
+            GROUP="${BASH_REMATCH[1]}"
+          else
+            doy=$(date -u +%j)
+            case $((10#$doy % 3)) in
+              0) GROUP="A" ;;
+              1) GROUP="B" ;;
+              2) GROUP="C" ;;
+            esac
+          fi
+          echo "group=$GROUP" >> "$GITHUB_OUTPUT"
+          echo "max_records=$MAX_RECORDS" >> "$GITHUB_OUTPUT"
+          echo "Story corpus family group: $GROUP"
+
+      - name: Resolve live Fly machine
+        id: flymachine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          test -n "${FLY_API_TOKEN:-}"
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
+
+      - name: Grow live Story corpus
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          GROUP: ${{ steps.group.outputs.group }}
+          MAX_RECORDS: ${{ steps.group.outputs.max_records }}
+        run: |
+          set -euo pipefail
+          APP="reads-football-gateway"
+          MACHINE="${{ steps.flymachine.outputs.machine }}"
+          rm -f story-corpus-growth.json story-corpus-growth.err
+          success=0
+          for attempt in 1 2 3; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan 1y --drain-batch-size 10 --drain-max-batches 12 --drain-time-budget-seconds 1200'" > story-corpus-growth.json 2> story-corpus-growth.err; then
+              success=1
+              break
+            fi
+            echo "Growth SSH attempt $attempt failed"
+            cat story-corpus-growth.err || true
+            sleep 8
+          done
+          test "$success" = "1"
+          test -s story-corpus-growth.json
+
+      - name: Validate growth result
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          r=json.load(open("story-corpus-growth.json"))
+          print("before",r.get("before"))
+          print("after",r.get("after"))
+          print("delta",r.get("delta"))
+          ext=r.get("external") or {}
+          h=ext.get("harvest") or {}
+          d=ext.get("drain") or {}
+          print("group",ext.get("family_group"),"families",ext.get("families"))
+          print("accepted_candidates",(h.get("metrics") or {}).get("accepted_candidates",0))
+          print("claimed",d.get("claimed_total",0),"counts",d.get("counts",{}))
+          assert int((r.get("after") or {}).get("verified_events",0)) >= int((r.get("before") or {}).get("verified_events",0))
+          PY
+
+      - name: Upload growth report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-corpus-growth-${{ steps.group.outputs.group }}
+          path: |
+            story-corpus-growth.json
+            story-corpus-growth.err
+          if-no-files-found: warn
+          retention-days: 14
