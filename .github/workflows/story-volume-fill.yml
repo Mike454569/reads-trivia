@@ -51,28 +51,17 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
-          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-fill.err
-          python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_DRAIN',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
-
-      - name: Grow structured corpus once
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          APP="reads-football-gateway"
-          MACHINE="${{ steps.flymachine.outputs.machine }}"
           success=0
-          for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --structured-only'" > story-volume-structured.json 2> story-volume-fill.err; then
+          for attempt in 1 2 3 4; do
+            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_batch_drain --batch-size 25 --max-batches 40 --time-budget-seconds 2400'" > story-volume-backlog-drain.json 2> story-volume-fill.err; then
               success=1
               break
             fi
-            echo "Structured growth SSH attempt $attempt failed" >> story-volume-fill.err
-            sleep 8
+            echo "Backlog drain attempt $attempt failed" >> story-volume-fill.err
+            sleep 10
           done
           test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-structured.json')); print('STRUCTURED',r.get('delta'),r.get('event_type_totals',{}))"
+          python3 -c "import json; r=json.load(open('story-volume-backlog-drain.json')); print('BACKLOG_DRAIN',{'claimed':r.get('claimed_total',0),'counts':r.get('counts',{}),'ledger':r.get('final_ledger',{}),'generated':r.get('generated_from_checkpointed_batches',0),'stop':r.get('stop_reason')})"
 
       - name: Grow external A B C sequentially on live DB
         env:
@@ -131,7 +120,6 @@ jobs:
           name: story-volume-fill
           path: |
             story-volume-backlog-drain.json
-            story-volume-structured.json
             story-volume-A.json
             story-volume-B.json
             story-volume-C.json
