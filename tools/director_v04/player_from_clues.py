@@ -509,9 +509,7 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
 
 
 def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> list:
-    """Independent re-verification pass -- does NOT trust build_puzzle()'s
-    own bookkeeping. Re-derives every claim from `indexes` fresh. Returns a
-    list of issue strings; empty means the puzzle passes."""
+    """Independently re-derive every atomic/composite clue and ladder step."""
     issues = []
     target = puzzle["answer"]["player_id"]
     if target not in universe_ids:
@@ -523,17 +521,21 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         issues.append(f"CLUE_COUNT_OUT_OF_BOUNDS_{len(clues)}")
 
     seen_types = set()
-    seen_pairs = set()
+    seen_components = set()
     running = universe_ids
+    previous_after = len(universe_ids)
+
     for i, clue in enumerate(clues):
         ct, v = clue["clue_type"], clue["value"]
+        components = tuple(clue.get("components") or _clue_components(ct))
         if ct in seen_types:
             issues.append(f"DUPLICATE_CLUE_TYPE_{ct}")
         seen_types.add(ct)
-        v_key = v if not isinstance(v, list) else tuple(v)
-        seen_pairs.add((ct, v_key))
+        if seen_components & set(components):
+            issues.append(f"REPEATED_FACT_COMPONENT_AT_{i}")
+        seen_components.update(components)
 
-        expected_source = CLUE_SOURCE_META.get(ct)
+        expected_source = _source_meta_for(ct)
         if expected_source != clue.get("source"):
             issues.append(f"SOURCE_METADATA_MISMATCH_{ct}")
 
@@ -541,7 +543,7 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         if display_name and display_name.lower() in clue["display_text"].lower():
             issues.append(f"NAME_LEAKAGE_{ct}")
 
-        cset = indexes.get(ct, {}).get(v)
+        cset = _candidate_set_for_clue(target, ct, v, indexes)
         if not cset or target not in cset:
             issues.append(f"CLUE_NOT_TRUE_FOR_TARGET_{ct}")
             continue
@@ -551,15 +553,32 @@ def validate_puzzle_qa(puzzle: dict, universe_ids: frozenset, indexes: dict) -> 
         new_running = running & cset
         if len(new_running) != clue["candidates_after"]:
             issues.append(f"CANDIDATES_AFTER_MISMATCH_AT_{i}")
-        if len(new_running) > len(running):
-            issues.append(f"NON_MONOTONIC_NARROWING_AT_{i}")
+        if len(new_running) >= len(running):
+            issues.append(f"CLUE_DID_NOT_NARROW_AT_{i}")
+        if i and clue["candidates_before"] != previous_after:
+            issues.append(f"LADDER_BREAK_AT_{i}")
+
+        intelligence = clue.get("clue_intelligence") or {}
+        if intelligence.get("score") is None:
+            issues.append(f"MISSING_CLUE_INTELLIGENCE_AT_{i}")
+        if ct == "position" and i == 0:
+            issues.append("WEAK_POSITION_OPENING")
+        if ct == "postseason_participation" and i == 0:
+            issues.append("REPETITIVE_POSTSEASON_OPENING")
+
         running = new_running
+        previous_after = len(running)
 
     if clues and clues[0]["candidates_before"] != len(universe_ids):
         issues.append("FIRST_CLUE_DOES_NOT_START_FROM_FULL_UNIVERSE")
-
     if len(running) != 1 or (running and next(iter(running)) != target):
         issues.append("FINAL_SET_NOT_UNIQUE_TARGET")
+
+    v2 = puzzle.get("who_am_i_v2") or {}
+    if v2.get("version") != 2:
+        issues.append("MISSING_WHO_AM_I_V2_METADATA")
+    if clues and v2.get("ladder_score") is None:
+        issues.append("MISSING_LADDER_SCORE")
 
     return issues
 
