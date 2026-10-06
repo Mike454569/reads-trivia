@@ -1,0 +1,28 @@
+name: Story Volume v2 verification
+on:
+  push:
+    branches: [engine/story-volume-v2]
+    paths:
+      - ".github/workflows/story-volume-v2-verify.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      READS_ENGINE_DIR: ${{ github.workspace }}/Reads_Football_Data_Engine_v4.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r gateway/requirements-dev.txt
+      - name: Syntax
+        run: |
+          python -m py_compile tools/director_v05/story_candidate_harvest.py
+          python -m py_compile tools/director_v05/story_candidate_triage.py
+          python -m py_compile tools/director_v05/story_to_trivia_factory.py
+          python -m py_compile tools/director_v05/story_corpus_growth.py
+      - name: Volume v2 tests
+        run: python -m pytest tools/director_v05/tests/test_story_volume_v2.py -q
