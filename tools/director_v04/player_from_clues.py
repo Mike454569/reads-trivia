@@ -461,6 +461,16 @@ def build_puzzle(pid: str, facts: dict, indexes: dict, universe_ids: frozenset):
             if non_terminal:
                 step_options = non_terminal
 
+        # V2 quality rule: the middle of the ladder should carry context,
+        # not isolated metadata. If a verified composite is available after
+        # the opener, prefer that composite over naked round/year/position
+        # clues. This still falls back to atomic clues when the real data for
+        # that player does not support a safe composite.
+        if 1 <= len(selected) <= 2:
+            composite_options = [o for o in step_options if o[1] in COMPOSITE_CLUES]
+            if composite_options:
+                step_options = composite_options
+
         # Human quality first; if tied, prefer the broader clue early and the
         # sharper clue late. Final alphabetical tie-break keeps determinism.
         if len(selected) < 2:
