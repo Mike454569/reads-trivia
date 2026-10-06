@@ -1,4 +1,4 @@
-name: Story Factory v2 verification
+name: Story Factory v2 verification # rerun
 on:
   push:
     branches: [engine/story-factory-v2]
