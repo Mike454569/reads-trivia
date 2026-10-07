@@ -73,10 +73,16 @@ jobs:
           retention-days: 14
 
   group_a:
-    name: 2 - Harvest family group A
+    name: 2 - Harvest family subgroup ${{ matrix.subgroup }}
     needs: backlog
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        subgroup: [A1, A2, A3]
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -93,7 +99,7 @@ jobs:
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
-      - name: Grow external family group A
+      - name: Grow external family subgroup ${{ matrix.subgroup }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -101,36 +107,34 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
+          GROUP="${{ matrix.subgroup }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          success=0
-          for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group A --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-A.json 2> story-volume-A.err; then
-              success=1
-              break
-            fi
-            echo "Group A SSH attempt $attempt failed" >> story-volume-A.err
-            sleep 8
-          done
-          test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-A.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_A',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 15 --drain-max-batches 18 --drain-time-budget-seconds 1200'" > "story-volume-$GROUP.json" 2> "story-volume-$GROUP.err"
+          python3 -c "import json; g='$GROUP'; r=json.load(open('story-volume-'+g+'.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('SUBGROUP',g,{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
 
-      - name: Upload group A report
+      - name: Upload subgroup report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: story-volume-A
+          name: story-volume-${{ matrix.subgroup }}
           path: |
-            story-volume-A.json
-            story-volume-A.err
+            story-volume-${{ matrix.subgroup }}.json
+            story-volume-${{ matrix.subgroup }}.err
           if-no-files-found: warn
           retention-days: 14
 
   group_b:
-    name: 3 - Harvest family group B
+    name: 3 - Harvest family subgroup ${{ matrix.subgroup }}
     needs: group_a
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        subgroup: [B1, B2, B3]
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -147,7 +151,7 @@ jobs:
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
-      - name: Grow external family group B
+      - name: Grow external family subgroup ${{ matrix.subgroup }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -155,36 +159,34 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
+          GROUP="${{ matrix.subgroup }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          success=0
-          for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group B --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-B.json 2> story-volume-B.err; then
-              success=1
-              break
-            fi
-            echo "Group B SSH attempt $attempt failed" >> story-volume-B.err
-            sleep 8
-          done
-          test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-B.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_B',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 15 --drain-max-batches 18 --drain-time-budget-seconds 1200'" > "story-volume-$GROUP.json" 2> "story-volume-$GROUP.err"
+          python3 -c "import json; g='$GROUP'; r=json.load(open('story-volume-'+g+'.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('SUBGROUP',g,{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
 
-      - name: Upload group B report
+      - name: Upload subgroup report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: story-volume-B
+          name: story-volume-${{ matrix.subgroup }}
           path: |
-            story-volume-B.json
-            story-volume-B.err
+            story-volume-${{ matrix.subgroup }}.json
+            story-volume-${{ matrix.subgroup }}.err
           if-no-files-found: warn
           retention-days: 14
 
   group_c:
-    name: 4 - Harvest family group C
+    name: 4 - Harvest family subgroup ${{ matrix.subgroup }}
     needs: group_b
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        subgroup: [C1, C2, C3]
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -201,7 +203,7 @@ jobs:
           test -n "$MACHINE"
           echo "machine=$MACHINE" >> "$GITHUB_OUTPUT"
 
-      - name: Grow external family group C
+      - name: Grow external family subgroup ${{ matrix.subgroup }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -209,34 +211,27 @@ jobs:
           set -euo pipefail
           APP="reads-football-gateway"
           MACHINE="${{ steps.flymachine.outputs.machine }}"
+          GROUP="${{ matrix.subgroup }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          success=0
-          for attempt in 1 2 3; do
-            if flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group C --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 25 --drain-max-batches 40 --drain-time-budget-seconds 2400'" > story-volume-C.json 2> story-volume-C.err; then
-              success=1
-              break
-            fi
-            echo "Group C SSH attempt $attempt failed" >> story-volume-C.err
-            sleep 8
-          done
-          test "$success" = "1"
-          python3 -c "import json; r=json.load(open('story-volume-C.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('GROUP_C',{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && python -m tools.director_v05.story_corpus_growth --external-only --family-group $GROUP --max-records-per-query $MAX_RECORDS --timespan $TIMESPAN --drain-batch-size 15 --drain-max-batches 18 --drain-time-budget-seconds 1200'" > "story-volume-$GROUP.json" 2> "story-volume-$GROUP.err"
+          python3 -c "import json; g='$GROUP'; r=json.load(open('story-volume-'+g+'.json')); ext=r.get('external') or {}; h=ext.get('harvest') or {}; d=ext.get('drain') or {}; print('SUBGROUP',g,{'delta':r.get('delta'),'families':ext.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{})})"
 
-      - name: Upload group C report
+      - name: Upload subgroup report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: story-volume-C
+          name: story-volume-${{ matrix.subgroup }}
           path: |
-            story-volume-C.json
-            story-volume-C.err
+            story-volume-${{ matrix.subgroup }}.json
+            story-volume-${{ matrix.subgroup }}.err
           if-no-files-found: warn
           retention-days: 14
 
   cfb:
     name: 5 - Dedicated CFB harvest
     needs: group_c
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -289,6 +284,7 @@ jobs:
   certify:
     name: 6 - Certify Story corpus
     needs: cfb
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
