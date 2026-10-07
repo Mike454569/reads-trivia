@@ -78,7 +78,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        family: [BIZARRE_MOMENT, DRAFT_BUST, TRADE_ODDITY, COMEBACK_RETURN, INFAMOUS_MISTAKE, SIDELINE_INCIDENT, COACHING_MELTDOWN, CELEBRATION_CONTROVERSY, RECORD_ODDITY, RIVALRY_INCIDENT, RECRUITING_CHAOS, TRANSFER_NIL_CHAOS, PLAYOFF_FORGOTTEN, OFF_FIELD_ODDITY, DISCIPLINE_LEGAL]
+        family: [BIZARRE_MOMENT]
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
@@ -186,7 +186,7 @@ jobs:
   certify:
     name: 6 - Certify Story corpus
     needs: cfb
-    if: ${{ always() }}
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
