@@ -110,40 +110,7 @@ jobs:
           FAMILY="${{ matrix.family }}"
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
-          SCRIPT_B64=$(cat <<'PY' | base64 -w0
-import json, sys
-from tools.director_v05.story_candidate_harvest import harvest_story_candidates, QUERY_FAMILIES
-from tools.director_v05.story_candidate_triage import triage_candidates
-from tools.director_v05.story_batch_drain import drain_story_queue
-
-family = sys.argv[1].upper()
-max_records = int(sys.argv[2])
-timespan = sys.argv[3]
-if family not in QUERY_FAMILIES:
-    raise SystemExit("live Fly code does not know family: " + family)
-
-harvest = harvest_story_candidates(
-    query_families={family: QUERY_FAMILIES[family]},
-    max_records_per_query=max_records,
-    timespan=timespan,
-    sleep_seconds=0.35,
-)
-triage = triage_candidates()
-drain = drain_story_queue(
-    batch_size=10,
-    max_batches=10,
-    time_budget_seconds=900,
-    include_deep_chains=False,
-)
-print(json.dumps({
-    "family": family,
-    "families": [family],
-    "harvest": harvest,
-    "triage": triage,
-    "drain": drain,
-}, indent=2, sort_keys=True))
-PY
-)
+          SCRIPT_B64="aW1wb3J0IGpzb24sIHN5cwpmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9jYW5kaWRhdGVfaGFydmVzdCBpbXBvcnQgaGFydmVzdF9zdG9yeV9jYW5kaWRhdGVzLCBRVUVSWV9GQU1JTElFUwpmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9jYW5kaWRhdGVfdHJpYWdlIGltcG9ydCB0cmlhZ2VfY2FuZGlkYXRlcwpmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9iYXRjaF9kcmFpbiBpbXBvcnQgZHJhaW5fc3RvcnlfcXVldWUKZmFtaWx5ID0gc3lzLmFyZ3ZbMV0udXBwZXIoKQptYXhfcmVjb3JkcyA9IGludChzeXMuYXJndlsyXSkKdGltZXNwYW4gPSBzeXMuYXJndlszXQppZiBmYW1pbHkgbm90IGluIFFVRVJZX0ZBTUlMSUVTOgogICAgcmFpc2UgU3lzdGVtRXhpdCgibGl2ZSBGbHkgY29kZSBkb2VzIG5vdCBrbm93IGZhbWlseTogIiArIGZhbWlseSkKaGFydmVzdCA9IGhhcnZlc3Rfc3RvcnlfY2FuZGlkYXRlcyhxdWVyeV9mYW1pbGllcz17ZmFtaWx5OiBRVUVSWV9GQU1JTElFU1tmYW1pbHldfSwgbWF4X3JlY29yZHNfcGVyX3F1ZXJ5PW1heF9yZWNvcmRzLCB0aW1lc3Bhbj10aW1lc3Bhbiwgc2xlZXBfc2Vjb25kcz0wLjM1KQp0cmlhZ2UgPSB0cmlhZ2VfY2FuZGlkYXRlcygpCmRyYWluID0gZHJhaW5fc3RvcnlfcXVldWUoYmF0Y2hfc2l6ZT0xMCwgbWF4X2JhdGNoZXM9MTAsIHRpbWVfYnVkZ2V0X3NlY29uZHM9OTAwLCBpbmNsdWRlX2RlZXBfY2hhaW5zPUZhbHNlKQpwcmludChqc29uLmR1bXBzKHsiZmFtaWx5IjogZmFtaWx5LCAiZmFtaWxpZXMiOiBbZmFtaWx5XSwgImhhcnZlc3QiOiBoYXJ2ZXN0LCAidHJpYWdlIjogdHJpYWdlLCAiZHJhaW4iOiBkcmFpbn0sIGluZGVudD0yLCBzb3J0X2tleXM9VHJ1ZSkpCg=="
           timeout --signal=TERM 26m flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && echo $SCRIPT_B64 | base64 -d > /tmp/reads_story_one_family.py && python /tmp/reads_story_one_family.py $FAMILY $MAX_RECORDS $TIMESPAN'" > "story-volume-$FAMILY.json" 2> "story-volume-$FAMILY.err"
           python3 -c "import json; f='$FAMILY'; r=json.load(open('story-volume-'+f+'.json')); h=r.get('harvest') or {}; d=r.get('drain') or {}; print('FAMILY',f,{'families':r.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{}),'stop':d.get('stop_reason')})"
 
