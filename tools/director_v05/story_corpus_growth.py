@@ -42,14 +42,23 @@ FAMILY_GROUPS = {
         "BIZARRE_MOMENT", "DRAFT_BUST", "TRADE_ODDITY",
         "COMEBACK_RETURN", "INFAMOUS_MISTAKE",
     ),
+    "A1": ("BIZARRE_MOMENT", "DRAFT_BUST"),
+    "A2": ("TRADE_ODDITY", "COMEBACK_RETURN"),
+    "A3": ("INFAMOUS_MISTAKE",),
     "B": (
         "SIDELINE_INCIDENT", "COACHING_MELTDOWN", "CELEBRATION_CONTROVERSY",
         "RECORD_ODDITY", "RIVALRY_INCIDENT",
     ),
+    "B1": ("SIDELINE_INCIDENT", "COACHING_MELTDOWN"),
+    "B2": ("CELEBRATION_CONTROVERSY", "RECORD_ODDITY"),
+    "B3": ("RIVALRY_INCIDENT",),
     "C": (
         "RECRUITING_CHAOS", "TRANSFER_NIL_CHAOS", "PLAYOFF_FORGOTTEN",
         "OFF_FIELD_ODDITY", "DISCIPLINE_LEGAL",
     ),
+    "C1": ("RECRUITING_CHAOS", "TRANSFER_NIL_CHAOS"),
+    "C2": ("PLAYOFF_FORGOTTEN", "OFF_FIELD_ODDITY"),
+    "C3": ("DISCIPLINE_LEGAL",),
 }
 
 
@@ -111,7 +120,7 @@ def grow_external_story_queue(
 ):
     key = str(family_group or "A").upper()
     if key not in FAMILY_GROUPS:
-        raise ValueError("family_group must be A, B, or C")
+        raise ValueError("family_group must be one of: " + ", ".join(sorted(FAMILY_GROUPS)))
     selected = {
         family: QUERY_FAMILIES[family]
         for family in FAMILY_GROUPS[key]
