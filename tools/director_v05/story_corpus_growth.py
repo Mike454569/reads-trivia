@@ -111,6 +111,7 @@ def grow_structured_corpus(*, pbp_game_limit=None, row_limit=None):
 def grow_external_story_queue(
     *,
     family_group="A",
+    family=None,
     max_records_per_query=75,
     timespan="1y",
     domains=APPROVED_DOMAINS,
@@ -118,14 +119,21 @@ def grow_external_story_queue(
     drain_max_batches=12,
     drain_time_budget_seconds=1200,
 ):
-    key = str(family_group or "A").upper()
-    if key not in FAMILY_GROUPS:
-        raise ValueError("family_group must be one of: " + ", ".join(sorted(FAMILY_GROUPS)))
-    selected = {
-        family: QUERY_FAMILIES[family]
-        for family in FAMILY_GROUPS[key]
-        if family in QUERY_FAMILIES
-    }
+    if family:
+        family_key = str(family).upper()
+        if family_key not in QUERY_FAMILIES:
+            raise ValueError("unknown family: " + family_key)
+        key = family_key
+        selected = {family_key: QUERY_FAMILIES[family_key]}
+    else:
+        key = str(family_group or "A").upper()
+        if key not in FAMILY_GROUPS:
+            raise ValueError("family_group must be one of: " + ", ".join(sorted(FAMILY_GROUPS)))
+        selected = {
+            family_name: QUERY_FAMILIES[family_name]
+            for family_name in FAMILY_GROUPS[key]
+            if family_name in QUERY_FAMILIES
+        }
     harvest = harvest_story_candidates(
         domains=domains,
         query_families=selected,
@@ -152,6 +160,7 @@ def grow_external_story_queue(
 def run_growth(
     *,
     family_group="A",
+    family=None,
     structured=True,
     external=True,
     max_records_per_query=75,
@@ -180,6 +189,7 @@ def run_growth(
     if external:
         result["external"] = grow_external_story_queue(
             family_group=family_group,
+            family=family,
             max_records_per_query=max_records_per_query,
             timespan=timespan,
             drain_batch_size=drain_batch_size,
@@ -215,6 +225,7 @@ def run_growth(
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--family-group", choices=sorted(FAMILY_GROUPS), default="A")
+    ap.add_argument("--family", choices=sorted(QUERY_FAMILIES))
     ap.add_argument("--structured-only", action="store_true")
     ap.add_argument("--external-only", action="store_true")
     ap.add_argument("--max-records-per-query", type=int, default=75)
@@ -230,6 +241,7 @@ def main():
         raise SystemExit("choose at most one of --structured-only/--external-only")
     result = run_growth(
         family_group=args.family_group,
+        family=args.family,
         structured=not args.external_only,
         external=not args.structured_only,
         max_records_per_query=args.max_records_per_query,
