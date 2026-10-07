@@ -18,11 +18,7 @@ on:
 permissions:
   contents: read
 
-# Never let a second trigger kill a healthy production fill. Stages are intentionally
-# split into separate jobs so successful work is preserved and failed jobs can be rerun.
-concurrency:
-  group: story-corpus-growth-production
-  cancel-in-progress: true
+# Story fills are intentionally resumable/checkpointed. Do not apply workflow-level concurrency here; stale queued runs must never block or cancel a fresh recovery run.
 
 jobs:
   backlog:
