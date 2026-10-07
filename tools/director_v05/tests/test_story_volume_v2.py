@@ -26,6 +26,18 @@ def test_growth_family_groups_cover_expanded_safe_and_sensitive_families():
     assert covered <= set(harvest.QUERY_FAMILIES)
 
 
+
+def test_growth_subgroups_partition_parent_groups():
+    for parent in ("A","B","C"):
+        parts = (
+            FAMILY_GROUPS[parent+"1"]
+            + FAMILY_GROUPS[parent+"2"]
+            + FAMILY_GROUPS[parent+"3"]
+        )
+        assert tuple(parts) == FAMILY_GROUPS[parent]
+        assert len(parts) == len(set(parts))
+
+
 def test_sensitive_title_overrides_safe_harvest_family(monkeypatch,tmp_path):
     db=tmp_path/"stories.sqlite"
     c=_candidate_conn(db)
