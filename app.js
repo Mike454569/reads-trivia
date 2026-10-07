@@ -699,7 +699,20 @@ var SILHOUETTE_PLAYERS = window.SILHOUETTE_PLAYERS || [];
 var ENGINE_CFB_QUIZ_SOURCES = [
   { key: 'QUIZ_DATA_ENGINE_CFB_GAME_RESULT', enabled: function () { return ENABLE_ENGINE_QUIZ_DRAFT; } },
 ];
-var CFB = buildEffectiveQuizPool(window.CFB_DATA || [], ENGINE_CFB_QUIZ_SOURCES);
+
+function cfbChampionshipQuestionNeedsSelector(q) {
+  if (!q || typeof q.question !== 'string') return false;
+  var text = q.question.trim();
+  var m = /^Which (?:team|school) won (?:the )?(\d{4})?\s*(?:college football )?national championship(?:\s+in\s+(\d{4}))?(?:\s+under\s+[^?]+)?\?$/i.exec(text);
+  if (!m) return false;
+  var year = Number(m[1] || m[2] || 0);
+  if (!year || year >= 1998) return false;
+  if (/\b(AP|UPI|FWAA|Coaches?|selector|split|shared|consensus)\b/i.test(text)) return false;
+  return true;
+}
+
+var CFB = buildEffectiveQuizPool(window.CFB_DATA || [], ENGINE_CFB_QUIZ_SOURCES)
+  .filter(function (q) { return !cfbChampionshipQuestionNeedsSelector(q); });
 // CFB Speed audited (App-Wide Engine Migration, Part C): cfbSpeedQueue()
 // reads CFB_SPEED directly, a wholly separate hand-authored pool from CFB
 // (NFL Speed, by contrast, already shares QUIZ itself with NFL Quiz --
@@ -1354,8 +1367,20 @@ function questionMentionsTeam(q, team) {
   var names = [team.name, team.code, team.id].filter(Boolean).map(function (x) { return String(x).toLowerCase(); });
   return names.some(function (n) { return n.length > 2 && hay.indexOf(n) !== -1; });
 }
+function dailyBareTitleWinnerQuestion(q) {
+  if (!q || typeof q.question !== 'string') return false;
+  var text = q.question.trim();
+  if (!/^Which (?:team|school) won\b/i.test(text)) return false;
+  if (!/\b(?:BCS|CFP|college football)?\s*National Championship\b|\bnational championship\b/i.test(text)) return false;
+  if (/\b(AP|UPI|FWAA|Coaches?|selector|split|shared|consensus|semifinal|game-winning|first TD|coach|scored|threw)\b/i.test(text)) return false;
+  return true;
+}
 function dailyCandidatePool(source, league) {
-  return (source || []).map(function (q) {
+  return (source || []).filter(function (q) {
+    if (league === 'CFB' && cfbChampionshipQuestionNeedsSelector(q)) return false;
+    if (dailyBareTitleWinnerQuestion(q)) return false;
+    return true;
+  }).map(function (q) {
     return Object.assign({}, q, { _dailyLeague: league });
   });
 }
