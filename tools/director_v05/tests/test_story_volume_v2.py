@@ -38,6 +38,23 @@ def test_growth_subgroups_partition_parent_groups():
         assert len(parts) == len(set(parts))
 
 
+
+def test_single_family_mode_selects_exact_family(monkeypatch):
+    import tools.director_v05.story_corpus_growth as growth
+    captured = {}
+
+    def fake_harvest(**kwargs):
+        captured["query_families"] = kwargs["query_families"]
+        return {"metrics": {}}
+
+    monkeypatch.setattr(growth, "harvest_story_candidates", fake_harvest)
+    monkeypatch.setattr(growth, "triage_candidates", lambda: {})
+    monkeypatch.setattr(growth, "drain_story_queue", lambda **kwargs: {})
+    out = growth.grow_external_story_queue(family="BIZARRE_MOMENT")
+    assert out["families"] == ["BIZARRE_MOMENT"]
+    assert list(captured["query_families"]) == ["BIZARRE_MOMENT"]
+
+
 def test_sensitive_title_overrides_safe_harvest_family(monkeypatch,tmp_path):
     db=tmp_path/"stories.sqlite"
     c=_candidate_conn(db)
