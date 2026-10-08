@@ -133,6 +133,7 @@ jobs:
           path: |
             story-volume-${{ matrix.family }}.json
             story-volume-${{ matrix.family }}.err
+            story-volume-${{ matrix.family }}.rc
           if-no-files-found: warn
           retention-days: 14
 
