@@ -526,7 +526,7 @@ window.CFB_DATA = [
     "id": 40,
     "category": "National Championships",
     "difficulty": "Very Hard",
-    "question": "Which school won the 1957 national championship under Woody Hayes?",
+    "question": "Which school did the UPI coaches poll and FWAA recognize as national champion in 1957 under Woody Hayes?",
     "options": [
       "Auburn",
       "Ohio State",
@@ -534,7 +534,7 @@ window.CFB_DATA = [
       "Michigan State"
     ],
     "correctIndex": 1,
-    "notes": "Ohio State"
+    "notes": "Ohio State was recognized by UPI and the FWAA; Auburn finished No. 1 in the AP poll."
   },
   {
     "id": 41,
