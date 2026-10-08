@@ -107,15 +107,21 @@ jobs:
           MAX_RECORDS="${{ inputs.max_records_per_query || '125' }}"
           TIMESPAN="${{ inputs.timespan || '3y' }}"
           SCRIPT_B64="aW1wb3J0IGpzb24sIHN5cywgc3FsaXRlMywgdGltZQpmcm9tIHRvb2xzLnF1aXpfZXhwb3J0IGltcG9ydCBlbmdpbmUgYXMgZW5naW5lX2Jvb3RzdHJhcApmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9jYW5kaWRhdGVfaGFydmVzdCBpbXBvcnQgaGFydmVzdF9zdG9yeV9jYW5kaWRhdGVzLCBRVUVSWV9GQU1JTElFUwpmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9jYW5kaWRhdGVfdHJpYWdlIGltcG9ydCB0cmlhZ2VfY2FuZGlkYXRlcwpmcm9tIHRvb2xzLmRpcmVjdG9yX3YwNS5zdG9yeV9iYXRjaF9kcmFpbiBpbXBvcnQgZHJhaW5fc3RvcnlfcXVldWUKCmZhbWlseSA9IHN5cy5hcmd2WzFdLnVwcGVyKCkKbWF4X3JlY29yZHMgPSBpbnQoc3lzLmFyZ3ZbMl0pCnRpbWVzcGFuID0gc3lzLmFyZ3ZbM10KaWYgZmFtaWx5IG5vdCBpbiBRVUVSWV9GQU1JTElFUzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoImxpdmUgRmx5IGNvZGUgZG9lcyBub3Qga25vdyBmYW1pbHk6ICIgKyBmYW1pbHkpCgojIFdhaXQgZm9yIHRoZSBsaXZlIFNRTGl0ZSB3cml0ZXIgdG8gYmUgZ2VudWluZWx5IGF2YWlsYWJsZS4KIyBSZXF1aXJlIHNldmVyYWwgY29uc2VjdXRpdmUgc3VjY2Vzc2Z1bCBCRUdJTiBJTU1FRElBVEUgcHJvYmVzIHNvIHdlIGRvIG5vdAojIHN0YXJ0IGluIGEgdGlueSBnYXAgYmV0d2VlbiBvbGRlciB3b3JrZmxvdyBqb2JzLgpxdWlldCA9IDAKZm9yIF8gaW4gcmFuZ2UoMjQwKToKICAgIGMgPSBlbmdpbmVfYm9vdHN0cmFwLmNvbm5lY3QoKQogICAgYy5leGVjdXRlKCJQUkFHTUEgYnVzeV90aW1lb3V0PTMwMDAiKQogICAgdHJ5OgogICAgICAgIGMuZXhlY3V0ZSgiQkVHSU4gSU1NRURJQVRFIikKICAgICAgICBjLnJvbGxiYWNrKCkKICAgICAgICBxdWlldCArPSAxCiAgICBleGNlcHQgc3FsaXRlMy5PcGVyYXRpb25hbEVycm9yIGFzIGV4YzoKICAgICAgICBjLnJvbGxiYWNrKCkKICAgICAgICBxdWlldCA9IDAKICAgICAgICBtc2cgPSBzdHIoZXhjKS5jYXNlZm9sZCgpCiAgICAgICAgaWYgImxvY2tlZCIgbm90IGluIG1zZyBhbmQgImJ1c3kiIG5vdCBpbiBtc2c6CiAgICAgICAgICAgIGMuY2xvc2UoKQogICAgICAgICAgICByYWlzZQogICAgZmluYWxseToKICAgICAgICBjLmNsb3NlKCkKICAgIGlmIHF1aWV0ID49IDg6CiAgICAgICAgYnJlYWsKICAgIHRpbWUuc2xlZXAoNSkKZWxzZToKICAgIHJhaXNlIFN5c3RlbUV4aXQoInN0b3J5IFNRTGl0ZSB3cml0ZXIgbmV2ZXIgYmVjYW1lIHF1aWV0IikKCmhhcnZlc3QgPSBoYXJ2ZXN0X3N0b3J5X2NhbmRpZGF0ZXMoCiAgICBxdWVyeV9mYW1pbGllcz17ZmFtaWx5OiBRVUVSWV9GQU1JTElFU1tmYW1pbHldfSwKICAgIG1heF9yZWNvcmRzX3Blcl9xdWVyeT1tYXhfcmVjb3JkcywKICAgIHRpbWVzcGFuPXRpbWVzcGFuLAogICAgc2xlZXBfc2Vjb25kcz0wLjM1LAopCnRyaWFnZSA9IHRyaWFnZV9jYW5kaWRhdGVzKCkKZHJhaW4gPSBkcmFpbl9zdG9yeV9xdWV1ZSgKICAgIGJhdGNoX3NpemU9MTAsCiAgICBtYXhfYmF0Y2hlcz0xMCwKICAgIHRpbWVfYnVkZ2V0X3NlY29uZHM9OTAwLAogICAgaW5jbHVkZV9kZWVwX2NoYWlucz1GYWxzZSwKKQpwcmludChqc29uLmR1bXBzKHsKICAgICJmYW1pbHkiOiBmYW1pbHksCiAgICAiZmFtaWxpZXMiOiBbZmFtaWx5XSwKICAgICJoYXJ2ZXN0IjogaGFydmVzdCwKICAgICJ0cmlhZ2UiOiB0cmlhZ2UsCiAgICAiZHJhaW4iOiBkcmFpbiwKfSwgaW5kZW50PTIsIHNvcnRfa2V5cz1UcnVlKSkK"
-          REMOTE_CMD="cd /app && export PYTHONPATH=/app && export READS_ENGINE_DIR=/data/engine && echo $SCRIPT_B64 | base64 -d > /tmp/reads_story_one_family.py && flock -w 1200 /data/engine/story-volume-writer.lock sh -lc 'python /tmp/reads_story_one_family.py $FAMILY $MAX_RECORDS $TIMESPAN > /tmp/story-family.json 2> /tmp/story-family.py.err; rc=\$?; cat /tmp/story-family.py.err >&2; cat /tmp/story-family.json; exit \$rc'"
-          set +e
-          timeout --signal=TERM 26m flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc \"$REMOTE_CMD\"" > "story-volume-$FAMILY.json" 2> "story-volume-$FAMILY.err"
-          RC=$?
-          set -e
+          RUNNER_B64="IyEvYmluL3NoCnNldCArZQpjZCAvYXBwIHx8IHsgZWNobyA5MCA+IC90bXAvc3RvcnktZmFtaWx5LnJjOyBleGl0IDA7IH0KZXhwb3J0IFBZVEhPTlBBVEg9L2FwcApleHBvcnQgUkVBRFNfRU5HSU5FX0RJUj0vZGF0YS9lbmdpbmUKcHl0aG9uIC90bXAvcmVhZHNfc3Rvcnlfb25lX2ZhbWlseS5weSAiJDEiICIkMiIgIiQzIiA+L3RtcC9zdG9yeS1mYW1pbHkuanNvbiAyPi90bXAvc3RvcnktZmFtaWx5LnB5LmVycgplY2hvICQ/ID4gL3RtcC9zdG9yeS1mYW1pbHkucmMKZXhpdCAwCg=="
+          # Prepare remote scripts/files.
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $SCRIPT_B64 | base64 -d > /tmp/reads_story_one_family.py; echo $RUNNER_B64 | base64 -d > /tmp/reads_story_runner.sh; chmod +x /tmp/reads_story_runner.sh; rm -f /tmp/story-family.json /tmp/story-family.py.err /tmp/story-family.rc'"
+          # Run under the single-writer lock, but force the SSH command itself to succeed so Fly cannot swallow the real error.
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'flock -w 1200 /data/engine/story-volume-writer.lock /tmp/reads_story_runner.sh $FAMILY $MAX_RECORDS $TIMESPAN || { test -f /tmp/story-family.rc || echo 75 > /tmp/story-family.rc; }; exit 0'"
+          # Fetch the real outcome in separate SSH calls.
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cat /tmp/story-family.rc 2>/dev/null || echo 76'" > "story-volume-$FAMILY.rc"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cat /tmp/story-family.py.err 2>/dev/null || true'" > "story-volume-$FAMILY.err"
+          flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'cat /tmp/story-family.json 2>/dev/null || true'" > "story-volume-$FAMILY.json"
+          RC=$(tr -dc '0-9' < "story-volume-$FAMILY.rc")
+          echo "Remote family rc=$RC"
           cat "story-volume-$FAMILY.err" >&2 || true
-          if [ "$RC" -ne 0 ]; then
-            echo "Remote family runner failed with exit $RC" >&2
-            exit "$RC"
+          if [ "$RC" != "0" ]; then
+            echo "Remote family runner failed with rc=$RC" >&2
+            exit 1
           fi
           python3 -c "import json; f='$FAMILY'; r=json.load(open('story-volume-'+f+'.json')); h=r.get('harvest') or {}; d=r.get('drain') or {}; print('FAMILY',f,{'families':r.get('families'),'accepted_candidates':(h.get('metrics') or {}).get('accepted_candidates',0),'claimed':d.get('claimed_total',0),'drain_counts':d.get('counts',{}),'stop':d.get('stop_reason')})"
 
