@@ -9,18 +9,87 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Live micro-ingestion using patched triage
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           APP=reads-football-gateway
+          test -n "${FLY_API_TOKEN:-}"
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat > /tmp/reads_story_live_micro.py <<'PYTHON'
+          import datetime as dt
+          import importlib.util
+          import json
+          import sqlite3
+          from tools.quiz_export import engine as engine_bootstrap
+          from tools.director_v05.story_candidate_harvest import harvest_story_candidates, QUERY_FAMILIES
+          from tools.director_v05.story_sqlite import prepare_write_connection
+          
+          spec = importlib.util.spec_from_file_location(
+              "tools.director_v05.story_candidate_triage_live_patch",
+              "/tmp/reads_story_candidate_triage_patch.py"
+          )
+          triage = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(triage)
+          assert engine_bootstrap.db_path().is_file()
+          c = prepare_write_connection(engine_bootstrap.connect())
+          start = dt.datetime.now(dt.timezone.utc).isoformat()
+          before = c.execute("SELECT COUNT(*) FROM football_story_candidates WHERE family_hint='BIZARRE_MOMENT'").fetchone()[0]
+          c.close()
+          print("LIVE_INGEST_START",json.dumps({"family":"BIZARRE_MOMENT","before":before,"start":start}),flush=True)
+          
+          # Exactly one approved-domain query; maximum ten candidates from GDELT.
+          result = harvest_story_candidates(
+              domains=("nfl.com",),
+              query_families={"BIZARRE_MOMENT": ('"weird play" football',)},
+              max_records_per_query=10,
+              timespan="3y",
+              sleep_seconds=0,
+          )
+          print("HARVEST",json.dumps({"metrics":result["metrics"],"failures":result["failures"][:2]},sort_keys=True),flush=True)
+          
+          c = prepare_write_connection(engine_bootstrap.connect())
+          rows=c.execute("""
+          SELECT * FROM football_story_candidates
+          WHERE family_hint='BIZARRE_MOMENT' AND first_harvested_at>=?
+          ORDER BY first_harvested_at,candidate_id LIMIT 10
+          """,(start,)).fetchall()
+          updates=[]
+          for row in rows:
+              title=triage._norm_title(row["title"])
+              score=triage._score(row)
+              sensitive = bool(row["sensitive_hint"]) or any(term in title for term in triage.SENSITIVE_TITLE_TERMS)
+              if any(term in title for term in triage.LOW_SIGNAL):
+                  status="REJECT_LOW_SIGNAL"
+              elif sensitive:
+                  status="REVIEW_REQUIRED_SENSITIVE"
+              elif score >= 30:
+                  status="REVIEW_PRIORITY"
+              else:
+                  status="REVIEW_REQUIRED"
+              updates.append((status,json.dumps({"triage_score":score,"title_signature":triage._title_signature(row["title"])},sort_keys=True),str(row["candidate_id"])))
+          triage._write_triage_updates(c,updates)
+          after = c.execute("SELECT COUNT(*) FROM football_story_candidates WHERE family_hint='BIZARRE_MOMENT'").fetchone()[0]
+          statuses={}
+          if updates:
+              q="SELECT status,COUNT(*) AS n FROM football_story_candidates WHERE candidate_id IN (" + ",".join("?" for _ in updates) + ") GROUP BY status"
+              statuses={str(x["status"]):int(x["n"]) for x in c.execute(q,[x[2] for x in updates]).fetchall()}
+          c.close()
+          print("LIVE_INGEST_RESULT",json.dumps({"before":before,"after":after,"new_rows":after-before,"new_rows_triaged":len(updates),"statuses":statuses},sort_keys=True),flush=True)
+          if not result["metrics"].get("queries_succeeded"):
+              raise SystemExit("FAIL: GDELT query did not succeed; live ingest not proven")
+          if after <= before:
+              raise SystemExit("NO_NEW_ROWS: query succeeded but returned no previously unseen candidates")
+          print("PASS: new candidates persisted and patched triage wrote to production DB",flush=True)
+          PYTHON
+          PATCH_B64=$(base64 -w0 tools/director_v05/story_candidate_triage.py)
+          TEST_B64=$(base64 -w0 /tmp/reads_story_live_micro.py)
+          timeout --signal=TERM 360s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $PATCH_B64 | base64 -d > /tmp/reads_story_candidate_triage_patch.py; echo $TEST_B64 | base64 -d > /tmp/reads_story_live_micro.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 30 /data/engine/story-volume-writer.lock python -u /tmp/reads_story_live_micro.py'"
