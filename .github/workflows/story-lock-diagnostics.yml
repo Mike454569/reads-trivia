@@ -9,18 +9,86 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Fly isolated patched triage smoke test
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           APP=reads-football-gateway
+          test -n "${FLY_API_TOKEN:-}"
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat > /tmp/reads_story_triage_smoke.py <<'PYTHON'
+          import importlib.util
+          import sqlite3
+          import tempfile
+          import threading
+          import time
+          from pathlib import Path
+          
+          spec = importlib.util.spec_from_file_location(
+              "tools.director_v05.story_candidate_triage_tested",
+              "/tmp/reads_story_triage_patch.py",
+          )
+          triage = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(triage)
+          
+          with tempfile.TemporaryDirectory(prefix="story-triage-smoke-") as directory:
+              db = Path(directory) / "smoke.sqlite"
+              c = sqlite3.connect(db, timeout=3, check_same_thread=False)
+              c.execute("CREATE TABLE football_story_candidates (candidate_id TEXT PRIMARY KEY, status TEXT, review_notes TEXT)")
+              c.executemany("INSERT INTO football_story_candidates VALUES (?,?,?)",
+                            [(str(n), "REVIEW_REQUIRED", None) for n in range(501)])
+              c.execute("UPDATE football_story_candidates SET status='DONE' WHERE candidate_id='500'")
+              c.commit()
+          
+              update_rows = [("REVIEW_PRIORITY", "smoke", str(n)) for n in range(501)]
+              triage._write_triage_updates(c, update_rows)
+              assert c.execute("SELECT count(*) FROM football_story_candidates WHERE status='REVIEW_PRIORITY'").fetchone()[0] == 500
+              assert c.execute("SELECT status FROM football_story_candidates WHERE candidate_id='500'").fetchone()[0] == "DONE"
+              print("PASS: 501 updates across transaction batches; DONE protected", flush=True)
+          
+              blocker = sqlite3.connect(db, timeout=3, check_same_thread=False)
+              blocker.execute("BEGIN IMMEDIATE")
+              ready = threading.Event()
+              errors = []
+              def release():
+                  ready.set()
+                  time.sleep(0.5)
+                  blocker.commit()
+                  blocker.close()
+              worker = threading.Thread(target=release)
+              worker.start()
+              ready.wait(timeout=2)
+              try:
+                  triage._write_triage_updates(c, [("REVIEW_REQUIRED", "retry", "0")])
+              except Exception as exc:
+                  errors.append(repr(exc))
+              worker.join(timeout=3)
+              assert not errors, errors
+              assert c.execute("SELECT status FROM football_story_candidates WHERE candidate_id='0'").fetchone()[0] == "REVIEW_REQUIRED"
+              print("PASS: competing writer releases SQLite lock and patched code completes", flush=True)
+              c.close()
+          
+          from tools.quiz_export import engine as engine_bootstrap
+          db = engine_bootstrap.db_path()
+          assert db.is_file(), "Production database missing"
+          prod = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=5)
+          try:
+              count = prod.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
+              assert count > 0
+              print(f"PASS: production DB read-only connection and schema query; tables={count}", flush=True)
+          finally:
+              prod.close()
+          print("PASS: isolated Fly smoke test completed (zero production writes)", flush=True)
+          
+          PYTHON
+          CODE_B64=$(base64 -w0 tools/director_v05/story_candidate_triage.py)
+          TEST_B64=$(base64 -w0 /tmp/reads_story_triage_smoke.py)
+          timeout 240s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $CODE_B64 | base64 -d > /tmp/reads_story_triage_patch.py; echo $TEST_B64 | base64 -d > /tmp/reads_story_triage_smoke.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; python /tmp/reads_story_triage_smoke.py'"
