@@ -1,4 +1,4 @@
-name: Story Controlled Candidate Processor
+name: Story Final Database Safety Check
 on:
   push:
     branches:
@@ -8,11 +8,10 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: One review-eligible CBS candidate, protected remote timeout
+      - name: Final story lock and verified-question counts (read only)
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -22,52 +21,17 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          cat >/tmp/reads_one_story_candidate.py <<'PY'
-          import importlib.util,sys,json,time
-          from tools.quiz_export import engine as eng
-          from tools.director_v05.story_sqlite import prepare_write_connection
-          
-          def load(name,path):
-              spec=importlib.util.spec_from_file_location(name,path)
-              module=importlib.util.module_from_spec(spec)
-              sys.modules[name]=module
-              spec.loader.exec_module(module)
-              return module
-          
-          matcher=load("tools.director_v05.story_subject_match","/tmp/reads_subject_match_integrated.py")
-          factory=load("tools.director_v05.story_to_trivia_factory","/tmp/reads_story_factory_integrated.py")
-          conn=prepare_write_connection(eng.connect())
-          def snapshot():
-              return {
-                "verified_stories":conn.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
-                "playable_questions":conn.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0]
-              }
-          print("COUNTS_BEFORE",json.dumps(snapshot()),flush=True)
-          rows=conn.execute("""SELECT * FROM football_story_candidates
-          WHERE status='REVIEW_PRIORITY'
-            AND COALESCE(sensitive_hint,0)=0
-            AND family_hint IN ('BIZARRE_MOMENT','DRAFT_BUST','TRADE_ODDITY','COMEBACK_RETURN','SIDELINE_INCIDENT','COACHING_MELTDOWN','CELEBRATION_CONTROVERSY','RECRUITING_CHAOS','RECORD_ODDITY','INFAMOUS_MISTAKE','OFF_FIELD_ODDITY','RIVALRY_INCIDENT','TRANSFER_NIL_CHAOS','PLAYOFF_FORGOTTEN')
-          ORDER BY CASE WHEN domain IN ('nfl.com','ncaa.org') THEN 0 ELSE 1 END,
-                   first_harvested_at DESC, candidate_id
-          LIMIT 6""").fetchall()
-          print("PRIORITY_CANDIDATE_STATES",json.dumps([{"id":r["candidate_id"],"status":r["status"],"title":r["title"][:85]} for r in rows]),flush=True)
-          eligible=[r for r in rows if r["status"]=="REVIEW_PRIORITY" and not int(r["sensitive_hint"] or 0)]
-          if not eligible:
-           print("NO_ELIGIBLE_STORY_CANDIDATE",flush=True)
-           sys.exit(3)
-          started=time.monotonic()
-          index=matcher.build_subject_index(conn)
-          factory.build_subject_index=lambda _:index
-          print("INDEX_READY",len(index["labels"]),"SECONDS",round(time.monotonic()-started,1),flush=True)
-          candidate=eligible[0]
-          print("CANDIDATE_PROCESSING",candidate["candidate_id"],candidate["title"][:85],flush=True)
-          result=factory.process_candidate(conn,candidate,index,include_deep_chains=False)
-          print("CANDIDATE_DECISION",json.dumps(result,sort_keys=True),flush=True)
-          print("COUNTS_AFTER",json.dumps(snapshot()),flush=True)
-          conn.close()
-          print("INTEGRATED_CANDIDATE_PROCESSING_COMPLETED",flush=True)
+          cat >/tmp/reads_final_counts.py <<'PY'
+          import sqlite3,json,os
+          p="/data/engine/reads_football_v4.0.sqlite"
+          c=sqlite3.connect("file:"+p+"?mode=ro",uri=True,timeout=5)
+          counts={
+           "candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+           "verified_story_events":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+           "playable_questions":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],
+          }
+          c.close()
+          print("FINAL_READONLY_STORY_TOTALS",json.dumps(counts,sort_keys=True),flush=True)
           PY
-          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
-          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
-          P_B64=$(base64 -w0 /tmp/reads_one_story_candidate.py)
-          timeout --signal=TERM 180s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/reads_subject_match_integrated.py; echo $F_B64 | base64 -d >/tmp/reads_story_factory_integrated.py; echo $P_B64 | base64 -d >/tmp/reads_one_story_candidate.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 10 /data/engine/story-volume-writer.lock timeout -k 5s 145s python -u /tmp/reads_one_story_candidate.py'"
+          P_B64=$(base64 -w0 /tmp/reads_final_counts.py)
+          timeout 95s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d >/tmp/reads_final_counts.py; echo ===STORY_WRITER_LOCK===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; timeout -k 4s 35s python -u /tmp/reads_final_counts.py'"
