@@ -1,18 +1,35 @@
-name: Story Lock Diagnostics
+name: Story Integrated Processing Test
 on:
   push:
     branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+      - "story-integration-test-v1"
 permissions:
   contents: read
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 11
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Check integration syntax and family coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/director_v05/story_candidate_triage.py tools/director_v05/story_candidate_harvest.py tools/director_v05/story_to_trivia_factory.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          p=Path("tools/director_v05/story_to_trivia_factory.py")
+          module=ast.parse(p.read_text())
+          assignments={n.targets[0].id:ast.literal_eval(n.value) for n in module.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in {"AUTO_FAMILIES","FAMILY_TERMS"}}
+          required=("BIZARRE_MOMENT","DRAFT_BUST","TRADE_ODDITY","COMEBACK_RETURN","SIDELINE_INCIDENT","COACHING_MELTDOWN","CELEBRATION_CONTROVERSY","RECRUITING_CHAOS","RECORD_ODDITY","INFAMOUS_MISTAKE","OFF_FIELD_ODDITY","RIVALRY_INCIDENT","TRANSFER_NIL_CHAOS","PLAYOFF_FORGOTTEN")
+          assert set(required).issubset(assignments["AUTO_FAMILIES"]),sorted(set(required)-set(assignments["AUTO_FAMILIES"]))
+          assert set(required).issubset(assignments["FAMILY_TERMS"]),sorted(set(required)-set(assignments["FAMILY_TERMS"]))
+          assert "DISCIPLINE_LEGAL" not in assignments["AUTO_FAMILIES"]
+          print("PASS: all fourteen non-sensitive v3 families mapped; discipline/legal review gated")
+          PY
+      - name: Controlled two-candidate Fly production batch
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -22,5 +39,46 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_integrated_batch.py <<'PY'
+          import importlib.util,json,sqlite3,sys,time
+          from tools.quiz_export import engine as engine_bootstrap
+          
+          def load(name,path):
+              spec=importlib.util.spec_from_file_location(name,path)
+              obj=importlib.util.module_from_spec(spec)
+              sys.modules[name]=obj
+              spec.loader.exec_module(obj)
+              return obj
+          
+          harvest=load("tools.director_v05.story_candidate_harvest","/tmp/reads_story_candidate_harvest_integrated.py")
+          triage=load("tools.director_v05.story_candidate_triage","/tmp/reads_story_candidate_triage_integrated.py")
+          factory=load("tools.director_v05.story_to_trivia_factory","/tmp/reads_story_to_trivia_integrated.py")
+          from tools.director_v05.story_batch_processor import process_story_batch
+          c=engine_bootstrap.connect()
+          def stats(c):
+           return {
+           "candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+           "verified_stories":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+           "playable_questions":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],
+           }
+          before=stats(c)
+          c.close()
+          print("INTEGRATION_BEFORE",json.dumps(before),flush=True)
+          assert "TRADE_ODDITY" in factory.AUTO_FAMILIES
+          assert "BIZARRE_MOMENT" in factory.AUTO_FAMILIES
+          assert "DISCIPLINE_LEGAL" not in factory.AUTO_FAMILIES
+          t=time.monotonic()
+          result=process_story_batch(batch_size=2,max_attempts=3,stale_minutes=30,include_deep_chains=False)
+          print("BATCH_RESULT",json.dumps({"claimed":result["claimed"],"counts":result["counts"],"examples":result["examples"],"ledger":result["ledger"],"elapsed_seconds":round(time.monotonic()-t,2)},sort_keys=True),flush=True)
+          c=engine_bootstrap.connect()
+          after=stats(c)
+          c.close()
+          print("INTEGRATION_AFTER",json.dumps(after),flush=True)
+          print("INTEGRATION_DELTA",json.dumps({k:after[k]-before[k] for k in before}),flush=True)
+          print("INTEGRATION_TEST_COMPLETED",flush=True)
+          PY
+          H_B64=$(base64 -w0 tools/director_v05/story_candidate_harvest.py)
+          T_B64=$(base64 -w0 tools/director_v05/story_candidate_triage.py)
+          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          P_B64=$(base64 -w0 /tmp/reads_integrated_batch.py)
+          timeout --signal=TERM 460s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $H_B64 | base64 -d >/tmp/reads_story_candidate_harvest_integrated.py; echo $T_B64 | base64 -d >/tmp/reads_story_candidate_triage_integrated.py; echo $F_B64 | base64 -d >/tmp/reads_story_to_trivia_integrated.py; echo $P_B64 | base64 -d >/tmp/reads_integrated_batch.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 30 /data/engine/story-volume-writer.lock python -u /tmp/reads_integrated_batch.py'"
