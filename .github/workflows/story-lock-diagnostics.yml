@@ -64,7 +64,9 @@ jobs:
           spec.loader.exec_module(m)
           c=eng.connect()
           row=c.execute("""SELECT * FROM football_story_candidates WHERE status='REVIEW_PRIORITY'
-          AND COALESCE(sensitive_hint,0)=0 AND family_hint='OFF_FIELD_ODDITY'
+          AND COALESCE(sensitive_hint,0)=0
+          AND domain IN ('nfl.com','ncaa.org','espn.com','cbssports.com','foxsports.com','si.com','sports.yahoo.com','usatoday.com')
+          AND family_hint IN ('OFF_FIELD_ODDITY','COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT')
           ORDER BY first_harvested_at DESC LIMIT 1""").fetchone()
           assert row, "No eligible priority candidate"
           print("CANDIDATE",json.dumps({"id":row["candidate_id"],"title":row["title"],"domain":row["domain"]}),flush=True)
