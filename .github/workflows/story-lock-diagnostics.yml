@@ -1,9 +1,8 @@
-name: Story Lock Diagnostics
+name: Story Subject Matcher Pipeline Profiling
 on:
   push:
     branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+      - "story-integration-test-v3"
 permissions:
   contents: read
 jobs:
@@ -11,8 +10,41 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Syntax and equivalence test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/director_v05/story_subject_match.py
+          python - <<'PY'
+          import importlib.util,re,time
+          spec=importlib.util.spec_from_file_location("subject_match_v3","tools/director_v05/story_subject_match.py")
+          m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+          labels={f"random player {i}":("NFL_PLAYER",str(i)) for i in range(45000)}
+          labels.update({"marvin harrison jr":("NFL_PLAYER","marvin"),"nick chubb":("NFL_PLAYER","nick"),"o'brien smith":("NFL_PLAYER","obrien"),"tim":("COACH","tim")})
+          order=sorted(labels,key=len,reverse=True)
+          from collections import Counter,defaultdict
+          tokenized={label:set(re.findall(r"[a-z0-9]+",label)) for label in labels}
+          freq=Counter(token for words in tokenized.values() for token in words)
+          anchor=defaultdict(set)
+          for label,words in tokenized.items():
+              if words:
+                  token=min(words,key=lambda w:(freq[w],-len(w),w))
+                  anchor[token].add(label)
+          idx={"labels":labels,"display":{}, "sorted_labels":order,"anchor_labels":dict(anchor),"label_order":{label:i for i,label in enumerate(order)}}
+          baseline={"labels":labels,"display":{},"sorted_labels":order}
+          text=" ".join(["Marvin Harrison Jr. Nick Chubb O'Brien Smith made a trade."]*180)
+          t=time.monotonic()
+          a=m.match_subjects(baseline,title="Marvin Harrison Jr. trade",text=text,max_matches=8)
+          old=time.monotonic()-t
+          t=time.monotonic()
+          b=m.match_subjects(idx,title="Marvin Harrison Jr. trade",text=text,max_matches=8)
+          new=time.monotonic()-t
+          assert a==b,(a,b)
+          print("PASS: result-equivalent optimized matcher","old_seconds",round(old,3),"new_seconds",round(new,4))
+          PY
+      - name: Read-only Fly stage timings against one real article
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -22,5 +54,36 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_pipeline_profile.py <<'PY'
+          import importlib.util,sys,time,json
+          from tools.quiz_export import engine as eng
+          from tools.director_v05.story_article_extract import fetch_article
+          spec=importlib.util.spec_from_file_location("tools.director_v05.story_subject_match","/tmp/reads_match_v3.py")
+          m=importlib.util.module_from_spec(spec)
+          sys.modules[spec.name]=m
+          spec.loader.exec_module(m)
+          c=eng.connect()
+          row=c.execute("""SELECT * FROM football_story_candidates WHERE status='REVIEW_PRIORITY'
+          AND COALESCE(sensitive_hint,0)=0 AND family_hint='OFF_FIELD_ODDITY'
+          ORDER BY first_harvested_at DESC LIMIT 1""").fetchone()
+          assert row, "No eligible priority candidate"
+          print("CANDIDATE",json.dumps({"id":row["candidate_id"],"title":row["title"],"domain":row["domain"]}),flush=True)
+          start=time.monotonic()
+          idx=m.build_subject_index(c)
+          print("INDEX",len(idx["labels"]),"SECONDS",round(time.monotonic()-start,3),flush=True)
+          c.close()
+          start=time.monotonic()
+          try:
+           article=fetch_article(row["source_url"],timeout=15)
+          except Exception as exc:
+           print("ARTICLE_FETCH_FAILED",type(exc).__name__,str(exc)[:250],"SECONDS",round(time.monotonic()-start,3),flush=True)
+           raise SystemExit(2)
+          print("ARTICLE_FETCH_OK","CHARS",article["text_chars"],"SECONDS",round(time.monotonic()-start,3),flush=True)
+          start=time.monotonic()
+          matches=m.match_subjects(idx,title=article.get("headline") or row["title"],text=article["text"])
+          print("MATCH_OK","COUNT",len(matches),"SECONDS",round(time.monotonic()-start,4),"SAMPLES",[(x["label"],x["entity_type"]) for x in matches[:4]],flush=True)
+          print("READ_ONLY_STAGES_PASSED",flush=True)
+          PY
+          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          P_B64=$(base64 -w0 /tmp/reads_pipeline_profile.py)
+          timeout --signal=TERM 160s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/reads_match_v3.py; echo $P_B64 | base64 -d >/tmp/reads_pipeline_profile.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 135s python -u /tmp/reads_pipeline_profile.py'"
