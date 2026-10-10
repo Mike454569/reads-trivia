@@ -14,6 +14,7 @@ import datetime as dt
 import hashlib
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import Counter
@@ -26,6 +27,39 @@ from .story_sqlite import (
 )
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+
+GDELT_MIN_REQUEST_INTERVAL_SECONDS = 5.5
+_last_gdelt_request_at = None
+
+class GDELTThrottleError(RuntimeError):
+    """Provider refused requests; immediately stop this run."""
+
+class GDELTResponseError(RuntimeError):
+    """Provider response was not article-list JSON."""
+
+def _pace_gdelt_request():
+    global _last_gdelt_request_at
+    now = time.monotonic()
+    if _last_gdelt_request_at is not None:
+        remaining = GDELT_MIN_REQUEST_INTERVAL_SECONDS - (now - _last_gdelt_request_at)
+        if remaining > 0:
+            time.sleep(remaining)
+    _last_gdelt_request_at = time.monotonic()
+
+def _decode_gdelt_response(payload, *, http_status):
+    content = payload.decode("utf-8", errors="replace")
+    lowered = content.strip().casefold()
+    # DOC API can return plain-text throttle messages with HTTP 200.
+    if http_status == 429 or "please limit requests" in lowered or "rate limit" in lowered or "too many requests" in lowered:
+        raise GDELTThrottleError(f"GDELT throttled (HTTP {http_status}): {content[:220]}")
+    try:
+        result = json.loads(content)
+    except (ValueError, TypeError) as exc:
+        raise GDELTResponseError(f"GDELT non-JSON (HTTP {http_status}): {content[:220]}") from exc
+    if not isinstance(result, dict) or not isinstance(result.get("articles", []), list):
+        raise GDELTResponseError("GDELT response missing valid articles list")
+    return result
+
 
 APPROVED_DOMAINS = (
     "nfl.com",
@@ -213,13 +247,21 @@ def _fetch(query, *, max_records=250, timespan="1y", timeout=45):
     url = GDELT_DOC_API + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(
         url,
-        headers={
-            "User-Agent": "Reads-Football-Lore-Harvester/1.0",
-            "Accept": "application/json",
-        },
+        headers={"User-Agent": "Reads-Football-Lore-Harvester/1.0", "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    _pace_gdelt_request()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return _decode_gdelt_response(resp.read(), http_status=resp.status)
+    except urllib.error.HTTPError as exc:
+        body = exc.read(4096)
+        if exc.code == 429:
+            raise GDELTThrottleError(
+                "GDELT throttled (HTTP 429): " + body.decode("utf-8", errors="replace")[:220]
+            ) from exc
+        raise GDELTResponseError(
+            f"GDELT HTTP {exc.code}: " + body.decode("utf-8", errors="replace")[:220]
+        ) from exc
 
 
 def _articles(payload):
@@ -233,6 +275,22 @@ def _articles(payload):
 def _evidence_hint(domain):
     return "PRIMARY" if domain in PRIMARY_DOMAINS else "REPUTABLE_MEDIA"
 
+
+def _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query):
+    totals = c.execute("SELECT status, COUNT(*) n FROM football_story_candidates GROUP BY status").fetchall()
+    by_family = c.execute(
+        "SELECT family_hint, COUNT(*) n FROM football_story_candidates GROUP BY family_hint ORDER BY n DESC"
+    ).fetchall()
+    return {
+        "metrics": dict(metrics),
+        "failures": failures[:100],
+        "queue_totals": {str(r["status"]): int(r["n"]) for r in totals},
+        "family_totals": {str(r["family_hint"]): int(r["n"]) for r in by_family},
+        "theoretical_max_raw_per_run":
+            len(domains)
+            * sum(len(v) for v in query_families.values())
+            * min(int(max_records_per_query), 250),
+    }
 
 def harvest_story_candidates(
     *,
@@ -261,6 +319,16 @@ def harvest_story_candidates(
                             max_records=max_records_per_query,
                             timespan=timespan,
                         )
+                    except GDELTThrottleError as exc:
+                        failures.append({
+                            "family": family,
+                            "domain": domain,
+                            "query": term,
+                            "reason": type(exc).__name__ + ":" + str(exc),
+                        })
+                        metrics["query_throttled"] += 1
+                        metrics["stop_reason_provider_throttled"] += 1
+                        return _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query)
                     except Exception as exc:
                         failures.append({
                             "family": family,
@@ -330,29 +398,9 @@ def harvest_story_candidates(
                     _commit_with_retry(c)
                     if sleep_seconds:
                         time.sleep(float(sleep_seconds))
+        return _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query)
     finally:
-        totals = c.execute(
-            """SELECT status,COUNT(*) n
-               FROM football_story_candidates
-               GROUP BY status"""
-        ).fetchall()
-        by_family = c.execute(
-            """SELECT family_hint,COUNT(*) n
-               FROM football_story_candidates
-               GROUP BY family_hint ORDER BY n DESC"""
-        ).fetchall()
         c.close()
-
-    return {
-        "metrics": dict(metrics),
-        "failures": failures[:100],
-        "queue_totals": {str(r["status"]): int(r["n"]) for r in totals},
-        "family_totals": {str(r["family_hint"]): int(r["n"]) for r in by_family},
-        "theoretical_max_raw_per_run":
-            len(domains)
-            * sum(len(v) for v in query_families.values())
-            * min(int(max_records_per_query), 250),
-    }
 
 
 def main():
