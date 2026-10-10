@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 
 def _tables(conn):
@@ -81,12 +81,23 @@ def build_subject_index(conn):
         for label, ids in label_map.items()
         if len(ids) == 1
     }
+    # One selective word per label lets matching long article bodies avoid
+    # scanning every one of ~95k labels against each 18k-character article.
+    # Literal matches necessarily contain this word as an alphanumeric token.
+    tokenized = {label: set(re.findall(r"[a-z0-9]+", label)) for label in unique}
+    frequencies = Counter(token for words in tokenized.values() for token in words)
+    anchors = defaultdict(set)
+    for label, words in tokenized.items():
+        if words:
+            token = min(words, key=lambda w: (frequencies[w], -len(w), w))
+            anchors[token].add(label)
+    sorted_labels = sorted(unique, key=len, reverse=True)
     return {
         "labels": unique,
         "display": display,
-        # Sort once per batch rather than once per article. Preserve existing
-        # longest-label-first ordering, including stable ties.
-        "sorted_labels": sorted(unique, key=len, reverse=True),
+        "sorted_labels": sorted_labels,
+        "anchor_labels": dict(anchors),
+        "label_order": {label: i for i, label in enumerate(sorted_labels)},
     }
 
 
@@ -95,8 +106,17 @@ def match_subjects(index, *, title, text, max_matches=8):
     norm_text = _norm(text)
     matches = []
 
-    # Longer labels first prevents a short alias from crowding out a full name.
-    for label in index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True):
+    # Only test labels whose selective word appears in the story. Preserves
+    # the old longest-first matching order and exact boundary checks.
+    if "anchor_labels" in index:
+        tokens = set(re.findall(r"[a-z0-9]+", norm_title + " " + norm_text))
+        possible = set()
+        for token in tokens:
+            possible.update(index["anchor_labels"].get(token, ()))
+        candidates = sorted(possible, key=index["label_order"].__getitem__)
+    else:
+        candidates = index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True)
+    for label in candidates:
         # Fast literal prefilter: only compile/run boundary regexes for names
         # that actually appear in the article. This is semantically safe:
         # every regex match requires the literal label as a substring.
