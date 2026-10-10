@@ -81,7 +81,13 @@ def build_subject_index(conn):
         for label, ids in label_map.items()
         if len(ids) == 1
     }
-    return {"labels": unique, "display": display}
+    return {
+        "labels": unique,
+        "display": display,
+        # Sort once per batch rather than once per article. Preserve existing
+        # longest-label-first ordering, including stable ties.
+        "sorted_labels": sorted(unique, key=len, reverse=True),
+    }
 
 
 def match_subjects(index, *, title, text, max_matches=8):
@@ -90,9 +96,17 @@ def match_subjects(index, *, title, text, max_matches=8):
     matches = []
 
     # Longer labels first prevents a short alias from crowding out a full name.
-    for label in sorted(index["labels"], key=len, reverse=True):
-        in_title = bool(re.search(r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])", norm_title))
-        in_text = bool(re.search(r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])", norm_text))
+    for label in index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True):
+        # Fast literal prefilter: only compile/run boundary regexes for names
+        # that actually appear in the article. This is semantically safe:
+        # every regex match requires the literal label as a substring.
+        has_title = label in norm_title
+        has_text = label in norm_text
+        if not has_title and not has_text:
+            continue
+        boundary = r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])"
+        in_title = has_title and bool(re.search(boundary, norm_title))
+        in_text = has_text and bool(re.search(boundary, norm_text))
         if not in_title and not in_text:
             continue
         entity_type, entity_id = index["labels"][label]
