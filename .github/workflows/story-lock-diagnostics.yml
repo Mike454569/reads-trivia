@@ -48,14 +48,23 @@ jobs:
           start=time.monotonic()
           idx=matcher.build_subject_index(c)
           print("INDEX_READY",len(idx["labels"]),"SECONDS",round(time.monotonic()-start,2),flush=True)
-          rows=c.execute("""SELECT * FROM football_story_candidates WHERE status='REVIEW_PRIORITY'
+          rows=c.execute("""SELECT * FROM (
+          SELECT *, ROW_NUMBER() OVER (
+            PARTITION BY family_hint
+            ORDER BY CASE WHEN domain IN ('nfl.com','ncaa.org') THEN 0 ELSE 1 END,
+                     first_harvested_at DESC, candidate_id
+          ) AS family_rank
+          FROM football_story_candidates
+          WHERE status='REVIEW_PRIORITY'
           AND COALESCE(sensitive_hint,0)=0
           AND domain IN ('nfl.com','ncaa.org','espn.com','cbssports.com','foxsports.com','si.com','sports.yahoo.com','usatoday.com')
-          AND family_hint IN ('OFF_FIELD_ODDITY','COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT','PRESS_CONFERENCE','DRAFT_CHAOS','TRADE_CHAOS','GAME_ODDITY','COACHING_ODDITY')
-          ORDER BY CASE WHEN domain IN ('nfl.com','ncaa.org') THEN 0 ELSE 1 END,first_harvested_at DESC LIMIT 100""").fetchall()
+          AND family_hint IN ('OFF_FIELD_ODDITY','COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT','PRESS_CONFERENCE','DRAFT_CHAOS','TRADE_CHAOS','GAME_ODDITY','COACHING_ODDITY','RIVALRY_ODDITY','CELEBRATION_FAN','BUST_REDEMPTION')
+          ) WHERE family_rank<=9
+          ORDER BY family_rank, family_hint
+          LIMIT 100""").fetchall()
           print("PREFLIGHT_POOL",len(rows),flush=True)
           selected=None
-          for row in rows[:12]:
+          for row in rows[:70]:
            family=row["family_hint"]
            if family not in factory.AUTO_FAMILIES:continue
            t=time.monotonic()
@@ -77,7 +86,7 @@ jobs:
             selected=(row,article)
             break
           if selected is None:
-           print("NO_ELIGIBLE_PROMOTION_IN_12; zero automatic promotions",flush=True)
+           print("NO_ELIGIBLE_PROMOTION_IN_70; zero automatic promotions",flush=True)
            print("AFTER",json.dumps(counts()),flush=True)
            c.close()
            raise SystemExit(0)
