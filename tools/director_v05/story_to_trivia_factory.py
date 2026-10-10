@@ -37,6 +37,21 @@ from .story_sqlite import (
 
 
 AUTO_FAMILIES = {
+    # Exact v3 taxonomy. The publisher headline is not proof: every one of
+    # these still has to pass article-text, identity, evidence and confidence
+    # gates before a verified event can be created.
+    "BIZARRE_MOMENT": "ON_FIELD_ODDITY",
+    "DRAFT_BUST": "HISTORICAL_MILESTONE",
+    "TRADE_ODDITY": "TRADE",
+    "SIDELINE_INCIDENT": "ON_FIELD_ODDITY",
+    "COACHING_MELTDOWN": "COACHING_MOVE",
+    "CELEBRATION_CONTROVERSY": "CELEBRATION",
+    "RECRUITING_CHAOS": "HISTORICAL_MILESTONE",
+    "RECORD_ODDITY": "HISTORICAL_MILESTONE",
+    "INFAMOUS_MISTAKE": "ON_FIELD_ODDITY",
+    "RIVALRY_INCIDENT": "ON_FIELD_ODDITY",
+    "TRANSFER_NIL_CHAOS": "HISTORICAL_MILESTONE",
+    "PLAYOFF_FORGOTTEN": "ON_FIELD_ODDITY",
     "PRESS_CONFERENCE": "PRESS_CONFERENCE",
     "OFF_FIELD_ODDITY": "OFF_FIELD_ODDITY",
     "CELEBRATION_FAN": "CELEBRATION",
@@ -51,6 +66,18 @@ AUTO_FAMILIES = {
 }
 
 FAMILY_TERMS = {
+    "BIZARRE_MOMENT": ("bizarre", "weird play", "strange play", "unusual touchdown", "crazy ending", "rare play"),
+    "DRAFT_BUST": ("draft bust", "first-round bust", "draft failure", "draft disappointment"),
+    "TRADE_ODDITY": ("traded", "trade", "trade request", "trade deal", "blockbuster"),
+    "SIDELINE_INCIDENT": ("sideline incident", "sideline altercation", "sideline fight", "sideline confrontation"),
+    "COACHING_MELTDOWN": ("coach rant", "meltdown", "postgame rant", "press conference"),
+    "CELEBRATION_CONTROVERSY": ("taunting", "celebration penalty", "celebration fine", "controversial celebration"),
+    "RECRUITING_CHAOS": ("recruiting flip", "commitment flip", "recruiting controversy", "decommitment"),
+    "RECORD_ODDITY": ("strange record", "bizarre record", "record-breaking", "unusual record"),
+    "INFAMOUS_MISTAKE": ("botched play", "costly mistake", "blunder", "wrong way", "forgot the rules"),
+    "RIVALRY_INCIDENT": ("rivalry prank", "rivalry incident", "rivalry fight", "rivalry trophy"),
+    "TRANSFER_NIL_CHAOS": ("transfer portal", "nil controversy", "nil dispute", "transfer flip"),
+    "PLAYOFF_FORGOTTEN": ("playoff upset", "forgotten playoff", "postseason upset", "forgotten bowl"),
     "PRESS_CONFERENCE": (
         "press conference", "news conference", "postgame", "media availability",
         "reporters", "asked", "said", "media session", "locker room", "quote",
@@ -443,6 +470,16 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
             reason="SENSITIVE_STORIES_NEVER_AUTO_PROMOTE",
         )
         return {"decision":"REVIEW_REQUIRED_SENSITIVE","generated":0}
+
+    # Sensitive/legal stories are never automatically promoted even when the
+    # original harvest mislabeled sensitive_hint=0.
+    if family == "DISCIPLINE_LEGAL":
+        _store_enrichment(
+            c, candidate, family=family,
+            decision="REVIEW_REQUIRED_SENSITIVE",
+            reason="SENSITIVE_STORIES_NEVER_AUTO_PROMOTE",
+        )
+        return {"decision": "REVIEW_REQUIRED_SENSITIVE", "generated": 0}
 
     if family not in AUTO_FAMILIES:
         _store_enrichment(
