@@ -79,8 +79,11 @@ FAMILY_TERMS = {
     "TRANSFER_NIL_CHAOS": ("transfer portal", "nil controversy", "nil dispute", "transfer flip"),
     "PLAYOFF_FORGOTTEN": ("playoff upset", "forgotten playoff", "postseason upset", "forgotten bowl"),
     "PRESS_CONFERENCE": (
-        "press conference", "news conference", "postgame", "media availability",
-        "reporters", "asked", "said", "media session", "locker room", "quote",
+        "press conference", "news conference", "media availability",
+        "spoke to reporters", "told reporters", "addressed reporters",
+        "speaking to reporters", "speaking with reporters",
+        "postgame press conference", "postgame media session",
+        "during his press conference", "during the press conference",
     ),
     "OFF_FIELD_ODDITY": (
         "hard knocks", "off-field", "training camp", "bizarre", "weird",
@@ -174,11 +177,22 @@ def _norm(text):
 
 
 def _family_evidence(family, article):
+    """Require family-defining evidence, not generic football vocabulary.
+
+    An injury article that says someone 'said' something is not proof of a
+    press conference. Likewise, an ordinary trade isn't a trade oddity.
+    """
     combined = (str(article.get("headline") or "") + " "
                 + str(article.get("description") or "") + " "
                 + str(article.get("text") or "")).casefold()
-    hits = [term for term in FAMILY_TERMS.get(family, ()) if term in combined]
-    return hits
+    if family == "TRADE_ODDITY":
+        if not any(term in combined for term in (
+            "unusual trade", "bizarre trade", "shocking trade",
+            "surprise trade", "unexpected trade", "trade controversy",
+            "trade request", "historic trade", "strange trade",
+        )):
+            return []
+    return [term for term in FAMILY_TERMS.get(family, ()) if term in combined]
 
 
 def _confidence(candidate, article, subject, evidence_terms):
