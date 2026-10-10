@@ -499,9 +499,17 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
+    # The publisher's extracted og:title can differ from the headline stored
+    # by the article index (e.g. SEO rewrites). Both are grounded source
+    # metadata. Preserve both for headline-identity matching, while still
+    # requiring the exact canonical name to occur in the fetched article body.
+    source_headlines = " ".join(dict.fromkeys(
+        str(x).strip() for x in (candidate["title"], article.get("headline"))
+        if str(x or "").strip()
+    ))
     matches = match_subjects(
         subject_index,
-        title=article.get("headline") or candidate["title"],
+        title=source_headlines,
         text=article["text"],
     )
     subject = primary_identity_match(matches)
