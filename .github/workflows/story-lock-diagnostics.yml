@@ -45,15 +45,20 @@ jobs:
            ("CFB","https://www.cbssports.com/partners/feeds/rss/cfb_news")
           ]
           KEYWORDS={
-           "BIZARRE_MOMENT":("bizarre","weird play","strange play","unusual touchdown"),
+           "BIZARRE_MOMENT":("bizarre","weird play","strange play","unusual touchdown","crazy play","wild ending"),
            "INFAMOUS_MISTAKE":("blunder","botched","mistake","wrong way"),
            "SIDELINE_INCIDENT":("sideline altercation","sideline incident","sideline fight"),
            "DISCIPLINE_LEGAL":("arrest","arrested","charged","suspended","suspension"),
            "COACHING_MELTDOWN":("meltdown","coach rant","postgame rant"),
            "RIVALRY_INCIDENT":("rivalry prank","rivalry incident","rivalry fight"),
-           "RECORD_ODDITY":("bizarre record","strange record","unusual record"),
+           "RECORD_ODDITY":("bizarre record","strange record","unusual record","sets record","breaks record","record-breaking"),
            "OFF_FIELD_ODDITY":("oddity","prank","bizarre story","strange story"),
-           "CELEBRATION_CONTROVERSY":("taunting","celebration controversy","celebration fine")
+           "CELEBRATION_CONTROVERSY":("taunting","celebration controversy","celebration fine"),
+          "TRADE_ODDITY":("trade","traded","trade request","trade deadline"),
+          "COMEBACK_RETURN":("comeback","return from retirement","unretire","retirement"),
+          "RECRUITING_CHAOS":("recruiting flip","flips commitment","signing day","decommit"),
+          "TRANSFER_NIL_CHAOS":("transfer portal","nil dispute","nil deal","transfer surprise"),
+          "PLAYOFF_FORGOTTEN":("playoff upset","postseason upset","historic playoff")
           }
           def family_for(title):
            t=_norm_title(title)
