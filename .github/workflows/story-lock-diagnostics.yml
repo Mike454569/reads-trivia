@@ -1,4 +1,4 @@
-name: Story Identity Coverage Regression
+name: Story Canonical Identity Gap Audit
 on:
   push:
     branches:
@@ -6,44 +6,31 @@ on:
 permissions:
   contents: read
 jobs:
-  verify:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix-story-volume-integrated-processing
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Validate multiple canonical names and headline priority
-        shell: bash
+      - name: Regression test fail-closed identity policy
         run: |
           set -euo pipefail
-          python -m py_compile tools/director_v05/story_subject_match.py tools/director_v05/story_to_trivia_factory.py
+          python -m py_compile tools/director_v05/story_subject_match.py
           python - <<'PY'
-          import importlib.util,sqlite3
-          spec=importlib.util.spec_from_file_location("sm","tools/director_v05/story_subject_match.py")
+          import importlib.util
+          spec=importlib.util.spec_from_file_location("match","tools/director_v05/story_subject_match.py")
           m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-          c=sqlite3.connect(":memory:")
-          c.execute("CREATE TABLE canonical_players(player_id TEXT PRIMARY KEY,display_name TEXT,player_name TEXT,name TEXT)")
-          c.executemany("INSERT INTO canonical_players VALUES(?,?,?,?)",[
-            ("p1","Jayden Daniels","Jayden E. Daniels","J. Daniels"),
-            ("p2","Nick Chubb","Nicholas Chubb",None),
-            ("p3","Alex Smith",None,None),
-            ("p4","Alex Smith",None,None),
-          ])
-          idx=m.build_subject_index(c)
-          assert idx["labels"]["jayden e daniels"]==("NFL_PLAYER","p1"),idx["labels"]
-          assert idx["labels"]["jayden daniels"]==("NFL_PLAYER","p1")
-          assert "alex smith" not in idx["labels"]
-          idx["labels"].update({f"long distractor person {n}":("COACH",str(n)) for n in range(20)})
-          # Rebuild match search helpers for synthetic added labels.
-          idx.pop("anchor_labels",None)
-          idx["sorted_labels"]=sorted(idx["labels"],key=len,reverse=True)
-          text=" ".join(f"Long Distractor Person {i}" for i in range(20))+" Jayden Daniels finished the game."
-          matched=m.match_subjects(idx,title="Jayden Daniels comments on bizarre ending",text=text,max_matches=8)
-          assert any(x["entity_id"]=="p1" and x["in_title"] for x in matched),matched
-          assert m.primary_identity_match(matched)["entity_id"]=="p1"
-          print("PASS: canonical aliases, ambiguity protection, headline-first priority")
+          background=[{"entity_type":"COACH","entity_id":"nag","label":"Matt Nagy","in_title":False,"in_text":True}]
+          assert m.primary_identity_match(background) is None
+          title={"entity_type":"NFL_PLAYER","entity_id":"jay","label":"Jayden Daniels","in_title":True,"in_text":True}
+          assert m.primary_identity_match(background+[title])["entity_id"]=="jay"
+          assert m.primary_identity_match([title,{**title,"label":"Jayden E. Daniels"}])["entity_id"]=="jay"
+          assert m.primary_identity_match([title,{**title,"entity_id":"other"}]) is None
+          print("PASS: no background-person auto-promotion; aliases collapse; ambiguous titles held")
           PY
-      - name: Compare real story identity matches on Fly read-only
+      - name: Find missing canonical identity sources read-only on Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -53,38 +40,23 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          cat >/tmp/reads_identity_test.py <<'PY'
-          import importlib.util,sys,json,time
-          from tools.quiz_export import engine as eng
-          from tools.director_v05.story_article_extract import fetch_article
-          p="/tmp/subject_match_patched.py"
-          spec=importlib.util.spec_from_file_location("tools.director_v05.story_subject_match",p)
-          m=importlib.util.module_from_spec(spec)
-          sys.modules[spec.name]=m
-          spec.loader.exec_module(m)
-          c=eng.connect()
-          before=time.monotonic()
-          idx=m.build_subject_index(c)
-          print("LABELS",len(idx["labels"]),"INDEX_SECONDS",round(time.monotonic()-before,2),flush=True)
-          rows=c.execute("""SELECT candidate_id,title,source_url,family_hint,domain FROM football_story_candidates
-          WHERE status='REVIEW_PRIORITY' AND COALESCE(sensitive_hint,0)=0
-          AND domain IN ('nfl.com','ncaa.org','espn.com','cbssports.com','foxsports.com','si.com','sports.yahoo.com','usatoday.com')
-          AND family_hint IN ('COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT','OFF_FIELD_ODDITY','PRESS_CONFERENCE','DRAFT_CHAOS')
-          ORDER BY CASE family_hint WHEN 'COMEBACK_RETURN' THEN 0 WHEN 'TRADE_ODDITY' THEN 1 ELSE 2 END,first_harvested_at DESC
-          LIMIT 20""").fetchall()
+          cat >/tmp/reads_identity_db_audit.py <<'PY'
+          import sqlite3,json
+          p="/data/engine/reads_football_v4.0.sqlite"
+          c=sqlite3.connect("file:"+p+"?mode=ro",uri=True,timeout=5)
+          tables=[x[0] for x in c.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name") if any(w in x[0].lower() for w in ("player","coach","roster","alias","entity"))]
+          for t in tables[:110]:
+           cols=[x[1] for x in c.execute("PRAGMA table_info("+t+")")]
+           name_cols=[x for x in cols if any(y in x.casefold() for y in ("name","label","alias"))]
+           if name_cols and any(y in t.lower() for y in ("canonical","player","coach","roster","alias")):
+            print("TABLE",t,"NAME_COLS",json.dumps(name_cols[:8]),flush=True)
+            if t in ("canonical_players","canonical_cfb_players","cfb_players_canonical","canonical_coaches","coach_team_seasons"):
+             for col in name_cols[:3]:
+              try:
+               row=c.execute(f"SELECT {col} FROM {t} WHERE lower({col}) LIKE '%daniels%' LIMIT 2").fetchall()
+               if row:print("SAMPLE_JAYDEN",t,col,json.dumps([x[0] for x in row]),flush=True)
+              except sqlite3.Error:pass
           c.close()
-          print("ELIGIBLE_SAMPLE_SIZE",len(rows),flush=True)
-          for row in rows[:8]:
-           try:
-            a=fetch_article(row["source_url"],timeout=8)
-           except Exception as e:
-            print("ARTICLE_SKIP",row["candidate_id"],type(e).__name__,str(e)[:80],flush=True);continue
-           t=time.monotonic()
-           hits=m.match_subjects(idx,title=a.get("headline") or row["title"],text=a["text"],max_matches=8)
-           primary=m.primary_identity_match(hits)
-           print("REAL_MATCH",json.dumps({"family":row["family_hint"],"candidate_id":row["candidate_id"],"title":row["title"][:75],"primary":primary["label"] if primary else None,"title_people":[x["label"] for x in hits if x["in_title"] and x["entity_type"] in ("NFL_PLAYER","CFB_PLAYER","COACH")],"match_seconds":round(time.monotonic()-t,4)}),flush=True)
-          print("READ_ONLY_FINISHED",flush=True)
           PY
-          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
-          P_B64=$(base64 -w0 /tmp/reads_identity_test.py)
-          timeout --signal=TERM 155s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/subject_match_patched.py; echo $P_B64 | base64 -d >/tmp/reads_identity_test.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 125s python -u /tmp/reads_identity_test.py'"
+          P_B64=$(base64 -w0 /tmp/reads_identity_db_audit.py)
+          timeout 105s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d >/tmp/reads_identity_db_audit.py; timeout -k 5s 75s python -u /tmp/reads_identity_db_audit.py'"
