@@ -1,4 +1,4 @@
-name: Story Process Lock Inspection
+name: Story DB and Matcher Health
 on:
   push:
     branches:
@@ -8,10 +8,11 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Read-only Fly process and lock ownership inspection
+      - name: Read-only DB health and optimized subject-index timing
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -21,4 +22,30 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===VALIDATE===; grep -aq /tmp/reads_integrated_batch.py /proc/4012/cmdline || exit 41; grep -aq /data/engine/story-volume-writer.lock /proc/4011/cmdline || exit 42; echo EXACT_ORPHAN_MATCH; kill -TERM 4012; sleep 3; kill -TERM 4011 2>/dev/null || true; sleep 2; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===LOCKS===; head -20 /proc/locks || true'"
+          cat >/tmp/reads_subject_health.py <<'PY'
+          import importlib.util,sys,time,json
+          from tools.quiz_export import engine as engine_bootstrap
+          c=engine_bootstrap.connect()
+          t=time.monotonic()
+          before={
+           "candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+           "verified_stories":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+           "playable_questions":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],
+          }
+          print("DB_HEALTH_COUNTS",json.dumps(before),"SECONDS",round(time.monotonic()-t,3),flush=True)
+          spec=importlib.util.spec_from_file_location("tools.director_v05.story_subject_match","/tmp/reads_subject_match_opt.py")
+          m=importlib.util.module_from_spec(spec)
+          sys.modules[spec.name]=m
+          spec.loader.exec_module(m)
+          start=time.monotonic()
+          idx=m.build_subject_index(c)
+          print("SUBJECT_INDEX_BUILT",len(idx["labels"]),"SECONDS",round(time.monotonic()-start,3),flush=True)
+          start=time.monotonic()
+          matches=m.match_subjects(idx,title="Marvin Harrison Jr. trade",text="Marvin Harrison Jr. was the subject of a trade.",max_matches=8)
+          print("MATCH_RESULT",len(matches),"SECONDS",round(time.monotonic()-start,5),flush=True)
+          c.close()
+          print("READ_ONLY_SUCCESS",flush=True)
+          PY
+          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          P_B64=$(base64 -w0 /tmp/reads_subject_health.py)
+          timeout --signal=TERM 145s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/reads_subject_match_opt.py; echo $P_B64 | base64 -d >/tmp/reads_subject_health.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 110s python -u /tmp/reads_subject_health.py'"
