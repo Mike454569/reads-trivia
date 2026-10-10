@@ -11,11 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix-story-gdelt-rate-limits
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Bounded GDELT ingestion and SQLite triage on Fly
+      - name: Official CBS feeds small live candidate ingestion
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -25,48 +22,93 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          cat >/tmp/reads_micro_ingest.py <<'PY'
-          import importlib.util, json, sys, sqlite3, time
+          cat >/tmp/reads_cbs_feed_ingest.py <<'PY'
+          import datetime as dt, json, urllib.request, xml.etree.ElementTree as ET
+          from email.utils import parsedate_to_datetime
           from tools.quiz_export import engine as engine_bootstrap
-          from tools.director_v05.story_sqlite import prepare_write_connection
+          from tools.director_v05.story_sqlite import prepare_write_connection, commit_with_retry
+          from tools.director_v05.story_candidate_harvest import _ensure_schema, _candidate_id, _canonical_url, _domain
+          from tools.director_v05.story_candidate_triage import _norm_title, _score, _title_signature, SENSITIVE_TITLE_TERMS, LOW_SIGNAL, _write_triage_updates
           
-          def load_patch(name,path):
-              spec=importlib.util.spec_from_file_location(name,path)
-              module=importlib.util.module_from_spec(spec)
-              sys.modules[name]=module
-              spec.loader.exec_module(module)
-              return module
+          FEEDS=[
+           ("NFL","https://www.cbssports.com/rss/headlines/nfl/"),
+           ("CFB","https://www.cbssports.com/partners/feeds/rss/cfb_news")
+          ]
+          KEYWORDS={
+           "BIZARRE_MOMENT":("bizarre","weird play","strange play","unusual touchdown"),
+           "INFAMOUS_MISTAKE":("blunder","botched","mistake","wrong way"),
+           "SIDELINE_INCIDENT":("sideline altercation","sideline incident","sideline fight"),
+           "DISCIPLINE_LEGAL":("arrest","arrested","charged","suspended","suspension"),
+           "COACHING_MELTDOWN":("meltdown","coach rant","postgame rant"),
+           "RIVALRY_INCIDENT":("rivalry prank","rivalry incident","rivalry fight"),
+           "RECORD_ODDITY":("bizarre record","strange record","unusual record"),
+           "OFF_FIELD_ODDITY":("oddity","prank","bizarre story","strange story"),
+           "CELEBRATION_CONTROVERSY":("taunting","celebration controversy","celebration fine")
+          }
+          def family_for(title):
+           t=_norm_title(title)
+           for family,phrases in KEYWORDS.items():
+            if any(x in t for x in phrases):
+             return family
+           return None
           
-          harvest=load_patch("tools.director_v05.story_candidate_harvest", "/tmp/reads_story_candidate_harvest_patch.py")
-          triage=load_patch("tools.director_v05.story_candidate_triage", "/tmp/reads_story_candidate_triage_patch.py")
+          items=[]
+          for league,url in FEEDS:
+           try:
+            req=urllib.request.Request(url,headers={"User-Agent":"ReadsFootballTrivia/1.0","Accept":"application/rss+xml, application/xml, text/xml"})
+            with urllib.request.urlopen(req,timeout=25) as response:
+             data=response.read(300000)
+             status=response.status
+            root=ET.fromstring(data)
+            posts=root.findall(".//item")
+            print("FEED",league,"HTTP",status,"ITEMS",len(posts),flush=True)
+            for item in posts[:50]:
+             title=(item.findtext("title") or "").strip()
+             link=(item.findtext("link") or "").strip()
+             family=family_for(title)
+             if title and link and family and _domain(_canonical_url(link))=="cbssports.com":
+              items.append((league,title,link,family))
+           except Exception as e:
+            print("FEED_ERROR",league,type(e).__name__,str(e)[:200],flush=True)
+          print("SELECTED",len(items),flush=True)
+          if not items:
+           raise SystemExit("No qualifying official-feed story candidates; no production writes")
+          
           c=prepare_write_connection(engine_bootstrap.connect())
+          _ensure_schema(c)
           before=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
-          c.close()
-          print("CANDIDATES_BEFORE",before,flush=True)
-          result=harvest.harvest_story_candidates(
-           domains=("nfl.com",),
-           query_families={"BIZARRE_MOMENT": ('"weird play" football',)},
-           max_records_per_query=10,
-           timespan="3y",
-           sleep_seconds=0
-          )
-          print("HARVEST_RESULT",json.dumps({"metrics":result["metrics"],"failures":result["failures"][:2]},sort_keys=True),flush=True)
-          if result["metrics"].get("query_throttled"):
-           print("BLOCKED_BY_PROVIDER: no retry; no further GDELT calls",flush=True)
-           raise SystemExit(21)
-          if not result["metrics"].get("queries_succeeded"):
-           raise SystemExit("No successful provider query")
-          if result["metrics"].get("accepted_candidates",0)<=0:
-           raise SystemExit("No candidate results accepted")
-          t=triage.triage_candidates()
-          print("TRIAGE_RESULT",json.dumps({"processed":t["processed"],"statuses":t["status_counts"]},sort_keys=True),flush=True)
-          c=prepare_write_connection(engine_bootstrap.connect())
-          after=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
-          c.close()
-          print("CANDIDATES_AFTER",after,flush=True)
-          print("LIVE_MICRO_SUCCESS",json.dumps({"before":before,"after":after,"processed":t["processed"]}),flush=True)
+          now=dt.datetime.now(dt.timezone.utc).isoformat()
+          written=[]
+          try:
+           for league,title,link,family in items[:8]:
+            canon=_canonical_url(link)
+            cid=_candidate_id(canon)
+            old=c.execute("SELECT 1 FROM football_story_candidates WHERE source_url=?",(canon,)).fetchone()
+            if old: continue
+            sensitive=int(family=="DISCIPLINE_LEGAL")
+            c.execute("""INSERT OR IGNORE INTO football_story_candidates(
+             candidate_id,source_url,title,domain,seen_date,language,source_country,
+             family_hint,query_text,evidence_tier_hint,sensitive_hint,status,first_harvested_at,last_seen_at)
+             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             (cid,canon,title,"cbssports.com",None,"English","US",family,"CBS official RSS "+league,"REPUTABLE_MEDIA",sensitive,"REVIEW_REQUIRED",now,now))
+            written.append(cid)
+           commit_with_retry(c)
+           rows=c.execute("SELECT * FROM football_story_candidates WHERE candidate_id IN (" + ",".join("?" for _ in written)+")",written).fetchall() if written else []
+           updates=[]
+           for row in rows:
+            title=_norm_title(row["title"])
+            score=_score(row)
+            sensitive=bool(row["sensitive_hint"]) or any(term in title for term in SENSITIVE_TITLE_TERMS)
+            status="REVIEW_REQUIRED_SENSITIVE" if sensitive else ("REVIEW_PRIORITY" if score>=30 else "REVIEW_REQUIRED")
+            updates.append((status,json.dumps({"triage_score":score,"title_signature":_title_signature(row["title"])}),row["candidate_id"]))
+           _write_triage_updates(c,updates)
+           after=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
+           print("RESULT",json.dumps({"before":before,"after":after,"new_candidates":after-before,"triaged":len(updates),"families":[row["family_hint"] for row in rows]}),flush=True)
+           for row in rows: print("SOURCED_CANDIDATE",json.dumps({"family":row["family_hint"],"title":row["title"][:100],"url":row["source_url"]}),flush=True)
+           if after<=before: raise SystemExit("No new unique qualifying RSS story candidates")
+           print("PASS_CBS_RSS_CANDIDATE_INGESTION",flush=True)
+          finally:
+           c.close()
           PY
-          H_B64=$(base64 -w0 tools/director_v05/story_candidate_harvest.py)
-          T_B64=$(base64 -w0 tools/director_v05/story_candidate_triage.py)
-          P_B64=$(base64 -w0 /tmp/reads_micro_ingest.py)
-          timeout --signal=TERM 190s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $H_B64 | base64 -d > /tmp/reads_story_candidate_harvest_patch.py; echo $T_B64 | base64 -d > /tmp/reads_story_candidate_triage_patch.py; echo $P_B64 | base64 -d > /tmp/reads_micro_ingest.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 20 /data/engine/story-volume-writer.lock python -u /tmp/reads_micro_ingest.py'"
+          P_B64=$(base64 -w0 /tmp/reads_cbs_feed_ingest.py)
+          timeout --signal=TERM 180s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d > /tmp/reads_cbs_feed_ingest.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 20 /data/engine/story-volume-writer.lock python -u /tmp/reads_cbs_feed_ingest.py'"
