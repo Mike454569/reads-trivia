@@ -28,7 +28,8 @@ jobs:
           from tools.quiz_export import engine as engine_bootstrap
           from tools.director_v05.story_sqlite import prepare_write_connection, commit_with_retry
           from tools.director_v05.story_candidate_harvest import _ensure_schema, _candidate_id, _canonical_url, _domain
-          from tools.director_v05.story_candidate_triage import _norm_title, _score, _title_signature, SENSITIVE_TITLE_TERMS, LOW_SIGNAL          def _write_triage_updates(c,updates):
+          from tools.director_v05.story_candidate_triage import _norm_title, _score, _title_signature, SENSITIVE_TITLE_TERMS, LOW_SIGNAL
+          def _write_triage_updates(c,updates):
            for start in range(0,len(updates),200):
             batch=updates[start:start+200]
             c.execute("BEGIN IMMEDIATE")
