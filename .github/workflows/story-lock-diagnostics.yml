@@ -1,9 +1,8 @@
-name: Story Lock Diagnostics
+name: Story Subject Match Performance
 on:
   push:
     branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+      - "story-integration-test-v2"
 permissions:
   contents: read
 jobs:
@@ -11,8 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Validate optimized subject matcher without database writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/director_v05/story_subject_match.py
+          python - <<'PY'
+          import importlib.util, time
+          p="tools/director_v05/story_subject_match.py"
+          spec=importlib.util.spec_from_file_location("subject_match_perf",p)
+          m=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          index={"labels":{f"random player {n}":("NFL_PLAYER",str(n)) for n in range(30000)},"display":{("NFL_PLAYER",str(n)):f"Random Player {n}" for n in range(30000)}}
+          index["labels"]["marvin harrison jr"]=("NFL_PLAYER","target")
+          index["display"][("NFL_PLAYER","target")]="Marvin Harrison Jr."
+          index["sorted_labels"]=sorted(index["labels"],key=len,reverse=True)
+          t=time.monotonic()
+          matches=m.match_subjects(index,title="Marvin Harrison Jr. traded",text="Marvin Harrison Jr. dealt in unusual trade")
+          sec=time.monotonic()-t
+          assert any(x["entity_id"]=="target" and x["in_title"] for x in matches)
+          assert sec<4,sec
+          print("PASS: optimized subject matching over 30001 labels, seconds=",round(sec,4))
+          PY
+      - name: Read-only Fly lock and subject-index timing
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -22,5 +44,23 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_subject_perf.py <<'PY'
+          import importlib.util,sys,time
+          from tools.quiz_export import engine as engine_bootstrap
+          spec=importlib.util.spec_from_file_location("tools.director_v05.story_subject_match","/tmp/story_subject_match_optimized.py")
+          m=importlib.util.module_from_spec(spec)
+          sys.modules[spec.name]=m
+          spec.loader.exec_module(m)
+          c=engine_bootstrap.connect()
+          start=time.monotonic()
+          index=m.build_subject_index(c)
+          c.close()
+          print("INDEX_BUILD_SECONDS",round(time.monotonic()-start,3),"LABELS",len(index["labels"]),flush=True)
+          started=time.monotonic()
+          matches=m.match_subjects(index,title="Trade involving Marvin Harrison Jr.",text="Marvin Harrison Jr. was the subject of a trade story and analysts debated his outlook.",max_matches=8)
+          print("SUBJECT_MATCH_SECONDS",round(time.monotonic()-started,3),"MATCH_COUNT",len(matches),flush=True)
+          print("SUBJECT_MATCH_SAMPLES",[(x["label"],x["entity_type"]) for x in matches[:5]],flush=True)
+          PY
+          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          P_B64=$(base64 -w0 /tmp/reads_subject_perf.py)
+          timeout --signal=TERM 160s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/story_subject_match_optimized.py; echo $P_B64 | base64 -d >/tmp/reads_subject_perf.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; echo ===STORY_LOCK===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; timeout 120s python -u /tmp/reads_subject_perf.py'"
