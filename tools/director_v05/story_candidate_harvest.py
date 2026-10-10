@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter
 from urllib.parse import urlparse
 
@@ -276,6 +277,87 @@ def _evidence_hint(domain):
     return "PRIMARY" if domain in PRIMARY_DOMAINS else "REPUTABLE_MEDIA"
 
 
+
+# Publisher RSS feeds are a low-volume, source-owned fallback if the GDELT
+# public API throttles. These supply REVIEW CANDIDATES, not verified facts.
+RSS_FALLBACK_FEEDS = (
+    ("NFL", "https://www.cbssports.com/rss/headlines/nfl/"),
+    ("CFB", "https://www.cbssports.com/partners/feeds/rss/cfb_news"),
+)
+RSS_STORY_TITLE_SIGNALS = {
+    "BIZARRE_MOMENT": ("bizarre", "weird play", "strange play", "unusual touchdown", "wild ending"),
+    "INFAMOUS_MISTAKE": ("blunder", "botched", "mistake", "wrong way"),
+    "SIDELINE_INCIDENT": ("sideline altercation", "sideline incident", "sideline fight"),
+    "DISCIPLINE_LEGAL": ("arrest", "arrested", "charged", "suspended", "suspension"),
+    "COACHING_MELTDOWN": ("meltdown", "coach rant", "postgame rant"),
+    "RIVALRY_INCIDENT": ("rivalry prank", "rivalry incident", "rivalry fight"),
+    "RECORD_ODDITY": ("bizarre record", "strange record", "unusual record", "sets record", "breaks record"),
+    "OFF_FIELD_ODDITY": ("oddity", "prank", "bizarre story", "strange story"),
+    "CELEBRATION_CONTROVERSY": ("taunting", "celebration controversy", "celebration fine"),
+    "TRADE_ODDITY": ("trade", "traded", "trade request", "trade deadline"),
+    "COMEBACK_RETURN": ("comeback", "return from retirement", "unretire", "retirement"),
+    "RECRUITING_CHAOS": ("recruiting flip", "flips commitment", "signing day", "decommit"),
+    "TRANSFER_NIL_CHAOS": ("transfer portal", "nil dispute", "nil deal", "transfer surprise"),
+    "PLAYOFF_FORGOTTEN": ("playoff upset", "postseason upset", "historic playoff"),
+}
+
+
+def _rss_story_family(title):
+    normalized = " ".join(str(title).casefold().split())
+    for family, terms in RSS_STORY_TITLE_SIGNALS.items():
+        if any(term in normalized for term in terms):
+            return family
+    return None
+
+
+def _harvest_rss_on_throttle(c, *, now, metrics, failures, max_new=20):
+    """Bounded official-feed fallback; all rows remain in review states."""
+    new = 0
+    for league, url in RSS_FALLBACK_FEEDS:
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Reads-Football-Lore-Harvester/1.0",
+                         "Accept": "application/rss+xml, application/xml, text/xml"},
+            )
+            with urllib.request.urlopen(req, timeout=25) as response:
+                xml_bytes = response.read(300000)
+            items = ET.fromstring(xml_bytes).findall(".//item")
+            metrics["rss_items_seen"] += len(items)
+            for item in items[:50]:
+                if new >= max_new:
+                    break
+                title = (item.findtext("title") or "").strip()
+                raw_url = (item.findtext("link") or "").strip()
+                family = _rss_story_family(title)
+                if not title or not raw_url or family is None:
+                    continue
+                canonical = _canonical_url(raw_url)
+                if _domain(canonical) != "cbssports.com":
+                    continue
+                cursor = c.execute(
+                    """INSERT OR IGNORE INTO football_story_candidates(
+                        candidate_id,source_url,title,domain,seen_date,language,
+                        source_country,family_hint,query_text,evidence_tier_hint,
+                        sensitive_hint,status,first_harvested_at,last_seen_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (_candidate_id(canonical), canonical, title, "cbssports.com",
+                     None, "English", None, family, "CBS publisher RSS " + league,
+                     "REPUTABLE_MEDIA", int(family == "DISCIPLINE_LEGAL"),
+                     "REVIEW_REQUIRED", now, now),
+                )
+                new += max(0, int(cursor.rowcount))
+            _commit_with_retry(c)
+            metrics["rss_feeds_succeeded"] += 1
+        except Exception as exc:
+            c.rollback()
+            failures.append({"family": "RSS_FALLBACK", "domain": "cbssports.com",
+                             "query": league,
+                             "reason": type(exc).__name__ + ":" + str(exc)[:200]})
+            metrics["rss_feeds_failed"] += 1
+    metrics["rss_fallback_candidates_inserted"] += new
+    return new
+
 def _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query):
     totals = c.execute("SELECT status, COUNT(*) n FROM football_story_candidates GROUP BY status").fetchall()
     by_family = c.execute(
@@ -328,6 +410,7 @@ def harvest_story_candidates(
                         })
                         metrics["query_throttled"] += 1
                         metrics["stop_reason_provider_throttled"] += 1
+                        _harvest_rss_on_throttle(c, now=now, metrics=metrics, failures=failures)
                         return _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query)
                     except Exception as exc:
                         failures.append({
