@@ -11,29 +11,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect GDELT response without database changes
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-story-gdelt-rate-limits
+      - name: Check syntax and GDELT 429 response classification
         shell: bash
         run: |
           set -euo pipefail
-          APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
-          test -n "$MACHINE"
-          cat >/tmp/gdelt_probe.py <<'PY'
-          import urllib.request, urllib.parse, urllib.error, time
-          base="https://api.gdeltproject.org/api/v2/doc/doc"
-          params={"query":'("weird play" football) (NFL OR "college football") domainis:nfl.com',"mode":"artlist","maxrecords":10,"timespan":"3y","format":"json","sort":"datedesc"}
-          req=urllib.request.Request(base+"?"+urllib.parse.urlencode(params),headers={"User-Agent":"Reads-Football-Lore-Harvester/1.0","Accept":"application/json"})
-          try:
-           with urllib.request.urlopen(req,timeout=40) as response:
-            print("DIAG_HTTP",response.status,"CONTENT_TYPE",response.headers.get("Content-Type"),"BODY",response.read(450).decode("utf-8","replace"),flush=True)
-          except urllib.error.HTTPError as e:
-           print("DIAG_HTTP_ERROR",e.code,e.read(450).decode("utf-8","replace"),flush=True)
-          except Exception as e:
-           print("DIAG_EXCEPTION",repr(e),flush=True)
+          python -m py_compile tools/director_v05/story_candidate_harvest.py
+          python - <<'PY'
+          import ast, json
+          from pathlib import Path
+          p=Path("tools/director_v05/story_candidate_harvest.py")
+          module=ast.parse(p.read_text())
+          wanted={"GDELTThrottleError","GDELTResponseError","_decode_gdelt_response","_pace_gdelt_request"}
+          nodes=[node for node in module.body if isinstance(node,(ast.ClassDef,ast.FunctionDef)) and node.name in wanted]
+          ns={"json":json}
+          exec(compile(ast.Module(body=nodes,type_ignores=[]),str(p),"exec"),ns)
+          obj=ns["_decode_gdelt_response"](b'{"articles":[{"url":"https://nfl.com/example"}]}',http_status=200)
+          assert len(obj["articles"])==1
+          for status,body in [(429,b"Please limit requests to one every 5 seconds"),(200,b"Please limit requests to one every 5 seconds")]:
+              try: ns["_decode_gdelt_response"](body,http_status=status)
+              except ns["GDELTThrottleError"]: pass
+              else: raise AssertionError(f"Failed to detect throttle HTTP {status}")
+          try: ns["_decode_gdelt_response"](b"<html>error</html>",http_status=200)
+          except ns["GDELTResponseError"]: pass
+          else: raise AssertionError("Invalid HTML classified as success")
+          print("PASS: syntax, valid response, 429, 200-throttle, malformed HTML")
           PY
-          PROBE_B64=$(base64 -w0 /tmp/gdelt_probe.py)
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $PROBE_B64 | base64 -d >/tmp/gdelt_probe.py; python /tmp/gdelt_probe.py'"
