@@ -44,12 +44,12 @@ jobs:
               }
           print("COUNTS_BEFORE",json.dumps(snapshot()),flush=True)
           rows=conn.execute("""SELECT * FROM football_story_candidates
-WHERE status='REVIEW_PRIORITY'
-  AND COALESCE(sensitive_hint,0)=0
-  AND family_hint IN ('BIZARRE_MOMENT','DRAFT_BUST','TRADE_ODDITY','COMEBACK_RETURN','SIDELINE_INCIDENT','COACHING_MELTDOWN','CELEBRATION_CONTROVERSY','RECRUITING_CHAOS','RECORD_ODDITY','INFAMOUS_MISTAKE','OFF_FIELD_ODDITY','RIVALRY_INCIDENT','TRANSFER_NIL_CHAOS','PLAYOFF_FORGOTTEN')
-ORDER BY CASE WHEN domain IN ('nfl.com','ncaa.org') THEN 0 ELSE 1 END,
-         first_harvested_at DESC, candidate_id
-LIMIT 6""").fetchall()
+          WHERE status='REVIEW_PRIORITY'
+            AND COALESCE(sensitive_hint,0)=0
+            AND family_hint IN ('BIZARRE_MOMENT','DRAFT_BUST','TRADE_ODDITY','COMEBACK_RETURN','SIDELINE_INCIDENT','COACHING_MELTDOWN','CELEBRATION_CONTROVERSY','RECRUITING_CHAOS','RECORD_ODDITY','INFAMOUS_MISTAKE','OFF_FIELD_ODDITY','RIVALRY_INCIDENT','TRANSFER_NIL_CHAOS','PLAYOFF_FORGOTTEN')
+          ORDER BY CASE WHEN domain IN ('nfl.com','ncaa.org') THEN 0 ELSE 1 END,
+                   first_harvested_at DESC, candidate_id
+          LIMIT 6""").fetchall()
           print("PRIORITY_CANDIDATE_STATES",json.dumps([{"id":r["candidate_id"],"status":r["status"],"title":r["title"][:85]} for r in rows]),flush=True)
           eligible=[r for r in rows if r["status"]=="REVIEW_PRIORITY" and not int(r["sensitive_hint"] or 0)]
           if not eligible:
