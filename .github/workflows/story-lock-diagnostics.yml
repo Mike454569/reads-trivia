@@ -9,121 +9,47 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Official CBS feeds small live candidate ingestion
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-story-gdelt-rate-limits
+      - name: Validate persistent CBS RSS GDELT fallback in memory
         shell: bash
         run: |
           set -euo pipefail
-          APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
-          test -n "$MACHINE"
-          cat >/tmp/reads_cbs_feed_ingest.py <<'PY'
-          import datetime as dt, json, urllib.request, xml.etree.ElementTree as ET
-          from email.utils import parsedate_to_datetime
-          from tools.quiz_export import engine as engine_bootstrap
-          from tools.director_v05.story_sqlite import prepare_write_connection, commit_with_retry
-          from tools.director_v05.story_candidate_harvest import _ensure_schema, _candidate_id, _canonical_url, _domain
-          from tools.director_v05.story_candidate_triage import _norm_title, _score, _title_signature, SENSITIVE_TITLE_TERMS, LOW_SIGNAL
-          def _write_triage_updates(c,updates):
-           for start in range(0,len(updates),200):
-            batch=updates[start:start+200]
-            c.execute("BEGIN IMMEDIATE")
-            try:
-             c.executemany("UPDATE football_story_candidates SET status=?, review_notes=? WHERE candidate_id=? AND status IN ('REVIEW_REQUIRED','REVIEW_PRIORITY')",batch)
-             commit_with_retry(c)
-            except:
-             c.rollback()
-             raise
-                    
-          FEEDS=[
-           ("NFL","https://www.cbssports.com/rss/headlines/nfl/"),
-           ("CFB","https://www.cbssports.com/partners/feeds/rss/cfb_news")
-          ]
-          KEYWORDS={
-           "BIZARRE_MOMENT":("bizarre","weird play","strange play","unusual touchdown","crazy play","wild ending"),
-           "INFAMOUS_MISTAKE":("blunder","botched","mistake","wrong way"),
-           "SIDELINE_INCIDENT":("sideline altercation","sideline incident","sideline fight"),
-           "DISCIPLINE_LEGAL":("arrest","arrested","charged","suspended","suspension"),
-           "COACHING_MELTDOWN":("meltdown","coach rant","postgame rant"),
-           "RIVALRY_INCIDENT":("rivalry prank","rivalry incident","rivalry fight"),
-           "RECORD_ODDITY":("bizarre record","strange record","unusual record","sets record","breaks record","record-breaking"),
-           "OFF_FIELD_ODDITY":("oddity","prank","bizarre story","strange story"),
-           "CELEBRATION_CONTROVERSY":("taunting","celebration controversy","celebration fine"),
-          "TRADE_ODDITY":("trade","traded","trade request","trade deadline"),
-          "COMEBACK_RETURN":("comeback","return from retirement","unretire","retirement"),
-          "RECRUITING_CHAOS":("recruiting flip","flips commitment","signing day","decommit"),
-          "TRANSFER_NIL_CHAOS":("transfer portal","nil dispute","nil deal","transfer surprise"),
-          "PLAYOFF_FORGOTTEN":("playoff upset","postseason upset","historic playoff")
-          }
-          def family_for(title):
-           t=_norm_title(title)
-           for family,phrases in KEYWORDS.items():
-            if any(x in t for x in phrases):
-             return family
-           return None
-          
-          items=[]
-          for league,url in FEEDS:
-           try:
-            req=urllib.request.Request(url,headers={"User-Agent":"ReadsFootballTrivia/1.0","Accept":"application/rss+xml, application/xml, text/xml"})
-            with urllib.request.urlopen(req,timeout=25) as response:
-             data=response.read(300000)
-             status=response.status
-            root=ET.fromstring(data)
-            posts=root.findall(".//item")
-            print("FEED",league,"HTTP",status,"ITEMS",len(posts),flush=True)
-            for item in posts[:50]:
-             title=(item.findtext("title") or "").strip()
-             link=(item.findtext("link") or "").strip()
-             family=family_for(title)
-             if title and link and family and _domain(_canonical_url(link))=="cbssports.com":
-              items.append((league,title,link,family))
-           except Exception as e:
-            print("FEED_ERROR",league,type(e).__name__,str(e)[:200],flush=True)
-          print("SELECTED",len(items),flush=True)
-          if not items:
-           raise SystemExit("No qualifying official-feed story candidates; no production writes")
-          
-          c=prepare_write_connection(engine_bootstrap.connect())
-          _ensure_schema(c)
-          before=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
-          now=dt.datetime.now(dt.timezone.utc).isoformat()
-          written=[]
-          try:
-           for league,title,link,family in items[:8]:
-            canon=_canonical_url(link)
-            cid=_candidate_id(canon)
-            old=c.execute("SELECT 1 FROM football_story_candidates WHERE source_url=?",(canon,)).fetchone()
-            if old: continue
-            sensitive=int(family=="DISCIPLINE_LEGAL")
-            c.execute("""INSERT OR IGNORE INTO football_story_candidates(
-             candidate_id,source_url,title,domain,seen_date,language,source_country,
-             family_hint,query_text,evidence_tier_hint,sensitive_hint,status,first_harvested_at,last_seen_at)
-             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-             (cid,canon,title,"cbssports.com",None,"English","US",family,"CBS official RSS "+league,"REPUTABLE_MEDIA",sensitive,"REVIEW_REQUIRED",now,now))
-            written.append(cid)
-           commit_with_retry(c)
-           rows=c.execute("SELECT * FROM football_story_candidates WHERE candidate_id IN (" + ",".join("?" for _ in written)+")",written).fetchall() if written else []
-           updates=[]
-           for row in rows:
-            title=_norm_title(row["title"])
-            score=_score(row)
-            sensitive=bool(row["sensitive_hint"]) or any(term in title for term in SENSITIVE_TITLE_TERMS)
-            status="REVIEW_REQUIRED_SENSITIVE" if sensitive else ("REVIEW_PRIORITY" if score>=30 else "REVIEW_REQUIRED")
-            updates.append((status,json.dumps({"triage_score":score,"title_signature":_title_signature(row["title"])}),row["candidate_id"]))
-           _write_triage_updates(c,updates)
-           after=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
-           print("RESULT",json.dumps({"before":before,"after":after,"new_candidates":after-before,"triaged":len(updates),"families":[row["family_hint"] for row in rows]}),flush=True)
-           for row in rows: print("SOURCED_CANDIDATE",json.dumps({"family":row["family_hint"],"title":row["title"][:100],"url":row["source_url"]}),flush=True)
-           if after<=before: raise SystemExit("No new unique qualifying RSS story candidates")
-           print("PASS_CBS_RSS_CANDIDATE_INGESTION",flush=True)
-          finally:
-           c.close()
+          python -m py_compile tools/director_v05/story_candidate_harvest.py
+          python - <<'PY'
+          import ast, collections, datetime, hashlib, json, sqlite3, urllib.parse, urllib.request, xml.etree.ElementTree as ET
+          from pathlib import Path
+          src=Path("tools/director_v05/story_candidate_harvest.py").read_text()
+          tree=ast.parse(src)
+          names={"_rss_story_family","_harvest_rss_on_throttle"}
+          nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names]
+          ns={"ET":ET,"urllib":urllib,"RSS_FALLBACK_FEEDS":(("NFL","https://www.cbssports.com/rss/headlines/nfl/"),),
+              "RSS_STORY_TITLE_SIGNALS":{"TRADE_ODDITY":("trade",)},
+              "_canonical_url":lambda x:x,"_domain":lambda x:urllib.parse.urlsplit(x).hostname.removeprefix("www."),
+              "_candidate_id":lambda x:"id-"+hashlib.sha256(x.encode()).hexdigest()[:12],
+              "_commit_with_retry":lambda c:c.commit()}
+          rss=b"""<rss><channel><item><title>Unusual trade in NFL</title><link>https://www.cbssports.com/nfl/news/real-source</link></item><item><title>Normal weather forecast</title><link>https://www.cbssports.com/nfl/news/weather</link></item><item><title>Trade from unapproved host</title><link>https://example.com/trade</link></item></channel></rss>"""
+          class FakeResponse:
+              def __enter__(self):return self
+              def __exit__(self,*a):pass
+              def read(self,n):return rss
+          ns["urllib"].request.urlopen=lambda req,timeout:FakeResponse()
+          exec(compile(ast.Module(body=nodes,type_ignores=[]),"<extracted>","exec"),ns)
+          c=sqlite3.connect(":memory:")
+          c.execute("""CREATE TABLE football_story_candidates(
+               candidate_id TEXT PRIMARY KEY,source_url TEXT UNIQUE,title TEXT,domain TEXT,
+               seen_date TEXT,language TEXT,source_country TEXT,family_hint TEXT,
+               query_text TEXT,evidence_tier_hint TEXT,sensitive_hint INT,status TEXT,
+               first_harvested_at TEXT,last_seen_at TEXT)""")
+          counts=collections.Counter()
+          failures=[]
+          inserted=ns["_harvest_rss_on_throttle"](c,now="2026-10-10T00:00:00Z",metrics=counts,failures=failures)
+          assert inserted==1,(inserted,counts,failures)
+          assert c.execute("SELECT status FROM football_story_candidates").fetchone()[0]=="REVIEW_REQUIRED"
+          again=ns["_harvest_rss_on_throttle"](c,now="2026-10-10T00:00:00Z",metrics=counts,failures=failures)
+          assert again==0,again
+          print("PASS: syntactically valid; official-feed fallback stores review-only candidate, rejects weak/unapproved items, deduplicates")
           PY
-          P_B64=$(base64 -w0 /tmp/reads_cbs_feed_ingest.py)
-          timeout --signal=TERM 180s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d > /tmp/reads_cbs_feed_ingest.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 20 /data/engine/story-volume-writer.lock python -u /tmp/reads_cbs_feed_ingest.py'"
