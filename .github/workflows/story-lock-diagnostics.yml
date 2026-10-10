@@ -42,20 +42,17 @@ jobs:
           test -n "$MACHINE"
           cat >/tmp/reads_identity_db_audit.py <<'PY'
           import sqlite3,json
-          p="/data/engine/reads_football_v4.0.sqlite"
-          c=sqlite3.connect("file:"+p+"?mode=ro",uri=True,timeout=5)
-          tables=[x[0] for x in c.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name") if any(w in x[0].lower() for w in ("player","coach","roster","alias","entity"))]
-          for t in tables[:110]:
-           cols=[x[1] for x in c.execute("PRAGMA table_info("+t+")")]
-           name_cols=[x for x in cols if any(y in x.casefold() for y in ("name","label","alias"))]
-           if name_cols and any(y in t.lower() for y in ("canonical","player","coach","roster","alias")):
-            print("TABLE",t,"NAME_COLS",json.dumps(name_cols[:8]),flush=True)
-            if t in ("canonical_players","canonical_cfb_players","cfb_players_canonical","canonical_coaches","coach_team_seasons"):
-             for col in name_cols[:3]:
-              try:
-               row=c.execute(f"SELECT {col} FROM {t} WHERE lower({col}) LIKE '%daniels%' LIMIT 2").fetchall()
-               if row:print("SAMPLE_JAYDEN",t,col,json.dumps([x[0] for x in row]),flush=True)
-              except sqlite3.Error:pass
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=5)
+          for t in ("roster_seasons","player_profiles","nfl_players_draft","entity_aliases","nfl_cfb_player_links","nfl_player_background","cfb_players","coaches","cfb_coaches","canonical_players","canonical_cfb_players","staging_rosters"):
+           try:
+            cols=[x[1] for x in c.execute("PRAGMA table_info("+t+")")]
+            print("SCHEMA",t,json.dumps(cols[:30]),flush=True)
+            names=[x for x in cols if "name" in x.lower() or "alias" in x.lower()]
+            for col in names[:2]:
+             q=f"SELECT {col} FROM {t} WHERE lower({col}) LIKE '%jayden daniels%' LIMIT 2"
+             hits=c.execute(q).fetchall()
+             if hits:print("JAYDEN_FOUND",t,col,json.dumps(hits),flush=True)
+           except Exception as e:print("ERROR",t,str(e)[:80],flush=True)
           c.close()
           PY
           P_B64=$(base64 -w0 /tmp/reads_identity_db_audit.py)
