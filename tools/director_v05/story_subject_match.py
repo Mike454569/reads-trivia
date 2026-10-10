@@ -149,15 +149,15 @@ def match_subjects(index, *, title, text, max_matches=8):
 
 
 def primary_identity_match(matches):
-    """One clear person identity is required for automatic story questions."""
-    people = [
-        m for m in matches
-        if m["entity_type"] in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}
-        and m["in_text"]
-    ]
-    title_people = [m for m in people if m["in_title"]]
-    if len(title_people) == 1:
-        return title_people[0]
-    if len(people) == 1:
-        return people[0]
-    return None
+    """Fail closed unless one canonical person is explicitly in the headline.
+
+    A full article can mention dozens of unrelated athletes and coaches.
+    Picking its only *body* match is not proof that person is the story
+    subject. Merge aliases for the same canonical identity before counting.
+    """
+    title_people = {}
+    for m in matches:
+        if (m["entity_type"] in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}
+                and m["in_title"] and m["in_text"]):
+            title_people[(m["entity_type"], m["entity_id"])] = m
+    return next(iter(title_people.values())) if len(title_people) == 1 else None
