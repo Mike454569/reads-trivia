@@ -64,16 +64,18 @@ def build_subject_index(conn):
                 entity_id = row[0]
                 if entity_id is None:
                     continue
+                # Canonical tables can expose multiple genuine name columns.
+                # Index every non-empty name (not just the first), but never
+                # invent aliases or assign names shared by multiple entities.
+                key = (entity_type, str(entity_id))
                 for idx in range(1, len(usable) + 1):
-                    value = row[idx]
-                    label = str(value or "").strip()
+                    label = str(row[idx] or "").strip()
                     norm = _norm(label)
                     if len(norm) < 5 or norm in STOP_LABELS:
                         continue
-                    key = (entity_type, str(entity_id))
                     label_map[norm].add(key)
-                    display[key] = label
-                    break
+                    if key not in display:
+                        display[key] = label
 
     # Only exact labels mapping to one entity are eligible for auto-promotion.
     unique = {
@@ -106,8 +108,9 @@ def match_subjects(index, *, title, text, max_matches=8):
     norm_text = _norm(text)
     matches = []
 
-    # Only test labels whose selective word appears in the story. Preserves
-    # the old longest-first matching order and exact boundary checks.
+    # A title's named subject matters more than background names mentioned
+    # later in the article. Search all title hits first so the eight-result
+    # cap cannot silently discard the story's main person.
     if "anchor_labels" in index:
         tokens = set(re.findall(r"[a-z0-9]+", norm_title + " " + norm_text))
         possible = set()
@@ -116,10 +119,11 @@ def match_subjects(index, *, title, text, max_matches=8):
         candidates = sorted(possible, key=index["label_order"].__getitem__)
     else:
         candidates = index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True)
-    for label in candidates:
-        # Fast literal prefilter: only compile/run boundary regexes for names
-        # that actually appear in the article. This is semantically safe:
-        # every regex match requires the literal label as a substring.
+    title_candidates = [label for label in candidates if label in norm_title]
+    body_candidates = [label for label in candidates if label not in norm_title]
+    # Keep the same exact-token boundary checks. An ambiguous label was
+    # already removed from index["labels"] during canonical index building.
+    for label in title_candidates + body_candidates:
         has_title = label in norm_title
         has_text = label in norm_text
         if not has_title and not has_text:
