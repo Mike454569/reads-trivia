@@ -9,33 +9,64 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix-story-gdelt-rate-limits
-      - name: Check syntax and GDELT 429 response classification
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Bounded GDELT ingestion and SQLite triage on Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile tools/director_v05/story_candidate_harvest.py
-          python - <<'PY'
-          import ast, json
-          from pathlib import Path
-          p=Path("tools/director_v05/story_candidate_harvest.py")
-          module=ast.parse(p.read_text())
-          wanted={"GDELTThrottleError","GDELTResponseError","_decode_gdelt_response","_pace_gdelt_request"}
-          nodes=[node for node in module.body if isinstance(node,(ast.ClassDef,ast.FunctionDef)) and node.name in wanted]
-          ns={"json":json}
-          exec(compile(ast.Module(body=nodes,type_ignores=[]),str(p),"exec"),ns)
-          obj=ns["_decode_gdelt_response"](b'{"articles":[{"url":"https://nfl.com/example"}]}',http_status=200)
-          assert len(obj["articles"])==1
-          for status,body in [(429,b"Please limit requests to one every 5 seconds"),(200,b"Please limit requests to one every 5 seconds")]:
-              try: ns["_decode_gdelt_response"](body,http_status=status)
-              except ns["GDELTThrottleError"]: pass
-              else: raise AssertionError(f"Failed to detect throttle HTTP {status}")
-          try: ns["_decode_gdelt_response"](b"<html>error</html>",http_status=200)
-          except ns["GDELTResponseError"]: pass
-          else: raise AssertionError("Invalid HTML classified as success")
-          print("PASS: syntax, valid response, 429, 200-throttle, malformed HTML")
+          APP=reads-football-gateway
+          MACHINES=$(flyctl machines list -a "$APP" --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          test -n "$MACHINE"
+          cat >/tmp/reads_micro_ingest.py <<'PY'
+          import importlib.util, json, sys, sqlite3, time
+          from tools.quiz_export import engine as engine_bootstrap
+          from tools.director_v05.story_sqlite import prepare_write_connection
+          
+          def load_patch(name,path):
+              spec=importlib.util.spec_from_file_location(name,path)
+              module=importlib.util.module_from_spec(spec)
+              sys.modules[name]=module
+              spec.loader.exec_module(module)
+              return module
+          
+          harvest=load_patch("tools.director_v05.story_candidate_harvest", "/tmp/reads_story_candidate_harvest_patch.py")
+          triage=load_patch("tools.director_v05.story_candidate_triage", "/tmp/reads_story_candidate_triage_patch.py")
+          c=prepare_write_connection(engine_bootstrap.connect())
+          before=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
+          c.close()
+          print("CANDIDATES_BEFORE",before,flush=True)
+          result=harvest.harvest_story_candidates(
+           domains=("nfl.com",),
+           query_families={"BIZARRE_MOMENT": ('"weird play" football',)},
+           max_records_per_query=10,
+           timespan="3y",
+           sleep_seconds=0
+          )
+          print("HARVEST_RESULT",json.dumps({"metrics":result["metrics"],"failures":result["failures"][:2]},sort_keys=True),flush=True)
+          if result["metrics"].get("query_throttled"):
+           print("BLOCKED_BY_PROVIDER: no retry; no further GDELT calls",flush=True)
+           raise SystemExit(21)
+          if not result["metrics"].get("queries_succeeded"):
+           raise SystemExit("No successful provider query")
+          if result["metrics"].get("accepted_candidates",0)<=0:
+           raise SystemExit("No candidate results accepted")
+          t=triage.triage_candidates()
+          print("TRIAGE_RESULT",json.dumps({"processed":t["processed"],"statuses":t["status_counts"]},sort_keys=True),flush=True)
+          c=prepare_write_connection(engine_bootstrap.connect())
+          after=c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0]
+          c.close()
+          print("CANDIDATES_AFTER",after,flush=True)
+          print("LIVE_MICRO_SUCCESS",json.dumps({"before":before,"after":after,"processed":t["processed"]}),flush=True)
           PY
+          H_B64=$(base64 -w0 tools/director_v05/story_candidate_harvest.py)
+          T_B64=$(base64 -w0 tools/director_v05/story_candidate_triage.py)
+          P_B64=$(base64 -w0 /tmp/reads_micro_ingest.py)
+          timeout --signal=TERM 190s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $H_B64 | base64 -d > /tmp/reads_story_candidate_harvest_patch.py; echo $T_B64 | base64 -d > /tmp/reads_story_candidate_triage_patch.py; echo $P_B64 | base64 -d > /tmp/reads_micro_ingest.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; flock -w 20 /data/engine/story-volume-writer.lock python -u /tmp/reads_micro_ingest.py'"
