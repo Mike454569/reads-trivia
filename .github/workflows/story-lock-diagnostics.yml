@@ -1,63 +1,35 @@
-name: Story Question Editorial Backfill
+name: Draft Options Grounding Check
 on:
   push:
     branches: [story-question-copy-audit-v1]
 permissions:
   contents: read
 jobs:
-  polish:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix-story-volume-integrated-processing
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Validate story copy logic compiles
-        run: |
-          python -m py_compile tools/director_v05/story_to_trivia_factory.py
-      - name: Polish two saved verified questions on Fly
+      - name: Verify 2025 draft quarterback alternatives on Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started"),""))')
-          test -n "$MACHINE"
-          cat >/tmp/reads_editorial_polish.py <<'PY'
+          cat >/tmp/draft_options.py <<'PY'
           import sqlite3,json
-          from tools.director_v05 import story_to_trivia_factory as factory
-          p="/data/engine/reads_football_v4.0.sqlite"
-          c=sqlite3.connect(p,timeout=8)
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=5)
           c.row_factory=sqlite3.Row
-          event_id="evt_story_a132d1da78e78935ddee627a"
-          rows=c.execute("SELECT question_id,question_json FROM story_generated_questions WHERE event_id=?",(event_id,)).fetchall()
-          before={r["question_id"]:json.loads(r["question_json"]) for r in rows}
-          assert len(before)==2, len(before)
-          subject={"entity_type":"NFL_PLAYER","entity_id":"PFR:SandSh00","label":"Shedeur Sanders"}
-          n=factory.polish_verified_story_questions(c,event_id,subject)
-          print("POLISHED_COUNT",n,flush=True)
-          assert n==2,n
-          after_rows=c.execute("SELECT question_id,status,question_json FROM story_generated_questions WHERE event_id=?",(event_id,)).fetchall()
-          for r in after_rows:
-           prior=before[r["question_id"]]
-           q=json.loads(r["question_json"])
-           assert q["answer"]==prior["answer"]
-           assert q["provenance"]==prior["provenance"]
-           assert q["question_id"]==prior["question_id"]
-           assert "documented" not in q["question"].casefold()
-           assert not any("event label" in x["text"].casefold() for x in q.get("clues",[]))
-           if q["mechanic"]=="MULTIPLE_CHOICE":
-            assert q["options"]==prior["options"]
-            assert len(q["clues"])==3
-           else:
-            assert q["question"]=="Shedeur Sanders received a prank call during NFL draft weekend."
-           print("POLISHED_RECORD",json.dumps({"id":r["question_id"],"status":r["status"],"question":q["question"],"clues":[x["text"] for x in q.get("clues",[])],"answer":q["answer"],"quality":q.get("story_factory_v2",{}).get("score")}),flush=True)
-          again=factory.polish_verified_story_questions(c,event_id,subject)
-          assert again==2
-          print("POLISH_IDEMPOTENT",flush=True)
+          for table in ("draft_facts","canonical_players","nfl_players_draft"):
+           print("SCHEMA",table,json.dumps([r["name"] for r in c.execute("PRAGMA table_info("+table+")")]),flush=True)
+          for row in c.execute("""SELECT d.player_key,d.draft_season,d.draft_round,d.draft_pick_overall,d.verification_status,p.display_name
+          FROM draft_facts d JOIN canonical_players p ON d.player_key=p.player_id
+          WHERE d.draft_season=2025 AND lower(p.display_name) IN
+          ('cam ward','jaxson dart','tyler shough','jalen milroe','dillon gabriel','quinn ewers','will howard','riley leonard')
+          ORDER BY d.draft_pick_overall"""):
+           print("QB_DRAFT",json.dumps(dict(row)),flush=True)
           c.close()
           PY
-          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
-          P_B64=$(base64 -w0 /tmp/reads_editorial_polish.py)
-          timeout -k 5s 190s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'mkdir -p /tmp/story_editorial_overlay/tools/director_v05; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/story_editorial_overlay/tools/__init__.py; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/story_editorial_overlay/tools/director_v05/__init__.py; echo $F_B64 | base64 -d >/tmp/story_editorial_overlay/tools/director_v05/story_to_trivia_factory.py; echo $P_B64 | base64 -d >/tmp/reads_editorial_polish.py; cd /app; export PYTHONPATH=/tmp/story_editorial_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 140s python -u /tmp/reads_editorial_polish.py'"
+          DATA=$(base64 -w0 /tmp/draft_options.py)
+          timeout 80s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $DATA | base64 -d >/tmp/draft_options.py; python -u /tmp/draft_options.py'"
