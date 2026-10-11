@@ -1,18 +1,43 @@
-name: Story Lock Diagnostics
+name: Story Event Passage Evidence Tests
 on:
   push:
     branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+      - "story-event-evidence-test-v1"
 permissions:
   contents: read
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Verify positive and negative article passage examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/director_v05/story_to_trivia_factory.py
+          python - <<'PY'
+          import ast,re,hashlib
+          from pathlib import Path
+          tree=ast.parse(Path("tools/director_v05/story_to_trivia_factory.py").read_text())
+          fn=next(x for x in tree.body if isinstance(x,ast.FunctionDef) and x.name=="_event_evidence")
+          ns={"re":re,"hashlib":hashlib,"_norm":lambda x:" ".join(str(x or "").split())}
+          exec(compile(ast.Module(body=[fn],type_ignores=[]),"<passages>","exec"),ns)
+          ev=ns["_event_evidence"]
+          subj={"label":"Jayden Daniels"}
+          base="Other unrelated background about the football season. "*7
+          a=lambda body:{"text":base+body,"headline":"Jayden Daniels on field"}
+          yes=ev(a("Jayden Daniels spoke to reporters after the game."),subj,"PRESS_CONFERENCE")
+          assert yes and len(yes["passage_sha256"])==64,yes
+          assert ev(a("A coach spoke to reporters. Jayden Daniels ran for a score."),subj,"PRESS_CONFERENCE") is None
+          assert ev(a("Jayden Daniels said his leg felt fine."),subj,"PRESS_CONFERENCE") is None
+          assert ev(a("Jayden Daniels was mentioned in an ordinary trade report."),subj,"TRADE_ODDITY") is None
+          assert ev(a("Jayden Daniels was involved in a shocking trade."),subj,"TRADE_ODDITY")
+          assert ev(a("Jayden Daniels spoke to reporters after the game."),subj,"DRAFT_BUST") is None
+          print("PASS: linked event assertion required; cross-sentence coincidence and generic quotes held for review")
+          PY
+      - name: Real source-backed event passage audit on Fly read-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -22,5 +47,50 @@ jobs:
           MACHINES=$(flyctl machines list -a "$APP" --json)
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_event_passages.py <<'PY'
+          import importlib.util,sys,time,json
+          from tools.quiz_export import engine as eng
+          from tools.director_v05.story_article_extract import fetch_article
+          def load(name,path):
+           spec=importlib.util.spec_from_file_location(name,path)
+           o=importlib.util.module_from_spec(spec);sys.modules[name]=o;spec.loader.exec_module(o);return o
+          m=load("tools.director_v05.story_subject_match","/tmp/reads_match_event.py")
+          factory=load("tools.director_v05.story_to_trivia_factory","/tmp/reads_factory_event.py")
+          c=eng.connect()
+          idx=m.build_subject_index(c)
+          rows=c.execute("""SELECT * FROM football_story_candidates WHERE status='REVIEW_PRIORITY'
+          AND COALESCE(sensitive_hint,0)=0
+          AND domain IN ('nfl.com','ncaa.org','espn.com','cbssports.com','foxsports.com','si.com','sports.yahoo.com','usatoday.com')
+          AND family_hint IN ('COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT','OFF_FIELD_ODDITY','PRESS_CONFERENCE','TRADE_CHAOS','GAME_ODDITY')
+          ORDER BY CASE WHEN family_hint IN ('COMEBACK_RETURN','TRADE_ODDITY','TRADE_CHAOS') THEN 0 ELSE 1 END, first_harvested_at DESC
+          LIMIT 45""").fetchall()
+          c.close()
+          counts={"sampled":len(rows),"fetched":0,"person":0,"family_evidence":0,"linked_passage":0,"high_confidence":0,"event_eligible":0}
+          for row in rows[:32]:
+           try:a=fetch_article(row["source_url"],timeout=8)
+           except Exception:continue
+           counts["fetched"]+=1
+           both=" ".join(dict.fromkeys(str(x).strip() for x in (row["title"],a.get("headline")) if str(x or "").strip()))
+           subject=m.primary_identity_match(m.match_subjects(idx,title=both,text=a["text"]))
+           if not subject:continue
+           counts["person"]+=1
+           hits=factory._family_evidence(row["family_hint"],a)
+           if not hits:continue
+           counts["family_evidence"]+=1
+           passage=factory._event_evidence(a,subject,row["family_hint"])
+           if not passage:continue
+           counts["linked_passage"]+=1
+           score=factory._confidence(row,a,subject,hits)
+           if score<(factory.MIN_PRIMARY_SCORE if row["domain"] in factory.PRIMARY_DOMAINS else factory.MIN_REPUTABLE_SCORE):continue
+           counts["high_confidence"]+=1
+           try:factory._build_event(row,a,subject,hits)
+           except ValueError:continue
+           counts["event_eligible"]+=1
+           print("VERIFIABLE_CANDIDATE",json.dumps({"candidate":row["candidate_id"],"subject":subject["label"],"family":row["family_hint"],"source":row["source_url"],"score":score,"passage_sha256":passage["passage_sha256"]}),flush=True)
+          print("REAL_EVENT_GATE_COUNTS",json.dumps(counts,sort_keys=True),flush=True)
+          print("READ_ONLY_VERIFICATION_COMPLETE",flush=True)
+          PY
+          M_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          P_B64=$(base64 -w0 /tmp/reads_event_passages.py)
+          timeout 185s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $M_B64 | base64 -d >/tmp/reads_match_event.py; echo $F_B64 | base64 -d >/tmp/reads_factory_event.py; echo $P_B64 | base64 -d >/tmp/reads_event_passages.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 150s python -u /tmp/reads_event_passages.py'"
