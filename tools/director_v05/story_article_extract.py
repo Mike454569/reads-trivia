@@ -9,6 +9,8 @@ from __future__ import annotations
 import html
 import json
 import re
+import signal
+import threading
 import urllib.request
 from html.parser import HTMLParser
 from urllib.parse import urlparse
@@ -99,6 +101,35 @@ def _jsonld_articles(raw_blobs):
 
 
 def fetch_article(url, *, timeout=TIMEOUT_SECONDS):
+    """Retrieve one article with a real end-to-end deadline on Fly/Linux.
+
+    urllib's per-socket timeout alone does not limit total streaming time.
+    This deadline is only installed from the main thread. It leaves other
+    processes and the production web server's signal handlers untouched.
+    """
+    if (not hasattr(signal, "setitimer")
+            or threading.current_thread() is not threading.main_thread()):
+        return _fetch_article_impl(url, timeout=timeout)
+
+    prior_handler = signal.getsignal(signal.SIGALRM)
+    prior_timer = signal.getitimer(signal.ITIMER_REAL)
+    # Never override a pre-existing scheduler alarm.
+    if prior_timer[0] > 0:
+        return _fetch_article_impl(url, timeout=timeout)
+
+    def _deadline_expired(signum, frame):
+        raise TimeoutError("ARTICLE_TOTAL_FETCH_DEADLINE")
+
+    try:
+        signal.signal(signal.SIGALRM, _deadline_expired)
+        signal.setitimer(signal.ITIMER_REAL, max(1.0, float(timeout)))
+        return _fetch_article_impl(url, timeout=timeout)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, prior_handler)
+
+
+def _fetch_article_impl(url, *, timeout=TIMEOUT_SECONDS):
     requested_host = _host(url)
     if requested_host not in APPROVED_DOMAINS:
         raise ValueError("ARTICLE_DOMAIN_NOT_APPROVED")
