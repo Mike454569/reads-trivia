@@ -532,6 +532,21 @@ def generate_questions_for_event(
     return generated
 
 
+def _source_league_hint(url):
+    """Return a league only for publisher URLs with explicit sport paths."""
+    from urllib.parse import urlparse
+    parsed = urlparse(str(url or ""))
+    domain = (parsed.hostname or "").casefold().removeprefix("www.")
+    path = parsed.path.casefold()
+    if domain == "nfl.com" and path.startswith("/news/"):
+        return "NFL"
+    if "/nfl/" in path or path.startswith("/nfl/"):
+        return "NFL"
+    if "/college-football/" in path or "/collegefootball/" in path or "/cfb/" in path:
+        return "CFB"
+    return None
+
+
 def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
     family = str(candidate["family_hint"])
     if int(candidate["sensitive_hint"] or 0):
@@ -582,6 +597,7 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         subject_index,
         title=source_headlines,
         text=article["text"],
+        league_hint=_source_league_hint(article.get("final_url") or candidate["source_url"]),
     )
     subject = primary_identity_match(matches)
     if not subject:
