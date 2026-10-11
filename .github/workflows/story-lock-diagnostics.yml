@@ -1,26 +1,31 @@
-name: Story Lock Diagnostics
+name: Story Question Copy Audit
 on:
   push:
-    branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+    branches: [story-question-copy-audit-v1]
 permissions:
   contents: read
 jobs:
-  inspect:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Read question copy on Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
-          test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started"),""))')
+          cat >/tmp/copy_review.py <<'PY'
+          import sqlite3,json
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True)
+          c.row_factory=sqlite3.Row
+          for r in c.execute("SELECT question_id,status,mechanic,question_json FROM story_generated_questions WHERE event_id='evt_story_a132d1da78e78935ddee627a'"):
+           print("STORED_QUESTION",json.dumps(dict(r),ensure_ascii=False),flush=True)
+          r=c.execute("SELECT title,neutral_summary,source_url FROM universal_event WHERE event_id='evt_story_a132d1da78e78935ddee627a'").fetchone()
+          print("STORED_EVENT",json.dumps(dict(r) if r else None),flush=True)
+          
+          PY
+          DATA=$(base64 -w0 /tmp/copy_review.py)
+          timeout 80s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $DATA | base64 -d >/tmp/copy_review.py; python -u /tmp/copy_review.py'"
