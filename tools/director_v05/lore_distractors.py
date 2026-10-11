@@ -93,7 +93,7 @@ def _nfl_candidate_ids(conn, correct_id, profile, *, limit=1000):
         ).fetchall()
         ids.update(str(r["player_key"]) for r in rows)
 
-    if "canonical_roster_seasons" in tables and profile.team:
+    if "canonical_roster_seasons" in tables and profile.team_or_school:
         rows = conn.execute(
             """SELECT DISTINCT player_id
                FROM canonical_roster_seasons
@@ -101,7 +101,7 @@ def _nfl_candidate_ids(conn, correct_id, profile, *, limit=1000):
                  AND team_code=? AND player_id<>?
                ORDER BY season DESC
                LIMIT ?""",
-            (profile.team, str(correct_id), int(limit)),
+            (profile.team_or_school, str(correct_id), int(limit)),
         ).fetchall()
         ids.update(str(r["player_id"]) for r in rows)
 
