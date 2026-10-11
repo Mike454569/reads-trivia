@@ -227,7 +227,7 @@ def _event_evidence(article, subject, family):
             r"\b(?:returned|came back|unretired)\s+(?:to|from|after)\b",
             r"\bcame out of retirement\b",
         ),
-        "OFF_FIELD_ODDITY": (r"\b(?:prank|costume|bizarre|unusual|strange|viral|funny)\b",),
+        "OFF_FIELD_ODDITY": (r"\bprank\s+(?:call(?:ed)?|text|message)\b", r"\b(?:prank[- ]called|prank[- ]texted)\b"),
         "BIZARRE_MOMENT": (r"\b(?:bizarre|unusual|strange|rare)\s+(?:play|touchdown|ending)\b",),
     }
     patterns = triggers.get(family)
@@ -252,7 +252,7 @@ def _event_evidence(article, subject, family):
                 }
     return None
 
-def _confidence(candidate, article, subject, evidence_terms):
+def _confidence(candidate, article, subject, evidence_terms, *, event_evidence=None):
     score = 0
     if subject.get("in_title"):
         score += 35
@@ -269,6 +269,13 @@ def _confidence(candidate, article, subject, evidence_terms):
         score += 3
     if int(article.get("text_chars") or 0) >= 1500:
         score += 3
+    # A separately validated same-sentence identity/event assertion provides
+    # stronger evidence than mere topical keywords. No bonus for broad words.
+    # An article with a concrete "prank call/text" involving the named subject
+    # can clear the existing reputable-media threshold without lowering it.
+    if (event_evidence
+            and str(event_evidence.get("matched_trigger") or "").startswith(r"\bprank")):
+        score += 15
     return min(100, score)
 
 
@@ -626,7 +633,7 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
-    score = _confidence(candidate, article, subject, evidence_terms)
+    score = _confidence(candidate, article, subject, evidence_terms, event_evidence=event_evidence)
     threshold = (
         MIN_PRIMARY_SCORE
         if candidate["domain"] in PRIMARY_DOMAINS
