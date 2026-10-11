@@ -83,6 +83,19 @@ def build_subject_index(conn):
         for label, ids in label_map.items()
         if len(ids) == 1
     }
+    # A cross-league name collision is not an identity merge. For example,
+    # "Shedeur Sanders" exists as an NFL_PLAYER and a CFB_PLAYER. Allow that
+    # exact label only in a source explicitly scoped to the appropriate league,
+    # and only if there is exactly one candidate in each league.
+    league_scoped = {"NFL": {}, "CFB": {}}
+    for label, ids in label_map.items():
+        if len(ids) != 2:
+            continue
+        per_league = {kind: (kind, entity_id) for kind, entity_id in ids}
+        if set(per_league) == {"NFL_PLAYER", "CFB_PLAYER"}:
+            league_scoped["NFL"][label] = per_league["NFL_PLAYER"]
+            league_scoped["CFB"][label] = per_league["CFB_PLAYER"]
+
     # One selective word per label lets matching long article bodies avoid
     # scanning every one of ~95k labels against each 18k-character article.
     # Literal matches necessarily contain this word as an alphanumeric token.
@@ -100,10 +113,11 @@ def build_subject_index(conn):
         "sorted_labels": sorted_labels,
         "anchor_labels": dict(anchors),
         "label_order": {label: i for i, label in enumerate(sorted_labels)},
+        "league_scoped": league_scoped,
     }
 
 
-def match_subjects(index, *, title, text, max_matches=8):
+def match_subjects(index, *, title, text, max_matches=8, league_hint=None):
     norm_title = _norm(title)
     norm_text = _norm(text)
     matches = []
@@ -119,7 +133,15 @@ def match_subjects(index, *, title, text, max_matches=8):
         candidates = sorted(possible, key=index["label_order"].__getitem__)
     else:
         candidates = index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True)
-    title_candidates = [label for label in candidates if label in norm_title]
+    # Scoped collisions aren't in unique labels; append only those with
+    # an explicit, trusted article-league hint. Never infer equivalence.
+    scoped = index.get("league_scoped", {}).get(league_hint, {})
+    scoped_hits = [
+        label for label in scoped
+        if label in norm_title and label in norm_text
+    ]
+    scoped_hits.sort(key=len, reverse=True)
+    title_candidates = scoped_hits + [label for label in candidates if label in norm_title]
     body_candidates = [label for label in candidates if label not in norm_title]
     # Keep the same exact-token boundary checks. An ambiguous label was
     # already removed from index["labels"] during canonical index building.
@@ -133,7 +155,7 @@ def match_subjects(index, *, title, text, max_matches=8):
         in_text = has_text and bool(re.search(boundary, norm_text))
         if not in_title and not in_text:
             continue
-        entity_type, entity_id = index["labels"][label]
+        entity_type, entity_id = scoped[label] if label in scoped else index["labels"][label]
         matches.append({
             "entity_type": entity_type,
             "entity_id": entity_id,
