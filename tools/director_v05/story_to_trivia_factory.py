@@ -719,6 +719,7 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         subject_type=subject["entity_type"],
         subject_id=subject["entity_id"],
     )
+    polish_verified_story_questions(c, event_id, subject)
     _store_enrichment(
         c, candidate, article=article, subject=subject, family=family,
         score=score, evidence_terms=evidence_terms,
