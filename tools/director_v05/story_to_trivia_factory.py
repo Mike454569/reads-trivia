@@ -195,6 +195,63 @@ def _family_evidence(family, article):
     return [term for term in FAMILY_TERMS.get(family, ()) if term in combined]
 
 
+def _event_evidence(article, subject, family):
+    """Ground one concrete, subject-linked occurrence in the fetched article.
+
+    This deliberately rejects broad topic mentions and opinions. The selected
+    passage must state the event and name the *same canonical subject*.
+    Headlines, index snippets and publication dates are insufficient alone.
+    """
+    body = _norm(article.get("text"))
+    person = _norm(subject.get("label"))
+    if len(body) < 250 or len(person) < 5:
+        return None
+    # Prefer complete sentences over arbitrary sliding-word coincidence.
+    fragments = [
+        passage.strip()
+        for passage in re.split(r"(?<=[.!?])\\s+|\\n+", body)
+        if passage.strip()
+    ]
+    triggers = {
+        "PRESS_CONFERENCE": (
+            r"\\b(?:said|told|addressed|spoke to)\\s+(?:the\\s+)?reporters\\b",
+            r"\\b(?:held|spoke at|addressed)\\s+(?:a|the|his|her)\\s+press conference\\b",
+            r"\\b(?:postgame|pregame)\\s+(?:press conference|media availability)\\b",
+        ),
+        "TRADE_ODDITY": (
+            r"\\b(?:shocking|unexpected|surprise|bizarre|unusual|historic)\\s+trade\\b",
+            r"\\btrade request\\b",
+        ),
+        "TRADE_CHAOS": (r"\\b(?:was|were|has been|had been) traded\\b", r"\\btrade request\\b"),
+        "COMEBACK_RETURN": (
+            r"\\b(?:returned|came back|unretired)\\s+(?:to|from|after)\\b",
+            r"\\bcame out of retirement\\b",
+        ),
+        "OFF_FIELD_ODDITY": (r"\\b(?:prank|costume|bizarre|unusual|strange|viral|funny)\\b",),
+        "BIZARRE_MOMENT": (r"\\b(?:bizarre|unusual|strange|rare)\\s+(?:play|touchdown|ending)\\b",),
+    }
+    patterns = triggers.get(family)
+    if not patterns:
+        # All other families remain review-only until a specific
+        # event-relation extractor has been implemented and tested.
+        return None
+    person_key = person.casefold()
+    for passage in fragments:
+        low = passage.casefold()
+        # Exact person boundaries avoid identifying an unrelated name fragment.
+        if not re.search(r"(?<![a-z0-9])" + re.escape(person_key) + r"(?![a-z0-9])", low):
+            continue
+        for trigger in patterns:
+            if re.search(trigger, low):
+                # Named speaker plus literal event assertion: provenance is
+                # retained as a SHA, not an unlicensed full-article archive.
+                return {
+                    "passage_sha256": hashlib.sha256(passage.encode()).hexdigest(),
+                    "matched_trigger": trigger,
+                    "passage_chars": len(passage),
+                }
+    return None
+
 def _confidence(candidate, article, subject, evidence_terms):
     score = 0
     if subject.get("in_title"):
@@ -544,6 +601,15 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
+    event_evidence = _event_evidence(article, subject, family)
+    if event_evidence is None:
+        _store_enrichment(
+            c, candidate, article=article, subject=subject, family=family,
+            evidence_terms=evidence_terms, decision="REVIEW_REQUIRED",
+            reason="NO_SUBJECT_LINKED_EVENT_PASSAGE",
+        )
+        return {"decision":"REVIEW_REQUIRED","generated":0}
+
     score = _confidence(candidate, article, subject, evidence_terms)
     threshold = (
         MIN_PRIMARY_SCORE
@@ -569,6 +635,9 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
             reason=str(exc),
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
+    # Record the checkable passage fingerprint with the sourced event.
+    # Do not equate a generic headline or commentary with a verified fact.
+    event["tags"].append("passage_sha256_" + event_evidence["passage_sha256"][:16])
     event_id = upsert_event(c, event)
     questions = generate_questions_for_event(
         c,
