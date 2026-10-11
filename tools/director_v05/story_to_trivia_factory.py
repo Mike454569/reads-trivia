@@ -676,9 +676,8 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
 # gates still run after selection.
 EVENT_DISCOVERY_HEADLINES = {
     "PRESS_CONFERENCE": (
-        "press conference", "news conference", "speaks to reporters",
-        "spoke to reporters", "told reporters", "addressed reporters",
-        "media availability", "postgame comments",
+        "speaks to reporters", "spoke to reporters", "told reporters",
+        "addresses reporters", "addressed reporters", "postgame comments",
     ),
     "TRADE_ODDITY": (
         "shocking trade", "surprise trade", "unexpected trade",
@@ -690,7 +689,8 @@ EVENT_DISCOVERY_HEADLINES = {
         "unretires", "returns to football", "comeback after",
     ),
     "OFF_FIELD_ODDITY": (
-        "bizarre", "strange", "prank", "costume", "weird", "funny",
+        "prank called", "prank call", "prank text", "dressed as", "wears costume",
+        "bizarre incident", "strange incident", "off-field prank",
     ),
     "BIZARRE_MOMENT": (
         "bizarre play", "unusual touchdown", "strange play",
@@ -722,7 +722,18 @@ def _story_candidate_priority(row):
     # Longer concrete phrases outrank generic press mentions. Primary
     # publisher stories break ties ahead of secondary syndicated coverage.
     primary = int(str(row["domain"]) in PRIMARY_DOMAINS)
-    return (max(map(len, matched)), len(matched), primary)
+    # Concrete gameplay, unusual incidents and documented comebacks are
+    # more distinctive than generic press coverage. This changes review
+    # discovery only, never the confidence or verification thresholds.
+    family_weight = {
+        "BIZARRE_MOMENT": 5,
+        "TRADE_ODDITY": 4,
+        "COMEBACK_RETURN": 4,
+        "OFF_FIELD_ODDITY": 4,
+        "TRADE_CHAOS": 3,
+        "PRESS_CONFERENCE": 1,
+    }.get(family, 0)
+    return (family_weight, max(map(len, matched)), primary, len(matched))
 
 
 def _select_event_rich_candidates(c, *, limit, scan_limit=5000):
@@ -757,7 +768,26 @@ def _select_event_rich_candidates(c, *, limit, scan_limit=5000):
         seen_urls.add(url)
         ranked.append((priority, row))
     ranked.sort(key=lambda pair: pair[0], reverse=True)
-    return [row for _, row in ranked[:max(1, min(int(limit), 100))]]
+    selected = []
+    selected_by_family = Counter()
+    cap = max(1, min(int(limit), 100))
+    # Prevent generic news families from monopolizing every verification
+    # batch. Use a second pass only when too few families have candidates.
+    family_cap = max(2, (cap + 3) // 4)
+    for _, row in ranked:
+        family = str(row["family_hint"])
+        if selected_by_family[family] >= family_cap:
+            continue
+        selected.append(row)
+        selected_by_family[family] += 1
+        if len(selected) >= cap:
+            return selected
+    for _, row in ranked:
+        if len(selected) >= cap:
+            break
+        if row not in selected:
+            selected.append(row)
+    return selected
 
 
 def run_story_to_trivia_factory(
