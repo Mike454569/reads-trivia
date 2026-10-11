@@ -539,6 +539,49 @@ def generate_questions_for_event(
     return generated
 
 
+def polish_verified_story_questions(c, event_id, subject):
+    """Rewrite only source-supported story copy, keeping answer keys intact."""
+    event = c.execute("SELECT event_type,league,title,verification_status,sensitive FROM universal_event WHERE event_id=?", (str(event_id),)).fetchone()
+    if not event or event["verification_status"] != "VERIFIED" or event["sensitive"]:
+        return 0
+    title = str(event["title"] or "").casefold()
+    name = str(subject["label"])
+    eligible = (event["event_type"] == "OFF_FIELD_ODDITY" and event["league"] == "NFL"
+                and "prank call" in title and "draft weekend" in title
+                and "son of" in title and "defensive coordinator" in title
+                and name.casefold() in title)
+    if not eligible:
+        return 0
+    changed = 0
+    rows = c.execute("SELECT question_id,mechanic,question_json FROM story_generated_questions WHERE event_id=?", (str(event_id),)).fetchall()
+    for row in rows:
+        q = json.loads(row["question_json"])
+        answer = q.get("answer") or {}
+        if row["mechanic"] == "MULTIPLE_CHOICE" and answer.get("id") == subject["entity_id"]:
+            q["question"] = "Who am I?"
+            q["clues"] = [
+                {"step": 1, "text": "I was an NFL draft prospect."},
+                {"step": 2, "text": "A prank call interrupted my draft weekend."},
+                {"step": 3, "text": "An NFL defensive coordinator's son was linked to the call."},
+            ]
+            q.pop("reveal_calibration", None)
+            for distraction in q.get("distractors") or []:
+                distraction.pop("clue_fit", None)
+        elif row["mechanic"] == "FACT_OR_FAKE" and answer.get("id") == "FACT":
+            q["question"] = f"{name} received a prank call during NFL draft weekend."
+            q["context_clues"] = []
+            q["explanation"] = "CBS Sports reported that an NFL defensive coordinator's son was linked to the prank call."
+        else:
+            continue
+        q.pop("story_factory_v2", None)
+        q = prepare_story_question(q)
+        c.execute("UPDATE story_generated_questions SET question_json=? WHERE question_id=?", (json.dumps(q,sort_keys=True,ensure_ascii=False),row["question_id"]))
+        changed += 1
+    if changed:
+        _commit_with_retry(c)
+    return changed
+
+
 def _source_league_hint(url):
     """Return a league only for publisher URLs with explicit sport paths."""
     from urllib.parse import urlparse
