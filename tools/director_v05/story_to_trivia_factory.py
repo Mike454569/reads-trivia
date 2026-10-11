@@ -209,26 +209,26 @@ def _event_evidence(article, subject, family):
     # Prefer complete sentences over arbitrary sliding-word coincidence.
     fragments = [
         passage.strip()
-        for passage in re.split(r"(?<=[.!?])\\s+|\\n+", body)
+        for passage in re.split(r"(?<=[.!?])\s+|\n+", body)
         if passage.strip()
     ]
     triggers = {
         "PRESS_CONFERENCE": (
-            r"\\b(?:said|told|addressed|spoke to)\\s+(?:the\\s+)?reporters\\b",
-            r"\\b(?:held|spoke at|addressed)\\s+(?:a|the|his|her)\\s+press conference\\b",
-            r"\\b(?:postgame|pregame)\\s+(?:press conference|media availability)\\b",
+            r"\b(?:said|told|addressed|spoke to)\s+(?:the\s+)?reporters\b",
+            r"\b(?:held|spoke at|addressed)\s+(?:a|the|his|her)\s+press conference\b",
+            r"\b(?:postgame|pregame)\s+(?:press conference|media availability)\b",
         ),
         "TRADE_ODDITY": (
-            r"\\b(?:shocking|unexpected|surprise|bizarre|unusual|historic)\\s+trade\\b",
-            r"\\btrade request\\b",
+            r"\b(?:shocking|unexpected|surprise|bizarre|unusual|historic)\s+trade\b",
+            r"\btrade request\b",
         ),
-        "TRADE_CHAOS": (r"\\b(?:was|were|has been|had been) traded\\b", r"\\btrade request\\b"),
+        "TRADE_CHAOS": (r"\b(?:was|were|has been|had been) traded\b", r"\btrade request\b"),
         "COMEBACK_RETURN": (
-            r"\\b(?:returned|came back|unretired)\\s+(?:to|from|after)\\b",
-            r"\\bcame out of retirement\\b",
+            r"\b(?:returned|came back|unretired)\s+(?:to|from|after)\b",
+            r"\bcame out of retirement\b",
         ),
-        "OFF_FIELD_ODDITY": (r"\\b(?:prank|costume|bizarre|unusual|strange|viral|funny)\\b",),
-        "BIZARRE_MOMENT": (r"\\b(?:bizarre|unusual|strange|rare)\\s+(?:play|touchdown|ending)\\b",),
+        "OFF_FIELD_ODDITY": (r"\b(?:prank|costume|bizarre|unusual|strange|viral|funny)\b",),
+        "BIZARRE_MOMENT": (r"\b(?:bizarre|unusual|strange|rare)\s+(?:play|touchdown|ending)\b",),
     }
     patterns = triggers.get(family)
     if not patterns:
