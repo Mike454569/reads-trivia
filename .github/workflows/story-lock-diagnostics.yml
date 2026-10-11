@@ -21,6 +21,7 @@ jobs:
           python -m py_compile tools/director_v05/story_to_trivia_factory.py
           python - <<'PY'
           import ast,sqlite3,re
+          from collections import Counter
           from pathlib import Path
           src=Path("tools/director_v05/story_to_trivia_factory.py").read_text()
           tree=ast.parse(src)
@@ -28,7 +29,7 @@ jobs:
           nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in wanted]
           constants={"EVENT_DISCOVERY_HEADLINES","DISCOVERY_LOW_SIGNAL","AUTO_FAMILIES","PRIMARY_DOMAINS"}
           nodes=[n for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in constants]+nodes
-          ns={"re":re}
+          ns={"re":re,"Counter":Counter}
           exec(compile(ast.Module(body=nodes,type_ignores=[]),"<fixture>","exec"),ns)
           c=sqlite3.connect(":memory:")
           c.row_factory=sqlite3.Row
