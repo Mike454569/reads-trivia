@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix-story-volume-integrated-processing
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Run synthetic family and evidence selection tests
         shell: bash
