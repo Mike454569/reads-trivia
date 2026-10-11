@@ -1,4 +1,4 @@
-name: Story Source Network Diagnostic
+name: Story Python Network Probe
 on:
   push:
     branches: [story-network-diagnostic-v1]
@@ -7,17 +7,10 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 3
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Compare public article response from GitHub runner
-        shell: bash
-        run: |
-          set -euo pipefail
-          for url in "https://www.nfl.com/news/son-of-falcons-dc-jeff-ulbrich-found-to-have-prank-called-shedeur-sanders-during-nfl-draft" "https://www.cbssports.com/nfl/" "https://www.espn.com/nfl/"; do
-            curl -L -sS --connect-timeout 3 --max-time 8 --max-redirs 3 -A 'Mozilla/5.0' -o /tmp/story_probe.html -w "RUNNER domain=%{url_effective} code=%{http_code} bytes=%{size_download} ip=%{remote_ip} seconds=%{time_total}\\n" "$url" || true
-          done
-      - name: Compare Fly IPv4 network fetch and DNS
+      - name: Query approved publisher from Fly Python
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -26,4 +19,21 @@ jobs:
           APP=reads-football-gateway
           MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c 'import json,sys; rows=json.load(sys.stdin); print(next((str(r.get("id")) for r in rows if str(r.get("state","")).lower()=="started" and not str(r.get("name","")).startswith("ci-")), ""))')
           test -n "$MACHINE"
-          timeout 110s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===NETWORK===; for url in https://www.nfl.com/news/son-of-falcons-dc-jeff-ulbrich-found-to-have-prank-called-shedeur-sanders-during-nfl-draft https://www.cbssports.com/nfl/ https://www.espn.com/nfl/; do curl -4 -L -sS --connect-timeout 3 --max-time 8 --max-redirs 3 -A Mozilla/5.0 -o /tmp/story_probe.html -w \"FLY domain=%{url_effective} code=%{http_code} bytes=%{size_download} ip=%{remote_ip} seconds=%{time_total}\\n\" \"\$url\" || true; done'"
+          cat >/tmp/reads_network_probe.py <<'PY'
+          import json,sqlite3,urllib.request,urllib.error,time
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=5)
+          row=c.execute("SELECT source_url FROM football_story_candidates WHERE domain='cbssports.com' AND source_url LIKE '%/nfl/news/%' LIMIT 1").fetchone()
+          c.close()
+          print("PROBE_URL",row[0] if row else "NO_MATCH",flush=True)
+          urls=[row[0]] if row else ["https://www.cbssports.com/nfl/"]
+          for url in urls:
+           t=time.monotonic()
+           try:
+            req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0","Accept":"text/html"})
+            with urllib.request.urlopen(req,timeout=6) as resp:
+             data=resp.read(150000)
+             print("FLY_PY",json.dumps({"status":resp.status,"effective":resp.geturl(),"content_type":resp.headers.get("Content-Type"),"bytes":len(data),"elapsed":round(time.monotonic()-t,2)}),flush=True)
+           except Exception as e:print("FLY_PY_FAIL",repr(e),"elapsed",round(time.monotonic()-t,2),flush=True)
+          PY
+          P_B64=$(base64 -w0 /tmp/reads_network_probe.py)
+          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d > /tmp/reads_network_probe.py; timeout -k 4s 30s python -u /tmp/reads_network_probe.py'"
