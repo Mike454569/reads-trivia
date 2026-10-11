@@ -18,7 +18,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile tools/director_v05/story_to_trivia_factory.py
+          python -m py_compile tools/director_v05/story_to_trivia_factory.py tools/director_v05/story_article_extract.py
           python - <<'PY'
           import ast,sqlite3,re
           from collections import Counter
@@ -66,7 +66,9 @@ jobs:
           t=time.monotonic()
           rows=fac._select_event_rich_candidates(c,limit=12,scan_limit=5000)
           print("EVENT_CANDIDATES_SELECTED",len(rows),"SECONDS",round(time.monotonic()-t,3),flush=True)
-          from tools.director_v05.story_article_extract import fetch_article
+          spec2=importlib.util.spec_from_file_location("tools.director_v05.story_article_extract","/tmp/story_article_extract_patched.py")
+          extractor=importlib.util.module_from_spec(spec2);sys.modules[spec2.name]=extractor;spec2.loader.exec_module(extractor)
+          fetch_article=extractor.fetch_article
           from tools.director_v05.story_subject_match import build_subject_index,match_subjects,primary_identity_match
           index=build_subject_index(c)
           stats={"selected":len(rows),"fetched":0,"canonical_person":0,"category_evidence":0,"linked_passage":0,"meets_confidence":0,"event_constructible":0}
@@ -112,5 +114,6 @@ jobs:
           print("LIVE_QUEUE_READONLY_COMPLETE",flush=True)
           PY
           F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          A_B64=$(base64 -w0 tools/director_v05/story_article_extract.py)
           P_B64=$(base64 -w0 /tmp/story_select_audit.py)
-          timeout 120s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $F_B64 | base64 -d >/tmp/story_factory_event_selection.py; echo $P_B64 | base64 -d >/tmp/story_select_audit.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 85s python -u /tmp/story_select_audit.py'"
+          timeout 120s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo $F_B64 | base64 -d >/tmp/story_factory_event_selection.py; echo $A_B64 | base64 -d >/tmp/story_article_extract_patched.py; echo $P_B64 | base64 -d >/tmp/story_select_audit.py; cd /app; export PYTHONPATH=/app; export READS_ENGINE_DIR=/data/engine; timeout -k 5s 85s python -u /tmp/story_select_audit.py'"
