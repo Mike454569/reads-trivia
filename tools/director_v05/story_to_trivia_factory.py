@@ -671,6 +671,95 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
     }
 
 
+# Queue priority is discovery order only. It does not make a candidate
+# VERIFIED: the article parser, canonical identity, family and event passage
+# gates still run after selection.
+EVENT_DISCOVERY_HEADLINES = {
+    "PRESS_CONFERENCE": (
+        "press conference", "news conference", "speaks to reporters",
+        "spoke to reporters", "told reporters", "addressed reporters",
+        "media availability", "postgame comments",
+    ),
+    "TRADE_ODDITY": (
+        "shocking trade", "surprise trade", "unexpected trade",
+        "bizarre trade", "unusual trade", "trade request",
+    ),
+    "TRADE_CHAOS": ("traded to", "traded for", "trade request", "blockbuster trade"),
+    "COMEBACK_RETURN": (
+        "came out of retirement", "returns from retirement",
+        "unretires", "returns to football", "comeback after",
+    ),
+    "OFF_FIELD_ODDITY": (
+        "bizarre", "strange", "prank", "costume", "weird", "funny",
+    ),
+    "BIZARRE_MOMENT": (
+        "bizarre play", "unusual touchdown", "strange play",
+        "rare play", "bizarre ending",
+    ),
+}
+DISCOVERY_LOW_SIGNAL = (
+    "mock draft", "power rankings", "fantasy football",
+    "betting odds", "prediction", "weekly picks",
+)
+
+
+def _story_candidate_priority(row):
+    """Pure discovery ranking; fail closed on unimplemented story families."""
+    family = str(row["family_hint"])
+    terms = EVENT_DISCOVERY_HEADLINES.get(family)
+    if not terms or family not in AUTO_FAMILIES:
+        return None
+    if int(row["sensitive_hint"] or 0):
+        return None
+    if str(row["status"]) != "REVIEW_PRIORITY":
+        return None
+    headline = re.sub(r"\\s+", " ", str(row["title"] or "").casefold()).strip()
+    if len(headline) < 16 or any(term in headline for term in DISCOVERY_LOW_SIGNAL):
+        return None
+    matched = [term for term in terms if term in headline]
+    if not matched:
+        return None
+    # Longer concrete phrases outrank generic press mentions. Primary
+    # publisher stories break ties ahead of secondary syndicated coverage.
+    primary = int(str(row["domain"]) in PRIMARY_DOMAINS)
+    return (max(map(len, matched)), len(matched), primary)
+
+
+def _select_event_rich_candidates(c, *, limit, scan_limit=5000):
+    """Select bounded distinct URLs from approved review-priority queue.
+
+    Existing production candidates retain their status until the independent
+    article-level review makes an explicit decision.
+    """
+    allowed = (
+        "nfl.com", "ncaa.org", "espn.com", "cbssports.com",
+        "foxsports.com", "si.com", "sports.yahoo.com", "usatoday.com",
+    )
+    marks = ",".join("?" for _ in allowed)
+    rows = c.execute(
+        f"""SELECT * FROM football_story_candidates
+            WHERE status='REVIEW_PRIORITY'
+              AND COALESCE(sensitive_hint, 0)=0
+              AND domain IN ({marks})
+            ORDER BY first_harvested_at DESC,candidate_id
+            LIMIT ?""",
+        (*allowed, max(1, min(int(scan_limit), 10000))),
+    ).fetchall()
+    ranked = []
+    seen_urls = set()
+    for row in rows:
+        priority = _story_candidate_priority(row)
+        if priority is None:
+            continue
+        url = str(row["source_url"] or "").strip().casefold()
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        ranked.append((priority, row))
+    ranked.sort(key=lambda pair: pair[0], reverse=True)
+    return [row for _, row in ranked[:max(1, min(int(limit), 100))]]
+
+
 def run_story_to_trivia_factory(
     *, limit=MAX_ARTICLE_FETCHES_DEFAULT, include_deep_chains=True
 ):
@@ -678,16 +767,7 @@ def run_story_to_trivia_factory(
     _ensure_schema(c)
     subject_index = build_subject_index(c)
 
-    rows = c.execute(
-        """SELECT * FROM football_story_candidates
-           WHERE status='REVIEW_PRIORITY'
-           ORDER BY
-             CASE evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
-             seen_date DESC,
-             candidate_id
-           LIMIT ?""",
-        (max(1, min(int(limit), 1000)),),
-    ).fetchall()
+    rows = _select_event_rich_candidates(c, limit=limit)
 
     counts = Counter()
     generated_questions = 0
