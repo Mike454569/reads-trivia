@@ -1,16 +1,16 @@
-name: Shedeur Canonical Identity Lookup
+name: NFL CFB Same-Player Link Audit
 on:
   push:
     branches: [story-cbs-prank-verification-v1]
 permissions:
   contents: read
 jobs:
-  diagnose:
+  audit:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Read-only Shedeur ID lookup on Fly
+      - name: Inspect explicit NFL and CFB Shedeur equivalence
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
@@ -18,24 +18,18 @@ jobs:
           set -euo pipefail
           MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started" and not str(x.get("name","")).startswith("ci-")),""))')
           test -n "$MACHINE"
-          cat > /tmp/shedeur_ids.py <<'PY'
+          cat >/tmp/reads_nfl_cfb_links.py <<'PY'
           import sqlite3,json
-          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=6)
-          c.row_factory=sqlite3.Row
-          checks=[
-          ("canonical_players","player_id","display_name"),
-          ("canonical_cfb_players","cfb_player_id","display_name"),
-          ("cfb_players","cfb_player_id","player_name"),
-          ("nfl_players_draft","player_key","player_name"),
-          ("player_profiles","player_id","display_name"),
-          ("roster_seasons","player_key","player_name")
-          ]
-          for table,idcol,namecol in checks:
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=7);c.row_factory=sqlite3.Row
+          for table,where in (
+           ("nfl_cfb_player_links","lower(cfb_player_name) LIKE '%shedeur%' OR lower(nfl_player_name) LIKE '%shedeur%'"),
+           ("nfl_cfb_player_links","cfb_player_id='ESPN_CFB:4432762' OR nfl_player_key='PFR:SandSh00'"),
+          ):
            try:
-            rows=c.execute(f"SELECT {idcol} id,{namecol} name FROM {table} WHERE lower({namecol}) LIKE '%shedeur%' LIMIT 8").fetchall()
-            print("PERSON_TABLE",table,json.dumps([dict(x) for x in rows]),flush=True)
-           except Exception as e: print("QUERY_FAIL",table,str(e)[:140],flush=True)
+            rows=c.execute(f"SELECT * FROM {table} WHERE {where} LIMIT 12").fetchall()
+            print("LINKS",json.dumps([dict(r) for r in rows],default=str),flush=True)
+           except Exception as e:print("ERROR",repr(e),flush=True)
           c.close()
           PY
-          DATA=$(base64 -w0 /tmp/shedeur_ids.py)
-          timeout 85s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $DATA | base64 -d >/tmp/shedeur_ids.py; timeout -k 3s 55s python -u /tmp/shedeur_ids.py'"
+          P_B64=$(base64 -w0 /tmp/reads_nfl_cfb_links.py)
+          timeout 75s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $P_B64 | base64 -d > /tmp/reads_nfl_cfb_links.py; timeout -k 4s 45s python -u /tmp/reads_nfl_cfb_links.py'"
