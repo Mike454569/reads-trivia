@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix-story-volume-integrated-processing
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Syntax and deterministic child-timeout regression
         shell: bash
