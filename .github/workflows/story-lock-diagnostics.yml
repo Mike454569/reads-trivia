@@ -1,26 +1,105 @@
-name: Story Lock Diagnostics
+name: Story End To End Single Candidate
 on:
   push:
-    branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+    branches: [story-end-to-end-live-v1]
 permissions:
   contents: read
 jobs:
-  inspect:
+  live:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Verify patched modules compile
+        run: |
+          python -m py_compile tools/director_v05/story_article_extract.py tools/director_v05/story_subject_match.py tools/director_v05/story_to_trivia_factory.py
+      - name: Process at most one evidence-qualified NFL story on Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started" and not str(x.get("name","")).startswith("ci-")),""))')
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_story_e2e_one.py <<'PY'
+          import json, sqlite3, time, traceback
+          from tools.quiz_export import engine as engine_bootstrap
+          from tools.director_v05.story_sqlite import prepare_write_connection
+          from tools.director_v05 import story_to_trivia_factory as factory
+          from tools.director_v05 import story_subject_match as matcher
+          from tools.director_v05.story_article_extract import fetch_article
+          
+          c=prepare_write_connection(engine_bootstrap.connect())
+          def totals():
+           return {
+            "candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+            "verified":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+            "playable":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],
+           }
+          factory._ensure_schema(c)
+          before=totals()
+          print("E2E_BEFORE",json.dumps(before),flush=True)
+          rows=c.execute("""SELECT * FROM football_story_candidates
+          WHERE status='REVIEW_PRIORITY' AND COALESCE(sensitive_hint,0)=0
+          AND domain='nfl.com' AND family_hint='OFF_FIELD_ODDITY'
+          AND (lower(title) LIKE '%prank text%' OR lower(title) LIKE '%prank call%')
+          ORDER BY CASE WHEN lower(title) LIKE '%caleb williams%' THEN 0 ELSE 1 END,
+          first_harvested_at DESC LIMIT 5""").fetchall()
+          print("E2E_CANDIDATE_POOL",json.dumps([{"id":r["candidate_id"],"title":r["title"][:110]} for r in rows]),flush=True)
+          if not rows: raise SystemExit("NO_ELIGIBLE_EXISTING_STORY_CANDIDATE")
+          started=time.monotonic()
+          index=matcher.build_subject_index(c)
+          print("E2E_INDEX_READY",len(index["labels"]),"seconds",round(time.monotonic()-started,2),flush=True)
+          selected=None
+          for row in rows[:3]:
+           print("E2E_CHECKING",row["candidate_id"],row["title"][:90],flush=True)
+           try:
+            article=fetch_article(row["source_url"],timeout=14)
+           except Exception as exc:
+            print("E2E_SOURCE_HELD",row["candidate_id"],type(exc).__name__,str(exc)[:140],flush=True)
+            continue
+           title=" ".join(dict.fromkeys(str(x).strip() for x in (row["title"],article.get("headline")) if str(x or "").strip()))
+           hint=factory._source_league_hint(article.get("final_url") or row["source_url"])
+           person=matcher.primary_identity_match(matcher.match_subjects(index,title=title,text=article["text"],league_hint=hint))
+           terms=factory._family_evidence(row["family_hint"],article)
+           passage=factory._event_evidence(article,person,row["family_hint"]) if person and terms else None
+           score=factory._confidence(row,article,person,terms) if person and terms and passage else 0
+           print("E2E_PREFLIGHT",json.dumps({"id":row["candidate_id"],"chars":article["text_chars"],"league_hint":hint,"subject":person["label"] if person else None,"family_terms":terms,"linked_event_passage":bool(passage),"score":score,"threshold":factory.MIN_PRIMARY_SCORE}),flush=True)
+           if not person or not terms or not passage or score<factory.MIN_PRIMARY_SCORE:continue
+           try: event=factory._build_event(row,article,person,terms)
+           except ValueError as exc:
+            print("E2E_EVENT_HELD",str(exc),flush=True)
+            continue
+           selected=(row,article)
+           break
+          if not selected:
+           print("E2E_NO_PROMOTION: no candidate met every gate",flush=True)
+           print("E2E_AFTER",json.dumps(totals()),flush=True)
+           c.close()
+           raise SystemExit(0)
+          row,article=selected
+          factory.fetch_article=lambda url:article
+          print("E2E_PROCESSING_SELECTED",row["candidate_id"],flush=True)
+          result=factory.process_candidate(c,row,index,include_deep_chains=False)
+          print("E2E_PROCESS_RESULT",json.dumps(result,sort_keys=True,default=str),flush=True)
+          after=totals()
+          print("E2E_AFTER",json.dumps(after),flush=True)
+          print("E2E_DELTA",json.dumps({k:after[k]-before[k] for k in before}),flush=True)
+          if result["decision"]=="AUTO_PROMOTED":
+           questions=c.execute("SELECT question_id,status,mechanic,question_json FROM story_generated_questions WHERE candidate_id=? ORDER BY created_at DESC LIMIT 6",(row["candidate_id"],)).fetchall()
+           for question in questions:
+            q=json.loads(question["question_json"])
+            print("E2E_QUESTION",json.dumps({"id":question["question_id"],"status":question["status"],"mechanic":question["mechanic"],"stem":str(q.get("stem") or q.get("prompt") or q.get("question") or "")[:230],"answer":q.get("answer")},default=str),flush=True)
+           if not any(q["status"] in ("READY_FOR_BANK","READY_FOR_FORMAT_BANK") for q in questions):
+            print("E2E_FAILED_NO_PLAYABLE_QUESTION",flush=True)
+            raise SystemExit(12)
+          print("E2E_FINISHED",flush=True)
+          c.close()
+          PY
+          A_B64=$(base64 -w0 tools/director_v05/story_article_extract.py)
+          S_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          P_B64=$(base64 -w0 /tmp/reads_story_e2e_one.py)
+          timeout -k 5s 245s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'mkdir -p /tmp/reads_e2e_overlay/tools/director_v05; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_e2e_overlay/tools/__init__.py; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_e2e_overlay/tools/director_v05/__init__.py; echo $A_B64 | base64 -d >/tmp/reads_e2e_overlay/tools/director_v05/story_article_extract.py; echo $S_B64 | base64 -d >/tmp/reads_e2e_overlay/tools/director_v05/story_subject_match.py; echo $F_B64 | base64 -d >/tmp/reads_e2e_overlay/tools/director_v05/story_to_trivia_factory.py; echo $P_B64 | base64 -d >/tmp/reads_story_e2e_one.py; cd /app; export PYTHONPATH=/tmp/reads_e2e_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 205s python -u /tmp/reads_story_e2e_one.py'"
