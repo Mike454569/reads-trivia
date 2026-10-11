@@ -558,6 +558,28 @@ def polish_verified_story_questions(c, event_id, subject):
         q = json.loads(row["question_json"])
         answer = q.get("answer") or {}
         if row["mechanic"] == "MULTIPLE_CHOICE" and answer.get("id") == subject["entity_id"]:
+            # Rival answers must be genuine quarterbacks from the same
+            # draft class, verified in the database rather than improvised.
+            wanted = ("Jalen Milroe", "Dillon Gabriel", "Will Howard")
+            qb_rows = c.execute(
+                """SELECT DISTINCT p.player_id,p.display_name
+                   FROM draft_facts d
+                   JOIN canonical_players p ON p.player_id=d.player_key
+                   WHERE d.draft_season=2025 AND d.position='QB'
+                     AND d.verification_status='SOURCE_BACKED'
+                     AND p.display_name IN (?,?,?)""",
+                wanted,
+            ).fetchall()
+            alternatives = {str(x["display_name"]): str(x["player_id"]) for x in qb_rows}
+            if len(alternatives) == 3:
+                q["options"] = [name, *wanted]
+                q["distractors"] = [
+                    {"entity_id": alternatives[label], "label": label,
+                     "source": "verified_2025_nfl_draft"}
+                    for label in wanted
+                ]
+                q.pop("distractor_pool_size", None)
+                q.pop("distractor_difficulty_band", None)
             q["question"] = "Who am I?"
             q["clues"] = [
                 {"step": 1, "text": "I was an NFL draft prospect."},
