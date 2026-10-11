@@ -1,26 +1,53 @@
-name: Story Lock Diagnostics
+name: CBS Prank Story Source Verification
 on:
   push:
-    branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+    branches: [story-cbs-prank-verification-v1]
 permissions:
   contents: read
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Read-only real CBS article identity and event-evidence gates
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c 'import json,sys; rows=json.load(sys.stdin); print(next((str(r.get("id")) for r in rows if str(r.get("state","")).lower()=="started" and not str(r.get("name","")).startswith("ci-")), ""))')
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_cbs_prank_verify.py <<'PY'
+          import importlib.util,sys,time,json,sqlite3
+          from tools.quiz_export import engine as eng
+          from tools.director_v05.story_article_extract import fetch_article
+          def load(name,path):
+           sp=importlib.util.spec_from_file_location(name,path)
+           x=importlib.util.module_from_spec(sp);sys.modules[name]=x;sp.loader.exec_module(x);return x
+          sm=load("tools.director_v05.story_subject_match","/tmp/reads_cbs_subject.py")
+          fac=load("tools.director_v05.story_to_trivia_factory","/tmp/reads_cbs_factory.py")
+          source="https://www.cbssports.com/nfl/news/shedeur-sanders-prank-call-son-of-nfl-defensive-coordinator-at-center-of-stunt-pulled-during-draft-weekend/"
+          t=time.monotonic()
+          article=fetch_article(source,timeout=14)
+          print("ARTICLE_OK",json.dumps({"chars":article["text_chars"],"headline":article["headline"],"seconds":round(time.monotonic()-t,2)}),flush=True)
+          c=eng.connect()
+          idx=sm.build_subject_index(c)
+          print("SUBJECT_INDEX",len(idx["labels"]),flush=True)
+          c.close()
+          title="Shedeur Sanders prank call: Son of NFL defensive coordinator at center of stunt pulled during draft weekend"
+          matches=sm.match_subjects(idx,title=title+" "+article["headline"],text=article["text"],max_matches=12)
+          subject=sm.primary_identity_match(matches)
+          print("SUBJECT",json.dumps({"selected":subject,"title_people":[{"name":m["label"],"id":m["entity_id"]} for m in matches if m["in_title"]],"matches":len(matches)},default=str),flush=True)
+          terms=fac._family_evidence("OFF_FIELD_ODDITY",article)
+          passage=fac._event_evidence(article,subject,"OFF_FIELD_ODDITY") if subject else None
+          print("EVIDENCE",json.dumps({"family_terms":terms,"passage_proven":bool(passage),"passage":passage},default=str),flush=True)
+          print("CBS_VERIFICATION_PREFLIGHT_COMPLETED",flush=True)
+          PY
+          A_B64=$(base64 -w0 tools/director_v05/story_article_extract.py)
+          S_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          P_B64=$(base64 -w0 /tmp/reads_cbs_prank_verify.py)
+          timeout 125s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'mkdir -p /tmp/reads_fetch_overlay/tools/director_v05; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_fetch_overlay/tools/__init__.py; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_fetch_overlay/tools/director_v05/__init__.py; echo $A_B64 | base64 -d >/tmp/reads_fetch_overlay/tools/director_v05/story_article_extract.py; echo $S_B64 | base64 -d >/tmp/reads_cbs_subject.py; echo $F_B64 | base64 -d >/tmp/reads_cbs_factory.py; echo $P_B64 | base64 -d >/tmp/reads_cbs_prank_verify.py; cd /app; export PYTHONPATH=/tmp/reads_fetch_overlay:/app; export READS_ENGINE_DIR=/data/engine; timeout -k 4s 90s python -u /tmp/reads_cbs_prank_verify.py'"
