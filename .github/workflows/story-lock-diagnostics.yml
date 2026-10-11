@@ -1,26 +1,121 @@
-name: Story Lock Diagnostics
+name: CBS Story One Event End-to-End
 on:
   push:
-    branches:
-      - "story-lock-diagnostic-trigger-*"
-  workflow_dispatch:
+    branches: [story-end-to-end-cbs-v3]
 permissions:
   contents: read
 jobs:
-  inspect:
+  process:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
+      - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Inspect Fly lock holder without modifying database
+      - name: Syntax check and evidence confidence regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/director_v05/story_article_extract.py tools/director_v05/story_subject_match.py tools/director_v05/story_to_trivia_factory.py tools/director_v05/lore_distractors.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          src=Path("tools/director_v05/story_to_trivia_factory.py").read_text()
+          tree=ast.parse(src)
+          assert any(isinstance(n,ast.FunctionDef) and n.name=="_event_evidence" for n in tree.body)
+          assert "event_evidence=event_evidence" in src
+          lore=Path("tools/director_v05/lore_distractors.py").read_text()
+          assert "profile.team_or_school" in lore and "profile.team:" not in lore
+          print("PASS: scoped evidence gating and correct distractor Candidate fields")
+          PY
+      - name: Verify and generate at most one source-backed CBS story on Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           APP=reads-football-gateway
-          MACHINES=$(flyctl machines list -a "$APP" --json)
-          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; rows=json.load(sys.stdin); ids=[str(r.get('id') or r.get('ID')) for r in rows if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))]; print(ids[0] if ids else '')")
+          MACHINE=$(flyctl machines list -a "$APP" --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started" and not str(x.get("name","")).startswith("ci-")),""))')
           test -n "$MACHINE"
-          echo "Inspecting machine $MACHINE"
-          timeout 90s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'echo ===PROCESSES===; ps -eo pid,ppid,etime,stat,args | grep -E "(flock|story_|python|refresh)" | head -100 || true; echo ===LOCKS===; command -v lslocks >/dev/null && lslocks || true; echo ===FUSER===; command -v fuser >/dev/null && fuser -v /data/engine/story-volume-writer.lock || true; echo ===LOCK_PROBE===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo ===OPEN_FDS===; for x in /proc/[0-9]*/fd/*; do target=\$(readlink \"\$x\" 2>/dev/null || true); if [ \"\$target\" = /data/engine/story-volume-writer.lock ]; then echo \"\$x \$target\"; fi; done'" 
+          cat >/tmp/reads_cbs_story_e2e_v2.py <<'PY'
+          import hashlib,json,datetime as dt,time
+          from tools.quiz_export import engine as eng
+          from tools.director_v05.story_sqlite import prepare_write_connection,commit_with_retry
+          from tools.director_v05 import story_to_trivia_factory as fac
+          from tools.director_v05 import story_subject_match as sm
+          from tools.director_v05.story_article_extract import fetch_article
+          
+          source="https://www.cbssports.com/nfl/news/shedeur-sanders-prank-call-son-of-nfl-defensive-coordinator-at-center-of-stunt-pulled-during-draft-weekend/"
+          title="Shedeur Sanders prank call: Son of NFL defensive coordinator at center of stunt pulled during draft weekend"
+          cid="storycand_"+hashlib.sha256(source.encode()).hexdigest()[:24]
+          c=prepare_write_connection(eng.connect())
+          fac._ensure_schema(c)
+          def snap():
+           return {"candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+                   "verified":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+                   "playable":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0]}
+          before=snap()
+          print("CBS_E2E_BEFORE",json.dumps(before),flush=True)
+          existing=c.execute("SELECT * FROM football_story_candidates WHERE source_url=?",(source,)).fetchone()
+          if existing is not None and existing["status"] not in ("REVIEW_PRIORITY","REVIEW_REQUIRED","PROMOTED"):
+           print("CBS_EXISTING_STATUS",existing["status"],"safely skipping",flush=True)
+           raise SystemExit(0)
+          if existing is not None and existing["status"]=="PROMOTED":
+           print("CBS_ALREADY_PROMOTED",flush=True)
+           raise SystemExit(0)
+          article=fetch_article(source,timeout=14)
+          print("CBS_E2E_ARTICLE",json.dumps({"chars":article["text_chars"],"headline":article["headline"],"domain":article["domain"]}),flush=True)
+          started=time.monotonic()
+          idx=sm.build_subject_index(c)
+          print("CBS_E2E_INDEX",len(idx["labels"]),"seconds",round(time.monotonic()-started,2),flush=True)
+          headlines=" ".join(dict.fromkeys(x for x in (title,article["headline"]) if x))
+          hint=fac._source_league_hint(article.get("final_url") or source)
+          subject=sm.primary_identity_match(sm.match_subjects(idx,title=headlines,text=article["text"],league_hint=hint,max_matches=12))
+          terms=fac._family_evidence("OFF_FIELD_ODDITY",article)
+          passage=fac._event_evidence(article,subject,"OFF_FIELD_ODDITY") if subject and terms else None
+          candidate={
+           "candidate_id":cid,"source_url":source,"title":title,"domain":"cbssports.com",
+           "family_hint":"OFF_FIELD_ODDITY","sensitive_hint":0,"status":"REVIEW_PRIORITY",
+           "seen_date":None,"evidence_tier_hint":"REPUTABLE_MEDIA",
+          }
+          score=fac._confidence(candidate,article,subject,terms,event_evidence=passage) if subject and terms and passage else 0
+          print("CBS_E2E_PREFLIGHT",json.dumps({"subject":subject,"terms":terms,"event_passage":bool(passage),"confidence":score,"required":fac.MIN_REPUTABLE_SCORE},default=str),flush=True)
+          if not subject or subject["entity_type"]!="NFL_PLAYER" or subject["label"]!="Shedeur Sanders" or not terms or not passage or score<fac.MIN_REPUTABLE_SCORE:
+           print("CBS_E2E_HOLD: evidence threshold or subject failed; zero inserts",flush=True)
+           c.close();raise SystemExit(0)
+          event=fac._build_event(candidate,article,subject,terms)
+          assert event["league"]=="NFL" and event["verification_status"]=="VERIFIED"
+          if existing is None:
+           now=dt.datetime.now(dt.timezone.utc).isoformat()
+           c.execute("""INSERT OR IGNORE INTO football_story_candidates(
+           candidate_id,source_url,title,domain,seen_date,language,source_country,family_hint,
+           query_text,evidence_tier_hint,sensitive_hint,status,first_harvested_at,last_seen_at
+           ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           (cid,source,title,"cbssports.com",None,"English","US","OFF_FIELD_ODDITY",
+           "CBS verified publisher story","REPUTABLE_MEDIA",0,"REVIEW_PRIORITY",now,now))
+           commit_with_retry(c)
+          else:
+           cid=existing["candidate_id"]
+          candidate=c.execute("SELECT * FROM football_story_candidates WHERE candidate_id=?",(cid,)).fetchone()
+          print("CBS_E2E_PROCESSING",cid,flush=True)
+          fac.fetch_article=lambda _:article
+          result=fac.process_candidate(c,candidate,idx,include_deep_chains=False)
+          print("CBS_E2E_RESULT",json.dumps(result,default=str),flush=True)
+          after=snap()
+          print("CBS_E2E_AFTER",json.dumps(after),flush=True)
+          print("CBS_E2E_DELTA",json.dumps({k:after[k]-before[k] for k in before}),flush=True)
+          if result.get("decision")=="AUTO_PROMOTED":
+           rows=c.execute("SELECT question_id,status,mechanic,question_json FROM story_generated_questions WHERE candidate_id=?",(cid,)).fetchall()
+           for row in rows:
+            q=json.loads(row["question_json"])
+            print("CBS_E2E_QUESTION",json.dumps({"id":row["question_id"],"status":row["status"],"mechanic":row["mechanic"],"stem":str(q.get("question") or q.get("stem") or q.get("prompt") or "")[:250],"answer":q.get("answer")},default=str),flush=True)
+           if not any(row["status"] in ("READY_FOR_BANK","READY_FOR_FORMAT_BANK") for row in rows):
+            print("CBS_E2E_NO_PLAYABLE_QUESTION",flush=True);raise SystemExit(12)
+          print("CBS_E2E_COMPLETED",flush=True)
+          c.close()
+          PY
+          A_B64=$(base64 -w0 tools/director_v05/story_article_extract.py)
+          S_B64=$(base64 -w0 tools/director_v05/story_subject_match.py)
+          F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
+          L_B64=$(base64 -w0 tools/director_v05/lore_distractors.py)
+          P_B64=$(base64 -w0 /tmp/reads_cbs_story_e2e_v2.py)
+          timeout -k 6s 255s flyctl ssh console -a "$APP" --machine "$MACHINE" -C "sh -lc 'mkdir -p /tmp/reads_cbs_overlay/tools/director_v05; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_cbs_overlay/tools/__init__.py; printf \"from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\\n\" >/tmp/reads_cbs_overlay/tools/director_v05/__init__.py; echo $A_B64 | base64 -d >/tmp/reads_cbs_overlay/tools/director_v05/story_article_extract.py; echo $S_B64 | base64 -d >/tmp/reads_cbs_overlay/tools/director_v05/story_subject_match.py; echo $F_B64 | base64 -d >/tmp/reads_cbs_overlay/tools/director_v05/story_to_trivia_factory.py; echo $L_B64 | base64 -d >/tmp/reads_cbs_overlay/tools/director_v05/lore_distractors.py; echo $P_B64 | base64 -d >/tmp/reads_cbs_story_e2e_v2.py; cd /app; export PYTHONPATH=/tmp/reads_cbs_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 220s python -u /tmp/reads_cbs_story_e2e_v2.py'"
