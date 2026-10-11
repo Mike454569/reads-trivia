@@ -9,8 +9,8 @@ from __future__ import annotations
 import html
 import json
 import re
-import signal
-import threading
+import subprocess
+import sys
 import urllib.request
 from html.parser import HTMLParser
 from urllib.parse import urlparse
@@ -101,33 +101,37 @@ def _jsonld_articles(raw_blobs):
 
 
 def fetch_article(url, *, timeout=TIMEOUT_SECONDS):
-    """Retrieve one article with a real end-to-end deadline on Fly/Linux.
+    """Fetch in a killable child process with a hard, total deadline.
 
-    urllib's per-socket timeout alone does not limit total streaming time.
-    This deadline is only installed from the main thread. It leaves other
-    processes and the production web server's signal handlers untouched.
+    DNS lookups and some native TLS/network calls cannot be reliably
+    interrupted by Python SIGALRM. subprocess.run(timeout=...) kills and
+    reaps the child, even if it is blocked in a native library. No network
+    operation or HTML parsing occurs in the caller's process.
     """
-    if (not hasattr(signal, "setitimer")
-            or threading.current_thread() is not threading.main_thread()):
-        return _fetch_article_impl(url, timeout=timeout)
-
-    prior_handler = signal.getsignal(signal.SIGALRM)
-    prior_timer = signal.getitimer(signal.ITIMER_REAL)
-    # Never override a pre-existing scheduler alarm.
-    if prior_timer[0] > 0:
-        return _fetch_article_impl(url, timeout=timeout)
-
-    def _deadline_expired(signum, frame):
-        raise TimeoutError("ARTICLE_TOTAL_FETCH_DEADLINE")
-
+    if _host(url) not in APPROVED_DOMAINS:
+        raise ValueError("ARTICLE_DOMAIN_NOT_APPROVED")
+    deadline = max(1.0, float(timeout))
+    argv = [
+        sys.executable, "-m", "tools.director_v05.story_article_extract",
+        "--fetch-worker", str(url), str(deadline),
+    ]
     try:
-        signal.signal(signal.SIGALRM, _deadline_expired)
-        signal.setitimer(signal.ITIMER_REAL, max(1.0, float(timeout)))
-        return _fetch_article_impl(url, timeout=timeout)
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, prior_handler)
-
+        result = subprocess.run(
+            argv, capture_output=True, text=True, timeout=deadline + 1.0,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError("ARTICLE_TOTAL_FETCH_DEADLINE") from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip()[-300:] or "WORKER_FAILED"
+        raise ValueError("ARTICLE_WORKER_FAILED:" + detail)
+    try:
+        payload = json.loads(result.stdout)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("ARTICLE_WORKER_INVALID_JSON") from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("text"), str):
+        raise ValueError("ARTICLE_WORKER_INVALID_RESULT")
+    return payload
 
 def _fetch_article_impl(url, *, timeout=TIMEOUT_SECONDS):
     requested_host = _host(url)
@@ -194,3 +198,14 @@ def _fetch_article_impl(url, *, timeout=TIMEOUT_SECONDS):
         "text": body[:MAX_TEXT_CHARS],
         "text_chars": min(len(body), MAX_TEXT_CHARS),
     }
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 4 or sys.argv[1] != "--fetch-worker":
+        raise SystemExit("Usage: python -m tools.director_v05.story_article_extract --fetch-worker URL TIMEOUT")
+    try:
+        article = _fetch_article_impl(sys.argv[2], timeout=float(sys.argv[3]))
+    except Exception as exc:
+        print(type(exc).__name__ + ":" + str(exc)[:240], file=sys.stderr)
+        raise SystemExit(1)
+    print(json.dumps(article, ensure_ascii=False))
