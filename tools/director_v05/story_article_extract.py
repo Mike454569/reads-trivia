@@ -15,7 +15,13 @@ import urllib.request
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 
-from .story_candidate_harvest import APPROVED_DOMAINS
+# Avoid importing the harvesting module here: it imports the full engine,
+# which is expensive and unnecessary for individual article fetch workers.
+# Keep this list aligned with the harvester's approved-domain policy.
+APPROVED_DOMAINS = (
+    "nfl.com", "espn.com", "cbssports.com", "foxsports.com",
+    "si.com", "ncaa.org", "sports.yahoo.com", "usatoday.com",
+)
 
 MAX_RESPONSE_BYTES = 1_500_000
 MAX_TEXT_CHARS = 18_000
