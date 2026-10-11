@@ -63,10 +63,10 @@ jobs:
           AND domain IN ('nfl.com','ncaa.org','espn.com','cbssports.com','foxsports.com','si.com','sports.yahoo.com','usatoday.com')
           AND family_hint IN ('COMEBACK_RETURN','TRADE_ODDITY','BIZARRE_MOMENT','OFF_FIELD_ODDITY','PRESS_CONFERENCE','TRADE_CHAOS','GAME_ODDITY')
           ORDER BY CASE WHEN family_hint IN ('COMEBACK_RETURN','TRADE_ODDITY','TRADE_CHAOS') THEN 0 ELSE 1 END, first_harvested_at DESC
-          LIMIT 45""").fetchall()
+          LIMIT 8""").fetchall()
           c.close()
           counts={"sampled":len(rows),"fetched":0,"person":0,"family_evidence":0,"linked_passage":0,"high_confidence":0,"event_eligible":0}
-          for row in rows[:32]:
+          for row in rows[:6]:
            try:a=fetch_article(row["source_url"],timeout=8)
            except Exception:continue
            counts["fetched"]+=1
