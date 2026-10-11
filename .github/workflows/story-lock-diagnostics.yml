@@ -66,10 +66,50 @@ jobs:
           t=time.monotonic()
           rows=fac._select_event_rich_candidates(c,limit=12,scan_limit=5000)
           print("EVENT_CANDIDATES_SELECTED",len(rows),"SECONDS",round(time.monotonic()-t,3),flush=True)
+          from tools.director_v05.story_article_extract import fetch_article
+          from tools.director_v05.story_subject_match import build_subject_index,match_subjects,primary_identity_match
+          index=build_subject_index(c)
+          stats={"selected":len(rows),"fetched":0,"canonical_person":0,"category_evidence":0,"linked_passage":0,"meets_confidence":0,"event_constructible":0}
           for row in rows:
-           print("SELECTED",json.dumps({"family":row["family_hint"],"title":row["title"][:95],"domain":row["domain"],"priority":fac._story_candidate_priority(row)}),flush=True)
+           print("SELECTED",json.dumps({"family":row["family_hint"],"title":row["title"][:95],"domain":row["domain"]}),flush=True)
+           try:
+            article=fetch_article(row["source_url"],timeout=9)
+           except Exception as exc:
+            print("FETCH_HELD",row["candidate_id"],type(exc).__name__,str(exc)[:100],flush=True)
+            continue
+           stats["fetched"]+=1
+           combined=" ".join(dict.fromkeys(str(x).strip() for x in (row["title"],article.get("headline")) if str(x or "").strip()))
+           subject=primary_identity_match(match_subjects(index,title=combined,text=article["text"]))
+           if subject is None:
+            print("IDENTITY_HELD",row["candidate_id"],flush=True)
+            continue
+           stats["canonical_person"]+=1
+           family=row["family_hint"]
+           terms=fac._family_evidence(family,article)
+           if not terms:
+            print("CATEGORY_HELD",row["candidate_id"],flush=True)
+            continue
+           stats["category_evidence"]+=1
+           passage=fac._event_evidence(article,subject,family)
+           if not passage:
+            print("PASSAGE_HELD",row["candidate_id"],flush=True)
+            continue
+           stats["linked_passage"]+=1
+           score=fac._confidence(row,article,subject,terms)
+           threshold=fac.MIN_PRIMARY_SCORE if row["domain"] in fac.PRIMARY_DOMAINS else fac.MIN_REPUTABLE_SCORE
+           if score<threshold:
+            print("CONFIDENCE_HELD",row["candidate_id"],score,threshold,flush=True)
+            continue
+           stats["meets_confidence"]+=1
+           try:
+            event=fac._build_event(row,article,subject,terms)
+           except ValueError as exc:
+            print("EVENT_HELD",row["candidate_id"],str(exc),flush=True)
+            continue
+           stats["event_constructible"]+=1
+           print("EVENT_PREFLIGHT_OK",json.dumps({"id":row["candidate_id"],"subject":subject["label"],"family":family,"url":row["source_url"],"passage_sha256":passage["passage_sha256"]}),flush=True)
+          print("SOURCE_PREFLIGHT_COUNTS",json.dumps(stats,sort_keys=True),flush=True)
           print("LIVE_QUEUE_READONLY_COMPLETE",flush=True)
-          c.close()
           PY
           F_B64=$(base64 -w0 tools/director_v05/story_to_trivia_factory.py)
           P_B64=$(base64 -w0 /tmp/story_select_audit.py)
