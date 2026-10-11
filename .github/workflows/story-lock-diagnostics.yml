@@ -24,18 +24,18 @@ jobs:
           import sqlite3,time,json
           from tools.director_v05.story_article_extract import fetch_article
           c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=5)
-          row=c.execute("SELECT source_url FROM football_story_candidates WHERE domain='cbssports.com' AND source_url LIKE '%marvin-harrison-jr-trade%' LIMIT 1").fetchone()
+          row=c.execute("SELECT source_url FROM football_story_candidates WHERE domain='nfl.com' AND source_url LIKE '%prank%' LIMIT 1").fetchone()
           c.close()
-          assert row,"known CBS article not present"
+          assert row,"NFL candidate not present"
           t=time.monotonic()
           try:
-           a=fetch_article(row[0],timeout=13)
-           print("CBS_ARTICLE_RESULT",json.dumps({"status":"OK","text_chars":a.get("text_chars"),"headline":a.get("headline"),"domain":a.get("domain"),"seconds":round(time.monotonic()-t,2)}),flush=True)
+           a=fetch_article(row[0],timeout=16)
+           print("NFL_ARTICLE_RESULT",json.dumps({"status":"OK","text_chars":a.get("text_chars"),"headline":a.get("headline"),"domain":a.get("domain"),"seconds":round(time.monotonic()-t,2)}),flush=True)
            assert a["text_chars"]>=250
           except Exception as e:
-           print("CBS_ARTICLE_FAILURE",repr(e),"seconds",round(time.monotonic()-t,2),flush=True)
+           print("NFL_ARTICLE_FAILURE",repr(e),"seconds",round(time.monotonic()-t,2),flush=True)
            raise
-          print("PASS_EXTRACTOR_REAL_ARTICLE",flush=True)
+          print("NFL_ARTICLE_PROBE_COMPLETED",flush=True)
           PY
           F_B64=$(base64 -w0 tools/director_v05/story_article_extract.py)
           P_B64=$(base64 -w0 /tmp/reads_cbs_extract.py)
