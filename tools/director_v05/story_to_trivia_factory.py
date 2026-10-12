@@ -30,6 +30,7 @@ from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
 from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
 from .story_factory_v2 import prepare_story_question
+from .story_quality_certification import certify_event_questions
 from .story_sqlite import (
     prepare_write_connection as _prepare_write_connection,
     commit_with_retry as _commit_with_retry,
@@ -742,17 +743,20 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         subject_id=subject["entity_id"],
     )
     polish_verified_story_questions(c, event_id, subject)
+    quality = certify_event_questions(c, event_id, quarantine=True)
     _store_enrichment(
         c, candidate, article=article, subject=subject, family=family,
         score=score, evidence_terms=evidence_terms,
         decision="AUTO_PROMOTED",
         event_id=event_id,
-        generated=len(questions) + int(formats.get("generated_count") or 0),
+        generated=int(quality["passed"]),
     )
     return {
         "decision":"AUTO_PROMOTED",
         "event_id":event_id,
-        "generated":len(questions) + int(formats.get("generated_count") or 0),
+        "generated":int(quality["passed"]),
+        "quality": {"passed": quality["passed"], "rejected": quality["rejected"],
+                    "rejection_reasons": quality["rejection_reasons"]},
         "identity_questions":len(questions),
         "format_questions":int(formats.get("generated_count") or 0),
         "format_rejections":formats.get("rejected", []),
