@@ -1,3 +1,4 @@
+# CI-only nudge for PR #10 real-DB verification; safe to discard with the temporary branch.
 """Shared pytest fixtures for the Gateway test suite (Director v0.6, Part Q).
 
 Sets a fixed, obviously-fake local test token BEFORE importing the app
