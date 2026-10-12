@@ -1,55 +1,16 @@
-name: Story Volume Quality Certification
+name: Story Smoke Lock and Ledger Inspection
 on:
   push:
-    branches: [story-volume-quality-v1]
+    branches: [story-volume-postmortem-v1]
 permissions:
   contents: read
 jobs:
-  certify:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-      - name: Compile and exercise bounded batch selection and QA
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m py_compile tools/director_v05/story_batch_processor.py tools/director_v05/story_quality_certification.py
-          python - <<'PY'
-          import sqlite3,importlib.util,json,datetime as dt
-          p="tools/director_v05/story_quality_certification.py"
-          sp=importlib.util.spec_from_file_location("storyqa",p)
-          m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)
-          base={"question_id":"q1","event_id":"evt1","mechanic":"MULTIPLE_CHOICE","question_family":"LORE_IDENTITY","question":"Who am I?","answer":{"id":"p1","label":"Player One"},"options":["Player One","Player Two","Player Three","Player Four"],"clues":[{"text":"I played quarterback."},{"text":"I was drafted."},{"text":"A prank call interrupted my draft."}],"provenance":{"provenance_complete":True,"event_ids":["evt1"],"evidence":[{"source_url":"https://www.cbssports.com/example"}]}}
-          assert not m.certify_question(base,expected_event_id="evt1")
-          bad={**base,"question_id":"q2","clues":[{"text":"I am Player One."}]*3}
-          assert "ANSWER_LEAK_IN_CLUES" in m.certify_question(bad)
-          robotic={**base,"question_id":"q3","question":"Event label: this documented off-field football story."}
-          assert "ROBOTIC_COPY" in m.certify_question(robotic)
-          c=sqlite3.connect(":memory:");c.row_factory=sqlite3.Row
-          c.execute("CREATE TABLE story_generated_questions(question_id TEXT PRIMARY KEY,event_id TEXT,status TEXT,question_json TEXT)")
-          for q in (base,bad,robotic):
-              c.execute("INSERT INTO story_generated_questions VALUES (?,?,?,?)",(q["question_id"],"evt1","READY_FOR_BANK",json.dumps(q)))
-          report=m.certify_event_questions(c,"evt1")
-          assert report["passed"]==1 and report["rejected"]==2,report
-          assert c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status='NEEDS_EDITORIAL_REVIEW'").fetchone()[0]==2
-          print("PASS: one source-backed playable question, two quarantined, no leaked answers")
-          PY
-          python - <<'PY'
-          import ast
-          from pathlib import Path
-          s=Path("tools/director_v05/story_batch_processor.py").read_text()
-          root=ast.parse(s)
-          cap=next(n.value for n in root.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=="MAX_BATCH_SIZE" for x in n.targets))
-          assert ast.literal_eval(cap)==50
-          assert "BEGIN IMMEDIATE" in s
-          assert "certify_event_questions(c" in s
-          assert "quality_reasons.update" in s
-          assert "generated = int(audit[\"passed\"])" in s
-          print("PASS: capped 50, atomic claim, quarantine-first certification metrics")
-          PY
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Fly read-only audit of certified questions
+      - name: Check Fly lock and batch ledger read-only
         shell: bash
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -57,27 +18,13 @@ jobs:
           set -euo pipefail
           MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started"),""))')
           test -n "$MACHINE"
-          cat >/tmp/story_readonly.py <<'PY'
-          import sqlite3,json,importlib.util,sys
-          p="/data/engine/reads_football_v4.0.sqlite"
-          conn=sqlite3.connect("file:"+p+"?mode=ro",uri=True,timeout=8);conn.row_factory=sqlite3.Row
-          sp=importlib.util.spec_from_file_location("story_quality_live","/tmp/story_quality_live.py")
-          q=importlib.util.module_from_spec(sp);sp.loader.exec_module(q)
-          rows=conn.execute("""SELECT question_id,event_id,status,question_json FROM story_generated_questions
-           WHERE event_id='evt_story_a132d1da78e78935ddee627a' ORDER BY question_id""").fetchall()
-          assert len(rows)==2,len(rows)
-          for row in rows:
-           defects=q.certify_question(json.loads(row["question_json"]),expected_event_id=row["event_id"])
-           print("LIVE_QUESTION_QUALITY",json.dumps({"id":row["question_id"],"status":row["status"],"reasons":defects}),flush=True)
-           assert not defects,(row["question_id"],defects)
-          totals={"candidates":conn.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
-          "verified":conn.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
-          "playable":conn.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],
-          "pending_priority":conn.execute("SELECT COUNT(*) FROM football_story_candidates WHERE status='REVIEW_PRIORITY' AND COALESCE(sensitive_hint,0)=0").fetchone()[0]}
-          print("LIVE_STORY_INVENTORY",json.dumps(totals),flush=True)
-          print("PASS: no writes, real player-facing questions certified",flush=True)
-          conn.close()
+          cat >/tmp/story_ledger_probe.py <<'PY'
+          import sqlite3,json
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=5);c.row_factory=sqlite3.Row
+          print("PROCESSING_STATES",json.dumps([dict(r) for r in c.execute("SELECT state,COUNT(*) count FROM story_candidate_processing GROUP BY state")]),flush=True)
+          print("RECENT_PROCESSING",json.dumps([dict(r) for r in c.execute("SELECT candidate_id,state,attempts,substr(last_error,1,130) last_error,updated_at FROM story_candidate_processing WHERE state='PROCESSING' ORDER BY updated_at DESC LIMIT 6")]),flush=True)
+          print("DB_READ_OK",flush=True)
+          c.close()
           PY
-          QA=$(base64 -w0 tools/director_v05/story_quality_certification.py)
-          PAYLOAD=$(base64 -w0 /tmp/story_readonly.py)
-          timeout -k 4s 110s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $QA | base64 -d > /tmp/story_quality_live.py; echo $PAYLOAD | base64 -d > /tmp/story_readonly.py; timeout -k 3s 75s python -u /tmp/story_readonly.py'"
+          PAYLOAD=$(base64 -w0 /tmp/story_ledger_probe.py)
+          timeout 95s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo ===WRITER_LOCK===; flock -n /data/engine/story-volume-writer.lock true && echo LOCK_FREE || echo LOCK_BUSY; echo $PAYLOAD | base64 -d >/tmp/story_ledger_probe.py; timeout -k 4s 60s python -u /tmp/story_ledger_probe.py'"
