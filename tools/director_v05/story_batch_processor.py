@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import sqlite3
+import time
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -19,7 +20,9 @@ from .story_to_trivia_factory import (
     _prepare_write_connection,
     _commit_with_retry,
     process_candidate,
+    _story_candidate_priority,
 )
+from .story_quality_certification import certify_event_questions
 
 STATE_PENDING = "PENDING"
 STATE_PROCESSING = "PROCESSING"
@@ -29,7 +32,7 @@ STATE_RETRY = "FAILED_RETRYABLE"
 STATE_FAILED = "FAILED_FINAL"
 
 DEFAULT_BATCH_SIZE = 5
-MAX_BATCH_SIZE = 25
+MAX_BATCH_SIZE = 50
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_STALE_MINUTES = 30
 
@@ -123,15 +126,42 @@ def _claim_batch(c, *, batch_size, max_attempts):
              AND p.attempts < ?
              AND c.status='REVIEW_PRIORITY'
              AND COALESCE(c.sensitive_hint,0)=0
-           ORDER BY
-             CASE c.evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
-             c.seen_date DESC,
-             p.attempts ASC,
+           ORDER BY p.attempts ASC, c.first_harvested_at DESC,
              p.candidate_id
-           LIMIT ?""",
-        (max_attempts, batch_size),
+           LIMIT 5000""",
+        (max_attempts,),
     ).fetchall()
-    ids = [str(r["candidate_id"]) for r in rows]
+    # Prioritize concrete verified-source incidents, but do not relax the
+    # article/identity/evidence gates. Each batch is category-balanced.
+    ranked = []
+    for item in rows:
+        candidate = c.execute(
+            "SELECT * FROM football_story_candidates WHERE candidate_id=?",
+            (item["candidate_id"],),
+        ).fetchone()
+        priority = _story_candidate_priority(candidate) if candidate else None
+        if priority is not None:
+            ranked.append((priority, candidate))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    chosen = []
+    family_counts = Counter()
+    cap = max(2, (batch_size + 3) // 4)
+    for _, candidate in ranked:
+        family = str(candidate["family_hint"])
+        if family_counts[family] >= cap:
+            continue
+        chosen.append(candidate)
+        family_counts[family] += 1
+        if len(chosen) >= batch_size:
+            break
+    if len(chosen) < batch_size:
+        already = {x["candidate_id"] for x in chosen}
+        for _, candidate in ranked:
+            if candidate["candidate_id"] not in already:
+                chosen.append(candidate)
+                if len(chosen) >= batch_size:
+                    break
+    ids = [str(r["candidate_id"]) for r in chosen]
     if ids:
         c.executemany(
             """UPDATE story_candidate_processing
@@ -205,6 +235,8 @@ def process_story_batch(
     subject_index = build_subject_index(c)
 
     counts = Counter()
+    quality_counts = Counter()
+    quality_reasons = Counter()
     examples = []
     for row in rows:
         cid = str(row["candidate_id"])
@@ -218,6 +250,13 @@ def process_story_batch(
             decision = str(result.get("decision") or "UNKNOWN")
             generated = int(result.get("generated") or 0)
             if decision == "AUTO_PROMOTED":
+                audit = certify_event_questions(c, result["event_id"], quarantine=True)
+                quality_counts["passed"] += int(audit["passed"])
+                quality_counts["rejected"] += int(audit["rejected"])
+                quality_reasons.update(audit["rejection_reasons"])
+                # Count genuinely certified playable artifacts, not every
+                # generated draft including those quarantined by QA.
+                generated = int(audit["passed"])
                 state = STATE_DONE
             elif decision.startswith("REVIEW_REQUIRED"):
                 state = STATE_REVIEW
@@ -237,6 +276,7 @@ def process_story_batch(
                     "decision": decision,
                     "generated": generated,
                     "event_id": result.get("event_id"),
+                    "certified_playable": generated,
                 })
         except Exception as exc:
             attempt_row = c.execute(
@@ -281,6 +321,9 @@ def process_story_batch(
         "generated_from_checkpointed_batches": generated_total,
         "batch_size": max(1, min(int(batch_size), MAX_BATCH_SIZE)),
         "include_deep_chains": bool(include_deep_chains),
+        "quality": {"passed": quality_counts["passed"],
+                    "rejected": quality_counts["rejected"],
+                    "rejection_reasons": dict(quality_reasons)},
         "examples": examples,
     }
 
