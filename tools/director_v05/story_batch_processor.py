@@ -118,7 +118,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
     # candidate even if GitHub or an admin accidentally starts both.
     c.execute("BEGIN IMMEDIATE")
     rows = c.execute(
-        """SELECT p.candidate_id
+        """SELECT c.*
            FROM story_candidate_processing p
            JOIN football_story_candidates c
              ON c.candidate_id=p.candidate_id
@@ -134,12 +134,8 @@ def _claim_batch(c, *, batch_size, max_attempts):
     # Prioritize concrete verified-source incidents, but do not relax the
     # article/identity/evidence gates. Each batch is category-balanced.
     ranked = []
-    for item in rows:
-        candidate = c.execute(
-            "SELECT * FROM football_story_candidates WHERE candidate_id=?",
-            (item["candidate_id"],),
-        ).fetchone()
-        priority = _story_candidate_priority(candidate) if candidate else None
+    for candidate in rows:
+        priority = _story_candidate_priority(candidate)
         if priority is not None:
             ranked.append((priority, candidate))
     ranked.sort(key=lambda x: x[0], reverse=True)
