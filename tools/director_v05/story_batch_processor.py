@@ -216,6 +216,7 @@ def process_story_batch(
     max_attempts=DEFAULT_MAX_ATTEMPTS,
     stale_minutes=DEFAULT_STALE_MINUTES,
     include_deep_chains=False,
+    subject_index=None,
 ):
     c = _prepare_write_connection(engine_bootstrap.connect())
     c.row_factory = sqlite3.Row
@@ -228,7 +229,8 @@ def process_story_batch(
         batch_size=batch_size,
         max_attempts=max_attempts,
     )
-    subject_index = build_subject_index(c)
+    if rows and subject_index is None:
+        subject_index = build_subject_index(c)
 
     counts = Counter()
     quality_counts = Counter()
