@@ -10,6 +10,7 @@ import datetime as dt
 import json
 import sqlite3
 import time
+import time
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -217,18 +218,29 @@ def process_story_batch(
     stale_minutes=DEFAULT_STALE_MINUTES,
     include_deep_chains=False,
 ):
+    start = time.monotonic()
+    def progress(stage, **fields):
+        print("STORY_BATCH_STAGE", json.dumps({
+            "stage": stage,
+            "elapsed_seconds": round(time.monotonic() - start, 2),
+            **fields,
+        }, sort_keys=True), flush=True)
+
+    progress("connect")
     c = _prepare_write_connection(engine_bootstrap.connect())
     c.row_factory = sqlite3.Row
+    progress("schema")
     ensure_factory_schema(c)
     _ensure_schema(c)
+    progress("sync_queue")
     sync_queue(c)
+    progress("reclaim_stale")
     reclaimed = reclaim_stale(c, stale_minutes=stale_minutes)
-    rows = _claim_batch(
-        c,
-        batch_size=batch_size,
-        max_attempts=max_attempts,
-    )
-    subject_index = build_subject_index(c)
+    progress("claim_batch")
+    rows = _claim_batch(c, batch_size=batch_size, max_attempts=max_attempts)
+    progress("build_subject_index", claimed=len(rows))
+    subject_index = build_subject_index(c) if rows else None
+    progress("ready_for_articles", labels=len(subject_index["labels"]) if subject_index else 0)
 
     counts = Counter()
     quality_counts = Counter()
@@ -236,6 +248,7 @@ def process_story_batch(
     examples = []
     for row in rows:
         cid = str(row["candidate_id"])
+        progress("candidate_start", candidate_id=cid, family=row["family_hint"])
         try:
             result = process_candidate(
                 c,
@@ -265,6 +278,7 @@ def process_story_batch(
                 decision=decision,
                 generated=generated,
             )
+            progress("candidate_finished", candidate_id=cid, decision=decision, certified=generated)
             counts[state] += 1
             if len(examples) < 10:
                 examples.append({
@@ -288,6 +302,7 @@ def process_story_batch(
                 state=state,
                 error=type(exc).__name__ + ":" + str(exc),
             )
+            progress("candidate_error", candidate_id=cid, state=state, error=str(exc)[:150])
             counts[state] += 1
             if len(examples) < 10:
                 examples.append({
@@ -296,6 +311,7 @@ def process_story_batch(
                     "error": type(exc).__name__ + ":" + str(exc),
                 })
 
+    progress("collect_results")
     ledger = {
         str(r["state"]): int(r["n"])
         for r in c.execute(
