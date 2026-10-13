@@ -1,7 +1,7 @@
-name: Controlled Story Volume QA Batch
+name: Instrumented Single Story Batch Probe
 on:
   push:
-    branches: [story-volume-quality-v1]
+    branches: [story-batch-timeout-fix-v1]
 permissions:
   contents: read
 jobs:
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Smoke process only two candidates on Fly
+      - name: Diagnose one candidate with stage-by-stage timings on Fly
         shell: bash
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -24,7 +24,7 @@ jobs:
           from tools.director_v05.story_batch_processor import process_story_batch
           from tools.quiz_export import engine
           started=time.monotonic()
-          report=process_story_batch(batch_size=2,max_attempts=2,stale_minutes=30,include_deep_chains=False)
+          report=process_story_batch(batch_size=1,max_attempts=2,stale_minutes=30,include_deep_chains=False)
           print("BATCH_SMOKE_RESULT",json.dumps(report,sort_keys=True,default=str),flush=True)
           print("BATCH_SMOKE_SECONDS",round(time.monotonic()-started,2),flush=True)
           c=engine.connect()
@@ -41,4 +41,4 @@ jobs:
           tar -C /tmp -czf /tmp/story_batch_overlay.tgz story_batch_overlay
           ARCHIVE=$(base64 -w0 /tmp/story_batch_overlay.tgz)
           PAYLOAD=$(base64 -w0 /tmp/story_batch_smoke.py)
-          timeout -k 5s 285s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story_batch_smoke.py; cd /app; export PYTHONPATH=/tmp/story_batch_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 235s python -u /tmp/story_batch_smoke.py'"
+          timeout -k 5s 200s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story_batch_smoke.py; cd /app; export PYTHONPATH=/tmp/story_batch_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 150s python -u /tmp/story_batch_smoke.py'"
