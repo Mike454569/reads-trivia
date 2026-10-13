@@ -11,6 +11,9 @@ import time
 from collections import Counter
 
 from .story_batch_processor import process_story_batch
+from .story_subject_match import build_subject_index
+from .story_to_trivia_factory import _prepare_write_connection
+from tools.quiz_export import engine as engine_bootstrap
 
 DEFAULT_BATCH_SIZE = 5
 DEFAULT_MAX_BATCHES = 10
@@ -31,17 +34,25 @@ def drain_story_queue(
     generated_total = 0
     no_promotion_streak = 0
     stop_reason = None
+    subject_index = None
 
     for batch_number in range(1, max(1, int(max_batches)) + 1):
         if time.monotonic() - started >= max(30, int(time_budget_seconds)):
             stop_reason = "TIME_BUDGET"
             break
 
+        if subject_index is None:
+            conn = _prepare_write_connection(engine_bootstrap.connect())
+            try:
+                subject_index = build_subject_index(conn)
+            finally:
+                conn.close()
         result = process_story_batch(
             batch_size=batch_size,
             max_attempts=3,
             stale_minutes=30,
             include_deep_chains=include_deep_chains,
+            subject_index=subject_index,
         )
         claimed = int(result.get("claimed") or 0)
         claimed_total += claimed
