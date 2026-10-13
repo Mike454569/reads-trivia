@@ -20,11 +20,17 @@ jobs:
           MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started"),""))')
           test -n "$MACHINE"
           cat >/tmp/story_batch_smoke.py <<'PY'
-          import json,time
+          import json,time,faulthandler,sys
+          faulthandler.enable(file=sys.stderr)
+          faulthandler.dump_traceback_later(45, repeat=True, file=sys.stderr)
+          print('BATCH_SMOKE_STAGE imports_start', flush=True)
           from tools.director_v05.story_batch_processor import process_story_batch
           from tools.quiz_export import engine
+          print('BATCH_SMOKE_STAGE imports_done', flush=True)
           started=time.monotonic()
+          print('BATCH_SMOKE_STAGE process_start', flush=True)
           report=process_story_batch(batch_size=2,max_attempts=2,stale_minutes=30,include_deep_chains=False)
+          print('BATCH_SMOKE_STAGE process_done', flush=True)
           print("BATCH_SMOKE_RESULT",json.dumps(report,sort_keys=True,default=str),flush=True)
           print("BATCH_SMOKE_SECONDS",round(time.monotonic()-started,2),flush=True)
           c=engine.connect()
