@@ -47,4 +47,4 @@ jobs:
           tar -C /tmp -czf /tmp/story_batch_overlay.tgz story_batch_overlay
           ARCHIVE=$(base64 -w0 /tmp/story_batch_overlay.tgz)
           PAYLOAD=$(base64 -w0 /tmp/story_batch_smoke.py)
-          timeout -k 5s 285s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story_batch_smoke.py; cd /app; export PYTHONPATH=/tmp/story_batch_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 15 /data/engine/story-volume-writer.lock timeout -k 5s 235s python -u /tmp/story_batch_smoke.py'"
+          timeout -k 5s 340s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story_batch_smoke.py; cd /app; export PYTHONPATH=/tmp/story_batch_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 90 /data/engine/story-volume-writer.lock timeout -k 5s 235s python -u /tmp/story_batch_smoke.py'"
