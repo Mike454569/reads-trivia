@@ -128,16 +128,19 @@ def _claim_batch(c, *, batch_size, max_attempts):
              AND COALESCE(c.sensitive_hint,0)=0
            ORDER BY p.attempts ASC, c.first_harvested_at DESC,
              p.candidate_id
-           LIMIT 5000""",
+           """,
         (max_attempts,),
     ).fetchall()
     # Prioritize concrete verified-source incidents, but do not relax the
     # article/identity/evidence gates. Each batch is category-balanced.
     ranked = []
+    rejection_reasons = Counter()
     for candidate in rows:
         priority = _story_candidate_priority(candidate)
         if priority is not None:
             ranked.append((priority, candidate))
+        else:
+            rejection_reasons[str(candidate['family_hint'] or 'UNKNOWN')] += 1
     ranked.sort(key=lambda x: x[0], reverse=True)
     chosen = []
     family_counts = Counter()
@@ -173,9 +176,9 @@ def _claim_batch(c, *, batch_size, max_attempts):
     _commit_with_retry(c)
 
     if not ids:
-        return []
+        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked), 'filtered_by_family': dict(rejection_reasons)}
     marks = ",".join("?" for _ in ids)
-    return c.execute(
+    selected = c.execute(
         f"""SELECT * FROM football_story_candidates
             WHERE candidate_id IN ({marks})
             ORDER BY
@@ -183,6 +186,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
               seen_date DESC,candidate_id""",
         ids,
     ).fetchall()
+    return selected, {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked), 'filtered_by_family': dict(rejection_reasons)}
 
 
 def _finish(c, candidate_id, *, state, decision=None, generated=0, error=None):
@@ -224,7 +228,7 @@ def process_story_batch(
     _ensure_schema(c)
     sync_queue(c)
     reclaimed = reclaim_stale(c, stale_minutes=stale_minutes)
-    rows = _claim_batch(
+    rows, selection_diagnostics = _claim_batch(
         c,
         batch_size=batch_size,
         max_attempts=max_attempts,
@@ -313,6 +317,7 @@ def process_story_batch(
     c.close()
     return {
         "claimed": len(rows),
+        "selection_diagnostics": selection_diagnostics,
         "reclaimed_stale": reclaimed,
         "counts": dict(counts),
         "ledger": ledger,
