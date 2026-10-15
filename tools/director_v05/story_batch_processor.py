@@ -21,6 +21,8 @@ from .story_to_trivia_factory import (
     _commit_with_retry,
     process_candidate,
     _story_candidate_priority,
+    AUTO_FAMILIES,
+    DISCOVERY_LOW_SIGNAL,
 )
 from .story_quality_certification import certify_event_questions
 
@@ -134,14 +136,34 @@ def _claim_batch(c, *, batch_size, max_attempts):
     # Prioritize concrete verified-source incidents, but do not relax the
     # article/identity/evidence gates. Each batch is category-balanced.
     ranked = []
+    fallback = []
     rejection_reasons = Counter()
     for candidate in rows:
         priority = _story_candidate_priority(candidate)
         if priority is not None:
             ranked.append((priority, candidate))
         else:
-            rejection_reasons[str(candidate['family_hint'] or 'UNKNOWN')] += 1
+            # Headline discovery terms rank candidates; they are not a factual
+            # certification gate. Let safe, supported families reach the
+            # article/identity/evidence verifier even without keyword hits.
+            family = str(candidate["family_hint"] or "")
+            title = str(candidate["title"] or "").casefold().strip()
+            domain = str(candidate["domain"] or "").casefold()
+            if (family in AUTO_FAMILIES and len(title) >= 16
+                    and not any(term in title for term in DISCOVERY_LOW_SIGNAL)
+                    and domain in {
+                        "nfl.com", "ncaa.org", "espn.com", "cbssports.com",
+                        "foxsports.com", "si.com", "sports.yahoo.com",
+                        "usatoday.com",
+                    }):
+                fallback.append(candidate)
+            else:
+                rejection_reasons[family or "UNKNOWN"] += 1
     ranked.sort(key=lambda x: x[0], reverse=True)
+    # Preserve discovery-first selection, then use the conservative fallback.
+    # No candidate becomes VERIFIED here; process_candidate retains every
+    # independent source and article verification requirement.
+    ranked.extend(((0, 0, 0, 0), row) for row in fallback)
     chosen = []
     family_counts = Counter()
     cap = max(2, (batch_size + 3) // 4)
@@ -176,7 +198,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
     _commit_with_retry(c)
 
     if not ids:
-        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked), 'filtered_by_family': dict(rejection_reasons)}
+        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked) - len(fallback), 'fallback_matches': len(fallback), 'filtered_by_family': dict(rejection_reasons)}
     marks = ",".join("?" for _ in ids)
     selected = c.execute(
         f"""SELECT * FROM football_story_candidates
