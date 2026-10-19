@@ -159,6 +159,8 @@ def _claim_batch(c, *, batch_size, max_attempts):
                 fallback.append(candidate)
             else:
                 rejection_reasons[family or "UNKNOWN"] += 1
+    priority_match_count = len(ranked)
+    fallback_match_count = len(fallback)
     ranked.sort(key=lambda x: x[0], reverse=True)
     # Preserve discovery-first selection, then use the conservative fallback.
     # No candidate becomes VERIFIED here; process_candidate retains every
@@ -198,7 +200,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
     _commit_with_retry(c)
 
     if not ids:
-        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked) - len(fallback), 'fallback_matches': len(fallback), 'filtered_by_family': dict(rejection_reasons)}
+        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': priority_match_count, 'fallback_matches': fallback_match_count, 'selected': 0, 'filtered_by_family': dict(rejection_reasons)}
     marks = ",".join("?" for _ in ids)
     selected = c.execute(
         f"""SELECT * FROM football_story_candidates
@@ -208,7 +210,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
               seen_date DESC,candidate_id""",
         ids,
     ).fetchall()
-    return selected, {'eligible_ledger_rows': len(rows), 'priority_matches': len(ranked), 'filtered_by_family': dict(rejection_reasons)}
+    return selected, {'eligible_ledger_rows': len(rows), 'priority_matches': priority_match_count, 'fallback_matches': fallback_match_count, 'selected': len(selected), 'filtered_by_family': dict(rejection_reasons)}
 
 
 def _finish(c, candidate_id, *, state, decision=None, generated=0, error=None):
