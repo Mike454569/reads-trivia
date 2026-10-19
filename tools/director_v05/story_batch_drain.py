@@ -33,6 +33,7 @@ def drain_story_queue(
     claimed_total = 0
     generated_total = 0
     no_promotion_streak = 0
+    selection_diagnostics = []
     stop_reason = None
     subject_index = None
 
@@ -61,12 +62,14 @@ def drain_story_queue(
             int(result.get("generated_from_checkpointed_batches") or 0),
         )
         totals.update(result.get("counts") or {})
+        selection_diagnostics.append(result.get("selection_diagnostics") or {})
         runs.append({
             "batch": batch_number,
             "claimed": claimed,
             "counts": result.get("counts") or {},
             "reclaimed_stale": int(result.get("reclaimed_stale") or 0),
             "ledger": result.get("ledger") or {},
+            "selection_diagnostics": result.get("selection_diagnostics") or {},
         })
 
         # Queue exhausted or no currently claimable work.
@@ -100,6 +103,7 @@ def drain_story_queue(
         "ledger": final_ledger,
         "stop_reason": stop_reason,
         "no_promotion_streak": no_promotion_streak,
+        "selection_diagnostics": selection_diagnostics,
         "elapsed_seconds": round(time.monotonic() - started, 3),
         "include_deep_chains": bool(include_deep_chains),
         "runs": runs,
