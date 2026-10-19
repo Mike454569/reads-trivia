@@ -23,3 +23,27 @@ def test_no_eligible_story_reports_zero():
     assert stats["fallback_matches"] == 0
     assert stats["selected"] == 0
     db.close()
+
+
+def test_priority_and_fallback_counts_are_not_mixed():
+    db = connection()
+    for cid in ("priority", "fallback"):
+        db.execute(
+            "INSERT INTO football_story_candidates VALUES (?,?,?,?,?,?,?,?,?)",
+            (cid, "REVIEW_PRIORITY", 0, "BIZARRE_MOMENT",
+             "Strange NFL touchdown sparks surprise", "nfl.com",
+             "2026-10-19", "PRIMARY", "2026-10-19"),
+        )
+        db.execute(
+            "INSERT INTO story_candidate_processing(candidate_id,state,attempts) VALUES (?,'PENDING',0)",
+            (cid,),
+        )
+    with patch.object(queue, "_story_candidate_priority", side_effect=lambda r: (10, 0, 0, 0) if r["candidate_id"] == "priority" else None):
+        with patch.object(queue, "_commit_with_retry", side_effect=lambda c: c.commit()):
+            chosen, stats = queue._claim_batch(db, batch_size=2, max_attempts=3)
+    assert len(chosen) == 2
+    assert stats["eligible_ledger_rows"] == 2
+    assert stats["priority_matches"] == 1
+    assert stats["fallback_matches"] == 1
+    assert stats["selected"] == 2
+    db.close()
