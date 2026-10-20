@@ -90,11 +90,14 @@ def start_public_format(
     client_id: Optional[str] = None,
 ) -> dict[str, Any]:
     if mode in public_mechanics.PUBLIC_MECHANIC_MODES:
-        if any(v is not None for v in (difficulty, seed, stage_index, filter_value, client_id)) or exclude_game_ids:
-            # Mechanic generators intentionally own their server-selected
-            # parameters. Reject irrelevant knobs instead of pretending they
-            # influence a mechanic round.
-            raise GatewayError("INVALID_REQUEST", f"mode={mode!r} does not accept question-mode launch parameters.")
+        # Universal clients may send their standard launch context to every
+        # format. Mechanic rounds choose their own seed/difficulty and do not
+        # support exclusions yet; ignore those optional hints rather than
+        # preventing an otherwise playable round from starting.
+        # Stage/franchise, by contrast, change the meaning of a round and
+        # must not be silently discarded.
+        if stage_index is not None or filter_value is not None:
+            raise GatewayError("INVALID_REQUEST", f"mode={mode!r} does not support stage or franchise filters.")
         return _normalize_mechanic_round(public_mechanics.start_public_round(mode=mode))
 
     if mode in public_game.PUBLIC_MODES:
