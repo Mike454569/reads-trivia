@@ -37,7 +37,7 @@ def _eligible(question, event_id):
     return isinstance(question.get("question"), str) and bool(question["question"].strip())
 
 
-def start_story_round(mode: str):
+def start_story_round(mode: str, *, exclude_question_ids=()):
     league = MODES.get(mode)
     if league is None:
         raise GatewayError("INVALID_MODE", "Unknown story mode.")
@@ -60,12 +60,15 @@ def start_story_round(mode: str):
         ).fetchall()
     finally:
         db.close()
+    excluded = {str(v) for v in exclude_question_ids}
     for row in rows:
         try:
             question = json.loads(row["question_json"])
         except (ValueError, TypeError):
             continue
         if not _eligible(question, row["event_id"]):
+            continue
+        if str(question.get("question_id") or "") in excluded:
             continue
         round_id = "GGP4:" + secrets.token_hex(12)
         correct = question["answer"]["label"].strip()
