@@ -80,7 +80,7 @@ from typing import Any, Dict, List, Optional
 
 from .. import config
 from ..errors import GatewayError
-from . import generation, oplog, packages
+from . import game_state, generation, oplog, packages
 
 # --- Cross-Mode Repetition pass -----------------------------------------------
 # The lightest mechanism that fits this file's existing, deliberately
