@@ -3,10 +3,15 @@ from __future__ import annotations
 
 import json
 import secrets
+import threading
+from collections import deque
 
 from gateway.errors import GatewayError
 from gateway.services import game_state
 from tools.quiz_export import engine as engine_bootstrap
+
+_recent_lock = threading.Lock()
+_recent_by_client = {}
 
 MODES = {
     "story_lore_nfl": "NFL",
@@ -37,7 +42,7 @@ def _eligible(question, event_id):
     return isinstance(question.get("question"), str) and bool(question["question"].strip())
 
 
-def start_story_round(mode: str, *, exclude_question_ids=()):
+def start_story_round(mode: str, *, client_id=None, exclude_question_ids=()):
     league = MODES.get(mode)
     if league is None:
         raise GatewayError("INVALID_MODE", "Unknown story mode.")
@@ -61,6 +66,9 @@ def start_story_round(mode: str, *, exclude_question_ids=()):
     finally:
         db.close()
     excluded = {str(v) for v in exclude_question_ids}
+    if client_id:
+        with _recent_lock:
+            excluded.update(_recent_by_client.get((client_id, mode), ()))
     for row in rows:
         try:
             question = json.loads(row["question_json"])
@@ -70,6 +78,9 @@ def start_story_round(mode: str, *, exclude_question_ids=()):
             continue
         if str(question.get("question_id") or "") in excluded:
             continue
+        if client_id:
+            with _recent_lock:
+                _recent_by_client.setdefault((client_id, mode), deque(maxlen=32)).append(str(question["question_id"]))
         round_id = "GGP4:" + secrets.token_hex(12)
         correct = question["answer"]["label"].strip()
         game_state.create_state(round_id, {
