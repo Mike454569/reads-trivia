@@ -1125,7 +1125,7 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
     from . import public_story
     if mode in public_story.MODES:
         _ensure_public_gameplay_enabled()
-        story = public_story.start_story_round(mode)
+        story = public_story.start_story_round(mode, client_id=client_id)
         return {
             "game_id": story["round_id"], "mode": mode,
             "competition": story["competition"], "difficulty": None,
