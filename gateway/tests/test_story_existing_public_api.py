@@ -18,7 +18,7 @@ def test_story_launch_uses_existing_public_game_contract():
                 mode="story_lore_nfl", difficulty=None, seed=None,
                 exclude_game_ids=[], client_id=None,
             )
-    start.assert_called_once_with("story_lore_nfl")
+    start.assert_called_once_with("story_lore_nfl", client_id=None)
     assert payload["game_id"] == stub["round_id"]
     assert payload["payload"]["options"] == ["A", "B", "C", "D"]
     assert "correctIndex" not in payload["payload"]
