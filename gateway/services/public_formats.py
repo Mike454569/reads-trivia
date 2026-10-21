@@ -96,7 +96,7 @@ def start_public_format(
     if mode in public_story.MODES:
         if stage_index is not None or filter_value is not None:
             raise GatewayError('INVALID_REQUEST', 'Story rounds do not support stages or franchise filters.')
-        return public_story.start_story_round(mode)
+        return public_story.start_story_round(mode, client_id=client_id)
 
     if mode in public_mechanics.PUBLIC_MECHANIC_MODES:
         if any(v is not None for v in (difficulty, seed, stage_index, filter_value, client_id)) or exclude_game_ids:
