@@ -15,6 +15,7 @@ from .lore_formats import (
 )
 from .lore_mechanics import compile_fact_or_fake, compile_matching
 from .story_factory_v2 import prepare_story_question, stable_question_id
+from .story_quality_certification import certify_question
 
 
 def _tables(conn):
@@ -25,6 +26,13 @@ def _persist(conn, candidate_id, event_id, subject_type, subject_id, question, *
     if "story_generated_questions" not in _tables(conn):
         raise ValueError("STORY_QUESTION_TABLE_MISSING")
     question = prepare_story_question(question)
+    # A combined/multi-event compiler may choose a different anchor event.
+    # Never falsely attribute its source evidence to this event.
+    if str(question.get("event_id")) != str(event_id):
+        raise ValueError("WRONG_EVENT_ID")
+    defects = certify_question(question, expected_event_id=event_id)
+    if defects:
+        raise ValueError("STORY_CERTIFICATION_FAILED:" + ",".join(defects))
     import datetime as dt
     now = dt.datetime.now(dt.timezone.utc).isoformat()
     conn.execute(
