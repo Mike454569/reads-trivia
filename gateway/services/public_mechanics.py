@@ -944,6 +944,12 @@ def _ensure_mode_public(mode: str) -> dict:
 
 def start_public_round(*, mode: str) -> dict:
     from tools.director_v02 import mechanic_engine
+    if mode == "who_am_i_nfl":
+        _ensure_mode_public(mode)
+        from . import public_story
+        story_round = public_story.start_story_identity()
+        if story_round is not None:
+            return story_round
 
     entry = _ensure_mode_public(mode)
     taxonomy_id, variant = entry["taxonomy_id"], entry["variant"]
@@ -1068,6 +1074,13 @@ def get_public_round(*, round_id: str) -> dict:
 
 def submit_public_round(*, round_id: str, submission: dict) -> dict:
     from tools.director_v02 import mechanic_engine
+    from . import public_story
+    try:
+        story_state = game_state.load_state(round_id)
+    except game_state.StateIdInvalid:
+        story_state = None
+    if story_state and story_state.get("story_identity_mode") == "who_am_i_nfl":
+        return public_story.submit_story_identity(round_id, submission)
 
     try:
         stored = packages.load_package(round_id)
