@@ -29,6 +29,7 @@ from .lore_mechanics import compile_progressive_identity
 from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
 from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
+from .story_quality_certification import certify_question
 from .story_factory_v2 import prepare_story_question
 from .story_quality_certification import certify_event_questions
 from .story_sqlite import (
@@ -534,10 +535,17 @@ def generate_questions_for_event(
         unique[str(q["question_id"])] = q
     generated = list(unique.values())[:max(1, int(max_questions))]
 
+    certified = []
     for q in generated:
+        # Do not store a draft only to quarantine it on the next pass.
+        # In particular, deep-chain compilers may reference another anchor
+        # event or lack complete evidence for the owning story.
+        if certify_question(q, expected_event_id=event_id):
+            continue
         _persist_question(c, candidate_id, event_id, subject, q)
+        certified.append(q)
     _commit_with_retry(c)
-    return generated
+    return certified
 
 
 def polish_verified_story_questions(c, event_id, subject):
