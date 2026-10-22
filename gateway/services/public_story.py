@@ -175,7 +175,7 @@ def start_story_identity(*, client_id=None):
                 _recent_by_client.setdefault((client_id, mode), deque(maxlen=32)).append(qid)
         return {"round_id": round_id, "mode": mode, "kind": "progressive_clue",
                 "title": "Who Am I?", "instructions": "Identify the NFL player from verified clues.",
-                "view": _identity_view(clues, 1, completed=False)}
+                "view": _identity_view(clues, 1, completed=False), "metadata": {"source": "certified_story_bank"}}
     return None
 
 
