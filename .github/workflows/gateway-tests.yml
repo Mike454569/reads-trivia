@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Controlled batch of already verified stories (no deployment)
+      - name: Diagnose story rejection reasons (read-only; writes disabled)
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -71,13 +71,17 @@ jobs:
                       print("DIAGNOSTIC_ERROR",name,str(exc),flush=True)
               dry=mod.backfill(c,limit=10,apply=False)
               print("DRY_RUN",json.dumps(dry,sort_keys=True),flush=True)
-              if dry["counts"].get("eligible_events",0)<1:
-                  print("BLOCKED_NO_ELIGIBLE_EVENTS",flush=True)
-              else:
-                  applied=mod.backfill(c,limit=10,apply=True)
-                  print("APPLIED",json.dumps(applied,sort_keys=True),flush=True)
-                  if applied["counts"].get("questions_certified",0)<1:
-                      print("NO_CERTIFIED_QUESTIONS",flush=True)
+              print("WRITES_DISABLED_AFTER_FAILED_CERTIFICATION",flush=True)
+              from collections import Counter
+              reasons=Counter()
+              for row in c.execute("SELECT question_json,event_id FROM story_generated_questions WHERE status='NEEDS_EDITORIAL_REVIEW' LIMIT 200").fetchall():
+                  try:
+                      q=json.loads(row["question_json"])
+                      reasons.update(cert_mod.certify_question(q, expected_event_id=row["event_id"]))
+                  except Exception:
+                      reasons.update(["MALFORMED_JSON"])
+              print("REJECTION_REASONS",json.dumps(dict(reasons),sort_keys=True),flush=True)
+              print("STATUS_COUNTS",json.dumps(dict(c.execute("SELECT status,COUNT(*) FROM story_generated_questions GROUP BY status").fetchall()),sort_keys=True),flush=True)
           finally:
               c.close()
           PY
