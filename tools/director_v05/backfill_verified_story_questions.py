@@ -26,10 +26,9 @@ def candidates(conn, *, limit=50):
            WHERE e.verification_status='VERIFIED' AND COALESCE(e.sensitive,0)=0
              AND UPPER(e.league) IN ('NFL','CFB')
              AND q.decision='AUTO_PROMOTED'
-             AND NOT EXISTS (
-               SELECT 1 FROM story_generated_questions g
-               WHERE g.event_id=e.event_id AND
-                     g.status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK'))
+             AND (SELECT COUNT(*) FROM story_generated_questions g
+                  WHERE g.event_id=e.event_id AND
+                        g.status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')) < 5
            GROUP BY e.event_id
            ORDER BY e.event_id
            LIMIT ?""",
