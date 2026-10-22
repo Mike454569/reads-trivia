@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from ..errors import GatewayError
-from . import game_state, public_game, public_mechanics
+from . import game_state, public_game, public_mechanics, public_story
 
 
 def list_public_formats() -> list[dict[str, Any]]:
@@ -41,6 +41,10 @@ def list_public_formats() -> list[dict[str, Any]]:
             "engine_kind": "mechanic",
             "available": row.get("available", True),
         })
+    for mode, league in public_story.MODES.items():
+        rows.append({"mode": mode, "competition": league, "title": "Football Story Room",
+                     "instructions": "Answer verified football-story trivia.",
+                     "kind": "multiple_choice", "engine_kind": "story", "available": True})
     return rows
 
 
@@ -89,6 +93,11 @@ def start_public_format(
     filter_value: Optional[str] = None,
     client_id: Optional[str] = None,
 ) -> dict[str, Any]:
+    if mode in public_story.MODES:
+        if stage_index is not None or filter_value is not None:
+            raise GatewayError('INVALID_REQUEST', 'Story rounds do not support stages or franchise filters.')
+        return public_story.start_story_round(mode, client_id=client_id)
+
     if mode in public_mechanics.PUBLIC_MECHANIC_MODES:
         if any(v is not None for v in (difficulty, seed, stage_index, filter_value, client_id)) or exclude_game_ids:
             # Mechanic generators intentionally own their server-selected
@@ -123,6 +132,14 @@ def submit_public_format(*, round_id: str, submission: dict[str, Any]) -> dict[s
         progress = game_state.load_state(round_id)
     except game_state.StateIdInvalid:
         progress = None
+
+    if progress is not None and progress.get('story_bank_mode') in public_story.MODES:
+        return public_story.submit_story_round(round_id, submission)
+
+    if progress is not None and progress.get("story_identity_mode") == "who_am_i_nfl":
+        payload = public_mechanics.submit_public_round(round_id=round_id, submission=submission)
+        return {"round_id": round_id, "mode": payload["mode"], "engine_kind": "mechanic",
+                "result": payload["result"], "view": payload["view"]}
 
     if progress is not None and "public_mode" in progress:
         payload = public_mechanics.submit_public_round(round_id=round_id, submission=submission)

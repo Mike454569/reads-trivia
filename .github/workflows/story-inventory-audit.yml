@@ -1,0 +1,48 @@
+name: Read-only Story Inventory Audit
+
+on:
+  push:
+    branches:
+      - feature-public-story-bank-20261021
+    paths:
+      - .github/workflows/story-inventory-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect live story inventory (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Choose started production Fly machine
+        id: machine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${FLY_API_TOKEN:-}"
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          test -n "$MACHINE"
+          echo "id=$MACHINE" >> "$GITHUB_OUTPUT"
+      - name: Run SELECT-only inventory audit
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          MACHINE: ${{ steps.machine.outputs.id }}
+        run: |
+          set -euo pipefail
+          SCRIPT_B64=$(base64 -w0 tools/director_v05/audit_story_inventory.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $SCRIPT_B64 | base64 -d > /tmp/reads_story_inventory_audit.py; python3 /tmp/reads_story_inventory_audit.py --db /data/engine/reads_football_v4.0.sqlite'" | tee story-inventory.json
+          python3 -c "import json; j=json.load(open('story-inventory.json')); print('VERIFIED_STORIES',j.get('verified_non_sensitive_events')); print('PLAYABLE_QUESTIONS',j.get('eligible_distinct_questions')); print('MODE_COUNTS',j.get('modes')); print('BLOCKERS',j.get('blockers'))"
+      - name: Save audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-inventory-read-only
+          path: story-inventory.json
+          if-no-files-found: warn

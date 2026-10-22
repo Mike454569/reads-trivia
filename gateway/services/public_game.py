@@ -80,7 +80,7 @@ from typing import Any, Dict, List, Optional
 
 from .. import config
 from ..errors import GatewayError
-from . import generation, oplog, packages
+from . import game_state, generation, oplog, packages
 
 # --- Cross-Mode Repetition pass -----------------------------------------------
 # The lightest mechanism that fits this file's existing, deliberately
@@ -1118,6 +1118,26 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
                      stage_index: Optional[int] = None,
                      filter_value: Optional[str] = None,
                      client_id: Optional[str] = None) -> dict:
+    # Story Factory uses its own verified question bank but exposes the same
+    # public game/answer contract used by existing browser game clients.
+    # This is opt-in for story modes only: a Draft, Championship, or Pick'em
+    # game must NEVER receive a semantically unrelated story question.
+    from . import public_story
+    if mode in public_story.MODES:
+        _ensure_public_gameplay_enabled()
+        story = public_story.start_story_round(mode, client_id=client_id)
+        return {
+            "game_id": story["round_id"], "mode": mode,
+            "competition": story["competition"], "difficulty": None,
+            "title": story["title"], "instructions": story["instructions"],
+            "payload": {
+                "prompt": story["view"]["prompt"],
+                "options": list(story["view"]["options"]),
+                "visual_template": "DEFAULT_MULTIPLE_CHOICE",
+                "visual_payload": None,
+            },
+            "metadata": story.get("metadata") or {},
+        }
     t0 = time.perf_counter()
     entry = _ensure_mode_public(mode)
     _ensure_difficulty_certified(mode, entry, difficulty)
@@ -1290,6 +1310,13 @@ def validate_public_answer(*, game_id: str, answer: str) -> dict:
     shutdown should stop answer submission too, not just leave already-
     in-flight games playable while new ones can't be fetched."""
     _ensure_public_gameplay_enabled()
+    from . import public_story
+    try:
+        state = game_state.load_state(game_id)
+    except game_state.StateIdInvalid:
+        state = None
+    if state and state.get("story_bank_mode") in public_story.MODES:
+        return public_story.submit_story_round(game_id, {"answer": answer})["result"]
     try:
         stored = packages.load_package(game_id)
     except packages.PackageIdInvalid:
