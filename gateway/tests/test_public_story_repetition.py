@@ -5,14 +5,19 @@ from unittest.mock import patch
 from gateway.services import public_story
 
 
+class FakeRows(list):
+    def fetchall(self):
+        return list(self)
+
+
 class FakeDB:
     def execute(self, sql, params=()):
         if "sqlite_master" in sql:
-            return [("story_generated_questions",), ("universal_event",)]
-        return [
+            return FakeRows([("story_generated_questions",), ("universal_event",)])
+        return FakeRows([
             {"event_id": "event-1", "question_json": json.dumps(_question("story-1"))},
             {"event_id": "event-1", "question_json": json.dumps(_question("story-2"))},
-        ]
+        ])
     def close(self):
         pass
 
