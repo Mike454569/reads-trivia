@@ -118,3 +118,103 @@ def submit_story_round(round_id: str, submission: dict):
                    "canonical_answer": correct, "notes": state.get("notes")},
         "view": {"completed": True},
     }
+
+
+def start_story_identity(*, client_id=None):
+    """Optional source-backed Who Am I round; None means use legacy generator."""
+    db = engine_bootstrap.connect()
+    try:
+        tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not {"story_generated_questions", "universal_event"}.issubset(tables):
+            return None
+        rows = db.execute(
+            """SELECT q.question_json,q.event_id FROM story_generated_questions q
+               JOIN universal_event e ON e.event_id=q.event_id
+               WHERE q.status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')
+                 AND q.mechanic='PROGRESSIVE_CLUE'
+                 AND e.verification_status='VERIFIED' AND COALESCE(e.sensitive,0)=0
+                 AND UPPER(e.league)='NFL' AND UPPER(q.subject_type) IN ('PLAYER','NFL_PLAYER')
+               ORDER BY RANDOM() LIMIT 60"""
+        ).fetchall()
+    except Exception:
+        # Read failures must not take the currently playable Who Am I down.
+        return None
+    finally:
+        db.close()
+    mode = "who_am_i_nfl"
+    with _recent_lock:
+        seen = set(_recent_by_client.get((client_id, mode), ())) if client_id else set()
+    for row in rows:
+        try:
+            q = json.loads(row["question_json"])
+            label = q["answer"]["label"].strip()
+            clues = [x["text"].strip() for x in q["clues"]]
+            prov = q["provenance"]
+            qid = str(q["question_id"])
+            if q.get("mechanic") != "PROGRESSIVE_CLUE" or q.get("question_family") != "LORE_IDENTITY":
+                continue
+            if str(q.get("event_id")) != str(row["event_id"]) or q.get("sensitive") is True:
+                continue
+            if q["answer"].get("type", "").upper() not in ("PLAYER", "NFL_PLAYER"):
+                continue
+            if not (3 <= len(clues) <= 5) or not label or any(not x or label.casefold() in x.casefold() for x in clues):
+                continue
+            if not prov.get("provenance_complete") or not prov.get("evidence") or str(row["event_id"]) not in list(map(str, prov.get("event_ids", []))):
+                continue
+            if qid in seen:
+                continue
+        except (TypeError, KeyError, ValueError, AttributeError):
+            continue
+        round_id = "GGP4:" + secrets.token_hex(12)
+        game_state.create_state(round_id, {
+            "story_identity_mode": mode, "answer": label, "clues": clues,
+            "clues_revealed": 1, "completed": False,
+        })
+        if client_id:
+            with _recent_lock:
+                _recent_by_client.setdefault((client_id, mode), deque(maxlen=32)).append(qid)
+        return {"round_id": round_id, "mode": mode, "kind": "progressive_clue",
+                "title": "Who Am I?", "instructions": "Identify the NFL player from verified clues.",
+                "view": _identity_view(clues, 1, completed=False)}
+    return None
+
+
+def _identity_view(clues, count, *, completed):
+    if completed:
+        return {"round_index": 1, "round_count": 1, "completed": True}
+    return {"round_index": 0, "round_count": 1, "completed": False,
+            "clues_revealed_count": count, "total_clues": len(clues),
+            "clues": [{"clue_index": i, "display_text": clue} for i, clue in enumerate(clues[:count])],
+            "can_reveal_more": count < len(clues)}
+
+
+def submit_story_identity(round_id, submission):
+    try:
+        state = game_state.load_state(round_id)
+    except game_state.StateIdInvalid:
+        state = None
+    if not state or state.get("story_identity_mode") != "who_am_i_nfl":
+        raise GatewayError("INVALID_GAME_ID", "Who Am I round not found.")
+    if state.get("completed"):
+        raise GatewayError("INVALID_REQUEST", "This round is already complete.")
+    clues = state["clues"]
+    count = state["clues_revealed"]
+    if submission.get("action") == "reveal_next_clue":
+        count = min(len(clues), count + 1)
+        state["clues_revealed"] = count
+        game_state.save_state(round_id, state)
+        result = {"revealed": True}
+    else:
+        guess = str(submission.get("guess_name") or "").strip()
+        correct = bool(guess) and guess.casefold() == state["answer"].casefold()
+        result = {"correct": correct, "canonical_answer": state["answer"],
+                  "clues_used": count, "score": max(1, len(clues)-count+1) if correct else 0}
+        if not correct and count < len(clues):
+            count += 1
+            state["clues_revealed"] = count
+            result["retry_with_more_clue"] = True
+        else:
+            state["completed"] = True
+        game_state.save_state(round_id, state)
+    return {"round_id": round_id, "mode": "who_am_i_nfl", "result": result,
+            "view": _identity_view(clues, count, completed=state["completed"])}
