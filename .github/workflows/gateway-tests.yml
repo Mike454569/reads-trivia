@@ -58,6 +58,17 @@ jobs:
           from tools.quiz_export import engine
           c=engine.connect()
           try:
+              for name,sql in [
+                  ("verified", "SELECT COUNT(*) FROM universal_event WHERE verification_status='VERIFIED' AND COALESCE(sensitive,0)=0"),
+                  ("enriched", "SELECT COUNT(*) FROM football_story_enrichment WHERE promoted_event_id IS NOT NULL"),
+                  ("joined", "SELECT COUNT(*) FROM universal_event e JOIN football_story_enrichment f ON f.promoted_event_id=e.event_id"),
+                  ("linked", "SELECT COUNT(*) FROM universal_event e JOIN universal_event_subject s ON s.event_id=e.event_id JOIN football_story_enrichment f ON f.promoted_event_id=e.event_id WHERE e.verification_status='VERIFIED' AND COALESCE(e.sensitive,0)=0"),
+                  ("with_questions", "SELECT COUNT(DISTINCT event_id) FROM story_generated_questions"),
+              ]:
+                  try:
+                      print("DIAGNOSTIC",name,c.execute(sql).fetchone()[0],flush=True)
+                  except Exception as exc:
+                      print("DIAGNOSTIC_ERROR",name,str(exc),flush=True)
               dry=mod.backfill(c,limit=10,apply=False)
               print("DRY_RUN",json.dumps(dry,sort_keys=True),flush=True)
               if dry["counts"].get("eligible_events",0)<1:
