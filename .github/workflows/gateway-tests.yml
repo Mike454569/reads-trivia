@@ -41,9 +41,15 @@ jobs:
           MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
           test -n "$MACHINE"
           CODE=$(base64 -w0 tools/director_v05/backfill_verified_story_questions.py)
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_backfill_checked.py'"
+          CERT=$(base64 -w0 tools/director_v05/story_quality_certification.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_backfill_checked.py; echo $CERT | base64 -d > /tmp/reads_story_quality_checked.py'"
           RUNNER=$(cat <<'PY' | base64 -w0
           import importlib.util,sys,json
+          cert_name="tools.director_v05.story_quality_certification"
+          cert_spec=importlib.util.spec_from_file_location(cert_name,"/tmp/reads_story_quality_checked.py")
+          cert_mod=importlib.util.module_from_spec(cert_spec)
+          sys.modules[cert_name]=cert_mod
+          cert_spec.loader.exec_module(cert_mod)
           name="tools.director_v05.backfill_verified_story_questions"
           spec=importlib.util.spec_from_file_location(name,"/tmp/reads_story_backfill_checked.py")
           mod=importlib.util.module_from_spec(spec)
