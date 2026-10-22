@@ -23,6 +23,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  controlled-story-backfill:
+    if: github.event_name == 'pull_request' && github.head_ref == 'story-volume-quality-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Controlled batch of already verified stories (no deployment)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${FLY_API_TOKEN:-}"
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          test -n "$MACHINE"
+          CODE=$(base64 -w0 tools/director_v05/backfill_verified_story_questions.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_backfill_checked.py'"
+          RUNNER=$(cat <<'PY' | base64 -w0
+          import importlib.util,sys,json
+          name="tools.director_v05.backfill_verified_story_questions"
+          spec=importlib.util.spec_from_file_location(name,"/tmp/reads_story_backfill_checked.py")
+          mod=importlib.util.module_from_spec(spec)
+          sys.modules[name]=mod
+          spec.loader.exec_module(mod)
+          from tools.quiz_export import engine
+          c=engine.connect()
+          try:
+              dry=mod.backfill(c,limit=10,apply=False)
+              print("DRY_RUN",json.dumps(dry,sort_keys=True),flush=True)
+              if dry["counts"].get("eligible_events",0)<1:
+                  print("BLOCKED_NO_ELIGIBLE_EVENTS",flush=True)
+              else:
+                  applied=mod.backfill(c,limit=10,apply=True)
+                  print("APPLIED",json.dumps(applied,sort_keys=True),flush=True)
+                  if applied["counts"].get("questions_certified",0)<1:
+                      print("NO_CERTIFIED_QUESTIONS",flush=True)
+          finally:
+              c.close()
+          PY
+          )
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine && echo $RUNNER | base64 -d > /tmp/reads_story_backfill_runner.py && flock -w 120 /data/engine/story-volume-writer.lock python3 /tmp/reads_story_backfill_runner.py'" | tee controlled-backfill.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: controlled-story-backfill-evidence
+          path: controlled-backfill.log
+          if-no-files-found: warn
   pytest:
     runs-on: ubuntu-latest
     steps:
