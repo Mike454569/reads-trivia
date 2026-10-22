@@ -136,6 +136,11 @@ def submit_public_format(*, round_id: str, submission: dict[str, Any]) -> dict[s
     if progress is not None and progress.get('story_bank_mode') in public_story.MODES:
         return public_story.submit_story_round(round_id, submission)
 
+    if progress is not None and progress.get("story_identity_mode") == "who_am_i_nfl":
+        payload = public_mechanics.submit_public_round(round_id=round_id, submission=submission)
+        return {"round_id": round_id, "mode": payload["mode"], "engine_kind": "mechanic",
+                "result": payload["result"], "view": payload["view"]}
+
     if progress is not None and "public_mode" in progress:
         payload = public_mechanics.submit_public_round(round_id=round_id, submission=submission)
         return {
