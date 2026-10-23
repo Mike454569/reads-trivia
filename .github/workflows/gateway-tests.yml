@@ -56,7 +56,9 @@ jobs:
           sys.modules[name]=mod
           spec.loader.exec_module(mod)
           from tools.quiz_export import engine
-          c=engine.connect()
+          import sqlite3
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=10)
+          c.row_factory=sqlite3.Row
           try:
               for name,sql in [
                   ("verified", "SELECT COUNT(*) FROM universal_event WHERE verification_status='VERIFIED' AND COALESCE(sensitive,0)=0"),
@@ -86,7 +88,7 @@ jobs:
               c.close()
           PY
           )
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine && echo $RUNNER | base64 -d > /tmp/reads_story_backfill_runner.py && flock -w 120 /data/engine/story-volume-writer.lock python3 /tmp/reads_story_backfill_runner.py'" | tee controlled-backfill.log
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine && echo $RUNNER | base64 -d > /tmp/reads_story_backfill_runner.py && timeout 45 python3 -u /tmp/reads_story_backfill_runner.py'" 2>&1 | tee controlled-backfill.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
