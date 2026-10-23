@@ -11,6 +11,9 @@ import time
 from collections import Counter
 
 from .story_batch_processor import process_story_batch
+from .story_subject_match import build_subject_index
+from .story_to_trivia_factory import _prepare_write_connection
+from tools.quiz_export import engine as engine_bootstrap
 
 DEFAULT_BATCH_SIZE = 5
 DEFAULT_MAX_BATCHES = 10
@@ -30,18 +33,27 @@ def drain_story_queue(
     claimed_total = 0
     generated_total = 0
     no_promotion_streak = 0
+    selection_diagnostics = []
     stop_reason = None
+    subject_index = None
 
     for batch_number in range(1, max(1, int(max_batches)) + 1):
         if time.monotonic() - started >= max(30, int(time_budget_seconds)):
             stop_reason = "TIME_BUDGET"
             break
 
+        if subject_index is None:
+            conn = _prepare_write_connection(engine_bootstrap.connect())
+            try:
+                subject_index = build_subject_index(conn)
+            finally:
+                conn.close()
         result = process_story_batch(
             batch_size=batch_size,
             max_attempts=3,
             stale_minutes=30,
             include_deep_chains=include_deep_chains,
+            subject_index=subject_index,
         )
         claimed = int(result.get("claimed") or 0)
         claimed_total += claimed
@@ -50,12 +62,14 @@ def drain_story_queue(
             int(result.get("generated_from_checkpointed_batches") or 0),
         )
         totals.update(result.get("counts") or {})
+        selection_diagnostics.append(result.get("selection_diagnostics") or {})
         runs.append({
             "batch": batch_number,
             "claimed": claimed,
             "counts": result.get("counts") or {},
             "reclaimed_stale": int(result.get("reclaimed_stale") or 0),
             "ledger": result.get("ledger") or {},
+            "selection_diagnostics": result.get("selection_diagnostics") or {},
         })
 
         # Queue exhausted or no currently claimable work.
@@ -89,6 +103,7 @@ def drain_story_queue(
         "ledger": final_ledger,
         "stop_reason": stop_reason,
         "no_promotion_streak": no_promotion_streak,
+        "selection_diagnostics": selection_diagnostics,
         "elapsed_seconds": round(time.monotonic() - started, 3),
         "include_deep_chains": bool(include_deep_chains),
         "runs": runs,

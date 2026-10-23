@@ -23,6 +23,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  controlled-story-backfill:
+    if: github.event_name == 'pull_request' && github.head_ref == 'story-volume-quality-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Diagnose story rejection reasons (read-only; writes disabled)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${FLY_API_TOKEN:-}"
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          test -n "$MACHINE"
+          CODE=$(base64 -w0 tools/director_v05/backfill_verified_story_questions.py)
+          CERT=$(base64 -w0 tools/director_v05/story_quality_certification.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_backfill_checked.py; echo $CERT | base64 -d > /tmp/reads_story_quality_checked.py'"
+          RUNNER=$(cat <<'PY' | base64 -w0
+          import importlib.util,sys,json
+          cert_name="tools.director_v05.story_quality_certification"
+          cert_spec=importlib.util.spec_from_file_location(cert_name,"/tmp/reads_story_quality_checked.py")
+          cert_mod=importlib.util.module_from_spec(cert_spec)
+          sys.modules[cert_name]=cert_mod
+          cert_spec.loader.exec_module(cert_mod)
+          name="tools.director_v05.backfill_verified_story_questions"
+          spec=importlib.util.spec_from_file_location(name,"/tmp/reads_story_backfill_checked.py")
+          mod=importlib.util.module_from_spec(spec)
+          sys.modules[name]=mod
+          spec.loader.exec_module(mod)
+          from tools.quiz_export import engine
+          import sqlite3
+          c=sqlite3.connect("file:/data/engine/reads_football_v4.0.sqlite?mode=ro",uri=True,timeout=10)
+          c.row_factory=sqlite3.Row
+          try:
+              for name,sql in [
+                  ("verified", "SELECT COUNT(*) FROM universal_event WHERE verification_status='VERIFIED' AND COALESCE(sensitive,0)=0"),
+                  ("enriched", "SELECT COUNT(*) FROM football_story_enrichment WHERE promoted_event_id IS NOT NULL"),
+                  ("joined", "SELECT COUNT(*) FROM universal_event e JOIN football_story_enrichment f ON f.promoted_event_id=e.event_id"),
+                  ("linked", "SELECT COUNT(*) FROM universal_event e JOIN universal_event_subject s ON s.event_id=e.event_id JOIN football_story_enrichment f ON f.promoted_event_id=e.event_id WHERE e.verification_status='VERIFIED' AND COALESCE(e.sensitive,0)=0"),
+                  ("with_questions", "SELECT COUNT(DISTINCT event_id) FROM story_generated_questions"),
+              ]:
+                  try:
+                      print("DIAGNOSTIC",name,c.execute(sql).fetchone()[0],flush=True)
+                  except Exception as exc:
+                      print("DIAGNOSTIC_ERROR",name,str(exc),flush=True)
+              dry=mod.backfill(c,limit=10,apply=False)
+              print("DRY_RUN",json.dumps(dry,sort_keys=True),flush=True)
+              print("WRITES_DISABLED_AFTER_FAILED_CERTIFICATION",flush=True)
+              from collections import Counter
+              reasons=Counter()
+              for row in c.execute("SELECT question_json,event_id FROM story_generated_questions WHERE status='NEEDS_EDITORIAL_REVIEW' LIMIT 200").fetchall():
+                  try:
+                      q=json.loads(row["question_json"])
+                      reasons.update(cert_mod.certify_question(q, expected_event_id=row["event_id"]))
+                  except Exception:
+                      reasons.update(["MALFORMED_JSON"])
+              print("REJECTION_REASONS",json.dumps(dict(reasons),sort_keys=True),flush=True)
+              print("STATUS_COUNTS",json.dumps(dict(c.execute("SELECT status,COUNT(*) FROM story_generated_questions GROUP BY status").fetchall()),sort_keys=True),flush=True)
+          finally:
+              c.close()
+          PY
+          )
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine && echo $RUNNER | base64 -d > /tmp/reads_story_backfill_runner.py && timeout 45 python3 -u /tmp/reads_story_backfill_runner.py'" 2>&1 | tee controlled-backfill.log
+      - name: Read-only compiler quality probe
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          CODE=$(base64 -w0 tools/director_v05/probe_story_generation_readonly.py)
+          CERT=$(base64 -w0 tools/director_v05/story_quality_certification.py)
+          LORE=$(base64 -w0 tools/director_v05/lore_trivia.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_probe.py; echo $CERT | base64 -d > /tmp/reads_story_quality_checked.py; echo $LORE | base64 -d > /tmp/reads_story_lore_checked.py'"
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && timeout 55 python3 -u /tmp/reads_story_probe.py /data/engine/reads_football_v4.0.sqlite'" 2>&1 | tee story-probe.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: controlled-story-backfill-evidence
+          path: controlled-backfill.log
+          if-no-files-found: warn
   pytest:
     runs-on: ubuntu-latest
     steps:

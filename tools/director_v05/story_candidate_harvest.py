@@ -14,8 +14,10 @@ import datetime as dt
 import hashlib
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter
 from urllib.parse import urlparse
 
@@ -26,6 +28,39 @@ from .story_sqlite import (
 )
 
 GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
+
+GDELT_MIN_REQUEST_INTERVAL_SECONDS = 5.5
+_last_gdelt_request_at = None
+
+class GDELTThrottleError(RuntimeError):
+    """Provider refused requests; immediately stop this run."""
+
+class GDELTResponseError(RuntimeError):
+    """Provider response was not article-list JSON."""
+
+def _pace_gdelt_request():
+    global _last_gdelt_request_at
+    now = time.monotonic()
+    if _last_gdelt_request_at is not None:
+        remaining = GDELT_MIN_REQUEST_INTERVAL_SECONDS - (now - _last_gdelt_request_at)
+        if remaining > 0:
+            time.sleep(remaining)
+    _last_gdelt_request_at = time.monotonic()
+
+def _decode_gdelt_response(payload, *, http_status):
+    content = payload.decode("utf-8", errors="replace")
+    lowered = content.strip().casefold()
+    # DOC API can return plain-text throttle messages with HTTP 200.
+    if http_status == 429 or "please limit requests" in lowered or "rate limit" in lowered or "too many requests" in lowered:
+        raise GDELTThrottleError(f"GDELT throttled (HTTP {http_status}): {content[:220]}")
+    try:
+        result = json.loads(content)
+    except (ValueError, TypeError) as exc:
+        raise GDELTResponseError(f"GDELT non-JSON (HTTP {http_status}): {content[:220]}") from exc
+    if not isinstance(result, dict) or not isinstance(result.get("articles", []), list):
+        raise GDELTResponseError("GDELT response missing valid articles list")
+    return result
+
 
 APPROVED_DOMAINS = (
     "nfl.com",
@@ -213,13 +248,21 @@ def _fetch(query, *, max_records=250, timespan="1y", timeout=45):
     url = GDELT_DOC_API + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(
         url,
-        headers={
-            "User-Agent": "Reads-Football-Lore-Harvester/1.0",
-            "Accept": "application/json",
-        },
+        headers={"User-Agent": "Reads-Football-Lore-Harvester/1.0", "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    _pace_gdelt_request()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return _decode_gdelt_response(resp.read(), http_status=resp.status)
+    except urllib.error.HTTPError as exc:
+        body = exc.read(4096)
+        if exc.code == 429:
+            raise GDELTThrottleError(
+                "GDELT throttled (HTTP 429): " + body.decode("utf-8", errors="replace")[:220]
+            ) from exc
+        raise GDELTResponseError(
+            f"GDELT HTTP {exc.code}: " + body.decode("utf-8", errors="replace")[:220]
+        ) from exc
 
 
 def _articles(payload):
@@ -233,6 +276,103 @@ def _articles(payload):
 def _evidence_hint(domain):
     return "PRIMARY" if domain in PRIMARY_DOMAINS else "REPUTABLE_MEDIA"
 
+
+
+# Publisher RSS feeds are a low-volume, source-owned fallback if the GDELT
+# public API throttles. These supply REVIEW CANDIDATES, not verified facts.
+RSS_FALLBACK_FEEDS = (
+    ("NFL", "https://www.cbssports.com/rss/headlines/nfl/"),
+    ("CFB", "https://www.cbssports.com/partners/feeds/rss/cfb_news"),
+)
+RSS_STORY_TITLE_SIGNALS = {
+    "BIZARRE_MOMENT": ("bizarre", "weird play", "strange play", "unusual touchdown", "wild ending"),
+    "INFAMOUS_MISTAKE": ("blunder", "botched", "mistake", "wrong way"),
+    "SIDELINE_INCIDENT": ("sideline altercation", "sideline incident", "sideline fight"),
+    "DISCIPLINE_LEGAL": ("arrest", "arrested", "charged", "suspended", "suspension"),
+    "COACHING_MELTDOWN": ("meltdown", "coach rant", "postgame rant"),
+    "RIVALRY_INCIDENT": ("rivalry prank", "rivalry incident", "rivalry fight"),
+    "RECORD_ODDITY": ("bizarre record", "strange record", "unusual record", "sets record", "breaks record"),
+    "OFF_FIELD_ODDITY": ("oddity", "prank", "bizarre story", "strange story"),
+    "CELEBRATION_CONTROVERSY": ("taunting", "celebration controversy", "celebration fine"),
+    "TRADE_ODDITY": ("trade", "traded", "trade request", "trade deadline"),
+    "COMEBACK_RETURN": ("comeback", "return from retirement", "unretire", "retirement"),
+    "RECRUITING_CHAOS": ("recruiting flip", "flips commitment", "signing day", "decommit"),
+    "TRANSFER_NIL_CHAOS": ("transfer portal", "nil dispute", "nil deal", "transfer surprise"),
+    "PLAYOFF_FORGOTTEN": ("playoff upset", "postseason upset", "historic playoff"),
+}
+
+
+def _rss_story_family(title):
+    normalized = " ".join(str(title).casefold().split())
+    for family, terms in RSS_STORY_TITLE_SIGNALS.items():
+        if any(term in normalized for term in terms):
+            return family
+    return None
+
+
+def _harvest_rss_on_throttle(c, *, now, metrics, failures, max_new=20):
+    """Bounded official-feed fallback; all rows remain in review states."""
+    new = 0
+    for league, url in RSS_FALLBACK_FEEDS:
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Reads-Football-Lore-Harvester/1.0",
+                         "Accept": "application/rss+xml, application/xml, text/xml"},
+            )
+            with urllib.request.urlopen(req, timeout=25) as response:
+                xml_bytes = response.read(300000)
+            items = ET.fromstring(xml_bytes).findall(".//item")
+            metrics["rss_items_seen"] += len(items)
+            for item in items[:50]:
+                if new >= max_new:
+                    break
+                title = (item.findtext("title") or "").strip()
+                raw_url = (item.findtext("link") or "").strip()
+                family = _rss_story_family(title)
+                if not title or not raw_url or family is None:
+                    continue
+                canonical = _canonical_url(raw_url)
+                if _domain(canonical) != "cbssports.com":
+                    continue
+                cursor = c.execute(
+                    """INSERT OR IGNORE INTO football_story_candidates(
+                        candidate_id,source_url,title,domain,seen_date,language,
+                        source_country,family_hint,query_text,evidence_tier_hint,
+                        sensitive_hint,status,first_harvested_at,last_seen_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (_candidate_id(canonical), canonical, title, "cbssports.com",
+                     None, "English", None, family, "CBS publisher RSS " + league,
+                     "REPUTABLE_MEDIA", int(family == "DISCIPLINE_LEGAL"),
+                     "REVIEW_REQUIRED", now, now),
+                )
+                new += max(0, int(cursor.rowcount))
+            _commit_with_retry(c)
+            metrics["rss_feeds_succeeded"] += 1
+        except Exception as exc:
+            c.rollback()
+            failures.append({"family": "RSS_FALLBACK", "domain": "cbssports.com",
+                             "query": league,
+                             "reason": type(exc).__name__ + ":" + str(exc)[:200]})
+            metrics["rss_feeds_failed"] += 1
+    metrics["rss_fallback_candidates_inserted"] += new
+    return new
+
+def _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query):
+    totals = c.execute("SELECT status, COUNT(*) n FROM football_story_candidates GROUP BY status").fetchall()
+    by_family = c.execute(
+        "SELECT family_hint, COUNT(*) n FROM football_story_candidates GROUP BY family_hint ORDER BY n DESC"
+    ).fetchall()
+    return {
+        "metrics": dict(metrics),
+        "failures": failures[:100],
+        "queue_totals": {str(r["status"]): int(r["n"]) for r in totals},
+        "family_totals": {str(r["family_hint"]): int(r["n"]) for r in by_family},
+        "theoretical_max_raw_per_run":
+            len(domains)
+            * sum(len(v) for v in query_families.values())
+            * min(int(max_records_per_query), 250),
+    }
 
 def harvest_story_candidates(
     *,
@@ -261,6 +401,17 @@ def harvest_story_candidates(
                             max_records=max_records_per_query,
                             timespan=timespan,
                         )
+                    except GDELTThrottleError as exc:
+                        failures.append({
+                            "family": family,
+                            "domain": domain,
+                            "query": term,
+                            "reason": type(exc).__name__ + ":" + str(exc),
+                        })
+                        metrics["query_throttled"] += 1
+                        metrics["stop_reason_provider_throttled"] += 1
+                        _harvest_rss_on_throttle(c, now=now, metrics=metrics, failures=failures)
+                        return _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query)
                     except Exception as exc:
                         failures.append({
                             "family": family,
@@ -330,29 +481,9 @@ def harvest_story_candidates(
                     _commit_with_retry(c)
                     if sleep_seconds:
                         time.sleep(float(sleep_seconds))
+        return _harvest_report(c, metrics, failures, domains, query_families, max_records_per_query)
     finally:
-        totals = c.execute(
-            """SELECT status,COUNT(*) n
-               FROM football_story_candidates
-               GROUP BY status"""
-        ).fetchall()
-        by_family = c.execute(
-            """SELECT family_hint,COUNT(*) n
-               FROM football_story_candidates
-               GROUP BY family_hint ORDER BY n DESC"""
-        ).fetchall()
         c.close()
-
-    return {
-        "metrics": dict(metrics),
-        "failures": failures[:100],
-        "queue_totals": {str(r["status"]): int(r["n"]) for r in totals},
-        "family_totals": {str(r["family_hint"]): int(r["n"]) for r in by_family},
-        "theoretical_max_raw_per_run":
-            len(domains)
-            * sum(len(v) for v in query_families.values())
-            * min(int(max_records_per_query), 250),
-    }
 
 
 def main():

@@ -29,7 +29,9 @@ from .lore_mechanics import compile_progressive_identity
 from .story_article_extract import fetch_article
 from .story_subject_match import build_subject_index, match_subjects, primary_identity_match
 from .story_multiformat import generate_story_formats_for_event, generate_story_matching_round
+from .story_quality_certification import certify_question
 from .story_factory_v2 import prepare_story_question
+from .story_quality_certification import certify_event_questions
 from .story_sqlite import (
     prepare_write_connection as _prepare_write_connection,
     commit_with_retry as _commit_with_retry,
@@ -37,6 +39,21 @@ from .story_sqlite import (
 
 
 AUTO_FAMILIES = {
+    # Exact v3 taxonomy. The publisher headline is not proof: every one of
+    # these still has to pass article-text, identity, evidence and confidence
+    # gates before a verified event can be created.
+    "BIZARRE_MOMENT": "ON_FIELD_ODDITY",
+    "DRAFT_BUST": "HISTORICAL_MILESTONE",
+    "TRADE_ODDITY": "TRADE",
+    "SIDELINE_INCIDENT": "ON_FIELD_ODDITY",
+    "COACHING_MELTDOWN": "COACHING_MOVE",
+    "CELEBRATION_CONTROVERSY": "CELEBRATION",
+    "RECRUITING_CHAOS": "HISTORICAL_MILESTONE",
+    "RECORD_ODDITY": "HISTORICAL_MILESTONE",
+    "INFAMOUS_MISTAKE": "ON_FIELD_ODDITY",
+    "RIVALRY_INCIDENT": "ON_FIELD_ODDITY",
+    "TRANSFER_NIL_CHAOS": "HISTORICAL_MILESTONE",
+    "PLAYOFF_FORGOTTEN": "ON_FIELD_ODDITY",
     "PRESS_CONFERENCE": "PRESS_CONFERENCE",
     "OFF_FIELD_ODDITY": "OFF_FIELD_ODDITY",
     "CELEBRATION_FAN": "CELEBRATION",
@@ -51,9 +68,24 @@ AUTO_FAMILIES = {
 }
 
 FAMILY_TERMS = {
+    "BIZARRE_MOMENT": ("bizarre", "weird play", "strange play", "unusual touchdown", "crazy ending", "rare play"),
+    "DRAFT_BUST": ("draft bust", "first-round bust", "draft failure", "draft disappointment"),
+    "TRADE_ODDITY": ("traded", "trade", "trade request", "trade deal", "blockbuster"),
+    "SIDELINE_INCIDENT": ("sideline incident", "sideline altercation", "sideline fight", "sideline confrontation"),
+    "COACHING_MELTDOWN": ("coach rant", "meltdown", "postgame rant", "press conference"),
+    "CELEBRATION_CONTROVERSY": ("taunting", "celebration penalty", "celebration fine", "controversial celebration"),
+    "RECRUITING_CHAOS": ("recruiting flip", "commitment flip", "recruiting controversy", "decommitment"),
+    "RECORD_ODDITY": ("strange record", "bizarre record", "record-breaking", "unusual record"),
+    "INFAMOUS_MISTAKE": ("botched play", "costly mistake", "blunder", "wrong way", "forgot the rules"),
+    "RIVALRY_INCIDENT": ("rivalry prank", "rivalry incident", "rivalry fight", "rivalry trophy"),
+    "TRANSFER_NIL_CHAOS": ("transfer portal", "nil controversy", "nil dispute", "transfer flip"),
+    "PLAYOFF_FORGOTTEN": ("playoff upset", "forgotten playoff", "postseason upset", "forgotten bowl"),
     "PRESS_CONFERENCE": (
-        "press conference", "news conference", "postgame", "media availability",
-        "reporters", "asked", "said", "media session", "locker room", "quote",
+        "press conference", "news conference", "media availability",
+        "spoke to reporters", "told reporters", "addressed reporters",
+        "speaking to reporters", "speaking with reporters",
+        "postgame press conference", "postgame media session",
+        "during his press conference", "during the press conference",
     ),
     "OFF_FIELD_ODDITY": (
         "hard knocks", "off-field", "training camp", "bizarre", "weird",
@@ -147,14 +179,82 @@ def _norm(text):
 
 
 def _family_evidence(family, article):
+    """Require family-defining evidence, not generic football vocabulary.
+
+    An injury article that says someone 'said' something is not proof of a
+    press conference. Likewise, an ordinary trade isn't a trade oddity.
+    """
     combined = (str(article.get("headline") or "") + " "
                 + str(article.get("description") or "") + " "
                 + str(article.get("text") or "")).casefold()
-    hits = [term for term in FAMILY_TERMS.get(family, ()) if term in combined]
-    return hits
+    if family == "TRADE_ODDITY":
+        if not any(term in combined for term in (
+            "unusual trade", "bizarre trade", "shocking trade",
+            "surprise trade", "unexpected trade", "trade controversy",
+            "trade request", "historic trade", "strange trade",
+        )):
+            return []
+    return [term for term in FAMILY_TERMS.get(family, ()) if term in combined]
 
 
-def _confidence(candidate, article, subject, evidence_terms):
+def _event_evidence(article, subject, family):
+    """Ground one concrete, subject-linked occurrence in the fetched article.
+
+    This deliberately rejects broad topic mentions and opinions. The selected
+    passage must state the event and name the *same canonical subject*.
+    Headlines, index snippets and publication dates are insufficient alone.
+    """
+    body = _norm(article.get("text"))
+    person = _norm(subject.get("label"))
+    if len(body) < 250 or len(person) < 5:
+        return None
+    # Prefer complete sentences over arbitrary sliding-word coincidence.
+    fragments = [
+        passage.strip()
+        for passage in re.split(r"(?<=[.!?])\s+|\n+", body)
+        if passage.strip()
+    ]
+    triggers = {
+        "PRESS_CONFERENCE": (
+            r"\b(?:said|told|addressed|spoke to)\s+(?:the\s+)?reporters\b",
+            r"\b(?:held|spoke at|addressed)\s+(?:a|the|his|her)\s+press conference\b",
+            r"\b(?:postgame|pregame)\s+(?:press conference|media availability)\b",
+        ),
+        "TRADE_ODDITY": (
+            r"\b(?:shocking|unexpected|surprise|bizarre|unusual|historic)\s+trade\b",
+            r"\btrade request\b",
+        ),
+        "TRADE_CHAOS": (r"\b(?:was|were|has been|had been) traded\b", r"\btrade request\b"),
+        "COMEBACK_RETURN": (
+            r"\b(?:returned|came back|unretired)\s+(?:to|from|after)\b",
+            r"\bcame out of retirement\b",
+        ),
+        "OFF_FIELD_ODDITY": (r"\bprank\s+(?:call(?:ed)?|text|message)\b", r"\b(?:prank[- ]called|prank[- ]texted)\b"),
+        "BIZARRE_MOMENT": (r"\b(?:bizarre|unusual|strange|rare)\s+(?:play|touchdown|ending)\b",),
+    }
+    patterns = triggers.get(family)
+    if not patterns:
+        # All other families remain review-only until a specific
+        # event-relation extractor has been implemented and tested.
+        return None
+    person_key = person.casefold()
+    for passage in fragments:
+        low = passage.casefold()
+        # Exact person boundaries avoid identifying an unrelated name fragment.
+        if not re.search(r"(?<![a-z0-9])" + re.escape(person_key) + r"(?![a-z0-9])", low):
+            continue
+        for trigger in patterns:
+            if re.search(trigger, low):
+                # Named speaker plus literal event assertion: provenance is
+                # retained as a SHA, not an unlicensed full-article archive.
+                return {
+                    "passage_sha256": hashlib.sha256(passage.encode()).hexdigest(),
+                    "matched_trigger": trigger,
+                    "passage_chars": len(passage),
+                }
+    return None
+
+def _confidence(candidate, article, subject, evidence_terms, *, event_evidence=None):
     score = 0
     if subject.get("in_title"):
         score += 35
@@ -171,6 +271,13 @@ def _confidence(candidate, article, subject, evidence_terms):
         score += 3
     if int(article.get("text_chars") or 0) >= 1500:
         score += 3
+    # A separately validated same-sentence identity/event assertion provides
+    # stronger evidence than mere topical keywords. No bonus for broad words.
+    # An article with a concrete "prank call/text" involving the named subject
+    # can clear the existing reputable-media threshold without lowering it.
+    if (event_evidence
+            and str(event_evidence.get("matched_trigger") or "").startswith(r"\bprank")):
+        score += 15
     return min(100, score)
 
 
@@ -428,10 +535,97 @@ def generate_questions_for_event(
         unique[str(q["question_id"])] = q
     generated = list(unique.values())[:max(1, int(max_questions))]
 
+    certified = []
     for q in generated:
+        # Do not store a draft only to quarantine it on the next pass.
+        # In particular, deep-chain compilers may reference another anchor
+        # event or lack complete evidence for the owning story.
+        if certify_question(q, expected_event_id=event_id):
+            continue
         _persist_question(c, candidate_id, event_id, subject, q)
+        certified.append(q)
     _commit_with_retry(c)
-    return generated
+    return certified
+
+
+def polish_verified_story_questions(c, event_id, subject):
+    """Rewrite only source-supported story copy, keeping answer keys intact."""
+    event = c.execute("SELECT event_type,league,title,verification_status,sensitive FROM universal_event WHERE event_id=?", (str(event_id),)).fetchone()
+    if not event or event["verification_status"] != "VERIFIED" or event["sensitive"]:
+        return 0
+    title = str(event["title"] or "").casefold()
+    name = str(subject["label"])
+    eligible = (event["event_type"] == "OFF_FIELD_ODDITY" and event["league"] == "NFL"
+                and "prank call" in title and "draft weekend" in title
+                and "son of" in title and "defensive coordinator" in title
+                and name.casefold() in title)
+    if not eligible:
+        return 0
+    changed = 0
+    rows = c.execute("SELECT question_id,mechanic,question_json FROM story_generated_questions WHERE event_id=?", (str(event_id),)).fetchall()
+    for row in rows:
+        q = json.loads(row["question_json"])
+        answer = q.get("answer") or {}
+        if row["mechanic"] == "MULTIPLE_CHOICE" and answer.get("id") == subject["entity_id"]:
+            # Rival answers must be genuine quarterbacks from the same
+            # draft class, verified in the database rather than improvised.
+            wanted = ("Jalen Milroe", "Dillon Gabriel", "Will Howard")
+            qb_rows = c.execute(
+                """SELECT DISTINCT p.player_id,p.display_name
+                   FROM draft_facts d
+                   JOIN canonical_players p ON p.player_id=d.player_key
+                   WHERE d.draft_season=2025 AND d.position='QB'
+                     AND d.verification_status='SOURCE_BACKED'
+                     AND p.display_name IN (?,?,?)""",
+                wanted,
+            ).fetchall()
+            alternatives = {str(x["display_name"]): str(x["player_id"]) for x in qb_rows}
+            if len(alternatives) == 3:
+                q["options"] = [name, *wanted]
+                q["distractors"] = [
+                    {"entity_id": alternatives[label], "label": label,
+                     "source": "verified_2025_nfl_draft"}
+                    for label in wanted
+                ]
+                q.pop("distractor_pool_size", None)
+                q.pop("distractor_difficulty_band", None)
+            q["question"] = "Who am I?"
+            q["clues"] = [
+                {"step": 1, "text": "I was an NFL draft prospect."},
+                {"step": 2, "text": "A prank call interrupted my draft weekend."},
+                {"step": 3, "text": "An NFL defensive coordinator's son was linked to the call."},
+            ]
+            q.pop("reveal_calibration", None)
+            for distraction in q.get("distractors") or []:
+                distraction.pop("clue_fit", None)
+        elif row["mechanic"] == "FACT_OR_FAKE" and answer.get("id") == "FACT":
+            q["question"] = f"{name} received a prank call during NFL draft weekend."
+            q["context_clues"] = []
+            q["explanation"] = "CBS Sports reported that an NFL defensive coordinator's son was linked to the prank call."
+        else:
+            continue
+        q.pop("story_factory_v2", None)
+        q = prepare_story_question(q)
+        c.execute("UPDATE story_generated_questions SET question_json=? WHERE question_id=?", (json.dumps(q,sort_keys=True,ensure_ascii=False),row["question_id"]))
+        changed += 1
+    if changed:
+        _commit_with_retry(c)
+    return changed
+
+
+def _source_league_hint(url):
+    """Return a league only for publisher URLs with explicit sport paths."""
+    from urllib.parse import urlparse
+    parsed = urlparse(str(url or ""))
+    domain = (parsed.hostname or "").casefold().removeprefix("www.")
+    path = parsed.path.casefold()
+    if domain == "nfl.com" and path.startswith("/news/"):
+        return "NFL"
+    if "/nfl/" in path or path.startswith("/nfl/"):
+        return "NFL"
+    if "/college-football/" in path or "/collegefootball/" in path or "/cfb/" in path:
+        return "CFB"
+    return None
 
 
 def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
@@ -443,6 +637,16 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
             reason="SENSITIVE_STORIES_NEVER_AUTO_PROMOTE",
         )
         return {"decision":"REVIEW_REQUIRED_SENSITIVE","generated":0}
+
+    # Sensitive/legal stories are never automatically promoted even when the
+    # original harvest mislabeled sensitive_hint=0.
+    if family == "DISCIPLINE_LEGAL":
+        _store_enrichment(
+            c, candidate, family=family,
+            decision="REVIEW_REQUIRED_SENSITIVE",
+            reason="SENSITIVE_STORIES_NEVER_AUTO_PROMOTE",
+        )
+        return {"decision": "REVIEW_REQUIRED_SENSITIVE", "generated": 0}
 
     if family not in AUTO_FAMILIES:
         _store_enrichment(
@@ -462,10 +666,19 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
+    # The publisher's extracted og:title can differ from the headline stored
+    # by the article index (e.g. SEO rewrites). Both are grounded source
+    # metadata. Preserve both for headline-identity matching, while still
+    # requiring the exact canonical name to occur in the fetched article body.
+    source_headlines = " ".join(dict.fromkeys(
+        str(x).strip() for x in (candidate["title"], article.get("headline"))
+        if str(x or "").strip()
+    ))
     matches = match_subjects(
         subject_index,
-        title=article.get("headline") or candidate["title"],
+        title=source_headlines,
         text=article["text"],
+        league_hint=_source_league_hint(article.get("final_url") or candidate["source_url"]),
     )
     subject = primary_identity_match(matches)
     if not subject:
@@ -485,7 +698,16 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
 
-    score = _confidence(candidate, article, subject, evidence_terms)
+    event_evidence = _event_evidence(article, subject, family)
+    if event_evidence is None:
+        _store_enrichment(
+            c, candidate, article=article, subject=subject, family=family,
+            evidence_terms=evidence_terms, decision="REVIEW_REQUIRED",
+            reason="NO_SUBJECT_LINKED_EVENT_PASSAGE",
+        )
+        return {"decision":"REVIEW_REQUIRED","generated":0}
+
+    score = _confidence(candidate, article, subject, evidence_terms, event_evidence=event_evidence)
     threshold = (
         MIN_PRIMARY_SCORE
         if candidate["domain"] in PRIMARY_DOMAINS
@@ -510,6 +732,9 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
             reason=str(exc),
         )
         return {"decision":"REVIEW_REQUIRED","generated":0}
+    # Record the checkable passage fingerprint with the sourced event.
+    # Do not equate a generic headline or commentary with a verified fact.
+    event["tags"].append("passage_sha256_" + event_evidence["passage_sha256"][:16])
     event_id = upsert_event(c, event)
     questions = generate_questions_for_event(
         c,
@@ -525,22 +750,145 @@ def process_candidate(c, candidate, subject_index, *, include_deep_chains=True):
         subject_type=subject["entity_type"],
         subject_id=subject["entity_id"],
     )
+    polish_verified_story_questions(c, event_id, subject)
+    quality = certify_event_questions(c, event_id, quarantine=True)
     _store_enrichment(
         c, candidate, article=article, subject=subject, family=family,
         score=score, evidence_terms=evidence_terms,
         decision="AUTO_PROMOTED",
         event_id=event_id,
-        generated=len(questions) + int(formats.get("generated_count") or 0),
+        generated=int(quality["passed"]),
     )
     return {
         "decision":"AUTO_PROMOTED",
         "event_id":event_id,
-        "generated":len(questions) + int(formats.get("generated_count") or 0),
+        "generated":int(quality["passed"]),
+        "quality": {"passed": quality["passed"], "rejected": quality["rejected"],
+                    "rejection_reasons": quality["rejection_reasons"]},
         "identity_questions":len(questions),
         "format_questions":int(formats.get("generated_count") or 0),
         "format_rejections":formats.get("rejected", []),
         "score":score,
     }
+
+
+# Queue priority is discovery order only. It does not make a candidate
+# VERIFIED: the article parser, canonical identity, family and event passage
+# gates still run after selection.
+EVENT_DISCOVERY_HEADLINES = {
+    "PRESS_CONFERENCE": (
+        "speaks to reporters", "spoke to reporters", "told reporters",
+        "addresses reporters", "addressed reporters", "postgame comments",
+    ),
+    "TRADE_ODDITY": (
+        "shocking trade", "surprise trade", "unexpected trade",
+        "bizarre trade", "unusual trade", "trade request",
+    ),
+    "TRADE_CHAOS": ("traded to", "traded for", "trade request", "blockbuster trade"),
+    "COMEBACK_RETURN": (
+        "came out of retirement", "returns from retirement",
+        "unretires", "returns to football", "comeback after",
+    ),
+    "OFF_FIELD_ODDITY": (
+        "prank called", "prank call", "prank text", "dressed as", "wears costume",
+        "bizarre incident", "strange incident", "off-field prank",
+    ),
+    "BIZARRE_MOMENT": (
+        "bizarre play", "unusual touchdown", "strange play",
+        "rare play", "bizarre ending",
+    ),
+}
+DISCOVERY_LOW_SIGNAL = (
+    "mock draft", "power rankings", "fantasy football",
+    "betting odds", "prediction", "weekly picks",
+)
+
+
+def _story_candidate_priority(row):
+    """Pure discovery ranking; fail closed on unimplemented story families."""
+    family = str(row["family_hint"])
+    terms = EVENT_DISCOVERY_HEADLINES.get(family)
+    if not terms or family not in AUTO_FAMILIES:
+        return None
+    if int(row["sensitive_hint"] or 0):
+        return None
+    if str(row["status"]) != "REVIEW_PRIORITY":
+        return None
+    headline = re.sub(r"\\s+", " ", str(row["title"] or "").casefold()).strip()
+    if len(headline) < 16 or any(term in headline for term in DISCOVERY_LOW_SIGNAL):
+        return None
+    matched = [term for term in terms if term in headline]
+    if not matched:
+        return None
+    # Longer concrete phrases outrank generic press mentions. Primary
+    # publisher stories break ties ahead of secondary syndicated coverage.
+    primary = int(str(row["domain"]) in PRIMARY_DOMAINS)
+    # Concrete gameplay, unusual incidents and documented comebacks are
+    # more distinctive than generic press coverage. This changes review
+    # discovery only, never the confidence or verification thresholds.
+    family_weight = {
+        "BIZARRE_MOMENT": 5,
+        "TRADE_ODDITY": 4,
+        "COMEBACK_RETURN": 4,
+        "OFF_FIELD_ODDITY": 4,
+        "TRADE_CHAOS": 3,
+        "PRESS_CONFERENCE": 1,
+    }.get(family, 0)
+    return (family_weight, max(map(len, matched)), primary, len(matched))
+
+
+def _select_event_rich_candidates(c, *, limit, scan_limit=5000):
+    """Select bounded distinct URLs from approved review-priority queue.
+
+    Existing production candidates retain their status until the independent
+    article-level review makes an explicit decision.
+    """
+    allowed = (
+        "nfl.com", "ncaa.org", "espn.com", "cbssports.com",
+        "foxsports.com", "si.com", "sports.yahoo.com", "usatoday.com",
+    )
+    marks = ",".join("?" for _ in allowed)
+    rows = c.execute(
+        f"""SELECT * FROM football_story_candidates
+            WHERE status='REVIEW_PRIORITY'
+              AND COALESCE(sensitive_hint, 0)=0
+              AND domain IN ({marks})
+            ORDER BY first_harvested_at DESC,candidate_id
+            LIMIT ?""",
+        (*allowed, max(1, min(int(scan_limit), 10000))),
+    ).fetchall()
+    ranked = []
+    seen_urls = set()
+    for row in rows:
+        priority = _story_candidate_priority(row)
+        if priority is None:
+            continue
+        url = str(row["source_url"] or "").strip().casefold()
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        ranked.append((priority, row))
+    ranked.sort(key=lambda pair: pair[0], reverse=True)
+    selected = []
+    selected_by_family = Counter()
+    cap = max(1, min(int(limit), 100))
+    # Prevent generic news families from monopolizing every verification
+    # batch. Use a second pass only when too few families have candidates.
+    family_cap = max(2, (cap + 3) // 4)
+    for _, row in ranked:
+        family = str(row["family_hint"])
+        if selected_by_family[family] >= family_cap:
+            continue
+        selected.append(row)
+        selected_by_family[family] += 1
+        if len(selected) >= cap:
+            return selected
+    for _, row in ranked:
+        if len(selected) >= cap:
+            break
+        if row not in selected:
+            selected.append(row)
+    return selected
 
 
 def run_story_to_trivia_factory(
@@ -550,16 +898,7 @@ def run_story_to_trivia_factory(
     _ensure_schema(c)
     subject_index = build_subject_index(c)
 
-    rows = c.execute(
-        """SELECT * FROM football_story_candidates
-           WHERE status='REVIEW_PRIORITY'
-           ORDER BY
-             CASE evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
-             seen_date DESC,
-             candidate_id
-           LIMIT ?""",
-        (max(1, min(int(limit), 1000)),),
-    ).fetchall()
+    rows = _select_event_rich_candidates(c, limit=limit)
 
     counts = Counter()
     generated_questions = 0

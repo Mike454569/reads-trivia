@@ -13,6 +13,16 @@ fake_engine.seeded = lambda seed: __import__("random").Random(seed)
 sys.modules.setdefault("tools.quiz_export.engine", fake_engine)
 
 from tools.director_v05 import story_batch_drain as drain
+import sqlite3
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def mock_subject_index_setup(monkeypatch):
+    # These tests exercise drain control flow, not the production DB/index.
+    monkeypatch.setattr(drain.engine_bootstrap, 'connect', lambda: sqlite3.connect(':memory:'))
+    monkeypatch.setattr(drain, '_prepare_write_connection', lambda c: c)
+    monkeypatch.setattr(drain, 'build_subject_index', lambda c: {'labels': {}})
 
 
 def test_drain_runs_checkpointed_micro_batches_until_empty(monkeypatch):
