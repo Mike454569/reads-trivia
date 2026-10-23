@@ -3,7 +3,13 @@ import json, sqlite3, sys
 from collections import Counter
 from tools.director_v05.lore_mechanics import compile_fact_or_fake, compile_progressive_identity
 from tools.director_v05.lore_formats import compile_common_link_mcq
-from tools.director_v05.story_quality_certification import certify_question
+import importlib.util
+_cert_name="tools.director_v05.story_quality_certification"
+_spec=importlib.util.spec_from_file_location(_cert_name,"/tmp/reads_story_quality_checked.py")
+_mod=importlib.util.module_from_spec(_spec)
+sys.modules[_cert_name]=_mod
+_spec.loader.exec_module(_mod)
+certify_question=_mod.certify_question
 
 def run(db):
     db.execute("PRAGMA query_only=ON")
