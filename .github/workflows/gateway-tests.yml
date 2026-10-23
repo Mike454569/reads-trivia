@@ -89,6 +89,16 @@ jobs:
           PY
           )
           flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app READS_ENGINE_DIR=/data/engine && echo $RUNNER | base64 -d > /tmp/reads_story_backfill_runner.py && timeout 45 python3 -u /tmp/reads_story_backfill_runner.py'" 2>&1 | tee controlled-backfill.log
+      - name: Read-only compiler quality probe
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          CODE=$(base64 -w0 tools/director_v05/probe_story_generation_readonly.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_probe.py'"
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && timeout 55 python3 -u /tmp/reads_story_probe.py /data/engine/reads_football_v4.0.sqlite'" 2>&1 | tee story-probe.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
