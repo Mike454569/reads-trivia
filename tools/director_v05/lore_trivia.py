@@ -112,7 +112,12 @@ def _safe_clues(event):
             "event label:", "classified as a", "structured fact",
         )):
             clues.append(title.rstrip(".") + ".")
-        if summary and summary.casefold() not in {x.casefold() for x in clues}:
+        if (summary and summary.casefold() not in {x.casefold() for x in clues}
+                and not any(token in summary.casefold() for token in (
+                    "documented off-field football story", "subject of a documented",
+                    "verified football event", "verified chain", "structured fact",
+                    "event label:", "classified as a",
+                ))):
             clues.append(summary)
 
     season = _season(event.get("event_date"))
