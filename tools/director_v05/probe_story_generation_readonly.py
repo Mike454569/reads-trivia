@@ -1,6 +1,14 @@
 """Read-only production compiler probe; no INSERT, UPDATE, or transaction writes."""
 import json, sqlite3, sys
 from collections import Counter
+# The running Fly image may lag this branch. Load the changed clue compiler
+# first so the probe tests candidate code instead of the deployed old module.
+import importlib.util
+_lore_name="tools.director_v05.lore_trivia"
+_lore_spec=importlib.util.spec_from_file_location(_lore_name,"/tmp/reads_story_lore_checked.py")
+_lore_mod=importlib.util.module_from_spec(_lore_spec)
+sys.modules[_lore_name]=_lore_mod
+_lore_spec.loader.exec_module(_lore_mod)
 from tools.director_v05.lore_mechanics import compile_fact_or_fake, compile_progressive_identity
 from tools.director_v05.lore_formats import compile_common_link_mcq
 import importlib.util
