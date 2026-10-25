@@ -95,10 +95,40 @@ def compile_progressive_identity(conn, event_id):
     if len(clues) < 3:
         raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
 
-    # Reveal broad context first, event-specific detail last.
-    broad = [c for c in clues if c.startswith("League: ") or c.startswith("Season: ")]
-    specific = [c for c in clues if c not in broad]
-    ordered = broad + specific
+    # Draw extra clues from *other independently verified events* for this
+    # exact subject. Do not fabricate a bio or use generic league tags to
+    # pad a round that lacks enough actual player facts.
+    subject_id = str(identity["subject_id"])
+    subject_type = identity["subject_type"]
+    additional = conn.execute(
+        """SELECT DISTINCT e.event_id,e.title,e.neutral_summary
+           FROM universal_event e
+           JOIN universal_event_subject s ON s.event_id=e.event_id
+           WHERE s.subject_type=? AND s.subject_id=?
+             AND e.event_id<>? AND e.verification_status='VERIFIED'
+             AND COALESCE(e.sensitive,0)=0 AND e.league=?
+           ORDER BY e.event_id LIMIT 40""",
+        (subject_type, subject_id, event_id, event.get("league")),
+    ).fetchall()
+    for other in additional:
+        fact = str(other["title"] or "").strip()
+        if not fact or len(fact) < 24 or len(fact) > 230:
+            continue
+        fact = _identity_safe_clue(fact, answer_label=answer_label, answer_type=subject_type)
+        if any(t in fact.casefold() for t in (
+            "documented football event", "documented off-field football story",
+            "classified as a", "event label:", "verified chain", "structured fact",
+        )):
+            continue
+        if fact.casefold() not in {str(x).casefold() for x in clues}:
+            clues.append(fact.rstrip(".") + ".")
+    specific = [c for c in clues if not c.startswith(("League: ", "Season: "))]
+    # At least two distinct actual events/facts: "NFL" and "2025" aren't
+    # enough to make Who Am I entertaining or uniquely solvable.
+    if len(specific) < 2:
+        raise ValueError("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
+    broad = [c for c in clues if c.startswith(("League: ", "Season: "))]
+    ordered = broad[:1] + specific[:4]
     if len(ordered) < 3:
         raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
 
