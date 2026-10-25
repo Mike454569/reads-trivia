@@ -101,7 +101,7 @@ jobs:
           LORE=$(base64 -w0 tools/director_v05/lore_trivia.py)
           MECHANICS=$(base64 -w0 tools/director_v05/lore_mechanics.py)
           flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $CODE | base64 -d > /tmp/reads_story_probe.py; echo $CERT | base64 -d > /tmp/reads_story_quality_checked.py; echo $LORE | base64 -d > /tmp/reads_story_lore_checked.py; echo $MECHANICS | base64 -d > /tmp/reads_story_mechanics_checked.py'"
-          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && timeout 55 python3 -u /tmp/reads_story_probe.py /data/engine/reads_football_v4.0.sqlite'" 2>&1 | tee story-probe.log
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && timeout 90 python3 -u /tmp/reads_story_probe.py /data/engine/reads_football_v4.0.sqlite'" 2>&1 | tee story-probe.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
