@@ -88,6 +88,18 @@ def certify_question(question, *, expected_event_id=None):
                 for c in clues
             ):
                 defects.append("ANSWER_LEAK_IN_CLUES")
+    elif mechanic == "PROGRESSIVE_CLUE":
+        clues = question.get("clues") or []
+        bodies = [_normalize(x.get("text") if isinstance(x, dict) else x) for x in clues]
+        specific = [x for x in bodies if x and not x.startswith(("league:", "season:"))]
+        if len(bodies) < 3 or len(specific) < 2:
+            defects.append("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
+        if len(set(bodies)) != len(bodies):
+            defects.append("DUPLICATE_IDENTITY_CLUES")
+        if not all(bodies):
+            defects.append("EMPTY_CLUE")
+        if answer_label and any(answer_label in x for x in bodies):
+            defects.append("ANSWER_LEAK_IN_CLUES")
     elif mechanic == "FACT_OR_FAKE":
         if answer.get("id") not in ("FACT", "FAKE"):
             defects.append("INVALID_BOOLEAN_ANSWER")
