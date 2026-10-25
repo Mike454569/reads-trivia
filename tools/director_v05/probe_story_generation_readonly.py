@@ -31,7 +31,7 @@ def run(db):
       FROM universal_event e JOIN universal_event_subject s ON s.event_id=e.event_id
       JOIN football_story_enrichment f ON f.promoted_event_id=e.event_id
       WHERE e.verification_status='VERIFIED' AND COALESCE(e.sensitive,0)=0
-      ORDER BY e.event_id LIMIT 20""").fetchall()
+      ORDER BY e.event_id LIMIT 5""").fetchall()
     stats=Counter()
     examples=[]
     for r in rows:
