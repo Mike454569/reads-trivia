@@ -9,7 +9,13 @@ _lore_spec=importlib.util.spec_from_file_location(_lore_name,"/tmp/reads_story_l
 _lore_mod=importlib.util.module_from_spec(_lore_spec)
 sys.modules[_lore_name]=_lore_mod
 _lore_spec.loader.exec_module(_lore_mod)
-from tools.director_v05.lore_mechanics import compile_fact_or_fake, compile_progressive_identity
+_mechanics_name="tools.director_v05.lore_mechanics"
+_mechanics_spec=importlib.util.spec_from_file_location(_mechanics_name,"/tmp/reads_story_mechanics_checked.py")
+_mechanics_mod=importlib.util.module_from_spec(_mechanics_spec)
+sys.modules[_mechanics_name]=_mechanics_mod
+_mechanics_spec.loader.exec_module(_mechanics_mod)
+compile_fact_or_fake=_mechanics_mod.compile_fact_or_fake
+compile_progressive_identity=_mechanics_mod.compile_progressive_identity
 from tools.director_v05.lore_formats import compile_common_link_mcq
 import importlib.util
 _cert_name="tools.director_v05.story_quality_certification"
