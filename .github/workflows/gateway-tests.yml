@@ -159,6 +159,55 @@ jobs:
           name: certified-fact-result
           path: certified-fact-result.log
           if-no-files-found: warn
+  certified-identity-first-batch:
+    if: github.event_name == 'pull_request' && github.head_ref == 'story-volume-quality-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Insert at most ten certified NFL Who Am I questions
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          MACHINES=$(flyctl machines list -a reads-football-gateway --json)
+          MACHINE=$(printf '%s' "$MACHINES" | python3 -c "import json,sys; a=json.load(sys.stdin); print(next((str(r.get('id') or r.get('ID')) for r in a if str(r.get('state','')).lower()=='started' and not str(r.get('name','')).startswith('ci-') and (r.get('id') or r.get('ID'))),''))")
+          test -n "$MACHINE"
+          LORE=$(base64 -w0 tools/director_v05/lore_trivia.py)
+          MECH=$(base64 -w0 tools/director_v05/lore_mechanics.py)
+          CERT=$(base64 -w0 tools/director_v05/story_quality_certification.py)
+          BATCH=$(base64 -w0 tools/director_v05/ship_certified_identity.py)
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $LORE | base64 -d > /tmp/identity_lore.py; echo $MECH | base64 -d > /tmp/identity_mech.py; echo $CERT | base64 -d > /tmp/identity_cert.py; echo $BATCH | base64 -d > /tmp/identity_fill.py'"
+          RUN=$(cat <<'PY' | base64 -w0
+          import importlib.util,sys,sqlite3,json
+          for name,path in (
+            ("tools.director_v05.lore_trivia","/tmp/identity_lore.py"),
+            ("tools.director_v05.lore_mechanics","/tmp/identity_mech.py"),
+            ("tools.director_v05.story_quality_certification","/tmp/identity_cert.py")):
+              spec=importlib.util.spec_from_file_location(name,path)
+              mod=importlib.util.module_from_spec(spec)
+              sys.modules[name]=mod
+              spec.loader.exec_module(mod)
+          spec=importlib.util.spec_from_file_location("identity_fill","/tmp/identity_fill.py")
+          mod=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          c=sqlite3.connect("/data/engine/reads_football_v4.0.sqlite",timeout=15)
+          c.row_factory=sqlite3.Row
+          try:
+            report=mod.fill(c,limit=10)
+            print("WHO_AM_I_CERTIFIED_BATCH",json.dumps(report,sort_keys=True),flush=True)
+            if report["delta"]<=0:sys.exit(3)
+          finally:c.close()
+          PY
+          )
+          flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'cd /app && export PYTHONPATH=/app && echo $RUN | base64 -d > /tmp/identity_run.py && flock -w 60 /data/engine/story-volume-writer.lock timeout 90 python3 -u /tmp/identity_run.py'" 2>&1 | tee identity-batch.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: who-am-i-first-batch
+          path: identity-batch.log
+          if-no-files-found: warn
   pytest:
     runs-on: ubuntu-latest
     steps:
