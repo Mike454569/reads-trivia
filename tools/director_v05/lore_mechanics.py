@@ -92,9 +92,6 @@ def compile_progressive_identity(conn, event_id):
         for clue in clues
     ):
         raise ValueError("IDENTITY_CLUE_LEAKS_ANSWER")
-    if len(clues) < 3:
-        raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
-
     # Draw extra clues from *other independently verified events* for this
     # exact subject. Do not fabricate a bio or use generic league tags to
     # pad a round that lacks enough actual player facts.
