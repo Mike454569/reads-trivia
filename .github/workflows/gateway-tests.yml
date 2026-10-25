@@ -160,7 +160,8 @@ jobs:
           path: certified-fact-result.log
           if-no-files-found: warn
   certified-identity-first-batch:
-    if: github.event_name == 'pull_request' && github.head_ref == 'story-volume-quality-v1'
+    # One-shot job; disabled for subsequent PR commits.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
