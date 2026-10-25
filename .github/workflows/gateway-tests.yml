@@ -108,7 +108,9 @@ jobs:
           path: controlled-backfill.log
           if-no-files-found: warn
   certified-fact-first-batch:
-    if: github.event_name == 'pull_request' && github.head_ref == 'story-volume-quality-v1'
+    # The first live batch succeeded (+10). Never repeat writes on PR pushes.
+    # Re-enable only through a separately reviewed, intentional batch.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
