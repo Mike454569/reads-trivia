@@ -107,6 +107,7 @@ def compile_progressive_identity(conn, event_id):
            ORDER BY e.event_id LIMIT 40""",
         (subject_type, subject_id, event_id, event.get("league")),
     ).fetchall()
+    evidence_for_clue = {}
     for other in additional:
         fact = str(other["title"] or "").strip()
         if not fact or len(fact) < 24 or len(fact) > 230:
@@ -118,7 +119,9 @@ def compile_progressive_identity(conn, event_id):
         )):
             continue
         if fact.casefold() not in {str(x).casefold() for x in clues}:
-            clues.append(fact.rstrip(".") + ".")
+            prepared = fact.rstrip(".") + "."
+            clues.append(prepared)
+            evidence_for_clue[prepared] = str(other["event_id"])
     specific = [c for c in clues if not c.startswith(("League: ", "Season: "))]
     # At least two distinct actual events/facts: "NFL" and "2025" aren't
     # enough to make Who Am I entertaining or uniquely solvable.
@@ -129,6 +132,11 @@ def compile_progressive_identity(conn, event_id):
     if len(ordered) < 3:
         raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
 
+    evidence_ids = [str(event_id)]
+    for clue in ordered:
+        supporting_event = evidence_for_clue.get(clue)
+        if supporting_event and supporting_event not in evidence_ids:
+            evidence_ids.append(supporting_event)
     qid = _qid("PROGRESSIVE_IDENTITY", [event_id, identity["subject_type"], identity["subject_id"]] + ordered)
     return {
         "contract_version": "1.0.0",
@@ -144,7 +152,7 @@ def compile_progressive_identity(conn, event_id):
         },
         "event_id": event_id,
         "sensitive": gate["sensitive"],
-        "provenance": _prov(conn, [event_id]),
+        "provenance": _prov(conn, evidence_ids),
     }
 
 
