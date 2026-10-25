@@ -17,13 +17,15 @@ def test_identity_enriches_with_verified_other_events():
          patch("tools.director_v05.lore_mechanics._subjects",return_value=[{"subject_type":"CFB_PLAYER","subject_id":"p1"}]), \
          patch("tools.director_v05.lore_mechanics.resolve_label",return_value="Player A"), \
          patch("tools.director_v05.lore_mechanics._safe_clues",return_value=["League: CFB."]), \
-         patch("tools.director_v05.lore_mechanics._prov",return_value={"provenance_complete":True,"event_ids":["first"],"evidence":["verified"]}):
+         patch("tools.director_v05.lore_mechanics._prov",side_effect=lambda db, ids: {"provenance_complete":True,"event_ids":ids,"evidence":["verified"]}):
         result=compile_progressive_identity(DB(),"first")
     clues=[x["text"] for x in result["clues"]]
     assert len(clues)==3
     assert all("Player A" not in clue for clue in clues)
     assert any("rivalry game" in clue for clue in clues)
     assert any("bowl win" in clue for clue in clues)
+    # The answer must cite the separate events supporting its clues.
+    assert result["provenance"]["event_ids"] == ["first", "second", "third"]
 
 def test_identity_rejects_metadata_only():
     class EmptyDB(DB):
