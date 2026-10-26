@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 
 def _tables(conn):
@@ -64,16 +64,18 @@ def build_subject_index(conn):
                 entity_id = row[0]
                 if entity_id is None:
                     continue
+                # Canonical tables can expose multiple genuine name columns.
+                # Index every non-empty name (not just the first), but never
+                # invent aliases or assign names shared by multiple entities.
+                key = (entity_type, str(entity_id))
                 for idx in range(1, len(usable) + 1):
-                    value = row[idx]
-                    label = str(value or "").strip()
+                    label = str(row[idx] or "").strip()
                     norm = _norm(label)
                     if len(norm) < 5 or norm in STOP_LABELS:
                         continue
-                    key = (entity_type, str(entity_id))
                     label_map[norm].add(key)
-                    display[key] = label
-                    break
+                    if key not in display:
+                        display[key] = label
 
     # Only exact labels mapping to one entity are eligible for auto-promotion.
     unique = {
@@ -81,21 +83,79 @@ def build_subject_index(conn):
         for label, ids in label_map.items()
         if len(ids) == 1
     }
-    return {"labels": unique, "display": display}
+    # A cross-league name collision is not an identity merge. For example,
+    # "Shedeur Sanders" exists as an NFL_PLAYER and a CFB_PLAYER. Allow that
+    # exact label only in a source explicitly scoped to the appropriate league,
+    # and only if there is exactly one candidate in each league.
+    league_scoped = {"NFL": {}, "CFB": {}}
+    for label, ids in label_map.items():
+        if len(ids) != 2:
+            continue
+        per_league = {kind: (kind, entity_id) for kind, entity_id in ids}
+        if set(per_league) == {"NFL_PLAYER", "CFB_PLAYER"}:
+            league_scoped["NFL"][label] = per_league["NFL_PLAYER"]
+            league_scoped["CFB"][label] = per_league["CFB_PLAYER"]
+
+    # One selective word per label lets matching long article bodies avoid
+    # scanning every one of ~95k labels against each 18k-character article.
+    # Literal matches necessarily contain this word as an alphanumeric token.
+    tokenized = {label: set(re.findall(r"[a-z0-9]+", label)) for label in unique}
+    frequencies = Counter(token for words in tokenized.values() for token in words)
+    anchors = defaultdict(set)
+    for label, words in tokenized.items():
+        if words:
+            token = min(words, key=lambda w: (frequencies[w], -len(w), w))
+            anchors[token].add(label)
+    sorted_labels = sorted(unique, key=len, reverse=True)
+    return {
+        "labels": unique,
+        "display": display,
+        "sorted_labels": sorted_labels,
+        "anchor_labels": dict(anchors),
+        "label_order": {label: i for i, label in enumerate(sorted_labels)},
+        "league_scoped": league_scoped,
+    }
 
 
-def match_subjects(index, *, title, text, max_matches=8):
+def match_subjects(index, *, title, text, max_matches=8, league_hint=None):
     norm_title = _norm(title)
     norm_text = _norm(text)
     matches = []
 
-    # Longer labels first prevents a short alias from crowding out a full name.
-    for label in sorted(index["labels"], key=len, reverse=True):
-        in_title = bool(re.search(r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])", norm_title))
-        in_text = bool(re.search(r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])", norm_text))
+    # A title's named subject matters more than background names mentioned
+    # later in the article. Search all title hits first so the eight-result
+    # cap cannot silently discard the story's main person.
+    if "anchor_labels" in index:
+        tokens = set(re.findall(r"[a-z0-9]+", norm_title + " " + norm_text))
+        possible = set()
+        for token in tokens:
+            possible.update(index["anchor_labels"].get(token, ()))
+        candidates = sorted(possible, key=index["label_order"].__getitem__)
+    else:
+        candidates = index.get("sorted_labels") or sorted(index["labels"], key=len, reverse=True)
+    # Scoped collisions aren't in unique labels; append only those with
+    # an explicit, trusted article-league hint. Never infer equivalence.
+    scoped = index.get("league_scoped", {}).get(league_hint, {})
+    scoped_hits = [
+        label for label in scoped
+        if label in norm_title and label in norm_text
+    ]
+    scoped_hits.sort(key=len, reverse=True)
+    title_candidates = scoped_hits + [label for label in candidates if label in norm_title]
+    body_candidates = [label for label in candidates if label not in norm_title]
+    # Keep the same exact-token boundary checks. An ambiguous label was
+    # already removed from index["labels"] during canonical index building.
+    for label in title_candidates + body_candidates:
+        has_title = label in norm_title
+        has_text = label in norm_text
+        if not has_title and not has_text:
+            continue
+        boundary = r"(?<![a-z0-9])" + re.escape(label) + r"(?![a-z0-9])"
+        in_title = has_title and bool(re.search(boundary, norm_title))
+        in_text = has_text and bool(re.search(boundary, norm_text))
         if not in_title and not in_text:
             continue
-        entity_type, entity_id = index["labels"][label]
+        entity_type, entity_id = scoped[label] if label in scoped else index["labels"][label]
         matches.append({
             "entity_type": entity_type,
             "entity_id": entity_id,
@@ -111,15 +171,15 @@ def match_subjects(index, *, title, text, max_matches=8):
 
 
 def primary_identity_match(matches):
-    """One clear person identity is required for automatic story questions."""
-    people = [
-        m for m in matches
-        if m["entity_type"] in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}
-        and m["in_text"]
-    ]
-    title_people = [m for m in people if m["in_title"]]
-    if len(title_people) == 1:
-        return title_people[0]
-    if len(people) == 1:
-        return people[0]
-    return None
+    """Fail closed unless one canonical person is explicitly in the headline.
+
+    A full article can mention dozens of unrelated athletes and coaches.
+    Picking its only *body* match is not proof that person is the story
+    subject. Merge aliases for the same canonical identity before counting.
+    """
+    title_people = {}
+    for m in matches:
+        if (m["entity_type"] in {"NFL_PLAYER", "CFB_PLAYER", "COACH"}
+                and m["in_title"] and m["in_text"]):
+            title_people[(m["entity_type"], m["entity_id"])] = m
+    return next(iter(title_people.values())) if len(title_people) == 1 else None

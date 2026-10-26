@@ -1,0 +1,58 @@
+name: Controlled Story Volume 25-Candidate Batch
+on:
+  push:
+    branches: [story-volume-quality-v1]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: controlled-story-volume-write
+  cancel-in-progress: false
+jobs:
+  batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Process at most 25 candidates on Fly without deployment
+        shell: bash
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys;print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started" and not str(x.get("name","")).startswith("ci-")),""))')
+          test -n "$MACHINE"
+          mkdir -p /tmp/story25/tools/director_v05
+          printf 'from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\n' >/tmp/story25/tools/__init__.py
+          cp /tmp/story25/tools/__init__.py /tmp/story25/tools/director_v05/__init__.py
+          for name in story_article_extract story_subject_match story_to_trivia_factory story_batch_processor story_batch_drain story_quality_certification lore_distractors; do
+            cp "tools/director_v05/$name.py" "/tmp/story25/tools/director_v05/$name.py"
+          done
+          tar -czf /tmp/story25.tgz -C /tmp story25
+          ARCHIVE=$(base64 -w0 /tmp/story25.tgz)
+          cat >/tmp/story25_runner.py <<'PY'
+          import json,time,faulthandler,sys
+          faulthandler.enable()
+          faulthandler.dump_traceback_later(75,repeat=True)
+          from tools.director_v05.story_batch_drain import drain_story_queue
+          from tools.quiz_export import engine
+          def snapshot():
+              c=engine.connect()
+              try:
+                  return {
+                    "candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],
+                    "verified":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],
+                    "playable":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0]
+                  }
+              finally: c.close()
+          before=snapshot()
+          print("STORY25_BEFORE",json.dumps(before,sort_keys=True),flush=True)
+          report=drain_story_queue(batch_size=5,max_batches=5,time_budget_seconds=420)
+          print("STORY25_BATCH",json.dumps(report,sort_keys=True,default=str),flush=True)
+          after=snapshot()
+          print("STORY25_AFTER",json.dumps(after,sort_keys=True),flush=True)
+          print("STORY25_DELTA",json.dumps({k:after[k]-before[k] for k in before},sort_keys=True),flush=True)
+          PY
+          PAYLOAD=$(base64 -w0 /tmp/story25_runner.py)
+          timeout -k 5s 590s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story25_runner.py; cd /app; export PYTHONPATH=/tmp/story25:/app; export READS_ENGINE_DIR=/data/engine; flock -w 90 /data/engine/story-volume-writer.lock timeout -k 5s 460s python -u /tmp/story25_runner.py'"

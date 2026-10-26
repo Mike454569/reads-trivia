@@ -4,9 +4,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sqlite3
+import time
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
+from .story_sqlite import prepare_write_connection
 
 HIGH_SIGNAL = {
     "BIZARRE_MOMENT": (
@@ -148,8 +151,47 @@ def _score(row):
     return score
 
 
+
+# Never hold a write transaction across the entire review queue. Production
+# gameplay and refresh writers share this SQLite database and do not use the
+# story-specific flock, so flock alone cannot prevent SQLite contention.
+TRIAGE_WRITE_BATCH_SIZE = 200
+TRIAGE_LOCK_RETRIES = 6
+TRIAGE_BUSY_TIMEOUT_MS = 15_000
+
+
+def _write_triage_updates(c, updates):
+    """Short, retryable transactions; no partial writes inside a failed batch."""
+    c.execute(f"PRAGMA busy_timeout={TRIAGE_BUSY_TIMEOUT_MS}")
+    for start in range(0, len(updates), TRIAGE_WRITE_BATCH_SIZE):
+        batch = updates[start:start + TRIAGE_WRITE_BATCH_SIZE]
+        for attempt in range(TRIAGE_LOCK_RETRIES):
+            try:
+                # Acquire the writer slot before updating any rows. Retrying a
+                # commit on a long DEFERRED transaction can retain locks and
+                # prevent the competing writer from making progress.
+                c.execute("BEGIN IMMEDIATE")
+                c.executemany(
+                    """UPDATE football_story_candidates
+                       SET status=?, review_notes=?
+                       WHERE candidate_id=?
+                         AND status IN ('REVIEW_REQUIRED','REVIEW_PRIORITY')""",
+                    batch,
+                )
+                c.commit()
+                break
+            except sqlite3.OperationalError as exc:
+                c.rollback()
+                if not any(word in str(exc).casefold() for word in ("locked", "busy")):
+                    raise
+                if attempt == TRIAGE_LOCK_RETRIES - 1:
+                    raise
+                time.sleep(min(8, 2 ** attempt))
+
+
+
 def triage_candidates(*, minimum_priority_score=30):
-    c = engine_bootstrap.connect()
+    c = prepare_write_connection(engine_bootstrap.connect())
     rows = c.execute(
         """SELECT * FROM football_story_candidates
            WHERE status IN ('REVIEW_REQUIRED','REVIEW_PRIORITY')
@@ -192,12 +234,7 @@ def triage_candidates(*, minimum_priority_score=30):
             "title_signature": sig,
         }, sort_keys=True), cid))
 
-    c.executemany(
-        """UPDATE football_story_candidates
-           SET status=?,review_notes=? WHERE candidate_id=?""",
-        updates,
-    )
-    c.commit()
+    _write_triage_updates(c, updates)
 
     family_counts = c.execute(
         """SELECT family_hint,status,COUNT(*) n

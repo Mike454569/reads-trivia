@@ -102,11 +102,23 @@ def _safe_clues(event):
             clues.append("Recorded disposition: " + disposition + ".")
     else:
         summary = str(event.get("neutral_summary") or "").strip()
-        if summary:
-            clues.append(summary)
         title = str(event.get("title") or "").strip()
-        if title and title.casefold() not in summary.casefold():
-            clues.append("Event label: " + title + ".")
+        # Prefer verifiable, reader-facing facts to synthetic event-taxonomy
+        # wrappers. A title is useful only as an actual statement, not as an
+        # "Event label" metadata clue. The quality gate still rejects generic
+        # titles and source-poor material downstream.
+        if title and not any(token in title.casefold() for token in (
+            "documented off-field football story", "verified football event",
+            "event label:", "classified as a", "structured fact",
+        )):
+            clues.append(title.rstrip(".") + ".")
+        if (summary and summary.casefold() not in {x.casefold() for x in clues}
+                and not any(token in summary.casefold() for token in (
+                    "documented off-field football story", "subject of a documented",
+                    "verified football event", "verified chain", "structured fact",
+                    "event label:", "classified as a",
+                ))):
+            clues.append(summary)
 
     season = _season(event.get("event_date"))
     if season:

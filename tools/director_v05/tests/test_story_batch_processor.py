@@ -59,11 +59,11 @@ def test_claim_batch_is_checkpointed_and_not_claimed_twice():
         _candidate(c, cid)
     batch.sync_queue(c)
 
-    first = batch._claim_batch(c, batch_size=2, max_attempts=3)
+    first, diagnostic = batch._claim_batch(c, batch_size=2, max_attempts=3)
     first_ids = {r["candidate_id"] for r in first}
     assert len(first_ids) == 2
 
-    second = batch._claim_batch(c, batch_size=2, max_attempts=3)
+    second, _ = batch._claim_batch(c, batch_size=2, max_attempts=3)
     second_ids = {r["candidate_id"] for r in second}
     assert len(second_ids) == 1
     assert not first_ids & second_ids
@@ -115,7 +115,7 @@ def test_finish_preserves_completed_checkpoint():
     assert row["last_decision"] == "AUTO_PROMOTED"
     assert row["generated_question_count"] == 2
 
-    assert batch._claim_batch(c, batch_size=1, max_attempts=3) == []
+    assert batch._claim_batch(c, batch_size=1, max_attempts=3)[0] == []
 
 
 def test_retryable_candidate_stops_after_max_attempts():
@@ -124,7 +124,7 @@ def test_retryable_candidate_stops_after_max_attempts():
     batch.sync_queue(c)
 
     for _ in range(3):
-        rows = batch._claim_batch(c, batch_size=1, max_attempts=3)
+        rows, _ = batch._claim_batch(c, batch_size=1, max_attempts=3)
         assert len(rows) == 1
         attempt = c.execute(
             "SELECT attempts FROM story_candidate_processing WHERE candidate_id='c1'"
@@ -138,3 +138,26 @@ def test_retryable_candidate_stops_after_max_attempts():
     ).fetchone()
     assert row["state"] == "FAILED_FINAL"
     assert row["attempts"] == 3
+
+
+def test_keyword_free_candidate_is_claimed_for_article_verification():
+    c = _conn()
+    _candidate(c, "safe_headline")
+    c.execute("UPDATE football_story_candidates SET title=? WHERE candidate_id=?",
+              ("Quarterback makes an unexpected return during Sunday's game", "safe_headline"))
+    c.commit()
+    batch.sync_queue(c)
+    rows, diagnostics = batch._claim_batch(c, batch_size=1, max_attempts=3)
+    assert [row["candidate_id"] for row in rows] == ["safe_headline"]
+    assert diagnostics["fallback_matches"] >= 1
+
+
+def test_unsupported_family_cannot_bypass_auto_verification():
+    c = _conn()
+    _candidate(c, "unsupported")
+    c.execute("UPDATE football_story_candidates SET family_hint='DISCIPLINE_LEGAL' WHERE candidate_id='unsupported'")
+    c.commit()
+    batch.sync_queue(c)
+    rows, diagnostics = batch._claim_batch(c, batch_size=1, max_attempts=3)
+    assert rows == []
+    assert diagnostics["filtered_by_family"]["DISCIPLINE_LEGAL"] == 1

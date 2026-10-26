@@ -60,19 +60,17 @@ def _identity_safe_clue(text, *, answer_label, answer_type):
     if label.casefold() not in clue.casefold():
         return clue
 
-    replacement = {
-        "NFL_PLAYER": "This player",
-        "CFB_PLAYER": "This player",
-        "COACH": "This coach",
-    }.get(str(answer_type), "This person")
-    clue = re.sub(re.escape(label), replacement, clue, flags=re.I)
-    clue = re.sub(r"\b(This (?:player|coach|person))\s+was\s+the\s+subject\s+of\s+",
-                  r"\1 was featured in ", clue, flags=re.I)
+    # The answer is the speaker. Converting the name to "I" preserves
+    # the sourced factual predicate without writing invented biography.
+    clue = re.sub(re.escape(label), "I", clue, flags=re.I)
+    clue = re.sub(r"\\bI (?:was|is) the subject of\\b", "I was involved in", clue, flags=re.I)
     return " ".join(clue.split()).strip()
 
 
-def compile_progressive_identity(conn, event_id):
-    """Turn one event into a progressive Who Am I / Three Clues contract."""
+def compile_progressive_identity(conn, event_id, *, clue_count=5):
+    """Build five (or seven) distinct sourced career clues; never pad."""
+    if clue_count not in (5, 7):
+        raise ValueError("UNSUPPORTED_IDENTITY_CLUE_COUNT")
     event, gate = _event(conn, event_id)
     identity = _identity_subject(_subjects(conn, event_id))
     answer_label = resolve_label(
@@ -92,16 +90,100 @@ def compile_progressive_identity(conn, event_id):
         for clue in clues
     ):
         raise ValueError("IDENTITY_CLUE_LEAKS_ANSWER")
-    if len(clues) < 3:
-        raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
+    # Draw extra clues from *other independently verified events* for this
+    # exact subject. Do not fabricate a bio or use generic league tags to
+    # pad a round that lacks enough actual player facts.
+    subject_id = str(identity["subject_id"])
+    subject_type = identity["subject_type"]
+    additional = conn.execute(
+        """SELECT DISTINCT e.event_id,e.title,e.neutral_summary
+           FROM universal_event e
+           JOIN universal_event_subject s ON s.event_id=e.event_id
+           WHERE s.subject_type=? AND s.subject_id=?
+             AND e.event_id<>? AND e.verification_status='VERIFIED'
+             AND COALESCE(e.sensitive,0)=0 AND e.league=?
+           ORDER BY e.event_id LIMIT 40""",
+        (subject_type, subject_id, event_id, event.get("league")),
+    ).fetchall()
+    evidence_for_clue = {}
+    for other in additional:
+        fact = str(other["title"] or "").strip()
+        if not fact or len(fact) < 24 or len(fact) > 230:
+            continue
+        fact = _identity_safe_clue(fact, answer_label=answer_label, answer_type=subject_type)
+        if any(t in fact.casefold() for t in (
+            "documented football event", "documented off-field football story",
+            "classified as a", "event label:", "verified chain", "structured fact",
+        )):
+            continue
+        if fact.casefold() not in {str(x).casefold() for x in clues}:
+            prepared = fact.rstrip(".") + "."
+            clues.append(prepared)
+            evidence_for_clue[prepared] = str(other["event_id"])
+    # Three meaningful, separate source-backed football facts are mandatory.
+    # League/season labels and generic biography aren't mystery clues.
+    generic = (
+        "played in the nfl", "played college football", "football player",
+        "draft prospect", "was a quarterback", "was a running back",
+        "was a wide receiver", "was a coach", "league:", "season:",
+        "this player", "this person", "this coach",
+    )
+    specific = []
+    for clue in clues:
+        text = str(clue).strip()
+        normalized = text.casefold()
+        if len(text) < 30 or any(normalized.startswith(x) for x in generic):
+            continue
+        if any(token in normalized for token in (
+            "documented football event", "subject of a documented",
+            "verified football event", "classified as a",
+        )):
+            continue
+        if normalized not in {x.casefold() for x in specific}:
+            specific.append(text)
+    if len(specific) < clue_count:
+        raise ValueError("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
 
-    # Reveal broad context first, event-specific detail last.
-    broad = [c for c in clues if c.startswith("League: ") or c.startswith("Season: ")]
-    specific = [c for c in clues if c not in broad]
-    ordered = broad + specific
-    if len(ordered) < 3:
-        raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
+    # Choose a progression, not three similarly worded headlines. Every
+    # displayed fact still comes verbatim from a verified event record.
+    # Low-reveal career context appears first; distinctive milestones last.
+    signature_terms = ("super bowl", "national championship", "heisman",
+                       "mvp", "record", "game-winning", "winning touchdown",
+                       "first overall", "hall of fame", "playoff")
+    context_terms = ("recruited", "transferred", "college", "drafted",
+                     "season", "rookie", "training camp", "debut")
+    def _reveal_score(text):
+        lower = text.casefold()
+        return (
+            4 * sum(term in lower for term in signature_terms)
+            + 2 * any(char.isdigit() for char in text)
+            - 2 * any(term in lower for term in context_terms)
+        )
+    ranked = sorted(specific, key=lambda text: (_reveal_score(text), len(text), text))
+    # Prefer facts from different parts of a career. Headlines with near
+    # identical word sets often describe the same incident in multiple feeds.
+    ordered = []
+    prior_tokens = []
+    stopwords = {"the", "and", "with", "after", "during", "from", "this",
+                 "that", "football", "player", "game", "team", "against"}
+    for candidate in ranked:
+        tokens = {w for w in re.findall(r"[a-z]{4,}", candidate.casefold())
+                  if w not in stopwords}
+        if tokens and any(len(tokens & prev) / max(1, min(len(tokens),len(prev))) > 0.75
+                          for prev in prior_tokens):
+            continue
+        ordered.append(candidate)
+        prior_tokens.append(tokens)
+        if len(ordered) == clue_count:
+            break
+    if len(ordered) < clue_count:
+        raise ValueError("IDENTITY_CLUES_TOO_SIMILAR")
 
+    evidence_ids = [str(event_id)]
+    for clue in ordered:
+        supporting_event = evidence_for_clue.get(clue)
+        if supporting_event and supporting_event not in evidence_ids:
+            evidence_ids.append(supporting_event)
     qid = _qid("PROGRESSIVE_IDENTITY", [event_id, identity["subject_type"], identity["subject_id"]] + ordered)
     return {
         "contract_version": "1.0.0",
@@ -109,7 +191,8 @@ def compile_progressive_identity(conn, event_id):
         "mechanic": "PROGRESSIVE_CLUE",
         "question_family": "LORE_IDENTITY",
         "question": "Who am I?",
-        "clues": [{"step": i + 1, "text": clue} for i, clue in enumerate(ordered)],
+        "clues": [{"step": i + 1, "text": clue, "points": (clue_count - i) * 100} for i, clue in enumerate(ordered)],
+        "clue_count": clue_count,
         "answer": {
             "id": identity["subject_id"],
             "label": answer_label,
@@ -117,7 +200,7 @@ def compile_progressive_identity(conn, event_id):
         },
         "event_id": event_id,
         "sensitive": gate["sensitive"],
-        "provenance": _prov(conn, [event_id]),
+        "provenance": _prov(conn, evidence_ids),
     }
 
 

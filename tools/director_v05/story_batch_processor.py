@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import sqlite3
+import time
 from collections import Counter
 
 from tools.quiz_export import engine as engine_bootstrap
@@ -19,7 +20,11 @@ from .story_to_trivia_factory import (
     _prepare_write_connection,
     _commit_with_retry,
     process_candidate,
+    _story_candidate_priority,
+    AUTO_FAMILIES,
+    DISCOVERY_LOW_SIGNAL,
 )
+from .story_quality_certification import certify_event_questions
 
 STATE_PENDING = "PENDING"
 STATE_PROCESSING = "PROCESSING"
@@ -29,7 +34,7 @@ STATE_RETRY = "FAILED_RETRYABLE"
 STATE_FAILED = "FAILED_FINAL"
 
 DEFAULT_BATCH_SIZE = 5
-MAX_BATCH_SIZE = 25
+MAX_BATCH_SIZE = 50
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_STALE_MINUTES = 30
 
@@ -115,7 +120,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
     # candidate even if GitHub or an admin accidentally starts both.
     c.execute("BEGIN IMMEDIATE")
     rows = c.execute(
-        """SELECT p.candidate_id
+        """SELECT c.*
            FROM story_candidate_processing p
            JOIN football_story_candidates c
              ON c.candidate_id=p.candidate_id
@@ -123,15 +128,63 @@ def _claim_batch(c, *, batch_size, max_attempts):
              AND p.attempts < ?
              AND c.status='REVIEW_PRIORITY'
              AND COALESCE(c.sensitive_hint,0)=0
-           ORDER BY
-             CASE c.evidence_tier_hint WHEN 'PRIMARY' THEN 0 ELSE 1 END,
-             c.seen_date DESC,
-             p.attempts ASC,
+           ORDER BY p.attempts ASC, c.first_harvested_at DESC,
              p.candidate_id
-           LIMIT ?""",
-        (max_attempts, batch_size),
+           """,
+        (max_attempts,),
     ).fetchall()
-    ids = [str(r["candidate_id"]) for r in rows]
+    # Prioritize concrete verified-source incidents, but do not relax the
+    # article/identity/evidence gates. Each batch is category-balanced.
+    ranked = []
+    fallback = []
+    rejection_reasons = Counter()
+    for candidate in rows:
+        priority = _story_candidate_priority(candidate)
+        if priority is not None:
+            ranked.append((priority, candidate))
+        else:
+            # Headline discovery terms rank candidates; they are not a factual
+            # certification gate. Let safe, supported families reach the
+            # article/identity/evidence verifier even without keyword hits.
+            family = str(candidate["family_hint"] or "")
+            title = str(candidate["title"] or "").casefold().strip()
+            domain = str(candidate["domain"] or "").casefold()
+            if (family in AUTO_FAMILIES and len(title) >= 16
+                    and not any(term in title for term in DISCOVERY_LOW_SIGNAL)
+                    and domain in {
+                        "nfl.com", "ncaa.org", "espn.com", "cbssports.com",
+                        "foxsports.com", "si.com", "sports.yahoo.com",
+                        "usatoday.com",
+                    }):
+                fallback.append(candidate)
+            else:
+                rejection_reasons[family or "UNKNOWN"] += 1
+    priority_match_count = len(ranked)
+    fallback_match_count = len(fallback)
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    # Preserve discovery-first selection, then use the conservative fallback.
+    # No candidate becomes VERIFIED here; process_candidate retains every
+    # independent source and article verification requirement.
+    ranked.extend(((0, 0, 0, 0), row) for row in fallback)
+    chosen = []
+    family_counts = Counter()
+    cap = max(2, (batch_size + 3) // 4)
+    for _, candidate in ranked:
+        family = str(candidate["family_hint"])
+        if family_counts[family] >= cap:
+            continue
+        chosen.append(candidate)
+        family_counts[family] += 1
+        if len(chosen) >= batch_size:
+            break
+    if len(chosen) < batch_size:
+        already = {x["candidate_id"] for x in chosen}
+        for _, candidate in ranked:
+            if candidate["candidate_id"] not in already:
+                chosen.append(candidate)
+                if len(chosen) >= batch_size:
+                    break
+    ids = [str(r["candidate_id"]) for r in chosen]
     if ids:
         c.executemany(
             """UPDATE story_candidate_processing
@@ -147,9 +200,9 @@ def _claim_batch(c, *, batch_size, max_attempts):
     _commit_with_retry(c)
 
     if not ids:
-        return []
+        return [], {'eligible_ledger_rows': len(rows), 'priority_matches': priority_match_count, 'fallback_matches': fallback_match_count, 'selected': 0, 'filtered_by_family': dict(rejection_reasons)}
     marks = ",".join("?" for _ in ids)
-    return c.execute(
+    selected = c.execute(
         f"""SELECT * FROM football_story_candidates
             WHERE candidate_id IN ({marks})
             ORDER BY
@@ -157,6 +210,7 @@ def _claim_batch(c, *, batch_size, max_attempts):
               seen_date DESC,candidate_id""",
         ids,
     ).fetchall()
+    return selected, {'eligible_ledger_rows': len(rows), 'priority_matches': priority_match_count, 'fallback_matches': fallback_match_count, 'selected': len(selected), 'filtered_by_family': dict(rejection_reasons)}
 
 
 def _finish(c, candidate_id, *, state, decision=None, generated=0, error=None):
@@ -190,6 +244,7 @@ def process_story_batch(
     max_attempts=DEFAULT_MAX_ATTEMPTS,
     stale_minutes=DEFAULT_STALE_MINUTES,
     include_deep_chains=False,
+    subject_index=None,
 ):
     c = _prepare_write_connection(engine_bootstrap.connect())
     c.row_factory = sqlite3.Row
@@ -197,14 +252,17 @@ def process_story_batch(
     _ensure_schema(c)
     sync_queue(c)
     reclaimed = reclaim_stale(c, stale_minutes=stale_minutes)
-    rows = _claim_batch(
+    rows, selection_diagnostics = _claim_batch(
         c,
         batch_size=batch_size,
         max_attempts=max_attempts,
     )
-    subject_index = build_subject_index(c)
+    if rows and subject_index is None:
+        subject_index = build_subject_index(c)
 
     counts = Counter()
+    quality_counts = Counter()
+    quality_reasons = Counter()
     examples = []
     for row in rows:
         cid = str(row["candidate_id"])
@@ -218,6 +276,13 @@ def process_story_batch(
             decision = str(result.get("decision") or "UNKNOWN")
             generated = int(result.get("generated") or 0)
             if decision == "AUTO_PROMOTED":
+                audit = certify_event_questions(c, result["event_id"], quarantine=True)
+                quality_counts["passed"] += int(audit["passed"])
+                quality_counts["rejected"] += int(audit["rejected"])
+                quality_reasons.update(audit["rejection_reasons"])
+                # Count genuinely certified playable artifacts, not every
+                # generated draft including those quarantined by QA.
+                generated = int(audit["passed"])
                 state = STATE_DONE
             elif decision.startswith("REVIEW_REQUIRED"):
                 state = STATE_REVIEW
@@ -237,6 +302,7 @@ def process_story_batch(
                     "decision": decision,
                     "generated": generated,
                     "event_id": result.get("event_id"),
+                    "certified_playable": generated,
                 })
         except Exception as exc:
             attempt_row = c.execute(
@@ -275,12 +341,16 @@ def process_story_batch(
     c.close()
     return {
         "claimed": len(rows),
+        "selection_diagnostics": selection_diagnostics,
         "reclaimed_stale": reclaimed,
         "counts": dict(counts),
         "ledger": ledger,
         "generated_from_checkpointed_batches": generated_total,
         "batch_size": max(1, min(int(batch_size), MAX_BATCH_SIZE)),
         "include_deep_chains": bool(include_deep_chains),
+        "quality": {"passed": quality_counts["passed"],
+                    "rejected": quality_counts["rejected"],
+                    "rejection_reasons": dict(quality_reasons)},
         "examples": examples,
     }
 

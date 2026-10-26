@@ -1,0 +1,50 @@
+name: Controlled Story Volume QA Batch
+on:
+  push:
+    branches: [story-volume-quality-v1]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Smoke process only two candidates on Fly
+        shell: bash
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          MACHINE=$(flyctl machines list -a reads-football-gateway --json | python3 -c 'import json,sys; print(next((str(x["id"]) for x in json.load(sys.stdin) if x.get("state")=="started"),""))')
+          test -n "$MACHINE"
+          cat >/tmp/story_batch_smoke.py <<'PY'
+          import json,time,faulthandler,sys
+          faulthandler.enable(file=sys.stderr)
+          faulthandler.dump_traceback_later(45, repeat=True, file=sys.stderr)
+          print('BATCH_SMOKE_STAGE imports_start', flush=True)
+          from tools.director_v05.story_batch_processor import process_story_batch
+          from tools.quiz_export import engine
+          print('BATCH_SMOKE_STAGE imports_done', flush=True)
+          started=time.monotonic()
+          print('BATCH_SMOKE_STAGE process_start', flush=True)
+          report=process_story_batch(batch_size=2,max_attempts=2,stale_minutes=30,include_deep_chains=False)
+          print('BATCH_SMOKE_STAGE process_done', flush=True)
+          print("BATCH_SMOKE_RESULT",json.dumps(report,sort_keys=True,default=str),flush=True)
+          print("BATCH_SMOKE_SECONDS",round(time.monotonic()-started,2),flush=True)
+          c=engine.connect()
+          totals={"candidates":c.execute("SELECT COUNT(*) FROM football_story_candidates").fetchone()[0],"verified":c.execute("SELECT COUNT(DISTINCT e.promoted_event_id) FROM football_story_enrichment e JOIN universal_event u ON u.event_id=e.promoted_event_id WHERE e.decision='AUTO_PROMOTED' AND u.verification_status='VERIFIED'").fetchone()[0],"playable":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status IN ('READY_FOR_BANK','READY_FOR_FORMAT_BANK')").fetchone()[0],"editorial_review":c.execute("SELECT COUNT(*) FROM story_generated_questions WHERE status='NEEDS_EDITORIAL_REVIEW'").fetchone()[0]}
+          print("BATCH_SMOKE_LIVE_TOTALS",json.dumps(totals,sort_keys=True),flush=True)
+          c.close()
+          PY
+          mkdir -p /tmp/story_batch_overlay/tools/director_v05
+          printf 'from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\n' >/tmp/story_batch_overlay/tools/__init__.py
+          printf 'from pkgutil import extend_path; __path__ = extend_path(__path__, __name__)\n' >/tmp/story_batch_overlay/tools/director_v05/__init__.py
+          for name in story_article_extract story_subject_match story_to_trivia_factory story_batch_processor story_quality_certification lore_distractors; do
+            cp "tools/director_v05/$name.py" "/tmp/story_batch_overlay/tools/director_v05/$name.py"
+          done
+          tar -C /tmp -czf /tmp/story_batch_overlay.tgz story_batch_overlay
+          ARCHIVE=$(base64 -w0 /tmp/story_batch_overlay.tgz)
+          PAYLOAD=$(base64 -w0 /tmp/story_batch_smoke.py)
+          timeout -k 5s 340s flyctl ssh console -a reads-football-gateway --machine "$MACHINE" -C "sh -lc 'echo $ARCHIVE | base64 -d | tar xzf - -C /tmp; echo $PAYLOAD | base64 -d >/tmp/story_batch_smoke.py; cd /app; export PYTHONPATH=/tmp/story_batch_overlay:/app; export READS_ENGINE_DIR=/data/engine; flock -w 90 /data/engine/story-volume-writer.lock timeout -k 5s 235s python -u /tmp/story_batch_smoke.py'"
