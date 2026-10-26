@@ -11,6 +11,8 @@ class VerifiedEvents:
           {"event_id":"milestone","title":"Jordan Example won the Super Bowl MVP after a four-touchdown performance."},
           {"event_id":"background","title":"Jordan Example transferred colleges before earning a starting opportunity."},
           {"event_id":"midcareer","title":"Jordan Example threw for 300 yards in a dramatic rivalry comeback."},
+          {"event_id":"early","title":"Jordan Example received a scholarship following a remarkable regional high school season."},
+          {"event_id":"rise","title":"Jordan Example earned the starting job after a competitive preseason training camp."},
         ]
 
 def test_signature_milestone_is_last_not_first():
@@ -26,7 +28,7 @@ def test_signature_milestone_is_last_not_first():
                side_effect=lambda db,ids: {"provenance_complete":True,"event_ids":ids,"evidence":["source"]}):
         q=compile_progressive_identity(VerifiedEvents(),"anchor")
     clues=[c["text"] for c in q["clues"]]
-    assert len(clues)==3
+    assert len(clues)==5
     assert "transferred colleges" in clues[0]
     assert "Super Bowl MVP" in clues[-1]
-    assert len(q["provenance"]["event_ids"])==4
+    assert len(q["provenance"]["event_ids"])==6
