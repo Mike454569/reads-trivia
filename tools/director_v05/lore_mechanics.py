@@ -71,8 +71,10 @@ def _identity_safe_clue(text, *, answer_label, answer_type):
     return " ".join(clue.split()).strip()
 
 
-def compile_progressive_identity(conn, event_id):
-    """Turn one event into a progressive Who Am I / Three Clues contract."""
+def compile_progressive_identity(conn, event_id, *, clue_count=5):
+    """Build five (or seven) distinct sourced career clues; never pad."""
+    if clue_count not in (5, 7):
+        raise ValueError("UNSUPPORTED_IDENTITY_CLUE_COUNT")
     event, gate = _event(conn, event_id)
     identity = _identity_subject(_subjects(conn, event_id))
     answer_label = resolve_label(
@@ -143,7 +145,7 @@ def compile_progressive_identity(conn, event_id):
             continue
         if normalized not in {x.casefold() for x in specific}:
             specific.append(text)
-    if len(specific) < 3:
+    if len(specific) < clue_count:
         raise ValueError("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
 
     # Choose a progression, not three similarly worded headlines. Every
@@ -176,9 +178,9 @@ def compile_progressive_identity(conn, event_id):
             continue
         ordered.append(candidate)
         prior_tokens.append(tokens)
-        if len(ordered) == 5:
+        if len(ordered) == clue_count:
             break
-    if len(ordered) < 3:
+    if len(ordered) < clue_count:
         raise ValueError("IDENTITY_CLUES_TOO_SIMILAR")
 
     evidence_ids = [str(event_id)]
@@ -193,7 +195,8 @@ def compile_progressive_identity(conn, event_id):
         "mechanic": "PROGRESSIVE_CLUE",
         "question_family": "LORE_IDENTITY",
         "question": "Who am I?",
-        "clues": [{"step": i + 1, "text": clue} for i, clue in enumerate(ordered)],
+        "clues": [{"step": i + 1, "text": clue, "points": (clue_count - i) * 100} for i, clue in enumerate(ordered)],
+        "clue_count": clue_count,
         "answer": {
             "id": identity["subject_id"],
             "label": answer_label,
