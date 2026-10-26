@@ -91,8 +91,13 @@ def certify_question(question, *, expected_event_id=None):
     elif mechanic == "PROGRESSIVE_CLUE":
         clues = question.get("clues") or []
         bodies = [_normalize(x.get("text") if isinstance(x, dict) else x) for x in clues]
-        specific = [x for x in bodies if x and not x.startswith(("league:", "season:"))]
-        if len(bodies) < 3 or len(specific) < 2:
+        specific = [x for x in bodies if x and not x.startswith(("league:", "season:"))
+                    and len(x) >= 30 and not x.startswith((
+                        "played in the nfl", "played college football",
+                        "football player", "draft prospect", "was a quarterback",
+                        "was a coach", "this player", "this person", "this coach",
+                    ))]
+        if len(bodies) < 3 or len(specific) < 3:
             defects.append("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
         if len(set(bodies)) != len(bodies):
             defects.append("DUPLICATE_IDENTITY_CLUES")
