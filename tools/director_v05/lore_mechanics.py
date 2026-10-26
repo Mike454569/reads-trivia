@@ -146,16 +146,40 @@ def compile_progressive_identity(conn, event_id):
     if len(specific) < 3:
         raise ValueError("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
 
-    # A career/event detail before a signature moment, not a metadata dump.
-    # Source order is stable; explicit milestone facts serve as later clues.
+    # Choose a progression, not three similarly worded headlines. Every
+    # displayed fact still comes verbatim from a verified event record.
+    # Low-reveal career context appears first; distinctive milestones last.
     signature_terms = ("super bowl", "national championship", "heisman",
                        "mvp", "record", "game-winning", "winning touchdown",
-                       "first overall", "hall of fame")
-    specific.sort(key=lambda text: (
-        any(term in text.casefold() for term in signature_terms),
-        len(text),
-    ))
-    ordered = specific[:5]
+                       "first overall", "hall of fame", "playoff")
+    context_terms = ("recruited", "transferred", "college", "drafted",
+                     "season", "rookie", "training camp", "debut")
+    def _reveal_score(text):
+        lower = text.casefold()
+        return (
+            4 * sum(term in lower for term in signature_terms)
+            + 2 * any(char.isdigit() for char in text)
+            - 2 * any(term in lower for term in context_terms)
+        )
+    ranked = sorted(specific, key=lambda text: (_reveal_score(text), len(text), text))
+    # Prefer facts from different parts of a career. Headlines with near
+    # identical word sets often describe the same incident in multiple feeds.
+    ordered = []
+    prior_tokens = []
+    stopwords = {"the", "and", "with", "after", "during", "from", "this",
+                 "that", "football", "player", "game", "team", "against"}
+    for candidate in ranked:
+        tokens = {w for w in re.findall(r"[a-z]{4,}", candidate.casefold())
+                  if w not in stopwords}
+        if tokens and any(len(tokens & prev) / max(1, min(len(tokens),len(prev))) > 0.75
+                          for prev in prior_tokens):
+            continue
+        ordered.append(candidate)
+        prior_tokens.append(tokens)
+        if len(ordered) == 5:
+            break
+    if len(ordered) < 3:
+        raise ValueError("IDENTITY_CLUES_TOO_SIMILAR")
 
     evidence_ids = [str(event_id)]
     for clue in ordered:
