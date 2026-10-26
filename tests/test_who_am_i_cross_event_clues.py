@@ -10,7 +10,9 @@ class DB:
     def fetchall(self):
         return [{"event_id": "second", "title": "Player A returned to win the rivalry game in overtime."},
                 {"event_id": "third", "title": "Player A threw the decisive touchdown during the bowl win."},
-                {"event_id": "fourth", "title": "Player A led an undefeated conference run with a late fourth-quarter comeback."}]
+                {"event_id": "fourth", "title": "Player A led an undefeated conference run with a late fourth-quarter comeback."},
+                {"event_id": "fifth", "title": "Player A was recruited after leading a small high school to a regional title."},
+                {"event_id": "sixth", "title": "Player A earned a starting role following a productive freshman campaign."}]
 
 def test_identity_enriches_with_verified_other_events():
     event={"event_id":"first","league":"CFB"}
@@ -21,13 +23,13 @@ def test_identity_enriches_with_verified_other_events():
          patch("tools.director_v05.lore_mechanics._prov",side_effect=lambda db, ids: {"provenance_complete":True,"event_ids":ids,"evidence":["verified"]}):
         result=compile_progressive_identity(DB(),"first")
     clues=[x["text"] for x in result["clues"]]
-    assert len(clues)==3
+    assert len(clues)==5
     assert not any(x.startswith(("League:", "Season:")) for x in clues)
     assert all("Player A" not in clue for clue in clues)
     assert any("rivalry game" in clue for clue in clues)
     assert any("bowl win" in clue for clue in clues)
     # The answer must cite the separate events supporting its clues.
-    assert set(result["provenance"]["event_ids"]) == {"first", "second", "third", "fourth"}
+    assert set(result["provenance"]["event_ids"]) == {"first", "second", "third", "fourth", "fifth", "sixth"}
 
 def test_identity_rejects_metadata_only():
     class EmptyDB(DB):
