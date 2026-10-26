@@ -97,7 +97,7 @@ def certify_question(question, *, expected_event_id=None):
                         "football player", "draft prospect", "was a quarterback",
                         "was a coach", "this player", "this person", "this coach",
                     ))]
-        if len(bodies) < 3 or len(specific) < 3:
+        if len(bodies) not in (5, 7) or len(specific) != len(bodies):
             defects.append("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
         if len(set(bodies)) != len(bodies):
             defects.append("DUPLICATE_IDENTITY_CLUES")
