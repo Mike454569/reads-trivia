@@ -122,15 +122,40 @@ def compile_progressive_identity(conn, event_id):
             prepared = fact.rstrip(".") + "."
             clues.append(prepared)
             evidence_for_clue[prepared] = str(other["event_id"])
-    specific = [c for c in clues if not c.startswith(("League: ", "Season: "))]
-    # At least two distinct actual events/facts: "NFL" and "2025" aren't
-    # enough to make Who Am I entertaining or uniquely solvable.
-    if len(specific) < 2:
+    # Three meaningful, separate source-backed football facts are mandatory.
+    # League/season labels and generic biography aren't mystery clues.
+    generic = (
+        "played in the nfl", "played college football", "football player",
+        "draft prospect", "was a quarterback", "was a running back",
+        "was a wide receiver", "was a coach", "league:", "season:",
+        "this player", "this person", "this coach",
+    )
+    specific = []
+    for clue in clues:
+        text = str(clue).strip()
+        normalized = text.casefold()
+        if len(text) < 30 or any(normalized.startswith(x) for x in generic):
+            continue
+        if any(token in normalized for token in (
+            "documented football event", "subject of a documented",
+            "verified football event", "classified as a",
+        )):
+            continue
+        if normalized not in {x.casefold() for x in specific}:
+            specific.append(text)
+    if len(specific) < 3:
         raise ValueError("INSUFFICIENT_DISTINCT_IDENTITY_FACTS")
-    broad = [c for c in clues if c.startswith(("League: ", "Season: "))]
-    ordered = broad[:1] + specific[:4]
-    if len(ordered) < 3:
-        raise ValueError("INSUFFICIENT_PROGRESSIVE_CLUES")
+
+    # A career/event detail before a signature moment, not a metadata dump.
+    # Source order is stable; explicit milestone facts serve as later clues.
+    signature_terms = ("super bowl", "national championship", "heisman",
+                       "mvp", "record", "game-winning", "winning touchdown",
+                       "first overall", "hall of fame")
+    specific.sort(key=lambda text: (
+        any(term in text.casefold() for term in signature_terms),
+        len(text),
+    ))
+    ordered = specific[:5]
 
     evidence_ids = [str(event_id)]
     for clue in ordered:
