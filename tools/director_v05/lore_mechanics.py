@@ -60,14 +60,10 @@ def _identity_safe_clue(text, *, answer_label, answer_type):
     if label.casefold() not in clue.casefold():
         return clue
 
-    replacement = {
-        "NFL_PLAYER": "This player",
-        "CFB_PLAYER": "This player",
-        "COACH": "This coach",
-    }.get(str(answer_type), "This person")
-    clue = re.sub(re.escape(label), replacement, clue, flags=re.I)
-    clue = re.sub(r"\b(This (?:player|coach|person))\s+was\s+the\s+subject\s+of\s+",
-                  r"\1 was featured in ", clue, flags=re.I)
+    # The answer is the speaker. Converting the name to "I" preserves
+    # the sourced factual predicate without writing invented biography.
+    clue = re.sub(re.escape(label), "I", clue, flags=re.I)
+    clue = re.sub(r"\\bI (?:was|is) the subject of\\b", "I was involved in", clue, flags=re.I)
     return " ".join(clue.split()).strip()
 
 
