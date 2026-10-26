@@ -9,7 +9,8 @@ class DB:
         return self
     def fetchall(self):
         return [{"event_id": "second", "title": "Player A returned to win the rivalry game in overtime."},
-                {"event_id": "third", "title": "Player A threw the decisive touchdown during the bowl win."}]
+                {"event_id": "third", "title": "Player A threw the decisive touchdown during the bowl win."},
+                {"event_id": "fourth", "title": "Player A led an undefeated conference run with a late fourth-quarter comeback."}]
 
 def test_identity_enriches_with_verified_other_events():
     event={"event_id":"first","league":"CFB"}
@@ -21,11 +22,12 @@ def test_identity_enriches_with_verified_other_events():
         result=compile_progressive_identity(DB(),"first")
     clues=[x["text"] for x in result["clues"]]
     assert len(clues)==3
+    assert not any(x.startswith(("League:", "Season:")) for x in clues)
     assert all("Player A" not in clue for clue in clues)
     assert any("rivalry game" in clue for clue in clues)
     assert any("bowl win" in clue for clue in clues)
     # The answer must cite the separate events supporting its clues.
-    assert result["provenance"]["event_ids"] == ["first", "second", "third"]
+    assert set(result["provenance"]["event_ids"]) == {"first", "second", "third", "fourth"}
 
 def test_identity_rejects_metadata_only():
     class EmptyDB(DB):
