@@ -32,7 +32,7 @@ PACKAGE_SCHEMA_VERSION = "0.5"
 MECHANIC = "identify_player_from_clues"
 CATEGORY = "Player From Clues"
 ID_START = 620000
-MIN_CLUES = 3
+MIN_CLUES = 5
 MAX_CLUES = 5
 
 # Building the full source-backed player universe/index is intentionally
@@ -74,16 +74,16 @@ def warm_generation_cache() -> dict:
 # Each lambda only ever inserts an already-verified `value`; it cannot
 # introduce any fact not already present in that value.
 CLUE_TEMPLATES = {
-    "draft_year": lambda v: f"He was drafted into the NFL in {v}.",
-    "draft_round": lambda v: f"His name was called in Round {v}.",
-    "draft_pick_overall": lambda v: f"He was selected with the No. {v} overall pick.",
-    "position": lambda v: f"His listed NFL position was {v}.",
-    "drafting_franchise": lambda v: f"The {v} were the team that drafted him.",
-    "team_history": lambda v: f"At one point in his NFL career, he suited up for the {v}.",
-    "career_span": lambda v: f"His recorded NFL career ran from {v[0]} through {v[1]}.",
-    "college": lambda v: f"He played his college football at {v}.",
-    "postseason_participation": lambda v: "He reached the NFL postseason as an active roster player.",
-    "won_super_bowl": lambda v: "He was on an active roster for a Super Bowl champion.",
+    "draft_year": lambda v: f"I entered the NFL draft in {v}.",
+    "draft_round": lambda v: f"I was selected in Round {v}.",
+    "draft_pick_overall": lambda v: f"I was selected with the No. {v} overall pick.",
+    "position": lambda v: f"I played {v} in the NFL.",
+    "drafting_franchise": lambda v: f"The {v} selected me in the NFL draft.",
+    "team_history": lambda v: f"I spent part of my NFL career with the {v}.",
+    "career_span": lambda v: f"My NFL playing career stretched from {v[0]} through {v[1]}.",
+    "college": lambda v: f"I played college football at {v}.",
+    "postseason_participation": lambda v: "I reached the NFL postseason as an active roster player.",
+    "won_super_bowl": lambda v: "I was on the active roster of a Super Bowl champion.",
 }
 
 # V2 composite clues combine two independently verified facts. They are not
@@ -92,23 +92,23 @@ CLUE_TEMPLATES = {
 COMPOSITE_CLUES = {
     "college_position": {
         "components": ("college", "position"),
-        "template": lambda v: f"He played {v[1]} and came into the league from {v[0]}.",
+        "template": lambda v: f"I played {v[1]} and entered the NFL from {v[0]}.",
     },
     "draft_year_round": {
         "components": ("draft_year", "draft_round"),
-        "template": lambda v: f"He entered the NFL in the {v[0]} draft and was taken in Round {v[1]}.",
+        "template": lambda v: f"I entered the NFL through the {v[0]} draft in Round {v[1]}.",
     },
     "draft_team_year": {
         "components": ("drafting_franchise", "draft_year"),
-        "template": lambda v: f"The {v[0]} drafted him in {v[1]}.",
+        "template": lambda v: f"The {v[0]} drafted me in {v[1]}.",
     },
     "college_career_span": {
         "components": ("college", "career_span"),
-        "template": lambda v: f"He played at {v[0]} before an NFL career that ran from {v[1][0]} through {v[1][1]}.",
+        "template": lambda v: f"I played at {v[0]} before my NFL career ran from {v[1][0]} through {v[1][1]}.",
     },
     "team_super_bowl": {
         "components": ("team_history", "won_super_bowl"),
-        "template": lambda v: f"He spent part of his NFL career with the {v[0]} and was on an active roster for a Super Bowl champion.",
+        "template": lambda v: f"I played for the {v[0]} and was on the active roster of a Super Bowl champion.",
     },
 }
 
