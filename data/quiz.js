@@ -20,7 +20,7 @@ window.QUIZ_DATA = [
       "Miami Dolphins"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Vince Lombardi's Packers won Super Bowls I and II, defeating Kansas City and Oakland."
   },
   {
     "id": 2,
@@ -34,7 +34,7 @@ window.QUIZ_DATA = [
       "Super Bowl V"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Namath's Jets beat the heavily favored Baltimore Colts 16-7 in Super Bowl III, and Namath earned MVP honors."
   },
   {
     "id": 3,
@@ -48,7 +48,7 @@ window.QUIZ_DATA = [
       "Minnesota Vikings"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Buffalo reached four consecutive Super Bowls following the 1990-93 seasons and lost all four."
   },
   {
     "id": 4,
@@ -62,7 +62,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Giants defeated Buffalo 20-19 in Super Bowl XXV after Norwood's late 47-yard attempt went wide right."
   },
   {
     "id": 5,
@@ -76,7 +76,7 @@ window.QUIZ_DATA = [
       "Joe Montana"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Brady earned five Super Bowl MVP awards, three with New England before his final two Patriots wins and one with Tampa Bay."
   },
   {
     "id": 6,
@@ -90,7 +90,7 @@ window.QUIZ_DATA = [
       "San Diego Chargers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "San Francisco defeated Denver 55-10 in Super Bowl XXIV, a 45-point margin."
   },
   {
     "id": 7,
@@ -104,7 +104,7 @@ window.QUIZ_DATA = [
       "Super Bowl V"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Dallas linebacker Chuck Howley intercepted two passes in a 16-13 loss to Baltimore in Super Bowl V and still won MVP."
   },
   {
     "id": 9,
@@ -118,7 +118,7 @@ window.QUIZ_DATA = [
       "Russell Wilson"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Wilson's pass intended for Ricardo Lockette was intercepted by Butler, preserving New England's 28-24 victory."
   },
   {
     "id": 11,
@@ -132,7 +132,7 @@ window.QUIZ_DATA = [
       "Bobby Bell"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Dawson quarterbacked Kansas City in the first Super Bowl, a 35-10 loss to Bart Starr's Packers."
   },
   {
     "id": 12,
@@ -146,7 +146,7 @@ window.QUIZ_DATA = [
       "Denver Broncos"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Raiders entered the 1980 playoffs as a wild card and beat Philadelphia 27-10 in Super Bowl XV."
   },
   {
     "id": 13,
@@ -160,7 +160,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Williams led Washington to a 42-10 win over Denver and was named MVP of Super Bowl XXII."
   },
   {
     "id": 14,
@@ -174,7 +174,7 @@ window.QUIZ_DATA = [
       "Baltimore Colts"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Dallas defeated Miami 24-3 in Super Bowl VI, one season before the Dolphins' unbeaten 1972 campaign."
   },
   {
     "id": 15,
@@ -188,7 +188,7 @@ window.QUIZ_DATA = [
       "Super Bowl IX"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Miami completed its 17-0 season by beating Washington 14-7 in Super Bowl VII."
   },
   {
     "id": 16,
@@ -202,7 +202,7 @@ window.QUIZ_DATA = [
       "Jacksonville Jaguars"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Titans reached Super Bowl XXXIV after the Music City Miracle, losing to the Rams by a yard, 23-16."
   },
   {
     "id": 17,
@@ -216,7 +216,7 @@ window.QUIZ_DATA = [
       "Oakland Raiders"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "New England beat Oakland in the snowy divisional playoff known as the Tuck Rule Game before winning Super Bowl XXXVI."
   },
   {
     "id": 18,
@@ -230,7 +230,7 @@ window.QUIZ_DATA = [
       "John Carney"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Vinatieri kicked a 48-yard field goal at the end of Super Bowl XXXVI to give New England its first championship."
   },
   {
     "id": 19,
@@ -244,7 +244,7 @@ window.QUIZ_DATA = [
       "Super Bowl XXXVI"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Warner's Rams defeated Tennessee 23-16 in Super Bowl XXXIV."
   },
   {
     "id": 20,
@@ -258,7 +258,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Giants ended New England's unbeaten season with a 17-14 win in Super Bowl XLII."
   },
   {
     "id": 21,
@@ -272,7 +272,7 @@ window.QUIZ_DATA = [
       "Tom Brady"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Peyton Manning ended his playing career after Denver's 24-10 victory over Carolina in Super Bowl 50."
   },
   {
     "id": 22,
@@ -286,7 +286,7 @@ window.QUIZ_DATA = [
       "Oakland Raiders"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Pittsburgh beat Dallas in both Super Bowls X and XIII, winning the latter 35-31."
   },
   {
     "id": 23,
@@ -300,7 +300,7 @@ window.QUIZ_DATA = [
       "1980s"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Pittsburgh captured Super Bowls IX, X, XIII and XIV during the 1970s."
   },
   {
     "id": 24,
@@ -314,7 +314,7 @@ window.QUIZ_DATA = [
       "Operation Just Cause"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Super Bowl XXV was played in January 1991 shortly after the start of the Gulf War."
   },
   {
     "id": 25,
@@ -328,7 +328,7 @@ window.QUIZ_DATA = [
       "John Harbaugh"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "John Harbaugh's Ravens beat Jim Harbaugh's 49ers 34-31 in Super Bowl XLVII."
   },
   {
     "id": 26,
@@ -342,7 +342,7 @@ window.QUIZ_DATA = [
       "Baltimore Ravens"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Kansas City defeated San Francisco 25-22 in overtime in Super Bowl LVIII."
   },
   {
     "id": 27,
@@ -356,7 +356,7 @@ window.QUIZ_DATA = [
       "Minnesota Vikings"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Foles led Philadelphia to a 41-33 win over New England in Super Bowl LII."
   },
   {
     "id": 28,
@@ -370,13 +370,13 @@ window.QUIZ_DATA = [
       "Arizona Cardinals"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Brady and Tampa Bay defeated Kansas City 31-9 in Super Bowl LV at Raymond James Stadium."
   },
   {
     "id": 29,
     "category": "Super Bowl History",
     "difficulty": "Hard",
-    "question": "Which team won Super Bowl LVI, becoming the first to play a Super Bowl in its own home stadium?",
+    "question": "Which team won Super Bowl LVI against the Cincinnati Bengals at SoFi Stadium?",
     "options": [
       "Los Angeles Rams",
       "Tampa Bay Buccaneers",
@@ -384,7 +384,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Los Angeles beat Cincinnati 23-20 in Super Bowl LVI at SoFi Stadium. Tampa Bay had been the first team to play a Super Bowl in its home stadium, one year earlier."
   },
   {
     "id": 30,
@@ -398,7 +398,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Kansas City defeated Philadelphia 38-35 in Super Bowl LVII."
   },
   {
     "id": 31,
@@ -412,7 +412,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Philadelphia defeated Kansas City 40-22 in Super Bowl LIX, denying the Chiefs a third consecutive title."
   },
   {
     "id": 32,
@@ -426,7 +426,7 @@ window.QUIZ_DATA = [
       "Oakland Raiders"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Namath's Jets defeated the favored Colts 16-7 in Super Bowl III."
   },
   {
     "id": 33,
@@ -440,7 +440,7 @@ window.QUIZ_DATA = [
       "Super Bowl XXII"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Washington's Timmy Smith rushed for 204 yards in Super Bowl XXII, a record for a single Super Bowl."
   },
   {
     "id": 34,
@@ -454,7 +454,7 @@ window.QUIZ_DATA = [
       "Denver Broncos and Green Bay Packers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Pittsburgh and Dallas played one another in Super Bowls X, XIII and XXX."
   },
   {
     "id": 36,
@@ -6713,5 +6713,5 @@ window.QUIZ_DATA = [
     ],
     "correctIndex": 3,
     "notes": "Ravens"
-  },
+  }
 ];
