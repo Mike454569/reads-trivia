@@ -99,47 +99,79 @@ function endlessRunStatusHtml(){
     '</div>';
 }
 function endlessQuestionKey(q,league){return league+':'+String(q&&q.id);}
+function endlessQuestionIdentity(q,league){
+  // A generated ID can differ even when the question and answer are the same.
+  // Use the shared fingerprint rather than the local record ID for run dedup.
+  return contentFingerprint(q,league);
+}
+function endlessEligiblePool(source,league,names,used){
+  var pool=source.filter(function(q){return names.indexOf(q.difficulty)!==-1;});
+  // Loosen difficulty only if the requested band really has too few fresh
+  // entries; never loosen correctness, quality or same-run uniqueness.
+  function fresh(items){
+    return (items||[]).filter(function(q){
+      if(!q||!Array.isArray(q.options)||q.options.length<2||
+        !Number.isInteger(q.correctIndex)||q.correctIndex<0||q.correctIndex>=q.options.length)return false;
+      var opts=q.options.map(function(x){return normName(x);});
+      if(opts.some(function(x){return !x;})||new Set(opts).size!==opts.length)return false;
+      if(!q.question||String(q.question).trim().length<12)return false;
+      var fp=endlessQuestionIdentity(q,league);
+      return !used[fp]&&contentRepeatPenalty(q,league)<60&&questionQualityScore(q,league,names[0])>=55;
+    });
+  }
+  var selected=fresh(pool);
+  if(!selected.length)selected=fresh(source);
+  return selected;
+}
 function endlessPickQuestion(){
-  var event=endlessPlanEvent(), league=endlessChooseLeague(), source=league==='cfb'?CFB:QUIZ, level=endlessDifficultyLevel(), names=endlessDifficultyNames(level);
+  var event=endlessPlanEvent(), league=endlessChooseLeague(), level=endlessDifficultyLevel(), names=endlessDifficultyNames(level);
+  var used={};
+  ENDLESS.history.forEach(function(x){if(x.fingerprint)used[x.fingerprint]=true;});
+  if(event&&event.forceHard)names=['Hard','Expert'];
+  // The alternate league is a fallback before ending a run; never recycle
+  // already used questions merely because the preferred category ran dry.
+  var leagues=[league,league==='nfl'?'cfb':'nfl'], pool=[], selectedLeague=league;
   if(event&&event.forceFavorite){
-    var nflFav=endlessFavoriteTeamForLeague('nfl'), cfbFav=endlessFavoriteTeamForLeague('cfb');
-    var nflHas=nflFav&&QUIZ.some(function(q){return questionMentionsTeam(q,nflFav);});
-    var cfbHas=cfbFav&&CFB.some(function(q){return questionMentionsTeam(q,cfbFav);});
-    if(nflHas||cfbHas){league=cfbHas&&!nflHas?'cfb':nflHas&&!cfbHas?'nfl':(ENDLESS.index%2?'cfb':'nfl');source=league==='cfb'?CFB:QUIZ;}
+    var favLeagues=leagues.filter(function(l){
+      var team=endlessFavoriteTeamForLeague(l), source=l==='cfb'?CFB:QUIZ;
+      return team&&source.some(function(q){return questionMentionsTeam(q,team);});
+    });
+    if(favLeagues.length)leagues=favLeagues;
     else event=null;
   }
-  if(event&&event.forceHard)names=['Hard','Expert'];
-  var pool=source.filter(function(q){return names.indexOf(q.difficulty)!==-1;});
-  if(pool.length<20)pool=source.slice();
-  pool=qualityFilteredQuestions(pool,league,names[0]).filter(function(q){return contentRepeatPenalty(q,league)<60;});
-  if(!pool.length)pool=qualityFilteredQuestions(source,league,names[0]);
-  if(event&&event.forceFavorite){
-    var favTeam=endlessFavoriteTeamForLeague(league), favPool=favTeam?pool.filter(function(q){return questionMentionsTeam(q,favTeam);}):[];
-    if(favPool.length)pool=favPool; else event=null;
+  for(var li=0;li<leagues.length;li++){
+    var candidateLeague=leagues[li], source=candidateLeague==='cfb'?CFB:QUIZ;
+    var available=endlessEligiblePool(source,candidateLeague,names,used);
+    if(event&&event.forceFavorite){
+      var team=endlessFavoriteTeamForLeague(candidateLeague);
+      available=available.filter(function(q){return team&&questionMentionsTeam(q,team);});
+    }
+    if(event&&event.forceCategory)available=available.filter(function(q){return q.category===event.forceCategory;});
+    if(event&&event.forceRivalry)available=available.filter(endlessQuestionLooksRivalry);
+    if(available.length){pool=available;selectedLeague=candidateLeague;break;}
   }
-  if(event&&event.forceCategory){
-    var hotPool=pool.filter(function(q){return q.category===event.forceCategory;});
-    if(hotPool.length)pool=hotPool; else event=null;
+  // Special events are optional. If their category is exhausted, retain the
+  // run and draw a normal fresh question instead of returning a repeat.
+  if(!pool.length&&event){
+    event=null;
+    for(var li2=0;li2<leagues.length;li2++){
+      var fallbackLeague=leagues[li2];
+      var fallback=endlessEligiblePool(fallbackLeague==='cfb'?CFB:QUIZ,fallbackLeague,names,used);
+      if(fallback.length){pool=fallback;selectedLeague=fallbackLeague;break;}
+    }
   }
-  if(event&&event.forceRivalry){
-    var rivalryPool=pool.filter(endlessQuestionLooksRivalry);
-    if(rivalryPool.length)pool=rivalryPool; else event={id:'chaos',label:'CHAOS BALL',desc:'Bonus points. No warning.',scoreMult:2,restore:false};
-  }
-  var recent={};ENDLESS.history.slice(-30).forEach(function(x){recent[x.key]=true;});
-  var candidates=pool.filter(function(q){return !recent[endlessQuestionKey(q,league)];});
-  if(!candidates.length)candidates=pool;
-  if(!candidates.length)return null;
-  candidates.sort(function(a,b){return questionQualityScore(b,league,names[0])-questionQualityScore(a,league,names[0]);});
+  if(!pool.length)return null;
+  pool.sort(function(a,b){return questionQualityScore(b,selectedLeague,names[0])-questionQualityScore(a,selectedLeague,names[0]);});
   var seed=hashStr((state.name||'guest')+'|'+Date.now()+'|'+ENDLESS.index);
-  var top=candidates.slice(0,Math.min(16,candidates.length));
+  var top=pool.slice(0,Math.min(16,pool.length));
   var q=top[Math.abs(seed)%top.length], mech=endlessMechanic(), visible=q.options.map(function(_,i){return i;});
   if(mech.id==='fifty'||mech.id==='double'){
     var wrong=visible.filter(function(i){return i!==q.correctIndex;});
     visible=[q.correctIndex,wrong[Math.abs(seed>>3)%wrong.length]];
     visible=seededShuffle(visible,mulberry32(seed));
   }
-  ENDLESS.league=league;ENDLESS.current=q;ENDLESS.visible=visible;ENDLESS.answered=null;ENDLESS.currentEvent=event;
-  rememberContentQuestion(q,league);
+  ENDLESS.league=selectedLeague;ENDLESS.current=q;ENDLESS.visible=visible;ENDLESS.answered=null;ENDLESS.currentEvent=event;
+  rememberContentQuestion(q,selectedLeague);
   return q;
 }
 function startEndlessMode(){
@@ -147,7 +179,7 @@ function startEndlessMode(){
   ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null,currentEvent:null,runSeed:hashStr((state.name||'guest')+'|'+Date.now())};
   state.screen='endless';lsSet('nflTriviaLastMode','endless');
   if(window.__fbSync&&window.__fbSync.logPlay)window.__fbSync.logPlay('endless');
-  endlessPickQuestion();renderAll();
+  if(!endlessPickQuestion()){ENDLESS.active=false;ENDLESS.screen='finished';}\n  renderAll();
 }
 function answerEndless(i){
   if(!ENDLESS.active||ENDLESS.screen!=='question'||ENDLESS.answered!==null||!ENDLESS.current)return;
@@ -168,7 +200,7 @@ function answerEndless(i){
     addToMissedPool(ENDLESS.league,q.id);
   }
   ENDLESS.lastEvent=event?{id:event.id,label:event.label,good:good,restored:restored,scoreMult:eventMult}:null;
-  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),good:good,mechanic:mech.id,event:event&&event.id,category:q.category||'General'});
+  ENDLESS.history.push({key:endlessQuestionKey(q,ENDLESS.league),fingerprint:endlessQuestionIdentity(q,ENDLESS.league),good:good,mechanic:mech.id,event:event&&event.id,category:q.category||'General'});
   playSound(good?'correct':'wrong');renderAll();
 }
 function nextEndless(){
