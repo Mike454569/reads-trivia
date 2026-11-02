@@ -3,8 +3,6 @@ name: Gateway tests
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 8 * * *"
   push:
     branches: [main, feature/retention-moat-upgrades]
     paths:
@@ -117,7 +115,8 @@ jobs:
     # per-push merge/deploy gate. Fly volume forks can fail independently of
     # application code. Run it explicitly or on the daily schedule; the
     # certified DB contract job remains the deterministic per-push DB gate.
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    # SAFETY HOLD: Disable paid Fly volume forks pending audited cleanup.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
