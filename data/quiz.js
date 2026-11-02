@@ -468,7 +468,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Green Bay won nine NFL championships before the Super Bowl era and four Super Bowls, for 13 league titles."
   },
   {
     "id": 39,
@@ -482,7 +482,7 @@ window.QUIZ_DATA = [
       "15-0"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The 1972 Dolphins finished 14-0 in the regular season and won three playoff games, ending 17-0."
   },
   {
     "id": 40,
@@ -496,7 +496,7 @@ window.QUIZ_DATA = [
       "Carolina Panthers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Buccaneers and Seahawks both joined the NFL as expansion teams in 1976."
   },
   {
     "id": 41,
@@ -510,7 +510,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks and Tampa Bay Buccaneers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Carolina and Jacksonville began play in 1995 as the NFL's newest expansion franchises."
   },
   {
     "id": 42,
@@ -524,7 +524,7 @@ window.QUIZ_DATA = [
       "Baltimore Ravens"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Browns' football operations moved to Baltimore, but Cleveland retained the Browns identity, colors and historical records."
   },
   {
     "id": 43,
@@ -538,7 +538,7 @@ window.QUIZ_DATA = [
       "Houston Texans"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Houston Oilers moved to Tennessee in 1997 and adopted the Titans name in 1999."
   },
   {
     "id": 44,
@@ -552,7 +552,7 @@ window.QUIZ_DATA = [
       "Anaheim"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Rams began in Cleveland in 1936 and later moved to Los Angeles in 1946."
   },
   {
     "id": 45,
@@ -566,7 +566,7 @@ window.QUIZ_DATA = [
       "Arrowhead Stadium"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Lambeau Field in Green Bay is known as the Frozen Tundra, especially for its famously cold-weather games."
   },
   {
     "id": 46,
@@ -594,7 +594,7 @@ window.QUIZ_DATA = [
       "New England Patriots"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Denver scored 606 points during Peyton Manning's record-setting 2013 season."
   },
   {
     "id": 48,
@@ -608,7 +608,7 @@ window.QUIZ_DATA = [
       "1920s"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Bears and Packers first met in 1921, when Chicago was known as the Staleys."
   },
   {
     "id": 49,
@@ -622,7 +622,7 @@ window.QUIZ_DATA = [
       "Detroit Lions"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The franchise played as the Decatur Staleys in 1920, became the Chicago Staleys in 1921 and the Chicago Bears in 1922."
   },
   {
     "id": 50,
@@ -636,7 +636,7 @@ window.QUIZ_DATA = [
       "Winning five straight Super Bowls"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The Cowboys' national television exposure and popularity helped establish the America's Team nickname."
   },
   {
     "id": 51,
@@ -650,7 +650,7 @@ window.QUIZ_DATA = [
       "Indianapolis Colts"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "New England won 17 consecutive regular-season games across the 2003 and 2004 seasons, in addition to playoff wins."
   },
   {
     "id": 52,
@@ -678,7 +678,7 @@ window.QUIZ_DATA = [
       "Los Angeles Rams"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Minnesota's defensive line, including Alan Page and Carl Eller, earned the Purple People Eaters nickname."
   },
   {
     "id": 57,
@@ -692,7 +692,7 @@ window.QUIZ_DATA = [
       "Dallas Cowboys"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Dallas fielded several defenses known as Doomsday Defense during its championship runs."
   },
   {
     "id": 58,
@@ -706,7 +706,7 @@ window.QUIZ_DATA = [
       "Denver Broncos"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Kurt Warner, Marshall Faulk, Isaac Bruce and Torry Holt powered the Rams' Greatest Show on Turf offense."
   },
   {
     "id": 59,
@@ -720,7 +720,7 @@ window.QUIZ_DATA = [
       "Green Bay Packers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Monsters of the Midway nickname became closely associated with Chicago's physical defenses."
   },
   {
     "id": 60,
@@ -734,7 +734,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The 1985 Bears went 15-1 in the regular season and defeated New England 46-10 in Super Bowl XX."
   },
   {
     "id": 61,
@@ -748,7 +748,7 @@ window.QUIZ_DATA = [
       "Detroit Lions"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Minnesota trailed Indianapolis 33-0 before winning 39-36 in overtime on December 17, 2022."
   },
   {
     "id": 62,
@@ -762,7 +762,7 @@ window.QUIZ_DATA = [
       "Pittsburgh Steelers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Buffalo erased a 35-3 deficit to beat Houston 41-38 in overtime in the 1992 season's wild-card playoffs."
   },
   {
     "id": 63,
@@ -776,7 +776,7 @@ window.QUIZ_DATA = [
       "Boston and St. Louis"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Cardinals played in Chicago and St. Louis before moving to Arizona in 1988."
   },
   {
     "id": 64,
@@ -790,7 +790,7 @@ window.QUIZ_DATA = [
       "Washington Commanders"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Lincoln Financial Field has been the Philadelphia Eagles' home stadium since 2003."
   },
   {
     "id": 65,
@@ -804,7 +804,7 @@ window.QUIZ_DATA = [
       "San Diego Chargers and Los Angeles Rams"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Rams and Chargers have shared SoFi Stadium in Inglewood since the 2020 season."
   },
   {
     "id": 66,
@@ -818,7 +818,7 @@ window.QUIZ_DATA = [
       "Tom Brady"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Brady retired with 89,214 regular-season passing yards."
   },
   {
     "id": 67,
@@ -832,7 +832,7 @@ window.QUIZ_DATA = [
       "Tom Brady"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Brady finished his regular-season career with 649 touchdown passes."
   },
   {
     "id": 68,
@@ -846,7 +846,7 @@ window.QUIZ_DATA = [
       "Tom Brady"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Manning passed for 5,477 yards with Denver in the 2013 regular season."
   },
   {
     "id": 69,
@@ -860,7 +860,7 @@ window.QUIZ_DATA = [
       "Kurt Warner"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Manning threw 49 touchdown passes in 2004, surpassing Marino's previous single-season mark of 48."
   },
   {
     "id": 70,
@@ -874,7 +874,7 @@ window.QUIZ_DATA = [
       "Peyton Manning"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Manning threw 55 touchdown passes for the 2013 Broncos."
   },
   {
     "id": 72,
@@ -888,7 +888,7 @@ window.QUIZ_DATA = [
       "Drew Brees"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Dan Marino's career-high for touchdown passes in one game was six, not seven."
   },
   {
     "id": 73,
@@ -902,7 +902,7 @@ window.QUIZ_DATA = [
       "3"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Manning won Associated Press NFL MVP honors five times: 2003, 2004, 2008, 2009 and 2013."
   },
   {
     "id": 74,
@@ -916,7 +916,7 @@ window.QUIZ_DATA = [
       "2010"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Vick rushed for 1,039 yards with Atlanta in the 2006 regular season, the first 1,000-yard rushing season by an NFL quarterback."
   },
   {
     "id": 75,
@@ -930,7 +930,7 @@ window.QUIZ_DATA = [
       "Y.A. Tittle"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Marino passed for 5,084 yards in 1984, becoming the first NFL quarterback to clear 5,000 yards in a season."
   },
   {
     "id": 77,
@@ -944,7 +944,7 @@ window.QUIZ_DATA = [
       "250"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Favre started 297 consecutive regular-season games between 1992 and 2010."
   },
   {
     "id": 79,
@@ -958,7 +958,7 @@ window.QUIZ_DATA = [
       "6th round"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "New England selected Brady in the sixth round of the 2000 draft, 199th overall."
   },
   {
     "id": 80,
@@ -972,7 +972,7 @@ window.QUIZ_DATA = [
       "Super Bowl XXIII"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Young threw six touchdown passes as San Francisco beat San Diego 49-26 in Super Bowl XXIX."
   },
   {
     "id": 81,
@@ -986,7 +986,7 @@ window.QUIZ_DATA = [
       "Johnny Unitas"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Manning's number 18 was retired by both Indianapolis and Denver."
   },
   {
     "id": 82,
@@ -1000,7 +1000,7 @@ window.QUIZ_DATA = [
       "Lamar Jackson"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Jackson earned the 2019 AP NFL MVP award after leading Baltimore to a 14-2 regular-season record."
   },
   {
     "id": 83,
@@ -1014,7 +1014,7 @@ window.QUIZ_DATA = [
       "Ben Roethlisberger"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Brady won 35 career playoff games as a starting quarterback."
   },
   {
     "id": 84,
@@ -1028,7 +1028,7 @@ window.QUIZ_DATA = [
       "JJ and TJ Watt"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "John Harbaugh coached Baltimore against his brother Jim's San Francisco team in Super Bowl XLVII."
   },
   {
     "id": 85,
@@ -1042,7 +1042,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Moon joined the Houston Oilers after starring in the CFL and went on to earn nine NFL Pro Bowl selections."
   },
   {
     "id": 86,
@@ -1070,7 +1070,7 @@ window.QUIZ_DATA = [
       "Super Bowl XIX"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Marino started Super Bowl XIX for Miami, losing to San Francisco 38-16."
   },
   {
     "id": 88,
@@ -1084,7 +1084,7 @@ window.QUIZ_DATA = [
       "Throw five touchdowns in his NFL debut"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Newton won the Heisman in 2010, went first overall in the 2011 draft, and earned NFL MVP in 2015."
   },
   {
     "id": 89,
@@ -1098,7 +1098,7 @@ window.QUIZ_DATA = [
       "Steve Grogan"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "New England retired Tom Brady's number 12 after his Patriots career."
   },
   {
     "id": 90,
@@ -1112,7 +1112,7 @@ window.QUIZ_DATA = [
       "San Francisco 49ers"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Graham led Cleveland to the title game in each of his ten seasons in the AAFC and NFL, winning seven championships."
   },
   {
     "id": 91,
@@ -1126,7 +1126,7 @@ window.QUIZ_DATA = [
       "Craig Morton"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Elway led Denver to five Super Bowl appearances and earned a reputation for late-game comebacks."
   },
   {
     "id": 92,
@@ -1140,7 +1140,7 @@ window.QUIZ_DATA = [
       "1998 and 1999"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Denver won Super Bowls XXXII and XXXIII following the 1997 and 1998 seasons, with Elway at quarterback."
   },
   {
     "id": 93,
@@ -1154,7 +1154,7 @@ window.QUIZ_DATA = [
       "Lynn Dickey"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Favre spent 16 seasons with Green Bay and also played for Atlanta, the New York Jets and Minnesota."
   },
   {
     "id": 94,
@@ -1168,7 +1168,7 @@ window.QUIZ_DATA = [
       "Baltimore Colts"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Starr quarterbacked Green Bay to victories in Super Bowls I and II and was named MVP both times."
   },
   {
     "id": 96,
@@ -1182,7 +1182,7 @@ window.QUIZ_DATA = [
       "Emmitt Smith"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Smith accumulated 18,355 regular-season rushing yards, the most in NFL history."
   },
   {
     "id": 97,
@@ -1196,7 +1196,7 @@ window.QUIZ_DATA = [
       "Arizona Cardinals"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Smith passed Walter Payton during his 13th season with Dallas in 2002."
   },
   {
     "id": 98,
@@ -1210,7 +1210,7 @@ window.QUIZ_DATA = [
       "O.J. Simpson"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Dickerson rushed for 2,105 yards for the Rams during the 1984 regular season."
   },
   {
     "id": 99,
@@ -1224,7 +1224,7 @@ window.QUIZ_DATA = [
       "Atlanta Falcons"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Dickerson set the record with the Los Angeles Rams, not the Indianapolis Colts."
   },
   {
     "id": 100,
@@ -1238,7 +1238,7 @@ window.QUIZ_DATA = [
       "Jamal Lewis"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Peterson rushed for 296 yards against San Diego during his rookie season with Minnesota in 2007."
   },
   {
     "id": 101,
@@ -1252,7 +1252,7 @@ window.QUIZ_DATA = [
       "Marcus Allen"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Smith scored 164 career regular-season rushing touchdowns."
   },
   {
     "id": 102,
@@ -1266,7 +1266,7 @@ window.QUIZ_DATA = [
       "O.J. Simpson"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Sanders retired after the 1998 season with 15,269 rushing yards, short of Payton's then-record 16,726."
   },
   {
     "id": 103,
@@ -1280,7 +1280,7 @@ window.QUIZ_DATA = [
       "Marshawn Lynch"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Peterson rushed for 2,097 yards in 2012 while playing for Minnesota."
   },
   {
     "id": 104,
@@ -1294,7 +1294,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Brown spent his entire nine-season NFL career with the Cleveland Browns."
   },
   {
     "id": 105,
@@ -1308,7 +1308,7 @@ window.QUIZ_DATA = [
       "Randy Moss"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Rice finished his career with 22,895 regular-season receiving yards."
   },
   {
     "id": 106,
@@ -1322,7 +1322,7 @@ window.QUIZ_DATA = [
       "190"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Rice scored 197 career receiving touchdowns."
   },
   {
     "id": 109,
@@ -1336,7 +1336,7 @@ window.QUIZ_DATA = [
       "Minnesota Vikings"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Moss caught a record 23 touchdown passes for New England in the 2007 season."
   },
   {
     "id": 110,
@@ -1350,7 +1350,7 @@ window.QUIZ_DATA = [
       "Frank Gore"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Smith carried the ball 4,409 times in his NFL regular-season career."
   },
   {
     "id": 111,
@@ -1364,7 +1364,7 @@ window.QUIZ_DATA = [
       "Marshall Faulk"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Rice totaled 23,546 all-purpose yards as recorded by NFL career statistics."
   },
   {
     "id": 112,
@@ -1378,7 +1378,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Henry ran for 2,027 yards in 2020 while playing for Tennessee."
   },
   {
     "id": 113,
