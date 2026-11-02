@@ -13,7 +13,7 @@ var SITE_URL = 'https://reads.football/';
 // like any other mode. false makes the route, the card, the render branch,
 // and the package-validation check all simultaneously inert -- no file
 // deletion needed to roll back. See PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md.
-var ENABLE_PLAYER_FROM_CLUES_V01 = true;
+var ENABLE_PLAYER_FROM_CLUES_V01 = false;
 // UI/UX Upgrade Pass: same real kill-switch discipline for the new CFB
 // counterpart (data/cfb-player-from-clues-v01.js) -- false makes its
 // LEAGUE_MODES.cfb card, render branch, and package-validation check all
@@ -2246,6 +2246,13 @@ function appNavigateBack() {
   });
 }
 function goToMode(mode) {
+  // Only available games and actual navigation screens can launch during the hold.
+  if (READS_CONFIG.publicGatewayGamesEnabled === false &&
+      !allPlayableModesUnique().some(function(m){return m.id === mode;}) &&
+      ['home','nfl','cfb','daily','endless','h2h','h2hLive','xso','learn','study',
+       'friends','leaderboard','profile','community','settings','reports','about'].indexOf(mode) === -1) {
+    state.screen = 'home'; renderAll(); return;
+  }
   rememberAppNavigation(mode);
   if (isTrackedPlayableFormat(mode)) beginFormatAnalyticsRun(mode,state.screen||'unknown');
   else if (formatAnalyticsActiveRun) {
@@ -3025,6 +3032,7 @@ if (ENABLE_PICKEM_V01) {
     league: 'cfb', difficulty: 'casual',
   });
 }
+if (READS_CONFIG.publicGatewayGamesEnabled === false) ENGINE_DISCOVERY_ENTRIES = [];
 var LEAGUE_MODES = {
   nfl: [
     { id: 'quiz', icon: 'helpCircle', title: 'NFL Quiz', desc: QUIZ.length + ' multiple-choice questions across ' + quizCategories().length + ' categories. Choose category, difficulty, and round length.', featured: true, difficulty: 'casual' },
@@ -3245,7 +3253,7 @@ function formatAnalyticsSummary() {
 function dailyFormatRotationKey() { return 'readsDailyFormatFive__' + slugify(state.name || 'guest') + '__' + todayStr(); }
 function dailyFormatRotation() {
   var saved=lsGet(dailyFormatRotationKey(),null);
-  if(saved&&Array.isArray(saved.modeIds)&&saved.modeIds.length===5) return saved;
+  if(saved&&Array.isArray(saved.modeIds)&&saved.modeIds.length===5 && saved.modeIds.every(function(id){return allPlayableModesUnique().some(function(m){return m.id===id;});})) return saved;
   var pool=formatHubRecommendationRows(40).map(function(r){return r.mode;});
   var chosen=[], seenFamilies={}, seenLeagues={}, seed=hashStr(todayStr()+'|formatFive|'+(state.name||'guest'));
   pool.sort(function(a,b){return (hashStr(a.id+'|'+seed)%100000)-(hashStr(b.id+'|'+seed)%100000);});
@@ -3275,7 +3283,7 @@ function dailyFormatRotationHtml(compact) {
   var rows=d.modeIds.map(function(id){return map[id];}).filter(Boolean);
   if(!rows.length)return '';
   return '<section class="daily-format-five'+(compact?' compact':'')+'">'+
-    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s 100-format rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FORMAT FIVE</span><h3>Today’s game rotation</h3></div><span>'+d.completedIds.length+' / '+rows.length+' played</span></div>'+
     '<p class="mode-desc">Five personalized full game formats, rotated daily from the complete Reads catalog. Your Daily Reads streak still comes from the five-minute Daily 5 above.</p>'+
     '<div class="daily-format-five-grid">'+rows.map(function(m,i){var done=d.completedIds.indexOf(m.id)!==-1;var art=gameArtHtml(m,'daily-format-art');return '<button class="'+(done?'complete ':'')+(art?'has-art':'')+'" data-go="'+esc(m.id)+'">'+art+'<span class="format-mini-mark">'+(done?'<span class="format-mini-complete">'+icon('check')+'</span>':modeMarkHtml(m,'sm'))+'</span><small>READ '+(i+1)+'</small><b>'+esc(m.title)+'</b><em>'+esc(formatHubFamily(m))+'</em></button>';}).join('')+'</div>'+
     '</section>';
@@ -3366,7 +3374,7 @@ function formatCollectionsHtml() {
   var brutal=formatCollectionModes(function(m){return m.difficulty==='hardcore';},5);
   var tailored=formatCollectionModes(function(m){return prefLeague ? (m.league===prefLeague || m.league==='mixed') : formatHubRecommendationRows(12).some(function(r){return r.mode.id===m.id;});},5);
   return '<section class="format-collections" aria-label="Curated game collections">'+
-    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CURATED FOR YOU</span><h2>Pick a lane</h2></div><span>100 games, less hunting</span></div>'+
+    '<div class="dashboard-section-head"><div><span class="dashboard-eyebrow">CURATED FOR YOU</span><h2>Pick a lane</h2></div><span>Find your next game</span></div>'+
     formatCollectionShelfHtml('New to You','Fresh formats',newModes)+
     formatCollectionShelfHtml('Quick Hitters','Fast games',quick)+
     formatCollectionShelfHtml('Think You Know Ball?','Hardcore',brutal)+
@@ -3378,14 +3386,14 @@ function formatDiscoveryHubHtml() {
   trackFormatHubImpression(modes);
   var totalPlayable=allPlayableModesUnique().length;
   return '<section class="format-hub" aria-label="Game format discovery">'+
-    '<div class="format-hub-hero"><div><span class="dashboard-eyebrow">THE PLAYBOOK</span><h2>100 Ways to Play Football</h2>'+
-    '<p>'+READS_DISTINCT_FORMAT_COUNT+' genuinely distinct game formats. Search it, filter it, or let Reads pick your next obsession.</p></div>'+
+    '<div class="format-hub-hero"><div><span class="dashboard-eyebrow">THE PLAYBOOK</span><h2>Pick Your Next Game</h2>'+
+    '<p>'+totalPlayable+' available game choices. Search it, filter it, or let Reads pick your next obsession.</p></div>'+
     (quick?'<button class="btn-primary format-hub-quick" data-go="'+esc(quick.id)+'">'+icon('zap')+' Quick Play <small>'+esc(quick.title)+'</small></button>':'')+
     '</div>'+
     (state.name && recs.length?'<div class="format-hub-for-you"><div class="dashboard-section-head"><div><span class="dashboard-eyebrow">FOR YOU</span><h3>Your next six</h3></div><span>Personalized daily</span></div>'+
       '<div class="format-hub-rec-row">'+recs.map(function(r){return '<button data-go="'+esc(r.mode.id)+'"><span class="format-mini-mark">'+modeMarkHtml(r.mode,'sm')+'</span><b>'+esc(r.mode.title)+'</b><small>'+esc(r.reason)+'</small></button>';}).join('')+'</div></div>':'')+
     '<div class="format-hub-controls">'+
-      '<label class="format-hub-search">'+icon('search')+'<input id="format-hub-search" value="'+esc(formatHubState.query)+'" placeholder="Search 100 formats…" autocomplete="off"></label>'+
+      '<label class="format-hub-search">'+icon('search')+'<input id="format-hub-search" value="'+esc(formatHubState.query)+'" placeholder="Search available games…" autocomplete="off"></label>'+
       '<div class="format-hub-filter-row" role="group" aria-label="League filter">'+
         [['all','All'],['nfl','NFL'],['cfb','College'],['mixed','Mixed']].map(function(x){return '<button class="chip-toggle'+(formatHubState.league===x[0]?' active':'')+'" data-format-hub-league="'+x[0]+'">'+x[1]+'</button>';}).join('')+
       '</div>'+
@@ -3397,7 +3405,7 @@ function formatDiscoveryHubHtml() {
         '<button class="chip-toggle'+(formatHubState.newOnly?' active':'')+'" data-format-hub-new>'+icon('sparkle')+' New to me</button>'+
       '</div>'+
     '</div>'+
-    '<div class="format-hub-results-head"><b>'+modes.length+' playable choices</b><span>'+totalPlayable+' live routes · '+READS_DISTINCT_FORMAT_COUNT+' distinct format designs</span></div>'+
+    '<div class="format-hub-results-head"><b>'+modes.length+' playable choices</b><span>'+totalPlayable+' available games</span></div>'+
     (modes.length?'<div class="format-hub-grid">'+modes.map(formatHubCardHtml).join('')+'</div>':
       '<div class="format-hub-empty"><b>No formats match that.</b><span>Clear a filter or try a broader search.</span><button class="btn-secondary" data-format-hub-reset>Reset filters</button></div>')+
     '</section>';
@@ -5062,7 +5070,7 @@ function postGameNextStepsHtml(dailyTypeId) {
 // count again, regardless of which flags are on for a given deployment --
 // the exact bug that let the old number go stale in the first place.
 function totalModeCount() {
-  return READS_DISTINCT_FORMAT_COUNT;
+  return allPlayableModesUnique().length;
 }
 // UI/UX upgrade pass: the home screen used to stack the Daily Reads,
 // Continue Playing, Recommended, Head-to-Head, Live Match, X's & O's, Film
