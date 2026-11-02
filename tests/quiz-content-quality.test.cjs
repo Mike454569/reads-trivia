@@ -29,3 +29,19 @@ test('all NFL answers have a single valid selectable choice', () => {
     assert.equal(new Set(q.options.map(x=>x.toLowerCase().trim())).size,4,'duplicate options '+q.id);
   }
 });
+
+test('every built-in NFL question has a real explanation', () => {
+  for (const q of questions) {
+    assert.ok(typeof q.notes === 'string' && q.notes.trim().length >= 15,
+      'missing or insufficient explanation for NFL question ' + q.id);
+  }
+});
+
+test('corrected playoff questions have accurate, non-leading premises', () => {
+  assert.match(byId.get(51).question, /18 consecutive regular-season/);
+  assert.match(byId.get(200).question, /two first-half interceptions/);
+  assert.doesNotMatch(byId.get(200).question, /pick-six/);
+  assert.match(byId.get(223).question, /rallied from 20 points down/);
+  assert.match(byId.get(226).notes, /third-largest comeback/);
+  assert.match(byId.get(229).notes, /Frank Wycheck/);
+});
