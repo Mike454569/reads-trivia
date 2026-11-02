@@ -2134,7 +2134,7 @@ window.QUIZ_DATA = [
       "Peyton Manning"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Brady received every AP NFL MVP vote for his 2010 season with New England."
   },
   {
     "id": 172,
@@ -2148,7 +2148,7 @@ window.QUIZ_DATA = [
       "Arian Foster"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Peterson gained 2,097 rushing yards with Minnesota during the 2012 regular season and won league MVP."
   },
   {
     "id": 173,
@@ -2162,7 +2162,7 @@ window.QUIZ_DATA = [
       "Josh Allen"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Rodgers won AP NFL MVP in consecutive seasons, 2020 and 2021."
   },
   {
     "id": 174,
@@ -2176,7 +2176,7 @@ window.QUIZ_DATA = [
       "Josh Allen"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Jackson earned the AP NFL MVP in 2019 and again in 2023 as Baltimore's quarterback."
   },
   {
     "id": 175,
@@ -2190,7 +2190,7 @@ window.QUIZ_DATA = [
       "Lawrence Taylor"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Giants linebacker Lawrence Taylor won the 1986 AP NFL MVP, a rare award for a defensive player."
   },
   {
     "id": 176,
@@ -2204,7 +2204,7 @@ window.QUIZ_DATA = [
       "Washington Redskins"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Taylor spent his entire NFL career with the New York Giants, winning two Super Bowls."
   },
   {
     "id": 177,
@@ -2218,7 +2218,7 @@ window.QUIZ_DATA = [
       "Adrian Peterson"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Peterson earned Offensive Rookie of the Year in 2007 and NFL MVP in 2012, both with Minnesota."
   },
   {
     "id": 178,
@@ -2232,7 +2232,7 @@ window.QUIZ_DATA = [
       "Andrew Luck"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Luck won the 2012 AP NFL Offensive Rookie of the Year with Indianapolis."
   },
   {
     "id": 179,
@@ -2246,7 +2246,7 @@ window.QUIZ_DATA = [
       "Bruce Matthews"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Bruce Matthews spent his 19-season career with the Oilers and Titans franchise and made 14 Pro Bowls."
   },
   {
     "id": 180,
@@ -2260,7 +2260,7 @@ window.QUIZ_DATA = [
       "Jerry Rice"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Rice retired with NFL career records including 22,895 receiving yards and 197 receiving touchdowns."
   },
   {
     "id": 181,
@@ -2274,7 +2274,7 @@ window.QUIZ_DATA = [
       "Denver Broncos"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Watt won AP NFL Defensive Player of the Year with Houston in 2012, 2014 and 2015."
   },
   {
     "id": 182,
@@ -2288,7 +2288,7 @@ window.QUIZ_DATA = [
       "Deion Sanders"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Sanders starred as an NFL cornerback and also played Major League Baseball."
   },
   {
     "id": 183,
@@ -2302,7 +2302,7 @@ window.QUIZ_DATA = [
       "A World Series game"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Sanders played in the World Series with Atlanta's baseball team and won Super Bowls as an NFL cornerback."
   },
   {
     "id": 184,
@@ -2316,7 +2316,7 @@ window.QUIZ_DATA = [
       "Cam Newton"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Newton won the Heisman Trophy in 2010 at Auburn and AP NFL MVP in 2015 with Carolina."
   },
   {
     "id": 185,
@@ -2330,7 +2330,7 @@ window.QUIZ_DATA = [
       "Kyler Murray"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Murray won the 2018 Heisman at Oklahoma and AP NFL Offensive Rookie of the Year in 2019 with Arizona."
   },
   {
     "id": 186,
@@ -2344,7 +2344,7 @@ window.QUIZ_DATA = [
       "Los Angeles Rams"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Simpson won the Heisman at USC in 1968 and ran for 2,003 yards with Buffalo in 1973."
   },
   {
     "id": 187,
@@ -2358,7 +2358,7 @@ window.QUIZ_DATA = [
       "DeMarcus Ware"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Miller earned MVP honors after recording 2.5 sacks and forcing two fumbles against Carolina in Super Bowl 50."
   },
   {
     "id": 188,
@@ -2372,7 +2372,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Holmes caught the winning touchdown for Pittsburgh against Arizona in Super Bowl XLIII."
   },
   {
     "id": 189,
@@ -2386,7 +2386,7 @@ window.QUIZ_DATA = [
       "Tight End"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Ward earned MVP in Super Bowl XL while playing wide receiver for Pittsburgh."
   },
   {
     "id": 190,
@@ -2400,7 +2400,7 @@ window.QUIZ_DATA = [
       "Ed Reed"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Lewis earned Super Bowl XXXV MVP in Baltimore's 34-7 win over the Giants."
   },
   {
     "id": 191,
@@ -2414,7 +2414,7 @@ window.QUIZ_DATA = [
       "Earl Thomas"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Smith returned an interception for a touchdown as Seattle beat Denver 43-8 in Super Bowl XLVIII."
   },
   {
     "id": 192,
@@ -2428,7 +2428,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Edelman caught ten passes for 141 yards in New England's 13-3 win over the Rams."
   },
   {
     "id": 193,
@@ -2442,7 +2442,7 @@ window.QUIZ_DATA = [
       "Tampa Bay Buccaneers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Kupp caught the go-ahead touchdown from Matthew Stafford in Los Angeles' 23-20 win over Cincinnati."
   },
   {
     "id": 194,
@@ -2456,7 +2456,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Brady earned Super Bowl MVP with both New England and Tampa Bay."
   },
   {
     "id": 195,
@@ -2470,7 +2470,7 @@ window.QUIZ_DATA = [
       "San Francisco 49ers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Davis rushed for 157 yards and three touchdowns in Denver's 31-24 upset of Green Bay."
   },
   {
     "id": 196,
@@ -2484,7 +2484,7 @@ window.QUIZ_DATA = [
       "New England Patriots"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Howard returned a kickoff 99 yards for a touchdown as Green Bay beat New England in Super Bowl XXXI."
   },
   {
     "id": 197,
@@ -2498,7 +2498,7 @@ window.QUIZ_DATA = [
       "Washington Redskins"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Allen rushed for 191 yards, including a 74-yard touchdown, in the Raiders' Super Bowl XVIII victory."
   },
   {
     "id": 198,
@@ -2512,7 +2512,7 @@ window.QUIZ_DATA = [
       "Ken Stabler"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Plunkett threw three touchdown passes in Oakland's 27-10 win over Philadelphia in Super Bowl XV."
   },
   {
     "id": 199,
@@ -2526,7 +2526,7 @@ window.QUIZ_DATA = [
       "Super Bowl XIII"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Harris rushed for 158 yards and a touchdown as Pittsburgh won Super Bowl IX."
   },
   {
     "id": 200,
@@ -2554,7 +2554,7 @@ window.QUIZ_DATA = [
       "Washington Redskins"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Clark caught Joe Montana's late touchdown pass against Dallas in the NFC Championship Game."
   },
   {
     "id": 203,
@@ -2568,7 +2568,7 @@ window.QUIZ_DATA = [
       "Minnesota Vikings"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "San Francisco beat Dallas 28-27 on Clark's famous touchdown catch in January 1982."
   },
   {
     "id": 204,
@@ -2582,7 +2582,7 @@ window.QUIZ_DATA = [
       "Indianapolis Colts"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Tennessee beat Buffalo 22-16 on the last-second Music City Miracle kick return."
   },
   {
     "id": 205,
@@ -2596,7 +2596,7 @@ window.QUIZ_DATA = [
       "Dallas Cowboys"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Green Bay defeated Dallas 21-17 in the frigid 1967 NFL Championship Game."
   },
   {
     "id": 206,
@@ -2610,7 +2610,7 @@ window.QUIZ_DATA = [
       "Detroit Lions and Chicago Bears"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Seattle's controversial last-second touchdown against Green Bay occurred during the replacement-official dispute."
   },
   {
     "id": 207,
@@ -2624,7 +2624,7 @@ window.QUIZ_DATA = [
       "Philadelphia Eagles"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Diggs scored on a 61-yard pass as Minnesota beat New Orleans 29-24 in the divisional playoffs."
   },
   {
     "id": 208,
@@ -2638,7 +2638,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Baltimore beat the New York Giants 23-17 in overtime in the 1958 NFL Championship Game."
   },
   {
     "id": 209,
@@ -2652,7 +2652,7 @@ window.QUIZ_DATA = [
       "Norm Van Brocklin"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Unitas led Baltimore's overtime victory against the Giants in the 1958 championship."
   },
   {
     "id": 210,
@@ -2666,7 +2666,7 @@ window.QUIZ_DATA = [
       "1999 season"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Patriots' controversial snow-game win over Oakland came in the playoffs following the 2001 season."
   },
   {
     "id": 211,
@@ -2680,7 +2680,7 @@ window.QUIZ_DATA = [
       "Pittsburgh Steelers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Buffalo beat Houston 41-38 in overtime after trailing by 32 points during the 1992-season playoffs."
   },
   {
     "id": 212,
@@ -2694,7 +2694,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "San Diego beat Miami 41-38 in overtime after the 1981 season in a game nicknamed the Epic in Miami."
   },
   {
     "id": 213,
@@ -2708,7 +2708,7 @@ window.QUIZ_DATA = [
       "Oakland Raiders"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Raiders beat San Diego 21-20 after the controversial Holy Roller play in 1978."
   },
   {
     "id": 214,
@@ -2722,7 +2722,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Giants won three road playoff games before upsetting New England 17-14 in Super Bowl XLII."
   },
   {
     "id": 215,
@@ -2736,7 +2736,7 @@ window.QUIZ_DATA = [
       "Philadelphia Eagles"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Philadelphia lost to Chicago 20-12 during the 1988-season divisional playoffs in heavy fog."
   },
   {
     "id": 216,
@@ -2750,7 +2750,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Bryant's apparent fourth-down catch was overturned in Dallas' playoff loss to Green Bay after the 2014 season."
   },
   {
     "id": 217,
@@ -2764,7 +2764,7 @@ window.QUIZ_DATA = [
       "Tennessee Titans"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "New Orleans scored on a series of laterals against Jacksonville but missed the tying extra point in 2003."
   },
   {
     "id": 218,
@@ -2778,7 +2778,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Dallas won Super Bowls XXVII, XXVIII and XXX in the 1990s."
   },
   {
     "id": 219,
@@ -2792,7 +2792,7 @@ window.QUIZ_DATA = [
       "St. Louis Rams"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Lynch's 67-yard touchdown run helped Seattle upset New Orleans 41-36 in the playoffs after the 2010 season."
   },
   {
     "id": 220,
@@ -2806,7 +2806,7 @@ window.QUIZ_DATA = [
       "Indianapolis Colts"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Vinatieri made two critical field goals in heavy snow as New England beat Oakland in the playoffs."
   },
   {
     "id": 221,
@@ -2820,7 +2820,7 @@ window.QUIZ_DATA = [
       "Jacksonville Jaguars"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Brady and the Patriots beat Kansas City 37-31 in overtime in the 2018-season AFC Championship Game."
   },
   {
     "id": 222,
@@ -2834,7 +2834,7 @@ window.QUIZ_DATA = [
       "Super Bowl LV"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Mahomes led Kansas City past San Francisco 31-20 in Super Bowl LIV after trailing 20-10."
   },
   {
     "id": 223,
@@ -2862,7 +2862,7 @@ window.QUIZ_DATA = [
       "Pittsburgh Steelers"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "New England overcame a 28-3 deficit to beat Atlanta 34-28 in overtime in Super Bowl LI."
   },
   {
     "id": 225,
@@ -2876,7 +2876,7 @@ window.QUIZ_DATA = [
       "Los Angeles Rams"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The missed pass-interference call came late in the 2018-season NFC Championship Game against the Rams."
   },
   {
     "id": 226,
@@ -2904,7 +2904,7 @@ window.QUIZ_DATA = [
       "Jalen Hurts"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Hurts led Philadelphia's 40-22 Super Bowl LIX victory over Kansas City."
   },
   {
     "id": 229,
@@ -2918,7 +2918,7 @@ window.QUIZ_DATA = [
       "Jacksonville Jaguars"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Dyson threw the ball backward during Tennessee's Music City Miracle kickoff return, which Kevin Dyson finished for a touchdown."
   },
   {
     "id": 230,
@@ -2932,7 +2932,7 @@ window.QUIZ_DATA = [
       "Oakland Raiders"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Oakland beat Miami 28-26 in the 1974-season divisional playoff known as the Sea of Hands."
   },
   {
     "id": 231,
@@ -2946,7 +2946,7 @@ window.QUIZ_DATA = [
       "The opposing team still gets a possession"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "In postseason overtime, both teams are guaranteed an opportunity to possess the ball, even after an opening-drive touchdown."
   },
   {
     "id": 232,
@@ -2960,7 +2960,7 @@ window.QUIZ_DATA = [
       "A pass batted down at the line of scrimmage"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Under the since-repealed tuck rule, certain interrupted forward-throwing motions were considered incomplete passes."
   },
   {
     "id": 233,
@@ -2974,7 +2974,7 @@ window.QUIZ_DATA = [
       "Midfield for practice kicks only"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The NFL moved goalposts from the goal line to the end line in 1974."
   },
   {
     "id": 234,
@@ -2988,7 +2988,7 @@ window.QUIZ_DATA = [
       "1960s"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The NFL adopted the two-point conversion for the 1994 season."
   },
   {
     "id": 235,
@@ -3002,7 +3002,7 @@ window.QUIZ_DATA = [
       "1992"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The NFL restored replay review beginning with the 1999 season."
   },
   {
     "id": 236,
@@ -3016,7 +3016,7 @@ window.QUIZ_DATA = [
       "8 minutes"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The NFL shortened regular-season overtime to ten minutes in 2017."
   },
   {
     "id": 237,
@@ -3030,7 +3030,7 @@ window.QUIZ_DATA = [
       "A hanging garden display"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "AT&T Stadium features a large center-hung video board above the playing field."
   },
   {
     "id": 238,
@@ -3044,7 +3044,7 @@ window.QUIZ_DATA = [
       "Arrowhead Stadium"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Denver plays its home games at high altitude, giving its stadium the Mile High identity."
   },
   {
     "id": 239,
@@ -3072,7 +3072,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Packers have a publicly held nonprofit corporate ownership structure rather than a traditional individual owner."
   },
   {
     "id": 241,
@@ -3086,7 +3086,7 @@ window.QUIZ_DATA = [
       "Golden Richards"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Staubach connected with Drew Pearson for a late touchdown against Minnesota in the 1975 playoffs."
   },
   {
     "id": 242,
@@ -3100,7 +3100,7 @@ window.QUIZ_DATA = [
       "Bert Bell"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The nickname The Duke honors Wellington Mara, the longtime New York Giants executive and owner."
   },
   {
     "id": 243,
@@ -3128,7 +3128,7 @@ window.QUIZ_DATA = [
       "Illegal contact"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Roughing the passer and horse-collar tackles are generally assessed as 15-yard personal fouls."
   },
   {
     "id": 245,
@@ -3142,7 +3142,7 @@ window.QUIZ_DATA = [
       "Near midfield"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Teams often attempt Hail Mary passes near the end of a half when they need a long touchdown throw."
   },
   {
     "id": 246,
@@ -3156,7 +3156,7 @@ window.QUIZ_DATA = [
       "Art Rooney"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Rooney Rule is named for former Pittsburgh Steelers owner Dan Rooney."
   },
   {
     "id": 247,
@@ -3170,7 +3170,7 @@ window.QUIZ_DATA = [
       "Miami Orange Bowl"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The first Super Bowl was played at the Los Angeles Memorial Coliseum in January 1967."
   },
   {
     "id": 249,
@@ -3184,7 +3184,7 @@ window.QUIZ_DATA = [
       "1970"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The NFL adopted a 16-game regular season in 1978, before expanding to 17 games in 2021."
   },
   {
     "id": 250,
@@ -3198,7 +3198,7 @@ window.QUIZ_DATA = [
       "1966"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The AFL-NFL merger fully took effect for the 1970 season, forming the AFC and NFC."
   },
   {
     "id": 251,
