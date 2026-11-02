@@ -27,7 +27,7 @@ function audit(league, rows) {
     if(/\b(all|none) of the above\b/i.test(q.options?.[q.correctIndex]||'')) add('WEAK_CORRECT_ANSWER',q.question);
     if(!String(q.notes||'').trim()) add('MISSING_EXPLANATION',q.question);
     const answer=options[q.correctIndex]||'';
-    if(answer.length>=9&&p.includes(answer)&&!/(which (?:year|season|game)|how many)/i.test(q.question)) add('POSSIBLE_ANSWER_LEAK',q.question);
+    if(answer.length>=9&&p.includes(answer)&&!/(which (?:year|season|game)|which of these|how many)/i.test(q.question)) add('POSSIBLE_ANSWER_LEAK',q.question);
     if(prompts.has(p)) add('EXACT_REPEAT','Matches '+prompts.get(p)); else prompts.set(p,q.id);
     // Same answer and high overlap signals fact reuse; this is a review flag,
     // not automatic deletion (one player can support distinct legitimate facts).
