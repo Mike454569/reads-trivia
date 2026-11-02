@@ -2532,7 +2532,7 @@ window.QUIZ_DATA = [
     "id": 200,
     "category": "Awards, MVPs & Hall of Fame",
     "difficulty": "Hard",
-    "question": "Which safety, playing for Tampa Bay, won Super Bowl XXXVII MVP with two interceptions, including a pick-six?",
+    "question": "Which Tampa Bay safety earned Super Bowl XXXVII MVP with two first-half interceptions against Oakland?",
     "options": [
       "Ronde Barber",
       "Dexter Jackson",
@@ -2540,7 +2540,7 @@ window.QUIZ_DATA = [
       "John Lynch"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Dexter Jackson intercepted two Rich Gannon passes; teammate Dwight Smith returned two other interceptions for touchdowns."
   },
   {
     "id": 202,
@@ -2840,7 +2840,7 @@ window.QUIZ_DATA = [
     "id": 223,
     "category": "Playoffs & Postseason Moments",
     "difficulty": "Hard",
-    "question": "Which team blew a 20-point lead in the 2012 playoffs (played Jan. 2013), one of the biggest collapses in postseason history, losing to the Falcons?",
+    "question": "Which team rallied from 20 points down against Atlanta in the 2012 playoffs, only to lose on a last-second field goal?",
     "options": [
       "Detroit Lions",
       "Seattle Seahawks",
@@ -2848,7 +2848,7 @@ window.QUIZ_DATA = [
       "Green Bay Packers"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Seattle took a late 28-27 lead after trailing 27-7, but Atlanta won 30-28 on Matt Bryant's field goal."
   },
   {
     "id": 224,
@@ -2882,7 +2882,7 @@ window.QUIZ_DATA = [
     "id": 226,
     "category": "Playoffs & Postseason Moments",
     "difficulty": "Very Hard",
-    "question": "The Jacksonville Jaguars overcame a 27-point deficit in the 2022 playoffs against which team, the largest comeback in NFL playoff history?",
+    "question": "Which team blew a 27-point lead against Jacksonville in the 2022-season AFC wild-card playoffs?",
     "options": [
       "Buffalo Bills",
       "Kansas City Chiefs",
@@ -2890,7 +2890,7 @@ window.QUIZ_DATA = [
       "Los Angeles Chargers"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Jacksonville beat the Chargers 31-30 after trailing 27-0, completing the third-largest comeback in NFL postseason history."
   },
   {
     "id": 227,
