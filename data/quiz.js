@@ -664,7 +664,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Packers have accumulated more regular-season victories than any other NFL franchise across their long history."
   },
   {
     "id": 55,
@@ -1056,7 +1056,7 @@ window.QUIZ_DATA = [
       "Philip Rivers"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Rivers threw 421 touchdown passes during his NFL career without winning a Super Bowl."
   },
   {
     "id": 87,
@@ -2918,7 +2918,7 @@ window.QUIZ_DATA = [
       "Jacksonville Jaguars"
     ],
     "correctIndex": 2,
-    "notes": "Dyson threw the ball backward during Tennessee's Music City Miracle kickoff return, which Kevin Dyson finished for a touchdown."
+    "notes": "Tennessee's Frank Wycheck threw a cross-field lateral to Kevin Dyson, who returned it for the winning touchdown against Buffalo."
   },
   {
     "id": 230,
@@ -3058,7 +3058,7 @@ window.QUIZ_DATA = [
       "Pittsburgh Steelers"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Buffalo is associated with severe lake-effect snow and winter conditions during home games."
   },
   {
     "id": 240,
@@ -3212,7 +3212,7 @@ window.QUIZ_DATA = [
       "Denver Broncos"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Miles is the Denver Broncos' horse mascot, introduced in the 1990s."
   },
   {
     "id": 252,
@@ -3226,7 +3226,7 @@ window.QUIZ_DATA = [
       "Edgar Allan Poe"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Baltimore's team name references The Raven, a poem by Edgar Allan Poe."
   },
   {
     "id": 253,
@@ -3240,7 +3240,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Pittsburgh adopted the Steelers name in 1940 in recognition of the city's steel industry."
   },
   {
     "id": 254,
@@ -3254,7 +3254,7 @@ window.QUIZ_DATA = [
       "Tennessee Football Club"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The franchise was called the Tennessee Oilers for its first two seasons in Tennessee before becoming the Titans."
   },
   {
     "id": 260,
@@ -3268,7 +3268,7 @@ window.QUIZ_DATA = [
       "1990s"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Dallas Cowboys Cheerleaders gained national prominence in the 1970s."
   },
   {
     "id": 261,
@@ -3282,7 +3282,7 @@ window.QUIZ_DATA = [
       "New York Giants"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Jones and Johnson parted ways after two straight Super Bowl titles, and Barry Switzer became Dallas' head coach."
   },
   {
     "id": 263,
@@ -3296,7 +3296,7 @@ window.QUIZ_DATA = [
       "Miami Dolphins"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Kraft bought the Patriots in 1994; the team later won six Super Bowls with Tom Brady and Bill Belichick."
   },
   {
     "id": 264,
@@ -3310,7 +3310,7 @@ window.QUIZ_DATA = [
       "Dallas Cowboys"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Cowboys became known as America's Team during the late 1970s because of their widespread popularity."
   },
   {
     "id": 266,
@@ -3324,7 +3324,7 @@ window.QUIZ_DATA = [
       "Tony Romo"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Aikman quarterbacked Dallas to three Super Bowl championships and later became a television analyst."
   },
   {
     "id": 268,
@@ -3338,7 +3338,7 @@ window.QUIZ_DATA = [
       "John Madden"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Madden NFL series is named for John Madden, a Super Bowl-winning coach and longtime broadcaster."
   },
   {
     "id": 269,
@@ -3352,7 +3352,7 @@ window.QUIZ_DATA = [
       "They retire early"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The Madden Curse is a fan superstition, not an established causal effect of appearing on a game cover."
   },
   {
     "id": 270,
@@ -3366,7 +3366,7 @@ window.QUIZ_DATA = [
       "Pittsburgh Steelers"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Miami's No-Name Defense helped the 1972 Dolphins complete their unbeaten 17-0 season."
   },
   {
     "id": 271,
@@ -3380,7 +3380,7 @@ window.QUIZ_DATA = [
       "Joe Namath"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Joe Namath became known as Broadway Joe during his career with the New York Jets."
   },
   {
     "id": 272,
@@ -3394,13 +3394,13 @@ window.QUIZ_DATA = [
       "Chicago Bears vs. Green Bay Packers"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "The Packers and Bears began their long-running rivalry in 1921."
   },
   {
     "id": 274,
     "category": "Miscellaneous & Team Culture",
     "difficulty": "Hard",
-    "question": "Which team's blank, colored helmet has remained unchanged since the franchise's founding, a rare case in the NFL?",
+    "question": "Which NFL team's orange helmet is famous for having no team logo on its sides?",
     "options": [
       "Cleveland Browns",
       "Pittsburgh Steelers",
@@ -3408,7 +3408,7 @@ window.QUIZ_DATA = [
       "Baltimore Ravens"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Cleveland is famous for its undecorated orange helmets, which have generally lacked a team logo."
   },
   {
     "id": 275,
@@ -3422,7 +3422,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The franchise played as the Houston Oilers before relocating to Tennessee and adopting the Titans name."
   },
   {
     "id": 277,
@@ -3436,7 +3436,7 @@ window.QUIZ_DATA = [
       "New York Jets"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Smith recorded most of his 200 career sacks with Buffalo before finishing his career in Washington."
   },
   {
     "id": 281,
@@ -3450,7 +3450,7 @@ window.QUIZ_DATA = [
       "Green Bay Packers"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Krause played much of his career with Minnesota and retired with 81 interceptions."
   },
   {
     "id": 282,
@@ -3464,7 +3464,7 @@ window.QUIZ_DATA = [
       "1952"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Lane intercepted 14 passes for the Los Angeles Rams during the 1952 season."
   },
   {
     "id": 283,
@@ -3478,7 +3478,7 @@ window.QUIZ_DATA = [
       "Mel Blount"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Dick Night Train Lane recorded 14 interceptions as an NFL rookie in 1952."
   },
   {
     "id": 285,
@@ -3492,7 +3492,7 @@ window.QUIZ_DATA = [
       "Minnesota Vikings"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Deacon Jones was part of the Los Angeles Rams' Fearsome Foursome defensive line."
   },
   {
     "id": 287,
@@ -3506,7 +3506,7 @@ window.QUIZ_DATA = [
       "Green Bay Packers and Minnesota Vikings"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "White played the bulk of his career with Philadelphia and Green Bay and retired with 198 official sacks."
   },
   {
     "id": 290,
@@ -3520,7 +3520,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Tucker kicked a 66-yard game winner against Detroit in September 2021."
   },
   {
     "id": 293,
@@ -3534,7 +3534,7 @@ window.QUIZ_DATA = [
       "Sam Adams"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Lewis earned 2000 AP NFL Defensive Player of the Year as Baltimore won Super Bowl XXXV."
   },
   {
     "id": 294,
@@ -3548,7 +3548,7 @@ window.QUIZ_DATA = [
       "Chicago Bears"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Buddy Ryan coordinated Chicago's celebrated 1985 defense, which helped the Bears win Super Bowl XX."
   },
   {
     "id": 297,
@@ -3562,7 +3562,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Hester played most of his career with Chicago and became famous for his kick and punt return touchdowns."
   },
   {
     "id": 299,
@@ -3576,7 +3576,7 @@ window.QUIZ_DATA = [
       "A prosthetic leg"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Dempsey wore a specially modified kicking shoe because he was born without toes on his right foot."
   },
   {
     "id": 301,
