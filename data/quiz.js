@@ -76,7 +76,7 @@ window.QUIZ_DATA = [
       "Joe Montana"
     ],
     "correctIndex": 2,
-    "notes": "Brady earned five Super Bowl MVP awards, three with New England before his final two Patriots wins and one with Tampa Bay."
+    "notes": "Brady won Super Bowl MVP four times with New England (XXXVI, XXXVIII, XLIX and LI) and once with Tampa Bay (LV)."
   },
   {
     "id": 6,
