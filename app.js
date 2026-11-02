@@ -13,7 +13,7 @@ var SITE_URL = 'https://reads.football/';
 // like any other mode. false makes the route, the card, the render branch,
 // and the package-validation check all simultaneously inert -- no file
 // deletion needed to roll back. See PLAYER_FROM_CLUES_FRONTEND_INTEGRATION_PLAN.md.
-var ENABLE_PLAYER_FROM_CLUES_V01 = false;
+var ENABLE_PLAYER_FROM_CLUES_V01 = true;
 // UI/UX Upgrade Pass: same real kill-switch discipline for the new CFB
 // counterpart (data/cfb-player-from-clues-v01.js) -- false makes its
 // LEAGUE_MODES.cfb card, render branch, and package-validation check all
@@ -2246,6 +2246,9 @@ function appNavigateBack() {
   });
 }
 function goToMode(mode) {
+  if ((READS_CONFIG.unavailablePublicModeIds || []).indexOf(mode) !== -1) {
+    state.screen = 'home'; renderAll(); return;
+  }
   // Only available games and actual navigation screens can launch during the hold.
   if (READS_CONFIG.publicGatewayGamesEnabled === false &&
       !allPlayableModesUnique().some(function(m){return m.id === mode;}) &&

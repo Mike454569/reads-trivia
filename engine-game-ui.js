@@ -1929,6 +1929,17 @@ var ENGINE_MECHANIC_MODES = {
   championshipRun: { publicMode: 'championship_run_mixed', hash: '#championshiprunpilot', flagOn: function () { return typeof READS_CONFIG !== 'undefined' && READS_CONFIG.publicGatewayGamesEnabled !== false; }, title: 'Championship Run', kind: 'strategy_arcade', icon: 'trophy', desc: 'Championship Run strategy challenge.', fallbackLabel: 'Back Home', fallback: function () { state.mechanicPilot=null; state.screen='home'; } },
 
 };
+// A failed variant can be hidden independently of its healthy sibling formats.
+[ENGINE_PILOT_MODES, ENGINE_MECHANIC_MODES].forEach(function (registry) {
+  Object.keys(registry).forEach(function (key) {
+    var cfg = registry[key], originalFlag = cfg.flagOn;
+    cfg.flagOn = function () {
+      var config = window.READS_CONFIG || {};
+      return originalFlag() && (config.unavailablePublicModes || []).indexOf(cfg.apiMode || cfg.publicMode) === -1;
+    };
+  });
+});
+
 var mechanicPilotCurrentModeKey = 'matching';
 function mechanicPilotModeConfig(modeKey) {
   return ENGINE_MECHANIC_MODES[modeKey] || ENGINE_MECHANIC_MODES.matching;
