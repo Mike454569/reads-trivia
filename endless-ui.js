@@ -179,7 +179,8 @@ function startEndlessMode(){
   ENDLESS={active:true,screen:'question',score:0,lives:3,streak:0,bestStreak:0,index:0,answered:null,current:null,visible:[],league:'nfl',multiplier:1,correct:0,total:0,history:[],isNewBest:false,lastEvent:null,currentEvent:null,runSeed:hashStr((state.name||'guest')+'|'+Date.now())};
   state.screen='endless';lsSet('nflTriviaLastMode','endless');
   if(window.__fbSync&&window.__fbSync.logPlay)window.__fbSync.logPlay('endless');
-  if(!endlessPickQuestion()){ENDLESS.active=false;ENDLESS.screen='finished';}\n  renderAll();
+  if(!endlessPickQuestion()){ENDLESS.active=false;ENDLESS.screen='finished';}
+  renderAll();
 }
 function answerEndless(i){
   if(!ENDLESS.active||ENDLESS.screen!=='question'||ENDLESS.answered!==null||!ENDLESS.current)return;
