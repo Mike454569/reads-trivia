@@ -1249,9 +1249,23 @@ def get_public_game(*, mode: str, difficulty: Optional[str], seed: Optional[str]
                 "NO_ELIGIBLE_GAME",
                 f"No QA-passed question could be generated for mode={mode!r} right now.",
             )
-        # Every eligible attempt landed on an excluded game_id -- real,
-        # honest outcome for a very small eligible pool, not an
-        # infrastructure failure.
+        # Fail closed when a caller requests a fresh game. Reusing the
+        # last eligible result here silently returned an excluded package or
+        # recently seen entity, making Endless Reads and other repeat-sensitive
+        # modes loop through questions. Do not spend additional generation
+        # attempts or serve known repeats when the pool is exhausted.
+        if exclude or (recent_entities is not None and stage_index is None):
+            oplog.record_event(
+                "public_game_fresh_pool_exhausted", mode=mode, difficulty=difficulty or "any",
+                generation_attempts=attempts_used, latency_ms=round((time.perf_counter() - t0) * 1000, 3),
+            )
+            raise GatewayError(
+                "NO_ELIGIBLE_GAME",
+                f"No unseen QA-passed question is available for mode={mode!r} within "
+                "the current selection attempts.",
+            )
+        # Preserve legacy behavior for requests without a client history or
+        # exclusions. A pinned seed still deterministically identifies content.
         stored = last_eligible
 
     if recent_entities is not None:
