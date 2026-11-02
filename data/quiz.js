@@ -642,7 +642,7 @@ window.QUIZ_DATA = [
     "id": 51,
     "category": "Franchise & Team Records",
     "difficulty": "Hard",
-    "question": "Which team won a Super Bowl-era record 17 consecutive regular-season games spanning the 2003-04 seasons?",
+    "question": "Which team won 18 consecutive regular-season games across the 2003 and 2004 seasons?",
     "options": [
       "New England Patriots",
       "Pittsburgh Steelers",
@@ -650,7 +650,7 @@ window.QUIZ_DATA = [
       "Indianapolis Colts"
     ],
     "correctIndex": 0,
-    "notes": "New England won 17 consecutive regular-season games across the 2003 and 2004 seasons, in addition to playoff wins."
+    "notes": "New England won 18 consecutive regular-season games and 21 consecutive games including playoffs across 2003-04."
   },
   {
     "id": 52,
@@ -1350,7 +1350,7 @@ window.QUIZ_DATA = [
       "Frank Gore"
     ],
     "correctIndex": 1,
-    "notes": "Smith carried the ball 4,409 times in his NFL regular-season career."
+    "notes": "Smith carried the ball 4,939 times across his NFL regular-season career."
   },
   {
     "id": 111,
