@@ -1392,7 +1392,7 @@ window.QUIZ_DATA = [
       "Sweetness"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Payton was nicknamed Sweetness during his Hall of Fame career with the Chicago Bears."
   },
   {
     "id": 114,
@@ -1406,7 +1406,7 @@ window.QUIZ_DATA = [
       "2,105 yards"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Simpson gained 2,003 rushing yards in 1973, becoming the first NFL player to reach 2,000 in a 14-game season."
   },
   {
     "id": 115,
@@ -1420,7 +1420,7 @@ window.QUIZ_DATA = [
       "William Perry"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Bettis earned The Bus nickname during his power-running career, most notably with Pittsburgh."
   },
   {
     "id": 116,
@@ -1434,7 +1434,7 @@ window.QUIZ_DATA = [
       "Calvin Johnson"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Detroit star Calvin Johnson was known as Megatron during his nine NFL seasons."
   },
   {
     "id": 117,
@@ -1448,7 +1448,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Faulk played a central role in the Rams' Greatest Show on Turf offense with quarterback Kurt Warner."
   },
   {
     "id": 118,
@@ -1462,7 +1462,7 @@ window.QUIZ_DATA = [
       "2000"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Tomlinson scored 31 total touchdowns in the 2006 regular season, including 28 rushing scores."
   },
   {
     "id": 119,
@@ -1476,7 +1476,7 @@ window.QUIZ_DATA = [
       "New York Jets"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Tomlinson's record-setting 2006 campaign came with the San Diego Chargers."
   },
   {
     "id": 120,
@@ -1490,7 +1490,7 @@ window.QUIZ_DATA = [
       "Antonio Gates"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Gonzalez played for Kansas City and Atlanta and retired with 1,325 receptions."
   },
   {
     "id": 121,
@@ -1504,7 +1504,7 @@ window.QUIZ_DATA = [
       "Buffalo Bills"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Martin spent his first three seasons with New England, then played eight with the New York Jets."
   },
   {
     "id": 123,
@@ -1518,7 +1518,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Kansas City featured Priest Holmes and Larry Johnson in its backfield during the 2000s."
   },
   {
     "id": 124,
@@ -1532,7 +1532,7 @@ window.QUIZ_DATA = [
       "Antonio Brown"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Thomas caught 149 passes for New Orleans during the 2019 season."
   },
   {
     "id": 125,
@@ -1546,7 +1546,7 @@ window.QUIZ_DATA = [
       "New Orleans Saints"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Thomas broke the single-season receptions record while playing for the Saints in 2019."
   },
   {
     "id": 126,
@@ -1560,7 +1560,7 @@ window.QUIZ_DATA = [
       "Ben Roethlisberger"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "San Diego selected Manning first overall in 2004 and traded his rights to the Giants."
   },
   {
     "id": 127,
@@ -1574,7 +1574,7 @@ window.QUIZ_DATA = [
       "Kellen Winslow II"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Rivers went to the Chargers in the 2004 draft-day deal involving Eli Manning and the Giants."
   },
   {
     "id": 128,
@@ -1588,7 +1588,7 @@ window.QUIZ_DATA = [
       "New York Jets"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "New England used the 199th selection of the 2000 draft on Michigan quarterback Tom Brady."
   },
   {
     "id": 130,
@@ -1602,7 +1602,7 @@ window.QUIZ_DATA = [
       "Cleveland Browns"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Washington selected Griffin second overall after the Colts drafted Andrew Luck first in 2012."
   },
   {
     "id": 132,
@@ -1616,7 +1616,7 @@ window.QUIZ_DATA = [
       "Arizona Cardinals"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The Chargers selected Ryan Leaf second overall in 1998, immediately after Peyton Manning."
   },
   {
     "id": 133,
@@ -1630,7 +1630,7 @@ window.QUIZ_DATA = [
       "Cleveland Browns"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Oakland took Russell first overall out of LSU in the 2007 draft."
   },
   {
     "id": 134,
@@ -1644,7 +1644,7 @@ window.QUIZ_DATA = [
       "Marcus Mariota"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Tampa Bay selected Winston first overall out of Florida State in 2015."
   },
   {
     "id": 135,
@@ -1658,7 +1658,7 @@ window.QUIZ_DATA = [
       "Philadelphia Eagles"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Tennessee selected Oregon quarterback Marcus Mariota immediately after Jameis Winston in the 2015 draft."
   },
   {
     "id": 136,
@@ -1672,7 +1672,7 @@ window.QUIZ_DATA = [
       "Baker Mayfield"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Cleveland drafted Mayfield first overall in 2018 out of Oklahoma."
   },
   {
     "id": 137,
@@ -1686,7 +1686,7 @@ window.QUIZ_DATA = [
       "Kansas City Chiefs"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Kansas City moved up to the tenth overall pick in 2017 to draft Texas Tech quarterback Patrick Mahomes."
   },
   {
     "id": 138,
@@ -1700,7 +1700,7 @@ window.QUIZ_DATA = [
       "San Francisco 49ers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "The Patriots selected Alabama quarterback Mac Jones 15th overall in the 2021 draft."
   },
   {
     "id": 139,
@@ -1714,7 +1714,7 @@ window.QUIZ_DATA = [
       "New York Jets"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Jacksonville selected Clemson quarterback Trevor Lawrence first overall in 2021."
   },
   {
     "id": 140,
@@ -1728,7 +1728,7 @@ window.QUIZ_DATA = [
       "Will Levis"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Carolina traded with Chicago for the 2023 first overall selection and used it on Alabama quarterback Bryce Young."
   },
   {
     "id": 141,
@@ -1742,7 +1742,7 @@ window.QUIZ_DATA = [
       "Arizona Cardinals"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Chicago selected USC quarterback Caleb Williams first overall in the 2024 draft."
   },
   {
     "id": 142,
@@ -1756,7 +1756,7 @@ window.QUIZ_DATA = [
       "San Francisco 49ers"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Green Bay picked Rodgers 24th overall in 2005, after he had been projected by some to go much earlier."
   },
   {
     "id": 143,
@@ -1770,7 +1770,7 @@ window.QUIZ_DATA = [
       "Ken Dorsey"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Atlanta drafted Virginia Tech quarterback Michael Vick first overall in 2001."
   },
   {
     "id": 144,
@@ -1784,7 +1784,7 @@ window.QUIZ_DATA = [
       "Seattle Seahawks"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "The Colts selected Elway first overall in 1983 before trading his rights to Denver."
   },
   {
     "id": 145,
@@ -1798,7 +1798,7 @@ window.QUIZ_DATA = [
       "Tony Eason"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Miami selected Dan Marino 27th overall, the sixth quarterback taken in the 1983 first round."
   },
   {
     "id": 146,
@@ -1812,7 +1812,7 @@ window.QUIZ_DATA = [
       "Steals"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Marino fell to the 27th selection before a Hall of Fame career with Miami."
   },
   {
     "id": 147,
@@ -1826,7 +1826,7 @@ window.QUIZ_DATA = [
       "Detroit Lions"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Tampa Bay selected Bo Jackson first overall in 1986, but he did not sign with the Buccaneers."
   },
   {
     "id": 148,
@@ -1840,7 +1840,7 @@ window.QUIZ_DATA = [
       "Jacksonville Jaguars"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Cincinnati selected Penn State running back Ki-Jana Carter first overall in 1995."
   },
   {
     "id": 149,
@@ -1854,7 +1854,7 @@ window.QUIZ_DATA = [
       "St. Louis Rams"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "St. Louis drafted Oklahoma quarterback Sam Bradford first overall in 2010."
   },
   {
     "id": 150,
@@ -1868,7 +1868,7 @@ window.QUIZ_DATA = [
       "Kyler Murray"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Arizona selected Oklahoma quarterback Kyler Murray first overall in 2019."
   },
   {
     "id": 152,
@@ -1882,7 +1882,7 @@ window.QUIZ_DATA = [
       "347"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Shula finished with 328 regular-season wins in his coaching career with Baltimore and Miami."
   },
   {
     "id": 153,
@@ -1896,7 +1896,7 @@ window.QUIZ_DATA = [
       "Mike Holmgren"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Lombardi coached Green Bay to victories in Super Bowls I and II."
   },
   {
     "id": 154,
@@ -1910,7 +1910,7 @@ window.QUIZ_DATA = [
       "George Halas"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "The NFL championship trophy bears the name of legendary Green Bay head coach Vince Lombardi."
   },
   {
     "id": 155,
@@ -1924,7 +1924,7 @@ window.QUIZ_DATA = [
       "Josh McDaniels"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Belichick coached New England to six Super Bowl championships, beginning with the 2001 season."
   },
   {
     "id": 156,
@@ -1938,7 +1938,7 @@ window.QUIZ_DATA = [
       "University of Alabama"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "After leaving New England following the 2023 season, Belichick was hired as North Carolina's head coach in December 2024."
   },
   {
     "id": 157,
@@ -1952,7 +1952,7 @@ window.QUIZ_DATA = [
       "Chuck Noll"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Chuck Noll coached Pittsburgh to four Super Bowl wins during the 1970s."
   },
   {
     "id": 158,
@@ -1966,7 +1966,7 @@ window.QUIZ_DATA = [
       "Jimmy Johnson"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Johnson led Dallas to wins in Super Bowls XXVII and XXVIII before leaving the Cowboys."
   },
   {
     "id": 159,
@@ -1980,7 +1980,7 @@ window.QUIZ_DATA = [
       "Mike Shanahan"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Mike Shanahan led Denver to Super Bowl titles after the 1997 and 1998 seasons."
   },
   {
     "id": 160,
@@ -1994,7 +1994,7 @@ window.QUIZ_DATA = [
       "Lovie Smith"
     ],
     "correctIndex": 0,
-    "notes": ""
+    "notes": "Mike Ditka coached the 1985 Bears to a 46-10 victory over New England in Super Bowl XX."
   },
   {
     "id": 161,
@@ -2008,7 +2008,7 @@ window.QUIZ_DATA = [
       "Tom Flores"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Ditka played tight end for the Cowboys during their Super Bowl VI championship season and later coached the Bears to a title."
   },
   {
     "id": 162,
@@ -2022,7 +2022,7 @@ window.QUIZ_DATA = [
       "Brian Billick"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "John Harbaugh and the Ravens defeated his brother Jim's 49ers in Super Bowl XLVII."
   },
   {
     "id": 163,
@@ -2036,7 +2036,7 @@ window.QUIZ_DATA = [
       "Philadelphia Eagles"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Gruden coached Oakland from 1998 through 2001 and led Tampa Bay past the Raiders in Super Bowl XXXVII."
   },
   {
     "id": 164,
@@ -2050,7 +2050,7 @@ window.QUIZ_DATA = [
       "Marty Schottenheimer"
     ],
     "correctIndex": 1,
-    "notes": ""
+    "notes": "Reid coached Kansas City to championships in Super Bowls LIV, LVII and LVIII."
   },
   {
     "id": 165,
@@ -2064,7 +2064,7 @@ window.QUIZ_DATA = [
       "Philadelphia Eagles"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Reid coached Philadelphia from 1999 through 2012 before taking over the Chiefs in 2013."
   },
   {
     "id": 166,
@@ -2078,7 +2078,7 @@ window.QUIZ_DATA = [
       "Pete Carroll"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Carroll coached Seattle to a 43-8 victory over Denver in Super Bowl XLVIII."
   },
   {
     "id": 168,
@@ -2092,7 +2092,7 @@ window.QUIZ_DATA = [
       "Green Bay Packers"
     ],
     "correctIndex": 3,
-    "notes": ""
+    "notes": "Parcells coached the Giants, Patriots, Jets and Cowboys, but never the Green Bay Packers."
   },
   {
     "id": 169,
@@ -2106,7 +2106,7 @@ window.QUIZ_DATA = [
       "Howard Schnellenberger"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Don Shula coached the 1972 Miami Dolphins to a 17-0 record including the playoffs."
   },
   {
     "id": 170,
@@ -2120,7 +2120,7 @@ window.QUIZ_DATA = [
       "Lovie Smith"
     ],
     "correctIndex": 2,
-    "notes": ""
+    "notes": "Bruce Arians coached Tampa Bay to a 31-9 victory over Kansas City in Super Bowl LV."
   },
   {
     "id": 171,
